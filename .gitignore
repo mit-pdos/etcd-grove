@@ -1,2 +1,6 @@
 /.lake
 .scratch/
+
+# Python bytecode
+__pycache__/
+*.py[co]

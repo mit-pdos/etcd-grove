@@ -128,7 +128,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   ihave HB := txnBuild_conv B _ ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err ⟨Hres, #Hce⟩
   · ipureintro; exact ⟨newKeyTxn_under pfx key val lease Hk, TxnModel.exactGets_of_noGets _ (by simp [newKeyTxn])
-        (by simp [newKeyTxn, compareM, cmpKeyM]) (by simp [newKeyTxn, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero])⟩
+        (by simp [newKeyTxn, compareM, cmpKeyM]) (by simp [newKeyTxn, op_simps])⟩
   iunfold txnCommitResultTok at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, Htok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

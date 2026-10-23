@@ -3,11 +3,11 @@ The cache watch example's results (`examples/cachekv/cachekv.go`), restated, wit
 of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterpart).
 
 * **`cachekv_Main`** (`Link.lean`'s `cachekv.wp_Main`): `Main(nw, nops)` -- the Puts picked, one
-  etcd member started in process, a one-attempt client, a cache of the prefix over it, the cache's
+  etcd member started in process, a client with etcd's default configuration, a cache of the prefix over it, the cache's
   watch of the prefix from revision `2`, `nw` writers, the watch read up to the highest successful
   revision, and a check that panics unless the watched events are exactly the writes -- does not
   panic and returns `Ok`, `Failed` or `WatchEnded`. From `isPkgInit cachekv`, the right to listen
-  on `127.0.0.1:23851`, the main thread's token and `Main`'s named premises
+  on `127.0.0.1:23873`, the main thread's token and `Main`'s named premises
   (`Spec/github_com/mit_pdos/etcd_grove/examples/cachekv/Main.lean`).
 * **`cache_safe`** (`Adequacy.lean`'s `cache_adequate`): the closed theorem. Every real execution
   of `n` steps of `cachekv`'s initialization followed by `Main(nw, nops)`, from a fresh state with
@@ -73,7 +73,7 @@ theorem cache_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
     (HNs : prometheus.namesUnclaimed (cachekvProgram nw nops) cachekvNames)
-    (HAs : addrsUnclaimed (cachekvProgram nw nops) [go!"127.0.0.1:23851"])
+    (HAs : addrsUnclaimed (cachekvProgram nw nops) [go!"127.0.0.1:23873"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ cachekv.premises (GF := putgetGF) (hG := heapAt hG lctx) n id bootLog)

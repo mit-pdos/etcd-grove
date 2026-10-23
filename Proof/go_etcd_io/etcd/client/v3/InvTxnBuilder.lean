@@ -67,31 +67,23 @@ def txnKvIs (tp api : Loc) : IProp GF :=
 instance txnKvIs_persistent (tp api : Loc) : Persistent (txnKvIs (GF := GF) tp api) := by
   unfold txnKvIs; infer_instance
 
-/-- **A transaction's precondition on a `*txn`** (2026-10-20, linkv-txn stage A; `kvReqPre`'s,
-D21 M6): persistent, ordinary on a builder made from a `*kv` over a connection configured for
-one attempt (`kvOnce`), or (2026-10-21, D29) ordinary over a refusal-free connection. -/
+/-- **A transaction's precondition on a `*txn`** (2026-10-20, linkv-txn stage A; `kvReqPre`'s):
+persistent, or (2026-10-21, D29) ordinary over a refusal-free connection. -/
 def txnReqPre (tp : Loc) (addr : List GoString) (P : IProp GF) : IProp GF :=
-  iprop(□ ▷ P ∨ ((∃ api : Loc, txnKvIs tp api ∗ kvOnce api addr) ∗ ▷ P) ∨
-    (⌜∀ a ∈ addr, noRefusalAt a⌝ ∗ ▷ P))
+  iprop(□ ▷ P ∨ (⌜∀ a ∈ addr, noRefusalAt a⌝ ∗ ▷ P))
 
 theorem txnReqPre_box (tp : Loc) (addr : List GoString) (P : IProp GF) :
     (□ ▷ P : IProp GF) ⊢ txnReqPre tp addr P := by
   unfold txnReqPre; iintro #H; ileft; iexact H
 
-/-- A `*txn`'s precondition is its `*kv`'s (the `kv` fields' points-to agree). -/
+/-- A `*txn`'s precondition is its `*kv`'s. -/
 theorem txnReqPre_kv (tp api : Loc) (addr : List GoString) (P : IProp GF) :
     txnKvIs tp api ∗ txnReqPre tp addr P ⊢ kvReqPre api addr P := by
-  iintro ⟨#Hk, H⟩
+  iintro ⟨-, H⟩
   unfold txnReqPre kvReqPre
-  icases H with (#H | ⟨⟨%api', #Hk', #Ho⟩, H⟩ | ⟨%Hnr, H⟩)
+  icases H with (#H | ⟨%Hnr, H⟩)
   · ileft; iexact H
-  rotate_left
-  · iright; iright; iframe H; ipureintro; exact Hnr
-  · iright; ileft
-    iunfold txnKvIs at Hk Hk'
-    icombine Hk Hk' gives %Heq
-    subst Heq
-    iframe Ho H
+  · iright; iframe H; ipureintro; exact Hnr
 
 theorem comparesAt_nil : ⊢ comparesAt (GF := GF) [] [] := by
   unfold comparesAt

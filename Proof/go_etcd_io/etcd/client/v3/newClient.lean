@@ -156,7 +156,7 @@ theorem newClient.wp_proof
     $$ [$Hrc $cfg $Hdo $authTokenBundle $creds $endpoints $Heps $resolver $Hro]
     as %conn %derr Hres
   · ipureintro; exact Hplain
-  icases Hres with (⟨%Hderr, #Hconn, #Hconn1⟩ | %Hderr)
+  icases Hres with (⟨%Hderr, #Hconn⟩ | %Hderr)
   · subst Hderr
     wp_auto
     ipersist conn
@@ -182,7 +182,7 @@ theorem newClient.wp_proof
       iexists ic
       iframe Hgc Hic HicW
     wp_apply wp_NewCluster «$r0_ptr» $$ [$Hcore] as %vc -
-    wp_apply wp_NewKV «$r0_ptr» eps $$ [$Hkv] as %vkv ⟨%api, %Hvkv, #Hapi, #Hapi1⟩
+    wp_apply wp_NewKV «$r0_ptr» eps $$ [$Hkv] as %vkv ⟨%api, %Hvkv, #Hapi⟩
     wp_apply wp_NewLease «$r0_ptr» eps $$ [$Hcore $Hkv] as %vl ⟨%lp, %Hvl, #Hlp⟩
     iunfold callOptsAt at Hdslok
     icases Hdslok with ⟨%cvs, #Hcvs, -, #Hcvok, -⟩
@@ -240,16 +240,6 @@ theorem newClient.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    isplitr
-    rotate_left
-    · iintro %Hm
-      iunfold clientKVOnce
-      iexists api
-      subst Hvkv
-      iframe KV
-      iapply Hapi1 $$ %_ conn
-      iapply Hconn1
-      ipureintro; exact Hm
     iunfold isNewClient
     iframe Hkv Hrc
     isplitl []

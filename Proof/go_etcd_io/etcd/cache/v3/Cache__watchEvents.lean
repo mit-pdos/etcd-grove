@@ -40,12 +40,8 @@ theorem watchEvents_opts (pfx : GoString) (rev : w64) :
       ¬ opWatchPanics pfx [withPrefixM, withRevM rev, withProgressNotifyM, withCreatedNotifyM] := by
   by_cases h : pfx = []
   · subst h
-    simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
-      OpModel.zero, withPrefixM, withRevM, withProgressNotifyM, withCreatedNotifyM,
-      OpFull.isPrefixWatch]
-  · simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
-      OpModel.zero, withPrefixM, withRevM, withProgressNotifyM, withCreatedNotifyM,
-      OpFull.isPrefixWatch, h]
+    simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, OpFull.isPrefixWatch]
+  · simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, OpFull.isPrefixWatch, h]
 
 /-- The pure part of etcd's watch contract for a response that is not an error: one without
 events that is no progress notification (the created notification), a progress notification, or
@@ -57,12 +53,6 @@ def WatchCase (pfx : GoString) (k k' : w64) (r : RespModel) : Prop :=
   (r.events ≠ [] ∧ EvRevSorted r.events ∧
     (∀ e ∈ r.events, sint.Z k < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
     r.events.getLast?.map EvModel.rev = some k')
-
-theorem isProgressNotify_events {r : RespModel} (h : r.isProgressNotify = true) :
-    r.events = [] := by
-  unfold RespModel.isProgressNotify at h
-  simp only [Bool.and_eq_true, List.isEmpty_iff] at h
-  exact h.1.1.1.1
 
 theorem isProgressNotify_false_of_events {r : RespModel} (h : r.events ≠ []) :
     r.isProgressNotify = false := by

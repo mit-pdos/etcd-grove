@@ -39,13 +39,6 @@ instance isBlockLogger_persistent' {α : Type} (bl : Loc) (A : α → IProp GF) 
 instance bufLogOk_persistent' (ws bl : Loc) : Persistent (bufLogOk (GF := GF) ws bl) := by
   unfold bufLogOk; infer_instance
 
-/-- The `i`th entry of a list ending at `a`, of length `i + 1`. -/
-theorem getElem?_of_getLast? {A : Type} {C : List A} {i : Nat} {a : A} (hC : C.length = i + 1)
-    (hl : C.getLast? = some a) : C[i]? = some a := by
-  rw [List.getLast?_eq_getElem?] at hl
-  rw [hC] at hl
-  simpa using hl
-
 /-- **Publishing a response** at the producer's position `i` (the cursor's positions `C`, one more
 than the responses published, ending at `hiB`): the cursor extended by `hiA`, the contract's
 element. -/
@@ -55,12 +48,12 @@ theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
     (hf : v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created)
     :
     monoListAuthOwn (GF := GF) P.γ.cur 1 C ∗ eventsAt v.Events' r.events ∗
-      watchHdrOwn v.Header' r ∗ rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗
+      watchHdrOwn v.Header' r ∗ rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hiB hiA r ∗
       statusErrOk v.closeErr' ∗
       (⌜P.γ.cpl = false⌝ ∨ ∃ c2 c2' : w64, monoListIdxOwn P.γ.cur2 i c2 ∗
-        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ watchRespOk (EM := V.EM) P.o.key c2 c2' v r) ⊢
+        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ watchRespOk (EM := V.WM) P.o.key c2 c2' v r) ⊢
     |==> (monoListAuthOwn P.γ.cur 1 (C ++ [hiA]) ∗
-      rangeWatchElem (EM := V.EM) P.γ V.pfx P.o P.rev (i : Int) v) := by
+      rangeWatchElem (EM := V.WM) P.γ V.pfx P.o P.rev (i : Int) v) := by
   iintro ⟨Hauth, #Hev, Hhdr, #Hok, #Hse, #Hc2⟩
   imod monoListAuthOwn_update_app (GF := GF) [hiA] $$ Hauth with ⟨Hauth, #Hlb⟩
   have h1 : (C ++ [hiA])[i]? = some hiB := by
@@ -82,7 +75,7 @@ theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
 /-- A created response without events keeps the cache's contract's position. -/
 theorem watchRespOk_created (V : WEnv GF) (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) (hc : r.created = true) (he : r.events = []) :
-    watchRespOk (EM := V.EM) pfx c c' v r ⊢ ⌜c' = c⌝ := by
+    watchRespOk (EM := V.WM) pfx c c' v r ⊢ ⌜c' = c⌝ := by
   unfold watchRespOk
   iintro (⟨%H, -⟩ | %H | ⟨%H, -, -⟩ | ⟨%H, -⟩)
   · ipureintro; exact H.2
@@ -97,7 +90,7 @@ theorem publish_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : k
     cur2Pos (GF := GF) P i k ∗ recvCmpl V P kk v r ⊢
     |==> (cur2Pos P (i + 1) (k + 1) ∗
       (⌜P.γ.cpl = false⌝ ∨ ∃ c2 c2' : w64, monoListIdxOwn P.γ.cur2 i c2 ∗
-        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ watchRespOk (EM := V.EM) P.o.key c2 c2' v r)) := by
+        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ watchRespOk (EM := V.WM) P.o.key c2 c2' v r)) := by
   unfold cur2Pos recvCmpl
   rw [hk]
   iintro ⟨(%H | ⟨%C2, %cl2, Ha, %HC, #Hk⟩), #Hc⟩
@@ -172,16 +165,6 @@ theorem recvLive_ptsto (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) :
   · iexists v, r, hiB, hiA
     iframe Hv Hrest
   · iexists v; iexact Hv
-
-/-- The two halves of a points-to, joined. -/
-theorem ptsto_halves (l : Loc) (v : w64) :
-    typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
-      typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ⊢
-    typedPointsto (GF := GF) l v (DFrac.own 1) := by
-  have h := ((fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
-    (1 : Qp).half (1 : Qp).half)
-  rw [Qp.half_add_half] at h
-  exact h.2
 
 /-- The header of a response without events is read-only. -/
 theorem watchHdrOwn_nil (h : Loc) (r : RespModel) (he : r.events = []) :
@@ -409,6 +392,8 @@ local macro "c2_fin" : tactic => `(tactic| (
   · first | exact HC.2 | simp
   · first | exact Or.inl rfl | exact Or.inl Hnr0P | exact Or.inr ⟨Hif, rfl⟩ | (right; exact ⟨by simpa using Hif, rfl⟩)))
 
+-- (2026-10-22) the unused-variables linter walks the proof's info tree: 7s of this module's CPU
+set_option linter.unusedVariables false in
 set_option maxRecDepth 10000 in
 set_option maxHeartbeats 8000000 in
 theorem watchGRPCStream.serveSubstream.wp_proof
@@ -695,7 +680,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       · exact absurd hk Hne
       icombine Hrev Hrv2 gives %Hrveq
       subst Hrveq
-      ihave Hrev := ptsto_halves _ _ $$ [Hrev Hrv2]
+      ihave Hrev := (typedPointsto_half_split _ _ 1).2 $$ [Hrev Hrv2]
       · iframe
       by_cases hr0 : rcv = []
       · -- the first response ever: `retc`, the created notification, "now"'s resume revision

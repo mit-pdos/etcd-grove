@@ -74,7 +74,7 @@ theorem EtcdServer.applyEntries.wp_proof
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp Hms Hai1 Hok hEok
-  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, #Hkb⟩
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -93,11 +93,11 @@ theorem EtcdServer.applyEntries.wp_proof
     iframe
     isplitr
     · iexact HWA
-    isplitl [Hka]
+    isplitl [Hka HRS]
     · isplitr
       · ipureintro; rfl
       iframe Hlog
-      rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iexact Hka
+      rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iframe Hka HRS
     ipureintro
     refine ⟨Hok, ?_, Or.inl rfl, Or.inl ⟨by simp [unapplied], rfl⟩⟩
     simp only [List.getLast?_nil, Option.map_none, Option.getD_none]
@@ -189,11 +189,11 @@ theorem EtcdServer.applyEntries.wp_proof
       iapply Hbc
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
-      (ai + 1) ep cs rac st a t x γr A γp hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka]
+      (ai + 1) ep cs rac st a t x γr A γp hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka HRS]
       as %appt %appi %stop ⟨Hfs, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao, #HWA',
-        ⟨%x', HKV, %Hx', #Hlog', Hka⟩, %Hpost⟩
+        ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
-      iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW HWA Hfs Hbc' Hlog Hka Hkb'
+      iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW HWA Hfs Hbc' Hlog Hka HRS Hkb'
     obtain ⟨hli, hlt, hok2, hci2, hstop⟩ := Hpost
     -- `apply` never asks to stop (D19m: no member removed), so `stopWithDelay` is not reached
     subst hstop
@@ -215,11 +215,11 @@ theorem EtcdServer.applyEntries.wp_proof
     iframe
     isplitr
     · iexact HWA'
-    isplitl [Hka]
+    isplitl [Hka HRS]
     · isplitr
       · ipureintro; rw [hun]; exact Hx'
       iframe Hlog'
-      rw [hun]; iexact Hka
+      rw [hun]; iframe Hka HRS
     ipureintro; exact ⟨hok2, hfin, Or.inr hci2, Or.inr (by rw [hun]; exact hlt)⟩
   · -- `off ≥ len(entries)`: every entry is already applied
     (try wp_auto)
@@ -236,11 +236,11 @@ theorem EtcdServer.applyEntries.wp_proof
     iframe
     isplitr
     · iexact HWA
-    isplitl [Hka]
+    isplitl [Hka HRS]
     · isplitr
       · ipureintro; rw [hun]; rfl
       iframe Hlog
-      rw [hun, List.append_nil]; iexact Hka
+      rw [hun, List.append_nil]; iframe Hka HRS
     ipureintro
     refine ⟨Hok, ?_, Or.inl rfl, Or.inl ⟨hun, rfl⟩⟩
     rw [hmL]

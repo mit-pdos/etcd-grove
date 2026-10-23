@@ -44,8 +44,10 @@ theorem mvcc.metricsTxnWrite.Range.wp_proof
     (try wp_auto)
     wp_method_call; wp_call
     (try wp_auto)
-    wp_apply (hRange tr s trace ti rt γ log rev ctx cd todo key endk k e ro te crev Z)
-      $$ [$Hs $Htr $Hrd $Hidx $Hti $Hctx $Hkey $Hend $Hmu $Htrc]
+    ihave #Hs' : mvcc.isStore s (γ.withPhys p) $$ []
+    · rw [mvcc.isStore_withPhys]; iexact Hs
+    wp_apply (hRange tr s trace ti rt (γ.withPhys p) log rev ctx cd todo key endk k e ro te crev Z)
+      $$ [$Hs' $Htr $Hrd $Hti $Hctx $Hkey $Hend $Hmu $Htrc]
       as %r %err ⟨%Htodo, Hti, Hmu, Hrd, Htrc, Hout⟩
     (try wp_auto)
     iapply HΦ
@@ -55,7 +57,7 @@ theorem mvcc.metricsTxnWrite.Range.wp_proof
     ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
     · iexists te; iexact Htrc
     iunfold mvcc.isTxnRead
-    iexists trw, tr, ti, rt, (ranges + W64 1)
+    iexists p, trw, tr, ti, rt, (ranges + W64 1)
     iframe
     iframe #
   | write ilog pend puts deletes putSize =>

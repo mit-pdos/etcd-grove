@@ -1,8 +1,8 @@
 /-
 `Main`'s callees linked (item 9, 2026-10-18), by hand: `putget.Main.wp_proof` applied to their
-linked results in the server's, v3rpc's and the client's `Link.lean`s (each in a namespace of its
-own) and to the trust-boundary axioms of `zap.NewNop`, `features.NewDefaultServerFeatureGate`,
-`net.Listen` and `(*grpc.Server).Serve`, which no `Link.lean` links yet. `etc/gen-link.py` has no
+linked results in the examples' shared start's `Link.lean` (`common`'s, over the server's, v3rpc's
+and the client's, since 2026-10-22, D33), `context`'s, and to the trust-boundary axiom of
+`zap.NewNop`, which no `Link.lean` links yet. `etc/gen-link.py` has no
 mode combining several packages' Links (each mode links one package, with `@` callees of the
 Links it imports under one namespace); a `--putget` mode is the follow-up if more of the example
 is linked. `Results.lean` restates it.
@@ -10,14 +10,11 @@ is linked. `Results.lean` restates it.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.Main
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
-public import Proof.go_etcd_io.etcd.client.v3.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
-public import Proof.net.Listen
-public import Proof.google_golang_org.grpc.Server__Serve
 public import Perennial.Proof.context.Link
+public import Proof.context.Link
+public import Proof.context.WithTimeoutBackground
 
 @[expose] public section
 
@@ -46,9 +43,9 @@ its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics
 and the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
 theorem putget.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     putget.Main.spec (GF := GF) (hG := hG) :=
-  putget.Main.wp_proof zap.NewNop.wp_proof features.NewDefaultServerFeatureGate.wp_proof
-    wp_NewServer EtcdServer.wp_Start v3rpc.wp_Server net.Listen.wp_proof
-    grpc.Server.Serve.wp_proof client.v3.clientv3.wp_New context.wp_Background
+  putget.Main.wp_proof zap.NewNop.wp_proof common.wp_StartServer common.wp_Serve
+    common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
+    context.wp_ErrAny
 
 end results
 

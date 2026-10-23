@@ -4,23 +4,18 @@ module
 public import Perennial.Code.context
 public import Perennial.Code.errors
 public import Perennial.Code.io
-public import Code.net
 public import Perennial.Code.time
 public import Code.github_com.anishathalye.porcupine
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Code.go_uber_org.zap
-public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.go_etcd_io.etcd.client.v3.kubernetes
-public import Code.go_etcd_io.etcd.server.v3.config
-public import Code.go_etcd_io.etcd.server.v3.etcdserver
-public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
-public import Code.go_etcd_io.etcd.server.v3.features
 public import Code.k8s_io.apimachinery.pkg.runtime
 public import Code.k8s_io.apimachinery.pkg.runtime.schema
 public import Code.k8s_io.apiserver.pkg.storage
 public import Code.k8s_io.apiserver.pkg.storage.etcd3
 public import Code.k8s_io.apiserver.pkg.storage.value
+public import Code.github_com.mit_pdos.etcd_grove.examples.common
 public import Code.github_com.mit_pdos.etcd_grove.examples.lintest
 public import Perennial.Golang.Defn
 
@@ -290,7 +285,7 @@ noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
 
 /-- GetObjectKind is runtime.Object's: the driver's objects carry no kind.
 
-    go: k8setcd3.go:74:15 -/
+    go: k8setcd3.go:69:15 -/
 noncomputable def Obj.GetObjectKind.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "o"
   (Lam BAnon
@@ -301,7 +296,7 @@ noncomputable def Obj.GetObjectKind.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- DeepCopyObject is runtime.Object's: a copy.
 
-    go: k8setcd3.go:79:15 -/
+    go: k8setcd3.go:74:15 -/
 noncomputable def Obj.DeepCopyObject.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "o"
   (Lam BAnon
@@ -319,7 +314,7 @@ noncomputable def Obj.DeepCopyObject.impl [FfiSyntax] [GoGlobalContext] : val :=
     tag tag: the tag, the name's length (one byte; names are shorter than 256 bytes), the name and
     the value.
 
-    go: k8setcd3.go:93:6 -/
+    go: k8setcd3.go:88:6 -/
 noncomputable def encodeWith.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "tag"
   (Lam "name"
@@ -354,7 +349,7 @@ noncomputable def encodeWith.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- encodeObj is the current encoding of an object.
 
-    go: k8setcd3.go:101:6 -/
+    go: k8setcd3.go:96:6 -/
 noncomputable def encodeObj.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "o"
   (App (Val exceptionDo)
@@ -367,7 +362,7 @@ noncomputable def encodeObj.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- encodeV0 is the older encoding. The driver seeds some keys with it.
 
-    go: k8setcd3.go:106:6 -/
+    go: k8setcd3.go:101:6 -/
 noncomputable def encodeV0.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "val"
@@ -382,7 +377,7 @@ noncomputable def encodeV0.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- decodeObj decodes either encoding: the name and value, or false.
 
-    go: k8setcd3.go:111:6 -/
+    go: k8setcd3.go:106:6 -/
 noncomputable def decodeObj.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "data"
   (App (Val exceptionDo)
@@ -423,7 +418,7 @@ noncomputable def decodeObj.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- go: k8setcd3.go:134:14 -/
+/-- go: k8setcd3.go:129:14 -/
 noncomputable def codec.Encode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
@@ -467,7 +462,7 @@ noncomputable def codec.Encode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))))
 
-/-- go: k8setcd3.go:143:14 -/
+/-- go: k8setcd3.go:138:14 -/
 noncomputable def codec.Identifier.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -475,7 +470,7 @@ noncomputable def codec.Identifier.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #(go!"k8setcd3"))))))
 
-/-- go: k8setcd3.go:147:14 -/
+/-- go: k8setcd3.go:142:14 -/
 noncomputable def codec.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "data"
@@ -543,7 +538,7 @@ noncomputable def codec.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- parseRV parses a resource version string, the versioner's form of a number: empty for 0, its
     eight bytes (big-endian) otherwise.
 
-    go: k8setcd3.go:163:6 -/
+    go: k8setcd3.go:158:6 -/
 noncomputable def parseRV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -580,7 +575,7 @@ noncomputable def parseRV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- go: k8setcd3.go:180:18 -/
+/-- go: k8setcd3.go:175:18 -/
 noncomputable def versioner.UpdateObject.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
@@ -614,7 +609,7 @@ noncomputable def versioner.UpdateObject.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))))
 
-/-- go: k8setcd3.go:189:18 -/
+/-- go: k8setcd3.go:184:18 -/
 noncomputable def versioner.UpdateList.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
@@ -629,7 +624,7 @@ noncomputable def versioner.UpdateList.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNoList))) (Val #()))))))))))))))
 
-/-- go: k8setcd3.go:193:18 -/
+/-- go: k8setcd3.go:188:18 -/
 noncomputable def versioner.PrepareObjectForStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
@@ -661,7 +656,7 @@ noncomputable def versioner.PrepareObjectForStorage.impl [FfiSyntax] [GoGlobalCo
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))
 
-/-- go: k8setcd3.go:202:18 -/
+/-- go: k8setcd3.go:197:18 -/
 noncomputable def versioner.ObjectResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "obj"
@@ -689,7 +684,7 @@ noncomputable def versioner.ObjectResourceVersion.impl [FfiSyntax] [GoGlobalCont
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))
 
-/-- go: k8setcd3.go:210:18 -/
+/-- go: k8setcd3.go:205:18 -/
 noncomputable def versioner.ParseResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "resourceVersion"
@@ -702,7 +697,7 @@ noncomputable def versioner.ParseResourceVersion.impl [FfiSyntax] [GoGlobalConte
   (App (Val doReturn)
   (Pair (Var "$ret0") (Var "$ret1"))))))))))
 
-/-- go: k8setcd3.go:217:16 -/
+/-- go: k8setcd3.go:212:16 -/
 noncomputable def decoder.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "data"
@@ -771,7 +766,7 @@ noncomputable def decoder.Decode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))))))))))
 
-/-- go: k8setcd3.go:232:16 -/
+/-- go: k8setcd3.go:227:16 -/
 noncomputable def decoder.DecodeListItem.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "ctx"
@@ -786,7 +781,7 @@ noncomputable def decoder.DecodeListItem.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errNoList))) (Val #())))))))))))))))
 
-/-- go: k8setcd3.go:239:17 -/
+/-- go: k8setcd3.go:234:17 -/
 noncomputable def identity.TransformFromStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "ctx"
@@ -799,7 +794,7 @@ noncomputable def identity.TransformFromStorage.impl [FfiSyntax] [GoGlobalContex
   (App (Val doReturn)
   (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data")) (Val #false)) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))))))))
 
-/-- go: k8setcd3.go:243:17 -/
+/-- go: k8setcd3.go:238:17 -/
 noncomputable def identity.TransformToStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "ctx"
@@ -812,7 +807,7 @@ noncomputable def identity.TransformToStorage.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))))))))
 
-/-- go: k8setcd3.go:250:20 -/
+/-- go: k8setcd3.go:245:20 -/
 noncomputable def noCompactor.CompactRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -820,7 +815,7 @@ noncomputable def noCompactor.CompactRevision.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doReturn)
   (Val #(W64 0))))))
 
-/-- go: k8setcd3.go:254:6 -/
+/-- go: k8setcd3.go:249:6 -/
 noncomputable def newObj.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -829,7 +824,7 @@ noncomputable def newObj.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- storeKey is the key the store is called with for a name (the Model's item key).
 
-    go: k8setcd3.go:316:6 -/
+    go: k8setcd3.go:311:6 -/
 noncomputable def storeKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "name"
   (App (Val exceptionDo)
@@ -839,7 +834,7 @@ noncomputable def storeKey.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- validateFor is a Delete's validateDeletion: it rejects an object of value reject.
 
-    go: k8setcd3.go:325:6 -/
+    go: k8setcd3.go:320:6 -/
 noncomputable def validateFor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "reject"
   (App (Val exceptionDo)
@@ -882,7 +877,7 @@ noncomputable def validateFor.impl [FfiSyntax] [GoGlobalContext] : val :=
     correctness test's randomUpdate, specialized (traffic.go: a copy, rejected on the drawn value,
     unchanged for a no-op, else the new value).
 
-    go: k8setcd3.go:341:6 -/
+    go: k8setcd3.go:336:6 -/
 noncomputable def updated.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "o"
@@ -912,7 +907,7 @@ noncomputable def updated.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- tryUpdateFor is a GuaranteedUpdate's tryUpdate (updated, with no TTL).
 
-    go: k8setcd3.go:353:6 -/
+    go: k8setcd3.go:348:6 -/
 noncomputable def tryUpdateFor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (App (Val exceptionDo)
@@ -966,7 +961,7 @@ noncomputable def tryUpdateFor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Obj.ty)))) (Pair (Var "o") (Var "$r0")))))))))))))))))))))
 
-/-- go: k8setcd3.go:394:6 -/
+/-- go: k8setcd3.go:389:6 -/
 noncomputable def lookup.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "items"
   (Lam "k"
@@ -995,7 +990,7 @@ noncomputable def lookup.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- setItem returns items with k's item it (in key order; a new slice).
 
-    go: k8setcd3.go:404:6 -/
+    go: k8setcd3.go:399:6 -/
 noncomputable def setItem.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "items"
   (Lam "it"
@@ -1079,7 +1074,7 @@ noncomputable def setItem.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- delItem returns items without k's item (a new slice).
 
-    go: k8setcd3.go:428:6 -/
+    go: k8setcd3.go:423:6 -/
 noncomputable def delItem.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "items"
   (Lam "k"
@@ -1116,7 +1111,7 @@ noncomputable def delItem.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType item.ty)))) (Pair (Var "out") (Var "$r0"))))))))))))
 
-/-- go: k8setcd3.go:438:6 -/
+/-- go: k8setcd3.go:433:6 -/
 noncomputable def notFound.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "st"
   (Lam "key"
@@ -1130,7 +1125,7 @@ noncomputable def notFound.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (App (Val (GoInstruction (Convert go.uint64 go.int64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"rv"))) (Var "st"))))
   (App (Val (GoInstruction (CompositeLiteral Output.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Err")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"ErrKey")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ErrRV")) (ElementExpression go.int64 (Var "$v2")))])))))))))))
 
-/-- go: k8setcd3.go:442:6 -/
+/-- go: k8setcd3.go:437:6 -/
 noncomputable def objOut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "o"
   (App (Val exceptionDo)
@@ -1144,7 +1139,7 @@ noncomputable def objOut.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- mcreate is the Model's create: "key exists", or the object at the next resource version.
 
-    go: k8setcd3.go:447:6 -/
+    go: k8setcd3.go:442:6 -/
 noncomputable def mcreate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
@@ -1202,7 +1197,7 @@ noncomputable def mcreate.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- mdelete is the Model's delete: "not found", validateDeletion's error on the stored object, or
     the item gone at the next resource version, answered with the object at that version.
 
-    go: k8setcd3.go:458:6 -/
+    go: k8setcd3.go:453:6 -/
 noncomputable def mdelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
@@ -1279,7 +1274,7 @@ noncomputable def mdelete.impl [FfiSyntax] [GoGlobalContext] : val :=
     and the item is canonical (D30g; the Model: unchanged), or the result at the next resource
     version.
 
-    go: k8setcd3.go:477:6 -/
+    go: k8setcd3.go:472:6 -/
 noncomputable def mupdate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
@@ -1371,7 +1366,7 @@ noncomputable def mupdate.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- mget is the Model's get (no resource version): the stored object, the zero object for a
     missing key with IgnoreNotFound, or "not found".
 
-    go: k8setcd3.go:498:6 -/
+    go: k8setcd3.go:493:6 -/
 noncomputable def mget.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
@@ -1414,7 +1409,7 @@ noncomputable def mget.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- mstep is the Model's execute: the next store and the answer.
 
-    go: k8setcd3.go:510:6 -/
+    go: k8setcd3.go:505:6 -/
 noncomputable def mstep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
@@ -1459,7 +1454,7 @@ noncomputable def mstep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: k8setcd3.go:523:6 -/
+/-- go: k8setcd3.go:518:6 -/
 noncomputable def isWrite.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (App (Val exceptionDo)
@@ -1467,7 +1462,7 @@ noncomputable def isWrite.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Input.ty go!"Kind"))) (Var "in"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KGet)))))))))
 
-/-- go: k8setcd3.go:527:6 -/
+/-- go: k8setcd3.go:522:6 -/
 noncomputable def outEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1477,7 +1472,7 @@ noncomputable def outEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (If (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "b"))))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrKey"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrKey"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrRV"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrRV"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Name"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Name"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Value"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Value"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "b"))))) (Val #false))))))))
 
-/-- go: k8setcd3.go:532:6 -/
+/-- go: k8setcd3.go:527:6 -/
 noncomputable def inputEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1487,7 +1482,7 @@ noncomputable def inputEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoEquals Input.ty))) (Pair (App (Val (GoInstruction (GoLoad Input.ty))) (Var "a")) (App (Val (GoInstruction (GoLoad Input.ty))) (Var "b"))))))))))
 
-/-- go: k8setcd3.go:536:6 -/
+/-- go: k8setcd3.go:531:6 -/
 noncomputable def storeEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1519,7 +1514,7 @@ noncomputable def storeEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: k8setcd3.go:548:6 -/
+/-- go: k8setcd3.go:543:6 -/
 noncomputable def configEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1555,7 +1550,7 @@ noncomputable def configEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: k8setcd3.go:560:6 -/
+/-- go: k8setcd3.go:555:6 -/
 noncomputable def addConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -1589,7 +1584,7 @@ noncomputable def addConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- removeAt returns pend without its i-th input (a new slice).
 
-    go: k8setcd3.go:570:6 -/
+    go: k8setcd3.go:565:6 -/
 noncomputable def removeAt.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pend"
   (Lam "i"
@@ -1617,7 +1612,7 @@ noncomputable def removeAt.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- closure adds to s every configuration reachable by pending writes taking effect.
 
-    go: k8setcd3.go:577:6 -/
+    go: k8setcd3.go:572:6 -/
 noncomputable def closure.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -1713,7 +1708,7 @@ noncomputable def closure.impl [FfiSyntax] [GoGlobalContext] : val :=
     effect and answered the model's output; a failed write becomes pending; a failed read does
     nothing.
 
-    go: k8setcd3.go:599:6 -/
+    go: k8setcd3.go:594:6 -/
 noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "in"
@@ -1787,7 +1782,7 @@ noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Model is the store as a porcupine model, from the store st0 (the seeded keys).
 
-    go: k8setcd3.go:617:6 -/
+    go: k8setcd3.go:612:6 -/
 noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "st0"
   (App (Val exceptionDo)
@@ -1903,7 +1898,7 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore state.ty))) (Pair (Var "sa") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Init")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [] false [go.any])) (Var "$v0"))), (KeyedElement (some (KeyField go!"Step")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any, go.any] false [go.bool, go.any])) (Var "$v1"))), (KeyedElement (some (KeyField go!"Equal")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.bool])) (Var "$v2")))])))))))))
 
-/-- go: k8setcd3.go:651:6 -/
+/-- go: k8setcd3.go:646:6 -/
 noncomputable def workloadKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -1913,7 +1908,7 @@ noncomputable def workloadKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (Val #(go!"c"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2")))]))))))))
 
-/-- go: k8setcd3.go:655:6 -/
+/-- go: k8setcd3.go:650:6 -/
 noncomputable def workloadVals.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -1925,7 +1920,7 @@ noncomputable def workloadVals.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- pick returns n mod m and n / m.
 
-    go: k8setcd3.go:660:6 -/
+    go: k8setcd3.go:655:6 -/
 noncomputable def pick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "m"
@@ -1940,7 +1935,7 @@ noncomputable def pick.impl [FfiSyntax] [GoGlobalContext] : val :=
     Deletes and updates reject a random value, a fifth of the updates are no-ops, half the Gets
     ignore "not found".
 
-    go: k8setcd3.go:668:6 -/
+    go: k8setcd3.go:663:6 -/
 noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (App (Val exceptionDo)
@@ -2115,7 +2110,7 @@ noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Gen picks an operation at random (genFrom of a random number).
 
-    go: k8setcd3.go:697:6 -/
+    go: k8setcd3.go:692:6 -/
 noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "id"
   (App (Val exceptionDo)
@@ -2126,7 +2121,7 @@ noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- errOut is a call's error as an output.
 
-    go: k8setcd3.go:705:6 -/
+    go: k8setcd3.go:700:6 -/
 noncomputable def errOut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
@@ -2179,7 +2174,7 @@ noncomputable def errOut.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- call runs one operation through the store s: its output (the object it left in a fresh out, or
     its error).
 
-    go: k8setcd3.go:722:6 -/
+    go: k8setcd3.go:717:6 -/
 noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "in"
@@ -2261,7 +2256,7 @@ noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
     proof's linearization point compares the store's answer at a read with, the rest of the output
     following from them.
 
-    go: k8setcd3.go:747:6 -/
+    go: k8setcd3.go:742:6 -/
 noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "input"
@@ -2303,7 +2298,7 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Check runs lintest.Run of clients concurrent clients of the store s, each running ops
     operations, and returns porcupine's verdict against Model from the store st0.
 
-    go: k8setcd3.go:759:6 -/
+    go: k8setcd3.go:754:6 -/
 noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "st0"
@@ -2342,7 +2337,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
     client cli (non-canonical data, as a store with an older codec left: D30g) and returns the
     model's store st with it, or false if the put failed.
 
-    go: k8setcd3.go:767:6 -/
+    go: k8setcd3.go:762:6 -/
 noncomputable def seedOne.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "st"
@@ -2403,7 +2398,7 @@ noncomputable def seedOne.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- seed writes the seed keys "a" and "b" in the older encoding (seedOne) and returns the model's
     store after them, or false if a put failed.
 
-    go: k8setcd3.go:779:6 -/
+    go: k8setcd3.go:774:6 -/
 noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (App (Val exceptionDo)
@@ -2445,7 +2440,7 @@ noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
     Check; it panics if porcupine finds the history illegal. An error from a step before Check ends
     Main without a check.
 
-    go: k8setcd3.go:795:6 -/
+    go: k8setcd3.go:790:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -2455,37 +2450,11 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val #(go!"http"))
-  (Let "$v1" (Val #(go!"127.0.0.1:23906"))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "peer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val #(go!"k8setcd3"))
-  (Let "$v1" (Val #(go!"k8setcd3.etcd"))
-  (Let "$v2" (Let "$k0" (Val #(go!"k8setcd3"))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v1")))]))))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (Let "$v4" (Let "$v0" (Val #(go!"http"))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "$v5" (Val #(go!"k8setcd3"))
-  (Let "$v6" (Val #true)
-  (Let "$v7" (Val #(W64 100))
-  (Let "$v8" (Val #(W64 10))
-  (Let "$v9" (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.DefaultSnapshotCount))
-  (Let "$v10" (Val #(W64 281474976710656))
-  (Let "$v11" (Val #(W64 128))
-  (Let "$v12" (Val #(W64 1572864))
-  (Let "$v13" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$v14" (Let "$a0" (Val #(go!"k8setcd3"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"DataDir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"InitialPeerURLsMap")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"InitialClusterToken")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"NewCluster")) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyField go!"TickMs")) (ElementExpression go.uint (Var "$v7"))), (KeyedElement (some (KeyField go!"ElectionTicks")) (ElementExpression go.int (Var "$v8"))), (KeyedElement (some (KeyField go!"SnapshotCount")) (ElementExpression go.uint64 (Var "$v9"))), (KeyedElement (some (KeyField go!"SnapshotCatchUpEntries")) (ElementExpression go.uint64 (Var "$v10"))), (KeyedElement (some (KeyField go!"MaxTxnOps")) (ElementExpression go.uint (Var "$v11"))), (KeyedElement (some (KeyField go!"MaxRequestBytes")) (ElementExpression go.uint (Var "$v12"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v13"))), (KeyedElement (some (KeyField go!"ServerFeatureGate")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty (Var "$v14")))])))))))))))))))))
-  (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "cfg"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.NewServer []))) (Val #())) (Var "$a0")))
+  (Let "__p" (Let "$a0" (Val #(go!"k8setcd3"))
+  (Let "$a1" (Val #(go!"127.0.0.1:23906"))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.StartServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -2495,27 +2464,6 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "srv"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Val UntypedNil))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil))
-  (Let "$a3" (Val #slice.nil)
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
-  (Let "gs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"tcp"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Listen []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "l" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "l"))
-  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) go!"Serve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "gs")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
@@ -2611,22 +2559,18 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client.ty)))) (Pair (Var "kc") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Var "$a0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "srv"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Serve []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown))
   (App (Val doExecute)
-  (Val #()))))))
+  (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "l") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Pair (Var "gs") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "srv"))) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Val _root_.Perennial.github_com.anishathalye.porcupine.Unknown))
@@ -2637,24 +2581,15 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "srv") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Pair (Var "cfg") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "peer") (Var "$r0")))))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))
 
 instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.io, pkg_id.net, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.client.v3.kubernetes, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.storage.etcd3, pkg_id.k8s_io.apiserver.pkg.storage.value, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.io, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.client.v3.kubernetes, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.storage.etcd3, pkg_id.k8s_io.apiserver.pkg.storage.value, pkg_id.github_com.mit_pdos.etcd_grove.examples.common, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2713,8 +2648,6 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.net.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.anishathalye.porcupine.initialize') (Val #()))))))
@@ -2723,19 +2656,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.config.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.runtime.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2746,6 +2669,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.value.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3310,23 +3235,18 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
   import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_kubernetes_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions
-  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
-  import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
   import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
   import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
   import_storage_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.Assumptions
   import_etcd3_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.Assumptions
   import_value_Assumption : _root_.Perennial.k8s_io.apiserver.pkg.storage.value.Assumptions
+  import_common_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Assumptions
   import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions
 
 attribute [instance] Assumptions.Obj_instance
@@ -3386,23 +3306,18 @@ attribute [instance] Assumptions.Obj_instance
   Assumptions.import_context_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_io_Assumption
-  Assumptions.import_net_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_porcupine_Assumption
   Assumptions.import_primitive_Assumption
   Assumptions.import_zap_Assumption
-  Assumptions.import_types_Assumption
   Assumptions.import_clientv3_Assumption
   Assumptions.import_kubernetes_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_v3rpc_Assumption
-  Assumptions.import_features_Assumption
   Assumptions.import_runtime_Assumption
   Assumptions.import_schema_Assumption
   Assumptions.import_storage_Assumption
   Assumptions.import_etcd3_Assumption
   Assumptions.import_value_Assumption
+  Assumptions.import_common_Assumption
   Assumptions.import_lintest_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.k8setcd3

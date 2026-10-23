@@ -10,10 +10,11 @@ response's.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.WithLimit
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section
@@ -78,10 +79,10 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     · simp at Hf
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  imod (srvStart_alloc (GF := GF) ms) with #Hst
+  imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   ihave #Hopts' := optsAt_res optsSl _ iprop(True) $$ Hopts
-  ihave #Hrr := kvRegs_range ms $$ Hregs
-  ihave #Hst' := srvStart_both ms $$ Hst
+  ihave #Hrr := client.kvRegs_range ms $$ Hregs
+  ihave #Hst' := client.srvStart_both ms $$ Hst
   have hm : ∀ (k : Nat) (x : client.SrvAt GF), ms[k]? = some x →
       iprop(⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q) ⊢
       iprop(⌜Q = fun _ => iprop(True)⌝ ∨
@@ -105,9 +106,9 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     first
       | rfl
       | (refine ⟨?_, rfl⟩; unfold opGetPanics opFold OpFull.newOp; simp [withRevM, withLimitM])
-  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, %Herr2, #Hse⟩)
+  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨⟨%Herr, %Hrn⟩, #Hke⟩)
   · subst Herr
-    ihave Hs := rangeReply_state' x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
+    ihave Hs := client.rangeReply_state_bnd x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
     obtain ⟨hsel, hrevσ, hb⟩ := Hσ
     rw [rangeWireOf_getKey1] at hsel
@@ -202,10 +203,12 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     wp_auto
     iapply HΦ
     iright
+    iunfold kvErr at Hke
+    icases Hke with ⟨%Hce, #Hse, -⟩
     iframe Hse
     isplitl []
     · ipureintro; exact Herr
-    ipureintro; exact Herr2.1
+    ipureintro; exact Hce
 
 end proof
 

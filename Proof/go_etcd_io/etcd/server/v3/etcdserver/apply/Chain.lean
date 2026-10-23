@@ -243,7 +243,12 @@ request with at most one checkpoint (each checkpoint is its own critical section
 lock: `issues/etcd-apply-lease-checkpoint-sections.md`; until 2026-10-17); a cluster version that
 parses. **No lease request** (D14h, 2026-10-17, the user's decision): the workload has no
 `LeaseGrant`, `LeaseRevoke` or `LeaseCheckpoint` (with no lease granted none expires, so the
-lessor proposes no revocation and no checkpoint); `lessor.Revoke` is not specified (unit T3). -/
+lessor proposes no revocation and no checkpoint); `lessor.Revoke` is not specified (unit T3).
+**No alarm, auth or downgrade request** (D22, 2026-10-23: the backend over every bucket): their
+writers take the environment's write right `AEnv.RW` (the server's is `False`: the apply thread
+holds the rest buckets at their model, `RestModel.lean`), so `dispatch` does not call them; no
+workload admits one (the server's `plainCover`). Until then their premise was `True` (the user's
+and role's name within the key bound for `UserAdd`/`RoleAdd`). -/
 def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log
@@ -254,10 +259,24 @@ def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
   | .leaseRevoke => False
   | .leaseCheckpoint => False
   | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v
-  -- unit N4, D14g (2026-10-17): a new user's or role's name is a bbolt key, within its bound
-  -- (`issues/etcd-auth-useradd-long-name-fatal.md`)
-  | .authUserAdd => ∀ n, rq.authUserAdd = some n → n.length ≤ backend.maxKeySize
-  | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
+  | .downgradeInfoSet => False
+  | .alarm => False
+  | .authenticate => False
+  | .authEnable => False
+  | .authDisable => False
+  | .authUserAdd => False
+  | .authUserDelete => False
+  | .authUserChangePassword => False
+  | .authUserGrantRole => False
+  | .authUserGet => False
+  | .authUserRevokeRole => False
+  | .authRoleAdd => False
+  | .authRoleGrantPermission => False
+  | .authRoleGet => False
+  | .authRoleRevokePermission => False
+  | .authRoleDelete => False
+  | .authUserList => False
+  | .authRoleList => False
   | _ => True
 
 section defs
@@ -292,6 +311,17 @@ structure AEnv (GF : BundledGFunctors) where
   protocol's state with the consistent index's owner share), lent out of the critical section's
   precondition (`ciSplit`) -/
   ciC : IProp GF → Prop
+  /-- (D22, 2026-10-23: the backend over every bucket) the apply thread's resource of the rest
+  buckets and the cluster's in-memory members at their value (`RestModel.lean`): the cluster's
+  `SetVersion` and `UpdateAttributes` change it (`isCluster`) -/
+  RO : RestM → IProp GF
+  /-- (D22, 2026-10-23) the write right of the writers the workload does not reach (the alarm
+  store's, the auth store's, the lessor's, the cluster's `SetDowngradeInfo`); the server's is
+  `False` -/
+  RW : IProp GF
+  /-- (D22 receiver epochs, S7b, 2026-10-23) the server's ghost variable of its current backend
+  (`s.be`'s, `bemuP`), which the apply package does not use (as `γrev`) -/
+  γbe : GName
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
@@ -301,18 +331,20 @@ def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
 
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
 the KV's writer of `log` (`txn.kvWriter`: the sole writer, and for a watchable store the writer's
-half of its notified log; unit N4), every lease of its state live, and the auth store's reader resource
-(`E.RD`, 2026-10-14, unit A2). -/
+half of its notified log; unit N4), every lease of its state live, the auth store's reader resource
+(`E.RD`, 2026-10-14, unit A2), and the sole writer's own resources on the store's backend
+(`mvcc.writerOwn`, D22 receiver epochs, S5a: its backend token, which the writes under the batch
+lock borrow; until then the reader slots' own). -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
   iprop(mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log ∗
-    leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD)
+    leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗ mvcc.writerOwn E.γ)
 
 open Iris.ProofMode in
 /-- The auth store's reader resource of the apply thread's KV resources, lent out (unit A2). -/
 theorem kvOwn_rd (E : AEnv GF) (log : mvcc.Log) :
     kvOwn E log ⊢ E.RD ∗ (E.RD -∗ kvOwn E log) := by
   unfold kvOwn
-  iintro ⟨Hsr, Hsw, Hll, Hrd⟩
+  iintro ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
   iframe Hrd
   iintro Hrd
   iframe
@@ -626,25 +658,30 @@ def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRMod
 the layers read of the request (`R r`); `True` for those passed on unread to the auth store. -/
 def reqFacts (E : AEnv GF) (m : GoString) (r : Loc) : IProp GF :=
   if m = go!"LeaseGrant" then
-    iprop(∃ g : LeaseGrantModel, leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id)
+    iprop((∃ g : LeaseGrantModel, leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗ E.RW)
   else if m = go!"LeaseCheckpoint" then
-    iprop(∃ cms : List CheckpointModel, leaseCheckpointIs r cms ∗ ⌜cms.length ≤ 1⌝)
-  else if m = go!"Alarm" then iprop(∃ am : AlarmModel, alarmRequestIs r am)
-  else if m = go!"Authenticate" then iprop(∃ am : AuthenticateModel, authenticateIs r am)
-  else if m = go!"UserGet" then iprop(∃ n : GoString, authUserGetIs r n)
+    iprop((∃ cms : List CheckpointModel, leaseCheckpointIs r cms ∗ ⌜cms.length ≤ 1⌝) ∗ E.RW)
+  else if m = go!"Alarm" then iprop((∃ am : AlarmModel, alarmRequestIs r am) ∗ E.RW)
+  else if m = go!"Authenticate" then iprop((∃ am : AuthenticateModel, authenticateIs r am) ∗ E.RW)
+  else if m = go!"UserGet" then iprop((∃ n : GoString, authUserGetIs r n) ∗ E.RW)
   else if m = go!"UserAdd" then
-    iprop(∃ n : GoString, authUserAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝)
+    iprop((∃ n : GoString, authUserAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW)
   else if m = go!"RoleAdd" then
-    iprop(∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝)
-  else if m = go!"RoleGet" then iprop(∃ n : GoString, authRoleGetIs r n)
-  else if m = go!"ClusterVersionSet" then
-    iprop(∃ v : GoString, clusterVersionSetIs r v ∗ ⌜semverValid v⌝)
-  else if m = go!"ClusterMemberAttrSet" then iprop(∃ mm : MemberAttrModel, memberAttrSetIs r mm)
-  else if m = go!"DowngradeInfoSet" then iprop(∃ dm : DowngradeModel, downgradeInfoSetIs r dm)
-  else iprop(True)
+    iprop((∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW)
+  else if m = go!"RoleGet" then iprop((∃ n : GoString, authRoleGetIs r n) ∗ E.RW)
+  else E.RW
+
+/-- **A cluster method's request facts** (D22, 2026-10-23): the request `r` of the method `m`
+(`ClusterReq.method`) holds `cr`; `DowngradeInfoSet`'s with the write right `E.RW`. -/
+def clusterFacts (E : AEnv GF) (m : GoString) (cr : ClusterReq) (r : Loc) : IProp GF :=
+  match cr with
+  | .ver v => iprop(⌜m = go!"ClusterVersionSet"⌝ ∗ clusterVersionSetIs r v ∗ ⌜semverValid v⌝)
+  | .attr a => iprop(⌜m = go!"ClusterMemberAttrSet"⌝ ∗ memberAttrSetIs r a)
+  | .dg d => iprop(⌜m = go!"DowngradeInfoSet"⌝ ∗ downgradeInfoSetIs r d ∗ E.RW)
 
 /-- The methods `(resp, err) = m(r)` that leave the log as it is (the lease grant and
-checkpoint, the alarm, and the auth store's requests). -/
+checkpoint, the alarm, and the auth store's requests): writers the workload does not reach,
+their facts with the write right `E.RW` (`reqFacts`, D22, 2026-10-23). -/
 def respMethods : List GoString :=
   [go!"LeaseGrant", go!"LeaseCheckpoint", go!"Alarm", go!"Authenticate", go!"UserAdd",
     go!"UserDelete", go!"UserChangePassword", go!"UserGrantRole", go!"UserGet",
@@ -718,7 +755,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF), ⌜m ∈ resp0Methods⌝ -∗
       ⌜m = go!"AuthEnable" → E.authOn = true⌝ -∗
-      {{ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ }}
+      {{ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.RW }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
@@ -727,11 +764,13 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
         (App (Val #(methods ai.ty go!"AuthStatus" ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvOwn E log ∗ chainRes c (.ok ai) ∗ applyErrIs err }}) ∗
-    □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
+    □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
+        (cr : ClusterReq) (rs : RestM),
       ⌜m ∈ clusterMethods⌝ -∗
-      {{ reqFacts E m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS }}
+      {{ clusterFacts E m cr r ∗ mPreV v3 E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS ∗
+          E.RO rs }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
-      {{ RET #(); mPostV v3 E c (.ok ai) log Pre Post ∗ E.FS }}) ∗
+      {{ RET #(); mPostV v3 E c (.ok ai) log Pre Post ∗ E.FS ∗ E.RO (cr.eff v3 rs) }}) ∗
     -- `Apply`: the `applyFunc` under the chain's resources, or the auth layers' admin rejection
     □ (∀ (r : Loc) (rq : IRRModel) (skip v3 : Bool) (af : GoFunc) (A : IProp GF)
         (B : Loc → IProp GF),
@@ -760,9 +799,10 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 /-- **The backend's options** `opts` in the environment `E`: a logger, the KV (the store `E.s`,
 whose hook is `E.f` under `E.P`), and the components with their contracts. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
-  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookIs E.γ E.P E.f ∗
-    isApplyLessor opts.Lessor' E.s E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authOn ∗
-    isAlarmStore opts.AlarmStore' E.γ E.P E.f ∗ isCluster opts.Cluster' E.γ E.P E.f ∗
+  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookOk E.γ E.P E.f ∗
+    isApplyLessor opts.Lessor' E.s E.γ E.P E.f E.RW ∗
+    isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authOn E.RW ∗
+    isAlarmStore opts.AlarmStore' E.γ E.P E.f E.RW ∗ isCluster opts.Cluster' E.γ E.P E.f E.RO E.RW ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' E.FS ∗
     isConsistentIndexer opts.ConsistentIndex' E.ciC)
 
@@ -807,9 +847,9 @@ store (`E.RD`: `Apply`'s admin check; 2026-10-14, unit A2). -/
 def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
     (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
-      isAuthStore st E.γ E.P E.f E.RD E.authOn) ∗
+      isAuthStore st E.γ E.P E.f E.RD E.authOn E.RW) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
-      isApplyLessor le E.s E.γ E.P E.f) ∗
+      isApplyLessor le E.s E.γ E.P E.f E.RW) ∗
     sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoOwn p ∗ E.RD))
 
 instance authIs_persistent (E : AEnv GF) (p : Loc) (inner : GoInterface) :

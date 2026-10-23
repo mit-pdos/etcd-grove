@@ -48,7 +48,7 @@ theorem mvcc.metricsTxnWrite.Rev.wp_proof
     (try wp_auto)
     iapply HΦ
     iunfold mvcc.isTxnRead
-    iexists trw, tr, ti, rt, ranges
+    iexists p, trw, tr, ti, rt, ranges
     iframe
     iframe #
   | write ilog pend puts deletes putSize =>

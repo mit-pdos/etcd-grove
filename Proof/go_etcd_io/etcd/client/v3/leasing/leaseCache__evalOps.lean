@@ -162,7 +162,7 @@ theorem leaseCache.evalOps.wp_proof
         iexists (n + W64 1), v, n, done ++ [«$r0_ptr»]
         simp only [named]
         have hset : (sint.Z n).toNat = done.length := by rw [Hdl]
-        rw [hset, set_done_replicate done _ _ _ (by word)]
+        rw [hset, set_length_append_replicate_pos done _ _ _ (by word)]
         have hk1 : sint.nat sl.len - sint.nat n - 1 = sint.nat sl.len - sint.nat (n + W64 1) := by
           word
         rw [hk1]

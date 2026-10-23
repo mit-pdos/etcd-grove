@@ -223,10 +223,12 @@ abbrev NewServer.spec : Prop :=
           -- watchable store, the progress interval's field, and the request slots
           srvServeBuilt srv E cfg 64 ∗
           -- (D19i part 2) the storage version monitor's backend access
-          srvSVRes srv E.γ ∗
+          srvSVRes srv E ∗
           -- (audit B4a, D19m) the hash and downgrade monitors' configuration fields and
           -- `monitorDowngrade`'s `lgMu` reader slot
           srvMonitorCfg srv cfg ∗
+          -- (2026-10-23) the right to close `readych`, for `publishV3`
+          srvReadyCloser srv ∗
           -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
           -- started there: what `RaftHandler`'s axiom takes, to serve the member's raft handler
           srvNetMember γn srv id ∗

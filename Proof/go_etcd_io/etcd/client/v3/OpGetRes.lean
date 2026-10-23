@@ -46,7 +46,7 @@ theorem applyOpts_res (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpFul
     simp only [named]
     iframe
     isplitl []
-    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, opFold, List.foldl_nil]
+    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, op_simps, List.foldl_nil]
       iexact Hat
     ipureintro; constructor <;> word
   iclear Hat
@@ -99,7 +99,7 @@ theorem isOptsWithPrefix_res (wp_NewOp : NewOp.spec (GF := GF) (hG := hG)) (sl :
     simp only [named]
     iframe
     isplitl []
-    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, opFold, List.foldl_nil]
+    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, op_simps, List.foldl_nil]
       iexact Hat
     ipureintro; constructor <;> word
   iclear Hat
@@ -154,7 +154,7 @@ theorem isOptsWithFromKey_res (wp_NewOp : NewOp.spec (GF := GF) (hG := hG)) (sl 
     simp only [named]
     iframe
     isplitl []
-    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, opFold, List.foldl_nil]
+    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, op_simps, List.foldl_nil]
       iexact Hat
     ipureintro; constructor <;> word
   iclear Hat
@@ -227,7 +227,7 @@ theorem opGet_res (wp_NewOp : NewOp.spec (GF := GF) (hG := hG)) (key : GoString)
     wp_apply (applyOpts_res ret_ptr _ (OpFull.getInit key) sl gs R) $$ [$ret $HR] as %op' ⟨Hret, #Hat, HR⟩
     · iframe #
       unfold opFullAt opAt OpFields
-      dsimp only [OpFull.getInit, OpFull.newOp, OpModel.zero]
+      dsimp only [op_simps]
       isplitl []
       · isplitl []
         · ipureintro; simp

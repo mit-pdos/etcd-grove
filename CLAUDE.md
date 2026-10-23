@@ -17,6 +17,7 @@ is specific to the Lean port.
 
 - `notes/STATUS.md` — where the port is.
 - `notes/decisions.md` — how the Rocq structure maps to Lean, and why.
+- `notes/status-history.md` — STATUS.md's superseded sections, append-only (move a section there when it stops describing the current state).
 
 Before you finish, update `notes/STATUS.md` if anything moved.
 
@@ -239,7 +240,9 @@ standard-library packages are Perennial's.
 `etc/goose.py` regenerates both (after bumping the Perennial or a project pin, or
 editing the Goose configuration `Code/**/*.toml`; `--project NAME` for one);
 `etc/goose.py --check` exits 1 if they differ from what the pinned translator
-produces, and CI runs that check before the build. `--src NAME=DIR` (or
+produces, or if the examples' Go modules (`examples/go.mod`, one for every example but
+`examples/kvwitness`, which has its own, and the driver `examples/lintest`) replace etcd or raft by another revision than the
+pins (bump both together), and CI runs that check before the build. `--src NAME=DIR` (or
 `$ETCD_SRC`, `$ETCD_RAFT_SRC`) translates from a local checkout of the project instead
 of cloning the pin, e.g. for a pinned revision not yet pushed; the output says so,
 and `--check` then requires the checkout to be at the pinned revision. It needs a Go

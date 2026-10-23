@@ -43,7 +43,7 @@ abbrev watcher.Watch.spec : Prop :=
       startOk V sr rev }}
     (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
   {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;
-      isSpsc γ.spsc ch (rangeWatchElem (EM := V.EM) γ V.pfx (opWatchModel key gs) rev)
+      isSpsc γ.spsc ch (rangeWatchElem (EM := V.WM) γ V.pfx (opWatchModel key gs) rev)
         (fun _ => iprop(True)) ∗
       spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗

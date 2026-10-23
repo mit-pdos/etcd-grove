@@ -447,10 +447,10 @@ theorem watchGRPCStream.newWatchClient.wp_proof
       wp_apply (chan.wp_make1 (V := Unit)) as %dnc %γdn ⟨#Hdnc, %-, Hdno⟩
       iunfold donecAt at Hdcx
       icases Hdcx with ⟨Hdcf, -⟩
-      icases client.ptsto_loc_combine _ _ _ $$ [Hdnf Hdcf] with ⟨%Hdceq, Hdcf⟩
+      icases typedPointsto_half_combine _ _ _ 1 $$ [Hdnf Hdcf] with ⟨%Hdceq, Hdcf⟩
       · iframe
       wp_auto
-      icases client.ptsto_split_half_loc _ _ $$ Hdcf with ⟨Hdnf1, Hdnf2⟩
+      icases (typedPointsto_half_split _ _ 1).1 $$ Hdcf with ⟨Hdnf1, Hdnf2⟩
       imod dghostVar_alloc false with ⟨%γt, Hγt⟩
       icases dghostVar_halves _ _ $$ Hγt with ⟨Hγt1, Hγt2⟩
       imod dghostVar_alloc () with ⟨%γk, Htk⟩
@@ -580,23 +580,25 @@ theorem watchGRPCStream.newWatchClient.wp_proof
       iframe)) $$ H3
   ihave Hall := client.bigSepM_give_list _ U _ Hlnd HlU $$ [Hnew Hoth]
   · iframe
-  ihave Hall : iprop(∀ γs' : StreamNames, [∗map] ws ↦ _u ∈ U,
-      wsElem V G (n + 1) γs' (S.reconnect ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null)))) ws) $$ [Hall]
-  · iintro %γs'
+  ihave Hall : iprop(∀ (γs' : StreamNames) (i' : Nat), [∗map] ws ↦ _u ∈ U,
+      wsElem (V.atIdx i') G (n + 1) γs' (S.reconnect ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null)))) ws) $$ [Hall]
+  · iintro %γs' %i'
     iapply (BigSepM.bigSepM_mono (fun {ws _} _ =>
-      client.wsElem_recon_any V G (n + 1) γs γs' S _ ws)) $$ Hall
+      (client.wsElem_recon_any V G (n + 1) γs γs' S _ ws).trans
+        (client.wsElem_recon_at V G (n + 1) γs' S _ ws i'))) $$ Hall
   (try wp_auto)
-  icases Hopen with (⟨%Herr, %γs2, %Dn, %cd', #Hcli, Htok, Hrtok, #Hspec⟩ | ⟨⟨%Hwc, %Herr⟩, #Hse⟩)
+  icases Hopen with (⟨%Herr, %i, %γs2, %Dn, %cd', %Hi, #Hcli, Htok, Hrtok, #Hspec⟩ |
+    ⟨⟨%Hwc, %Herr⟩, #Hse⟩)
   · subst Herr
     (try wp_auto)
     -- (D25) the new epoch: its count from `respc`'s position `sent.length`
     imod mono_nat_own_alloc (GF := GF) sent.length with ⟨%γc, Hcnt, -⟩
-    imod monoListAuthOwn_update_app (GF := GF) [((γs2, sent.length, γc) : EpInfo)] $$ Hep with
+    imod monoListAuthOwn_update_app (GF := GF) [((γs2, sent.length, γc, i) : EpInfo)] $$ Hep with
       ⟨Hep, #Hlb⟩
-    ihave #Hidx := monoListIdxOwn_get (GF := GF) eps.length ((γs2, sent.length, γc) : EpInfo)
+    ihave #Hidx := monoListIdxOwn_get (GF := GF) eps.length ((γs2, sent.length, γc, i) : EpInfo)
       (by simp) $$ Hlb
     wp_apply wp_fork $$ [Hrtok Hprod Hcnt]
-    · wp_apply wp_serve V G callSl wc γs2 Dn cd' eps.length γc sent $$ [$Hrtok $Hprod $Hcnt]
+    · wp_apply wp_serve V G callSl wc γs2 Dn cd' eps.length γc i sent $$ [$Hrtok $Hprod $Hcnt]
       · iframe #
       itrivial
     iapply HΦ
@@ -609,9 +611,10 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists γs2, Dn, cd', γc
+    iexists i, γs2, Dn, cd', γc
     iframe #
     iframe
+    ipureintro; exact Hi
   · cases err with
     | nil => exact absurd rfl Herr
     | ok e =>

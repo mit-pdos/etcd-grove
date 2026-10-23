@@ -61,12 +61,12 @@ theorem leaseClient.LeaseGrant.wp_proof
     pbLeaseGrantResponse Spec (req.TTL', req.ID') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
   rw [show (pbLeaseGrantRequest (GF := GF)).ty = etcdserverpb.LeaseGrantRequest.ty from rfl,
     show (pbLeaseGrantResponse (GF := GF)).ty = etcdserverpb.LeaseGrantResponse.ty from rfl] at hI
-  ihave Hpre' := reqPre_box conn addr ([sm] ++ vs) _ $$ Hpre
+  ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
   icases Hin' with ⟨%req', Hin', -⟩
-  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse, -⟩)
   · subst Herr
     wp_auto
     iapply HΦ

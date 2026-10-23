@@ -84,23 +84,19 @@ theorem lastRevOp_fields (bp : GoString) (n : w64) (hp : bp ≠ []) :
     (lastRevOp bp n).keysOnly = false ∧ (lastRevOp bp n).base.minModRev = W64 0 ∧
     (lastRevOp bp n).base.maxModRev = n ∧ (lastRevOp bp n).base.minCreateRev = W64 0 ∧
     (lastRevOp bp n).base.maxCreateRev = W64 0 := by
-  simp [lastRevOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-    withMaxModRevM, OpFull.getInit, OpFull.newOp, OpModel.zero, hp]
+  simp [lastRevOp, op_simps, hp]
 
 theorem lastRevOp_t (bp : GoString) (n : w64) : (lastRevOp bp n).t = W64 1 := by
-  by_cases h : bp = [] <;> simp [lastRevOp, opGetModel, opFold, withTopM, withPrefixM, withSortM,
-    withLimitM, withMaxModRevM, OpFull.getInit, OpFull.newOp, OpModel.zero, h]
+  by_cases h : bp = [] <;> simp [lastRevOp, op_simps, h]
 
 theorem lastRevOp_rev (pfx bp : GoString) (n : w64) :
     (lastRevOp bp n).base.rev = W64 0 ∧ (lastRevOp bp n).base.serializable = false ∧
       (lastRevOp bp n).isPrefixGet pfx = false := by
-  by_cases h : bp = [] <;> simp [lastRevOp, opGetModel, opFold, withTopM, withPrefixM, withSortM,
-    withLimitM, withMaxModRevM, OpFull.getInit, OpFull.newOp, OpModel.zero, h, OpFull.isPrefixGet]
+  by_cases h : bp = [] <;> simp [lastRevOp, op_simps, h, OpFull.isPrefixGet]
 
 theorem lastRevOp_not_panics (n : w64) :
     ¬ opGetPanics (withTopM (W64 3) (W64 2) ++ [withMaxModRevM n]) := by
-  simp [opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxModRevM, OpFull.newOp,
-    OpModel.zero, opGetPanics]
+  simp [op_simps, opGetPanics]
 
 theorem lastRevOp_under (pfx bp : GoString) (n : w64) (hp : bp ≠ []) (h : pfx <+: bp) :
     KeyRangeUnder pfx (lastRevOp bp n).key (lastRevOp bp n).base.rangeEnd := by

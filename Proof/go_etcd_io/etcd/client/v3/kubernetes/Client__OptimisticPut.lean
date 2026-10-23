@@ -8,6 +8,7 @@ fields (`failure_resps`, `kvFromTxnResponse`).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__OptimisticPut
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.kvFromTxnResponse
 public import Spec.go_etcd_io.etcd.client.v3.WithLease
@@ -117,7 +118,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     · simp at Hc
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  ihave #Hwo := clientWriteOnce_api kc.Client' api _ $$ [Hkvf Hone]
+  ihave #Hwo := client.clientWriteOnce_api kc.Client' api _ $$ [Hkvf Hone]
   · iframe #
   wp_auto
   wp_apply (client.v3.kv.wp_Txn api (ms.map client.SrvAt.addr) ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩
@@ -126,9 +127,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
   ihave Htwo : client.txnWriteOnce tp (ms.map client.SrvAt.addr) $$ []
   · iunfold client.txnWriteOnce
     iunfold client.writeOnce at Hwo
-    icases Hwo with (#Ho | %Hnr)
-    · ileft; iexists api; iframe #
-    · iright; ipureintro; exact Hnr
+    iexact Hwo
   (try wp_auto)
   wp_apply (client.v3.txn.wp_If tp (ms.map client.SrvAt.addr) ci cd TxnBuild.empty csl
       [compareM (cmpKeyM .mod key) .eq (.num rev)]) $$ [Hobj] as Hobj
@@ -142,7 +141,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     iframe Hobj
     ipureintro; exact ⟨rfl, rfl, rfl⟩
   (try wp_auto)
-  imod (srvStart_alloc (GF := GF) ms) with #Hst
+  imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   cases hg : opts.GetOnFailure'
   · -- no `GetOnFailure`: no else branch
     ihave Hobj : txnObjAt (GF := GF) tp (ms.map client.SrvAt.addr) ci cd
@@ -156,7 +155,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     · iframe #
       iframe
       done
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, %Herr2, #Hse⟩)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
       obtain ⟨hok, -, hrev, hb⟩ := Hσ
       iunfold txnRespMsg at Hm
@@ -185,10 +184,12 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       wp_auto
       iapply HΦ
       iright
+      iunfold kvErr at Hke
+      icases Hke with ⟨%Hce, #Hse, -⟩
       iframe Hse
       isplitl []
       · ipureintro; exact Herr
-      ipureintro; exact Herr2
+      ipureintro; exact Hce
   · -- `GetOnFailure`: the else branch gets the key
     (try wp_auto)
     ihave #Hnil := optsAt_nil (GF := GF)
@@ -231,7 +232,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       as %resp %err Hout
     · iframe #
       iframe
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, %Herr2, #Hse⟩)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
       obtain ⟨hok, hrel, hrev, hb⟩ := Hσ
       iunfold txnRespMsg at Hm
@@ -302,10 +303,12 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       wp_auto
       iapply HΦ
       iright
+      iunfold kvErr at Hke
+      icases Hke with ⟨%Hce, #Hse, -⟩
       iframe Hse
       isplitl []
       · ipureintro; exact Herr
-      ipureintro; exact Herr2
+      ipureintro; exact Hce
 
 end proof
 

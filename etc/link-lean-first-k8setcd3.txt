@@ -72,17 +72,13 @@ Run: @
 CounterClock: @
 k8setcd3_Check: Run CounterClock k8setcd3_Model k8setcd3_Gen k8setcd3_Apply
 #
-# the seeding and `Main` (over the server's, v3rpc's, the clients' and the store's, `@`)
+# the seeding and `Main` (over the shared start's, the clients' and the store's, `@`)
 seedOne: storeKey encodeV0 setItem
 seed: seedOne
-etcdserver_NewServer: @
-EtcdServer__Start: @
-v3rpc_Server: @
+common_StartServer: @
+common_Serve: @
 kubernetes_New: @
 etcd3_New: @
 NewDefaultLeaseManagerConfig: @
 zap_NewNop:
-features_NewDefaultServerFeatureGate:
-net_Listen:
-grpc_Server__Serve:
-k8setcd3_Main: zap_NewNop features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start v3rpc_Server net_Listen grpc_Server__Serve kubernetes_New seed etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue k8setcd3_Check
+k8setcd3_Main: zap_NewNop common_StartServer common_Serve kubernetes_New seed etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue k8setcd3_Check

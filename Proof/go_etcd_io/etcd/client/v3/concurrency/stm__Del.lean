@@ -51,7 +51,7 @@ theorem stm.Del.wp_proof (hDel : EtcdGrove.OpDelete.spec (GF := GF) (hG := hG)) 
   · ipureintro; exact ⟨rfl, Hpk⟩
   iexists _
   iframe Hop
-  ipureintro; exact stm_deleteOp_txnOpOf k
+  ipureintro; exact deleteOp_txnOpOf k
 
 end proof
 

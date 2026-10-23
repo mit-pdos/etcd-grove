@@ -503,19 +503,6 @@ theorem closeWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {ph : WPh} (hg : g
 def RunSt.sentCancel (S : RunSt) (X : w64) (L' : List v3rpc.WatchReqM) : RunSt :=
   { S with CS := GMap.insert X () S.CS, L := L' }
 
-theorem getElem?_snoc_cases {α : Type} {L : List α} {a b : α} {i : Nat} (h : (L ++ [a])[i]? = some b) :
-    (i < L.length ∧ L[i]? = some b) ∨ (i = L.length ∧ b = a) := by
-  by_cases hi : i < L.length
-  · left; rw [List.getElem?_append_left hi] at h; exact ⟨hi, h⟩
-  · right
-    rw [List.getElem?_append_right (by omega)] at h
-    have : i - L.length = 0 := by
-      cases hk : i - L.length with
-      | zero => rfl
-      | succ k => rw [hk] at h; simp at h
-    rw [this] at h; simp at h
-    exact ⟨by omega, h.symm⟩
-
 theorem cancel_ok {S : RunSt} {U : GMap Loc Unit} {X : w64} {L' : List v3rpc.WatchReqM}
     (hg : gOk S U) (hX : X ∈ S.regs) (hL : L' = S.L ∨ L' = S.L ++ [.cancel X]) :
     gOk (S.sentCancel X L') U ∧
@@ -528,7 +515,7 @@ theorem cancel_ok {S : RunSt} {U : GMap Loc Unit} {X : w64} {L' : List v3rpc.Wat
     intro i r h
     rcases hL with rfl | rfl
     · left; exact ⟨(List.getElem?_eq_some_iff.1 h).1, h⟩
-    · rcases getElem?_snoc_cases h with h | h
+    · rcases Perennial.getElem?_snoc_cases h with h | h
       · left; exact h
       · right; exact ⟨h.1, h.2, rfl⟩
   have hold : ∀ i, i < S.L.length → L'[i]? = S.L[i]? := by
@@ -604,7 +591,7 @@ theorem progress_ok {S : RunSt} {U : GMap Loc Unit} {L' : List v3rpc.WatchReqM}
     intro i r h
     rcases hL with rfl | rfl
     · left; exact ⟨(List.getElem?_eq_some_iff.1 h).1, h⟩
-    · rcases getElem?_snoc_cases h with h | h
+    · rcases Perennial.getElem?_snoc_cases h with h | h
       · left; exact h
       · right; exact h
   have hold : ∀ i, i < S.L.length → L'[i]? = S.L[i]? := by
@@ -691,7 +678,7 @@ theorem addWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {L' : List v3rpc.Wat
     rcases hc with ⟨-, rfl, -, -⟩ | ⟨-, rfl, -, -⟩ | ⟨-, ⟨c, rfl⟩, hp, -⟩
     · left; exact ⟨(List.getElem?_eq_some_iff.1 h).1, h⟩
     · left; exact ⟨(List.getElem?_eq_some_iff.1 h).1, h⟩
-    · rcases getElem?_snoc_cases h with h | h
+    · rcases Perennial.getElem?_snoc_cases h with h | h
       · left; exact h
       · right; exact ⟨h.1, ⟨c, h.2⟩, hp⟩
   have hold : ∀ i, i < S.L.length → L'[i]? = S.L[i]? := by
@@ -998,7 +985,7 @@ theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X 
     · simp at h1; subst h1; exact hilen
   · intro j m' ρ hj hs
     show ρ.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ.id
-    rcases getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
+    rcases Perennial.getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
     · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ hj' hs
     · rw [hsrc] at hs; cases hs
   · intro m' hm hs hc hca
@@ -1123,7 +1110,7 @@ theorem resume_ok {S : RunSt} {U : GMap Loc Unit} {L' : List WatchReqM} {pend' s
     intro i r h
     rcases hc with ⟨rfl, -, -⟩ | ⟨⟨c, rfl⟩, hp', -, -⟩
     · left; exact ⟨(List.getElem?_eq_some_iff.1 h).1, h⟩
-    · rcases getElem?_snoc_cases h with h | h
+    · rcases Perennial.getElem?_snoc_cases h with h | h
       · left; exact h
       · right; exact ⟨h.1, ⟨c, h.2⟩, hp'⟩
   have hlen : S.L.length ≤ L'.length := by
@@ -1289,7 +1276,7 @@ theorem cancelAns_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} 
     · simp at h; subst h; exact (List.getElem?_eq_some_iff.1 hi).1
   · intro j m' ρ hj hs
     show ρ.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ.id
-    rcases getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
+    rcases Perennial.getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨-, rfl⟩
     · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ hj' hs
     · rw [hsrc] at hs; cases hs
   · intro m' hm hs hc hca
@@ -1369,7 +1356,7 @@ theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : mvcc.
   refine ⟨⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, ?_, ?_⟩, ?_⟩
   · intro j m' ρ' hj hs
     show ρ'.id ≠ W64 (-1) → idLive ((S.Dm ++ [m]).take j) ρ'.id
-    rcases getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨hj2, hm'⟩
+    rcases Perennial.getElem?_snoc_cases hj with ⟨hjl, hj'⟩ | ⟨hj2, hm'⟩
     · rw [List.take_append_of_le_length (by omega)]; exact g12 j m' ρ' hj' hs
     · subst hm'
       rw [hsrc] at hs; cases hs

@@ -39,7 +39,7 @@ theorem mvcc.store.Compact.wp_of_le
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool) (htr : trace ≠ null)
     (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
+      mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
@@ -54,10 +54,17 @@ theorem mvcc.store.Compact.wp_of_le
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
         (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
         mvcc.compactRight γ c ∗ Pre)) }} := by
-  wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, #Hhook, Hcs, Htrc⟩
+  wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, HhookW, Hcs, Htrc⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
+  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
+  -- `isStore`'s, pinned)
+  icases mvcc.storeStop_open s γ $$ Hstop with
+    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  try simp only
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -67,7 +74,7 @@ theorem mvcc.store.Compact.wp_of_le
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ 1)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%c', HmuP⟩
+  icases HmuP with ⟨%c', HmuP, Hwr⟩
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   iunfold mvcc.compactRight at Hright
@@ -81,7 +88,7 @@ theorem mvcc.store.Compact.wp_of_le
   wp_apply (h0 s γ hcmp) $$ [] as %pcc -
   · iframe #
   (try wp_auto)
-  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs] as %ch %prev %err Hres
+  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs $HhookW] as %ch %prev %err Hres
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   wp_apply (h2 trace te _ slice.nil) $$ [Htrc] as Htrc
@@ -92,8 +99,8 @@ theorem mvcc.store.Compact.wp_of_le
     ⟨⟨%Hlt, %Hch, %Hprev⟩, ⟨%ef, #Hef, %Herr⟩, #Hcert, Hmu, Hright, HPre⟩)
   · subst Herr
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu]
-    · inext; iunfold mvcc.muInv; iexists (sint.Z rev); iexact Hmu
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
+    · inext; iunfold mvcc.muInv; iexists (sint.Z rev); iframe Hwr; iexact Hmu
     (try wp_auto)
     iunfold mvcc.compactRight at Hright
     icases Hright with ⟨Hcr, Hq, #Hlive⟩
@@ -112,8 +119,8 @@ theorem mvcc.store.Compact.wp_of_le
     iexact Hlb
   · subst Herr
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu]
-    · inext; iunfold mvcc.muInv; iexists c'; iexact Hmu
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
+    · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
     (try wp_auto)
     iapply HΦ
     iframe Htrc
@@ -124,8 +131,8 @@ theorem mvcc.store.Compact.wp_of_le
     iexists ec; iframe Hec; ipureintro; rfl
   · subst Herr Hch
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu]
-    · inext; iunfold mvcc.muInv; iexists c'; iexact Hmu
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
+    · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
     (try wp_auto)
     iapply HΦ
     iframe Htrc

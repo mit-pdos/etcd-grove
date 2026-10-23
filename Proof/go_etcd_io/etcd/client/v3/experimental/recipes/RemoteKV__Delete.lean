@@ -45,7 +45,7 @@ theorem RemoteKV.Delete.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF)
     wp_auto
     wp_apply hTODO
     (try wp_auto)
-    ihave #Hnil := concurrency.optsAt_nil (GF := GF)
+    ihave #Hnil := optsAt_nil (GF := GF)
     iunfold isEtcdDeleteKVTodo at HDel
     obtain ⟨hkk, hke⟩ := concurrency.deleteOp_fields key
     wp_apply HDel $$ %key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hnil $Hlo] as %resp %err #Hres

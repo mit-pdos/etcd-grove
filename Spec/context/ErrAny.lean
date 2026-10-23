@@ -28,7 +28,10 @@ error explaining why: DeadlineExceeded if the context's deadline passed, or Canc
 context was canceled for some other reason"), which the standard contexts keep (a `cancelCtx`
 stores `Canceled`, `DeadlineExceeded` or its parent's `Err()`). In the shape of `isContext`'s own
 `Err` (`HErr`: at a known-done context, non-nil; otherwise `nil`, or the context is done), with
-which error it is: `nil`, or the value of `context.Canceled` or of `context.DeadlineExceeded`.
+which error it is: `nil`, or the value of `context.Canceled` or of `context.DeadlineExceeded`;
+and (2026-10-23, D37) what those two values are (Go's `context.go`: `var Canceled =
+errors.New("context canceled")`, an `*errorString` whose `s` field nothing writes again;
+`DeadlineExceeded error = deadlineExceededError{}`, a struct).
 Perennial's `isContext` says only that a done context's error is typed (`isTypedErr`).
 `context.ErrDone` (a done context's error is one of the two) follows (`ErrDone.lean`). -/
 abbrev context.ErrAny.spec : Prop :=
@@ -44,7 +47,14 @@ abbrev context.ErrAny.spec : Prop :=
        | _ => if err = interface.nil then iprop(True)
               else context.ContextClosed cd.Done_gn) ∗
       (⌜err = interface.nil⌝ ∨ ⌜context.isTypedErr err⌝ ∗
-        (globalAddr context.Canceled ↦□ err ∨ globalAddr context.DeadlineExceeded ↦□ err)) }}
+        -- (2026-10-23, D37) `Canceled` is `errors.New("context canceled")`, its cell holding the
+        -- message for good; `DeadlineExceeded` is a `deadlineExceededError{}`, no `*errorString`
+        ((globalAddr context.Canceled ↦□ err ∗ ∃ x : Loc,
+            ⌜err = interface.mkOk
+              (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ ∗
+            x.[_root_.Perennial.errors.errorString, go!"s"] ↦□ go!"context canceled") ∨
+          (globalAddr context.DeadlineExceeded ↦□ err ∗ ⌜∀ x : Loc, err ≠ interface.mkOk
+              (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝))) }}
 
 end spec
 

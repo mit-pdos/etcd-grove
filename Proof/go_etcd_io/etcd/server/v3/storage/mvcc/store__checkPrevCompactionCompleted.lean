@@ -23,7 +23,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
@@ -32,9 +32,16 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
     (h1 : mvcc.UnsafeReadFinishedCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) := by
   intro s γ hcmp
-  wp_start as #Hs
+  wp_start as ⟨#Hs, #Hstop⟩
   iunfold mvcc.isStore at Hs
   iNamed Hs
+  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
+  -- `isStore`'s, pinned)
+  icases mvcc.storeStop_open s γ $$ Hstop with
+    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  try simp only
   ihave #Hbk' := mvcc.isKeyBackendG_cmp b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, -, -, -, -, #HCmp⟩

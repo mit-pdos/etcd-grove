@@ -1,12 +1,13 @@
 /- Lean-first (no Rocq counterpart).
 
 `callPut(cli, key, val)` (linkvtxn.go): a put of `key ↦ val` through `New`'s client `cli`
-configured for one attempt, with an update fired at most once: the failed call's output
+that sends a write at most once, with an update fired at most once: the failed call's output
 (`errOut`), or the reply's at the state `σ` the update fired at (`Q σ`): `σ`'s next revision.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -27,7 +28,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev callPut.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF))
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (cl : Loc) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (key val : GoString) (Q : KVState → IProp GF),

@@ -89,6 +89,9 @@ structure BNames where
   /-- `ghostVar`: the writer's contents on the hook's own keys (`hkData`), half the batch
   lock's, half the client's (`hkOwn`) -/
   hkd : GName
+  /-- `ghostVar`: the writer's contents on the tracked buckets (`rbData`, D22, 2026-10-23), half
+  the batch lock's, half the client's (`rbOwn`) -/
+  rbk : GName
 
 section phys
 variable [FfiSyntax]
@@ -223,6 +226,38 @@ def hkOwn (γ : BNames) (d : GMap (GoString × GoString) GoString) : IProp GF :=
 contents being `S`: the client's half if `k` is a hook's own key, else nothing. -/
 def hkPut (γ : BNames) (P : BParams) (n k : GoString) (S : Data) : IProp GF :=
   if P.hk n k then hkOwn γ (hkData P S) else iprop(True)
+
+/-- **The client's half of the tracked buckets** (D22, 2026-10-23: the backend over every
+bucket): the writer's contents hold `r` there (`rbData`: each tracked bucket's contents, absent
+if absent). Only its holder can put in, delete from, create or delete a tracked bucket
+(`UnsafePut`, `UnsafeDelete`, `UnsafeCreateBucket`, `UnsafeDeleteBucket`), and it agrees with
+every state of the batch lock and with what a snapshot's commit leaves (`backend.Snapshot`). -/
+def rbOwn (γ : BNames) (r : GMap GoString BktData) : IProp GF :=
+  ghostVar γ.rbk (1 : Qp).half r
+
+instance rbOwn_timeless (γ : BNames) (r : GMap GoString BktData) :
+    Timeless (rbOwn (GF := GF) γ r) := by
+  unfold rbOwn; infer_instance
+
+/-- What an operation on bucket `n` needs and gives of the tracked buckets, the writer's contents
+being `S`: the client's half if `n` is tracked, else nothing. -/
+def rbPut (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
+  if P.RB n then rbOwn γ (rbData P S) else iprop(True)
+
+/-- An untracked bucket's operation needs nothing of the tracked buckets. -/
+theorem rbPut_other (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.RB n = false) :
+    ⊢ rbPut (GF := GF) γ P n S := by
+  unfold rbPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
+
+/-- The batch lock's halves of what it tracks of the writer's contents `S`: the hook's own keys
+(`γ.hkd`) and the tracked buckets (`γ.rbk`). -/
+def trkHalf (γ : BNames) (P : BParams) (S : Data) : IProp GF :=
+  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ ghostVar γ.rbk (1 : Qp).half (rbData P S))
+
+/-- Two contents with the same tracked data have the same halves. -/
+theorem trkHalf_eq (γ : BNames) (P : BParams) {S S' : Data} (h1 : hkData P S' = hkData P S)
+    (h2 : rbData P S' = rbData P S) : trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
+  unfold trkHalf; rw [h1, h2]
 
 /-! ## The history of the read side, and the cache's marks -/
 
@@ -457,16 +492,16 @@ the readers' state `γ.rvs` at `(C, R)` (so the batch side's `C` and `R` are the
 with no `Unlock` window open (an `Unlock`'s commit closes it for its hook's run), the write-back budget's authority (`n` tokens out), the count of write-backs
 `w` (monotone) and half of `γ.used` (the `run` goroutine has the other half), a quarter of the
 open token (the `run` goroutine has another quarter, the clients' `bOpen` the half: so the
-batch lock is never held in a stopped backend), half of the hook's own keys `γ.hkd` at the
-writer's contents (`hkData`), with the bounds of `bgOk` over the state's counters (`free`: the
-lock is free). -/
+batch lock is never held in a stopped backend), half of the hook's own keys `γ.hkd` and of the
+tracked buckets `γ.rbk` at the writer's contents (`trkHalf`), with the bounds of `bgOk` over the
+state's counters (`free`: the lock is free). -/
 def batchGhostAt (γ : BNames) (P : BParams) (st : BSess) (free : Bool) : IProp GF :=
   iprop(ghostVar γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ∗
     ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
       ownTokAuth γ.wb n ∗
       monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-      ghostVar γ.hkd (1 : Qp).half (hkData P st.S) ∗ ⌜bgOk P st free n w u⌝)
+      trkHalf γ P st.S ∗ ⌜bgOk P st free n w u⌝)
 
 /-- The batch lock's ghost share, held. -/
 abbrev batchGhost (γ : BNames) (P : BParams) (st : BSess) : IProp GF := batchGhostAt γ P st false
@@ -514,6 +549,44 @@ instance hooksSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t :
 instance hookFnSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
     (f : GoFunc) : Persistent (hookFnSpec γ P Pk b t f) := by
   unfold hookFnSpec; infer_instance
+
+/-- **A committer's request served by the hooks** (D22 the stored-index window, 2026-10-23;
+`notes/decisions.md`, "D22 the stored-index window carried out"): the hooks `h`' contract
+(`hooksSpec`) with a frame the hook transforms: given the committer's `X` besides the hooks'
+resource, `OnPreCommitUnsafe(t)` makes a hook step and gives back `Y`. For the server's hooks,
+the apply thread's state traded for the stored index's window at the consistent index's save. -/
+def hooksReq (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (h : GoInterface)
+    (X Y : IProp GF) : IProp GF :=
+  iprop(∃ ho : GoInterfaceOk, ⌜h = GoInterface.ok ho⌝ ∗
+    □ ∀ st : BSess,
+      {{ batchLocked γ P b st ∗ Pk ∗ X ∗ ⌜hookPre P st⌝ }}
+        (App (Val #(methods ho.ty go!"OnPreCommitUnsafe" ho.v))
+          (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
+      {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ Y ∗ ⌜hookStep P st st'⌝ }})
+
+instance hooksReq_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
+    (h : GoInterface) (X Y : IProp GF) : Persistent (hooksReq γ P Pk b t h X Y) := by
+  unfold hooksReq; infer_instance
+
+/-- **A commit's request** `X ⇒ Y` (D22 the stored-index window, 2026-10-23): a plain wand (the
+commit only passes `X` along), or a request the backend's hooks serve (`hooksReq`; a commit runs
+its hook exactly once, `batchTxBuffered.unsafeCommit`). -/
+def commitReq (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc) (X Y : IProp GF) :
+    IProp GF :=
+  iprop(□ (X -∗ Y) ∨ ∃ (t : Loc) (h : GoInterface), bF go!"batchTx" b ↦□ t ∗
+    bF go!"hooks" b ↦□ h ∗ hooksReq γ P Pk b t h X Y)
+
+instance commitReq_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc)
+    (X Y : IProp GF) : Persistent (commitReq γ P Pk b X Y) := by
+  unfold commitReq; infer_instance
+
+/-- No request. -/
+theorem commitReq_true (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc) :
+    ⊢ commitReq (GF := GF) γ P Pk b iprop(True) iprop(True) := by
+  unfold commitReq
+  ileft
+  iintro !> -
+  itrivial
 
 /-- The backend's metrics fields (atomics). -/
 def metricsInv (b : Loc) : IProp GF :=

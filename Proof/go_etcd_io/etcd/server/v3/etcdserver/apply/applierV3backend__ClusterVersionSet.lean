@@ -38,13 +38,14 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
     (hZS : zap.String.spec (GF := GF) (hG := hG))
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.ClusterVersionSet.spec (GF := GF) (hG := hG) := by
-  intro E p r v3 log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%ver, #Hr, %Hvalid⟩, Hpre, Hwt, HFSt⟩
+  intro E p r v3 log Pre Q Post ver rs
+  wp_start as ⟨#Hb, #Hr, %Hvalid, Hpre, Hwt, HFSt, HRO⟩
   iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
   icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-  icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+  icases Hard with ⟨Hard, Hwo⟩
+  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
@@ -58,21 +59,22 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   iStructNamed Hopts
   wp_auto
   wp_apply HVer as %prev -
-  wp_apply hMP as %rv %Hrv
-  obtain ⟨nv, rfl, Hnv⟩ : ∃ v : Loc, rv = #v ∧ v ≠ null := by
-    rcases Hrv with ⟨-, h⟩ | ⟨Hn, -⟩
-    · exact h
-    · exact absurd Hvalid Hn
+  wp_apply hMP as %rv Hrv
+  icases Hrv with (⟨-, %nv, %Hnv, #Hsv⟩ | %Hn)
+  rotate_left
+  · exact absurd Hvalid Hn.1
+  obtain ⟨rfl, Hnv⟩ := Hnv
   wp_auto
-  wp_apply HSV $$ [$Hcs $Hwt $Hrt] as ⟨HPP, Hrt⟩
+  wp_apply HSV $$ [$Hcs $Hwt $Hrt $Hsv $HRO] as ⟨HPP, Hrt, HRO⟩
   · ipureintro; exact Hnv
-  ihave Hrd := Hrdb $$ Hrt
-  ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard]
+  ihave Hwo := Hrdb $$ Hrt
+  ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
   · iunfold apply.kvOwn; iframe
   wp_if_destruct
   · -- no previous version
     iapply HΦ
     iunfold apply.mPostV
+    iframe HRO
     iframe
   wp_apply hLT as %b -
   · ipureintro; exact ⟨Hnv, Hif⟩
@@ -81,6 +83,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   · -- not a downgrade
     iapply HΦ
     iunfold apply.mPostV
+    iframe HRO
     iframe
   -- a downgrade: logged, a snapshot forced
   wp_if_destruct
@@ -107,6 +110,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   (try wp_auto)
   iapply HΦ
   iunfold apply.mPostV
+  iframe HRO
   iframe
 
 end proof

@@ -47,16 +47,14 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) := by
-  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro qm qc c lc te Htrnn
+  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro qm qc c lc te dqi Htrnn
   wp_start as ⟨#Hs, HsT, HtxcT, HtraceT, #Hrdr, HRr, %HsubT, #Hlc, %Hlcp, Hkn, %Hklog, %HneT, %Hrv,
-    #Hidx0, Hti0,
+    #Hpin0, Hidx0, Hti0,
     #Hctx, #Hkey, #Hend, Hcmp, Hcu, %Hc0, Hown⟩
   iunfold mvcc.isStore at Hs
-  icases Hs with ⟨%b, %ti', %lg, Hs⟩
   iNamed Hs
-  icombine Hidx0 Hidx gives %Hti'
-  have hti := mvcc.mkOk_loc_inj _ Hti'
-  subst hti
+  -- the transaction's tree index (D22 receiver epochs, S5b: its share's; until then the pin's)
+  ihave #Hti := Hpin0
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨⟨%e0, #Herr⟩, ⟨%ecp, #Hcomp⟩, ⟨%ef, #Hfut⟩, -, -, -, -, -, -⟩
@@ -69,7 +67,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     iapply HΦ
     isplitl []
     · ipureintro; intro _; exact Hrnn
-    iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
+    iframe Hti0 Hidx0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
     iunfold mvcc.rangeOutcomeC
     iright
     isplitl []
@@ -117,7 +115,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
       iapply HΦ
       isplitl []
       · ipureintro; intro _; exact Hrnn
-      iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
+      iframe Hti0 Hidx0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
       iunfold mvcc.rangeOutcomeC
       ileft
       isplitl []
@@ -145,7 +143,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
       iapply HΦ
       isplitl []
       · ipureintro; intro _; exact Hrnn
-      iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
+      iframe Hti0 Hidx0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
       iunfold mvcc.rangeOutcomeC
       iright
       isplitl []
@@ -194,7 +192,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           iapply HΦ
           isplitl []
           · ipureintro; intro _; exact Hrnn
-          iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
+          iframe Hti0 Hidx0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
           iunfold mvcc.rangeOutcomeC
           iright
           isplitl []
@@ -346,7 +344,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             wp_for_post
             (try wp_auto)
             (try simp only [named])
-            iframe HΦ tr ro curRev Hend0 key ctx Hrevp Hti0 Hmodcap Hcrecap Hverscap keys modifies
+            iframe HΦ tr ro curRev Hend0 key ctx Hrevp Hti0 Hidx0 Hmodcap Hcrecap Hverscap keys modifies
               creates versions total Hkcap Hzip Hkvscap kvs HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
             iexists (i + 1), (ps ++ [«$r0_ptr»]), (W64 (i : Int))
             (try simp only [named])
@@ -389,7 +387,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             iapply HΦ
             isplitl []
             · ipureintro; intro _; exact Hrnn
-            iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
+            iframe Hti0 Hidx0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
             iunfold mvcc.rangeOutcomeC
             iright
             isplitl []
@@ -443,7 +441,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           iapply HΦ
           isplitl []
           · ipureintro; intro _; exact Hrnn
-          iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
+          iframe Hti0 Hidx0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
           iunfold mvcc.rangeOutcomeC
           iright
           isplitl []
@@ -581,7 +579,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 iprop((∀ r err, ⌜todo = true → r ≠ null⌝ ∗ txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗
                     txc.[storeTxnCommon, go!"tx"] ↦{dq} (GoInterface.ok rt : GoInterface) ∗
                     txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗
-                    R ∗ mvcc.idxKnows γ.idx kn ∗ mvcc.idxReader ti γ.idx ∗
+                    R ∗ mvcc.idxKnows γ.idx kn ∗ mvcc.idxReader ti γ.idx ∗ s.[store, go!"kvindex"] ↦{dqi} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
                     s.[store, go!"compactMainRev"] ↦{DFrac.own qm} (W64 c : w64) ∗
                     mvcc.crevUB γ.idx qc c ∗ traceutil.ownTrace trace te ∗
                     mvcc.rangeOutcomeC r err log rev c (decide (endk = slice.nil)) k e ro -∗
@@ -594,7 +592,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   mvcc.crevUB γ.idx qc c ∗
                   tr_ptr ↦ txc ∗ ro_ptr ↦ ro ∗ curRev_ptr ↦ rev ∗ end_ptr ↦ endk ∗
                   key_ptr ↦ key ∗ ctx_ptr ↦ (GoInterface.ok ctx : GoInterface) ∗
-                  mvcc.idxReader ti γ.idx ∗ ownSliceCap Revision revs (DFrac.own 1) ∗
+                  mvcc.idxReader ti γ.idx ∗ s.[store, go!"kvindex"] ↦{dqi} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+                  ownSliceCap Revision revs (DFrac.own 1) ∗
                   revpairs_ptr ↦ revs ∗ total_ptr ↦ total ∗ ownSliceCap Loc kvs (DFrac.own 1) ∗
                   kvs_ptr ↦ kvs ∗ i_ptr ↦ W64 (i : Int) ∗ igo ↦ W64 (i : Int) ∗
                   rp ↦ mvcc.revVal a.2.1 ∗ revBytes_ptr ↦ rbuf ∗ rbuf ↦* bs ∗
@@ -603,7 +602,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   [∗list] pa ∈ ps.zip (taken.take i), ∃ kv : EtcdKv,
                     ⌜mvcc.findKey pa.2.1 (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev ro.Rev'))) =
                       some kv⌝ ∗ mvcc.kvPtrIs true pa.1 kv)
-                $$ [] [HΦ HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu tr ro curRev Hend0 key ctx Hti0 Hrevscap revpairs total Hkvscap kvs Hi Hgo
+                $$ [] [HΦ HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu tr ro curRev Hend0 key ctx Hti0 Hidx0 Hrevscap revpairs total Hkvscap kvs Hi Hgo
                   Hrp revBytes Hrb Hrbcap Hkvs Hps] []
             · cases todo
               case true =>
@@ -614,7 +613,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   iapply chan.nilClausePre_recv Unit dch _ Hnil
                 -- a context never canceled: the case never fires (it would give `PDone`)
                 ileft
-                iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0,
+                iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hidx0,
                   Hrevscap, revpairs, total, Hkvscap, kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs,
                   Hps⟩
                 simp only [chan.nonblockingAltClausePre]
@@ -635,7 +634,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               icases Hdone with ⟨%γd, #Hdone⟩
               ihave #Hctx2 := Hctx
               iNamed Hctx2
-              iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap,
+              iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hidx0, Hrevscap,
                 revpairs, total, Hkvscap,
                 kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs, Hps⟩
               simp only [chan.nonblockingAltClausePre]
@@ -664,7 +663,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 iapply HΦ
                 isplitl []
                 · ipureintro; intro h; cases h
-                iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
+                iframe Hti0 Hidx0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
                 iunfold mvcc.rangeOutcomeC
                 iright
                 isplitl []
@@ -680,7 +679,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 iexact He'
               · iframe
             · iframe
-            · iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap,
+            · iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hidx0, Hrevscap,
                 revpairs, total, Hkvscap,
                 kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs, Hps⟩ -
               (try wp_auto)
@@ -717,7 +716,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 ihave %Hcc' := mvcc.crevUB_lb γ.idx qc c c' Hc0.1 Hk'.1 $$ Hcu Hlb'
                 ihave %Hcmp' := mvcc.idxCert_prefix γ.idx lc log' $$ [$Hlc $Hc']
                 iunfold mvcc.idxCert at Hc'
-                icases Hc' with ⟨-, -, %Hb', -⟩
+                icases Hc' with ⟨-, %Hb', -⟩
                 exfalso
                 refine mvcc.rangeAnswers_not_del lc log log' Hlcp.1 ⟨Hlen, Hcs⟩ ⟨Hb'.2.1, Hb'.2.2⟩
                   Hcmp' c' Hk'.1 (by omega) Hk'.2.2 _ k e _ ?_ a hmem false Hk'.2.1
@@ -765,7 +764,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               wp_for_post
               (try wp_auto)
               (try simp only [named])
-              iframe HΦ tr ro curRev Hend0 key ctx Hti0 Hrevscap revpairs total Hkvscap kvs
+              iframe HΦ tr ro curRev Hend0 key ctx Hti0 Hidx0 Hrevscap revpairs total Hkvscap kvs
                 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
               iexists (i + 1), (ps ++ [«$r0_ptr»]), (W64 (i : Int)), (mvcc.revVal a.2.1), rb',
                 (mvcc.revBytes a.2.1 false)
@@ -814,7 +813,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             iapply HΦ
             isplitl []
             · ipureintro; intro _; exact Hrnn
-            iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
+            iframe Hti0 Hidx0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
             iunfold mvcc.rangeOutcomeC
             iright
             isplitl []

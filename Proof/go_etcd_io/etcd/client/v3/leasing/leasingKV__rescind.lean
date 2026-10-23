@@ -66,16 +66,15 @@ theorem leasingKV.rescind.wp_proof
     simp [cmpKeyM, cmpArgOf]
   (try wp_auto)
   ihave #Hopt0 : optsAt (GF := GF) slice.nil ([] : List (OpFull → OpFull)) $$ []
-  · iapply concurrency.optsAt_nil
+  · iapply optsAt_nil
   wp_apply hDel (pfx ++ key) slice.nil [] $$ [$Hcv $Hopt0] as %opD #HopD
   · ipureintro
-    simp [opDeletePanics, opGetPanics, opFold, OpFull.newOp, opDeleteModel, OpFull.deleteInit,
-      OpFull.deletePanics, OpModel.zero]
+    simp [opDeletePanics, opGetPanics, op_simps, OpFull.deletePanics]
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   have Hd : txnOpOf (opDeleteModel (pfx ++ key) []) =
       some (.delete (opDeleteModel (pfx ++ key) [])) := by
-    simp [txnOpOf, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp]
+    simp [op_simps]
   iunfold isEtcdTxnKVO at HTxn
   ihave #Hctx2 := Hctx
   iNamed Hctx2

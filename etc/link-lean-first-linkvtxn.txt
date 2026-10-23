@@ -61,16 +61,21 @@ opsOf: opOf
 cmpsFor: cmpsOf cmpOf
 kvsFrom: vrOf
 txnRes: vrOf ResponseOp__GetResponseRange ResponseOp__GetResponseDeleteRange
-callGet: vrOf
-callList: kvsFrom withKVs WithRange
-callPut:
-callDel:
-callTxn: cmpsFor opsOf thenOf elseOf txnRes withRes
+# each call in a context with the request timeout (notes/client-timeouts-plan.md, D-T2):
+# `context.WithTimeout` of `Background()`'s trust-boundary axiom, a context's `Err` (in
+# `context`'s `Link.lean`)
+context_WithTimeoutBackground:
+context_ErrAny: @
+callGet: context_WithTimeoutBackground context_ErrAny vrOf
+callList: context_WithTimeoutBackground context_ErrAny kvsFrom withKVs WithRange
+callPut: context_WithTimeoutBackground context_ErrAny
+callDel: context_WithTimeoutBackground context_ErrAny
+callTxn: context_WithTimeoutBackground context_ErrAny cmpsFor opsOf thenOf elseOf txnRes withRes
 call: callGet callList callPut callDel callTxn
 linkvtxn_Apply: call isWrite
 #
-# the generator, `Check` (over the driver's, `@`) and `Main` (over the server's, v3rpc's and the
-# client's, `@`), as linkv's (linkv-txn stage G)
+# the generator, `Check` (over the driver's, `@`) and `Main` (over the examples' shared start's,
+# `common`'s, `@`), as linkv's (linkv-txn stage G)
 workloadKeys:
 pick:
 genFrom: workloadKeys pick
@@ -78,12 +83,8 @@ linkvtxn_Gen: genFrom
 Run: @
 CounterClock: @
 linkvtxn_Check: Run CounterClock linkvtxn_Model linkvtxn_Gen linkvtxn_Apply
-etcdserver_NewServer: @
-EtcdServer__Start: @
-v3rpc_Server: @
-client_v3_New: @
+common_StartServer: @
+common_Serve: @
+common_NewClient: @
 zap_NewNop:
-features_NewDefaultServerFeatureGate:
-net_Listen:
-grpc_Server__Serve:
-linkvtxn_Main: zap_NewNop features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start v3rpc_Server net_Listen grpc_Server__Serve client_v3_New linkvtxn_Check
+linkvtxn_Main: zap_NewNop common_StartServer common_Serve common_NewClient linkvtxn_Check

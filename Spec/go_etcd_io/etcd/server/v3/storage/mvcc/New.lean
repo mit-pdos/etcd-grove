@@ -49,7 +49,7 @@ abbrev mvcc.New.spec : Prop :=
         mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader s st γ) ∗
-        mvcc.wsCloser s st γ.st }}
+        mvcc.wsCloser s st γ.st ∗ mvcc.writerFrag γ.st }}
 
 end spec
 

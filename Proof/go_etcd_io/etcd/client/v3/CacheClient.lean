@@ -6,7 +6,7 @@ Lean-first, no Rocq counterpart.
 to a gRPC server where etcd's `Range` is registered (`kvObjAt`, `etcd_kv_served`) and whose
 `Watcher` field is etcd's client watcher over the same server (`isClientWatcher V w`, `V.R.E = E`)
 meets the cache's client contract (`isEtcdClient`, `cache/v3/InvNew.lean`) at the server's model,
-for the watcher's prefix: its `Get`s (`isEtcdKVE_of_kv`, any context: the watcher's
+for the watcher's prefix: its `Get`s (`isEtcdKVE_of_kv_r`, any context: the watcher's
 `ctxErrClientAllW`), its watches (`isEtcdWatcher_of_watcher`, for a prefix not all `0xff`) and its
 progress requests (`isEtcdProgressNotifier_of_watcher`).
 -/
@@ -48,6 +48,7 @@ updates at the ranges, `kvRangeAu`, 2026-10-20; no sort enumerations: the cache'
 theorem isEtcdClient_of_server_r (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_RP : watcher.RequestProgress.spec (GF := GF) (hG := hG)) (cl : Loc) (V : WEnv GF) (w api : Loc) (addr : List GoString) (s : Loc)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hE : V.R.E = E)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
     (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -65,10 +66,10 @@ theorem isEtcdClient_of_server_r (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
     iunfold watchSrvFacts at Hsf
     icases Hsf with ⟨-, Hcf⟩
     iunfold watchConnFacts at Hcf
-    icases Hcf with ⟨-, -, -, -, -, -, -, -, #Hca, -, %h⟩
+    icases Hcf with ⟨-, -, -, -, -, -, #Hca, -, %h⟩
     isplitl
     · unfold ctxErrClientAll; iunfold ctxErrClientAllW at Hca; iexact Hca
-    ipureintro; exact h.2
+    ipureintro; exact h.1
   unfold isEtcdClient
   iexists kvIfaceOf api, watcherIfaceOf w
   iframe HKV HW
@@ -76,7 +77,11 @@ theorem isEtcdClient_of_server_r (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
   · iapply isEtcdKVE_of_kv_r api addr s V.R.E γr cid mid V.pfx hp
     iframe #
   isplitr
-  · iapply isEtcdWatcher_of_watcher wp_Watch V w hff
+  · -- (W3) the watcher's contract is at the server's model
+    iapply (show isEtcdWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx ⊢
+        isEtcdWatcher (EM := v3rpc.etcdModelOfServer V.R.E) (watcherIfaceOf w) V.pfx from by
+      rw [hWM])
+    iapply isEtcdWatcher_of_watcher wp_Watch V w hff
     iframe #
   iapply isEtcdProgressNotifier_of_watcher wp_RP V w
   iframe #
@@ -87,6 +92,7 @@ updates `kvAnyAu`) and the watcher's (`isClientWatcher`), over the same server (
 theorem isEtcdClient_of_server (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_RP : watcher.RequestProgress.spec (GF := GF) (hG := hG)) (cl : Loc) (V : WEnv GF) (w api : Loc) (addr : List GoString) (s : Loc)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hE : V.R.E = E)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
     (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -98,7 +104,7 @@ theorem isEtcdClient_of_server (wp_Watch : watcher.Watch.spec (GF := GF) (hG := 
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
   iintro ⟨#P1, #P2, #P3, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hrpc, #Hsn, #Hany⟩
   ihave #Hr := kvAnyAu_range E γr $$ Hany
-  iapply (isEtcdClient_of_server_r wp_Watch wp_RP cl V w api addr s E γr cid mid hE hff)
+  iapply (isEtcdClient_of_server_r wp_Watch wp_RP cl V w api addr s E γr cid mid hE hWM hff)
   iframe #
 
 /-- **`clientv3.New`'s client is the cache's** (`isNewClient`, D19f): its `KV` field the `*kv`
@@ -113,7 +119,9 @@ theorem isEtcdClient_of_new_r [_root_.Perennial.errors.Assumptions] [_root_.Pere
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_RP : watcher.RequestProgress.spec (GF := GF) (hG := hG)) (cl : Loc) (ep : GoString)
     (V : WEnv GF) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64)
-    (hV : V.addr = ep) (hE : V.R.E = E) (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
+    (hV : V.addr = ep) (hE : V.R.E = E)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
+    (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isNewClient cl [ep] V ∗ watchAddrFacts V ∗
@@ -123,12 +131,12 @@ theorem isEtcdClient_of_new_r [_root_.Perennial.errors.Assumptions] [_root_.Pere
   iintro ⟨#P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc0, #Hany⟩
   ihave #Hrpc := (isGrpcRpcs_singleton ep _ _).1 $$ Hrpc0
   ihave ⟨%w, %conn, %wc, %lg, %ics, #HW, #Hw⟩ := isNewClient_watcher wp_ErrAny hAs cl [ep] V
-    (by rw [hV]) $$ [$P1 $P2 $P3 $Hnc $Hf]
+    (by rw [hV]) hm hn $$ [$P1 $P2 $P3 $Hnc $Hf]
   ihave #Hnc' := Hnc
   iunfold isNewClient at Hnc'
   icases Hnc' with ⟨-, -, ⟨%api, #HKV, #Hkv⟩, -⟩
   iapply (isEtcdClient_of_server_r wp_Watch wp_RP cl
-    { V with conn := conn, ics := ics, wc := wc, lg := lg } w api [ep] s E γr cid mid hE hff)
+    { V with conn := conn, ics := ics, wc := wc, lg := lg } w api [ep] s E γr cid mid hE hWM hff)
   iframe #
 
 /-- **`clientv3.New`'s client is the cache's** (`isNewClient`, D19f): its `KV` field the `*kv`
@@ -143,7 +151,9 @@ theorem isEtcdClient_of_new [_root_.Perennial.errors.Assumptions] [_root_.Perenn
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_RP : watcher.RequestProgress.spec (GF := GF) (hG := hG)) (cl : Loc) (ep : GoString)
     (V : WEnv GF) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64)
-    (hV : V.addr = ep) (hE : V.R.E = E) (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
+    (hV : V.addr = ep) (hE : V.R.E = E)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
+    (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isNewClient cl [ep] V ∗ watchAddrFacts V ∗
@@ -152,7 +162,7 @@ theorem isEtcdClient_of_new [_root_.Perennial.errors.Assumptions] [_root_.Perenn
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
   iintro ⟨#P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hsn, #Hany⟩
   ihave #Hr := kvAnyAu_range E γr $$ Hany
-  iapply (isEtcdClient_of_new_r wp_ErrAny hAs wp_Watch wp_RP cl ep V s E γr cid mid hV hE hff)
+  iapply (isEtcdClient_of_new_r wp_ErrAny hAs wp_Watch wp_RP cl ep V s E γr cid mid hV hE hWM hm hn hff)
   iframe #
 
 end proofs

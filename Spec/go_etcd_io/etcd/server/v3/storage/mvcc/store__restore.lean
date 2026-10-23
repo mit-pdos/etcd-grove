@@ -1,5 +1,5 @@
 /-
-`store.restore` (`kvstore.go`): the trust boundary (untranslated), over a `Key` bucket with data
+`store.restore` (`kvstore.go`): the trust boundary (translated 2026-10-23, `notes/restore-plan.md` R0; not yet proved), over a `Key` bucket with data
 (D22 S-g).
 Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
@@ -52,14 +52,15 @@ only an empty bucket, `R = []`), returning `nil`.
 abbrev mvcc.store.restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q qc : Qp) (P : IProp GF)
     (HF : val → IProp GF) (RT WT W Wi Dep : IProp GF) (Cmp : Prop)
-    (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (R : mvcc.Log),
+    (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (R : mvcc.Log)
+    (dqb dqi : DFrac),
   mvcc.restoreLogOk R → (R.isEmpty = false → qc = 1) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      s.[store, go!"b"] ↦□ b ∗
+      s.[store, go!"b"] ↦{dqb} b ∗
       mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF ∗
       mvcc.kbNoCmp γ.kb γ.bucket ∗
       mvcc.bucketView γ q (mvcc.bucketMap ([[], []] ++ R)) ∗
-      s.[store, go!"kvindex"] ↦□
+      s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.isTreeIndex ti γ.idx ∗ mvcc.restoreIdxPre γ.idx R ∗
       s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
@@ -73,7 +74,10 @@ abbrev mvcc.store.restore.spec : Prop :=
       s.[store, go!"currentRev"] ↦{DFrac.own qc}
         (W64 (((([[], []] ++ R).length : Nat) : Int) - 1) : w64) ∗
       s.[store, go!"compactMainRev"] ↦ (W64 (-1) : w64) ∗
-      s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) }}
+      s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
+      s.[store, go!"b"] ↦{dqb} b ∗
+      s.[store, go!"kvindex"] ↦{dqi}
+        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) }}
 
 end spec
 

@@ -3,10 +3,10 @@ The watch example's results (`examples/watchkv/watchkv.go`; D23), restated, with
 of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterpart).
 
 * **`watchkv_Main`** (`Link.lean`'s `watchkv.wp_Main`): `Main(nw, nops)` -- the Puts picked, one
-  etcd member started in process, a one-attempt client, a prefix watch from revision `1`, `nw`
+  etcd member started in process, a client with etcd's default configuration, a prefix watch from revision `1`, `nw`
   writers, the watch read up to the highest successful revision, and a check that panics unless
   the watched events are exactly the writes -- does not panic and returns `Ok`, `Failed` or
-  `WatchEnded`. From `isPkgInit watchkv`, the right to listen on `127.0.0.1:23831`, the main
+  `WatchEnded`. From `isPkgInit watchkv`, the right to listen on `127.0.0.1:23872`, the main
   thread's token and `Main`'s named premises (`Spec/github_com/mit_pdos/etcd_grove/examples/watchkv/Main.lean`).
 * **`watch_safe`** (`Adequacy.lean`'s `watch_adequate`): the closed theorem. Every real execution of
   `n` steps of `watchkv`'s initialization followed by `Main(nw, nops)`, from a fresh state with one
@@ -72,7 +72,7 @@ theorem watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
     (HNs : prometheus.namesUnclaimed (watchkvProgram nw nops) watchkvNames)
-    (HAs : addrsUnclaimed (watchkvProgram nw nops) [go!"127.0.0.1:23831"])
+    (HAs : addrsUnclaimed (watchkvProgram nw nops) [go!"127.0.0.1:23872"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ watchkv.premises (GF := putgetGF) (hG := heapAt hG lctx) n id bootLog)

@@ -31,7 +31,7 @@ set_option hygiene false in
 /-- The rest of `deleteRange` after `kvindex.Range(key, end, rrev, 0, false)`, in both branches of
 `rrev` (`tw.beginRev`, or one more when `tw.changes` is non-empty): the keys deleted one by one. -/
 local macro "del_range_tail" : tactic => `(tactic| (
-    ihave Hmu := Hmub $$ Hcu
+    ihave Hmu := Hmub $$ Hcu Hidxf
     rw [mvcc.idxKnows_writer, mvcc.IdxKnow.log_writer, hks']
     (try wp_auto)
     iunfold mvcc.ownKeys at Hkeys
@@ -63,7 +63,7 @@ local macro "del_range_tail" : tactic => `(tactic| (
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
@@ -71,11 +71,11 @@ local macro "del_range_tail" : tactic => `(tactic| (
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
       ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd]
       · iunfold mvcc.storeTxnWriteIs
         iexists ti, bt, Locked, chs, ps, ntok
         simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
         iframe #
         ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       (try wp_auto)
@@ -172,9 +172,8 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
-  icombine Hidx HidxS gives %Hti_eq
-  have Hti_eq' := mvcc.mkOk_loc_inj _ Hti_eq
-  subst Hti_eq'
+  -- the transaction's tree index (D22 receiver epochs, S5b: its `s.mu` share's)
+  icases mvcc.muHeld_tree s γ crev ti $$ Hmu with ⟨Hmu, #HtiS⟩
   -- package facts: `ErrRevisionNotFound`, the `Key` bucket, zap, protobuf, traceutil
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -242,7 +241,8 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     -- `keys, _, _, _, _ := tw.s.kvindex.Range(key, end, rrev, 0, false)` by the writer
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
-    icases mvcc.muHeld_crev s γ crev $$ Hmu with ⟨Hcu, Hmub⟩
+    icases mvcc.muHeld_crev_idx s γ crev ti $$ Hmu with ⟨Hcu, Hidxf, Hmub⟩
+    (try wp_auto)
     wp_apply (hRange ti γ.idx (.writer ilog pend) key endk k e (W64 (ilog.length : Int)) (W64 0) false e0 _ crev)
       $$ [$HtiS $Hti $Hkn $Hkey $Hend $Herr $Hcu]
       as %keys %modifies %creates %vers %total
@@ -283,7 +283,8 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     -- `keys, _, _, _, _ := tw.s.kvindex.Range(key, end, rrev, 0, false)` by the writer
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
-    icases mvcc.muHeld_crev s γ crev $$ Hmu with ⟨Hcu, Hmub⟩
+    icases mvcc.muHeld_crev_idx s γ crev ti $$ Hmu with ⟨Hcu, Hidxf, Hmub⟩
+    (try wp_auto)
     wp_apply (hRange ti γ.idx (.writer ilog pend) key endk k e (W64 ((ilog.length : Int) - 1)) (W64 0) false e0 _ crev)
       $$ [$HtiS $Hti $Hkn $Hkey $Hend $Herr $Hcu]
       as %keys %modifies %creates %vers %total

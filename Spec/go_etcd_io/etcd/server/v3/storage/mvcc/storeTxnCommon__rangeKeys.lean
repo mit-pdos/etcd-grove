@@ -43,7 +43,7 @@ abbrev mvcc.storeTxnCommon.rangeKeys.spec : Prop :=
     (γ : mvcc.StoreNames) (kn : mvcc.IdxKnow) (log : mvcc.Log) (rev : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
     (key endk : GoSlice) (k e : GoString) (ro : RangeOptions) (qm qc : Qp) (c : Int) (lc : mvcc.Log)
-    (te : Bool),
+    (te : Bool) (dqi : DFrac),
   trace ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗
@@ -54,7 +54,7 @@ abbrev mvcc.storeTxnCommon.rangeKeys.spec : Prop :=
       mvcc.idxCert γ.idx lc ∗ ⌜lc <+: log ∧ c < lc.length⌝ ∗
       mvcc.idxKnows γ.idx kn ∗ ⌜kn.log = log⌝ ∗ ⌜log ≠ []⌝ ∗
       ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝ ∗
-      s.[store, go!"kvindex"] ↦□ (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      mvcc.isTreeIndex ti γ.idx ∗ s.[store, go!"kvindex"] ↦{dqi} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       s.[store, go!"compactMainRev"] ↦{DFrac.own qm} (W64 c : w64) ∗ mvcc.crevUB γ.idx qc c ∗
       ⌜-1 ≤ c ∧ c < 2 ^ 63⌝ ∗ traceutil.ownTrace trace te }}
@@ -66,6 +66,7 @@ abbrev mvcc.storeTxnCommon.rangeKeys.spec : Prop :=
       txc.[storeTxnCommon, go!"tx"] ↦{dq} (GoInterface.ok rt : GoInterface) ∗
       txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗
       R ∗ mvcc.idxKnows γ.idx kn ∗ mvcc.idxReader ti γ.idx ∗
+      s.[store, go!"kvindex"] ↦{dqi} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       s.[store, go!"compactMainRev"] ↦{DFrac.own qm} (W64 c : w64) ∗ mvcc.crevUB γ.idx qc c ∗
       traceutil.ownTrace trace te ∗ mvcc.rangeOutcomeC r err log rev c (decide (endk = slice.nil)) k e ro }}
 

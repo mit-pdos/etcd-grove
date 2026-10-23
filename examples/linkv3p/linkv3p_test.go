@@ -17,6 +17,7 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
 
+	"github.com/mit-pdos/etcd-grove/examples/common"
 	"github.com/mit-pdos/etcd-grove/examples/linkvtxn"
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 	"github.com/mit-pdos/etcd-grove/third_party/bridge"
@@ -219,7 +220,7 @@ func cutSetup(t *testing.T, eps func(i int) []string) ([]*etcdserver.EtcdServer,
 		brs = append(brs, br)
 	}
 	for i := 0; i < 3; i++ {
-		cli, err := newClient(eps(i), lg)
+		cli, err := common.NewClients(eps(i), lg)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -296,17 +297,40 @@ func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
 			nOk[op.cli]++
 		}
 	}
-	t.Logf("operations per client: succeeded %v, failed %v (%d of the failures reads)", nOk, nErr,
-		nReadErr)
+	nTimedOut := 0
+	for _, op := range ops {
+		if timedOut(op) {
+			nTimedOut++
+		}
+	}
+	t.Logf("operations per client: succeeded %v, failed %v (%d of the failures reads, %d of them "+
+		"request timeouts)", nOk, nErr, nReadErr, nTimedOut)
 	if nOk[0]+nOk[1]+nOk[2] == 0 {
 		t.Fatalf("every operation failed")
 	}
 	// every member stays reachable through some client's bridge or comes back (a read held by a
-	// cut is retried after it, on the next member: notes/read-retry-plan.md)
-	if nReadErr > 0 {
-		t.Fatalf("%d reads failed: the client's retries did not cover them", nReadErr)
+	// cut is retried after it, on the next member: notes/read-retry-plan.md), unless the read's
+	// request timeout fires first: the client never retries past the caller's deadline
+	// (notes/client-timeouts-plan.md)
+	nReadErrFast := 0
+	for _, op := range ops {
+		if op.err && op.read && !timedOut(op) {
+			nReadErrFast++
+		}
+	}
+	if nReadErrFast > 0 {
+		t.Fatalf("%d reads failed before their request timeout: the client's retries did not cover "+
+			"them", nReadErrFast)
 	}
 	return ops
+}
+
+// timedOut: the operation op failed at its request timeout (common.RequestTimeout after its
+// start, give or take: linkvtxn.Apply reports only that a call failed).
+func timedOut(op cutOp) bool {
+	d := op.end - op.start
+	return op.err && d > common.RequestTimeout-500*time.Millisecond &&
+		d < common.RequestTimeout+2*time.Second
 }
 
 // The bridges' addresses, by member.
@@ -364,31 +388,36 @@ func TestClientCuts(t *testing.T) {
 // not known in advance).
 //
 // Failover: member 1's bridge is blackholed at 50ms. A call on a client's connection to member 1
-// hangs until the client's keepalive closes that connection (no answer to a ping: 10s without a
-// read, then 2s) and fails; a re-dial's handshake never completes (grpc waits for the server's
+// hangs until its request timeout (common.RequestTimeout, 5s) and fails, write or read (the client
+// never retries past the caller's deadline: notes/client-timeouts-plan.md); the balancer keeps
+// picking that connection for a third of the calls until the client's keepalive closes it (no
+// answer to a ping: 10s without a read, grpc's floor over common.KeepAliveTime, then
+// common.KeepAliveTimeout, 6s); a re-dial's handshake never completes (grpc waits for the server's
 // preface), so grpc's round-robin balancer picks only the other two members' connections from then
-// on. The close fails a write and has a read retried on another member (notes/read-retry-plan.md):
-// either way the operation stalled. A client pings only while it has calls in flight
-// (PermitWithoutStream false, as etcd's server requires: its policy refuses pings on an idle
-// connection), so each client finds its dead connection when it first sends a call on it: at most
-// three keepalive closes, one per client, each holding the workers that picked it for up to 12s.
-// The phase ends once some operation has stalled, 13s have passed, none has stalled for 2s, and
-// every client has served an operation since the last stall.
+// on. A client pings only while it has calls in flight (PermitWithoutStream false, as etcd's
+// server requires: its policy refuses pings on an idle connection), so each client finds its dead
+// connection when it first sends a call on it: at most three keepalive closes, one per client,
+// each preceded by request timeouts for up to 16s. The phase ends once some operation has
+// stalled, 20s have passed, none has stalled for 2s, and every client has served an operation
+// since the last stall.
 //
 // Return: member 1's bridge is unblackholed (which closes its connections: the clients' stalled
 // re-dials end, and the next one completes), and 3s later members 2 and 3's bridges are
 // blackholed and their connections dropped (their writes in flight fail at once, their reads are
 // retried; their re-dials never complete). From then on only member 1 can answer.
 //
-// It checks porcupine's verdict is Ok; every stall in the first phase at a keepalive close (at
-// least 10s in); every client served an operation started after the last stall and ended before
-// the unblackhole (failover); every client served an operation started after members 2 and 3
-// were cut (its return to member 1); and no read failed (cutRun). 3 workers of 12000 operations, each after a 2ms pause, so the
-// run outlasts both phases. It runs in a child process (inChild), as TestMainRun.
+// It checks porcupine's verdict is Ok; every stall in the first phase ended by a request timeout
+// or later (none before 5s), some of them request timeouts, the last one after the keepalive's
+// first ping (10s: the stalls go on until the close); every client served an operation started
+// after the last stall and ended before the unblackhole (failover); every client served an
+// operation started after members 2 and 3 were cut (its return to member 1); and no read failed
+// before its request timeout (cutRun). 3 workers of 12000 operations, each after a 2ms pause, so
+// the run outlasts both phases. It runs in a child process (inChild), as TestMainRun.
 func TestFailover(t *testing.T) {
-	// an operation the keepalive close ended: a write it failed, or a read it held (the client
-	// retried it on another member); the run's other operations take milliseconds
-	stalled := func(op cutOp) bool { return op.err || op.end-op.start > 5*time.Second }
+	// an operation the blackhole stalled: one that failed (at its request timeout, or at the
+	// keepalive close), or a read held longer than a request timeout; the run's other operations
+	// take milliseconds
+	stalled := func(op cutOp) bool { return op.err || op.end-op.start > common.RequestTimeout }
 	if inChild(t, "TestFailover") {
 		return
 	}
@@ -411,7 +440,7 @@ func TestFailover(t *testing.T) {
 					}
 				}
 			}
-			if !failed || now < 13*time.Second || now-lastFail < 2*time.Second {
+			if !failed || now < 20*time.Second || now-lastFail < 2*time.Second {
 				continue
 			}
 			var served [3]bool
@@ -446,14 +475,16 @@ func TestFailover(t *testing.T) {
 	}
 	t.Logf("member 1 unblackholed at %v, members 2 and 3 cut at %v", ub, ct)
 	var lastFail time.Duration
-	failed := false
+	failed, nTimedOut := false, 0
 	for _, op := range ops {
 		if stalled(op) && op.end < ub {
-			t.Logf("stalled: client %d, %v to %v (read %v, failed %v)", op.cli+1, op.start, op.end,
-				op.read, op.err)
-			if op.end < 10*time.Second {
-				t.Fatalf("an operation stalled until %v, before keepalive could close a connection",
-					op.end)
+			t.Logf("stalled: client %d, %v to %v (read %v, failed %v, timed out %v)", op.cli+1,
+				op.start, op.end, op.read, op.err, timedOut(op))
+			if op.end < common.RequestTimeout {
+				t.Fatalf("an operation stalled until %v, before a request timeout could fire", op.end)
+			}
+			if timedOut(op) {
+				nTimedOut++
 			}
 			failed = true
 			if op.end > lastFail {
@@ -463,6 +494,13 @@ func TestFailover(t *testing.T) {
 	}
 	if !failed {
 		t.Fatalf("no operation stalled: the blackhole cut nothing")
+	}
+	if nTimedOut == 0 {
+		t.Fatalf("no operation failed at its request timeout")
+	}
+	if lastFail < 10*time.Second {
+		t.Fatalf("the last stall ended at %v, before keepalive's first ping: the dead connection "+
+			"was given up early", lastFail)
 	}
 	var okAfter, okBack [3]int
 	for _, op := range ops {
@@ -491,9 +529,9 @@ func TestFailover(t *testing.T) {
 // (notes/read-retry-plan.md, R0): the clients have the default retries, which retry a write only
 // after a refusal (a learner's, an authentication error), which these members never send. 3
 // workers each put distinct keys through Main's clients (every client of all three bridges) for
-// 20s, while member 1's bridge is blackholed from 50ms to 15s (keepalive closes, a write in flight
-// fails) and member 2's client connections are dropped every second (a write in flight on them
-// fails at once). Then each key must have been put at most once: its version, the number of puts
+// 20s, while member 1's bridge is blackholed from 50ms to 15s (a write in flight fails at its
+// request timeout) and member 2's client connections are dropped every second (a write in flight
+// on them fails at once). Then each key must have been put at most once: its version, the number of puts
 // since its creation, is 1. It runs in a child process (inChild), as TestMainRun.
 func TestWriteOnce(t *testing.T) {
 	if inChild(t, "TestWriteOnce") {
@@ -548,4 +586,280 @@ func TestWriteOnce(t *testing.T) {
 		}
 	}
 	t.Logf("%d keys, each put once", len(resp.Kvs))
+}
+
+// A watched event of TestWatchFailover: its revision, key, value, whether it is a put, and when it
+// arrived (since the run's start).
+type wEvent struct {
+	rev      int64
+	key, val string
+	put      bool
+	at       time.Duration
+}
+
+// A put of TestWatchFailover's writers: its key and value, and for one that returned no error its
+// reply's revision.
+type wPut struct {
+	key, val string
+	rev      int64
+	ok       bool
+}
+
+// checkEvents fails the test unless the events evs are the writes puts, as watchkv's check: all
+// puts, at revisions 2, 3, ... without a gap or a repeat (a fresh cluster is at revision 1, and
+// every write is a put of one key), each a put some writer attempted, and every put that returned
+// no error the event at its reply's revision with its key and value.
+func checkEvents(t *testing.T, evs []wEvent, puts []wPut) {
+	t.Helper()
+	tried := map[[2]string]bool{}
+	for _, p := range puts {
+		tried[[2]string{p.key, p.val}] = true
+	}
+	for i, e := range evs {
+		if !e.put {
+			t.Fatalf("event %d at revision %d is not a put", i, e.rev)
+		}
+		if e.rev != int64(i)+2 {
+			t.Fatalf("event %d at revision %d, expected %d: a gap or a repeat (the previous at %d)",
+				i, e.rev, i+2, evs[max(i-1, 0)].rev)
+		}
+		if !tried[[2]string{e.key, e.val}] {
+			t.Fatalf("event at revision %d puts %s=%s, which no writer attempted", e.rev, e.key,
+				e.val)
+		}
+	}
+	for _, p := range puts {
+		if !p.ok {
+			continue
+		}
+		i := p.rev - 2
+		if i < 0 || i >= int64(len(evs)) {
+			t.Fatalf("the put of %s=%s at revision %d was not watched", p.key, p.val, p.rev)
+		}
+		if e := evs[i]; e.key != p.key || e.val != p.val {
+			t.Fatalf("the event at revision %d is %s=%s, the put there %s=%s", p.rev, e.key, e.val,
+				p.key, p.val)
+		}
+	}
+}
+
+// TestWatchFailover shows a watch surviving the cut of the member it streams from
+// (notes/watch-cut-plan.md, W0): every client of all three bridges, as Main's; a prefix watch from
+// revision 1 through client 1, opened before any write; 3 writers putting keys under the prefix
+// (watchkv's workload: a few keys and values) through clients picked at random, each put after a
+// 2ms pause; and the bridges blackholed in turn, each for 18s, then unblackholed: whichever member
+// the watch streams from is cut once at least. A cut stream's connection is closed by the client's
+// keepalive (the stream is a call in flight, so the client pings: 10s, grpc's floor, then
+// common.KeepAliveTimeout, 6s; the puts on it fail at their request timeout meanwhile), and the
+// watch client re-opens the stream on the same client, which grpc's balancer sends to a reachable member,
+// resuming each watch from the revision after the last event it delivered.
+//
+// After the writers stop, the watch is read up to the highest revision a put returned (30s at
+// most). It checks: the events are the writes (checkWatch: no gap, no repeat, every successful put
+// its event); the events stalled (no event for 10s while puts succeeded: a cut of the stream's
+// member) and resumed; and some put succeeded during each blackhole. It runs in a child process
+// (inChild), as TestMainRun.
+func TestWatchFailover(t *testing.T) {
+	if inChild(t, "TestWatchFailover") {
+		return
+	}
+	_, brs, clis := cutSetup(t, func(int) []string { return bridgeAddrs })
+	t0 := time.Now()
+	wctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wch := clis[0].Watch(wctx, "wk/", clientv3.WithPrefix(), clientv3.WithRev(1),
+		clientv3.WithCreatedNotify(), clientv3.WithProgressNotify())
+
+	var mu sync.Mutex
+	var evs []wEvent
+	var werr error
+	watchDone := make(chan struct{})
+	go func() {
+		defer close(watchDone)
+		for wresp := range wch {
+			if err := wresp.Err(); err != nil {
+				mu.Lock()
+				werr = err
+				mu.Unlock()
+				return
+			}
+			at := time.Since(t0)
+			mu.Lock()
+			for _, e := range wresp.Events {
+				evs = append(evs, wEvent{e.Kv.ModRevision, string(e.Kv.Key), string(e.Kv.Value),
+					e.Type == clientv3.EventTypePut, at})
+			}
+			mu.Unlock()
+		}
+	}()
+
+	// the blackholes, in turn; the writers run until the last one ends, and 3s more
+	const hole = 18 * time.Second
+	var holes [3][2]time.Duration
+	stop := make(chan struct{})
+	go func() {
+		for i := range brs {
+			time.Sleep(time.Second)
+			holes[i][0] = time.Since(t0)
+			brs[i].Blackhole()
+			time.Sleep(hole)
+			brs[i].Unblackhole()
+			holes[i][1] = time.Since(t0)
+		}
+		time.Sleep(3 * time.Second)
+		close(stop)
+	}()
+
+	keys := []string{"wk/k0", "wk/k1", "wk/k2"}
+	vals := []string{"a", "b", "c", "d"}
+	var puts []wPut
+	var putAt []time.Duration // when each successful put returned
+	var wg sync.WaitGroup
+	for w := 0; w < 3; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				time.Sleep(2 * time.Millisecond)
+				mu.Lock()
+				p := wPut{key: keys[rand.Intn(len(keys))], val: vals[rand.Intn(len(vals))]}
+				cli := clis[rand.Intn(len(clis))]
+				mu.Unlock()
+				resp, err := cli.Put(context.Background(), p.key, p.val)
+				if err == nil {
+					p.rev, p.ok = resp.Header.Revision, true
+				}
+				mu.Lock()
+				puts = append(puts, p)
+				if err == nil {
+					putAt = append(putAt, time.Since(t0))
+				}
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+
+	var maxRev int64
+	nOk := 0
+	mu.Lock()
+	for _, p := range puts {
+		if p.ok {
+			nOk++
+			maxRev = max(maxRev, p.rev)
+		}
+	}
+	mu.Unlock()
+	t.Logf("%d puts, %d succeeded, the highest revision %d; blackholes %v", len(puts), nOk, maxRev,
+		holes)
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		mu.Lock()
+		n, err := len(evs), werr
+		var last int64
+		if n > 0 {
+			last = evs[n-1].rev
+		}
+		mu.Unlock()
+		if last >= maxRev {
+			break
+		}
+		if err != nil {
+			t.Fatalf("the watch ended at revision %d: %v", last, err)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the watch reached revision %d only, of %d", last, maxRev)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	cancel()
+	<-watchDone
+	mu.Lock()
+	defer mu.Unlock()
+	checkEvents(t, evs, puts)
+	t.Logf("%d events, revisions 2 to %d, no gap or repeat", len(evs), evs[len(evs)-1].rev)
+
+	// the stalls: no event for 5s or more (the run's puts succeed every few milliseconds)
+	stalled := false
+	prev := time.Duration(0)
+	for i, e := range evs {
+		if e.at-prev > 5*time.Second {
+			t.Logf("no event from %v to %v (revision %d next)", prev, e.at, e.rev)
+			if e.at-prev >= 10*time.Second && i > 0 {
+				stalled = true
+			}
+		}
+		prev = e.at
+	}
+	if !stalled {
+		t.Fatalf("the events never stalled: no blackhole cut the watch's stream")
+	}
+	for i, h := range holes {
+		ok := false
+		for _, at := range putAt {
+			if at > h[0] && at < h[1] {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			t.Fatalf("no put succeeded during member %d's blackhole: no failover for writes", i+1)
+		}
+	}
+}
+
+// TestMainWatch runs MainWatch for real (notes/watch-cut-plan.md, W4): three members in a fresh
+// directory, 3 writers of 300 puts each, on TestMainRun's schedule (each member isolated in turn
+// for three seconds, member 3's client blackholed during the first isolation, member 2's client
+// connections dropped as it ends). The check must pass. Then it asks each member, which MainWatch
+// left running, for the prefix's revision (so that the check was not vacuous). It runs in a child
+// process (inChild), as TestMainRun.
+func TestMainWatch(t *testing.T) {
+	if inChild(t, "TestMainWatch") {
+		return
+	}
+	t.Chdir(t.TempDir())
+	var sched []Step
+	for m := 0; m < 3; m++ {
+		delay := time.Duration(0)
+		if m == 0 {
+			delay = 500 * time.Millisecond
+		}
+		sched = append(sched, isolate(delay, m)...)
+		if m == 0 {
+			sched = append(sched, Step{Kind: ClientBlackhole, A: 2})
+		}
+		sched = append(sched, heal(3*time.Second, m)...)
+		if m == 0 {
+			sched = append(sched, Step{Kind: ClientUnblackhole, A: 2}, Step{Kind: ClientDrop, A: 1})
+		}
+	}
+	start := time.Now()
+	if r := MainWatch(3, 300, sched); r != WatchOk {
+		t.Fatalf("got %v", r)
+	}
+	t.Logf("MainWatch took %v", time.Since(start))
+	for i, addr := range []string{clientAddr1, clientAddr2, clientAddr3} {
+		cli, err := clientv3.New(clientv3.Config{Endpoints: []string{addr}, Logger: zap.NewNop()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		resp, err := cli.Get(ctx, wprefix, clientv3.WithPrefix())
+		cancel()
+		cli.Close()
+		if err != nil {
+			t.Fatalf("member %d: %v", i+1, err)
+		}
+		if resp.Header.Revision < 100 {
+			t.Fatalf("member %d: the puts did not take effect: revision %d", i+1,
+				resp.Header.Revision)
+		}
+		t.Logf("member %d: revision %d, keys %d", i+1, resp.Header.Revision, len(resp.Kvs))
+	}
 }

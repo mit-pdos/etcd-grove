@@ -175,22 +175,18 @@ theorem lastKeyOp_fields (kp : GoString) :
     (lastKeyOp kp).base.maxModRev = W64 0 ∧ (lastKeyOp kp).base.minCreateRev = W64 0 ∧
     (lastKeyOp kp).base.maxCreateRev = W64 0 := by
   by_cases h : kp = [] <;>
-  simp [lastKeyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-    OpFull.getInit, OpFull.newOp, OpModel.zero, h, OpFull.effSortOrder]
+  simp [lastKeyOp, op_simps, h, OpFull.effSortOrder]
 
 theorem lastKeyOp_range (kp : GoString) (hkp : kp ≠ []) :
     (lastKeyOp kp).key = kp ∧ (lastKeyOp kp).base.rangeEnd = prefixRangeEnd kp := by
-  simp [lastKeyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-    OpFull.getInit, OpFull.newOp, OpModel.zero, hkp]
+  simp [lastKeyOp, op_simps, hkp]
 
 theorem lastKeyOp_isPrefixGet (pfx kp : GoString) : (lastKeyOp kp).isPrefixGet pfx = false := by
   by_cases h : kp = [] <;> by_cases h' : pfx = [] <;>
-  simp [lastKeyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-    OpFull.getInit, OpFull.newOp, OpModel.zero, h, h', OpFull.isPrefixGet]
+  simp [lastKeyOp, op_simps, h, h', OpFull.isPrefixGet]
 
 theorem lastKeyOp_not_panics : ¬ opGetPanics (withTopM (W64 0) (W64 2)) := by
-  simp [opGetPanics, opFold, withTopM, withPrefixM, withSortM, withLimitM, OpFull.newOp,
-    OpModel.zero]
+  simp [opGetPanics, op_simps]
 
 theorem lastKeyOp_under (pfx kp : GoString) (h : pfx <+: kp) :
     KeyRangeUnder pfx (lastKeyOp kp).key (lastKeyOp kp).base.rangeEnd := by

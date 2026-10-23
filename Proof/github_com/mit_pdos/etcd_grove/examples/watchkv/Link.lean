@@ -12,23 +12,12 @@ public import Proof.go_etcd_io.etcd.client.v3.WithCreatedNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.WithProgressNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
-public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
-public import Proof.google_golang_org.grpc.Server__Serve
-public import Proof.net.Listen
-public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Main
-public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.attempted
-public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.check
-public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.collect
-public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.genAll
-public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.maxRev
-public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.writer
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.context.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 
 @[expose] public section
 
@@ -67,26 +56,6 @@ theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
 
-theorem wp_Gen :
-    EtcdGrove.watchkv.Gen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchkv.Gen.wp_proof
-
-theorem wp_genAll :
-    EtcdGrove.watchkv.genAll.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchkv.genAll.wp_proof wp_Gen
-
-theorem wp_maxRev :
-    EtcdGrove.watchkv.maxRev.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchkv.maxRev.wp_proof
-
-theorem wp_attempted :
-    EtcdGrove.watchkv.attempted.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchkv.attempted.wp_proof
-
-theorem wp_check :
-    EtcdGrove.watchkv.check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchkv.check.wp_proof wp_attempted
-
 theorem zap.wp_NewNop :
     EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.NewNop.wp_proof
@@ -102,29 +71,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.watchkv.Assumptions]
 
-theorem features.wp_NewDefaultServerFeatureGate :
-    EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
-
-theorem grpc.Server.wp_Serve :
-    EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.Serve.wp_proof
-
-theorem net.wp_Listen :
-    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
-
-theorem wp_writer :
-    EtcdGrove.watchkv.writer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchkv.writer.wp_proof
-
-theorem wp_collect :
-    EtcdGrove.watchkv.collect.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchkv.collect.wp_proof client.v3.WatchResponse.wp_Err
-
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.watchkv.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchkv.Main.wp_proof wp_genAll wp_writer wp_maxRev wp_collect wp_check zap.wp_NewNop features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.v3.clientv3.wp_New context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
+  EtcdGrove.watchkv.Main.wp_proof common.wp_GenAll common.wp_Writer common.wp_MaxRev common.wp_Collect common.wp_Check zap.wp_NewNop common.wp_StartServer common.wp_Serve common.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 
 end links_hasLC
 

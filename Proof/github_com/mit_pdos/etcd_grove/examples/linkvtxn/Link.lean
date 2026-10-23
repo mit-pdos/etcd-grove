@@ -36,11 +36,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.cmpOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.cmpsFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.cmpsOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.configEqual
+public import Proof.context.WithTimeoutBackground
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.delKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.elseOf
-public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.genFrom
-public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.holds
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.inputEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.isWrite
@@ -55,7 +54,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.lookup
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.mstep
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
-public import Proof.net.Listen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.opOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.opsOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.outEqual
@@ -78,10 +76,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.withKVs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.withRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.workloadKeys
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.context.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
-public import Proof.go_etcd_io.etcd.client.v3.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 
 @[expose] public section
 
@@ -333,9 +330,13 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
 variable [NaInvG GF]
 
+theorem context.wp_WithTimeoutBackground :
+    EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithTimeoutBackground.wp_proof
+
 theorem wp_callGet :
     EtcdGrove.linkvtxn.callGet.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callGet.wp_proof wp_vrOf
+  EtcdGrove.linkvtxn.callGet.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_vrOf
 
 theorem wp_kvsFrom :
     EtcdGrove.linkvtxn.kvsFrom.spec (GF := GF) (hG := hG) :=
@@ -343,15 +344,15 @@ theorem wp_kvsFrom :
 
 theorem wp_callList :
     EtcdGrove.linkvtxn.callList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callList.wp_proof wp_kvsFrom wp_withKVs v3.wp_WithRange
+  EtcdGrove.linkvtxn.callList.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_kvsFrom wp_withKVs v3.wp_WithRange
 
 theorem wp_callPut :
     EtcdGrove.linkvtxn.callPut.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callPut.wp_proof
+  EtcdGrove.linkvtxn.callPut.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
 
 theorem wp_callDel :
     EtcdGrove.linkvtxn.callDel.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callDel.wp_proof
+  EtcdGrove.linkvtxn.callDel.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
 
 theorem wp_txnRes :
     EtcdGrove.linkvtxn.txnRes.spec (GF := GF) (hG := hG) :=
@@ -359,19 +360,11 @@ theorem wp_txnRes :
 
 theorem wp_callTxn :
     EtcdGrove.linkvtxn.callTxn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callTxn.wp_proof wp_cmpsFor wp_opsOf wp_thenOf wp_elseOf wp_txnRes wp_withRes
+  EtcdGrove.linkvtxn.callTxn.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_cmpsFor wp_opsOf wp_thenOf wp_elseOf wp_txnRes wp_withRes
 
 theorem wp_call :
     EtcdGrove.linkvtxn.call.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkvtxn.call.wp_proof wp_callGet wp_callList wp_callPut wp_callDel wp_callTxn
-
-theorem features.wp_NewDefaultServerFeatureGate :
-    EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
-
-theorem grpc.Server.wp_Serve :
-    EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.Serve.wp_proof
 
 theorem wp_Apply :
     EtcdGrove.linkvtxn.Apply.spec (GF := GF) (hG := hG) :=
@@ -385,13 +378,9 @@ theorem wp_Check :
     EtcdGrove.linkvtxn.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkvtxn.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_Gen wp_Apply
 
-theorem net.wp_Listen :
-    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
-
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkvtxn.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.Main.wp_proof zap.wp_NewNop features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.v3.clientv3.wp_New wp_Check
+  EtcdGrove.linkvtxn.Main.wp_proof zap.wp_NewNop common.wp_StartServer common.wp_Serve common.wp_NewClient wp_Check
 
 end links_hasLC
 

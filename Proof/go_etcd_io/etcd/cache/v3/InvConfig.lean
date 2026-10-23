@@ -42,10 +42,8 @@ def cfgApply [FfiSyntax] (gs : List (Config → Config)) (c : Config) : Config :
 
 theorem cfgApply_take_succ [FfiSyntax] (gs : List (Config → Config)) (c : Config) (n : Nat)
     (g : Config → Config) (h : gs[n]? = some g) :
-    cfgApply (gs.take (n + 1)) c = g (cfgApply (gs.take n) c) := by
-  unfold cfgApply
-  rw [List.take_add_one, h]
-  simp
+    cfgApply (gs.take (n + 1)) c = g (cfgApply (gs.take n) c) :=
+  foldl_apply_take_succ gs c n g h
 
 /-- `newCache`'s validation: `HistoryWindowSize > 0` and `BTreeDegree >= 2`. -/
 def CfgValid [FfiSyntax] (c : Config) : Prop :=

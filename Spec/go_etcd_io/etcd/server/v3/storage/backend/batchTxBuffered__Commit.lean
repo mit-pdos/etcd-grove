@@ -29,10 +29,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- `t.Commit()`: the batch transaction committed under the lock (the hook runs with the client's
 resource); the readers' view unchanged. -/
 abbrev backend.batchTxBuffered.Commit.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (qo : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bOpen γ qo ∗ wbTok γ }}
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (qo : Qp) (X Y : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bOpen γ qo ∗ wbTok γ ∗ X ∗ commitReq γ P Pk b X Y }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Commit")) (Val #()))
-  {{ RET #(); bOpen γ qo }}
+  {{ RET #(); bOpen γ qo ∗ Y }}
 
 end spec
 

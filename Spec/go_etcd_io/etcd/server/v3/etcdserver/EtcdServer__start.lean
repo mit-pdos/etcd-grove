@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.start()`** from the construction premise (`isServerBuilt`): it sets the snapshot
 defaults, the wait registries (`w`, `applyWait`), the channels `done`, `stop`, `stopping`, the
 server's context, the read loop's `*Read` and the leader-change notifier, sets up `GoAttach`'s
-protocol, and starts `run` (`isServerRun`, with the write budget `srvWTPool E.γ` made of the `N` write
+protocol, and starts `run` (`isServerRun`, with the write budget `srvWTPool E` made of the `N` write
 tokens, D19b: under the pure premise `receiptBound GF ≤ N + 1`, until then `srvLifeBound`); it returns the server's
 persistent views (`isServerReq`, at the wait's fresh names, and `isServerRead`) and what `Start`'s
 goroutines and the request path's get (`srvStarted`). -/
@@ -44,7 +44,7 @@ abbrev EtcdServer.start.spec : Prop :=
   {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
       srvStarted s γr ρ Er.RQ ∗
       -- (D19i part 2) the write budget, shared with the storage version monitor
-      ∃ γp : GName, srvWTPool E.γ γp }}
+      ∃ γp : GName, srvWTPool E γp }}
 
 end spec
 

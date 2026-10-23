@@ -47,7 +47,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v
 
 theorem deleteWire_key (o : OpFull) : (deleteWireOf o).key = o.key ∧
     (deleteWireOf o).base.rangeEnd = o.base.rangeEnd := by
-  simp [deleteWireOf, txn.deleteOpOf, OpFull.newOp, OpModel.zero]
+  simp [deleteWireOf, txn.deleteOpOf, op_simps]
 
 theorem rangeIn_rangeWire (s : List EtcdKv) (o : OpFull) : rangeIn s (rangeWireOf o) = rangeIn s o := by
   obtain ⟨h1, h2, -⟩ := wire_fields o
@@ -153,14 +153,6 @@ theorem runOps_underPfx (pfx : GoString) (r : w64) :
     rw [applyTxnOp_underPfx pfx r s hs op h1 h2]
     simp only
     rw [ih]
-
-theorem all_congr_mem {α : Type} (l : List α) (f g : α → Bool) (h : ∀ x ∈ l, f x = g x) :
-    l.all f = l.all g := by
-  induction l with
-  | nil => rfl
-  | cons a l ih =>
-    simp only [List.all_cons, h a List.mem_cons_self,
-      ih (fun x hx => h x (List.mem_cons_of_mem _ hx))]
 
 /-- **A transaction under the prefix, on etcd's state restricted to it**: the same verdict and
 results, the state after it the restriction of the full state's (plain operations). -/

@@ -352,7 +352,6 @@ axiom context.ValueKeepAlive.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
-axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom conversion.EnforcePtr.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
@@ -463,8 +462,7 @@ axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
-axiom mvcc.store.Close.wp_proof
-axiom mvcc.store.HashStorage.wp_proof
+axiom mvcc.store.Restore.wp_proof
 axiom mvcc.store.restore.wp_proof
 axiom net.Listen.wp_proof
 axiom net.http.Serve.wp_proof
@@ -529,9 +527,6 @@ axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
-axiom schedule.NewFIFOScheduler.wp_proof
-axiom schedule.Scheduler.Schedule.wp_proof
-axiom schedule.Scheduler.Stop.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
@@ -582,10 +577,10 @@ axiom types.ID.String.wp_proof
 axiom types.ID.String_ptr.wp_proof
 axiom types.URLs.StringSlice.wp_proof
 axiom utf8.ValidString.wp_proof
-axiom v2stats.NewLeaderStats.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v2stats.ServerStats.RecvAppendReq.wp_proof
+axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3compactor.New.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
@@ -617,8 +612,6 @@ axiom zap.Stringer.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_into_val_typed
-sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_typed_pointsto
 sorry k8setcd3.clientErr_other
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom

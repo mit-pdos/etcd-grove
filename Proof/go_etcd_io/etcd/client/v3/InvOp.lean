@@ -35,6 +35,7 @@ the new options are `withLeaseM`, `withMaxCreateRevM`, `withSortM` and `withTopM
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.go_etcd_io.etcd.client.v3.OpSimpAttr
 
 @[expose] public section
 
@@ -385,6 +386,18 @@ instance optsAt_persistent (sl : GoSlice) (gs : List (OpFull → OpFull)) :
     Persistent (optsAt (GF := GF) sl gs) := by
   unfold optsAt; infer_instance
 
+/-- No options: the nil slice. -/
+theorem optsAt_nil : ⊢ optsAt (GF := GF) slice.nil [] := by
+  unfold optsAt
+  iexists ([] : List GoFunc)
+  isplitl
+  · iapply ownSlice_nil
+  isplitl
+  · ipureintro; rfl
+  imodintro
+  iintro %i %f %g %Hf %Hg
+  simp at Hf
+
 /-- **An `OpOption` closure that needs a resource** `R` (and gives it back): `f` changes an `Op`
 modelled by `o` into one modelled by `g o`. For a closure that writes a variable it captured
 (`WithSort(SortByKey, SortAscend)` rewrites its `order` to `SortNone`): a client calls an
@@ -409,15 +422,20 @@ instance optsAtRes_persistent (sl : GoSlice) (gs : List (OpFull → OpFull)) (R 
 
 end opdefs
 
+-- The option models, for `simp [op_simps]` (`OpSimpAttr.lean`).
+attribute [op_simps] opFold OpFull.newOp OpModel.zero opGetModel OpFull.getInit opDeleteModel OpFull.deleteInit
+  opPutModel OpFull.putInit withLimitM withRevM withSerializableM withCountOnlyM
+  withProgressNotifyM withCreatedNotifyM withRangeM withFromKeyM withPrefixM withLeaseM
+  withMaxCreateRevM withMaxModRevM withMinModRevM withSortM withTopM withKeysOnlyM
+  withIgnoreLeaseM
+
 
 /-! ## Lemmas about the option models -/
 
 theorem opFold_take_succ (gs : List (OpFull → OpFull)) (o : OpFull) (n : Nat)
     (g : OpFull → OpFull) (h : gs[n]? = some g) :
-    opFold (gs.take (n + 1)) o = g (opFold (gs.take n) o) := by
-  unfold opFold
-  rw [List.take_add_one, h]
-  simp
+    opFold (gs.take (n + 1)) o = g (opFold (gs.take n) o) :=
+  foldl_apply_take_succ gs o n g h
 
 end EtcdGrove
 end Perennial

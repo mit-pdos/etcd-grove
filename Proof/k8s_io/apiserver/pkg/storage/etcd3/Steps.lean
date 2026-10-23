@@ -15,7 +15,7 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.FirstRead
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.State
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.TxnModelKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.TxnModelKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Enc
 
 @[expose] public section

@@ -32,10 +32,14 @@ theorem context.ErrDone.wp_proof (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG
   inext
   iintro %err ⟨%Hne, Hid⟩
   iapply HΦ
-  icases Hid with (%Hn | ⟨%Ht, Hv⟩)
+  icases Hid with (%Hn | ⟨%Ht, (⟨Hv, -⟩ | ⟨Hv, -⟩)⟩)
   · exact absurd Hn Hne
-  iframe Hv
-  ipureintro; exact Ht
+  · isplitr
+    · ipureintro; exact Ht
+    · ileft; iexact Hv
+  · isplitr
+    · ipureintro; exact Ht
+    · iright; iexact Hv
 
 end proof
 

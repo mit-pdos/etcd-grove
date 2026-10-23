@@ -29,13 +29,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.cachekv.Assumptions]
 
-/-- What `collect` returns with `true`: the events, as the file header says. -/
-def collectOk [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (E : apply.AEnv GF)
+/-- What `collect` returns with `true`: the events, as the file header says (the shared
+`common.collectOk` at the store's `revAt`). -/
+abbrev collectOk [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (E : apply.AEnv GF)
     (P : List (GoString × GoString)) (upTo : w64) (evs : List cev) : IProp GF :=
-  iprop(⌜(upTo = W64 0 ∨ sint.Z upTo ≤ 1 + evs.length) ∧ evs.length + 1 < 2 ^ 63 ∧
-      ∀ (i : Nat) (e : cev), evs[i]? = some e →
-        e.put' = true ∧ sint.Z e.rev' = 2 + i ∧ (e.key', e.val') ∈ P⌝ ∗
-    □ ∀ (i : Nat) (e : cev), ⌜evs[i]? = some e⌝ -∗ watchkv.revAt E (2 + i) e.key' e.val')
+  common.collectOk (common.revAt E) P upTo evs
 
 /-- See the file header. -/
 abbrev collect.spec : Prop :=

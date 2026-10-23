@@ -144,7 +144,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       iexists n + W64 1, _, _, GMap.insert k e reads', GMap.delete k pre', k
       iframe Hi Hkey Hrm Hpm
       isplitr
-      · iapply readsAt_insert_rd $$ [Hrat Hr]
+      · iapply readsAt_insert $$ [Hrat Hr]
         isplitl
         · iexact Hrat
         · iexact Hr

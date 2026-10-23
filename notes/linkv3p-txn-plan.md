@@ -11,7 +11,7 @@ plan's S3b) says porcupine never answers `Illegal` for a history of **Puts and G
 three members of a cluster whose links a schedule cuts and mends. Re-close it over **linkvtxn's
 workload** (`examples/linkvtxn`, the linkv-txn plan): gets, lists, puts, deletes, multi-operation
 transactions and compare-and-sets, robustness's `EtcdPutDeleteLease` traffic without leases and
-stale reads, checked against the model of etcd's KV (`linkv/TxnModel.lean`):
+stale reads, checked against the model of etcd's KV (`linkv/TxnModel.lean`, since 2026-10-22 `linkvtxn/TxnModel.lean`: D34):
 
 > For every `clients`, `ops` and every schedule `sched`, every real execution of `n` steps of
 > `linkv3p`'s initialization followed by `Main(clients, ops, sched)` has no stuck thread, no thread

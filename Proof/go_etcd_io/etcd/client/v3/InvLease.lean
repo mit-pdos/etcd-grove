@@ -24,7 +24,7 @@ model `EM`): whatever the request, a reply message whose header revision etcd ha
 promises of `Grant` and `Revoke`. That etcd's server registers them (`EtcdServer.LeaseGrant`,
 `LeaseRevoke` and their gRPC handlers at `v3rpc.etcdModelOfServer E`) is the client lease's stage
 (c), not done: the client's results take the registrations as premises, as the KV's do
-(`isEtcdKVE_of_kv`).
+(`isEtcdKVE_of_kv_r`).
 -/
 module
 

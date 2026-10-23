@@ -25,8 +25,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_i
 theorem observe_ownerOp_rev (pfx : GoString) :
     (ownerOp pfx).base.rev = W64 0 ∧ (ownerOp pfx).base.serializable = false ∧
       (ownerOp pfx).isPrefixGet pfx = false := by
-  by_cases h : pfx = [] <;> simp [ownerOp, opGetModel, opFold, withTopM, withPrefixM, withSortM,
-    withLimitM, OpFull.getInit, OpFull.newOp, OpModel.zero, h, OpFull.isPrefixGet]
+  by_cases h : pfx = [] <;> simp [ownerOp, op_simps, h, OpFull.isPrefixGet]
 
 /-- **The owner get** (`OpGet(pfx, WithFirstCreate()...)`) lists nothing on an empty state, and
 otherwise one key-value, the leader. -/
@@ -237,8 +236,7 @@ theorem prefixWatch_opts (pfx : GoString) (rev : w64) (hp : pfx ≠ []) :
       (opWatchModel pfx [withRevM rev, withPrefixM]).key = pfx ∧
       (opWatchModel pfx [withRevM rev, withPrefixM]).base.rangeEnd = prefixRangeEnd pfx := by
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
-  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
-    OpModel.zero, withRevM, withPrefixM, OpFull.isRangeWatch, hp]
+  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, OpFull.isRangeWatch, hp]
 
 end anchor
 

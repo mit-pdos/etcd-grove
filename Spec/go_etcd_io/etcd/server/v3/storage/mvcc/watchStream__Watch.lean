@@ -39,11 +39,11 @@ names (`γ.regi = γc.regi`). -/
 abbrev mvcc.watchStream.Watch.spec : Prop :=
   ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (id : w64) (key endk fcs : GoSlice) (k e : List w8)
-    (fs : List GoFunc) (startRev : w64) (sr : Bool),
+    (fs : List GoFunc) (startRev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchStream ws wa P γ ∗ context.isContext ctx cd ∗
       key ↦*□ k ∗ endk ↦*□ e ∗ fcs ↦*□ fs ∗ ([∗list] f ∈ fs, P.F f) ∗ P.R ∗ P.T ∗
-      ⌜0 ≤ sint.Z startRev ∧ id = W64 0⌝ ∗ P.SR sr startRev }}
+      ⌜0 ≤ sint.Z startRev ∧ id = W64 0⌝ }}
     (App (App (App (App (App (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"Watch"))
       (Val #(GoInterface.ok ctx))) (Val #id)) (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))
   {{ (id' : w64) (err : GoInterface), RET (PairV #id' #err);
@@ -51,7 +51,7 @@ abbrev mvcc.watchStream.Watch.spec : Prop :=
         ∃ (w : Loc) (lo : Nat), P.IW w ∗
           P.IWF w (mvcc.watchRangeOf k e endk startRev id') fcs lo ∗
           mvcc.idAssigned γ id' w ∗ mvcc.idTok γ id' ∗
-          (∃ γc : mvcc.WatchChanNames, P.OC w γc ∗ ⌜γ.regi = γc.regi⌝) ∗ P.WS w sr) ∨
+          (∃ γc : mvcc.WatchChanNames, P.OC w γc ∗ ⌜γ.regi = γc.regi⌝) ∗ P.WS w) ∨
        (⌜id' = W64 (-1)⌝ ∗ globalAddr ErrEmptyWatcherRange ↦□ err)) ∗ P.R }}
 
 end spec

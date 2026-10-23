@@ -43,8 +43,8 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   · iPkgInit
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, -⟩
   ipersist Hcsl; ipersist Hssl; ipersist Hfsl
-  ihave Hrun' : reqPre conn addr vs (Spec (txnWireOf b.model) Q) $$ [Hrun]
-  · iapply kvReqPre_conn api rkv conn addr vs _ Hsc $$ [Hrun]
+  ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/Txn" addr vs (Spec (txnWireOf b.model) Q) $$ [Hrun]
+  · iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Txn" ⟨go!"Txn", rfl⟩ addr vs _ Hsc $$ [Hrun]
     iframe Hremote Hrkv
     iapply txnReqPre_kv tp api addr $$ [Hrun]
     iframe Hrun
@@ -57,7 +57,7 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     iexists cps, sps, fps
     iframe #
   iunfold txnCallOut at Hres
-  icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     wp_auto
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked]
@@ -72,8 +72,9 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
+      wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
       · iframe #; ipureintro; exact fun _ => Hce'
+      ihave #Hcl' := Hclw $$ Hcl
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked]
       · inext; itrivial
       iapply HΦ

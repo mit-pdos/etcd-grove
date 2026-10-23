@@ -36,7 +36,7 @@ theorem Op.applyOpts.wp_proof : Op.applyOpts.spec (GF := GF) (hG := hG) := by
     simp only [named]
     iframe
     isplitl []
-    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, opFold, List.foldl_nil]
+    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, op_simps, List.foldl_nil]
       iexact Hat
     ipureintro; constructor <;> word
   iclear Hat

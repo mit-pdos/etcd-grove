@@ -79,11 +79,11 @@ theorem apply.auth_pass_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain
 
 /-- `checkTxnPermission`'s triple, as a hypothesis (the Löb induction's). -/
 def apply.txnPermT (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
-    (RD : IProp GF) (on : Bool) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) :
+    (RD : IProp GF) (on : Bool) (RW : IProp GF) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) :
     IProp GF :=
   iprop(□ ∀ (rt : Loc) (t : TxnModel) (Φ : val → IProp GF),
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStore st γ P f RD on ∗ apply.isApplyLessorAny le γ P f ∗ ai ↦{dq} info ∗ RD ∗
+      apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
       txn.txnRequestIs rt t -∗
     (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
         ⌜on = false → err = GoInterface.nil⌝ -∗ Φ #err) -∗
@@ -91,25 +91,25 @@ def apply.txnPermT (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt)) {{ Φ }})
 
 instance apply.txnPermT_persistent (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
-    (f : val) (RD : IProp GF) (on : Bool) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
-    (dq : DFrac) : Persistent (apply.txnPermT st le γ P f RD on ai info dq) := by
+    (f : val) (RD : IProp GF) (on : Bool) (RW : IProp GF) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (dq : DFrac) : Persistent (apply.txnPermT st le γ P f RD on RW ai info dq) := by
   unfold apply.txnPermT; infer_instance
 
 /-- **`checkTxnReqsPermission`, over `checkTxnPermission`'s triple** (`txnPermT`, for its
 nested transactions). -/
 theorem apply.checkTxnReqs_of
     (hPut : apply.checkPutAuth.spec (GF := GF) (hG := hG)) :
-  ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : Bool)
+  ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : Bool) (RW : IProp GF)
     (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice)
     (ps : List Loc) (ops : List TxnOp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStore st γ P f RD on ∗ apply.isApplyLessorAny le γ P f ∗ ai ↦{dq} info ∗ RD ∗
-      reqs ↦*□ ps ∗ txn.requestOpsIs ps ops ∗ apply.txnPermT st le γ P f RD on ai info dq }}
+      apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
+      reqs ↦*□ ps ∗ txn.requestOpsIs ps ops ∗ apply.txnPermT st le γ P f RD on RW ai info dq }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
   {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
       ⌜on = false → err = GoInterface.nil⌝ }} := by
-  intro st le γ P f RD on ai info dq reqs ps ops
+  intro st le γ P f RD on RW ai info dq reqs ps ops
   wp_start as ⟨#Hst, #Hle, Hai, Hrd, #Hreqs, #Hops, #IH⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hreqs
   ihave #Hst' := Hst
@@ -168,7 +168,7 @@ theorem apply.checkTxnReqs_of
       wp_auto
       simp only [Hrn, decide_false]
       wp_auto
-      wp_apply (hPut _ le γ P f RD on ai info dq r o) $$ [$Hst $Hle $Hai $Hrd $Hr] as %err ⟨Hai, Hrd, #HeI2, %Hof2⟩
+      wp_apply (hPut _ le γ P f RD on RW ai info dq r o) $$ [$Hst $Hle $Hai $Hrd $Hr] as %err ⟨Hai, Hrd, #HeI2, %Hof2⟩
       cases err with
       | nil =>
         wp_auto
@@ -254,10 +254,10 @@ theorem apply.checkTxnReqs_of
 theorem apply.checkTxnPermission_loeb
     (hPut : apply.checkPutAuth.spec (GF := GF) (hG := hG)) :
     apply.checkTxnPermission.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f RD on ai info dq rt t
+  intro st le γ P f RD on RW ai info dq rt t
   iloeb as IH generalizing %rt %t
   wp_start as ⟨#Hst, #Hle, Hai, Hrd, #Hrt⟩
-  ihave #IHT : apply.txnPermT st le γ P f RD on ai info dq $$ []
+  ihave #IHT : apply.txnPermT st le γ P f RD on RW ai info dq $$ []
   · iunfold apply.txnPermT; iexact IH
   iclear IH
   iunfold txn.txnRequestIs at Hrt
@@ -314,14 +314,14 @@ theorem apply.checkTxnPermission_loeb
       wp_auto
       wp_for_post
       iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); ipureintro; first | assumption | (intro _; rfl)
-  wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on ai info dq ssl sps t.thenOps) $$ [$Hst $Hle $Hai $Hrd $Hssl $Hss $IHT] as %err ⟨Hai, Hrd, #HeI8, %Hof8⟩
+  wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on RW ai info dq ssl sps t.thenOps) $$ [$Hst $Hle $Hai $Hrd $Hssl $Hss $IHT] as %err ⟨Hai, Hrd, #HeI8, %Hof8⟩
   cases err with
   | ok e' =>
     wp_auto
     iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); ipureintro; first | assumption | (intro _; rfl)
   | nil =>
   wp_auto
-  wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on ai info dq fsl fps t.elseOps) $$ [$Hst $Hle $Hai $Hrd $Hfsl $Hfs $IHT] as %err ⟨Hai, Hrd, #HeI9, %Hof9⟩
+  wp_apply (apply.checkTxnReqs_of hPut _ le γ P f RD on RW ai info dq fsl fps t.elseOps) $$ [$Hst $Hle $Hai $Hrd $Hfsl $Hfs $IHT] as %err ⟨Hai, Hrd, #HeI9, %Hof9⟩
   iapply HΦ; iframe Hai Hrd; isplitr; (first | iexact HeI9 | iexact HeI8 | iexact HeI7 | iexact HeI6 | iexact HeI5 | iexact HeI4 | iexact HeI3 | iexact HeI2 | iexact HeI1 | iapply applyErrIs_nil); ipureintro; first | assumption | (intro _; rfl)
 
 end proof

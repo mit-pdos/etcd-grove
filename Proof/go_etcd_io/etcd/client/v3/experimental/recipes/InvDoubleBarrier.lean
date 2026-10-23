@@ -63,8 +63,7 @@ theorem waitersOp_fields (wp : GoString) (hp : wp ≠ []) :
     (waitersOp wp).keysOnly = false ∧ (waitersOp wp).base.minModRev = W64 0 ∧
     (waitersOp wp).base.maxModRev = W64 0 ∧ (waitersOp wp).base.minCreateRev = W64 0 ∧
     (waitersOp wp).base.maxCreateRev = W64 0 := by
-  simp [waitersOp, opGetModel, opFold, withPrefixM, withSortM, OpFull.getInit, OpFull.newOp,
-    OpModel.zero, hp, OpFull.effSortOrder]
+  simp [waitersOp, op_simps, hp, OpFull.effSortOrder]
 
 theorem leaveOp_fields (wp : GoString) (hp : wp ≠ []) :
     (leaveOp wp).key = wp ∧ (leaveOp wp).base.rangeEnd = prefixRangeEnd wp ∧
@@ -73,24 +72,21 @@ theorem leaveOp_fields (wp : GoString) (hp : wp ≠ []) :
     (leaveOp wp).keysOnly = false ∧ (leaveOp wp).base.minModRev = W64 0 ∧
     (leaveOp wp).base.maxModRev = W64 0 ∧ (leaveOp wp).base.minCreateRev = W64 0 ∧
     (leaveOp wp).base.maxCreateRev = W64 0 := by
-  simp [leaveOp, opGetModel, opFold, withPrefixM, OpFull.getInit, OpFull.newOp, OpModel.zero,
-    hp, OpFull.effSortOrder]
+  simp [leaveOp, op_simps, hp, OpFull.effSortOrder]
 
 theorem waitersOp_t (wp : GoString) : (waitersOp wp).t = W64 1 ∧ (leaveOp wp).t = W64 1 := by
-  by_cases h : wp = [] <;> simp [waitersOp, leaveOp, opGetModel, opFold, withPrefixM, withSortM,
-    OpFull.getInit, OpFull.newOp, OpModel.zero, h]
+  by_cases h : wp = [] <;> simp [waitersOp, leaveOp, op_simps, h]
 
 theorem waitersOp_rev (pfx wp : GoString) (hne : wp ≠ pfx) (hw : wp ≠ []) (hp : pfx ≠ []) :
     (waitersOp wp).base.rev = W64 0 ∧ (waitersOp wp).base.serializable = false ∧
       (waitersOp wp).isPrefixGet pfx = false ∧
     (leaveOp wp).base.rev = W64 0 ∧ (leaveOp wp).base.serializable = false ∧
       (leaveOp wp).isPrefixGet pfx = false := by
-  simp [waitersOp, leaveOp, opGetModel, opFold, withPrefixM, withSortM, OpFull.getInit,
-    OpFull.newOp, OpModel.zero, hw, hp, OpFull.isPrefixGet, hne]
+  simp [waitersOp, leaveOp, op_simps, hw, hp, OpFull.isPrefixGet, hne]
 
 theorem waitersOp_not_panics :
     ¬ opGetPanics [withPrefixM, withSortM (W64 2) (W64 1)] ∧ ¬ opGetPanics [withPrefixM] := by
-  constructor <;> simp [opFold, withPrefixM, withSortM, OpFull.newOp, OpModel.zero, opGetPanics]
+  constructor <;> simp [op_simps, opGetPanics]
 
 theorem waitersOp_under (pfx wp : GoString) (hp : wp ≠ []) (h : pfx <+: wp) :
     KeyRangeUnder pfx (waitersOp wp).key (waitersOp wp).base.rangeEnd ∧

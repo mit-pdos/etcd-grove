@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `callTxn(cli, in)` (linkvtxn.go): a transaction (`in` decoding to `.txn cs t e`, not empty)
-through `New`'s client `cli` configured for one attempt, with the update its kind takes
+through `New`'s client `cli` that sends a write at most once, with the update its kind takes
 (`callUpd`): the failed call's output (`errOut`), or the reply's at the state `σ` the update
 fired at (`callRes`): the server's run of the transaction at `σ` (its verdict and results, as
 `call` builds them) and the revision after it (a read-only one's, `σ`'s).
@@ -9,6 +9,7 @@ fired at (`callRes`): the server's run of the transaction at `σ` (its verdict a
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -29,7 +30,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev callTxn.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF))
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (cl : Loc) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (x : Input) (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))

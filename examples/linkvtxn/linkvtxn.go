@@ -1,20 +1,19 @@
 // Package linkvtxn is the lintest driver instantiated with etcd over the KV API etcd's robustness
 // tester drives (notes/linkv-txn-plan.md, stage D): one etcd member started in-process (as
-// examples/linkv does), a client connected to it, and lintest.Run with concurrent clients doing
+// examples/putget does), a client connected to it, and lintest.Run with concurrent clients doing
 // gets, lists, puts, deletes, multi-operation transactions and compare-and-sets of a few keys,
 // checked by porcupine against a model of etcd's KV (Model, the Go form of the Lean model
-// Proof/github_com/mit_pdos/etcd_grove/examples/linkv/TxnModel.lean: robustness's EtcdState, a
+// Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/TxnModel.lean: robustness's EtcdState, a
 // key's value, mod revision and version, the store's revision). Main panics if porcupine finds
 // the history not linearizable; the theorem to prove is that it does not.
 //
-// Apply resolves a prophecy with whether the call returned no error (as examples/linkv), and,
+// Apply resolves a prophecy with whether the call returned no error (as the retired examples/linkv did), and,
 // for a read (a get, a list, a transaction with no write), another with the revision the reply
 // was read at. A prophecy has no effect when the program runs.
 package linkvtxn
 
 import (
 	"context"
-	"net"
 	"time"
 
 	"github.com/anishathalye/porcupine"
@@ -23,13 +22,9 @@ import (
 
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/mvccpb"
-	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/server/v3/config"
-	"go.etcd.io/etcd/server/v3/etcdserver"
-	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
-	"go.etcd.io/etcd/server/v3/features"
 
+	"github.com/mit-pdos/etcd-grove/examples/common"
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 )
 
@@ -690,9 +685,15 @@ func opsOf(ops []TOp) []clientv3.Op {
 	return out
 }
 
+// Every call below is made in a context with the examples' request timeout
+// (common.RequestTimeout, cancelled after the call), as etcd's clients are used in practice: a
+// call that takes longer fails (context.DeadlineExceeded) and the operation is recorded as failed.
+
 // callGet runs a get of key through the client cli: its output.
 func callGet(cli *clientv3.Client, key string) Output {
-	resp, err := cli.Get(context.Background(), key)
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Get(ctx, key)
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}
@@ -716,7 +717,9 @@ func kvsFrom(kvs []*mvccpb.KeyValue) []KV {
 
 // callList runs a list of the keys through the client cli: its output.
 func callList(cli *clientv3.Client) Output {
-	resp, err := cli.Get(context.Background(), listFrom, clientv3.WithRange(listTo))
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Get(ctx, listFrom, clientv3.WithRange(listTo))
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}
@@ -725,7 +728,9 @@ func callList(cli *clientv3.Client) Output {
 
 // callPut runs a put of key with val through the client cli: its output.
 func callPut(cli *clientv3.Client, key string, val string) Output {
-	resp, err := cli.Put(context.Background(), key, val)
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Put(ctx, key, val)
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}
@@ -734,7 +739,9 @@ func callPut(cli *clientv3.Client, key string, val string) Output {
 
 // callDel runs a delete of key through the client cli: its output.
 func callDel(cli *clientv3.Client, key string) Output {
-	resp, err := cli.Delete(context.Background(), key)
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Delete(ctx, key)
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}
@@ -782,7 +789,9 @@ func txnRes(ops []TOp, resps []*etcdserverpb.ResponseOp) []TRes {
 
 // callTxn runs a transaction through the client cli: its output.
 func callTxn(cli *clientv3.Client, in Input) Output {
-	resp, err := cli.Txn(context.Background()).If(cmpsFor(in)...).Then(opsOf(thenOf(in))...).Else(opsOf(elseOf(in))...).Commit()
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Txn(ctx).If(cmpsFor(in)...).Then(opsOf(thenOf(in))...).Else(opsOf(elseOf(in))...).Commit()
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}
@@ -838,50 +847,22 @@ func Check(cli *clientv3.Client, clients int, ops int, timeout time.Duration) po
 const clientAddr = "127.0.0.1:23796"
 
 // Main starts one member of a new cluster (as examples/linkv's Main does), connects a client
-// configured for one attempt per call and runs Check; it panics if porcupine finds the history
+// with etcd's default configuration and runs Check; it panics if porcupine finds the history
 // illegal. An error from a step before Check ends Main without a check.
 func Main(clients int, ops int) porcupine.CheckResult {
 	lg := zap.NewNop()
-	peer := types.URLs{{Scheme: "http", Host: "127.0.0.1:23806"}}
-	cfg := config.ServerConfig{
-		Name:                "linkvtxn",
-		DataDir:             "linkvtxn.etcd",
-		InitialPeerURLsMap:  types.URLsMap{"linkvtxn": peer},
-		PeerURLs:            peer,
-		ClientURLs:          types.URLs{{Scheme: "http", Host: clientAddr}},
-		InitialClusterToken: "linkvtxn",
-		NewCluster:          true,
-		TickMs:              100,
-		ElectionTicks:       10,
-		// etcd's default snapshot count; the catch-up entries past the theorem's step bound (as
-		// examples/linkv's)
-		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: 1 << 48,
-		MaxTxnOps:              128,
-		MaxRequestBytes:        1536 * 1024,
-		Logger:                 lg,
-		ServerFeatureGate:      features.NewDefaultServerFeatureGate("linkvtxn", lg),
-	}
-	s, err := etcdserver.NewServer(cfg)
+	s, err := common.StartServer("linkvtxn", "127.0.0.1:23806", clientAddr, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}
-	s.Start()
-
-	gs := v3rpc.Server(s, nil, nil)
-	l, err := net.Listen("tcp", clientAddr)
-	if err != nil {
+	if err := common.Serve(s, clientAddr); err != nil {
 		return porcupine.Unknown
 	}
-	go gs.Serve(l)
 
-	// One attempt per call (MaxUnaryRetries: 1): a write is sent at most once, so the server
-	// applies it at most once.
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:       []string{clientAddr},
-		Logger:          lg,
-		MaxUnaryRetries: 1,
-	})
+	// etcd's default client configuration (its default retries): the server never answers with a
+	// refusal (authentication off, a voter), so a write is sent at most once and the server applies
+	// it at most once, while a read may be retried (decision D29).
+	cli, err := common.NewClient(clientAddr, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}

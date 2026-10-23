@@ -37,7 +37,7 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro wv s γ P Pre Q Post f key endk k e
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hfree, #Hkey, #Hend, %Hwq⟩
+  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hend, %Hwq⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
@@ -49,8 +49,12 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
   -- `wv.kv.Write(t)`
-  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc] as %mw ⟨⟨%ilog, Htx⟩, HQ, Hhook⟩
   · ipureintro; exact Ht
+  -- the writer's hook back: its facts kept (D22 receiver epochs, S5b)
+  icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨#HhookOk, Hfrag⟩
+  ihave Hhook : mvcc.hookIs γ P f $$ [Hfrag]
+  · iapply (mvcc.hookIs_split γ P f).2; iframe HhookOk Hfrag
   (try wp_auto)
   -- `tw.DeleteRange(key, end)`
   wp_apply (hDel t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key endk k e)
@@ -70,11 +74,11 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   · iapply mvcc.txnEndPre_write; iframe Hhook HP; rw [mvcc.logQPre_plain _ _ _ Hwq]
     isplitl; · iapply mvcc.certFree_certOkNext $$ Hfree
     itrivial
+  simp only [mvcc.txnEndPost]
+  icases Hcert with ⟨Hcert, -, -, -⟩
   iapply HΦ
   iframe Hrd HPost
   iexists ilog
-  simp only [mvcc.txnEndPost]
-  icases Hcert with ⟨Hcert, -⟩
   iframe Hcert
   try (ipureintro; exact Hnr)
 

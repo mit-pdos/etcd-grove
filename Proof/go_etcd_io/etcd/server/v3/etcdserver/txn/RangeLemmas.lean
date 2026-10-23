@@ -158,10 +158,10 @@ theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
   iNamedSuffix HtrT "T"
   ihave #HcT := HcertT
   iunfold mvcc.idxCert at HcT
-  icases HcT with ⟨-, -, %Hp, -⟩
+  icases HcT with ⟨-, %Hp, -⟩
   isplitl
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, ti, rt, ranges
+    iexists p, trw, tr, ti, rt, ranges
     iframe
     iframe #
   · ipureintro
@@ -178,10 +178,10 @@ theorem isTxnRead_cert (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
   iNamedSuffix HtrT "T"
   isplitl
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, ti, rt, ranges
+    iexists p, trw, tr, ti, rt, ranges
     iframe
     iframe #
-  · iexact HcertT
+  · rw [← mvcc.idxCert_withPhys γ p]; iexact HcertT
 
 end txn_read
 

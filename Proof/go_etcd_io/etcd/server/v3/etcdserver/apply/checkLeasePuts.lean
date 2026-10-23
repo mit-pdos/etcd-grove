@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkLeasePuts.wp_proof
     (hKeys : apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG)) :
     apply.checkLeasePuts.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f RD on ai info dq id
+  intro st le γ P f RD on RW ai info dq id
   wp_start as ⟨#Hst, #Hle, Hai, Hrd⟩
   ihave #Hle' := Hle
   iunfold apply.isApplyLessorAny at Hle'
@@ -49,7 +49,7 @@ theorem apply.checkLeasePuts.wp_proof
     icases Hl' with ⟨%Hln, -⟩
     simp only [Hln, decide_false, Bool.not_false]
     wp_auto
-    wp_apply (hKeys st γ P f RD on ai info dq l id) $$ [$Hst $Hai $Hl $Hrd] as %err ⟨Hai, Hrd, #HeI, %Hoff⟩
+    wp_apply (hKeys st γ P f RD on RW ai info dq l id) $$ [$Hst $Hai $Hl $Hrd] as %err ⟨Hai, Hrd, #HeI, %Hoff⟩
     iapply HΦ; iframe Hai Hrd HeI; ipureintro; exact Hoff
 
 end proof

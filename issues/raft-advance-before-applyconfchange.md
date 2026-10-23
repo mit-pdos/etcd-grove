@@ -167,7 +167,7 @@ candidate: issues/upstream/raft-advance-before-applyconfchange/
 - **How the proof handles it**: today no node ever applies a conf change (the verified
   scope has a fixed voter set: `ownRaftPhys cfg`, `γ.reCfg = cfg` in `raft.Step.spec`,
   `HnoConfChange` in `ownRaftLog`). The reconfiguration work will state the precondition on
-  `ApplyConfChange`/`Advance` (notes/STATUS.md, "Reconfiguration"). Under it (and atomic
+  `ApplyConfChange`/`Advance` (notes/status-history.md, "Reconfiguration"). Under it (and atomic
   persistence, see [raft-commit-lost-with-entries-kept](raft-commit-lost-with-entries-kept.md))
   a proof sketch of safety holds: any two conf entries in a log imply its commit index covers
   the first; a campaigning node or a leader has at most one conf entry beyond its applied

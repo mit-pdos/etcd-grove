@@ -185,6 +185,8 @@ def txnOpOf (o : OpFull) : Option TxnOp :=
   else if o.t = W64 3 then some (.delete o)
   else none
 
+attribute [op_simps] txnOpOf
+
 /-- `len(s)` of a slice with length field `x`, as an integer. -/
 theorem len_eq_sint (n : Nat) (x : w64) (h : n = sint.nat x ∧ 0 ≤ sint.Z x) :
     (n : Int) = sint.Z x := by
@@ -196,12 +198,15 @@ theorem len_eq_sint (n : Nat) (x : w64) (h : n = sint.nat x ∧ 0 ≤ sint.Z x) 
 /-- `OpPut(key, val, WithLease(id))` in a transaction. -/
 theorem putLeaseOp_txnOpOf (key val : GoString) (id : w64) :
     txnOpOf (opPutModel key val [withLeaseM id]) = some (.put key val id) := by
-  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero, txnOpOf]
+  simp [op_simps]
+
+theorem deleteOp_txnOpOf (key : GoString) :
+    txnOpOf (opDeleteModel key []) = some (.delete (opDeleteModel key [])) := by
+  simp [op_simps]
 
 theorem putLeaseOp_not_panics (key val : GoString) (id : w64) :
     ¬ (opPutModel key val [withLeaseM id]).putPanics := by
-  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero,
-    OpFull.putPanics]
+  simp [op_simps, OpFull.putPanics]
 
 /-- A put of `key` at revision `r` (see the module docstring). -/
 def putKv (r : w64) (key value : GoString) (lease : w64) (s : List EtcdKv) : List EtcdKv :=
@@ -1191,8 +1196,7 @@ theorem keyWatch_opts (key : GoString) (rev : w64) :
       ¬ opWatchPanics key [withRevM rev] ∧ (opWatchModel key [withRevM rev]).key = key ∧
       (opWatchModel key [withRevM rev]).base.rangeEnd = [] := by
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
-  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
-    OpModel.zero, withRevM, OpFull.isRangeWatch]
+  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, OpFull.isRangeWatch]
 
 section pointwise
 variable {GF : BundledGFunctors}

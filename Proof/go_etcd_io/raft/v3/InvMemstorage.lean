@@ -1060,16 +1060,6 @@ theorem monoHalves_update (γ : GName) (H H' : List StorState) (h : H <+: H') :
   imodintro
   iframe H1 H2
 
-/-- A whole typed points-to is two halves (2026-10-12: `memStorMeta` and the lock
-share `hardState` and `snapshot`). -/
-theorem ptsto_halves {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
-    (l ↦ v : IProp GF) ⊣⊢
-      l ↦{DFrac.own (1 : Qp).half} v ∗ l ↦{DFrac.own (1 : Qp).half} v := by
-  have h : (DFrac.own 1 : DFrac) = DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half := by
-    rw [DFrac.op_own, Qp.half_add_half]
-  rw [h]
-  exact (typedPointsto_dfractional (GF := GF) l v).dfractional _ _
-
 /-- The contents the lock holds have the data of `D`'s last whenever `done` is between `D` and a
 history that only raised the floor after it. -/
 theorem raiseOnly_between {D Dc L : List StorState} {a b : StorState} (h1 : D <+: Dc)

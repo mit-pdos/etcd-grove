@@ -87,7 +87,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
       subst Hf' Hg; iexact Hf2
     · simp at Hf'
   wp_apply hGet key _ [withRangeM e, withKeysOnlyM] $$ [$Hoptg] as %opG #HopG
-  · ipureintro; simp [opGetPanics, opFold, withRangeM, withKeysOnlyM, OpFull.newOp]
+  · ipureintro; simp [opGetPanics, op_simps]
   (try wp_auto)
   wp_apply hWR e as %f3 #Hf3
   wp_apply wp_slice_literal (l := [f3])
@@ -108,8 +108,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
     · simp at Hf'
   wp_apply hDel key _ [withRangeM e] $$ [$Hoptd] as %opD #HopD
   · ipureintro
-    simp [opDeletePanics, opGetPanics, opFold, withRangeM, OpFull.newOp, opDeleteModel,
-      OpFull.deleteInit, OpFull.deletePanics, OpModel.zero]
+    simp [opDeletePanics, opGetPanics, op_simps, OpFull.deletePanics]
   (try wp_auto)
   wp_apply wp_slice_literal (l := [opG, opD])
   isplitr
@@ -154,11 +153,9 @@ theorem leasingKV.deleteRangeRPC.wp_proof
   (try wp_auto)
   have Hg : txnOpOf (opGetModel key [withRangeM e, withKeysOnlyM]) =
       some (.get (opGetModel key [withRangeM e, withKeysOnlyM])) := by
-    simp [txnOpOf, opGetModel, opFold, withRangeM, withKeysOnlyM, OpFull.getInit, OpFull.newOp,
-      OpModel.zero]
+    simp [op_simps]
   have Hd : txnOpOf (rangeDeleteOp key e) = some (.delete (rangeDeleteOp key e)) := by
-    simp [txnOpOf, rangeDeleteOp, opDeleteModel, opFold, withRangeM, OpFull.deleteInit,
-      OpFull.newOp]
+    simp [op_simps, rangeDeleteOp]
   have Hmap : [opGetModel key [withRangeM e, withKeysOnlyM], rangeDeleteOp key e].map txnOpOf =
       ([.get (opGetModel key [withRangeM e, withKeysOnlyM]), .delete (rangeDeleteOp key e)] :
         List TxnOp).map some := by simp [Hg, Hd]

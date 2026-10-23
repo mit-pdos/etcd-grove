@@ -128,7 +128,7 @@ theorem leasingKV.get.wp_proof
         iframe
         iframe #
       · wp_auto
-        ihave #Hnil := concurrency.optsAt_nil (GF := GF)
+        ihave #Hnil := optsAt_nil (GF := GF)
         wp_apply hGet o.key slice.nil [] $$ [$Hcv $Hnil] as %opK #HopK
         · ipureintro; exact concurrency.keyOp_not_panics
         obtain ⟨-, hkk, hke, -, -⟩ := keyGet_fields o.key

@@ -60,6 +60,13 @@ theorem mvcc.store.compactBarrier.wp_proof
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
+  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
+  -- `isStore`'s, pinned)
+  icases mvcc.storeStop_open s γ $$ Hstop with
+    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  try simp only
   wp_apply Herr as %err
   cases err with
   | nil =>
@@ -75,11 +82,7 @@ theorem mvcc.store.compactBarrier.wp_proof
   | ok e =>
     -- cancelled: unless the store is stopped, another barrier, under `s.mu`
     wp_auto
-    ihave #Hstop' := Hstop
-    iunfold mvcc.storeStop at Hstop'
-    icases Hstop' with ⟨%c0, #Hc0, #Hsc⟩
-    icombine Hstopc Hc0 gives %Heq
-    subst Heq
+    ihave #Hsc := Hstopch
     iunfold mvcc.isStopChan at Hsc
     icases Hsc with ⟨%γst, #Hsc⟩
     wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]

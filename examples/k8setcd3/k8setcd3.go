@@ -34,20 +34,14 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net"
 	"time"
 
 	"github.com/anishathalye/porcupine"
 	"github.com/goose-lang/primitive"
 	"go.uber.org/zap"
 
-	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/kubernetes"
-	"go.etcd.io/etcd/server/v3/config"
-	"go.etcd.io/etcd/server/v3/etcdserver"
-	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
-	"go.etcd.io/etcd/server/v3/features"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -55,6 +49,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/value"
 
+	"github.com/mit-pdos/etcd-grove/examples/common"
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 )
 
@@ -794,38 +789,13 @@ const clientAddr = "127.0.0.1:23896"
 // Main without a check.
 func Main(clients int, ops int) porcupine.CheckResult {
 	lg := zap.NewNop()
-	peer := types.URLs{{Scheme: "http", Host: "127.0.0.1:23906"}}
-	cfg := config.ServerConfig{
-		Name:                "k8setcd3",
-		DataDir:             "k8setcd3.etcd",
-		InitialPeerURLsMap:  types.URLsMap{"k8setcd3": peer},
-		PeerURLs:            peer,
-		ClientURLs:          types.URLs{{Scheme: "http", Host: clientAddr}},
-		InitialClusterToken: "k8setcd3",
-		NewCluster:          true,
-		TickMs:              100,
-		ElectionTicks:       10,
-		// etcd's default snapshot count; the catch-up entries past the theorem's step bound (as
-		// examples/linkv's)
-		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: 1 << 48,
-		MaxTxnOps:              128,
-		MaxRequestBytes:        1536 * 1024,
-		Logger:                 lg,
-		ServerFeatureGate:      features.NewDefaultServerFeatureGate("k8setcd3", lg),
-	}
-	srv, err := etcdserver.NewServer(cfg)
+	srv, err := common.StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}
-	srv.Start()
-
-	gs := v3rpc.Server(srv, nil, nil)
-	l, err := net.Listen("tcp", clientAddr)
-	if err != nil {
+	if err := common.Serve(srv, clientAddr); err != nil {
 		return porcupine.Unknown
 	}
-	go gs.Serve(l)
 
 	// One attempt per call (MaxUnaryRetries: 1): a write is sent at most once, so the server
 	// applies it at most once.

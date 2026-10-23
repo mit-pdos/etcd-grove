@@ -147,7 +147,7 @@ def watchSrvOk (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) : I
   iprop(mvcc.isWatchableStore wsl E.s γ ∗ ⌜γ.st = E.γ⌝ ∗ raftStatusOk s ∗
     (∃ (st : GoInterface) (cca : Bool) (P : IProp GF) (f : val),
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st E.γ P f E.RD E.authOn) ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st E.γ P f E.RD E.authOn E.RW) ∗
     watchVars ∗ mvcc.watchTokPool γ)
 
 instance watchSrvOk_persistent (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) :
@@ -207,7 +207,7 @@ restricted (`watchReqOk`) and, for a create request, comes with a watch token of
 def upOk (γ : mvcc.WsNames) (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
   iprop(□ ∀ (i : Nat) (m : WatchReqM), Up i m -∗ ⌜watchReqOk m⌝ ∗
     (match m with
-     | .create c => mvcc.watchTok γ ∗ mvcc.startRead γ c.sr c.startRev
+     | .create _ => mvcc.watchTok γ
      | _ => iprop(True)))
 
 instance upOk_persistent (γ : mvcc.WsNames) (Up : Nat → WatchReqM → IProp GF) :
@@ -220,7 +220,7 @@ gives with each request, `Up` of the registered method): the request is restrict
 def watchUp (γ : mvcc.WsNames) (_i : Nat) (m : WatchReqM) : IProp GF :=
   iprop(⌜watchReqOk m⌝ ∗
     (match m with
-     | .create c => mvcc.watchTok γ ∗ mvcc.startRead γ c.sr c.startRev
+     | .create _ => mvcc.watchTok γ
      | _ => iprop(True)))
 
 /-- The registered content meets the watch server's restrictions and budget (`upOk`). -/

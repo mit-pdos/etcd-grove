@@ -6,8 +6,8 @@ prophecy of the `ResolveBool` at the end (`!out.Err`, the call's outcome), and t
 (`Inv.lean`'s steps) is chosen by the operation's kind and the prophecy's head before the client
 is called:
 
-- a write, prophecy `ok`: the call's update is `write_ok_au` (fired at most once on the
-  one-attempt client); it commits `lintest`'s update at the server's apply with `call`'s output at
+- a write, prophecy `ok`: the call's update is `write_ok_au` (fired at most once on a
+  client that sends a write at most once); it commits `lintest`'s update at the server's apply with `call`'s output at
   the state it fired at, and the call returns that output (`call.spec`, the state good: `wQ`). An
   error return contradicts the prophecy; so does a state whose answer's revision does not fit a
   word (the reply's state is below `2^63`).
@@ -26,7 +26,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.call
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.isWrite
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section
@@ -56,7 +56,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     (wp_isWrite : isWrite.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ γ cl ms V hAs hne
+  intro _ CRE CEC γ cl ms V hAs hne
   iintro #Hpkg #Pcli #Hcl #Hone #Hregs #Hinvs
   -- one member's invariant, for the commits made before the call
   obtain ⟨s0, hs0⟩ : ∃ s0, s0 ∈ ms := by

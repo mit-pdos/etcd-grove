@@ -30,15 +30,15 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Pe
 theorem backend.backend.ForceCommit.wp_proof
     (hCommit : backend.batchTxBuffered.Commit.spec (GF := GF) (hG := hG)) :
     backend.backend.ForceCommit.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b qo
-  wp_start as ⟨#Hb, Ho, Htok⟩
+  intro γ P W Pk b qo X Y
+  wp_start as ⟨#Hb, Ho, Htok, HX, #Hrq⟩
   icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t, %rt, %db1, %lg2, #Ht, #-⟩
   wp_auto
-  wp_apply (hCommit γ P W Pk b t qo) $$ [$Ho $Htok] as Ho
+  wp_apply (hCommit γ P W Pk b t qo X Y) $$ [$Ho $Htok $HX] as ⟨Ho, HY⟩
   · iframe #
   iapply HΦ
-  iexact Ho
+  iframe
 
 end proof
 

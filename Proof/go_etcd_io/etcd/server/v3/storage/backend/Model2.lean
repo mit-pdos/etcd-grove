@@ -45,12 +45,18 @@ hook's own keys (`HK`, bucket name and key, counted only in a hook's bucket: `BP
 values in the writer's contents are tracked by a ghost variable whose other half is the client's
 (`hkOwn`), so only its holder (the hook, through the hooks' resource) changes them, and a session
 that does not hold it leaves them as they were (etcd's consistent index and term, which only the
-pre-commit hook writes). -/
+pre-commit hook writes). And (D22, 2026-10-23: the backend over every bucket) the tracked
+buckets (`RB`): their contents in the writer's contents (`rbData`, absent buckets absent) are
+tracked by a ghost variable whose other half is the client's (`rbOwn`), so a session that puts in,
+deletes from, creates or deletes one needs it, and the pre-commit hook leaves them (etcd's rest
+buckets, `mvcc.restBuckets`: the lessor's, the auth store's, the alarm store's and the
+membership's, which the apply thread alone writes). -/
 structure BParams where
   BT : GMap GoString w64
   HB : GoString → Bool
   SB : GoString → Bool
   HK : GoString → GoString → Bool
+  RB : GoString → Bool
   hookMax : Nat
   limit : w64
 
@@ -194,6 +200,41 @@ theorem idsOk_writebackR {P : BParams} {W : WBuf} {R : RBuf} (hW : idsOk P W.bks
 /-- A bucket's contents in bbolt's data (empty if absent). -/
 def bktOf (D : Data) (n : GoString) : BktData := (D.lookup n).getD ∅
 
+/-- **The tracked buckets of bbolt's data** (`BParams.RB`), absent buckets absent: the value of
+the ghost variable `γ.rbk` (half the batch lock's, half the client's `rbOwn`). -/
+def rbData (P : BParams) (S : Data) : GMap GoString BktData := S.filter (fun n _ => P.RB n)
+
+theorem rbData_lookup (P : BParams) (S : Data) (n : GoString) :
+    (rbData P S).lookup n = if P.RB n then S.lookup n else none := by
+  unfold rbData
+  show (S.lookup n).filter (fun _ => P.RB n) = _
+  cases S.lookup n <;> cases P.RB n <;> rfl
+
+/-- Two contents that agree on the tracked buckets have one `rbData`. -/
+theorem rbData_eq {P : BParams} {S S' : Data}
+    (h : ∀ n, P.RB n = true → S'.lookup n = S.lookup n) : rbData P S' = rbData P S := by
+  apply GMap.ext
+  intro n
+  rw [rbData_lookup, rbData_lookup]
+  cases hn : P.RB n
+  · rfl
+  · simp only [↓reduceIte]; exact h n hn
+
+/-- A change of an untracked bucket leaves `rbData`. -/
+theorem rbData_insert_other {P : BParams} {S : Data} {n : GoString} (b : BktData)
+    (h : P.RB n = false) : rbData P (S.insert n b) = rbData P S := by
+  apply rbData_eq
+  intro n' hn'
+  have : n ≠ n' := fun e => by subst e; rw [h] at hn'; cases hn'
+  exact GMap.lookup_insert_ne _ _ this
+
+theorem rbData_delete_other {P : BParams} {S : Data} {n : GoString}
+    (h : P.RB n = false) : rbData P (S.delete n) = rbData P S := by
+  apply rbData_eq
+  intro n' hn'
+  have : n ≠ n' := fun e => by subst e; rw [h] at hn'; cases hn'
+  exact GMap.lookup_delete_ne _ this
+
 /-- The safe-range discipline on a readers' state: in every safe-range bucket, every key of the
 committed data is below every key of the read buffer (so the backend's range, bbolt's then the
 read buffer's, is in key order and has no key twice). -/
@@ -292,9 +333,9 @@ def BSess.delBucket (st : BSess) (bi : BucketInfo) : BSess :=
 untouched, the writer's contents changed only in the hook's buckets, the write buffer's
 other buckets untouched, at most `hookMax` operations more, bbolt's write transaction and the
 batch lock's ghost counters unchanged (the hook only calls the batch transaction's operations,
-which keep them). -/
+which keep them); and (D22, 2026-10-23) the tracked buckets untouched (`rbData`). -/
 def hookStep (P : BParams) (st st' : BSess) : Prop :=
-  st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧
+  st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧ rbData P st'.S = rbData P st.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
   sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend ≤ sint.Z st.pend + P.hookMax ∧
   sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt

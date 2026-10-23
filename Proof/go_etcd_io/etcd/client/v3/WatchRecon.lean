@@ -8,7 +8,7 @@ goroutine starts from. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.WatchRun
-public import Proof.go_etcd_io.etcd.client.v3.SyncSpsc
+public import Perennial.Golang.Theory.Chan.Idioms.SyncSpsc
 public import Proof.go_etcd_io.etcd.client.v3.MapSplit
 
 @[expose] public section
@@ -73,30 +73,6 @@ theorem ptsto_w64_half_whole (l : Loc) (v1 v2 : w64) :
   intro h
   have : (1 / 2 : Rat) + 1 ≤ 1 := h
   grind
-
-/-- A `w64` field in two halves. -/
-theorem ptsto_w64_halves (l : Loc) (v : w64) :
-    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
-      typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
-        typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) := by
-  have h := typedPointsto_frac_add (GF := GF) l v (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at h
-  exact h.1
-
-/-- Two halves of a `Loc` field: the same value, the whole field. -/
-theorem ptsto_loc_combine (l v1 v2 : Loc) :
-    typedPointsto (GF := GF) l v1 (DFrac.own (1 : Qp).half) ∗
-      typedPointsto (GF := GF) l v2 (DFrac.own (1 : Qp).half) ⊢
-      ⌜v1 = v2⌝ ∗ typedPointsto (GF := GF) l v1 (DFrac.own 1) := by
-  iintro ⟨H1, H2⟩
-  icombine H1 H2 gives %Heq
-  subst Heq
-  isplitr
-  · ipureintro; rfl
-  have h := typedPointsto_frac_add (GF := GF) l v1 (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at h
-  iapply h.2
-  iframe
 
 /-- **A live substream across a reconnection** (its goroutine resumed: its state `wsRun`, its flag
 `γx` still `false`): `run`'s state of the new stream, queued (a queued substream's as it was; a
@@ -164,7 +140,7 @@ theorem recon_alive (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.
     -- the next lifetime's start, at `recvc`'s position
     imod ghost_map_insert_persist sent.length true (HM sent.length (Nat.le_refl _)) $$ Hpa
       with ⟨Hpa, #Hls'⟩
-    icases ptsto_w64_halves _ _ $$ Hrev with ⟨Hrev1, Hrev2⟩
+    icases (typedPointsto_half_split _ _ 1).1 $$ Hrev with ⟨Hrev1, Hrev2⟩
     imodintro
     iexists sent.length, nr, sent
     iframe Hgx
@@ -246,14 +222,6 @@ theorem recon_alive (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.
       ileft; iframe Hrev; ipureintro; exact ⟨Hk0, rfl⟩
     ipureintro; exact Hk0
 
-/-- A `w64` field at any fraction, in two halves of it. -/
-theorem ptsto_w64_split (l : Loc) (v : w64) (q : Qp) :
-    typedPointsto (GF := GF) l v (DFrac.own q) ⊢
-      typedPointsto (GF := GF) l v (DFrac.own q.half) ∗ typedPointsto (GF := GF) l v (DFrac.own q.half) := by
-  have h := typedPointsto_frac_add (GF := GF) l v q.half q.half
-  rw [Qp.half_add_half] at h
-  exact h.1
-
 /-- **A substream stopped for good across a reconnection**: `run`'s state of the new stream, queued
 (a queued substream's as it was; a registered one's, stopped, from the resume revision its
 goroutine left, with part of the request's `rev` field), what its goroutine left kept. -/
@@ -280,7 +248,7 @@ theorem recon_dead (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.W
     ihave #Hrs' := Hrs
     iunfold resumeOk at Hrs'
     icases Hrs' with ⟨%Hrsp', #Hso'⟩
-    icases ptsto_w64_split _ _ _ $$ Hrev with ⟨Hrev1, Hrev2⟩
+    icases (typedPointsto_half_split _ _ _).1 $$ Hrev with ⟨Hrev1, Hrev2⟩
     isplitl [Hprod Hauth Hauth2 Hrev1]
     · iright
       iframe Hx
@@ -546,6 +514,94 @@ theorem wsElem_recon_any (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs γs' : Str
         unfold upAtOpt; itrivial
   | orphan => simp only [wsRest]; iexact Hrest
   | closed => simp only [wsRest]; iexact Hrest
+
+/-! ### At another member (W3b) -/
+
+set_option maxHeartbeats 1000000 in
+/-- A substream's facts read no member. -/
+theorem wsIs_atIdx (V : WEnv GF) (i : Nat) (P : WsPrm GF) : wsIs (V.atIdx i) P = wsIs V P := rfl
+
+/-- A goroutine's buffer reads no member (by recursion: `rfl` does not see through it). -/
+theorem bufE_atIdx (V : WEnv GF) (i : Nat) (P : WsPrm GF) :
+    ∀ (a : Nat) (l : List (Nat × Loc)) (n : Nat), bufE (V.atIdx i) P a l n = bufE V P a l n
+  | _, [], _ => rfl
+  | a, x :: rest, n => by
+    simp only [bufE]
+    rw [bufE_atIdx V i P (x.1 + 1) rest n]
+    rfl
+
+theorem wsRun_atIdx (V : WEnv GF) (i : Nat) (P : WsPrm GF) (k0 : Nat) (rv0 : w64)
+    (rcv : List Loc) (nr : w64) : wsRun (V.atIdx i) P k0 rv0 rcv nr = wsRun V P k0 rv0 rcv nr := by
+  unfold wsRun
+  simp only [bufE_atIdx]
+  rfl
+
+theorem resumeBody_atIdx (V : WEnv GF) (i : Nat) (G : WgsPrm GF) (P : WsPrm GF) :
+    resumeBody (V.atIdx i) G P = resumeBody V G P := by
+  unfold resumeBody
+  simp only [wsRun_atIdx]
+
+theorem lifeSt_atIdx (V : WEnv GF) (i : Nat) (G : WgsPrm GF) (P : WsPrm GF) (L : LifePrm) :
+    lifeSt (V.atIdx i) G P L = lifeSt V G P L := by
+  unfold lifeSt
+  simp only [resumeBody_atIdx]
+  rfl
+
+/-- A substream's lifetime reads no member. -/
+theorem wsLife_atIdx (V : WEnv GF) (i : Nat) (G : WgsPrm GF) (n : Nat) (P : WsPrm GF) (o : Bool) :
+    wsLife (V.atIdx i) G n P o = wsLife V G n P o := by
+  unfold wsLife lifeDn lifeQ lifeInvIs
+  simp only [lifeSt_atIdx]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+/-- A queued, orphan or closed substream's state reads no member. -/
+theorem wsRest_atIdx (V : WEnv GF) (i : Nat) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
+    (P : WsPrm GF) (ph : WPh) (h : ∀ X, ph ≠ .reg X) :
+    wsRest (V.atIdx i) γs Dm P ph = wsRest V γs Dm P ph := by
+  cases ph with
+  | reg X => exact absurd rfl (h X)
+  | _ => rfl
+
+/-- **A gRPC watch stream at another member** (W3b): its fields and channels read no member
+(`reqP`, `closingP`, `respcE`: each epoch's responses at the epoch's member); the facts it rests on
+are the member's (`watchConnFacts_atIdx`). -/
+theorem isWGS_atIdx (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (i : Nat) (hi : i < V.nm) :
+    isWGS V G callSl ⊢ isWGS (V.atIdx i) G callSl := by
+  iintro #H
+  have e1 : reqP (V.atIdx i) = reqP V := rfl
+  have e2 : closingP (V.atIdx i) G = closingP V G := rfl
+  have e3 : respcE (V.atIdx i) G.γep = respcE V G.γep := rfl
+  unfold isWGS
+  rw [e1, e2, e3]
+  icases H with ⟨%H1, #H2, #Hsf, %H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14,
+    #H15, #H16, #H17, #H18, #H19, #H20, #H21, #H22, #H23⟩
+  iunfold watchSrvFacts at Hsf
+  icases Hsf with ⟨#Hstub, #Hconn⟩
+  ihave #Hconn' := watchConnFacts_atIdx V i hi $$ Hconn
+  simp only [WEnv.atIdx]
+  iframe #
+  isplitr
+  · ipureintro; exact H1
+  isplitr
+  · iunfold watchSrvFacts; iframe #
+  ipureintro; exact H4
+
+/-- **A reconnection's substream at any member** (W3b): every substream is queued, orphan or
+closed (`RunSt.reconnect`), whose state reads no member. -/
+theorem wsElem_recon_at (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames)
+    (S : RunSt) (l' : List Loc) (ws : Loc) (i : Nat) :
+    wsElem V G n γs (S.reconnect l') ws ⊢ wsElem (V.atIdx i) G n γs (S.reconnect l') ws := by
+  unfold wsElem
+  iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
+  iexists P, ph
+  rw [wsIs_atIdx, wsLife_atIdx]
+  have hnr : ∀ X, ph ≠ .reg X := by
+    intro X hX; subst hX
+    simp [phOk, RunSt.reconnect, GMap.lookup_empty] at Hph
+  rw [wsRest_atIdx V i γs _ P ph hnr]
+  iframe HP Hid Hnc Hlife Hrest
+  ipureintro; exact ⟨HPws, Hph⟩
 
 /-- **A substream neither registered nor queued across a reconnection** (server-cancelled, refused,
 or closed): its state of the next generation (`closedRun` becomes `closed`). -/

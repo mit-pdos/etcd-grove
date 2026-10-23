@@ -62,8 +62,8 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
     (hSize : backend.snapshot.Size.spec (GF := GF) (hG := hG))
     (hNM : snap.NewMessage.spec (GF := GF) (hG := hG)) :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) := by
-  intro s ml st snapt snapi cs lg kv be RC RC' RS RS' Qd
-  wp_start as ⟨#Hlgf, %Hlgnn, Hlr, #Hkvf, Hkc, HRC, #Hbef, Hbs, HRS, Hm, #Hcs⟩
+  intro s ml st snapt snapi cs lg kv be dq RC RC' RS RS' Qd
+  wp_start as ⟨#Hlgf, %Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Hcs⟩
   (try wp_auto)
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
@@ -79,6 +79,8 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   iapply Hcommit $$ HRC
   inext
   iintro HRC'
+  -- (D22 the stored-index window, 2026-10-23) what `Snapshot()` takes, from what `Commit()` gave
+  ihave HRS := HRS $$ HRC'
   (try wp_auto)
   -- `s.be.Snapshot()`
   iunfold srvBeSnapOk at Hbs
@@ -146,7 +148,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   (try wp_auto)
   iapply HΦ
   simp only [mergedSt]
-  iframe Hlr HRC' HRS'
+  iframe Hlr HRS' Hbef
   iexists rc, D, c
   iframe Hm Hc Hrs
   isplitr

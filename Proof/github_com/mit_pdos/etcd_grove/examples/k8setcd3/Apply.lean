@@ -19,7 +19,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8setcd3.Apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8setcd3.call
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section

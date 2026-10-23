@@ -4,6 +4,8 @@ Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`
 the buffers, bbolt as a key-value contract, the locks and the views".
 (2026-10-12: a write-back's budget token pays for the commit: a commit leaves the hook's
 puts in the write buffer, and the token budget bounds how many accumulate before a write-back.)
+(2026-10-23, D22 the stored-index window: the caller's request `X ⇒ Y`, `commitReq`, served by
+the hook the commit runs.)
 -/
 module
 
@@ -27,10 +29,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `b.ForceCommit()`: the batch transaction committed (the readers' view unchanged). -/
 abbrev backend.backend.ForceCommit.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ }}
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) (X Y : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bOpen γ qo ∗ wbTok γ ∗ X ∗ commitReq γ P Pk b X Y }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"ForceCommit")) (Val #()))
-  {{ RET #(); bOpen γ qo }}
+  {{ RET #(); bOpen γ qo ∗ Y }}
 
 end spec
 

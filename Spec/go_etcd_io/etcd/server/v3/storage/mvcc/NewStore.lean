@@ -42,7 +42,7 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   right `kbRegRight kb`).
 * The fresh backend's view of the empty bucket `kbView kb γb 1 ∅` is *given* by the backend's
   creator (the fresh-backend assumption), as are the backend's reader tokens, one per reader
-  slot (`kbRT kb`, lent to `NewStore`'s own calls and returned in the `storeReaderC`s), and two
+  slot (`kbRT kb`, lent to `NewStore`'s own calls and put in the readers' pool), and two
   write tokens (`kbWT kb`: the first `Unlock` and `ForceCommit`).
 * The lessor's ghost name `γl` (its granted leases) is its own: the lessor exists before the
   store.
@@ -58,11 +58,19 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   premise `0 ≤ cfg.CompactionBatchLimit` (`NewStore` keeps it, and the compaction job would
   loop forever: `issues/etcd-compaction-negative-batch-limit.md`), so `isStore`'s limit is
   positive.
-* The store's stop channel (`storeStop`) and the right to close the store once (`storeCloser`:
+* A quarter of the four fields `store.Restore` writes (`fieldShare`; D22 receiver epochs, S3,
+  2026-10-22: until then `isStore` held them `↦□`, and `NewStore` returned the stop channel's,
+  `storeStop`): the watchable store's share (`newWatchableStore` keeps it under its `s.mu`), and
+  the right to close the store once (`storeCloser`, with another quarter:
   the channel's close, the scheduler's stop token and the compaction jobs' queue; D19m (C),
   2026-10-18: until then `NewStore` gave the stop token up for good, `isStore` holding
   `schedLive`, and `Close`'s contract was false). The caller that will not close the store gives
   the token up for the compaction right (`compactRight_of_closer`).
+* (D22 receiver epochs, S5a) The backend's reader tokens are in the readers' pool with the slots of
+  the index's lock (`idxSlot`), not in the readers' handles; the watchable store's deposit ghost
+  (`wsDep`) is returned for the watchable store's lock (`wsFields`).
+* (D22 receiver epochs, S5b) The writer's fragment (`writerFrag`: an eighth of the store's current
+  objects and physical names, at `γ`'s), for its sole writer (`hookIs`).
 * The backend records no compaction (`kbNoCmp`, consumed by `restore`: D19l (v) (A), D22 S-g,
   2026-10-19; until then the opaque premise `backendNoCompaction`), so `restore` schedules none.
 * Compaction (2026-10-13, unit 5a): the store starts at the compaction revision `-1`; the
@@ -97,7 +105,8 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.storeReaderC s γ) ∗
       ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
-      mvcc.storeStop s ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }}
+      mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
+      mvcc.crevUB γ.idx (1 : Qp).half (-1) }}
 
 end spec
 

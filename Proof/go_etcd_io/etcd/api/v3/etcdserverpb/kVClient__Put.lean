@@ -58,7 +58,7 @@ theorem kVClient.Put.wp_proof
     ([sm] ++ vs)
   rw [show (pbPutRequest (GF := GF)).ty = etcdserverpb.PutRequest.ty from rfl,
     show (pbPutResponse (GF := GF)).ty = etcdserverpb.PutResponse.ty from rfl] at hI
-  ihave Hpre := reqPre_scalar_app conn addr [sm] vs _ Hsms $$ Hpre
+  ihave Hpre := reqPre_scalar_app conn _ addr [sm] vs _ Hsms $$ Hpre
   wp_apply hI $$ [Hsend Hblank Hpre] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe

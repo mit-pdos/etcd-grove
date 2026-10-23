@@ -161,9 +161,9 @@ kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
 /-! The compaction functions' results (units 5a-5c): the meta keys, the index's side (unit 5b),
 the store's side (unit 5c: `Compact`, `updateCompactRev`, `compact` scheduling the job tracked on
 the FIFO scheduler, the job `scheduleCompaction`, the barriers, `compactLockfree`), over mvcc's
-assumed backend (`storeCmp`). The scheduler's `NewJob`/`job.Do`/`job.Name` are pending (`sorry`:
-the request path's unit 4d), so every result that schedules a job rests on them; the job's
-hasher is axiomatized (`kvHasher`'s generated instance, `sorry -- axiomatized type`). -/
+assumed backend (`storeCmp`). The job's hasher is translated as a struct (2026-10-22: its `hash`
+field's `hash.Hash32` names-only, `Code/hash.toml`), its methods' specs the trust boundary
+(`kvHasher.Hash`, `kvHasher.WriteKeyValue`, `newKVHasher`: `crc32` has no model). -/
 #print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetFinishedCompact
 #print axioms Perennial.EtcdGrove.mvcc.wp_SetFinishedCompact
 #print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetScheduledCompact
@@ -224,7 +224,7 @@ theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
       mvcc.isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (mvcc.bkView γ) (mvcc.bkRTx γ P b) (backend.wbTok γ) mvcc.keyPutOk Del W W iprop(True) Cmp
-        Pk (mvcc.bkHookIs γ) :=
+        Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b) :=
   mvcc.isKeyBackendG_of_backend backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
     backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size
     backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock
@@ -282,7 +282,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
-        mvcc.storeStop s ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} :=
+        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} :=
   mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
     backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
     backend.backend.wp_Size backend.backend.wp_SizeInUse

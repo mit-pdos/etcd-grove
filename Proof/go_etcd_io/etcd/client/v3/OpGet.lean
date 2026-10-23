@@ -58,7 +58,7 @@ theorem OpGet.wp_proof (wp_IsOptsWithPrefix : IsOptsWithPrefix.spec (GF := GF) (
     wp_apply wp_applyOpts ret_ptr _ (OpFull.getInit key) sl gs $$ [$ret] as %op' ⟨Hret, #Hat⟩
     · iframe #
       unfold opFullAt opAt OpFields
-      dsimp only [OpFull.getInit, OpFull.newOp, OpModel.zero]
+      dsimp only [op_simps]
       isplitl []
       · isplitl []
         · ipureintro; simp

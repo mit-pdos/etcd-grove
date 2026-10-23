@@ -221,21 +221,30 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
   · iframe #; iexact Hpre
   inext
   iintro %err ⟨Hpost, Hid⟩
-  icases Hid with (%Hn | ⟨%Ht, (#Hv | #Hv)⟩)
+  icases Hid with (%Hn | ⟨%Ht, (⟨#Hv, %x, %Hx, #Hcell⟩ | ⟨#Hv, %Hnd⟩)⟩)
   · subst Hn
     iapply HΦ $$ Hpost
     · ipureintro; exact ⟨hAs, fun ii h => by cases h⟩
     · iapply statusErrOk_nil
+    · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
   · icombine Hv Hec gives %Heq
     subst Heq
     iapply HΦ $$ Hpost
     · ipureintro; exact Hcc
     · iexact Hsc
+    · -- (D37) `Canceled`'s cell holds `"context canceled"`
+      rw [Hx]
+      iapply go_etcd_io.etcd.cache.v3.errCellOk_of_cell x _
+        (by simp [go_etcd_io.etcd.cache.v3.clientErrMsgs]) $$ Hcell
   · icombine Hv Hed gives %Heq
     subst Heq
     iapply HΦ $$ Hpost
     · ipureintro; exact Hcd
     · iexact Hsd
+    · -- (D37) `DeadlineExceeded` is no `*errorString`
+      unfold go_etcd_io.etcd.cache.v3.errCellOk
+      iintro !> %y %hy
+      exact absurd hy (Hnd y)
 
 end proofs
 

@@ -207,26 +207,21 @@ structure WatchParams (GF : BundledGFunctors) where
   /-- `w` is registered on the channel with names `γc` (persistent; unit W-M2): what `watch`
   says of the channel it registered `w` on. -/
   OC : Loc → WatchChanNames → IProp GF
-  /-- (K2e-6) For a watch registered with `sr`, its start revision was read from the store
-  (persistent): what `watch` takes, optionally. -/
-  SR : Bool → w64 → IProp GF
-  /-- (K2e-6) `w` was registered with `sr` (persistent): what `watch` says of it. -/
-  WS : Loc → Bool → IProp GF
+  /-- `w` was registered (persistent): its names, what `watch` says of it. (Until W2 of
+  `notes/watch-cut-plan.md`, 2026-10-21, with the client's start read, K2e-6, which `watch` no
+  longer takes.) -/
+  WS : Loc → IProp GF
   IW_pers : ∀ w, Persistent (IW w)
   WC_pers : ∀ w, Persistent (WC w)
   C_pers : ∀ ch, Persistent (C ch)
   F_pers : ∀ f, Persistent (F f)
   IWF_pers : ∀ w r fcs lo, Persistent (IWF w r fcs lo)
   OC_pers : ∀ w γc, Persistent (OC w γc)
-  SR_pers : ∀ sr r, Persistent (SR sr r)
-  WS_pers : ∀ w sr, Persistent (WS w sr)
+  WS_pers : ∀ w, Persistent (WS w)
 
 
-instance WatchParams.SR_persistent (P : WatchParams GF) (sr : Bool) (r : w64) :
-    Persistent (P.SR sr r) := P.SR_pers sr r
-
-instance WatchParams.WS_persistent (P : WatchParams GF) (w : Loc) (sr : Bool) :
-    Persistent (P.WS w sr) := P.WS_pers w sr
+instance WatchParams.WS_persistent (P : WatchParams GF) (w : Loc) :
+    Persistent (P.WS w) := P.WS_pers w
 
 instance WatchParams.IW_persistent (P : WatchParams GF) (w : Loc) : Persistent (P.IW w) :=
   P.IW_pers w
@@ -285,16 +280,16 @@ channel's progress fact (`progFact γc.prog`: the response of id `-1` it may sen
 def isWatchable (wa : GoInterface) (P : WatchParams GF) : IProp GF :=
   iprop(∃ wi : GoInterfaceOk, ⌜wa = GoInterface.ok wi⌝ ∗
     □ (∀ (key endk fcs : GoSlice) (k e : List w8) (fs : List GoFunc) (startRev id : w64)
-        (ch : GoChan) (γc : WatchChanNames) (L : List Loc) (Back : Loc → IProp GF) (sr : Bool),
+        (ch : GoChan) (γc : WatchChanNames) (L : List Loc) (Back : Loc → IProp GF),
       {{ key ↦*□ k ∗ endk ↦*□ e ∗ fcs ↦*□ fs ∗ ([∗list] f ∈ fs, P.F f) ∗ P.C ch ∗
-          P.CR ch γc L ∗ P.R ∗ P.T ∗ ⌜0 ≤ sint.Z startRev ∧ id ≠ W64 (-1)⌝ ∗ P.SR sr startRev ∗
+          P.CR ch γc L ∗ P.R ∗ P.T ∗ ⌜0 ≤ sint.Z startRev ∧ id ≠ W64 (-1)⌝ ∗
           (∀ w : Loc, ⌜w ≠ null⌝ -∗ |==> (chanIdAssigned γc id w ∗ Back w)) }}
         (App (App (App (App (App (App (Val #(methods wi.ty go!"watch" wi.v)) (Val #key))
           (Val #endk)) (Val #startRev)) (Val #id)) (Val #ch)) (Val #fcs))
       {{ (w : Loc) (c : GoFunc), RET (PairV #w #c);
           ⌜w ≠ null⌝ ∗ P.IW w ∗ P.OC w γc ∗ cancelSpec P c w ∗ P.CR ch γc (w :: L) ∗ P.R ∗
           (∃ lo : Nat, P.IWF w (watchRangeOf k e endk startRev id) fcs lo) ∗
-          ⌜(w :: L).length + 3 ≤ 2 ^ 63⌝ ∗ P.WS w sr ∗ Back w }}) ∗
+          ⌜(w :: L).length + 3 ≤ 2 ^ 63⌝ ∗ P.WS w ∗ Back w }}) ∗
     □ (∀ w : Loc,
       {{ P.IW w ∗ P.R }} (App (Val #(methods wi.ty go!"progress" wi.v)) (Val #w))
       {{ RET #(); P.R }}) ∗

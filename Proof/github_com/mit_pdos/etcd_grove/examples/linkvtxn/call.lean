@@ -43,7 +43,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     (wp_callDel : callDel.spec (GF := GF) (hG := hG))
     (wp_callTxn : callTxn.spec (GF := GF) (hG := hG)) :
     call.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V hAs x i Q hx hgen
+  intro _ CRE CEC cl ms V hAs x i Q hx hgen
   wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
   wp_auto
   unfold callUpd callRes
@@ -52,7 +52,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
   · -- a get
     simp only [linkv.MIn.isWrite, Bool.false_eq_true, ↓reduceIte]
     wp_if_destruct
-    · ihave #Hau' := readUpds_box ms Q $$ Hau
+    · ihave #Hau' := client.readUpds_box ms Q $$ Hau
       wp_apply wp_callGet cl ms V hAs x.Key' Q $$ [] as %y Hy
       · iframe #
       iapply HΦ
@@ -71,7 +71,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     wp_if_destruct
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
-    · ihave #Hau' := readUpds_box ms Q $$ Hau
+    · ihave #Hau' := client.readUpds_box ms Q $$ Hau
       wp_apply wp_callList cl ms V hAs Q $$ [] as %y Hy
       · iframe #
       iapply HΦ

@@ -66,7 +66,7 @@ theorem wire_fields (o : OpFull) :
     (rangeWireOf o).base.maxModRev = o.base.maxModRev ∧
     (rangeWireOf o).base.minCreateRev = o.base.minCreateRev ∧
     (rangeWireOf o).base.maxCreateRev = o.base.maxCreateRev ∧ (rangeWireOf o).t = W64 1 := by
-  simp [rangeWireOf, txn.rangeOpOf, OpFull.newOp, OpModel.zero]
+  simp [rangeWireOf, txn.rangeOpOf, op_simps]
 
 theorem wire_rangeSel (o : OpFull) (s : List EtcdKv) : rangeSel s (rangeWireOf o) = rangeSel s o := by
   obtain ⟨h1, h2, -, -, -, -, -, h8, h9, h10, h11, -⟩ := wire_fields o
@@ -85,10 +85,8 @@ theorem wire_sort (o : OpFull) (hx : o.getExact) :
   have zo := w32_zero_iff o.sortOrder ho0 (by omega)
   have zt := w32_zero_iff o.sortTarget ht0 ht1
   cases hs : o.base.sortSet
-  · simp [rangeWireOf, txn.rangeOpOf, OpFull.newOp, OpModel.zero, sortOrderWire, sortTargetWire,
-      OpFull.effSortOrder, hs, sext_zero]
-  · simp only [rangeWireOf, txn.rangeOpOf, OpFull.newOp, OpModel.zero, sortOrderWire,
-      sortTargetWire, OpFull.effSortOrder, hs, ↓reduceIte, eo, et, zo, zt]
+  · simp [rangeWireOf, txn.rangeOpOf, op_simps, sortOrderWire, sortTargetWire, OpFull.effSortOrder, hs, sext_zero]
+  · simp only [rangeWireOf, txn.rangeOpOf, op_simps, sortOrderWire, sortTargetWire, OpFull.effSortOrder, hs, ↓reduceIte, eo, et, zo, zt]
     by_cases a : o.sortOrder = W64 0 <;> by_cases b : o.sortTarget = W64 0 <;> simp [a, b] <;>
       simp_all
 
@@ -213,10 +211,6 @@ theorem isPrefixGet_rev (pfx : GoString) (o : OpFull) (hp : o.isPrefixGet pfx = 
   simp only [OpFull.isPrefixGet, decide_eq_true_eq] at hp
   exact hp.2.2.2.2.2.1
 
-theorem zip_get_snd {α β : Type} (a : List α) (b : List β) (i : Nat) (e : α × β)
-    (h : (a.zip b)[i]? = some e) : b[i]? = some e.2 := by
-  rw [List.getElem?_zip_eq_some] at h; exact h.2
-
 section kvs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -247,7 +241,7 @@ theorem sortNamesIf_of_ok (b : Bool) : sortNamesOk (GF := GF) ⊢ sortNamesIf b 
   · simp only [↓reduceIte]; iexact H
 
 /-- **A real `*kv`'s get at the server's model** (the core of `isEtcdKVTodo_of_kv` and
-`isEtcdKVE_of_kv`, at any context `ci` the client's contracts accept: `ctxOk`, `ctxErrClient`), for
+`isEtcdKVE_of_kv_r`, at any context `ci` the client's contracts accept: `ctxOk`, `ctxErrClient`), for
 an exact get and a non-empty prefix (see the file header). Premises: the registration of etcd's
 `Range` at `addr`, the server's read side (`isServerRead`: the first certificate, `storeSmall`),
 `etcdserverpb`'s sort enumerations if the get sorts (`sortNamesIf`, 2026-10-20), and (unit W-M3)
@@ -317,7 +311,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
   iapply HΦ
   iframe HR
   iunfold rangeCallOut at Hout
-  icases Hout with (⟨%Herr, %m, #Hm, #Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hout with (⟨%Herr, %m, #Hm, #Hq⟩ | ⟨%Herr, #Hse, -⟩)
   rotate_left
   · isplitl
     · unfold kvGetResultC; ileft; ipureintro; exact Herr.1
@@ -404,7 +398,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
         unfold kvValsAt
         iintro !> %i %e %w %He %Hw
         rw [← hkv] at Hw
-        have h1 := zip_get_snd _ _ i e He
+        have h1 := zip_getElem?_snd _ _ i e He
         ihave Hkw := Hall $$ %i %e.2 %w %h1 %Hw
         unfold kvValAt; iunfold txn.kvIs at Hkw; iexact Hkw
       · unfold getRespKvs
@@ -456,7 +450,7 @@ theorem kvGetResultC_R [EM : EtcdModel GF] (pfx : GoString) (lo : w64) (o : OpFu
   ipureintro; exact Hb
 
 /-- **A real `*kv`'s get at the server's model** (`kv_get_server_r` from `kvAnyAu`; the core of `isEtcdKVTodo_of_kv` and
-`isEtcdKVE_of_kv`, at any context `ci` the client's contracts accept: `ctxOk`, `ctxErrClient`), for
+`isEtcdKVE_of_kv_r`, at any context `ci` the client's contracts accept: `ctxOk`, `ctxErrClient`), for
 an exact get and a non-empty prefix (see the file header). Premises: the registration of etcd's
 `Range` at `addr`, the server's read side (`isServerRead`: the first certificate, `storeSmall`),
 `etcdserverpb`'s sort enumerations (`sortNamesOk`), and (unit W-M3) the client's updates at the
@@ -537,20 +531,6 @@ theorem isEtcdKVE_of_kv_r (api : Loc) (addr : List GoString) (s : Loc) (E : appl
   iapply HΦ
   iframe Hres
   iapply errStrOk_of_statusErrOk $$ Hse
-
-/-- **A real `*kv` meets the cache's get contract** (`isEtcdKVE`, K3) at the server's model, for a
-non-empty prefix: `kv_get_server` at any context (`ctxErrClientAll`: its `Err()` returns client
-errors), with no resource for the options. -/
-theorem isEtcdKVE_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
-    (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ []) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        sortNamesOk ∗ kvAnyAu E γr ∗ ctxErrClientAll ⊢
-      isEtcdKVE (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hall⟩
-  ihave #Hr := kvAnyAu_range E γr $$ Hany
-  iapply isEtcdKVE_of_kv_r api addr s E γr cid mid pfx hpfx
-  iframe #
 
 end proofs
 

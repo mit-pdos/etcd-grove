@@ -37,7 +37,7 @@ abbrev mvcc.watchableStore.Write.spec : Prop :=
       traceutil.ownTrace trace te }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Write")) (Val #trace))
   {{ (tw : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
-      mvcc.isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) ∗ Q }}
+      mvcc.isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) ∗ Q ∗ mvcc.hookIs γ.st P f }}
 
 end spec
 

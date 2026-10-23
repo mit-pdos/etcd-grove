@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
 `Main(clients, ops)` (`examples/linkvtxn/linkvtxn.go`; linkv-txn stage G): one etcd member started
-in process (as `examples/linkv`'s `Main`, on `linkvtxn`'s ports), a client configured for one attempt per call
-(`MaxUnaryRetries: 1`), and `Check(cli, clients, ops, 0)`, with a panic if porcupine reports the
+in process (as `examples/linkv`'s `Main`, on `linkvtxn`'s ports), a client with etcd's
+default configuration (its default retries; D29), and `Check(cli, clients, ops, 0)`, with a panic if porcupine reports the
 history `Illegal`.
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the client address
@@ -18,6 +18,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Base
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
 
@@ -39,6 +40,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (bootLog : List EntryM)
     (clients ops : w64),
   putget.BootFacts id bootLog →

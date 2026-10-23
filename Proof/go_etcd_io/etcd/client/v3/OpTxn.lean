@@ -15,11 +15,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 
-private theorem set_replicate {A : Type} (cvs : List A) (z c : A) (k : Nat) (hk : 0 < k) :
-    (cvs ++ List.replicate k z).set cvs.length c = (cvs ++ [c]) ++ List.replicate (k - 1) z := by
-  obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
-  simp [List.replicate_succ]
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -93,7 +88,7 @@ theorem OpTxn.wp_proof (wp_Clone : Cmp.Clone.spec (GF := GF) (hG := hG)) :
       · exact Hn.1
       · simp only [List.length_append, List.length_replicate]; word
     have hk : 0 < sint.nat csl.len - sint.nat n := by word
-    rw [show (sint.Z n).toNat = cvs.length by word, set_replicate cvs _ c' _ hk] at *
+    rw [show (sint.Z n).toNat = cvs.length by word, set_length_append_replicate_pos cvs _ _ c' hk] at *
     wp_for_post
     iframe
     iexists n + W64 1, n, cvs ++ [c']
@@ -128,7 +123,7 @@ theorem OpTxn.wp_proof (wp_Clone : Cmp.Clone.spec (GF := GF) (hG := hG)) :
     iapply HΦ
     isplitl []
     · unfold opFullAt opAt OpFields opSortAt
-      simp only [OpFull.txnInit, OpFull.newOp, OpModel.zero]
+      simp only [OpFull.txnInit, op_simps]
       ihave #Hnil := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
       iframe #
       simp

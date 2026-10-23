@@ -38,12 +38,12 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       ghostVar γ.used (1 : Qp).half u0 ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       ghostVar γ.view (1 : Qp).half.half (vData P (C', st'.R.reset)) ∗
       ghostVar γ.rvs (1 : Qp).half (((C', st'.R.reset) : RView), false) ∗
-      ghostVar γ.hkd (1 : Qp).half (hkData P st'.S) ⊢
+      trkHalf γ P st'.S ⊢
     |==> ∃ cnt' : BCnt, ⌜cnt'.hw = false⌝ ∗ batchGhostAt γ P (commitSt st' C' tx' cnt') true ∗
       payOut γ false m := by
   iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr, Hk⟩
   have hR := hs.2.1
-  have hcnt := hs.2.2.2.2.2.2.2.2
+  have hcnt := hs.2.2.2.2.2.2.2.2.2
   have hb'0 := hb'
   obtain ⟨hb1, hb2, hb3, -⟩ := hb'0
   rw [hcnt, hR] at hb1

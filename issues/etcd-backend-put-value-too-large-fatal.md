@@ -54,7 +54,7 @@ links:
   `kb.length ≤ maxKeySize → vb.length ≤ maxValueSize`); mvcc's contract of its backend over the
   real one (`BackendBridge.lean`, `bkPutOk`) passes them to mvcc's puts as the condition
   `PutOk` of `batchTxSpecG`. mvcc's store does not discharge it yet (it uses the instance
-  without conditions, `isKeyBackend`): `notes/STATUS.md`, "Unit 4".
+  without conditions, `isKeyBackend`): `notes/status-history.md`, "Unit 4".
 - **Possible fixes**: reject a request whose encoded size exceeds bbolt's bound at the server
   (`--max-request-bytes` capped below `MaxValueSize` minus the `KeyValue` overhead); or state
   the bound in `UnsafePut`'s and `TxnWrite.Put`'s documentation.

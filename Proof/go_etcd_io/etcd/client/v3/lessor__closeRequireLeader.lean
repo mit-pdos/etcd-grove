@@ -25,33 +25,12 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 /-- A channel `closeRequireLeader` keeps (not set to `nil`). -/
 def kaChLive (c : Loc) : Bool := !decide (c = null)
 
-theorem crl_getElem_mid {A : Type _} (pre l : List A) (n : Nat) (h : n < l.length)
-    (hp : pre.length = n) : (pre ++ l.drop n)[n]? = some (l[n]'h) := by
-  rw [List.getElem?_append_right (by omega), hp, Nat.sub_self, List.getElem?_drop]
-  simp [List.getElem?_eq_getElem h]
-
-theorem crl_set_mid {A : Type _} (pre l : List A) (n : Nat) (x : A) (h : n < l.length)
-    (hp : pre.length = n) : (pre ++ l.drop n).set n x = (pre ++ [x]) ++ l.drop (n + 1) := by
-  subst hp
-  rw [List.set_append_right _ _ (Nat.le_refl _), Nat.sub_self, List.drop_eq_getElem_cons h]
-  simp only [List.set_cons_zero, List.append_assoc, List.singleton_append]
-
-theorem crl_keep_mid {A : Type _} (pre l : List A) (n : Nat) (h : n < l.length) :
-    pre ++ l.drop n = (pre ++ [l[n]'h]) ++ l.drop (n + 1) := by
-  rw [List.drop_eq_getElem_cons h]
-  simp
-
-theorem crl_set_repl {A : Type _} (pre : List A) (j : Nat) (z x : A) :
-    (pre ++ List.replicate (j + 1) z).set pre.length x = (pre ++ [x]) ++ List.replicate j z := by
-  rw [List.set_append_right _ _ (Nat.le_refl _), Nat.sub_self, List.replicate_succ]
-  simp
-
 theorem crl_set_repl' {A : Type _} (pre : List A) (k M : Nat) (z x : A) (hA : pre.length = k)
     (hk : k < M) :
     (pre ++ List.replicate (M - k) z).set k x = (pre ++ [x]) ++ List.replicate (M - (k + 1)) z := by
   obtain ⟨j, hj⟩ : ∃ j, M - k = j + 1 := ⟨M - (k + 1), by omega⟩
   rw [hj, show M - (k + 1) = j by omega, ← hA]
-  exact crl_set_repl pre j z x
+  exact set_length_append_replicate pre j z x
 
 theorem crl_filter_take_succ (pre : List Loc) (n : Nat) (h : n < pre.length) :
     (pre.take (n + 1)).filter kaChLive =
@@ -171,7 +150,7 @@ local macro "crl_keep_tac" : tactic => `(tactic| (
   wp_for_post
   iframe
   iexists n + W64 1, _, r, _, pre ++ [chs[sint.nat n]'Hlt2]
-  rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, ← crl_keep_mid pre chs (sint.nat n) Hlt2]
+  rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, ← append_drop_eq_snoc pre chs (sint.nat n) Hlt2]
   iframe
   ipureintro
   rw [Hf]
@@ -310,7 +289,7 @@ theorem lessor.closeRequireLeader.wp_proof
       rw [ite_eq_left ⟨Hn.1, by word⟩]
       wp_apply wp_load_slice_index chsS (sint.Z n) _ (DFrac.own 1) (chs[sint.nat n]'Hlt2) Hn.1
         $$ [Hchsl] as Hchsl
-      · iframe; ipureintro; exact crl_getElem_mid pre chs _ Hlt2 Hpl
+      · iframe; ipureintro; exact getElem?_append_drop_self pre chs _ Hlt2 Hpl
       icases crl_take chs (sint.nat n) Hlt2 $$ Htd with ⟨Htok, Htd⟩
       (try wp_auto)
       wp_apply wp_chanTok_close (chs[sint.nat n]'Hlt2) $$ [$Htok]
@@ -318,7 +297,7 @@ theorem lessor.closeRequireLeader.wp_proof
       rw [ite_eq_left ⟨Hn.1, by word⟩]
       wp_apply wp_store_slice_index (V := GoChan) chsS (sint.Z n) _ _ $$ [$Hchsl] as Hchsl
       · ipureintro; constructor <;> word
-      rw [show (sint.Z n).toNat = sint.nat n from rfl, crl_set_mid pre chs (sint.nat n) _ Hlt2 Hpl]
+      rw [show (sint.Z n).toNat = sint.nat n from rfl, set_append_drop_self pre chs (sint.nat n) _ Hlt2 Hpl]
       (try wp_auto)
       wp_for_post
       iframe

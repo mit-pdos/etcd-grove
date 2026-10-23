@@ -23,9 +23,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.encodeObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.encodeV0
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.encodeWith
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.errOut
-public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.genFrom
-public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.identity__TransformFromStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.identity__TransformToStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.inputEqual
@@ -42,7 +40,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.mdelete
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.mget
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.mstep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.mupdate
-public import Proof.net.Listen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.newObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.notFound
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.objOut
@@ -70,10 +67,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.versioner__
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.workloadKeys
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.workloadVals
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Link
 
 @[expose] public section
@@ -274,10 +270,6 @@ theorem wp_errOut :
     EtcdGrove.k8setcd3.errOut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8setcd3.errOut.wp_proof
 
-theorem features.wp_NewDefaultServerFeatureGate :
-    EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
-
 theorem wp_workloadKeys :
     EtcdGrove.k8setcd3.workloadKeys.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8setcd3.workloadKeys.wp_proof
@@ -293,10 +285,6 @@ theorem wp_pick :
 theorem wp_genFrom :
     EtcdGrove.k8setcd3.genFrom.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8setcd3.genFrom.wp_proof wp_workloadKeys wp_workloadVals wp_pick
-
-theorem grpc.Server.wp_Serve :
-    EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.Serve.wp_proof
 
 theorem wp_isWrite :
     EtcdGrove.k8setcd3.isWrite.spec (GF := GF) (hG := hG) :=
@@ -334,10 +322,6 @@ theorem wp_Check :
     EtcdGrove.k8setcd3.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8setcd3.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_Gen wp_Apply
 
-theorem net.wp_Listen :
-    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
-
 theorem wp_seedOne :
     EtcdGrove.k8setcd3.seedOne.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8setcd3.seedOne.wp_proof wp_storeKey wp_encodeV0 wp_setItem
@@ -352,7 +336,7 @@ theorem wp_newObj :
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8setcd3.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8setcd3.Main.wp_proof zap.wp_NewNop features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve kubernetes.wp_New wp_seed k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue wp_Check
+  EtcdGrove.k8setcd3.Main.wp_proof zap.wp_NewNop common.wp_StartServer common.wp_Serve kubernetes.wp_New wp_seed k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue wp_Check
 
 end links_hasLC
 

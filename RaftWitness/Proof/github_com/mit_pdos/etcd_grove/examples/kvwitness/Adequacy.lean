@@ -15,11 +15,12 @@ clients, traced with a counter clock, the trace checked by porcupine's translate
 against the store's model -- and panics unless the answer is `Ok`. So no panic means porcupine
 never rejects the store's trace.
 
-It follows from Perennial's `goose_adequacy`, as the register's and the counter's
+It follows from Perennial's `goose_adequacy` (through `examples/common/Adequacy.lean`'s `init_adequate`), as the register's and the counter's
 (`lintest/counter/Adequacy.lean`): the disk FFI (the proofs are generic over the FFI), a
 concrete ghost-state bundle `kvGF`, the bounds `N = n + 1` (time receipts) and `T = n + 2`
-(threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`, which also
-gives `context`'s `isClosedchanInit`) and `Main`'s spec. This file proves it from `Main.spec`
+(threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`; `context`'s
+`isClosedchanInit`, which `Main.spec` takes, from `context`'s `isPkgInit`,
+`context.isClosedchanInit_of_init`) and `Main`'s spec. This file proves it from `Main.spec`
 as a hypothesis (`kv_adequate_of`); `AdequacyLinked.lean` applies it to the linked result
 `kvwitness.wp_Main` (`Link.lean`): `kv_adequate`.
 
@@ -42,6 +43,7 @@ The same for `MainWitness()` (2026-10-21, W4: the cluster of two voters and a wi
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Adequacy
 public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Init
 public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Main
 public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.MainWitness
@@ -109,19 +111,15 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- The post-initialization predicate of every package the store (transitively) imports, and
-of the store itself: what `ownInitializing` hands out for an initialized package. The entries
-of `context` and of the packages that import it, but raft (porcupine, lintest, the store),
-also carry `context.isClosedchanInit` (`Init.lean`). -/
+of the store itself: what `ownInitializing` hands out for an initialized package. -/
 def pkgInitTable : List (GoString × IProp GF) :=
   [(pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness,
-      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗
-        context.isClosedchanInit)),
+      isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest,
-      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
-        context.isClosedchanInit)),
+      isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest),
    (pkg_id.github_com.anishathalye.porcupine,
-      iprop(isPkgInit pkg_id.github_com.anishathalye.porcupine ∗ context.isClosedchanInit)),
-   (pkg_id.context, iprop(isPkgInit pkg_id.context ∗ context.isClosedchanInit)),
+      isPkgInit pkg_id.github_com.anishathalye.porcupine),
+   (pkg_id.context, isPkgInit pkg_id.context),
    (pkg_id.github_com.goose_lang.primitive, isPkgInit pkg_id.github_com.goose_lang.primitive),
    (pkg_id.sort, isPkgInit pkg_id.sort),
    (pkg_id.sync, isPkgInit pkg_id.sync),
@@ -165,9 +163,7 @@ def getIsPkgInit (s : GoString) : IProp GF :=
   ((pkgInitTable (GF := GF)).lookup s).getD iprop(True)
 
 theorem getIsPkgInit_kv :
-    github_com.mit_pdos.etcd_grove.examples.kvwitness.KVInitTable (getIsPkgInit (GF := GF)) := by
-  refine ⟨rfl, rfl, ⟨rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_,
-    ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩ <;>
+    GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness (getIsPkgInit (GF := GF)) := by
   repeat' (first | exact True.intro | apply And.intro | rfl)
 
 end pkgs
@@ -214,37 +210,17 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  suffices H : (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
-    refine ⟨H.1, H.2.1, fun v hv => ?_⟩
-    cases h : v.isPanic
-    · rfl
-    · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
-      exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
-  refine goose_adequacy (GF := kvGF) (n + 1) (n + 2) kvProgram σ g
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
-  intro hG HN _ HL
-  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
-  subst Hlctx
-  subst HL
-  letI : HeapGS .hasLC kvGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
+  refine init_adequate (GF := kvGF) github_com.mit_pdos.etcd_grove.examples.kvwitness.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.kvwitness.Main) #())
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g trivial trivial Hlctx Hinit
+    Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
+  letI : HeapGS .hasLC kvGF := heapWith hG lctx
   have Hbound : receiptBound kvGF ≤ 2 ^ 63 := by rw [HN]; omega
-  unfold IsInit at Hinit
-  rw [Hinit]
-  iintro _ _ Hgs Htok
-  ihave Hown : ownInitializing (getIsPkgInit (GF := kvGF)) $$ [Hgs]
-  · rw [ownInitializing_unseal]
-    unfold ownInitializingDef
-    iexists ∅
-    iframe Hgs
-    imodintro
-    iapply BigSepM.bigSepM_empty.2
-    itrivial
-  imodintro
-  unfold kvProgram
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.kvwitness.wp_initialize' _
-    getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg, #Hcc⟩
+  unfold progOk0
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.kvwitness.wp_initialize' _ getIsPkgInit_kv, ?_⟩
+  iintro #Hpkg -
+  ihave #Hcc : context.isClosedchanInit (GF := kvGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
   wp_apply (wp_Main Hbound) $$ [Hpkg Hcc]
   · iframe #
   ipureintro
@@ -277,37 +253,17 @@ theorem kv_witness_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  suffices H : (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
-    refine ⟨H.1, H.2.1, fun v hv => ?_⟩
-    cases h : v.isPanic
-    · rfl
-    · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
-      exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
-  refine goose_adequacy (GF := kvGF) (n + 1) (n + 2) kvProgramWitness σ g
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
-  intro hG HN _ HL
-  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
-  subst Hlctx
-  subst HL
-  letI : HeapGS .hasLC kvGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
+  refine init_adequate (GF := kvGF) github_com.mit_pdos.etcd_grove.examples.kvwitness.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.kvwitness.MainWitness) #())
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g trivial trivial Hlctx Hinit
+    Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
+  letI : HeapGS .hasLC kvGF := heapWith hG lctx
   have Hbound : receiptBound kvGF ≤ 2 ^ 63 := by rw [HN]; omega
-  unfold IsInit at Hinit
-  rw [Hinit]
-  iintro _ _ Hgs Htok
-  ihave Hown : ownInitializing (getIsPkgInit (GF := kvGF)) $$ [Hgs]
-  · rw [ownInitializing_unseal]
-    unfold ownInitializingDef
-    iexists ∅
-    iframe Hgs
-    imodintro
-    iapply BigSepM.bigSepM_empty.2
-    itrivial
-  imodintro
-  unfold kvProgramWitness
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.kvwitness.wp_initialize' _
-    getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg, #Hcc⟩
+  unfold progOk0
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.kvwitness.wp_initialize' _ getIsPkgInit_kv, ?_⟩
+  iintro #Hpkg -
+  ihave #Hcc : context.isClosedchanInit (GF := kvGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
   wp_apply (wp_MainWitness Hbound) $$ [Hpkg Hcc]
   · iframe #
   ipureintro

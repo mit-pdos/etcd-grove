@@ -30,7 +30,7 @@ abbrev txn.Commit.spec : Prop :=
     (b : TxnBuild) (Spec : GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse) (Q : TxnRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
       isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" Spec ∗
-      -- (2026-10-20, linkv-txn stage A) ordinary on a builder over a one-attempt connection
+      -- persistent, or ordinary over refusal-free members (a write sent at most once, D29)
       txnReqPre tp addr (Spec (txnWireOf b.model) Q) }}
     (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
       (Val #()))

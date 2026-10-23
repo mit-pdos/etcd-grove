@@ -2,25 +2,26 @@ module github.com/mit-pdos/etcd-grove/examples/k8setcd3
 
 go 1.27.1
 
-replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261023065807-942601555991
+replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261023150800-bc9c3868ced6
 
-replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261023065807-942601555991
+replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261023150800-bc9c3868ced6
 
-replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261023065807-942601555991
+replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261023150800-bc9c3868ced6
 
-replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261023065807-942601555991
+replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261023150800-bc9c3868ced6
 
-replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261023065807-942601555991
+replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261023150800-bc9c3868ced6
 
 replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5
 
 require (
 	github.com/anishathalye/porcupine v1.3.1
 	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
+	github.com/mit-pdos/etcd-grove/examples v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/examples/lintest v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
-	go.etcd.io/etcd/server/v3 v3.7.2
+	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0
 	go.uber.org/zap v1.28.0
 	k8s.io/apimachinery v0.0.0-20261021173754-0b7d352f711c
 	k8s.io/apiserver v0.0.0-20261021221356-9c4ec15b8038
@@ -111,3 +112,6 @@ require (
 replace github.com/anishathalye/porcupine => ../../third_party/porcupine
 
 replace github.com/mit-pdos/etcd-grove/examples/lintest => ../lintest
+
+// the examples' shared start (examples/common), in the examples' module
+replace github.com/mit-pdos/etcd-grove/examples => ../

@@ -239,6 +239,56 @@ theorem takeMembers_succ (W : GMap Loc WatchRange) (keys : List Loc) (n : Nat) (
   · unfold takeMembers
     simp [GMap.lookup_filter, hnot]
 
+/-- A map with values computed from the key (moved from `watchableStore__notify.lean`, D22
+receiver epochs S6: `chooseAll`'s restore reset uses it too). -/
+def gmapMapK {K V V' : Type} (f : K → V → V') (m : GMap K V) : GMap K V' :=
+  ⟨fun k => (m.lookup k).map (f k),
+   by
+    obtain ⟨l, hl⟩ := m.finite
+    exact ⟨l, fun k h => hl k (by simpa using h)⟩⟩
+
+theorem gmapMapK_lookup {K V V' : Type} (f : K → V → V') (m : GMap K V) (k : K) :
+    gmapMapK f m !! k = (m !! k).map (f k) := rfl
+
+/-- **`chooseAll`'s reset of a watcher's restore flag** (D22 receiver epochs, S6): a member
+beyond `curRev` (restoring, after `watchableStore.Restore`) has it cleared ("mark 'restore' done,
+since it's chosen"). -/
+def rstClear (curRev : w64) (st : WatcherSt) : WatcherSt :=
+  if sint.Z curRev < sint.Z st.minRev then { st with restore := false } else st
+
+/-- The states after `chooseAll(curRev, _)` over the members `D`. -/
+def chooseRst (curRev : w64) (D : GMap Loc Unit) (ST : GMap Loc WatcherSt) : GMap Loc WatcherSt :=
+  gmapMapK (fun w st => if (D !! w).isSome then rstClear curRev st else st) ST
+
+@[simp] theorem rstClear_minRev (curRev : w64) (st : WatcherSt) :
+    (rstClear curRev st).minRev = st.minRev := by
+  unfold rstClear; split <;> rfl
+
+@[simp] theorem rstClear_ch (curRev : w64) (st : WatcherSt) : (rstClear curRev st).ch = st.ch := by
+  unfold rstClear; split <;> rfl
+
+@[simp] theorem rstClear_victim (curRev : w64) (st : WatcherSt) :
+    (rstClear curRev st).victim = st.victim := by
+  unfold rstClear; split <;> rfl
+
+@[simp] theorem rstClear_compacted (curRev : w64) (st : WatcherSt) :
+    (rstClear curRev st).compacted = st.compacted := by
+  unfold rstClear; split <;> rfl
+
+theorem minRevL_chooseRst (curRev : w64) (D : GMap Loc Unit) (ST : GMap Loc WatcherSt)
+    (L : List Loc) : minRevL (chooseRst curRev D ST) L = minRevL ST L := by
+  unfold minRevL
+  congr 1
+  funext m w
+  unfold minRevStep chooseRst
+  rw [gmapMapK_lookup]
+  cases ST !! w with
+  | none => rfl
+  | some st => simp only [Option.map_some]; split <;> simp
+
+theorem minRevOf_chooseRst (curRev : w64) (D S : GMap Loc Unit) (ST : GMap Loc WatcherSt) :
+    minRevOf (chooseRst curRev D ST) S = minRevOf ST S := minRevL_chooseRst _ _ _ _
+
 /-! ## Ownership -/
 
 section reprs
@@ -325,6 +375,34 @@ def ownWatcherBatch (wb : GoMap) (Bm : GMap Loc EventBatch) (q : Qp := 1) : IPro
 /-- The members' mutable fields (the caller's: the store's, or a batch's). -/
 def ownStates (ST : GMap Loc WatcherSt) : IProp GF :=
   iprop([∗map] w ↦ st ∈ ST, watcherOwn w st)
+
+/-- A big separating conjunction over a map with values computed from the key. -/
+theorem bigSepM_gmapMapK {V V' : Type} (f : Loc → V → V') (m : GMap Loc V)
+    (Φ : Loc → V' → IProp GF) :
+    ([∗map] k ↦ y ∈ gmapMapK f m, Φ k y) ⊣⊢ [∗map] k ↦ y ∈ m, Φ k (f k y) := by
+  refine Iris.Std.LawfulFiniteMap.induction_on (P := fun m : GMap Loc V =>
+    ([∗map] k ↦ y ∈ gmapMapK f m, Φ k y) ⊣⊢ [∗map] k ↦ y ∈ m, Φ k (f k y)) ?_ ?_ m
+  · have h0 : gmapMapK f (∅ : GMap Loc V) = ∅ := GMap.ext (fun _ => rfl)
+    rw [h0]
+    exact BiEntails.trans BigSepM.bigSepM_empty ⟨BigSepM.bigSepM_empty.2, BigSepM.bigSepM_empty.1⟩
+  · intro i x m0 hi ih
+    have hins : gmapMapK f (Iris.Std.PartialMap.insert m0 i x) =
+        Iris.Std.PartialMap.insert (gmapMapK f m0) i (f i x) := by
+      refine GMap.ext (fun k => ?_)
+      show (gmapMapK f (<[i := x]> m0)) !! k = (<[i := f i x]> (gmapMapK f m0)) !! k
+      rw [gmapMapK_lookup]
+      by_cases hk : i = k
+      · subst hk; rw [GMap.lookup_insert, GMap.lookup_insert]; rfl
+      · rw [GMap.lookup_insert_ne _ _ hk, GMap.lookup_insert_ne _ _ hk, gmapMapK_lookup]
+    have hi' : Iris.Std.PartialMap.get? (gmapMapK f m0) i = none := by
+      show (gmapMapK f m0) !! i = none
+      rw [gmapMapK_lookup]
+      have : m0 !! i = none := hi
+      rw [this]; rfl
+    rw [hins]
+    refine BiEntails.trans (BigSepM.bigSepM_insert hi') ?_
+    refine BiEntails.trans ?_ ⟨(BigSepM.bigSepM_insert hi).2, (BigSepM.bigSepM_insert hi).1⟩
+    exact ⟨sep_mono_right ih.1, sep_mono_right ih.2⟩
 
 /-- The group's all-watchers set, lent (to iterate it): the group's struct and the set, and
 the group back from them. -/

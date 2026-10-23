@@ -1,0 +1,45 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/common/Link.lean`
+# (all Lean-first; D33), read by `etc/gen-link.py --common`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `common`; the examples' Links take them as `@` callees.
+#
+# `newServer` and `StartServer`: a member's configuration and server, and the one member's start
+# (the server's results, linked in its `Link.lean`; the feature gate's trust-boundary axiom)
+etcdserver_NewServer: @
+EtcdServer__Start: @
+features_NewDefaultServerFeatureGate:
+common_newServer: features_NewDefaultServerFeatureGate etcdserver_NewServer
+common_StartServer: common_newServer EtcdServer__Start
+# `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
+# `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
+net_Listen:
+EtcdServer__RaftHandler:
+http_Serve:
+common_NewMember: common_newServer net_Listen EtcdServer__RaftHandler http_Serve
+common_StartMember: common_NewMember EtcdServer__Start
+# `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
+# grpc's trust-boundary axioms, the keepalive policy's among them, D28)
+v3rpc_Server: @
+grpc_Server__Serve:
+grpc_KeepaliveEnforcementPolicy:
+common_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Server__Serve
+# `NewClients`: a client of the endpoints, with the examples' timeouts (the client's `New`, linked
+# in its `Link.lean`); `NewClient`: of one address (notes/client-timeouts-plan.md, D-T1)
+client_v3_New: @
+common_NewClients: client_v3_New
+common_NewClient: common_NewClients
+# the watch workload's shared part (`watch.go`): `Gen`, `GenAll`, `MaxRev`, `Attempted`, `Check`,
+# `Writer` (over the client's `Put`, which its proof uses directly, in a context with the request
+# timeout: `context.WithTimeout` of `Background()`'s trust-boundary axiom and a context's `Err`,
+# in `context`'s `Link.lean`; notes/client-timeouts-plan.md, D-T2) and `Collect` (a watch
+# response's `Err`, linked in the client's `Link.lean`)
+common_Gen:
+common_GenAll: common_Gen
+common_MaxRev:
+common_Attempted:
+common_Check: common_Attempted
+context_WithTimeoutBackground:
+context_ErrAny: @
+common_Writer: context_WithTimeoutBackground context_ErrAny
+WatchResponse__Err: @
+common_Collect: WatchResponse__Err

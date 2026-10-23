@@ -47,7 +47,7 @@ theorem watcher.RequestProgress.wp_proof
   iunfold watchSrvFacts at Hf'
   icases Hf' with ⟨-, Hcf⟩
   iunfold watchConnFacts at Hcf
-  icases Hcf with ⟨-, -, -, -, -, -, -, #HeN, #HcA, -, -⟩
+  icases Hcf with ⟨-, -, -, -, -, #HeN, #HcA, -, -⟩
   iunfold ctxErrClientAllW at HcA
   ihave #Hce := HcA $$ %ctx %cs Hctx
   iunfold ctxErrClient at Hce
@@ -162,7 +162,7 @@ theorem watcher.RequestProgress.wp_proof
     iapply context.isContextDone_receive _ _ _ _ $$ Hdone
     iintro -
     wp_auto
-    wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 #Hse
+    wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 #Hse -
     iapply HΦ
     iexact Hse
   iapply BigAndL.bigAndL_cons.2

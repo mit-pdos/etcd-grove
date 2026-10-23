@@ -55,7 +55,7 @@ theorem lessor.resetRecv.wp_proof
   · iframe #
   (try wp_auto)
   wp_apply wp_withMax as %ro #Hro
-  ihave #Hro := optApplyMax_ok _ _ $$ Hro
+  ihave #Hro := optApplyKeep_ok _ _ $$ Hro
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoInterface)
     [interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro]

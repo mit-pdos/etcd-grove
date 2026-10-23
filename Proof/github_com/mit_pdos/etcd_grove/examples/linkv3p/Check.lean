@@ -45,7 +45,7 @@ theorem Check.wp_proof
     (wp_Gen : linkvtxn.Gen.spec (GF := GF) (hG := hG))
     (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro _ γ cls clis clients ops dur hAs Hrb hne H0 H31 Hops Hmul
+  intro _ CRE CEC γ cls clis clients ops dur hAs Hrb hne H0 H31 Hops Hmul
   wp_start as ⟨#Hcc, #Hcls, #Hok, Hst⟩
   wp_auto
   ipersist clis

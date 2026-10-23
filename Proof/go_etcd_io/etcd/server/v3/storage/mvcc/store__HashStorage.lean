@@ -1,5 +1,6 @@
 /-
-The trust boundary: `(*mvcc.store).HashStorage()` (`kvstore.go`: `return s.hashes`): names-only. Lean-first (no Rocq counterpart); the
+`(*mvcc.store).HashStorage()` (`kvstore.go`: `return s.hashes`), translated since 2026-10-22 (names-only,
+the trust boundary, until then). Lean-first (no Rocq counterpart); the
 server-construction unit, stage N0 (2026-10-16), for `NewServer`.
 -/
 module
@@ -13,15 +14,24 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-axiom mvcc.store.HashStorage.wp_proof : mvcc.store.HashStorage.spec (GF := GF) (hG := hG)
+theorem mvcc.store.HashStorage.wp_proof : mvcc.store.HashStorage.spec (GF := GF) (hG := hG) := by
+  intro s γ
+  wp_start as #Hs
+  ihave #Hs' := Hs
+  iunfold mvcc.isStore at Hs'
+  iNamed Hs'
+  (try wp_auto)
+  iapply HΦ
+  itrivial
 
 end proof
 

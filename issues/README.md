@@ -50,6 +50,10 @@ Then give it:
 by how much they matter to etcd's and raft's maintainers and how likely they are to act; update it
 when an issue is added or its upstream state moves.
 
+`INDEX.md` (also not an issue, also skipped) lists every file in alphabetical order, one row each: its kind, its
+upstream state and what matters most in deciding whether to look into it. Add a row when an issue
+is added, and update it when its upstream state or its assessment moves.
+
 ## Drafts for etcd-io/etcd
 
 The findings of the etcd client-side work (cache, concurrency, leasing, recipes) are written as
@@ -64,7 +68,7 @@ on the fork `upamanyus/etcd` (`upamanyus/etcd-raft` for raft), one signed-off co
 
 | Draft | Kind | Fork branch | Found in |
 |---|---|---|---|
-| [cache-ready-after-retry](cache-ready-after-retry.md) | bug | `fix/cache-ready-after-retry` (4c9743e0e test, 27352098d fix, off 22cc5d9ac; pushed) | `cache` (STATUS "The whole package") |
+| [cache-ready-after-retry](cache-ready-after-retry.md) | bug | `fix/cache-ready-after-retry` (4c9743e0e test, 27352098d fix, off 22cc5d9ac; pushed) | `cache` (status-history.md "The whole package") |
 | [mutex-lock-recreated](mutex-lock-recreated.md) | bug | `fix/mutex-lock-recreated` (b28d26713 test, 34adb1693 fix, off 22cc5d9ac; pushed) | `concurrency` (Mutex) |
 | [election-campaign-key-check](election-campaign-key-check.md) | bug | `fix/election-campaign-key-check` (91d51234f test, a9699489e fix, off 22cc5d9ac; pushed) | `concurrency` (Election) |
 | [stm-serializable-snapshot](stm-serializable-snapshot.md) | documentation | none (`stm-serializable-snapshot` kept local, not proposed) | `concurrency` (STM) |

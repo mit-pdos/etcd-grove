@@ -86,7 +86,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
   have h2 : btree.BTree.Clone.modelSpec (GF := GF) (hG := hG) := btree.BTree.Clone.modelSpec_of h2
   have h6 : btree.BTree.Delete.modelSpec (GF := GF) (hG := hG) := btree.BTree.Delete.modelSpec_of h6
   intro ti γ rev log c
-  wp_start as ⟨#Hti, #Hlb, #Hcert, Hcmp, %Hc⟩
+  wp_start as ⟨#Hti, #Hlb, #Hcert, #Hnevc, Hcmp, %Hc⟩
   obtain ⟨Hcr, Hr0, Hrl⟩ := Hc
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
@@ -125,7 +125,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
   have Hb0 := Hwf0.logB
   -- what the clone has: every key with a revision compaction at `rev` keeps
   ihave Hkn : mvcc.idxKnows γ (.cert log) $$ []
-  · rw [mvcc.idxKnows_cert]; iexact Hcert
+  · rw [mvcc.idxKnows_cert]; iframe Hcert Hnevc
   icases mvcc.idxKnows_facts γ (.cert log) log rfl ilog0 pend0 1 $$ Hkn Hhist0 Hnev0
     with ⟨%Hf0, -, Hnev0⟩
   obtain ⟨Hcmp0, Hcnt0, Hlwf, Hllen, Hlcs⟩ := Hf0
@@ -148,7 +148,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
   wp_call
   (try wp_auto)
   ihave #HlogLb : monoListLbOwn γ.log log $$ []
-  · iunfold mvcc.idxCert at Hcert; icases Hcert with ⟨-, -, -, #H, -⟩; iexact H
+  · iunfold mvcc.idxCert at Hcert; icases Hcert with ⟨-, -, #H, -⟩; iexact H
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hnev0 Ht0 Hkis0 Hg0]
   · inext
     iunfold mvcc.idxLockInv
@@ -267,7 +267,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
       with ⟨HgL, Hcmp⟩
     -- the map: the key's kept revision, as the log has it
     ihave Hkn : mvcc.idxKnows γ (.cert log) $$ []
-    · rw [mvcc.idxKnows_cert]; iexact Hcert
+    · rw [mvcc.idxKnows_cert]; iframe Hcert Hnevc
     icases mvcc.idxKnows_facts γ (.cert log) log rfl ilog pend 1 $$ Hkn HhistL HnevL
       with ⟨%Hf, -, HnevL⟩
     obtain ⟨Hcmpf, Hcntf, -, -, -⟩ := Hf

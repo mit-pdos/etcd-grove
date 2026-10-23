@@ -105,7 +105,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         · iframe #
         cases b
         · (try wp_auto)
-          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse'⟩
+          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse', -⟩
           · iframe #; ipureintro; exact fun _ => Hce.2
           (try wp_auto)
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
@@ -152,7 +152,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- -
+              wp_apply HU $$ [] as %e0 - %- - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -264,7 +264,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- -
+              wp_apply HU $$ [] as %e0 - %- - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -416,7 +416,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         · iframe #
         cases b
         · (try wp_auto)
-          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse'⟩
+          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse', -⟩
           · iframe #; ipureintro; exact fun _ => Hce.2
           (try wp_auto)
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
@@ -463,7 +463,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- -
+              wp_apply HU $$ [] as %e0 - %- - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -575,7 +575,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- -
+              wp_apply HU $$ [] as %e0 - %- - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -774,7 +774,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           iintro -
           (try wp_auto)
           ihave #HU := Hsce' $$ %Broadcast.Unknown
-          wp_apply HU $$ [] as %e0 - %- -
+          wp_apply HU $$ [] as %e0 - %- - -
           (try wp_auto)
           wp_for_post
           (try wp_auto)

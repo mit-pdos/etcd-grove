@@ -171,8 +171,16 @@ def go_sources(base):
 
 
 def go_module(d):
+    """The import path of directory `d`: the module path of the nearest `go.mod` at or above
+    it (an example's is the examples' module, examples/go.mod), plus the directory below it."""
+    sub = []
+    while not os.path.exists(os.path.join(d, "go.mod")):
+        d, base = os.path.split(d)
+        if not base:
+            sys.exit(f"verified-code: no go.mod at or above {os.path.join(d, *sub)}")
+        sub.insert(0, base)
     m = re.search(r"^module\s+(\S+)", read(os.path.join(d, "go.mod")), re.M)
-    return m.group(1).strip('"')
+    return "/".join([m.group(1).strip('"')] + sub)
 
 
 def project_part_packages():

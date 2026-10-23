@@ -30,7 +30,7 @@ abbrev retryKVClient.DeleteRange.spec : Prop :=
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
-      reqPre conn addr vs (Spec (deleteReqOp req k e) Q) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (Spec (deleteReqOp req k e) Q) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!
         go!"DeleteRange")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

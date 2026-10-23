@@ -31,12 +31,13 @@ theorem apply.applierV3backend.RoleAdd.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.RoleAdd.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%n, #Hr, %Hn⟩, Hpre, Hwt⟩
+  wp_start as ⟨#Hb, ⟨⟨%n, #Hr, %Hn⟩, HRW⟩, Hpre, Hwt⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
   icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-  icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+  icases Hard with ⟨Hard, Hwo⟩
+  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -48,9 +49,9 @@ theorem apply.applierV3backend.RoleAdd.wp_proof
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %r %n %Pre %Q %Post [$Hcs $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI⟩
+  wp_apply HM $$ %r %n %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI, HRW⟩
   · iframe Hr; ipureintro; exact Hn
-  ihave Hrd := Hrdb $$ Hrt
+  ihave Hwo := Hrdb $$ Hrt
   wp_if_destruct
   · -- no response
     iapply HΦ

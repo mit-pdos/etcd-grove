@@ -44,24 +44,25 @@ namespace storage
 /-! ## The parameters and the indexer's save -/
 
 /-- The backend's parameters let the hook save the `confState`: `Meta` in the table and a
-hook's bucket, its `confState` key not a hook's own key, and room for one put after the
-indexer's two. -/
+hook's bucket, its `confState` key not a hook's own key, room for one put after the indexer's
+two, and (D22, 2026-10-23) `Meta` not a tracked bucket (`RB`). -/
 def hooksParams (P : BParams) : Prop :=
   P.has mvcc.metaBI ∧ P.HB mvcc.metaBI.name = true ∧
-    P.HK mvcc.metaBI.name schema.confStateKeyBytes = false ∧ 3 ≤ P.hookMax
+    P.HK mvcc.metaBI.name schema.confStateKeyBytes = false ∧ 3 ≤ P.hookMax ∧
+    P.RB mvcc.metaBI.name = false
 
 /-- **What the indexer's save leaves** of the hook's run from `st`: a hook step with one
 operation of room left. -/
 def hookSaveStep (P : BParams) (st st' : BSess) : Prop :=
-  st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧
+  st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧ rbData P st'.S = rbData P st.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
   sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend + 1 ≤ sint.Z st.pend + P.hookMax ∧
   sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt
 
 theorem hookStep_of_save {P : BParams} {st st' : BSess} (h : hookSaveStep P st st') :
     hookStep P st st' := by
-  obtain ⟨hC, hR, hS, hW, hp1, hp2, hn, htx, hc⟩ := h
-  exact ⟨hC, hR, hS, hW, hp1, by omega, hn, htx, hc⟩
+  obtain ⟨hC, hR, hS, hB, hW, hp1, hp2, hn, htx, hc⟩ := h
+  exact ⟨hC, hR, hS, hB, hW, hp1, by omega, hn, htx, hc⟩
 
 /-- A put in a hook's bucket leaves the writer's contents off the hook's buckets. -/
 theorem sData_put_HB {P : BParams} {S : Data} {n k v : GoString} (h : P.HB n = true) :
@@ -78,13 +79,14 @@ theorem sData_put_HB {P : BParams} {S : Data} {n k v : GoString} (h : P.HB n = t
 theorem hookStep_save_put {P : BParams} (hPw : P.Wf) (hP : hooksParams P) {st st' : BSess}
     {vb : GoString} (hpre : hookPre P st) (h : hookSaveStep P st st') :
     hookStep P st (st'.put mvcc.metaBI schema.confStateKeyBytes vb false) := by
-  obtain ⟨hC, hR, hS, hW, hp1, hp2, hn, htx, hc⟩ := h
+  obtain ⟨hC, hR, hS, hB, hW, hp1, hp2, hn, htx, hc⟩ := h
   have h58 := hpre.2.1
   have hpz' : sint.Z (st'.pend + W64 1) = sint.Z st'.pend + 1 := by word
-  refine ⟨hC, hR, ?_, ?_, ?_, ?_, hn, htx, hc⟩
+  refine ⟨hC, hR, ?_, ?_, ?_, ?_, ?_, hn, htx, hc⟩
   · show sData P (st'.S.insert mvcc.metaBI.name
       ((bktOf st'.S mvcc.metaBI.name).insert schema.confStateKeyBytes vb)) = _
     rw [sData_put_HB hP.2.1]; exact hS
+  · rw [rbData_put_other _ _ _ _ _ hP.2.2.2.2]; exact hB
   · intro n i hni hHB
     show bkOf (wbAdd st'.W.bks mvcc.metaBI.id (schema.confStateKeyBytes, vb)) i = _
     rw [bkOf_wbAdd]
@@ -129,6 +131,38 @@ def saveSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (ix : GoInt
 instance saveSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
     (ix : GoInterfaceOk) : Persistent (saveSpec γ P Pk b t ix) := by
   unfold saveSpec; infer_instance
+
+/-- **The indexer's save serving a commit's request** `X ⇒ Y` (D22 the stored-index window,
+2026-10-23; `backend.hooksReq`'s shape): `saveSpec` with a frame the save transforms. -/
+def saveReq (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (ix : GoInterfaceOk)
+    (X Y : IProp GF) : IProp GF :=
+  iprop(□ ∀ st : BSess,
+    {{ batchLocked γ P b st ∗ Pk ∗ X ∗ ⌜hookPre P st⌝ }}
+      (App (Val #(methods ix.ty go!"UnsafeSave" ix.v))
+        (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) #t)))
+    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ Y ∗ ⌜hookSaveStep P st st'⌝ }})
+
+instance saveReq_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
+    (ix : GoInterfaceOk) (X Y : IProp GF) : Persistent (saveReq γ P Pk b t ix X Y) := by
+  unfold saveReq; infer_instance
+
+/-- The save with no request. -/
+theorem saveReq_of_saveSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
+    (ix : GoInterfaceOk) :
+    saveSpec γ P Pk b t ix ⊢ saveReq γ P Pk b t ix iprop(True) iprop(True) := by
+  iintro #Hs
+  unfold saveSpec saveReq
+  iintro !> %st %Φ !> ⟨Hl, HPk, -, %Hpre⟩ HΦ
+  iapply Hs $$ %st [Hl HPk]
+  · iframe Hl HPk
+    ipureintro; exact Hpre
+  iintro !> ⟨%st', Hl, HPk, %Hst⟩
+  iapply HΦ
+  iexists st'
+  iframe Hl HPk
+  isplitr
+  · itrivial
+  ipureintro; exact Hst
 
 /-- What `confStateLock` guards: the `confState` pointer and its dirty flag. -/
 def csInv (bh : Loc) : IProp GF :=

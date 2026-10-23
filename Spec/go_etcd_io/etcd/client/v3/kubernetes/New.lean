@@ -39,7 +39,7 @@ abbrev New.spec : Prop :=
         kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
             #kc)) ∗
-        isNewClient cl eps V ∗ (⌜cfg.MaxUnaryRetries' = W64 1⌝ -∗ clientKVOnce cl eps)) ∨
+        isNewClient cl eps V) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec

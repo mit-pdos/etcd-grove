@@ -42,7 +42,7 @@ theorem startBridge.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
   icases Hr with (⟨%Herr, Hl⟩ | %Herr)
   · subst Herr
     wp_auto
-    wp_apply wp_New client addr l $$ [Hl] as %br ⟨Hob, #Hfw, %Hnr⟩
+    wp_apply wp_New client addr l $$ [Hl] as %br ⟨Hob, #Hfw, %Hnr, #Hfs⟩
     · iframe #; iframe
     iapply HΦ
     iframe

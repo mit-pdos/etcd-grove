@@ -194,15 +194,17 @@ structure WatcherNames where
   live : GName
   wc : WatchChanNames
   lo : Nat
-  /-- (K2e-6) registered with its start revision read from the store (or none): its first
-  revision is then within the notified log (`WsState.srBelow`). -/
-  sr : Bool
+  /-- (W2 of `notes/watch-cut-plan.md`) a watch from now (start revision `0`): its first
+  revision is the notified log's length at its registration, so within the notified log from then
+  on (`WsState.srBelow`). Any other watcher's first revision is its start revision, which
+  `progressIfSync`'s guard bounds (no progress notification below a watcher's start). -/
+  now : Bool
 
 instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
       g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.wc.sentl, g.wc.regi,
-      g.wc.rsn, g.lo, g.sr))
+      g.wc.rsn, g.lo, g.now))
     (by
       rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3⟩, g, g2⟩
         ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k', k2', k3'⟩, g', g2'⟩ h
@@ -336,12 +338,22 @@ structure WsOk (σ : WsState) : Prop where
   wo_st : ∀ w, (σ.Wo !! w).isSome → σ.ST !! w = none
   wo_live : ∀ w, (σ.Wo !! w).isSome → ¬ σ.live w
   st_flags : ∀ w st, σ.ST !! w = some st →
-    st.compacted = false ∧ st.restore = false ∧
+    st.compacted = false ∧
     (σ.live w → (st.victim = true ↔ (σ.victimOf w).isSome)) ∧ (st.ch = null ↔ ¬ σ.live w)
   wo_flags : ∀ w st, σ.Wo !! w = some st →
-    st.compacted = false ∧ st.restore = false ∧ st.victim = true ∧ st.ch ≠ null
+    st.compacted = false ∧ st.victim = true ∧ st.ch ≠ null
   synced_d : ∀ w γw ed, (σ.Ws !! w).isSome → σ.M !! w = some γw → σ.E !! w = some ed →
     max γw.lo σ.Lmu.length ≤ ed.2
+
+/-- **An unsynced watcher beyond the notified log is restoring** (D22 receiver epochs, S6,
+2026-10-22): its `restore` flag is set (`watchableStore.Restore` sets it of every watcher it moves
+from the synced group, whose `minRev` may be past the restored log: `chooseAll` then clears it
+rather than panic, and `syncWatchers` moves it to the synced group in the same pass). Not a
+`WsOk` field: `chooseAll`'s clearing breaks it inside `syncWatchers`' critical section. Until S6
+`WsOk.st_flags` said no watcher restores. -/
+def WsState.unsRst (σ : WsState) : Prop :=
+  ∀ w st, (σ.Wu !! w).isSome → σ.ST !! w = some st →
+    sint.Z st.minRev < σ.Lmu.length ∨ st.restore = true
 
 /-- Every synced watcher is delivered at most up to `N`, or to its first revision (what the
 sole writer's history says, before it seals: `End`). -/
@@ -359,10 +371,9 @@ def WsState.vicBelow (σ : WsState) (N : Nat) : Prop :=
   (∀ w st, (σ.victimOf w).isSome → σ.ST !! w = some st → sint.Z st.minRev ≤ (N : Int)) ∧
   ∀ w st, σ.Wo !! w = some st → sint.Z st.minRev ≤ (N : Int)
 
-/-- Every watcher registered with its start read (`sr`, K2e-6) has its first revision at most
-`N`. -/
+/-- Every watch from now (`now`) has its first revision at most `N`. -/
 def WsState.srBelow (σ : WsState) (N : Nat) : Prop :=
-  ∀ w γw, σ.M !! w = some γw → γw.sr = true → γw.lo ≤ N
+  ∀ w γw, σ.M !! w = some γw → γw.now = true → γw.lo ≤ N
 
 /-- **The lock's state when `s.mu` is free** (unit W-K): every synced watcher is delivered at
 most up to the notified log (or its first revision), every victim's `minRev` is at most the
@@ -531,8 +542,7 @@ theorem evLog_nil (γ : StoreNames) : ⊢ |==> evLog (GF := GF) γ [] := by
 
 /-- **The store had released `n` revisions** (persistent; D25): a lower bound of `γ.rel`, the
 notified log's length under `s.mu`, which `End` bumps before it notifies a revision's events. A
-log whose events a watcher was delivered is released (`evsWf`), so a watch resumed after its last
-event starts within the released revisions (`startRead`). -/
+log whose events a watcher was delivered is released (`evsWf`). -/
 def relLb (γ : WsNames) (n : Nat) : IProp GF := monoNatLbOwn γ.rel n
 
 instance relLb_persistent (γ : WsNames) (n : Nat) : Persistent (relLb (GF := GF) γ n) := by
@@ -604,7 +614,7 @@ def covFact (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc) 
     ⌜(pre.filter (fun y => decide (y.w = w'))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
       (D.map Prod.fst).flatten = watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
       sint.Z rev + 1 ≤ (d : Int) ∧ ((d : Int) ≤ sint.Z rev + 1 ∨ d ≤ γw.lo) ∧
-      startLo r γw.lo ∧ (γw.sr = true → (γw.lo : Int) ≤ sint.Z rev + 1)⌝)
+      startLo r γw.lo ∧ (γw.lo : Int) ≤ sint.Z rev + 1⌝)
 
 instance covFact_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc)
     (rev : w64) : Persistent (covFact (GF := GF) γ γc pre w' rev) := by
@@ -632,21 +642,6 @@ def notifiedLb (γ : WsNames) (L : Log) : IProp GF := monoListLbOwn γ.wlog L
 
 instance notifiedLb_persistent (γ : WsNames) (L : Log) : Persistent (notifiedLb (GF := GF) γ L) := by
   unfold notifiedLb; infer_instance
-
-/-- **A watch's start revision, read** (K2e-6; persistent): for a watch registered with `sr`, a
-log the store had committed (`idxCert`) reaches its start revision (the start revision minus one
-is a revision of it), or (D25: a watch resumed after a reconnect, from its last delivered event or
-progress revision) a log the store had notified, or the released revisions (`relLb`). Under
-`s.mu`, where a watcher registers, the three agree: the notified log is the committed one and the
-released length its length (`watchStoreInv`, `startRead_le`). -/
-def startRead (γ : WsNames) (sr : Bool) (startRev : w64) : IProp GF :=
-  iprop(⌜sr = false⌝ ∨ (∃ Ls : Log, idxCert γ.st.idx Ls ∗ ⌜sint.Z startRev ≤ (Ls.length : Int)⌝) ∨
-    (∃ Ls : Log, notifiedLb γ Ls ∗ ⌜sint.Z startRev ≤ (Ls.length : Int)⌝) ∨
-    (∃ n : Nat, relLb γ n ∗ ⌜sint.Z startRev ≤ (n : Int)⌝))
-
-instance startRead_persistent (γ : WsNames) (sr : Bool) (startRev : w64) :
-    Persistent (startRead (GF := GF) γ sr startRev) := by
-  unfold startRead; infer_instance
 
 /-- A fraction of the notified log's authority, at `L`, lent (`watcher.send` for a progress
 response, K2e-5), or nothing. -/
@@ -1005,7 +1000,7 @@ def covEntry (γ : WsNames) (γc : WatchChanNames) (rev : w64) (c : CovArg) : IP
   iprop(watcherMeta γ c.w c.γw ∗ ⌜c.γw.wc = γc⌝ ∗ watcherFixed c.w c.r c.fcs ∗
     monoListLbOwn c.γw.evs c.evsw ∗ evsWf γ c.r c.γw.lo c.evsw c.d ∗
     ⌜sint.Z rev + 1 ≤ (c.d : Int) ∧ ((c.d : Int) ≤ sint.Z rev + 1 ∨ c.d ≤ c.γw.lo) ∧
-      (c.γw.sr = true → (c.γw.lo : Int) ≤ sint.Z rev + 1)⌝ ∗
+      (c.γw.lo : Int) ≤ sint.Z rev + 1⌝ ∗
     ghostMapElem γc.reg c.w DFrac.discard ())
 
 instance covEntry_persistent (γ : WsNames) (γc : WatchChanNames) (rev : w64) (c : CovArg) :
@@ -1236,16 +1231,22 @@ def victimBatchOk (lo : Nat) (st : WatcherSt) (B : EventBatch) : Prop :=
   ∀ ev ∈ B.evs, (lo : Int) ≤ sint.Z ev.kv.modRev ∧ sint.Z ev.kv.modRev < sint.Z st.minRev
 
 /-- What the lock knows of a live watcher's population: a synced one is delivered up to `d`, at
-or past its `minRev` (and the notified log: `WsOk.synced_d`); an unsynced one up to its
-`minRev`, at most the last revision of a committed log; a victim's batch completes its delivered
-events up to its `minRev` (`victimBatchOk`). -/
+or past its `minRev` (and the notified log: `WsOk.synced_d`), with nothing of its range between
+its `minRev` and `d` (its events are also those up to its `minRev`: `notify` sets `minRev` past
+every revision with an event of the watcher's range; D22 receiver epochs, S6, for
+`watchableStore.Restore`, which moves it to the unsynced group delivered up to its `minRev`); an
+unsynced one up to its `minRev`, at most the larger of its first revision and a committed log's
+length (until S6 below a committed log's length: a watcher `Restore` moves may be ahead of every
+committed log, its start revision in the future); a victim's batch completes its delivered events
+up to its `minRev` (`victimBatchOk`). -/
 def popFacts (γ : WsNames) (σ : WsState) (w : Loc) (r : WatchRange) (lo : Nat) (st : WatcherSt)
     (evsw : List EvM) (d : Nat) : IProp GF :=
   if (σ.Ws !! w).isSome then
-    iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r lo evsw d)
+    iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r lo evsw d ∗
+      evsWf γ r lo evsw (sint.nat st.minRev))
   else if (σ.Wu !! w).isSome then
     iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev⌝ ∗ evsWf γ r lo evsw d ∗
-      ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.Z st.minRev < Lc.length⌝)
+      ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.nat st.minRev ≤ max lo Lc.length⌝)
   else match σ.victimOf w with
     | some B => iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧
           victimBatchOk lo st B ∧ B.evs ≠ []⌝ ∗
@@ -1277,7 +1278,8 @@ def memberRes (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (st : WatcherSt) 
 theorem popFacts_synced (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
     (st : WatcherSt) (evsw : List EvM) (d : Nat) (h : (σ.Ws !! k).isSome) :
     popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r lo evsw d) := by
+      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r lo evsw d ∗
+        evsWf γ r lo evsw (sint.nat st.minRev)) := by
   unfold popFacts; rw [if_pos h]
 
 theorem popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
@@ -1410,14 +1412,6 @@ theorem wlogQ_cert_prefix (γ : WsNames) (q : Qp) (L C : Log) :
   iintro ⟨⟨-, Ha⟩, Hc⟩
   iapply idxLogAuth_cert_prefix $$ [$Ha $Hc]
 
-/-- Every lower bound of the notified log is a prefix of the lock's. -/
-theorem wlogQ_lb_valid (γ : WsNames) (q : Qp) (L L' : Log) :
-    wlogQ (GF := GF) γ q L ∗ notifiedLb γ L' ⊢ ⌜L' <+: L⌝ := by
-  unfold wlogQ notifiedLb
-  iintro ⟨⟨Ha, -⟩, Hl⟩
-  ihave %H := mono_list_auth_lb_valid _ _ _ _ $$ Ha Hl
-  ipureintro; exact H.2
-
 /-- A mono list's authority, as two halves. -/
 theorem monoList_halves (g : GName) (L : Log) :
     monoListAuthOwn (GF := GF) g 1 L ⊣⊢ monoListAuthOwn g (1 : Qp).half L ∗ monoListAuthOwn g (1 : Qp).half L := by
@@ -1472,12 +1466,47 @@ theorem relAuth_of_eq (γ : WsNames) (q : Qp) (L1 L2 : Log) (h : L1 = L2) :
     monoNatAuthOwn (GF := GF) γ.rel q L1.length ⊢ monoNatAuthOwn γ.rel q L2.length := by
   subst h; exact .rfl
 
+/-- **The watchable store's share of its inner store's fields** (D22 receiver epochs, S3,
+2026-10-22): `syncWatchers` reads `s.store.b` under the watchable store's `s.mu` and the inner
+store's `s.revMu`, not the inner store's `s.mu` (and `store.Restore`, called by
+`watchableStore.Restore` under the watchable store's `s.mu`, writes it before taking `s.revMu`):
+the quarter `NewStore` returns (`fieldShare`), at the lock's fraction; and (S5a) the watchable
+store's deposit ghost at the fraction (`StoreNames.wsd`: `syncWatchers` deposits it in the
+readers' pool while it has a slot out, `readerPool_checkout_ws`). -/
+def wsFields (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
+  iprop(∃ st : Loc, s.[watchableStore, go!"store"] ↦□ st ∗ fieldShare st γ.st q.half.half ∗
+    ghostVar γ.st.wsd q ())
+
+instance wsFields_fractional (s : Loc) (γ : WsNames) : Fractional (wsFields (GF := GF) s γ) where
+  fractional q1 q2 := by
+    have hf := fun st => (fieldShare_fractional (GF := GF) st γ.st).fractional q1.half.half q2.half.half
+    have hd := (ghostVar_fractional (GF := GF) γ.st.wsd ()).fractional q1 q2
+    unfold wsFields
+    rw [Qp_half_add, Qp_half_add]
+    constructor
+    · iintro ⟨%st, #Hst, H, Hd⟩
+      icases (hf st).1 $$ H with ⟨H1, H2⟩
+      icases hd.1 $$ Hd with ⟨Hd1, Hd2⟩
+      isplitl [H1 Hd1]
+      · iexists st; iframe Hst H1 Hd1
+      · iexists st; iframe Hst H2 Hd2
+    · iintro ⟨⟨%st1, #Hst1, H1, Hd1⟩, ⟨%st2, #Hst2, H2, Hd2⟩⟩
+      icombine Hst1 Hst2 gives %Heq
+      subst Heq
+      iexists st1
+      iframe Hst1
+      isplitl [H1 H2]
+      · iapply (hf st1).2
+        iframe H1 H2
+      iapply hd.2
+      iframe Hd1 Hd2
+
 /-- **The lock invariant** of `s.mu` (see the module docstring); D25: with the released length's
 authority at the notified log's length (`End` bumps it before notifying, inside its critical
-section). -/
+section); D22 receiver epochs, S3: with the share of the inner store's fields (`wsFields`). -/
 def watchStoreInv (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
   iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ monoNatAuthOwn γ.rel q σ.Lmu.length ∗
-    ⌜σ.settled ∧ σ.srBelow σ.Lmu.length⌝)
+    wsFields s γ q ∗ ⌜σ.settled ∧ σ.srBelow σ.Lmu.length ∧ σ.unsRst⌝)
 
 /-! ## The store -/
 
@@ -1507,6 +1536,35 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
     "#Hstop" ∷ isStopChan stc ∗
     "%Hwq" ∷ ⌜γ.st.watchQ = true⌝)
 
+/-- **A holder of a watchable store's `s.mu` finds the inner store's `s.revMu` not restoring**
+(its share of the inner store's fields has the restoring flag down; D22 receiver epochs, S3), at
+some physical names (S5b: the current ones; the body's logical parts are the store's names'). -/
+theorem revMuInv_open_ws (s st : Loc) (γ : WsNames) (q q' : Qp) :
+    s.[watchableStore, go!"store"] ↦□ st ∗ revMuInv (GF := GF) st γ.st q ∗ wsFields s γ q' ⊢
+      (∃ γp : StoreNames, revMuBody st γ.st γp q ∗ revMuTok γ.st γp q) ∗ wsFields s γ q' := by
+  iintro ⟨#Hst, H, Hw⟩
+  iunfold wsFields at Hw
+  icases Hw with ⟨%st', #Hst', Hf, Hd⟩
+  icombine Hst Hst' gives %Heq
+  subst Heq
+  iunfold fieldShare at Hf
+  icases Hf with ⟨%p, %o, Hf⟩
+  iunfold fieldShareAt at Hf
+  iNamed Hf
+  withPhys_simp
+  icases revMuInv_open st γ.st q _ $$ [H Hfrst] with ⟨H, Hfrst⟩
+  · iframe H Hfrst
+  iframe H
+  iunfold wsFields
+  iexists st
+  iframe Hst Hd
+  iunfold fieldShare
+  iexists p, o
+  iunfold fieldShareAt
+  simp only [named]
+  withPhys_simp
+  iframe Hcur Hflds Hfrst Hph
+
 instance isWatchableStore_persistent (s st : Loc) (γ : WsNames) :
     Persistent (isWatchableStore (GF := GF) s st γ) := by
   unfold isWatchableStore; simp only [named]; infer_instance
@@ -1533,7 +1591,8 @@ registration's cost, `watchTok`), and what a registration says of its watcher (`
 `watcherIs`). -/
 def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   IW w := iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜0 ≤ sint.Z r.startRev ∧ r.id ≠ W64 (-1)⌝)
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜0 ≤ sint.Z r.startRev ∧ r.id ≠ W64 (-1)⌝ ∗
+    ⌜γw.now = false → (γw.lo : Int) ≤ sint.Z r.startRev⌝)
   WC w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ cancelled γw)
   C _ := iprop(True)
   F f := iprop(∃ p : EvM → Bool, filterSpec f p)
@@ -1543,16 +1602,14 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   T := watchTok γ
   IWF := watcherIs γ
   OC w γc := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝)
-  SR sr r := startRead γ sr r
-  WS w sr := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ ⌜γw.sr = sr⌝)
+  WS w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw)
   IW_pers _ := by infer_instance
   WC_pers _ := by infer_instance
   C_pers _ := by infer_instance
   F_pers _ := by infer_instance
   IWF_pers _ _ _ _ := by infer_instance
   OC_pers _ _ := by infer_instance
-  SR_pers _ _ := by infer_instance
-  WS_pers _ _ := by infer_instance
+  WS_pers _ := by infer_instance
 
 /-! ## The write transaction -/
 

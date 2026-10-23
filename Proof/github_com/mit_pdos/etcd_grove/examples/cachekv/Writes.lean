@@ -11,12 +11,13 @@ and the writers' updates open the same invariant.
 * `okFact E p`: watchkv's, at cachekv's `putRec`: the revision is at least `2` and is the put of
   the key and value (`watchkv.revAt`), from the reply (`okFact_of_reply`).
 * `wsInv w E`: the lock invariant of the log `w`: its slice of successful Puts, each with `okFact`.
-* The Put itself is watchkv's `client_Put_rev`.
+* The Put itself is the client package's `client.client_Put_rep` (`client/v3/ClientPutGet.lean`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Writes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Writes
 
 @[expose] public section
 
@@ -77,30 +78,9 @@ theorem put_au (γr : ReadNames) (γm : GName) (P : List (GoString × GoString))
     · inext; iexists _; iframe Hσ Hmn
     imodintro; itrivial
 
-/-- **What the program knows of a successful Put it logged** (persistent; see the file header). -/
-def okFact (E : apply.AEnv GF) (p : crec) : IProp GF :=
-  iprop(⌜2 ≤ sint.Z p.rev'⌝ ∗ watchkv.revAt E (sint.Z p.rev').toNat p.key' p.val')
-
-instance okFact_persistent (E : apply.AEnv GF) (p : crec) : Persistent (okFact (GF := GF) E p) := by
-  unfold okFact; infer_instance
-
-/-- **A successful Put's reply gives `okFact`** of its revision, key and value (watchkv's). -/
-theorem okFact_of_reply (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (k v : GoString)
-    (Q : KVState → IProp GF) (cid mid : w64) (m : PutRespM) :
-    client.putReplied E γr F (client.putKeyOp k v) Q cid mid m ⊢
-      okFact E ⟨m.hdr.revision, k, v⟩ := by
-  iintro H
-  ihave H' := watchkv.okFact_of_reply E γr F k v Q cid mid m $$ H
-  iunfold watchkv.okFact at H'
-  iunfold okFact
-  iexact H'
-
-/-- **The log's lock invariant** (see the file header). -/
-def wsInv (w : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ (sl : GoSlice) (oks : List crec),
-    structFieldRef github_com.mit_pdos.etcd_grove.examples.cachekv.writes go!"ok" w ↦ sl ∗
-    sl ↦* oks ∗ ownSliceCap crec sl (DFrac.own 1) ∗
-    □ [∗list] p ∈ oks, okFact E p)
+/- **What the program knows of a successful Put it logged**, from its reply, and **the log's lock
+invariant**: the shared start's (`common/Writes.lean`). -/
+export common (okFact okFact_persistent okFact_of_reply wsInv)
 
 end defs
 

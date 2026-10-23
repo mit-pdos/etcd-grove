@@ -10,6 +10,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.kvsFrom
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.withKVs
 public import Spec.go_etcd_io.etcd.client.v3.WithRange
 public import Perennial.Proof.context.Link
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -34,16 +35,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
 
-theorem callList.wp_proof (wp_kvsFrom : kvsFrom.spec (GF := GF) (hG := hG))
+theorem callList.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (wp_kvsFrom : kvsFrom.spec (GF := GF) (hG := hG))
     (wp_withKVs : withKVs.spec (GF := GF) (hG := hG))
     (wp_WithRange : EtcdGrove.WithRange.spec (GF := GF) (hG := hG)) :
     callList.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V hAs Q
+  intro _ CRE CEC cl ms V hAs Q
   wp_start as ⟨#Hcl, #Hregs, #Hau⟩
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
   wp_auto
   wp_apply context.wp_Background
-  imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
-  imod (srvStart_alloc (GF := GF) ms) with #Hst
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+    as %cctx %ccd %ccancel ⟨#Hccancel, #Hcctx, #Hcce, -⟩
+  imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   (try wp_auto)
   wp_apply wp_WithRange listTo as %f #Hf
   (try wp_auto)
@@ -64,9 +71,12 @@ theorem callList.wp_proof (wp_kvsFrom : kvsFrom.spec (GF := GF) (hG := hG))
     · simp only [List.getElem?_cons_zero, Option.some.injEq] at Hf' Hg; subst Hf' Hg; iexact Hf
     · simp at Hf'
   (try wp_auto)
-  wp_apply (client_List_st cl ms V context.backgroundCtxVal cd _ Q) $$ []
+  wp_apply (client_List_st cl ms V cctx ccd _ Q) $$ []
     as %resp %err Hout
   · iframe #
+  -- `cancel()`
+  (try wp_auto)
+  wp_apply Hccancel
   icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hσ⟩ | %Herr)
   · subst Herr
     obtain ⟨hkvs, hrev, hb⟩ := Hσ

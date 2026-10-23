@@ -214,7 +214,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   intro s γ rev prev
   wp_start as ⟨#Hjob, Htok⟩
   iunfold mvcc.compactJobPre at Hjob
-  icases Hjob with ⟨#Hs, #Hstop, -, %Hcmp, #Hlb, %log, #Hcert, %Hrev'⟩
+  icases Hjob with ⟨#Hs, #Hstop, -, %Hcmp, #Hlb, %log, #Hcert, #Hnevc, %Hrev'⟩
   have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := ⟨Hrev'.1, Hrev'.2.1⟩
   have Hnd : mvcc.NoDelPutAt log (sint.Z rev) := Hrev'.2.2
   ihave %Hsmall : ⌜mvcc.CompactSmall log (sint.Z rev)⌝ $$ []
@@ -223,6 +223,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #Hs0 := Hs
   iunfold mvcc.isStore at Hs0
   iNamed Hs0
+  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
+  -- `isStore`'s, pinned)
+  icases mvcc.storeStop_open s γ $$ Hstop with
+    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  try simp only
   ihave #Hbk' := mvcc.isKeyBackendG_cmp _ s γ _ _ _ Hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, #HBT, #HForce, #HSize, #HSizeU, #HCmp⟩
@@ -278,7 +285,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩, -⟩
   ihave #Hc2 := Hcert
   iunfold mvcc.idxCert at Hc2
-  icases Hc2 with ⟨-, -, %Hlwf, -⟩
+  icases Hc2 with ⟨-, %Hlwf, -⟩
   have Hrz : sint.Z rev < 2 ^ 63 - 1 := by have := Hrev.2; have := Hlwf.2.1; omega
   irename «end» => endP
   -- the batches
@@ -311,14 +318,14 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iintro ⟨Hlocked, HW, HP, -⟩
   (try wp_auto)
   iunfold mvcc.writerRes at HW
-  icases HW with ⟨%ilog, %ntok, HW⟩
+  icases HW with ⟨%ilog, HW⟩
   iNamedSuffix HW "W"
   ihave #HcW' := HcertW
   ihave %Hpre : ⌜log <+: ilog ∨ ilog <+: log⌝ $$ []
   · iapply mvcc.idxCert_prefix $$ [Hcert HcertW]
     iframe Hcert HcertW
   iunfold mvcc.idxCert at HcW'
-  icases HcW' with ⟨-, -, %HilWf, -⟩
+  icases HcW' with ⟨-, %HilWf, -⟩
   ispecialize HRng $$ []
   · ipureintro; trivial
   wp_bind (App (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #lst)) (Val #endS)) (Val #_))
@@ -531,15 +538,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iunfold mvcc.compactedAt
       iapply monoNatLbOwn_le _ (Nat.le_max_right _ _) $$ Hflb
     wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-    iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW Hmeta Hfin HP HlrdW]
+    iapply HUnl0 $$ [Hlocked HwkW HwvW HbvW Hmeta Hfin HP]
     · iframe Hlocked HP
       iunfold mvcc.writerRes
-      iexists ilog, ntok
+      iexists ilog
       simp only [named]
       iframe
       iframe #
-      isplitr
-      · ipureintro; exact HbudgetW
       isplitr
       · ipureintro; exact HneW
       iunfold mvcc.compactRes
@@ -616,21 +621,24 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ipureintro; rfl
   -- a full batch: committed, then the next one after the sleep, unless the store stops
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW HcresW HP HlrdW]
+  iapply HUnl0 $$ [Hlocked HwkW HwvW HbvW HcresW HP]
   · iframe Hlocked HP
     iunfold mvcc.writerRes
-    iexists ilog, ntok
+    iexists ilog
     simp only [named]
     iframe
     iframe #
-    ipureintro; exact ⟨HbudgetW, HneW⟩
+    ipureintro; exact HneW
   inext
   iintro -
   (try wp_auto)
   wp_apply (h15 _ lst bs (Or.inl Hbs)) $$ [$HlastS $HlastC] as %lst2 ⟨HlastS, HlastC⟩
   (try wp_auto)
-  wp_apply HForce $$ []
-  · isplitl [] <;> itrivial
+  wp_apply HForce $$ %iprop(True) %iprop(True) [] as -
+  · isplitr; · itrivial
+    isplitr; · itrivial
+    isplitr; · itrivial
+    iintro !> -; itrivial
   (try wp_auto)
   wp_apply time.wp_Since as %d5 -
   (try wp_auto)
@@ -638,13 +646,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   (try wp_auto)
   wp_apply +noauto time.wp_After as %tch %γt #Hbag
   wp_auto_lc 2
-  ihave #Hstop0 := Hstop
-  iunfold mvcc.storeStop at Hstop0
-  icases Hstop0 with ⟨%stc, #Hstc, #Hstcc⟩
+  ihave #Hstc := Hstopc
+  ihave #Hstcc := Hstopch
   iunfold mvcc.isStopChan at Hstcc
   icases Hstcc with ⟨%γs, #Hstcc⟩
-  icombine Hstopc Hstc gives %Hsteq
-  subst Hsteq
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   wp_apply_core chan.wp_select_blocking

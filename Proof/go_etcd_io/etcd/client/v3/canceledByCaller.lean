@@ -41,7 +41,7 @@ theorem canceledByCaller.wp_proof (wp_Is : errors.IsStatusErr.spec (GF := GF) (h
   wp_auto
   iunfold ctxErrClient at Hce
   ihave #HU := Hce $$ %Broadcast.Unknown
-  wp_apply HU $$ [] as %e0 - %- -
+  wp_apply HU $$ [] as %e0 - %- - -
   cases e0 with
   | nil =>
     wp_auto

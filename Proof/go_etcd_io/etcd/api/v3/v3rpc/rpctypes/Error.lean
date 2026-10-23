@@ -101,8 +101,13 @@ theorem rpctypes.Error.wp_proof
     wp_auto
     iapply HΦ
     iframe #
-    ipureintro
-    exact ⟨Hne, id, rfl⟩
+    isplitr
+    · ipureintro; exact Hne
+    isplitr
+    · ipureintro; exact id
+    isplitr
+    · ipureintro; rfl
+    iintro !> #H; iexact H
   | some v =>
     simp only [Option.getD_some, Option.isSome_some]
     wp_auto
@@ -124,9 +129,13 @@ theorem rpctypes.Error.wp_proof
       · ipureintro; simp
       isplitr
       · iapply rpctypes_etcdError_statusErrOk wp_EErr Hty
-      ipureintro
-      refine ⟨fun hc => rpctypes_etcdError_clientErr Hty _ hc _, ?_⟩
-      rw [rpctypes.errDesc_etcdError, Hmd d _ hk, Hd]
+      isplitr
+      · ipureintro; exact fun hc => rpctypes_etcdError_clientErr Hty _ hc _
+      isplitr
+      · ipureintro; rw [rpctypes.errDesc_etcdError, Hmd d _ hk, Hd]
+      iintro !> -
+      iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty
+      simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty]
     · wp_auto
       wp_apply HMsg
       wp_apply HCode
@@ -135,9 +144,13 @@ theorem rpctypes.Error.wp_proof
       · ipureintro; simp
       isplitr
       · iapply rpctypes_etcdError_statusErrOk wp_EErr Hty
-      ipureintro
-      refine ⟨fun hc => rpctypes_etcdError_clientErr Hty _ hc _, ?_⟩
-      rw [rpctypes.errDesc_etcdError, Hmd d _ hk, Hd]
+      isplitr
+      · ipureintro; exact fun hc => rpctypes_etcdError_clientErr Hty _ hc _
+      isplitr
+      · ipureintro; rw [rpctypes.errDesc_etcdError, Hmd d _ hk, Hd]
+      iintro !> -
+      iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty
+      simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty]
 
 end proof
 

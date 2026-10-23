@@ -36,8 +36,7 @@ theorem lastRevOp_facts (key e : GoString) :
       (opGetModel key (lastRevGs e)).base.rev = W64 0 := by
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
   by_cases hk : key = [] <;>
-  simp [opGetPanics, opGetModel, opFold, lastRevGs, withTopM, withPrefixM, withSortM, withLimitM,
-    withRangeM, OpFull.getInit, OpFull.newOp, OpModel.zero, OpFull.isPrefixGet, hk]
+  simp [opGetPanics, op_simps, lastRevGs, OpFull.isPrefixGet, hk]
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

@@ -299,7 +299,12 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
    (`typedPointsto_not_null`), and the dozen destructuring sites gain a pattern.
 4. For the watcher, later: `prevKV` (the watch contract fixes it false), compaction cancels,
    watches under any prefix (the contract's `V.pfx` is fixed).
-5. (2026-10-22; the owner is on it) **A client error is not the driver's sentinel.** The driver's
+5. (2026-10-22; partly landed 2026-10-23 as D37, `kvErr`/`errCellOk`: a client error is no
+   caller's `errors.New` value of another message, `kvErr_ne`. `clientErr_other` is still a marked
+   `sorry`: `errOut`'s `ErrOther` also needs the error's type not `*StorageError`, a method-set
+   fact (`isLeafError` is about the uninterpreted `methodSet`), and an `*errorString` error's value
+   a pointer, which nothing states; the client's specs now carry `kvErr`, the store's still
+   `clientErr ∗ statusErrOk`.) **A client error is not the driver's sentinel.** The driver's
    `errOut` (as the correctness test) classifies by identity: `*storage.StorageError` of code
    NotFound/Exists, then `err == errDeleteRejected || err == errUpdateRejected`, else `EOther`
    (outcome unknown, the prophecy's `false`). The store returns the client's errors unchanged

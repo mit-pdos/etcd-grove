@@ -6,8 +6,8 @@ operation through a client of `clis` picked at random (`primitive.RandomUint64 %
 Logically atomic against the instance's model as linkvtxn's `Apply` (`Spec/.../linkvtxn/Apply.lean`,
 whose header explains the triple), in the form `lintest`'s `applySpec` takes for the closure
 `Check` passes: the same triple, over the slice of clients (read-only, non-empty) with linkvtxn's
-`Apply.spec`'s premises for each client (`clientOk`, `Defs.lean`: `New`'s one-attempt client of
-some members' endpoints, etcd's `Put`, `Range`, `DeleteRange` and `Txn` at each member's endpoint,
+`Apply.spec`'s premises for each client (`clientOk`, `Defs.lean`: `New`'s client of some members'
+endpoints, sending a write at most once, etcd's `Put`, `Range`, `DeleteRange` and `Txn` at each member's endpoint,
 the instance's invariant at each member's KV names). Stated under the cache package's assumptions and `errors.As`'s target,
 as linkvtxn's.
 -/
@@ -15,6 +15,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
 
@@ -35,7 +36,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 
 /-- See the file header. -/
 abbrev Apply.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (γ : linkvtxn.LinkvNames) (cls : GoSlice)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (γ : linkvtxn.LinkvNames) (cls : GoSlice)
     (clis : List Loc),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → clis ≠ [] →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p -∗

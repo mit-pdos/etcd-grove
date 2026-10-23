@@ -71,8 +71,8 @@ theorem Cache.serverRevision.wp_proof
     isplitr
     · iapply etcdReached_zero
     ipureintro
-    refine ⟨?_, rfl, (by simp [OpFull.getExact, opGetModel, opFold, withPrefixM, withLimitM, withCountOnlyM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)),
-      (by simp [opGetModel, opFold, withPrefixM, withLimitM, withCountOnlyM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp))⟩
+    refine ⟨?_, rfl, (by simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)),
+      (by simp [op_simps] <;> (try split) <;> (try simp))⟩
     rintro ⟨h, -⟩
     cases h
   iunfold kvGetResultC at Hres

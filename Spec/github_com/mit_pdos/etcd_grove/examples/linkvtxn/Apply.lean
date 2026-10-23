@@ -15,8 +15,9 @@ The mask `linkvE` is the server's invariants open where it fires a client's upda
 instance's. The input is one `Gen` may return (`linkvInOk`: `GenIn`, its transactions not empty).
 
 Premises: what `New` returns for a client of the members `ms` (at least one; several since
-2026-10-21, failover, `notes/decisions.md` D27) configured with `MaxUnaryRetries: 1`
-(`isNewClient`, `clientKVOnce`), each member's `Put`, `Range`, `DeleteRange` and `Txn` registered
+2026-10-21, failover, `notes/decisions.md` D27) that sends a write at most once
+(`isNewClient`, `clientWriteOnce`: refusal-free members, D29), each member's
+`Put`, `Range`, `DeleteRange` and `Txn` registered
 with etcd's specs at its endpoint (`client.kvRegsAt`: `etcd_kv_served`'s, at the member's apply
 environment, read names and ids), the instance's invariant at each member's KV names, the packages'
 facts, and `errors.As`'s target (the client's context lemma). Stated
@@ -25,6 +26,7 @@ under the cache package's assumptions, which the client's lemmas take.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
 
@@ -45,7 +47,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev Apply.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (γ : LinkvNames) (cl : Loc)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (γ : LinkvNames) (cl : Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → ms ≠ [] →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn -∗

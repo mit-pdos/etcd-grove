@@ -1,10 +1,19 @@
 ---
-upstream: unchecked
+upstream: known
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#18055 issue open: this bug (robustness test; root cause by ahrtr, "lock the snapshot file until it has been applied")
+  - etcd-io/etcd#20133 issue closed: duplicate (Antithesis, main 3be967f, default configuration)
+  - etcd-io/etcd#20657 issue closed: duplicate (3.5.18, two snapshots at index 17 and 18)
+  - etcd-io/etcd#21082 pr closed: an earlier fix attempt, unmerged
+  - etcd-io/etcd#22046 pr open: keep snapshot db files until they have been applied, with a test
 ---
 
 # A second snapshot's `Release` can delete the `.snap.db` file `applySnapshot` is about to open
 
-- **Status**: a bug by code reading, **not reproduced**: a race between the raft goroutine and the
+- **Status**: a bug by code reading, reproduced only at the unit level (the fork's regression test,
+  "Fixed in the fork" below, delays the apply goroutine by holding `bemu`; not reproduced in a
+  cluster): a race between the raft goroutine and the
   apply goroutine that ends in `lg.Panic("failed to open snapshot backend")` on a follower. It
   needs two snapshots handed out by raft in quick succession (a second `MsgSnap` of a higher index
   already stepped while the first batch is processed, e.g. from a new leader) and the apply
@@ -46,5 +55,21 @@ upstream: unchecked
   `Release` from the apply goroutine after `applySnapshot`, or `ReleaseSnapDBs` given the applied
   snapshot's index), or have the raft goroutine wait for `applySnapshot`'s open (a second signal)
   before `Release`.
+- **Fixed in the fork** (2026-10-22, `goose-lean` `188113160`, the pin of `etc/goose.py`): the
+  raft goroutine no longer calls `Release`; `applySnapshot` calls `s.r.storage.Release(toApply.snapshot)`
+  (the WAL and the `.snap.db` files below the snapshot) right after `s.bemu.Unlock()`, once
+  `OpenSnapshotBackend` has renamed the snapshot's own file (the `raftAfterWALRelease` failpoint moves
+  with it). The WAL is still fsynced before `Release` (the raft goroutine's `Sync` precedes the
+  `notifyc` that `applySnapshot` waits on, etcd-io/etcd#10219); its locks are released a little later.
+  Regression test `TestSnapshotDBKeptUntilOpened` (`server/etcdserver/server_test.go`, deterministic:
+  a fake raft node hands out snapshots 2 and 4 while the test holds `bemu`, so `applySnapshot(2)` waits
+  before its open; the test waits until the raft goroutine has appended the second batch's entry,
+  past where it released, and checks `<2>.snap.db` is still there): fails 5 of 5 without the fix,
+  passes 10 of 10 with it (`-race`).
+- **Upstream** (from the search of branch `bug-triage`, 2026-10-16, which filed the same bug as
+  `issues/etcd-snapshot-db-released-before-apply.md`): known, etcd-io/etcd#18055, open, reproduced
+  upstream by the robustness tests and Antithesis (two closed duplicates); the fix PR #22046 keeps
+  the snapshot's `.snap.db` files until they have been applied. Our fork's fix above is another
+  form of the same idea; supporting #22046 is the useful step, not a new report.
 - **Found**: 2026-10-20, stage S-j2 of track T-S, stating the removal fact `Rm` of the snapshot
   directory for `applySnapshot`'s precondition.

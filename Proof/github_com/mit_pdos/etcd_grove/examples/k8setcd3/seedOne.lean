@@ -5,6 +5,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8setcd3.storeKey
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8setcd3.encodeV0
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8setcd3.setItem
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Perennial.Proof.context.Link
 
 @[expose] public section
@@ -44,8 +45,9 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
   wp_apply wp_bytes_to_string vsl _ _ $$ [Hvsl] as Hvsl
   · iexact Hvsl
   (try wp_auto)
-  imod (linkvtxn.srvStart_alloc (GF := GF) [x]) with #Hss
-  ihave #Hnil := linkvtxn.optsAt_nil (GF := GF)
+  imod (client.srvStart_alloc (GF := GF) [x]) with #Hss
+  ihave #Hidx := client.srvStart_idx [x] $$ Hss
+  ihave #Hnil := EtcdGrove.optsAt_nil (GF := GF)
   ihave Hau : ([∧list] y ∈ [x], kvOpAu1 y.γr.kv
       (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x")))
       (fun σ' => iprop(ghostVar γs (1 : Qp).half (kvOpStep
@@ -57,7 +59,8 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
   ihave #Hregs' : ([∗list] y ∈ [x], client.kvRegsAt y) $$ []
   · iapply BigSepL.bigSepL_singleton.2
     iexact Hregs
-  wp_apply (linkvtxn.client_Put_st cl [x] V context.backgroundCtxVal cd
+  ihave #Hput := client.kvRegs_put [x] $$ Hregs'
+  wp_apply (client.client_Put_st cl [x] V context.backgroundCtxVal cd
       (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x") slice.nil
       (fun σ' => iprop(ghostVar γs (1 : Qp).half (kvOpStep
         (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x"))) σ) ∗
@@ -66,7 +69,7 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
   · simp only [List.map_cons, List.map_nil]
     iframe #
     iexact Hau
-  icases Hout with (⟨%Herr, %m, %σ', #Hm, ⟨Hs, %Hσ'⟩, %Hrev⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ', #Hm, ⟨Hs, %Hσ'⟩, %Hrev⟩ | ⟨%Herr, -⟩)
   · subst Herr
     subst Hσ'
     iunfold putRespMsg at Hm

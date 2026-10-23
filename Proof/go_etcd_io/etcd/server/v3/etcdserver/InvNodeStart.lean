@@ -153,7 +153,7 @@ components, independent of where the struct lives (`NewServer` copies `*newRaftN
 broadcast channel (its `Unknown` view). -/
 def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
   iprop("%Hlgnn" ∷ ⌜rv.lg' ≠ null⌝ ∗
-    "#Hmsci" ∷ isRNMsgSnapC E rv.msgSnapC' ∗
+    "#Hmsci" ∷ isRNMsgSnapC γ rv.msgSnapC' ∗
     "#Hapci" ∷ isRNApplyc E γ rv.applyc' ∗
     "#Hrsci" ∷ isRNReadStateC E rv.readStateC' ∗
     "#Htki" ∷ isRNTicker E rv.ticker' ∗

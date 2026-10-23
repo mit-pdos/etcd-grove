@@ -3,12 +3,12 @@ Lean-first (no Rocq counterpart).
 
 # k8setcd3: `Main`'s named premises (stage 6g)
 
-`k8setcd3`'s `Main` starts the one-member server as `examples/linkv`'s does, on other ports and
-names, so its premises are putget's (`Proof/.../putget/Defs.lean`, whose header explains each) at
+`k8setcd3`'s `Main` starts the one-member server as `examples/linkvtxn`'s does (`common.StartServer`,
+`common.Serve`), on other ports and names, so its premises are putget's (`Proof/.../putget/Defs.lean`, whose header explains each) at
 `k8setcd3`'s configuration: `cfgOk` (member and cluster token `k8setcd3`, data directory `k8setcd3.etcd`,
 raft's clock), `urlsOk` (peer URL `http://127.0.0.1:23906`, client URL `http://127.0.0.1:23896`)
 and the peer directory `k8setcd3Dir`. The pure facts (`putget.BootFacts`), the conf-change policy
-(`putget.ccOk`) and the allocation (`putget.putget_alloc`) are putget's, which name no
+(`putget.ccOk`) are putget's and the allocation (`common.alloc1`) the shared start's, which name no
 configuration.
 -/
 module

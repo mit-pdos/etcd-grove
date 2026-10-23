@@ -37,6 +37,7 @@ public import Spec.google_golang_org.grpc.health.grpc_health_v1.RegisterHealthSe
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewMaintenanceServer
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterMaintenanceServer
 public import Spec.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics__InitializeMetrics
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

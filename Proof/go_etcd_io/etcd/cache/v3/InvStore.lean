@@ -264,6 +264,12 @@ def RespModel.isProgressNotify (r : RespModel) : Bool :=
   r.events.isEmpty && !r.canceled && !r.created && decide (r.compactRev = W64 0) &&
     !decide (r.hdrRev = W64 0)
 
+theorem isProgressNotify_events {r : RespModel} (h : r.isProgressNotify = true) :
+    r.events = [] := by
+  unfold RespModel.isProgressNotify at h
+  simp only [Bool.and_eq_true, List.isEmpty_iff] at h
+  exact h.1.1.1.1
+
 /-- `validateRevisions(resp, latestRev) == nil`: a progress notification not behind the
 latest revision, or events all above it. -/
 def validRevisions (r : RespModel) (latestRev : w64) : Bool :=

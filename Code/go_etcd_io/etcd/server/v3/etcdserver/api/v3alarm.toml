@@ -1,6 +1,7 @@
-# `AlarmStore.Get` with its body (the apply thread calls it); the rest names only. The
+# `AlarmStore.Get` with its body (the apply thread calls it) and `AlarmStore.Recover` (D22
+# receiver epochs, S7c: `applySnapshot` calls it; `restore` stays names only); the rest names only. The
 # types are translated, so the packages of their fields are imported.
-translate = ["!*", "AlarmStore.Get"]
+translate = ["!*", "AlarmStore.Get", "AlarmStore.Recover"]
 imports = ["!*", "sync", "go.uber.org/zap", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/schema", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/client/pkg/v3/types"]
 
 # translate the definitions of all type declarations goose supports

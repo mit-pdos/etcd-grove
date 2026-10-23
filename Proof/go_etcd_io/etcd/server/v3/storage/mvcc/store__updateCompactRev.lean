@@ -62,10 +62,18 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P f Pre Q Post logc hcmp
-  wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, #HhookC, Hcs⟩
+  wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, HhookC, Hcs⟩
+  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, -⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
+  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
+  -- `isStore`'s, pinned)
+  icases mvcc.storeStop_open s γ $$ Hstop with
+    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  try simp only
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   (try wp_auto)
@@ -73,7 +81,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$HrevMu] as ⟨Hwl, HR⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ 1)) $$ Hlc1 HR with HR
-  iunfold mvcc.revMuInv at HR
+  icases mvcc.revMuInv_open_cur s γ _ _ _ _ $$ [HR Hrstd Hcurd] with ⟨HR, HrstR, -, -⟩
+  · iframe HR Hrstd Hcurd
+  iunfold mvcc.revMuBody at HR
   icases HR with ⟨%log, %ntok, %c', HR⟩
   iNamed HR
   iunfold mvcc.muInvAt at HmuA
@@ -133,10 +143,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe #
         ipureintro; trivial
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
       · iframe #
         inext
-        iunfold mvcc.revMuInv
+        iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists log, ntok, c'
         simp only [named]
         iframe
@@ -160,7 +170,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iexact Hbc0
   · ihave #Hcert' := Hcert
     iunfold mvcc.idxCert at Hcert'
-    icases Hcert' with ⟨-, -, %Hwf, -⟩
+    icases Hcert' with ⟨-, %Hwf, -⟩
     have hc : sint.Z (W64 c' : w64) = c' := by
       have := Hwf.2.1
       word
@@ -173,10 +183,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
     rw [hl]
     wp_if_destruct
     · -- `rev > s.currentRev`: `ErrFutureRev`
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
       · iframe #
         inext
-        iunfold mvcc.revMuInv
+        iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists log, ntok, c'
         simp only [named]
         iframe
@@ -214,7 +224,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       -- the caller's hook is the store's
       imod mvcc.hookP_agree_lc ⊤ γ P Ph f $$ [$Hlc2 $HhookC $Hhook] with ⟨#HPP0, #HP0P⟩
       ihave #HhookC' := HhookC
-      iunfold mvcc.hookIs at HhookC'
+      iunfold mvcc.hookOk at HhookC'
       icases HhookC' with ⟨-, #Hhf⟩
       iunfold mvcc.csContract at Hcs
       icases Hcs with ⟨HPre, #Htriple, Hupd⟩
@@ -253,7 +263,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         imod Hupd $$ HQ with ⟨HP, HPost⟩
         ihave HP0 := HPP0 $$ HP
         iunfold mvcc.writerRes at HW
-        icases HW with ⟨%ilog, %ntok', HW⟩
+        icases HW with ⟨%ilog, HW⟩
         iNamed HW
         iunfold mvcc.compactRes at Hcres
         icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn⟩
@@ -262,12 +272,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
         imodintro
         iframe HP0 HPost
         iunfold mvcc.writerRes
-        iexists ilog, ntok'
+        iexists ilog
         simp only [named]
         iframe
         iframe #
-        isplitr
-        · ipureintro; exact Hbudget
         isplitr
         · ipureintro; exact Hne
         iunfold mvcc.compactRes
@@ -280,15 +288,18 @@ theorem mvcc.store.updateCompactRev.wp_proof
       (try wp_auto)
       -- `s.b.ForceCommit()`
       wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-      iapply HForce $$ [] [-]
-      · itrivial
+      iapply HForce $$ %iprop(True) %iprop(True) [] [-]
+      · isplitr; · itrivial
+        isplitr; · itrivial
+        isplitr; · itrivial
+        iintro !> -; itrivial
       inext
       iintro -
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
       · iframe #
         inext
-        iunfold mvcc.revMuInv
+        iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists log, ntok, sint.Z rev
         simp only [named]
         rw [hrw]
