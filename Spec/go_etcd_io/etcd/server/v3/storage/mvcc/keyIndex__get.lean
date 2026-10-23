@@ -34,7 +34,7 @@ abbrev mvcc.keyIndex.get.spec : Prop :=
   {{ (r : val), RET r;
       if mvcc.kiIsEmpty ki then
         ⌜r = PanicV #(go!"'get' got an unexpected empty keyIndex")⌝ ∗ mvcc.ownKi p gs ki dq
-      else ⌜r = mvcc.kiGetVal ki atRev (GoInterface.ok e)⌝ ∗ mvcc.ownKi p gs ki dq }}
+      else ⌜∃ cs, r = mvcc.kiGetVal ki atRev (GoInterface.ok e) cs⌝ ∗ mvcc.ownKi p gs ki dq }}
 
 end spec
 

@@ -14,6 +14,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 
 @[expose] public section
 
@@ -52,7 +53,63 @@ def mvcc.rkvIs (Rd : GoSlice → GoString → IProp GF) (rkv : revKeyValue) (e :
     ∃ (ks vs uf : GoSlice) (st : internal.impl.MessageState) (sc : w32),
       rkv.kv' ↦ mvcc.kvMsgOf st ks vs uf sc e.kv ∗ ks ↦*□ e.kv.key ∗ vs ↦*□ e.kv.value)
 
+/-- **What the rebuild does with one bucket entry** (`restoreIntoIndex`'s loop body, on the
+model of the index): a key the index has gets the entry's revision (`put`, or `tombstone`, which
+changes nothing when the key's last generation is already empty: the code logs the error and
+goes on); a key it does not have gets a new key index (`restore` with the key-value's create
+revision and version, or `restoreTombstone`). -/
+def mvcc.idxRestoreEnt (idx : mvcc.IndexM) (e : mvcc.KvEnt) : mvcc.IndexM :=
+  match mvcc.idxGet idx e.kv.key with
+  | some ki =>
+    if e.tomb then
+      (if mvcc.kiLastEmpty ki then idx
+       else btInsert mvcc.idxLess (e.kv.key, mvcc.kiTombstone ki e.rev) idx)
+    else btInsert mvcc.idxLess (e.kv.key, mvcc.kiPut ki e.rev) idx
+  | none =>
+    btInsert mvcc.idxLess (e.kv.key,
+      if e.tomb then mvcc.kiRestoreTombstone e.rev
+      else mvcc.kiRestore e.kv.createRev e.rev e.kv.version) idx
+
+/-- The index the rebuild makes of the bucket entries `ents`, in order. -/
+def mvcc.idxRestore (ents : List mvcc.KvEnt) : mvcc.IndexM := ents.foldl mvcc.idxRestoreEnt []
+
+/-- The bucket entries the rebuild can take without panicking: in increasing revision order (as
+`UnsafeRange` returns the `Key` bucket), their revisions positive (`currentRev` starts at `1`:
+`verify.Verify`'s check) with a non-negative sub-revision. -/
+def mvcc.RestoreEntsOk (ents : List mvcc.KvEnt) : Prop :=
+  ents.Pairwise (fun a b => mvcc.Rev.lt a.rev b.rev) ∧
+    ∀ e ∈ ents, 1 ≤ sint.Z e.rev.main ∧ 0 ≤ sint.Z e.rev.sub
+
+/-- The revision `restoreIntoIndex`'s goroutine answers after the entries `ents`: the last one's
+main revision, `1` if there is none. -/
+def mvcc.restoreLastRev (ents : List mvcc.KvEnt) : w64 :=
+  match ents.getLast? with
+  | some e => e.rev.main
+  | none => W64 1
+
 end defs
+
+section protos
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- **`rkvc`'s protocol**: its `i`-th value is the restored form of the `i`-th bucket entry. -/
+def mvcc.rkvProt (Rd : GoSlice → GoString → IProp GF) (ents : List mvcc.KvEnt) (i : Int)
+    (rkv : revKeyValue) : IProp GF :=
+  iprop(∃ e, ⌜ents[i.toNat]? = some e ∧ 0 ≤ i⌝ ∗ mvcc.rkvIs Rd rkv e)
+
+/-- **`revc`'s protocol**: its one value is the last revision, with the rebuilt private index,
+the reader's token back and a time receipt per entry (each entry is put into the index by a step
+of the goroutine: D22h, `restoreIdxPost`). -/
+def mvcc.revProt (ti : Loc) (Tok : IProp GF) (ents : List mvcc.KvEnt) (i : Int) (v : w64) :
+    IProp GF :=
+  iprop(⌜i = 0 ∧ v = mvcc.restoreLastRev ents⌝ ∗ Tok ∗ ⧗ ents.length ∗
+    ∃ L, mvcc.ownIdxPriv ti L ∗ ⌜mvcc.idxOfEntries L = mvcc.idxRestore ents⌝)
+
+end protos
 
 end EtcdGrove
 end Perennial

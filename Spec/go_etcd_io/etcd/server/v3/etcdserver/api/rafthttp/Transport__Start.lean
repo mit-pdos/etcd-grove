@@ -33,7 +33,7 @@ with no remote yet (`transportLive γn t []`: `AddRemote` adds to the list, `Add
 which the caller gives up for `transportStarted γn t` (`Send`, `Stop`, `ActiveSince`) and
 `transportRemotes t rs`, the ids `AddRemote` was called for (the partition plan's S1,
 2026-10-20: `CutPeer`/`MendPeer` take an id not among them, since a second `CutPeer` of a
-remote panics, `issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`; `t.remotes` gets a key only
+remote panics, `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`; `t.remotes` gets a key only
 through `AddRemote`, which the exclusive `transportLive` serializes before the transport is given
 up, so the list is complete).
 

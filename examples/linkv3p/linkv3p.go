@@ -149,7 +149,7 @@ func peerStep(srvs []*etcdserver.EtcdServer, kind int, a int, b int) {
 // clientStep applies a client step to member a's bridge (brs[a]), as etcd's integration tests
 // do (Member.Bridge().Blackhole(), ...); holed[a] says whether that bridge is blackholed. A
 // blackhole of a blackholed bridge does nothing: the bridge's Blackhole closes its channel
-// unguarded, so a second one would panic (issues/etcd-bridge-blackhole-twice-panic.md).
+// unguarded, so a second one would panic (issues/nonissues/etcd-bridge-blackhole-twice-panic.md).
 func clientStep(brs []bridge.Bridge, holed []bool, kind int, a int) {
 	if a < 0 || a >= len(brs) {
 		return

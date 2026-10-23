@@ -243,7 +243,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   icases mvcc.muHeld_crev_idx s γ crev ti $$ Hmu with ⟨Hcu, Hidxf, Hmub⟩
   (try wp_auto)
   wp_apply (hGet ti γ.idx (.writer ilog pend) key k (W64 (ilog.length : Int)) e0 _ crev)
-    $$ [$HtiS $Hti $Hkn $Hkey $Herr $Hcu] as ⟨Hti, Hw, Hcu, -⟩
+    $$ [$HtiS $Hti $Hkn $Hkey $Herr $Hcu] as %cs ⟨Hti, Hw, Hcu, -⟩
   · ipureintro; rw [mvcc.IdxKnow.log_writer]
     have h : sint.Z (W64 (ilog.length : Int) : w64) = ilog.length := by
       word
@@ -272,7 +272,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
     · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
     (try wp_auto)
-    tw_write c.main (ver + W64 1)
+    tw_write c (ver + W64 1)
     -- `if oldLease != lease.NoLease { Detach }`: the first goal is `oldLease == NoLease`
     wp_if_destruct
     · (try wp_auto)

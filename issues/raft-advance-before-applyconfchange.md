@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/etcd#4203 issue closed: related, flagged: asked in 2016 whether a Ready's conf change must be applied before Advance (maintainer: 'probably fair'); closed by etcd-io/etcd#4049, whose Advance comment allows Advance while applying without that exception; the safety consequence was not raised (maintainer called delaying a conf change apply safe)
   - etcd-io/raft#80 issue open: related, not this bug: the pendingConfIndex > applied proposal check gives false positives; proposes tracking the configuration explicitly
@@ -18,10 +18,9 @@ candidate: issues/upstream/raft-advance-before-applyconfchange/
   `TestNodeAdvanceBeforeApplyConfChange` through `Node` on etcd-io/raft `main` 1931ff5be, three nodes), with
   etcd's leader change as a separate candidate on hold,
   `issues/upstream/etcd-leader-advance-before-applyconfchange/`; tracking (b) recorded there as an alternative
-  not taken. Earlier drafts:
-  [raft-document-confchange-before-advance](raft-document-confchange-before-advance.md)
-  (document the precondition) and
-  [raft-track-confchange-application](raft-track-confchange-application.md) (the guard fix,
+  not taken. Earlier drafts: `raft-document-confchange-before-advance.md` (document the
+  precondition; deleted 2026-10-23 as a duplicate of this candidate, in git history) and
+  [raft-track-confchange-application](nonissues/raft-track-confchange-application.md) (the guard fix,
   prototyped with tests in `raft-conf-lag-model/guard-fix.patch`, notes in
   [guard-fix.md](raft-conf-lag-model/guard-fix.md)); etcd's leader path:
   [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md)
@@ -168,7 +167,7 @@ candidate: issues/upstream/raft-advance-before-applyconfchange/
   scope has a fixed voter set: `ownRaftPhys cfg`, `γ.reCfg = cfg` in `raft.Step.spec`,
   `HnoConfChange` in `ownRaftLog`). The reconfiguration work will state the precondition on
   `ApplyConfChange`/`Advance` (notes/status-history.md, "Reconfiguration"). Under it (and atomic
-  persistence, see [raft-commit-lost-with-entries-kept](raft-commit-lost-with-entries-kept.md))
+  persistence, see [raft-commit-lost-with-entries-kept](nonissues/raft-commit-lost-with-entries-kept.md))
   a proof sketch of safety holds: any two conf entries in a log imply its commit index covers
   the first; a campaigning node or a leader has at most one conf entry beyond its applied
   index; so the configurations of a committer and a winner are adjacent (overlapping

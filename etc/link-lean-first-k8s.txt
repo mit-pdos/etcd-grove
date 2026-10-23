@@ -1,0 +1,35 @@
+# The functions linked in `Proof/go_etcd_io/etcd/client/v3/kubernetes/Link.lean` (all Lean-first),
+# read by `etc/gen-link.py --k8s`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# The results are in the namespace `kubernetes` (notes/k8s-etcd3-plan.md, phase 3).
+#
+# the clientv3 functions the kubernetes client calls, linked here as linkvtxn's are, under this
+# package's assumptions (`kv.Get`, `kv.Txn` and the builder's methods are closed results of the
+# client's `Link.lean`, through linkvtxn's `Calls.lean`)
+NewOp:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+Op__applyOpts:
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+OpPut: Op__applyOpts
+OpDelete: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+ModRevision:
+proto_Clone:
+cloneCompare: proto_Clone
+Cmp__Clone: cloneCompare
+Cmp__ensureCompare:
+mustInt64:
+mustInt64orLeaseID: mustInt64
+v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
+WithRev:
+WithLimit:
+v3_WithLease:
+ResponseOp__GetResponseRange:
+#
+# client/v3/kubernetes (`client.go`)
+kvFromTxnResponse: ResponseOp__GetResponseRange
+Client__Get: WithRev WithLimit
+Client__OptimisticPut: v3_WithLease OpPut OpGet ModRevision v3_Compare kvFromTxnResponse
+Client__OptimisticDelete: OpDelete OpGet ModRevision v3_Compare kvFromTxnResponse
+# the constructor (stage 6e): `New(cfg)`, over the client's (`@`)
+client_v3_New: @
+kubernetes_New: client_v3_New

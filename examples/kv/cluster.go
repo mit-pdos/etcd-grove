@@ -109,7 +109,7 @@ func deliver(peers map[uint64]raft.Node, tr *transfers, ms []*pb.Message) {
 		// its entries slice its own (the receiver may adopt it), its snapshot a clone (the
 		// receiver writes a snapshot's unset fields, pb.EnsureSnapshot), no responses (a
 		// deliverable message carries none); stepped instead of raft's own object, which raft
-		// still reads after handing it out (issues/raft-ready-messages-read-after-handout.md)
+		// still reads after handing it out (issues/nonissues/raft-ready-messages-read-after-handout.md)
 		var sn *pb.Snapshot
 		if m.Snapshot != nil {
 			sn = proto.Clone(m.Snapshot).(*pb.Snapshot)

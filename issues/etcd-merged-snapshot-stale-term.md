@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/etcd#7470 issue closed: a different bug in the same merge (`createMergedSnapshotMessage` looked up the snapshot's term in a possibly compacted raft log, a panic); not the message's term
   - etcd-io/etcd#7513 pr merged: the fix of #7470 (the snapshot's term from `etcdProgress.appliedt`), which is the code this finding is about
@@ -209,7 +209,9 @@ candidate: issues/upstream/etcd-merged-snapshot-stale-term/
   The upstream candidate (`issues/upstream/etcd-merged-snapshot-stale-term/`) is fix 4 (2026-10-21; until then it
   was fix 1 with `m.Term >= raftTerm`). Upstream has no invariant the second shape breaks (the receiver's last log
   term stays `≤` its term and its log is a prefix of the committed log), so the one-condition fix is the one a
-  maintainer would merge; the candidate's `meta.md` lists the others. Dropping is live: `appliedt > m.Term` means
+  maintainer would merge; the candidate's `meta.md` lists the others. Revised 2026-10-23 (the user's review: report
+  it upstream, leading with the Raft invariant): the issue and its test now show the receiver, a real raft node at term
+  1, ending with last log term 2, with the panic as the consequence; rebuilt on upstream `main` `3aaab3479`. Dropping is live: `appliedt > m.Term` means
   raft has already left `m.Term` and reset every peer's progress, so no leader waits for the message. The fork
   keeps fix 1 with `==`, which the proof's `.snap` clause (content committed at `m.Term`) needs. With `==` the fork
   can drop a message raft made in a later Ready at a newer term than the job's batch (the raft goroutine runs ahead

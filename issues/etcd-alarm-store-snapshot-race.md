@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/etcd#22609 pr merged: the same class (mvcc `Hash` racing with `Restore`'s backend swap); a different field
   - etcd-io/etcd#10874 pr closed: `s.be` read outside `bemu` in `applySnapshot`; not the alarm store
@@ -55,7 +55,7 @@ candidate: issues/upstream/etcd-alarm-store-snapshot-race/
 - **Fix chosen upstream** (2026-10-21, `issues/upstream/etcd-alarm-store-snapshot-race/`): neither of the
   above: `AlarmStore.Recover(be)` reloads the store in place under its own mutex, as `lessor.Recover` does, and
   `applySnapshot` calls it instead of `restoreAlarms`, so `s.alarmStore` is written only by `NewServer` (the
-  comparison is in the candidate's `meta.md`). For the proof this makes the field read-only for good again
+  comparison is in the candidate's `meta.md`; branch rebuilt 2026-10-23 off `main` 3aaab3479, fix 7569d2bbd). For the proof this makes the field read-only for good again
   (`srvAlarmStoreAddr s ↦□` holds through the snapshot path); `Recover` needs a spec on the store's lock invariant.
 - **Fixed in the fork** (2026-10-22, `goose-lean` `8fd98af04`, under `188113160`, the pin of
   `etc/goose.py`): the upstream candidate's fix (`d396a0fc7`, `AlarmStore.Recover` called by

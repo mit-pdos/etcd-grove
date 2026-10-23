@@ -230,7 +230,7 @@ theorem rangeTotal_of_taken_nil (log : Log) (endNil : Bool) (k e : GoString) (at
 
 /-- A taken answer is an answer. -/
 theorem mem_rangeAnswers_of_taken (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64)
-    (a : GoString × Rev × Rev × w64) (h : a ∈ rangeTaken log endNil k e atRev limit) :
+    (a : GoString × Rev × w64 × w64) (h : a ∈ rangeTaken log endNil k e atRev limit) :
     a ∈ rangeAnswers log endNil k e atRev := by
   unfold rangeTaken at h
   cases endNil with
@@ -304,7 +304,7 @@ theorem rangeAnswers_kv (log : Log) (hwf : LogWf log) (hlen : log.length < 2 ^ 6
     (hr : r < 2 ^ 63) :
     ∀ a ∈ rangeAnswers log endNil k e (W64 r), ∃ kv : EtcdKv,
       findKey a.1 (stateAt log r) = some kv ∧ kv.modRev = a.2.1.main ∧
-      kv.createRev = a.2.2.1.main ∧ kv.version = a.2.2.2 ∧
+      kv.createRev = a.2.2.1 ∧ kv.version = a.2.2.2 ∧
       (bucketMap log).lookup (revBytes a.2.1 false) = some (kvEncode kv) := by
   rintro ⟨key, m, c, v⟩ ha
   simp only
@@ -577,9 +577,9 @@ theorem findKey_putKv_self_eq {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (r 
 
 /-- The key-value `put` writes for `k`, given the index's answer of `k` at the pending revision
 `r`: created and versioned after the answer, or new. -/
-def putKvOf (k v : GoString) (l : w64) (r : w64) : Option (Rev × Rev × w64) → EtcdKv
+def putKvOf (k v : GoString) (l : w64) (r : w64) : Option (Rev × w64 × w64) → EtcdKv
   | some (_, c, ver) =>
-    { key := k, createRev := c.main, modRev := r, version := ver + W64 1, value := v, lease := l }
+    { key := k, createRev := c, modRev := r, version := ver + W64 1, value := v, lease := l }
   | none => { key := k, createRev := r, modRev := r, version := W64 1, value := v, lease := l }
 
 /-- What `put` writes: the pending revision's new put of `k`, from the index's answer of the

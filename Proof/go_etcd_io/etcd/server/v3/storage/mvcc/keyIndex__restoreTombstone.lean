@@ -85,7 +85,7 @@ theorem mvcc.keyIndex.restoreTombstone.wp_proof
     | [gv1], _ => exact ⟨gv1, rfl⟩
   simp only [List.cons_append, List.nil_append, mvcc.ownGensL]
   ihave ⟨Hg1, -⟩ : iprop(mvcc.ownGen gv1
-      { ver := W64 1, created := mvcc.Rev.zero, revs := [⟨main, sub⟩] } (DFrac.own 1) ∗ True) $$ [Hall]
+      { ver := W64 1, created := W64 0, revs := [⟨main, sub⟩] } (DFrac.own 1) ∗ True) $$ [Hall]
   · iexact Hall
   iframe Hg1
   isplitl []

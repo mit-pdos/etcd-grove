@@ -3,14 +3,19 @@
 - **Finding**: `issues/etcd-watch-progress-before-created.md`
 - **Target**: etcd-io/etcd, `main`
 - **Branch**: `fix/etcd-watch-progress-before-created` in `~/etcd-fixes/etcd-watch-progress-before-created`, two
-  commits: 5ec9bfa43 adds the test, which fails there; 4e1deb4f3 is the fix. Not pushed; the issue's test link
-  (`#L1536-L1597`, the doc comment to the closing brace in the local file) is to be checked on GitHub after the push.
-- **Base**: upstream `main` bf9cadf044f0531036a61c9b6dbeba8aef2a3b30 (2026-10-21; rebased from 22cc5d9ac on
-  2026-10-21, no conflict: the four new commits touch only `mvcc/kvstore.go`, the client's `concurrency` session and
-  the Go version); `v3rpc/watch.go`, the client's `watch.go`, `mvcc/watchable_store.go` and the watch integration
+  commits: 9b4116edb (`tests: test a progress response queued before a watch is created`) adds the test, which fails
+  there; 51c36ad10 (`etcdserver: send queued progress responses before a created response`) is the fix. Never pushed
+  under this name (`git ls-remote origin`, 2026-10-23: only the fork's own `watch-progress-before-created`,
+  c267e0ffe, which is not this candidate). The previous head, 4e1deb4f3 (on bf9cadf04), is kept as the local branch
+  `backup/etcd-watch-progress-before-created-v1`. The issue's test link (`#L1536-L1597`, the doc comment to the
+  closing brace in the local file) is to be checked on GitHub after the push.
+- **Base**: upstream `main` 3aaab3479b6c4f5fe1b2b8f33437093c2caae88a (2026-10-23; rebuilt from bf9cadf04, whose 20
+  later commits are dependency bumps, CI and changelogs, touching none of these files; earlier 22cc5d9ac);
+  `v3rpc/watch.go`, the client's `watch.go`, `mvcc/watchable_store.go` and the watch integration
   tests are unchanged since f061acd09, the base of the fork's first fix (`watch-progress-before-created`,
   c267e0ffe).
-- **State**: draft (2026-10-21)
+- **State**: draft (revised 2026-10-23: the issue states the guarantee broken, a progress notification at revision R
+  promising every event up to R, and what a client relying on it misses; rebuilt on 3aaab3479)
 - **Upstream issue**: —
 - **PR**: —
 
@@ -24,7 +29,13 @@ in #15237, `etcdserver:`, and the integration tests' history, `tests:`).
 A wrong order of responses on the client's own stream, for watches it is permitted to create: no crash, hang, data
 loss or auth bypass. A public issue.
 
-## Duplicates checked (2026-10-19; again 2026-10-21)
+## Duplicates checked (2026-10-19; again 2026-10-21 and 2026-10-23)
+
+2026-10-23 (github.com issue search, issues and PRs): `RequestProgress created`, `progress notification watch
+updated:>=2026-10-21` (none), `progress notify before events`, `watch progress created response order`. Nothing new:
+#20221 (closed; progress below a watch's start revision from a lagging member, fixed by #20229) is a different
+cause; #17771 (merged) is a robustness check of progress after events; #17557 (merged) a different issue. No open PR
+fixes it.
 
 2026-10-21, issues and PRs updated since 2026-10-19 (`watch progress`, `RequestProgress`, `sendLoop`, `watch created
 order`, each `is:issue` and `is:pull-request`): only #22264 (syncWatchers' unbounded scan) and #13637, #22635,
@@ -83,37 +94,53 @@ The finding's Go-client reproduction (`TestWatchProgressBeforeCreatedRace` in th
 `RequestProgress` then `Watch(WithRev(2), WithProgressNotify())` while 30 puts go to another watch on the stream) is
 mentioned in the issue as the Go client's case; it is not added to the branch (random, up to 500 trials).
 
-## Verification (go1.27.3 linux/amd64, 2026-10-21, at base bf9cadf04)
+## Verification (go1.27.3 linux/amd64, 2026-10-23, at base 3aaab3479)
 
-- At the tests commit 5ec9bfa43: `cd tests && go test ./integration/clientv3/watch/ -run
+- At the tests commit 9b4116edb: `cd tests && go test ./integration/clientv3/watch/ -run
   'TestV3WatchProgressBeforeCreated$' -count=20`: 20 of 20 FAIL, each `Should be false` with `progress response at
-  revision 12 after the created response of the watcher on b, before its event at revision 2` (before the test's
-  2026-10-21 revision, also 20 of 20 at this base).
-- At the fix commit 4e1deb4f3: the new test `-count=50` ok; `go test -race ... -count=5` ok; `cd server && go test
+  revision 12 after the created response of the watcher on b, before its event at revision 2` (also 20 of 20 at
+  bf9cadf04, 2026-10-21).
+- At the fix commit 51c36ad10: the new test `-count=50` ok; `go test -race ... -count=5` ok; `cd server && go test
   ./etcdserver/api/v3rpc/... ./storage/mvcc/... -count=1` ok; `cd tests && go test ./integration/clientv3/watch/
-  -count=1` (whole package, 79 s) ok; `go test -tags cluster_proxy ./integration/clientv3/watch/ -count=1` (85 s; the
-  new test skips there, as the other progress-request tests do) ok; `go test ./integration/ -run Watch` and `go test
-  ./integration/clientv3/ -run Watch` ok.
+  -count=1` (whole package, 80 s) ok; `go test -tags cluster_proxy ./integration/clientv3/watch/ -count=1` (81 s; the
+  new test skips there, as the other progress-request tests do) ok; `go test ./integration/ -run
+  'Watch|TestV3Election|TestV3Lock|TestElection|TestMutex'` and `go test ./integration/clientv3/ -run Watch` ok.
 - The finding's Go-client reproduction, by `go test -overlay`, at the earlier base 22cc5d9ac only (2026-10-19; not
   rerun): at the base 3 of 3 runs hit, at trials 55, 1 and 18; with the fix, no hit in 2 × 500 trials.
 - `gofmt -l` (both files) empty; `go vet ./etcdserver/api/v3rpc/` and `go vet ./integration/clientv3/watch/` clean.
 
 Not run: e2e, robustness, `make verify`.
 
-`check.py`: no FAIL. WARNs kept: the comment lines, all but two existing comments moved into the closure (indented
-once less), the closure's doc (what `false` means) and the drain's comment (why the created response waits); the
-issue's 305 words of prose (about 45 are the form's headings); the PR's 98 words (the approved raft example has
-136).
+`check.py` (2026-10-23): no FAIL. WARNs kept: the comment lines, all but two existing comments moved into the closure (indented
+once less), the closure's doc (what `false` means) and the drain's comment (why the created response waits); the issue's 365 words of prose (about 45 are the form's headings; the guarantee and what a client relying on it misses take two sentences); the PR's 147 words (98 plus the sibling conflict note; the approved raft example has 136 with its own).
 
 ## Sibling: etcd-watch-id-reuse-stale-events
 
-Both change `sendLoop`. `git merge-tree` of the two branches (2026-10-21: this branch at 4e1deb4f3, the sibling at
-b528e4b33, both on bf9cadf04): no conflict. The merged tree builds, and both new tests (`-count=20`) and the v3rpc
-unit tests pass on it. Semantically the merge is right: the sibling counts the
-responses taken from mvcc's channel (`taken`) in the main loop, and this fix's drain does not count them, but the
-sibling makes every create wait in `recvLoop` until the drains of the cancels before it are done, so no drain is
-pending whenever `sendLoop` takes a created response, and none of the responses drained here is stale or needs
-counting. Hence no conflict note in either PR.
+Both change `sendLoop`. `git merge-tree` of the two branches (2026-10-23: `fix/etcd-watch-progress-before-created`
+at 51c36ad10, `fix/etcd-watch-id-reuse-stale-events` at b8292c027, both on 3aaab3479) has no textual conflict, and
+the merged tree builds and passes the v3rpc unit tests and both new tests (`-count=20`). **But the plain merge is
+wrong** (found in the 2026-10-23 review, by code reading; the 2026-10-21 reading, "no drain is pending whenever
+`sendLoop` takes a created response", held only for creates that wait, those on a stream with client-chosen IDs):
+the progress fix's drain before a created response takes responses from mvcc's channel through `sendWatch`, past
+the id-reuse fix's `taken++` and stale check in the main case. On a stream where the client has not yet chosen an
+ID, a cancel of watcher X followed by an automatic create (which does not wait) lets that drain take X's queued
+responses uncounted and buffer them in `pending[X]`. Then (1) X's drain mark is reached only after as many further
+responses as were drained uncounted, so a later create with a client-chosen ID, which waits for that mark, can wait
+until unrelated events arrive (forever on an idle stream); and (2) once it runs, a create with `WatchId` X flushes
+`pending[X]`, the stale events the id-reuse fix removes. The resolution: move the counting and the stale check into
+the start of `sendWatch` (`return true` for a stale response), so every response taken from the channel goes
+through them. Built as local branch `merge/etcd-watch-progress-and-id-reuse` (e970b7079, on the merge of the two
+heads, in `~/etcd`): gofmt and vet clean, v3rpc unit tests, the whole `integration/clientv3/watch` package and both
+new tests (`-count=20`) pass. Neither failure was reproduced by a test (the plain merge passes the same tests). So
+each PR ends with a conflict note, and the second to merge needs this rebase.
+
+## Related work in this repository
+
+`issues/cache-stale-progress-compacts-newest-watch.md` (etcd's `cache` package; a separate finding, its own
+candidate if any) was reproduced end to end on 2026-10-23 through this server ordering: a broadcast progress
+response computed before the cache's watch existed reaches that watch after its created response, and the cache,
+which does not check it against its start revision, answers a spurious `ErrCompacted`. This fix removes that trigger
+on the server; the cache's missing check is that finding's own bug. Neither issue mentions the other.
 
 ## If a reviewer asks
 
@@ -154,9 +181,9 @@ counting. Hence no conflict note in either PR.
 - The `rpc.proto` wording ("all future events received in this stream" have a higher revision than a progress
   response) cannot hold for a watch created later from an earlier revision, with or without the fix; asked in the
   issue as a question.
-- etcd's own `cache` package reads a progress notification as "the cache has every event up to this revision"
-  (it raises its revision and releases waiting consistent `Get`s). By code reading, not reproduced: a cache whose
-  watch is (re)created on a client stream that has another synced watcher (e.g. two caches over one client), right
-  after a progress request on that stream, can serve a stale consistent `Get` until the skipped events arrive and
-  it resyncs. Not in the issue, which keeps to the reproduced symptom.
+- Why the issue speaks of linearizability (the user's review, 2026-10-23): the documented meaning of a progress
+  notification at revision R is that the watch has every event up to R, which is what lets a client serve a read at
+  R from its watch's state; the issue says plainly that such a client misses the put of `b`. etcd's own `cache`
+  package reads a progress notification that way (it raises its revision and releases waiting consistent `Get`s);
+  see "Related work" for what was reproduced through it. Not named in the issue, which keeps to this bug.
 - Backports: `release-3.6`/`3.5` have the same `sendLoop` structure; not checked or run there.

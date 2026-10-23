@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-18
+checked: 2026-10-23
 links:
 candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
 ---
@@ -12,7 +12,10 @@ candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
   638f42739 also with a real leader `raft` (a temporary test, 2026-10-18,
   `issues/upstream/raft-snapshot-during-apply-stale-confchange/meta.md`, which also records why the
   candidate's earlier fixes were replaced: ignoring the snapshot made the leader's resend depend on
-  `ReportSnapshot`; deferring it (2026-10-18) can make the leader send it twice, measured 2026-10-21).
+  `ReportSnapshot`; deferring it (2026-10-18) can make the leader send it twice, measured 2026-10-21). The candidate's
+  `AsyncStorageWrites` hold is also its own candidate since 2026-10-23,
+  [raft-async-snapshot-during-apply-divergence](raft-async-snapshot-during-apply-divergence.md) (identical
+  `rawnode.go` change; the two merge cleanly); the candidate's changelog commit was dropped that day.
 - **Where** (etcd-io/raft at `40f8be730b18`):
   - `node.go:380-445` (`node.run`): while it waits for `Advance` (`advancec != nil`) it still
     steps the messages it receives (`case m := <-n.recvc: r.Step(m)`); `doc.go:110` ("when

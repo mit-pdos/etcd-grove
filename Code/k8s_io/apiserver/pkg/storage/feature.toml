@@ -1,0 +1,10 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# notes/k8s-etcd3-goose.md). It imports `context`, the etcd client and `storage` (names only) so
+# that the interfaces `etcd3.New` calls through, `FeatureSupportChecker` (`CheckClient(ctx,
+# client, storage.Feature)`) and `client` (`Status(ctx, endpoint)`), are translated as interfaces
+# (translate_types skips a type naming a package that is not imported; G4).
+translate = ["!*"]
+imports = ["!*", "context", "go.etcd.io/etcd/client/v3", "k8s.io/apiserver/pkg/storage"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

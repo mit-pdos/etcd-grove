@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 
 @[expose] public section
 
@@ -22,24 +22,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `ti.Insert(ki)` by the writer, with an owned key index `ki` of key `k` holding what the
-writer's log gives `k` (not empty: the index has the key): `ReplaceOrInsert` replaces the key's
-index in the tree, which is returned, owned; the writer's log is unchanged. (The insertion of a
-new key, which `restore` does on its private index, is not a step of the live index: its
-history fixes the tree's keys.) The writer holds a part of the compaction revision's authority at
-`-1` (no compaction: the tree's key indexes are those of the log, `crevUB`, given back). -/
+/-- `ti.Insert(ki)` on a tree index no one else can reach (`ownIdxPriv`: its only caller,
+`restoreIntoIndex`'s goroutine, rebuilds a private index; `notes/restore-plan.md`, R3), with an
+owned key index `ki` of a key `k` the tree does not have: `ReplaceOrInsert` inserts it at its
+place (`btInsert`). -/
 abbrev mvcc.treeIndex.Insert.spec : Prop :=
-  ∀ (ti : Loc) (γ : mvcc.IdxNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (ki : Loc)
-    (k : GoString) (gs : GoSlice) (m : mvcc.KeyIndex) (q : Qp),
+  ∀ (ti : Loc) (L : List mvcc.IdxEntry) (ki : Loc) (k : GoString) (gs : GoSlice)
+    (m : mvcc.KeyIndex),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTreeIndex ti γ ∗ mvcc.idxWriter γ ilog pend ∗ mvcc.crevUB γ q (-1) ∗ ⌜ki ≠ null⌝ ∗
-      mvcc.kiKey ki k ∗
-      mvcc.ownKi ki gs m (DFrac.own 1) ∗
-      ⌜m = mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k ∧ m ≠ mvcc.kiEmpty⌝ }}
+      mvcc.ownIdxPriv ti L ∗ ⌜ki ≠ null⌝ ∗ mvcc.kiKey ki k ∗ mvcc.ownKi ki gs m (DFrac.own 1) ∗
+      ⌜∀ z ∈ L, z.2.1 ≠ k⌝ }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Insert")) (Val #ki))
-  {{ RET #(); mvcc.idxWriter γ ilog pend ∗ mvcc.crevUB γ q (-1) ∗
-      ∃ (old : Loc) (gs' : GoSlice), ⌜old ≠ null⌝ ∗ mvcc.kiKey old k ∗
-        mvcc.ownKi old gs' m (DFrac.own 1) }}
+  {{ RET #(); mvcc.ownIdxPriv ti (btInsert mvcc.entryLess (ki, k, m) L) }}
 
 end spec
 

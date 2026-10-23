@@ -6,7 +6,14 @@
   a8c642742 adds the tests, which fail there; 638081c75 is the fix. Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing 5f0401a75); the issue's test link (`#L432-L471`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18; the code involved is unchanged
   since b25719d10, the earlier base)
-- **State**: draft, revised to the 2026-10-18 standard (2026-10-18)
+- **State**: draft, to file as an issue linked to #22615 (2026-10-23): `issue.md`'s "Anything else" says #22615
+  fixes it; no PR from this branch unless #22616 merges instead of #22615. Checked 2026-10-23: #22615's diff
+  (head 017cb18c3) applied to `main` 22cc5d9ac with this branch's test commit a8c642742, go1.27.3:
+  `TestKVGetStreamSortByCreateRevision` passes, `GetStreamToGetResponse` returning `Unimplemented: RangeStream
+  does not support custom sort orders` (logged with a temporary `t.Logf`); `go test ./etcdserver/txn/
+  ./etcdserver/api/v3rpc/` ok. With `main`'s `tests/integration/v3_grpc_test.go`, `TestV3RangeRequest/sort` fails
+  under #22615 (its last case, `CREATE`/`NONE`, expected accepted by `RangeStream`); this branch's a8c642742 has
+  the needed expectation change. Said in `../etcd-range-sort-none-limit/comment-22615.md`
 - **Upstream issue**: —
 - **Related PR**: etcd-io/etcd#22615 (2026-10-19, someone else's fix of etcd-io/etcd#22612, `etcd-range-sort-none-limit`)
   makes `IsDefaultOrdering` false for a non-key target with `NONE`, so `checkRangeStreamRequest` rejects these
