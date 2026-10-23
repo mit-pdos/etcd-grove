@@ -761,26 +761,27 @@ func Check(s storage.Interface, st0 mstore, clients int, ops int, timeout time.D
 	return lintest.Run(Model(st0), apply, Gen, lintest.CounterClock(), clients, ops, timeout)
 }
 
-// The keys seeded in the older encoding before the traffic, and their values.
-func seedKeys() []string {
-	return []string{"a", "b"}
+// seedOne writes the key k's object of value "x" in the older encoding directly through the
+// client cli (non-canonical data, as a store with an older codec left: D30g) and returns the
+// model's store st with it, or false if the put failed.
+func seedOne(cli *clientv3.Client, st mstore, k string) (mstore, bool) {
+	resp, err := cli.Put(context.Background(), Prefix+storeKey(k), string(encodeV0(k, "x")))
+	if err != nil {
+		return mstore{}, false
+	}
+	rv := uint64(resp.Header.Revision)
+	o := Obj{Name: k, Value: "x", ResourceVersion: rv}
+	return mstore{items: setItem(st.items, item{key: k, obj: o, canon: false}), rv: rv}, true
 }
 
-// seed writes each seed key's object in the older encoding directly through the client cli
-// (non-canonical data, as a store with an older codec left: D30g), and returns the model's store
-// after them, or false if a put failed.
+// seed writes the seed keys "a" and "b" in the older encoding (seedOne) and returns the model's
+// store after them, or false if a put failed.
 func seed(cli *clientv3.Client) (mstore, bool) {
-	st := mstore{rv: 1}
-	for _, k := range seedKeys() {
-		resp, err := cli.Put(context.Background(), Prefix+storeKey(k), string(encodeV0(k, "x")))
-		if err != nil {
-			return mstore{}, false
-		}
-		rv := uint64(resp.Header.Revision)
-		o := Obj{Name: k, Value: "x", ResourceVersion: rv}
-		st = mstore{items: setItem(st.items, item{key: k, obj: o, canon: false}), rv: rv}
+	st, ok := seedOne(cli, mstore{rv: 1}, "a")
+	if !ok {
+		return mstore{}, false
 	}
-	return st, true
+	return seedOne(cli, st, "b")
 }
 
 // The client address: the string net.Listen is given is the client's endpoint, verbatim (a plain

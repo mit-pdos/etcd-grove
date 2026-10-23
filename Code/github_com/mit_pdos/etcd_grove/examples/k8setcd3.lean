@@ -279,8 +279,8 @@ noncomputable def Apply [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.Check"
 
-noncomputable def seedKeys [FfiSyntax] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.seedKeys"
+noncomputable def seedOne [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.seedOne"
 
 noncomputable def seed [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8setcd3.seed"
@@ -2338,40 +2338,19 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Pair (Var "apply") (Var "$r0"))))))))))))))))))
 
-/-- The keys seeded in the older encoding before the traffic, and their values.
+/-- seedOne writes the key k's object of value "x" in the older encoding directly through the
+    client cli (non-canonical data, as a store with an older codec left: D30g) and returns the
+    model's store st with it, or false if the put failed.
 
-    go: k8setcd3.go:765:6 -/
-noncomputable def seedKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Let "$v0" (Val #(go!"a"))
-  (Let "$v1" (Val #(go!"b"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))])))))))
-
-/-- seed writes each seed key's object in the older encoding directly through the client cli
-    (non-canonical data, as a store with an older codec left: D30g), and returns the model's store
-    after them, or false if a put failed.
-
-    go: k8setcd3.go:772:6 -/
-noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
+    go: k8setcd3.go:767:6 -/
+noncomputable def seedOne.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
+  (Lam "st"
+  (Lam "k"
   (App (Val exceptionDo)
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
+  (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (Var "st"))
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (Let "$r0" (Let "$v0" (Val #(W64 1))
-  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v0")))])))
-  (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (App (Val (GoInstruction (GoZeroVal mstore.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st")) (Val #true)))))
-  (Let "$range" (App (App (Val (GoInstruction (FuncResolve seedKeys []))) (Val #())) (Val #()))
-  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Prefix)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (App (App (Val (GoInstruction (FuncResolve storeKey []))) (Val #())) (Var "$a0")))))
@@ -2398,16 +2377,15 @@ noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral Obj.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Value")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ResourceVersion")) (ElementExpression go.uint64 (Var "$v2")))])))))
   (Let "o" (App (Val (GoInstruction (GoAlloc Obj.ty))) (App (Val (GoInstruction (GoZeroVal Obj.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
+  (App (Val doReturn)
+  (Pair (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType item.ty)))) (App (Val (GoInstruction (StructFieldRef mstore.ty go!"items"))) (Var "st")))
   (Let "$a1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad Obj.ty))) (Var "o"))
   (Let "$v2" (Val #false)
   (App (Val (GoInstruction (CompositeLiteral item.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"obj")) (ElementExpression Obj.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"canon")) (ElementExpression go.bool (Var "$v2")))])))))
   (App (App (App (Val (GoInstruction (FuncResolve setItem []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rv"))
-  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))]))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "st") (Var "$r0")))))))
+  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"items")) (ElementExpression (go.GoType.SliceType item.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v1")))])))) (Val #true)))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Obj.ty))) (Pair (Var "o") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -2420,20 +2398,54 @@ noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
+
+/-- seed writes the seed keys "a" and "b" in the older encoding (seedOne) and returns the model's
+    store after them, or false if a put failed.
+
+    go: k8setcd3.go:779:6 -/
+noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "cli"
+  (App (Val exceptionDo)
+  (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "$a1" (Let "$v0" (Val #(W64 1))
+  (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"rv")) (ElementExpression go.uint64 (Var "$v0")))])))
+  (Let "$a2" (Val #(go!"a"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve seedOne []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "st" (App (Val (GoInstruction (GoAlloc mstore.ty))) (App (Val (GoInstruction (GoZeroVal mstore.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad mstore.ty))) (Var "st"))
+  (Let "$a2" (Val #(go!"b"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve seedOne []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (CompositeLiteral mstore.ty))) (LiteralValue [])) (Val #false)))
   (App (Val doExecute)
-  (Var "$key")))))
+  (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$value")))))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "st") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore mstore.ty))) (Pair (Var "st") (Var "$r0")))))))))))))))
 
 /-- Main starts one member of a new cluster (as examples/linkvtxn's Main does), connects a
     kubernetes client configured for one attempt per call, seeds the keys, makes the store and runs
     Check; it panics if porcupine finds the history illegal. An error from a step before Check ends
     Main without a check.
 
-    go: k8setcd3.go:794:6 -/
+    go: k8setcd3.go:795:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -3292,7 +3304,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   call_unfold : FuncUnfold call [] call.impl
   Apply_unfold : FuncUnfold Apply [] Apply.impl
   Check_unfold : FuncUnfold Check [] Check.impl
-  seedKeys_unfold : FuncUnfold seedKeys [] seedKeys.impl
+  seedOne_unfold : FuncUnfold seedOne [] seedOne.impl
   seed_unfold : FuncUnfold seed [] seed.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
@@ -3368,7 +3380,7 @@ attribute [instance] Assumptions.Obj_instance
   Assumptions.call_unfold
   Assumptions.Apply_unfold
   Assumptions.Check_unfold
-  Assumptions.seedKeys_unfold
+  Assumptions.seedOne_unfold
   Assumptions.seed_unfold
   Assumptions.Main_unfold
   Assumptions.import_context_Assumption
