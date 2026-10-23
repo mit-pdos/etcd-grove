@@ -92,7 +92,8 @@ theorem backend.backend.run.wp_proof
       wp_apply (hlock γ P W Pk b t (1 : Qp).half.half) $$ [$Hq] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Hq⟩
       · iframe #
       ihave Hl := batchLocked_W γ P b st $$ Hl
-      wp_apply (hC γ P W Pk b t rt st false false 1 u) $$ [$Hl $HWR Hus] as ⟨HWR, Hpo, Hpost⟩
+      wp_apply (hC γ P W Pk b t rt st false false 1 u iprop(True) iprop(True)) $$ [$Hl $HWR Hus]
+        as ⟨-, HWR, Hpo, Hpost⟩
       · iframe #
         isplitr
         · ipureintro
@@ -101,6 +102,9 @@ theorem backend.backend.run.wp_proof
         unfold payIn
         rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
         iframe Hus Hlb
+        isplitr
+        · itrivial
+        iapply commitReq_true
       unfold payOut
       rw [if_pos ⟨rfl, rfl⟩]
       icases Hpo with ⟨%u', Hus⟩

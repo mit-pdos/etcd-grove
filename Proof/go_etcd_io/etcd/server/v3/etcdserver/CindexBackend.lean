@@ -672,6 +672,101 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
   iframe Hl Hbl
   ipureintro; exact hookSaveStep_of_run hH Hr
 
+/-- **The consistent index's save opening the stored-index window** (D22 the stored-index window,
+2026-10-23; `notes/decisions.md`, "D22 the stored-index window carried out"): `ci_hook_backend_run`
+at the request of the apply thread at `s` (`ci = s.k`, not 0, nothing in flight), whose state it
+takes: the save stores `s.k` and freezes the protocol (`commit_freeze_au`); the apply thread gets
+`freezeY γA s`. -/
+theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (γA : ApplyNames) (ci : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc)
+    (hP : ciKeys P) (st : BSess) (s : ApplyState) (hk0 : s.k ≠ W64 0)
+    (hps : s.pending = false) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      {{ batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ applyThread γA s ∗
+          ⌜hookPre P st⌝ }}
+        (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
+          (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
+      {{ RET #(); ∃ (st' : BSess) (ui ut : Bool), batchLocked γ P b st' ∗
+          batchLockInv γA (metaTM γ P) ∗ freezeY γA s ∗ ⌜hookRun P st st' ui ut⌝ }} := by
+  apply texan_of_strong _ _ _ _ _ (by rfl)
+  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv⟩ %Φ ⟨Hl, Hbl, Hst, %Hpre⟩ HΦ
+  iunfold batchLockInv at Hbl
+  icases Hbl with ⟨%mm, Hmt, HTM, Hpend⟩
+  icases metaTM_agree γ hP b st mm $$ [$Hl $HTM] with ⟨Hl, Hhk, %Hmm⟩
+  imod token_alloc with ⟨%γi, Hti⟩
+  imod token_alloc with ⟨%γt, Htt⟩
+  ihave #Hw := hookTM_writer hPut hUR hID hName hSafe γ P W Pk b t st γi γt hP Hpre $$
+    [$Hpkg $Hsch $Hb $Ht]
+  ihave HTM : hookTM γ P b st γi γt mm $$ [Hl Hhk]
+  · unfold hookTM
+    iexists st, false, false
+    iframe Hl Hhk
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    isplitr; · itrivial
+    isplitr; · itrivial
+    ipureintro; exact ⟨Hmm, hookRun_refl P st⟩
+  iapply (hSave ci γA.ci (btIface t) (hookTM γ P b st γi γt) (token γi) (token γt) mm) $$
+    [HTM Hti Htt] [Hmt Hpend Hst HΦ]
+  · iframe Hcpkg Hci Hw HTM Hti Htt
+  iapply (commit_freeze_au γA mm s _ hk0 hps) $$ Hinv Hmt Hpend Hst
+  iintro %k %s' %Hmono %Hok Hmt Hpend HY
+  isplitr
+  · ipureintro; exact Hmono
+  iintro %tm HTM
+  unfold hookTM
+  icases HTM with ⟨%st', %ui, %ut, Hl, Hhk, -, -, %Hm'⟩
+  iapply HΦ
+  iexists st', ui, ut
+  iframe Hl HY
+  isplitl
+  · unfold batchLockInv
+    iexists (metaAfterSave mm k tm)
+    rw [metaAfterSave_fst]
+    iframe Hmt Hpend
+    unfold metaTM
+    iexists st'.S
+    iframe Hhk
+    ipureintro; exact Hm'.1
+  · ipureintro; exact Hm'.2
+
+/-- **The consistent index's save opening the stored-index window, as the server's hook's indexer
+save** (`storage.saveReq`; D22 the stored-index window, 2026-10-23): `ci_saveSpec` serving the
+apply thread's request `applyThread γA s ⇒ freezeY γA s`. -/
+theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (γA : ApplyNames) (ci : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc)
+    (hP : ciKeys P) (hH : storage.hooksParams P) (s : ApplyState) (hk0 : s.k ≠ W64 0)
+    (hps : s.pending = false) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      storage.saveReq γ P (batchLockInv γA (metaTM γ P)) b t
+        ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ (applyThread γA s) (freezeY γA s) := by
+  iintro #H
+  unfold storage.saveReq
+  iintro !> %st %Φ !> ⟨Hl, Hbl, Hst, %Hpre⟩ HΦ
+  iapply (ci_hook_freeze_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hk0 hps)
+    $$ H [Hl Hbl Hst]
+  · iframe Hl Hbl Hst; ipureintro; exact Hpre
+  iintro !> ⟨%st', %ui, %ut, Hl, Hbl, HY, %Hr⟩
+  iapply HΦ
+  iexists st'
+  iframe Hl Hbl HY
+  ipureintro; exact hookSaveStep_of_run hH Hr
+
 end hook
 
 end EtcdGrove

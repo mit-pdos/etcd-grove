@@ -132,6 +132,38 @@ instance saveSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : 
     (ix : GoInterfaceOk) : Persistent (saveSpec γ P Pk b t ix) := by
   unfold saveSpec; infer_instance
 
+/-- **The indexer's save serving a commit's request** `X ⇒ Y` (D22 the stored-index window,
+2026-10-23; `backend.hooksReq`'s shape): `saveSpec` with a frame the save transforms. -/
+def saveReq (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (ix : GoInterfaceOk)
+    (X Y : IProp GF) : IProp GF :=
+  iprop(□ ∀ st : BSess,
+    {{ batchLocked γ P b st ∗ Pk ∗ X ∗ ⌜hookPre P st⌝ }}
+      (App (Val #(methods ix.ty go!"UnsafeSave" ix.v))
+        (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) #t)))
+    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ Y ∗ ⌜hookSaveStep P st st'⌝ }})
+
+instance saveReq_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
+    (ix : GoInterfaceOk) (X Y : IProp GF) : Persistent (saveReq γ P Pk b t ix X Y) := by
+  unfold saveReq; infer_instance
+
+/-- The save with no request. -/
+theorem saveReq_of_saveSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
+    (ix : GoInterfaceOk) :
+    saveSpec γ P Pk b t ix ⊢ saveReq γ P Pk b t ix iprop(True) iprop(True) := by
+  iintro #Hs
+  unfold saveSpec saveReq
+  iintro !> %st %Φ !> ⟨Hl, HPk, -, %Hpre⟩ HΦ
+  iapply Hs $$ %st [Hl HPk]
+  · iframe Hl HPk
+    ipureintro; exact Hpre
+  iintro !> ⟨%st', Hl, HPk, %Hst⟩
+  iapply HΦ
+  iexists st'
+  iframe Hl HPk
+  isplitr
+  · itrivial
+  ipureintro; exact Hst
+
 /-- What `confStateLock` guards: the `confState` pointer and its dirty flag. -/
 def csInv (bh : Loc) : IProp GF :=
   iprop(∃ (cs : Loc) (d : Bool), hF go!"confState" bh ↦ cs ∗ hF go!"confStateDirty" bh ↦ d)

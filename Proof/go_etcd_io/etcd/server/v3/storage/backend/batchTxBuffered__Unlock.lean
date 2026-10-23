@@ -67,7 +67,7 @@ set_option hygiene false in
 /-- `commit` of the written-back batch (`vw`: whether a view update is owed, `pf` its part of the
 precondition), up to its outcome `Hpost` (both commit tests, with or without the view). -/
 local macro "bu_commit" vw:term:max pf:term:max : tactic => `(tactic| (
-    wp_apply (hC γ P W Pk b t rt (wbSt P st) $vw false 2 0) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd HPk] as ⟨HPk, -, Hpost⟩
+    wp_apply (hC γ P W Pk b t rt (wbSt P st) $vw false 2 0 iprop(True) iprop(True)) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd HPk] as ⟨-, HPk, -, Hpost⟩
     · iframe #
       unfold batchLockedW batchGhostW batchPhys
       isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd]
@@ -92,8 +92,12 @@ local macro "bu_commit" vw:term:max pf:term:max : tactic => `(tactic| (
         exact ⟨Hroom, rfl, fun _ i _ _ => bkOf_writebackW _ _ i, $pf⟩
       unfold payIn
       rw [if_neg (by decide), if_neg (by decide), if_neg (by decide)]
-      ipureintro
-      rfl
+      isplitr
+      · ipureintro
+        rfl
+      isplitr
+      · itrivial
+      iapply commitReq_true
     try simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, Hbv2⟩
   ))

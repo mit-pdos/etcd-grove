@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `s.createMergedSnapshotMessage(ml, snapt, snapi, cs)`, by the apply thread (the logger's reader
 slot), of an owned raft message `ml` (`m.Snapshot` is written) and a valid `ep.confState` `cs`
 (`epCsOk`: nil or read-only for good), given the contracts of `s.KV().Commit()` and of
-`s.be.Snapshot()` (`srvKVCommitOk`, `srvBeSnapOk`, with their resources; `s.kv` and `s.be`
+`s.be.Snapshot()` (`srvKVCommitOk`, `srvBeSnapOk`, with their resources, `Snapshot()`'s from what
+`Commit()` gives back, `RC' -∗ RS`: D22 the stored-index window, 2026-10-23; `s.kv` and `s.be`
 read-only): the merged message `mg` (`mergedMsg`: `NewMessage` of `ml` and a reader `rc`), the raft
 message read-only for good with its snapshot replaced by `(c, snapi, snapt)`, `c` the content of
 `cs` (`csOpt`; `proto.Clone`'s copy, so the sender's later changes to `ep.confState` do not reach
@@ -39,11 +40,11 @@ abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
-      srvBeAddr s ↦□ be ∗ srvBeSnapOk be RS RS' Qd ∗ RS ∗
+      srvBeAddr s ↦□ be ∗ srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
       msgOwn ml (DFrac.own 1) st ∗ epCsOk cs }}
     (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs))
-  {{ (mg : Loc), RET #mg; srvLgReader s ∗ RC' ∗ RS' ∗
+  {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗
       ∃ (rc : GoInterface) (D : backend.Data) (c : ConfStateM),
         mergedMsg mg ml rc ∗ msgOwn ml DFrac.discard (mergedSt st c snapi snapt) ∗
         csOpt cs DFrac.discard c ∗

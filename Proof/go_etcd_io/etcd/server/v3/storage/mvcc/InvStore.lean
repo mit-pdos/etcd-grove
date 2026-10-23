@@ -1109,7 +1109,8 @@ bucket the caller holds as `View q m` (any fraction `q`), which the caller keeps
 `L` to lock it (`keyReadSnap`: its `RLock` gives the reader's token, its `RUnlock` takes it),
 and whose `BatchTx()` is a batch transaction over the view, its lock holding `W`;
 `ForceCommit()`, for a session's token `WT` (`RT` lent), returns (the commit to disk has no
-effect on the view); `Size()`/`SizeInUse()` return some number. The snapshots may miss keys
+effect on the view), serving a request `X ⇒ Y` the backend serves (`Req`: by default a plain wand;
+the real backend's, `bkReq`: its hooks', D22 the stored-index window, 2026-10-23); `Size()`/`SizeInUse()` return some number. The snapshots may miss keys
 compaction may have deleted (`Del`, `snapThin`), and the batch transaction's lock, after
 `NewStore`'s first `Unlock`, holds `W` with the deposit witness `Dep` (persistent, its own).
 Where the backend supports mvcc's compaction (`Cmp`): the job's calls, with no effect on the
@@ -1121,7 +1122,8 @@ and `ReadTx()` with no view, for the reads of the `Meta` bucket's compaction key
 merge with the compaction, unit 5a). -/
 def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
-    (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) : IProp GF :=
+    (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
+    (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y))) : IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
       {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
@@ -1134,8 +1136,9 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT :
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
       {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt);
           isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF }}) ∗
-    □ ({{ RT ∗ WT }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-      {{ RET #(); RT }}) ∗
+    □ (∀ (X Y : IProp GF),
+      {{ RT ∗ WT ∗ X ∗ Req X Y }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
+      {{ RET #(); RT ∗ Y }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"Size" bi.v)) (Val #()))
       {{ (n : w64), RET #n; True }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"SizeInUse" bi.v)) (Val #()))
@@ -1150,8 +1153,9 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT :
 
 instance isKeyBackendG_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
-    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) :
-    Persistent (isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF) := by
+    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
+    (Req : IProp GF → IProp GF → IProp GF) :
+    Persistent (isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF Req) := by
   unfold isKeyBackendG; infer_instance
 
 /-! ## The lessor
@@ -1237,6 +1241,24 @@ def kbWT (kb : Option KBReal) : IProp GF :=
   | none => iprop(True)
   | some d => backend.wbTok d.γB
 
+/-- **The real backend's commit requests** (D22 the stored-index window, 2026-10-23): a plain wand,
+or a request its hooks serve (`backend.commitReq`) for some batch-lock and hooks' resources of
+the backend. -/
+def bkReq (γB : backend.BNames) (P : backend.BParams) (b : Loc) (X Y : IProp GF) : IProp GF :=
+  iprop(□ (X -∗ Y) ∨ ∃ W Pk : IProp GF, backend.isBackend γB P W Pk b ∗
+    backend.commitReq γB P Pk b X Y)
+
+instance bkReq_persistent (γB : backend.BNames) (P : backend.BParams) (b : Loc) (X Y : IProp GF) :
+    Persistent (bkReq γB P b X Y) := by
+  unfold bkReq; infer_instance
+
+/-- The commit requests `ForceCommit` serves in the instance `kb`: mvcc's assumed backend's
+are plain wands; the real backend's, `bkReq`. -/
+def kbReq (kb : Option KBReal) : IProp GF → IProp GF → IProp GF :=
+  match kb with
+  | none => fun X Y => iprop(□ (X -∗ Y))
+  | some d => bkReq d.γB d.P d.be
+
 /-- The condition on a put in the instance `kb`. -/
 def kbPutOk (kb : Option KBReal) : Bucket → Puts → GoString → GoString → Prop :=
   match kb with
@@ -1261,6 +1283,49 @@ abbrev storeRT (γ : StoreNames) : IProp GF := kbRT γ.kb
 
 /-- The store's write token (`kbWT`): `store.Write` spends one. -/
 abbrev storeWT (γ : StoreNames) : IProp GF := kbWT γ.kb
+
+/-- The store's backend's commit requests (`kbReq`). -/
+abbrev storeReq (γ : StoreNames) : IProp GF → IProp GF → IProp GF := kbReq γ.kb
+
+instance kbReq_persistent (kb : Option KBReal) (X Y : IProp GF) :
+    Persistent (kbReq (GF := GF) kb X Y) := by
+  unfold kbReq; cases kb <;> dsimp only <;> infer_instance
+
+/-- A plain wand is a request every instance serves. -/
+theorem storeReq_of_wand (γ : StoreNames) (X Y : IProp GF) :
+    □ (X -∗ Y) ⊢ storeReq (GF := GF) γ X Y := by
+  unfold storeReq kbReq
+  cases γ.kb with
+  | none => iintro #H; iexact H
+  | some d => unfold bkReq; iintro #H; ileft; iexact H
+
+/-- No request. -/
+theorem storeReq_true (γ : StoreNames) : ⊢ storeReq (GF := GF) γ iprop(True) iprop(True) := by
+  iapply storeReq_of_wand
+  iintro !> -
+  itrivial
+
+/-- **A backend contract serving the store's requests serves plain wands** (`isKeyBackendG`'s
+default `Req`; D22 the stored-index window, 2026-10-23): what the callers that ask nothing of a
+commit take. -/
+theorem isKeyBackendG_wand {b : GoInterface} {View : Qp → Bucket → IProp GF} {RT WT : IProp GF}
+    {PutOk : Bucket → Puts → GoString → GoString → Prop} {Del : GoString → IProp GF}
+    {W Wi Dep : IProp GF} {Cmp : Prop} {P : IProp GF} {HF : val → IProp GF} {γ : StoreNames} :
+    isKeyBackendG (GF := GF) b View RT WT PutOk Del W Wi Dep Cmp P HF (storeReq γ) ⊢
+      isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF := by
+  iintro #H
+  unfold isKeyBackendG
+  icases H with ⟨%bi, %Hbi, #H1, #H2, #H3, #HFc, #H5, #H6, #H7⟩
+  iexists bi
+  iframe H1 H2 H3 H5 H6 H7
+  isplitr
+  · ipureintro; exact Hbi
+  iintro !> %X %Y %Φ !> ⟨Hrt, Hwt, HX, #Hw⟩ HΦ
+  iapply HFc $$ %X %Y [Hrt Hwt HX] HΦ
+  iframe Hrt Hwt HX
+  iapply storeReq_of_wand
+  iintro !>
+  iexact Hw
 
 /-- The store's condition on its backend's puts (`kbPutOk`). -/
 abbrev storePutOk (γ : StoreNames) : Bucket → Puts → GoString → GoString → Prop := kbPutOk γ.kb
@@ -1874,11 +1939,11 @@ theorem storeW_pending (s : Loc) (γ : StoreNames) :
 theorem isKeyBackendG_cmp (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P : IProp GF) (HF : val → IProp GF)
     (h : storeCmp γ) :
     isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF ⊢
+      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) ⊢
     isKeyBackendG b (bucketView γ) iprop(True) iprop(True) noPutCond (delKey γ) (writerRes s γ)
       iprop(True) Dep True P HF := by
   unfold storeCmp kbCmp at h
-  unfold storeW kbWi storeRT storeWT storePutOk storeCmp kbCmp kbRT kbWT kbPutOk
+  unfold storeW kbWi storeRT storeWT storePutOk storeCmp kbCmp kbRT kbWT kbPutOk storeReq kbReq
   simp only [h]
   exact .rfl
 
@@ -2354,7 +2419,7 @@ def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
   iprop(∃ (Ph Dep : IProp GF),
     "#Hhook" ∷ hookP γ Ph ∗
     "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) ∗
+      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) (storeReq γ) ∗
     "#Hdep" ∷ □ Dep ∗
     "#Hti" ∷ isTreeIndex o.ti γ.idx ∗
     "#HisSched" ∷ schedule.isFifo o.ssched γ.sch)
@@ -2935,7 +3000,7 @@ store's contract no longer fixes the hook, which the etcd server installs after 
 with some deposit witness. -/
 def storeBackend (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : IProp GF :=
   iprop(∃ Dep : IProp GF, isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ)
-    (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P (hookFn γ))
+    (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P (hookFn γ) (storeReq γ))
 
 instance storeBackend_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackend (GF := GF) b s γ P) := by
@@ -2948,7 +3013,7 @@ first `Unlock` deposits it). What `store.Restore` takes of its new backend: it n
 backend's batch transaction, so it has no witness of its own. -/
 def storeBackendT (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : IProp GF :=
   isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ) (storeW s γ)
-    (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ)
+    (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ) (storeReq γ)
 
 instance storeBackendT_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackendT (GF := GF) b s γ P) := by

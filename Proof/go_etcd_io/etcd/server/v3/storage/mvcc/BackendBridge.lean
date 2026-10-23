@@ -1613,19 +1613,36 @@ theorem bk_forceCommit (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG :=
     (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isBackend γ P W Pk b ⊢
-      □ ({{ bkRTx γ P b ∗ wbTok γ }}
+      □ (∀ (X Y : IProp GF), {{ bkRTx γ P b ∗ wbTok γ ∗ X ∗ bkReq γ P b X Y }}
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             go!"ForceCommit" #b)) (Val #()))
-        {{ RET #(); bkRTx γ P b }}) := by
-  iintro ⟨#Hpkg, #Hb⟩ !> %Φ !> ⟨Hrt, Hwb⟩ HΦ
+        {{ RET #(); bkRTx γ P b ∗ Y }}) := by
+  iintro ⟨#Hpkg, #Hb⟩ !> %X %Y %Φ !> ⟨Hrt, Hwb, HX, #Hrq⟩ HΦ
   iunfold bkRTx at Hrt
   icases Hrt with ⟨Hrd, %qo, Ho⟩
-  wp_apply (hFC γ P W Pk b qo) $$ [$Hb $Ho $Hwb] as Ho
-  iapply HΦ
-  iunfold bkRTx
-  iframe Hrd
-  iexists qo
-  iexact Ho
+  iunfold bkReq at Hrq
+  icases Hrq with (#Hw | ⟨%W', %Pk', #Hb', #Hcr⟩)
+  · -- a plain wand
+    ihave #Hcr : commitReq γ P Pk b X Y $$ []
+    · unfold commitReq
+      ileft
+      iintro !> HX'
+      iapply Hw $$ HX'
+    wp_apply (hFC γ P W Pk b qo X Y) $$ [$Hb $Ho $Hwb $HX] as ⟨Ho, HY⟩
+    · iframe #
+    iapply HΦ
+    iunfold bkRTx
+    iframe Hrd HY
+    iexists qo
+    iexact Ho
+  · -- a request the backend's hooks serve
+    wp_apply (hFC γ P W' Pk' b qo X Y) $$ [$Hb' $Ho $Hwb $HX] as ⟨Ho, HY⟩
+    · iframe #
+    iapply HΦ
+    iunfold bkRTx
+    iframe Hrd HY
+    iexists qo
+    iexact Ho
 
 end batch2
 
@@ -1683,7 +1700,8 @@ theorem isKeyBackendG_of_backend
       isBackend γ P W Pk b ∗ keySized γ P b ⊢
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
-        (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk Del W W iprop(True) Cmp Pk (bkHookIs γ) := by
+        (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk Del W W iprop(True) Cmp Pk (bkHookIs γ)
+        (bkReq γ P b) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
@@ -1787,8 +1805,10 @@ theorem storeBackendT_of_backend
     funext g; unfold hookFn kbHookIs; rw [hk]
   have hc : ¬ storeCmp γ := by
     unfold storeCmp kbCmp; rw [hk]; simp
+  have hrq : storeReq (GF := GF) γ = bkReq d.γB d.P d.be := by
+    unfold storeReq kbReq; rw [hk]
   iunfold storeBackendT
-  rw [hv, hrt, hwt, hpo, hw, hhf, hk]
+  rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hk]
   simp only [kbWi]
   iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
     hSP hUL hbUR hCB hID hName hSafe hP d.γB (lateW d.gx) Pk d.be (delKey γ) _ hc $$ H

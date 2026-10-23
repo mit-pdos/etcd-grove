@@ -15970,3 +15970,65 @@ above); `kvModel`, `ApplyKV`, `applyStep`; the compaction keys (`bkNoCmp` stays 
 tracking `meta/scheduledCompactRev`/`finishedCompactRev` would be the same mechanism on keys).
 Exported results restated: `request_delivered` (applyEntryNormal's restatement, `srvRest` pre and
 post), `lessor_apply_contract` (the `RW` parameter), the apply package's specs above.
+
+## D22 the stored-index window carried out (2026-10-23)
+
+The window "D22 S-l sender items carried out" designed (a hook request through `ForceCommit`, a
+frozen mode of `consInv`), carried out on branch `worktree-agent-abc119190b6e832f9`; no axiom
+added, none restated but `bootOk`'s `inv applyN (consInv γA)` (a new token in the invariant, below).
+
+**The request through the commit** (`storage/backend`). `backend.hooksReq γ P Pk b t h X Y`: the
+hooks `h` with a frame they transform (`{batchLocked ∗ Pk ∗ X ∗ ⌜hookPre⌝} OnPreCommitUnsafe(t)
+{∃ st', batchLocked ∗ Pk ∗ Y ∗ ⌜hookStep⌝}`); `backend.commitReq γ P Pk b X Y := □ (X -∗ Y) ∨
+∃ t h, batchTx ↦□ t ∗ hooks ↦□ h ∗ hooksReq …` (persistent; `commitReq_true`). The specs of
+`batchTxBuffered.unsafeCommit`, `commit`, `Commit` and `backend.ForceCommit` take `X ∗ commitReq
+… X Y` and give `Y`; `unsafeCommit` runs the hook once, through `hooksSpec` (then the wand) or
+through the request's `hooksReq` (the hooks field agrees, `↦□`). `Unlock`, `run`, `CommitAndStop`
+ask nothing (`True`). Why not a mailbox in `Pk`: the committer must know its own commit ran the
+hook, which only a post of the commit can say.
+
+**The storage hooks and the consistent index.** `storage.saveReq` (`saveSpec` with the frame;
+`saveReq_of_saveSpec`); `BackendHooks.OnPreCommitUnsafe.spec` takes `▷ saveReq … X Y` and `X`,
+gives `Y` (`isBackend_backendHooks` at `True`); `storage.hooksReq_backendHooks` (the server's
+hooks serve what the save serves). `ci_hook_freeze_run`/`ci_saveFreeze` (`CindexBackend.lean`):
+the save at the apply thread's request `applyThread γA s ⇒ freezeY γA s` (`s.k ≠ 0`, not pending)
+through `commit_freeze_au`.
+
+**The frozen protocol** (`InvApply.lean`). `ApplyNames.fz` (a token); `consInv γ := ∃ s mi w,
+consInvAt γ s mi w ∨ consFrozen γ s mi w`: `consInvAt` the old body with the token `γ.fz`;
+`consFrozen` holds `ci = s.k`, three quarters of the protocol's state (the invariant's half and
+a quarter the apply thread deposited), a quarter of the stored index's mirror at `mi = s.k`,
+`wr = true`, `stOk`. `freezeY γ s` (the window's holder's): the other quarters of the state and of
+the mirror, the token. `frozen_thread_false`: no step of the apply thread opens the frozen
+invariant (it has no half of the state); `commit_save_au` has a frozen case (it reads and stores
+`s.k` again, no ghost update); `commit_freeze_au` freezes; `unfreeze` (`freezeY γ s ={⊤}=∗
+applyThread γ s`). A new token in the invariant is a change of `bootOk`'s `inv applyN (consInv
+γA)` (allocatable as before, with a fresh token).
+
+**mvcc.** `isKeyBackendG` gains `Req` (default `fun X Y => □ (X -∗ Y)`), its `ForceCommit` clause
+`∀ X Y, {RT ∗ WT ∗ X ∗ Req X Y} … {RT ∗ Y}`; `bkReq γB P b X Y := □ (X -∗ Y) ∨ ∃ W Pk,
+isBackend … ∗ commitReq …`, `kbReq`/`storeReq γ` (the instance's); `physOk`, `storeBackend`,
+`storeBackendT` at `storeReq γ`; `isKeyBackendG_wand` (to the default, for `store.restore`'s axiom
+and `rangeEvents`, which keep their statements); `store.Commit.spec` takes `X ∗ storeReq γ X Y`,
+gives `Y` (`NewStore`, `updateCompactRev`, `scheduleCompaction` ask nothing).
+Since `kbReq` names the real backend's `isBackend` and `commitReq` (its hooks' triple over
+`batchLocked`), every result whose statement reaches the store (`isStore`, `physOk`) now depends
+on the backend's bbolt-boundary predicates (`backend.isDB`, `ownDB`, `ownWTx`, `txDB`, opaque
+`axiom` constants already in the trust base): 11 collections (`apply`, `cache-client`, `client`,
+`lease-served`, `mvcc`, `mvcc-compaction`, `recipes`, `slice`, `txn`, `v3rpc`, `watch`) list them
+now; the trust base's axioms are unchanged. Avoiding it would need the store's request family
+outside its definitions (the store's names, `StoreNames.kb : Option KBReal`, are data, no `IProp`).
+
+**The server.** `createMergedSnapshotMessage.spec` and `snapBranch_send` take `RC' -∗ RS` instead
+of `RS` (the snapshot's resource from what the commit gives back) and no longer return `RC'`.
+`SnapSendBranch.lean`: `commitReq_freeze`, `storeReq_freeze` (over the server's backend facts:
+`isBackendNH`, `isBackendHooks`, `isCI`, `consInv`), `srvKVCommitOk_of_kv` (with `X`, `Y` and a
+frame `F`), `snapObs_window` (the observation: the committed hook keys hold `s.k` and some term,
+`ciObs`, and the tracked buckets are the apply thread's `rb`), `srvBeSnapOk_window`. With these,
+S-l's assembly at `applyAll`'s branch: `Commit()` with `X = applyThread γA s` (`s.k = ai`),
+`F` = the backend's open share, a write-back token and `rbOwn γB rb` (from `srvRest`), then
+`Snapshot()`, then `unfreeze`; `imageAt_of_snap` gets `hci`, `htm`, `hrb` from `Qd D`.
+
+**Left** (S-l proper): `ciEff = ai` at the branch (the apply thread's `s.k` is the applied index
+when the branch runs: `applyAll`'s invariant), the key half (`keyView` of the snapshot's data: the
+apply thread's view of `Key` as the observation's `viewAt`), the compaction keys (`bkNoCmp`).

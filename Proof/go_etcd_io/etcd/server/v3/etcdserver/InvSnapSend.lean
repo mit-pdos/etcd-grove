@@ -9,7 +9,9 @@ out"): the vocabulary of the specs of `createMergedSnapshotMessage`, `newSnapsho
   committed data the caller chooses: `backend.Snapshot.spec`'s `Q`, `srvBeSnapOk_of_backend`). The
   caller (`applyAll`'s `msgSnapC` branch, live from S-l) discharges them; the resources they move
   (`RC`, `RS`: a write session's token, the backend's read token and open share, the observation's
-  resource) are its own.
+  resource) are its own; `RS` comes from what `Commit()` gives back (`RC' -∗ RS`: the stored-index
+  window, which `Commit()` opens and the snapshot's observation reads, D22, 2026-10-23,
+  `SnapSendBranch.lean`).
 * `mergedSt st c i t`: the raft message `st` with its snapshot replaced by the merged one (no
   data, metadata `(c, i, t)`): what `createMergedSnapshotMessage` writes into `m.Snapshot`.
 * `mergedMsg mg ml rc` (persistent): `mg` is the `*snap.Message` `NewMessage` made of `ml` and

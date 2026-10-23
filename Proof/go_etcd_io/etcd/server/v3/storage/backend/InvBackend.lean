@@ -550,6 +550,44 @@ instance hookFnSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t 
     (f : GoFunc) : Persistent (hookFnSpec γ P Pk b t f) := by
   unfold hookFnSpec; infer_instance
 
+/-- **A committer's request served by the hooks** (D22 the stored-index window, 2026-10-23;
+`notes/decisions.md`, "D22 the stored-index window carried out"): the hooks `h`' contract
+(`hooksSpec`) with a frame the hook transforms: given the committer's `X` besides the hooks'
+resource, `OnPreCommitUnsafe(t)` makes a hook step and gives back `Y`. For the server's hooks,
+the apply thread's state traded for the stored index's window at the consistent index's save. -/
+def hooksReq (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (h : GoInterface)
+    (X Y : IProp GF) : IProp GF :=
+  iprop(∃ ho : GoInterfaceOk, ⌜h = GoInterface.ok ho⌝ ∗
+    □ ∀ st : BSess,
+      {{ batchLocked γ P b st ∗ Pk ∗ X ∗ ⌜hookPre P st⌝ }}
+        (App (Val #(methods ho.ty go!"OnPreCommitUnsafe" ho.v))
+          (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
+      {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ Y ∗ ⌜hookStep P st st'⌝ }})
+
+instance hooksReq_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
+    (h : GoInterface) (X Y : IProp GF) : Persistent (hooksReq γ P Pk b t h X Y) := by
+  unfold hooksReq; infer_instance
+
+/-- **A commit's request** `X ⇒ Y` (D22 the stored-index window, 2026-10-23): a plain wand (the
+commit only passes `X` along), or a request the backend's hooks serve (`hooksReq`; a commit runs
+its hook exactly once, `batchTxBuffered.unsafeCommit`). -/
+def commitReq (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc) (X Y : IProp GF) :
+    IProp GF :=
+  iprop(□ (X -∗ Y) ∨ ∃ (t : Loc) (h : GoInterface), bF go!"batchTx" b ↦□ t ∗
+    bF go!"hooks" b ↦□ h ∗ hooksReq γ P Pk b t h X Y)
+
+instance commitReq_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc)
+    (X Y : IProp GF) : Persistent (commitReq γ P Pk b X Y) := by
+  unfold commitReq; infer_instance
+
+/-- No request. -/
+theorem commitReq_true (γ : BNames) (P : BParams) (Pk : IProp GF) (b : Loc) :
+    ⊢ commitReq (GF := GF) γ P Pk b iprop(True) iprop(True) := by
+  unfold commitReq
+  ileft
+  iintro !> -
+  itrivial
+
 /-- The backend's metrics fields (atomics). -/
 def metricsInv (b : Loc) : IProp GF :=
   iprop(inv (bN.@"metrics") iprop(∃ (a c d e : w64), bF go!"size" b ↦ a ∗
