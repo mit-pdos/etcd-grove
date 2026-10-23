@@ -227,6 +227,8 @@ abbrev NewServer.spec : Prop :=
           -- (audit B4a, D19m) the hash and downgrade monitors' configuration fields and
           -- `monitorDowngrade`'s `lgMu` reader slot
           srvMonitorCfg srv cfg ∗
+          -- (2026-10-23) the right to close `readych`, for `publishV3`
+          srvReadyCloser srv ∗
           -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
           -- started there: what `RaftHandler`'s axiom takes, to serve the member's raft handler
           srvNetMember γn srv id ∗

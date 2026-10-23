@@ -1084,6 +1084,14 @@ theorem NewServer.wp_proof
     iframe Htrf Hrem0
     iunfold transportStarted
     iframe Htrall Htrr
+  -- (2026-10-23) `readych`, as a broadcast channel not yet closed: `publishV3`'s to close
+  ipersist readych
+  imod alloc_broadcast_chan (E := ⊤) iprop(True) γrdc rdc $$ Hrdc Hrdo with Hrdb
+  ihave Hrc : srvReadyCloser s $$ [Hrdb]
+  · unfold srvReadyCloser
+    iexists rdc, γrdc
+    iframe #
+    iframe Hrdb
   -- (2026-10-20, watchkv) the watchable store's reader slots for the watch service
   ihave HWR : srvWatchReaders s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF)
@@ -1102,7 +1110,7 @@ theorem NewServer.wp_proof
     (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
-  iframe Hgap Hserve HSV HMon Hnm HWR
+  iframe Hgap Hserve HSV HMon Hrc Hnm HWR
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
   isplitr

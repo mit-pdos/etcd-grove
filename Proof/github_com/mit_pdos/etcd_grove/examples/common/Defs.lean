@@ -197,7 +197,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn b (W64 0)
       (W64 0) (W64 0) bootKV N ∗
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
-    srvNetMember γn s id ∗ srvWatchReaders s E 64)
+    srvReadyCloser s ∗ srvNetMember γn s id ∗ srvWatchReaders s E 64)
 
 /-- **A member started** (`Start`'s success from `memberBuilt`): the server `s` started with its
 request names `ρ` (the wait registry's `γw`) at an apply environment `E` agreeing with the stand-in
