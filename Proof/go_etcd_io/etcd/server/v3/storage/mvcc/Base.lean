@@ -173,6 +173,31 @@ def gaugeSetSpec (g : GoInterfaceOk) : IProp GF :=
 instance gaugeSetSpec_persistent (g : GoInterfaceOk) : Persistent (gaugeSetSpec (GF := GF) g) := by
   unfold gaugeSetSpec; infer_instance
 
+/-- **What a metrics reporter's lock guards** at the fraction `q` (`metrics.go`: each of the five
+`report*` closures, which `setupMetricsReporter` sets under its `report*Mu`; the restore plan's
+R2): some closure. Only Prometheus's collector calls them, which no verified code runs. -/
+def reportP (g : GoString) (q : Qp) : IProp GF :=
+  iprop(∃ f : GoFunc, typedPointsto (globalAddr g) f (DFrac.own q))
+
+instance reportP_fractional (g : GoString) : Fractional (reportP (GF := GF) g) where
+  fractional q1 q2 := by
+    unfold reportP
+    constructor
+    · iintro ⟨%f, Hf⟩
+      icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hf with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists f; iframe
+      · iexists f; iframe
+    · iintro ⟨⟨%f1, H1⟩, ⟨%f2, H2⟩⟩
+      icombine H1 H2 gives %Hf
+      subst Hf
+      iexists f1
+      iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
+
+/-- The metrics reporter `g`'s lock `mu` (persistent): a guarded `RWMutex` over `reportP g`. -/
+abbrev reportVar (mu g : GoString) : IProp GF :=
+  sync.isRWMutexGuard (globalAddr mu) (reportP g)
+
 /-- mvcc's package facts: the error variables `ErrRevisionNotFound` (`key_index.go`),
 `ErrCompacted` and `ErrFutureRev` (`kvstore.go`), each a fixed non-nil error; and the metrics
 of `metrics.go` the KV core updates: the gauge `keysGauge` (the key index), the counters
@@ -198,7 +223,8 @@ histograms `indexCompactionPauseMs`, `dbCompactionPauseMs`, `dbCompactionTotalMs
 the apply package's facts take from here; and (D19j, 2026-10-18) `ErrEmptyWatcherRange` and
 `ErrWatcherDuplicateID` as theirs, which `v3rpc`'s facts take from here; and (2026-10-23, the
 restore plan's R0) `restoreChunkKeys` (`kvstore.go`: `10000`, a `var` for tests only, read-only at
-its initial value), the chunk size and channel capacity of `store.restore`. -/
+its initial value), the chunk size and channel capacity of `store.restore`; and (R2) the five
+metrics reporters' locks (`reportVar`), which `setupMetricsReporter` takes to set them. -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -239,7 +265,12 @@ abbrev mvccInit : IProp GF :=
       go!"mvcc: duplicate watch ID provided on the WatchStream" ∗
     EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" ∗
     EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" ∗
-    globalAddr restoreChunkKeys ↦□ (W64 10000 : w64))
+    globalAddr restoreChunkKeys ↦□ (W64 10000 : w64) ∗
+    reportVar reportDbTotalSizeInBytesMu reportDbTotalSizeInBytes ∗
+    reportVar reportDbTotalSizeInUseInBytesMu reportDbTotalSizeInUseInBytes ∗
+    reportVar reportDbOpenReadTxNMu reportDbOpenReadTxN ∗
+    reportVar reportCurrentRevMu reportCurrentRev ∗
+    reportVar reportCompactRevMu reportCompactRev)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

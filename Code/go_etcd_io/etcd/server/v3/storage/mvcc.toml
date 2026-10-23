@@ -44,6 +44,11 @@ translate = ["!*",
   # (restore plan R0, 2026-10-23) the restore from the backend
   "restoreChunkKeys", "store.restore", "store.setupMetricsReporter", "restoreIntoIndex",
   "restoreChunk",
+  # (restore plan R2, 2026-10-23) metrics.go: the reporters setupMetricsReporter sets, and their locks
+  "reportDbTotalSizeInBytesMu", "reportDbTotalSizeInBytes",
+  "reportDbTotalSizeInUseInBytesMu", "reportDbTotalSizeInUseInBytes",
+  "reportDbOpenReadTxNMu", "reportDbOpenReadTxN", "reportCurrentRevMu", "reportCurrentRev",
+  "reportCompactRevMu", "reportCompactRev",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go

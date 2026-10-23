@@ -403,8 +403,6 @@ noncomputable def reportDbTotalSizeInBytesMu [FfiSyntax] [GoGlobalContext] : GoS
 noncomputable def reportDbTotalSizeInBytes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbTotalSizeInBytes"
 
-axiom reportDbTotalSizeInBytes.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def dbTotalSizeInUse [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbTotalSizeInUse"
 
@@ -416,8 +414,6 @@ noncomputable def reportDbTotalSizeInUseInBytesMu [FfiSyntax] [GoGlobalContext] 
 noncomputable def reportDbTotalSizeInUseInBytes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbTotalSizeInUseInBytes"
 
-axiom reportDbTotalSizeInUseInBytes.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def dbOpenReadTxN [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbOpenReadTxN"
 
@@ -428,8 +424,6 @@ noncomputable def reportDbOpenReadTxNMu [FfiSyntax] [GoGlobalContext] : GoString
 
 noncomputable def reportDbOpenReadTxN [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbOpenReadTxN"
-
-axiom reportDbOpenReadTxN.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def hashSec [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.hashSec"
@@ -452,8 +446,6 @@ noncomputable def reportCurrentRevMu [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def reportCurrentRev [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportCurrentRev"
 
-axiom reportCurrentRev.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def compactRev [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.compactRev"
 
@@ -464,8 +456,6 @@ noncomputable def reportCompactRevMu [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def reportCompactRev [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportCompactRev"
-
-axiom reportCompactRev.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def totalPutSizeGauge [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.totalPutSizeGauge"
@@ -8112,6 +8102,16 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"mvcc: revision not found"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8140,16 +8140,36 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8194,11 +8214,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val compactRev.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val reportCompactRev.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr reportCompactRev))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val currentRev.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val reportCurrentRev.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr reportCurrentRev))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val hashRevSec.init) (Val #()))))))
   (App (Val doExecute)
@@ -8206,15 +8226,15 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val dbOpenReadTxN.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val reportDbOpenReadTxN.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr reportDbOpenReadTxN))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val dbTotalSizeInUse.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val reportDbTotalSizeInUseInBytes.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr reportDbTotalSizeInUseInBytes))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val dbTotalSize.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val reportDbTotalSizeInBytes.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr reportDbTotalSizeInBytes))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val dbCompactionKeysCounter.init) (Val #()))))))
   (App (Val doExecute)
@@ -8313,6 +8333,26 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc ErrFutureRev go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc restoreChunkKeys go.int)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportDbTotalSizeInBytesMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportDbTotalSizeInBytes (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportDbTotalSizeInUseInBytesMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportDbTotalSizeInUseInBytes (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportDbOpenReadTxNMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportDbOpenReadTxN (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportCurrentRevMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportCurrentRev (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportCompactRevMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportCompactRev (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc chanBufLen go.int)) (Val #()))))))
   (App (Val doExecute)

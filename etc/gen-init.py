@@ -830,14 +830,21 @@ _mv_custom['defaultCompactionSleepInterval'] = dict(
     post='∃ d : w64, globalAddr defaultCompactionSleepInterval ↦ d', pat='⟨%d@, H@⟩')
 _MV_ERR = {'ErrRevisionNotFound': 'RNF', 'ErrCompacted': 'CP', 'ErrFutureRev': 'FR',
            'ErrWatcherNotExist': 'WNE', 'ErrEmptyWatcherRange': 'EWR', 'ErrWatcherDuplicateID': 'WDI'}
+# (R2 of the restore plan) the metrics reporters `setupMetricsReporter` sets, each under its lock.
+_MV_REPORT = ['reportDbTotalSizeInBytes', 'reportDbTotalSizeInUseInBytes', 'reportDbOpenReadTxN',
+              'reportCurrentRev', 'reportCompactRev']
+
 SPECIAL['go_etcd_io.etcd.server.v3.storage.mvcc'] = dict(
     doc="""Its fact (`mvccInit`, `Base.lean`): its error variables (translated `errors.New` calls), its
 metrics (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`; a counter's `Add` only
 of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
 fact). `opaqueInitsOk` states its other untranslated initializers run.""",
-    imports=['Perennial.Proof.context.NewErrorString', 'Proof.errors.NewVarCell'],
+    imports=['Perennial.Proof.context.NewErrorString', 'Proof.errors.NewVarCell',
+             'Perennial.Proof.sync.RWMutexGuard'],
     custom=_mv_custom,
-    alloc_types={'watchBatchMaxRevs': 'w64', 'ErrWatcherDuplicateID': 'GoInterface',
+    alloc_types={**{f'{x}Mu': '_root_.Perennial.sync.RWMutex' for x in _MV_REPORT},
+                 **{x: 'GoFunc' for x in _MV_REPORT},
+                 'watchBatchMaxRevs': 'w64', 'ErrWatcherDuplicateID': 'GoInterface',
                  'ErrEmptyWatcherRange': 'GoInterface', 'ErrWatcherNotExist': 'GoInterface',
                  'watchResyncPeriod': 'w64', 'maxWatchersPerSync': 'w64', 'chanBufLen': 'w64',
                  'ErrFutureRev': 'GoInterface', 'ErrCompacted': 'GoInterface',
@@ -857,7 +864,14 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
              'ihave #VCP : (EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP',
              'ihave #VFR : (EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []',
-             '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrFutureRev CFR'] + FIN_PRE[:6] +
+             '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrFutureRev CFR',
+             '-- (R2) the metrics reporters\' locks, each over its reporter (any closure)'] +
+            [l for i, x in enumerate(_MV_REPORT) for l in [
+                f'imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP {x}) (globalAddr {x}Mu) (E := ⊤)) $$ [H{x}] H{x}Mu with HRP{i}',
+                '· inext',
+                '  unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP',
+                f'  iexists _; iframe H{x}',
+                f'ihave ⟨-, #GRP{i}⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP{i}']] + FIN_PRE[:6] +
            ['imodintro', 'unfold mvccInit EtcdGrove.errorsNewVar', 'iframe #',
             'rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 by rfl]', 'iexact HwatchResyncPeriod']),
 )

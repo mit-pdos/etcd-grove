@@ -344,6 +344,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md) (trivial fixes, easy
   merges, little impact).
 
+[etcd-unsafe-range-limit-buffer](etcd-unsafe-range-limit-buffer.md) (2026-10-23): a limited
+`ReadTx.UnsafeRange` is a prefix of the range only with no buffered entry in it; its one pager
+(`store.restore`) meets that, as far as checked. A doc line at most.
+
 ## bbolt (etcd's storage; none reachable through etcd as configured)
 
 etcd's backend exits on any `Commit` error (`batchTx.commit`: `lg.Fatal("failed to commit

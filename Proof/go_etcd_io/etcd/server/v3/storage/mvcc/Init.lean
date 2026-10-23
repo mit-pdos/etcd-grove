@@ -36,6 +36,7 @@ public import Proof.hash.Init
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Perennial.Proof.context.NewErrorString
 public import Proof.errors.NewVarCell
+public import Perennial.Proof.sync.RWMutexGuard
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -67,17 +68,12 @@ runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
     ∀ v ∈ ([totalEventsCounter.init,
-        reportDbTotalSizeInBytes.init,
         dbTotalSize.init,
-        reportDbTotalSizeInUseInBytes.init,
         dbTotalSizeInUse.init,
-        reportDbOpenReadTxN.init,
         dbOpenReadTxN.init,
         hashSec.init,
         hashRevSec.init,
-        reportCurrentRev.init,
         currentRev.init,
-        reportCompactRev.init,
         compactRev.init,
         «_».init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
@@ -213,6 +209,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := w64) watchResyncPeriod _ as HwatchResyncPeriod
   wp_apply wp_GlobalAlloc (V := w64) maxWatchersPerSync _ as HmaxWatchersPerSync
   wp_apply wp_GlobalAlloc (V := w64) chanBufLen _ as HchanBufLen
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportCompactRev _ as HreportCompactRev
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportCompactRevMu _ as HreportCompactRevMu
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportCurrentRev _ as HreportCurrentRev
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportCurrentRevMu _ as HreportCurrentRevMu
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportDbOpenReadTxN _ as HreportDbOpenReadTxN
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbOpenReadTxNMu _ as HreportDbOpenReadTxNMu
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportDbTotalSizeInUseInBytes _ as HreportDbTotalSizeInUseInBytes
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInUseInBytesMu _ as HreportDbTotalSizeInUseInBytesMu
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportDbTotalSizeInBytes _ as HreportDbTotalSizeInBytes
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInBytesMu _ as HreportDbTotalSizeInBytesMu
   wp_apply wp_GlobalAlloc (V := w64) restoreChunkKeys _ as HrestoreChunkKeys
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrFutureRev _ as HErrFutureRev
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrCompacted _ as HErrCompacted
@@ -275,17 +281,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply dbCompactionTotalMs_init as ⟨%mdbCompactionTotalMs, HdbCompactionTotalMs, #S0dbCompactionTotalMs⟩
   wp_apply dbCompactionLast_init as ⟨%mdbCompactionLast, HdbCompactionLast, #S0dbCompactionLast⟩
   wp_apply dbCompactionKeysCounter_init as ⟨%mdbCompactionKeysCounter, HdbCompactionKeysCounter, #S0dbCompactionKeysCounter⟩
-  wp_apply (opaqueInitsOk reportDbTotalSizeInBytes.init (by mem_tac))
+  -- translated initializer of reportDbTotalSizeInBytes))
   wp_apply (opaqueInitsOk dbTotalSize.init (by mem_tac))
-  wp_apply (opaqueInitsOk reportDbTotalSizeInUseInBytes.init (by mem_tac))
+  -- translated initializer of reportDbTotalSizeInUseInBytes))
   wp_apply (opaqueInitsOk dbTotalSizeInUse.init (by mem_tac))
-  wp_apply (opaqueInitsOk reportDbOpenReadTxN.init (by mem_tac))
+  -- translated initializer of reportDbOpenReadTxN))
   wp_apply (opaqueInitsOk dbOpenReadTxN.init (by mem_tac))
   wp_apply (opaqueInitsOk hashSec.init (by mem_tac))
   wp_apply (opaqueInitsOk hashRevSec.init (by mem_tac))
-  wp_apply (opaqueInitsOk reportCurrentRev.init (by mem_tac))
+  -- translated initializer of reportCurrentRev))
   wp_apply (opaqueInitsOk currentRev.init (by mem_tac))
-  wp_apply (opaqueInitsOk reportCompactRev.init (by mem_tac))
+  -- translated initializer of reportCompactRev))
   wp_apply (opaqueInitsOk compactRev.init (by mem_tac))
   wp_apply totalPutSizeGauge_init as ⟨%mtotalPutSizeGauge, HtotalPutSizeGauge, #S0totalPutSizeGauge⟩
   -- translated initializer of chanBufLen))
@@ -335,6 +341,32 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP
   ihave #VFR : (EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrFutureRev CFR
+  -- (R2) the metrics reporters' locks, each over its reporter (any closure)
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportDbTotalSizeInBytes) (globalAddr reportDbTotalSizeInBytesMu) (E := ⊤)) $$ [HreportDbTotalSizeInBytes] HreportDbTotalSizeInBytesMu with HRP0
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportDbTotalSizeInBytes
+  ihave ⟨-, #GRP0⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP0
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportDbTotalSizeInUseInBytes) (globalAddr reportDbTotalSizeInUseInBytesMu) (E := ⊤)) $$ [HreportDbTotalSizeInUseInBytes] HreportDbTotalSizeInUseInBytesMu with HRP1
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportDbTotalSizeInUseInBytes
+  ihave ⟨-, #GRP1⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP1
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportDbOpenReadTxN) (globalAddr reportDbOpenReadTxNMu) (E := ⊤)) $$ [HreportDbOpenReadTxN] HreportDbOpenReadTxNMu with HRP2
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportDbOpenReadTxN
+  ihave ⟨-, #GRP2⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP2
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportCurrentRev) (globalAddr reportCurrentRevMu) (E := ⊤)) $$ [HreportCurrentRev] HreportCurrentRevMu with HRP3
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportCurrentRev
+  ihave ⟨-, #GRP3⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP3
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportCompactRev) (globalAddr reportCompactRevMu) (E := ⊤)) $$ [HreportCompactRev] HreportCompactRevMu with HRP4
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportCompactRev
+  ihave ⟨-, #GRP4⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP4
   iframe Hown
   imodintro
   isplitr

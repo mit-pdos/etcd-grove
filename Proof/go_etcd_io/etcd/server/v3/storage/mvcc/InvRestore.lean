@@ -103,7 +103,7 @@ def mvcc.rkvProt (Rd : GoSlice → GoString → IProp GF) (ents : List mvcc.KvEn
 
 /-- **`revc`'s protocol**: its one value is the last revision, with the rebuilt private index,
 the reader's token back and a time receipt per entry (each entry is put into the index by a step
-of the goroutine: D22h, `restoreIdxPost`). -/
+of the goroutine: D22h, `store.restore`'s spec). -/
 def mvcc.revProt (ti : Loc) (Tok : IProp GF) (ents : List mvcc.KvEnt) (i : Int) (v : w64) :
     IProp GF :=
   iprop(⌜i = 0 ∧ v = mvcc.restoreLastRev ents⌝ ∗ Tok ∗ ⧗ ents.length ∗

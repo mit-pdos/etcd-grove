@@ -116,6 +116,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactLockfree
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__setupMetricsReporter
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
 public import Proof.time.NewTicker
 public import Proof.time.Ticker__Reset
@@ -556,6 +557,10 @@ theorem zap.wp_Duration :
 theorem zap.wp_Uint32 :
     zap.Uint32.spec (GF := GF) (hG := hG) :=
   zap.Uint32.wp_proof
+
+theorem mvcc.store.wp_setupMetricsReporter :
+    mvcc.store.setupMetricsReporter.spec (GF := GF) (hG := hG) :=
+  mvcc.store.setupMetricsReporter.wp_proof
 
 theorem mvcc.treeIndex.wp_Keep [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Keep.spec (GF := GF) (hG := hG) :=
