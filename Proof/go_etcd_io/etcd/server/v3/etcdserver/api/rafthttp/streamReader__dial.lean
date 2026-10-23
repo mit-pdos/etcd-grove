@@ -12,7 +12,6 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.setPeerURLs
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.serverVersion
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.compareMajorMinorVersion
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.checkStreamSupport
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.reportCriticalError
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Spec.go_etcd_io.etcd.pkg.v3.httputil.GracefulClose
@@ -115,13 +114,11 @@ set_option hygiene false in
 local macro "status_switch" : tactic => `(tactic| (
   (try wp_auto)
   by_cases h410 : rst = W64 410
-  · subst h410
-    (try wp_auto)
-    close_unreach
-    wp_apply hReport _ ec $$ []
-    · iframe #
-      iapply errorString_errStrOk $$ HxMRM
-    ret_err
+  · -- `410`: never a member's response (no member is removed)
+    subst h410
+    iexfalso
+    icases Hrw with ⟨%w, %H410, -⟩
+    exact absurd rfl H410.2
   rw [_root_.decide_eq_false (show ¬ rst = W64 410 from h410)]
   (try wp_auto)
   by_cases h200 : rst = W64 200
@@ -279,7 +276,6 @@ theorem rafthttp.streamReader.dial.wp_proof
     (hCompare : rafthttp.compareMajorMinorVersion.spec (GF := GF) (hG := hG))
     (hCheckSS : rafthttp.checkStreamSupport.spec (GF := GF) (hG := hG))
     (hGraceful : httputil.GracefulClose.spec (GF := GF) (hG := hG))
-    (hReport : rafthttp.reportCriticalError.spec (GF := GF) (hG := hG))
     (hReadAll : ∀ H : http.HttpNet GF, http.ReadAll_resp_spec H)
     (hClose : ∀ H : http.HttpNet GF, http.RespClose_spec H)
     (hTrim : strings.TrimSuffix.spec (GF := GF) (hG := hG))
@@ -296,10 +292,10 @@ theorem rafthttp.streamReader.dial.wp_proof
   icases Hf' with ⟨%lg, %tr, %ps, %rcc, %pcc, %γr, %γp, %ctx, %cd, #Hlg, %Hlgnn, #Hpid, #Htr,
     #Hlid, -, -, -, -, -, -, #Hmu, #Hctxf, #Hctx⟩
   iunfold srDial at Hd
-  icases Hd with ⟨#Hcfg, %ec, #Herrc, #Heok⟩
+  icases Hd with ⟨#Hcfg, %ec, #Herrc⟩
   iunfold srCfg at Hcfg
   icases Hcfg with ⟨%rl, %pk, %tr', %urls, %uvs, %cid, %rt, %ec', #Htyp, -, -, #Hpk, #Hpick,
-    #Htr2, #Hurls, #Huvs, #Hcid, #Hrtf, #Hrt, -, -, #Hreg, #Hpreg, #HPfx⟩
+    #Htr2, #Hurls, #Huvs, #Hcid, #Hrtf, #Hrt, -, #Hreg, #Hpreg, #HPfx⟩
   icombine Htr Htr2 gives %Htreq
   subst Htreq
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []

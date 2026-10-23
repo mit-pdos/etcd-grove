@@ -207,8 +207,8 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     with ⟨%ρ₃, -, Hb₃⟩
   -- the raft network: a slot per member
   imod (netNames_alloc (srvNet γ bud) (dir3 id₁ id₂ id₃)
-      (GMap.insert id₁ () (GMap.insert id₂ () (GMap.insert id₃ () (∅ : GMap w64 Unit)))))
-    with ⟨%γn, %Hγn, Hslots⟩
+      (GMap.insert id₁ () (GMap.insert id₂ () (GMap.insert id₃ () (∅ : GMap w64 Unit)))) _)
+    with ⟨%γn, %Hγn, Hslots, -⟩
   ihave ⟨Hs₁, Hslots⟩ := (BigSepM.bigSepM_insert
     (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
     (by rw [gmap_get?_eq, GMap.lookup_insert_ne _ _ (Ne.symm hn12),

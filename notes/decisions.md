@@ -15581,3 +15581,42 @@ chain's `i`-th. All of it is this repository's ghost state and pure Lean: no tru
 *Rejected:* a resource-carrying response (D33's (B), rejected then); per-frame tickets from the
 client (the client's ticket is consumed by `RoundTrip`); a protocol state machine as raft's (the
 property is per connection, with no order claimed).
+
+## D34: rafthttp's transport proved: the network's two layers joined (2026-10-23 · rafthttp stage 6; the user: "start stage 6", the four stage-6 choices; "accept D34a and the R re-budget, start 6a")
+
+**Context.** Stage 6 proves `rafthttp.Transport` (`Start`, `AddPeer`, `AddRemote`, `Send`,
+`CutPeer`, `MendPeer`, `Handler`) and so removes the trust-boundary axioms that state D21 M2's
+network contract about it, and `EtcdServer.RaftHandler`'s and D21 M5's `net/http.Serve`. The
+stage-5 proofs are over D33's HTTP boundary (`raftProto`, `RaftHttp`); the server's over D21's
+network (`NetNames`: payload, slots, directory). Scoping found what joining them needs.
+
+**Decisions** (`notes/rafthttp-plan.md`, stage 6, for the four choices made at scoping: the
+snapshot stream a smaller axiom, no `410`, `Counter.Add` may panic, the prober an axiom):
+- **D34a, an address's protocol fixed before its listener** (a trust change, accepted by the
+  user). A member starts its transport and adds its peers before they listen (linkv3's members
+  start one after the other), and its sends need `httpProtoAt` of their addresses (`RoundTrip`),
+  which D33c gave only with the listener. Program start (`goose_adequacy_start`, D19d) now also
+  gives `httpProtoFree a` for each of its addresses (exclusive, purely ghost); `http.reserve`
+  turns it into `httpProtoAt a P` and `httpProtoOwn a P`, which `http.register` takes with the
+  listener. The model is D33c's, a global ghost map from addresses to saved protocols set once,
+  now set by `reserve`. A request to a reserved address with no listener yet fails ("connection
+  refused"), an error `RoundTrip`'s spec allows.
+- **The `R` re-budget** (our specs only, accepted by the user). Each call into the server's `Raft`
+  borrows one of `lgMu`'s reader slots (`R`). `Start` took `2^29` of them for every call the
+  transport would make; proved, the calls are the handlers' (one per invocation, given by `Serve`)
+  and each peer's two receiving goroutines' (one each, for good). So `NewServer` gives out `2^29`
+  slots for `Serve` (through `RaftHandler`'s caller) and `AddPeer` takes two per peer from its
+  remaining ones (Go's limit is `2^30` readers); done with 6d, when `Start`'s and `AddPeer`'s
+  axioms go (restated before, they would claim calls with no slot).
+- **`RaftHttp` from `NetNames`** (no trust). `NetNames` gains the streams' registry (`reg`,
+  allocated with its invariant by `netNames_alloc`), so a member's stream reader and its peer's
+  handler agree on a connection; `netRh γn` takes a host's owner from the directory (`netOwner`:
+  the member one of whose URLs is `http://h`, `0` for none), which needs the directory's hosts
+  distinct (`dirHostsDistinct`, a premise where the cluster's directory is chosen).
+- **No `410`** (no trust; the user's choice at scoping). `netRaftOk`'s `IsIDRemoved` returns
+  `false` (the server's proved spec already says so: static membership), so `raftProto` says a
+  member's response is never `410`, the stream handler proves it, and `dial`'s report on
+  `errorc` is dead: `Start`'s "nothing on `ErrorC`" holds of the code.
+*Rejected:* deriving a protocol right from `netAddrFree` (two reservations of an address with
+different protocols would be possible); weakening `RoundTrip` to unregistered hosts (a request to
+an address whose protocol is unknown could not be tied to the handler that later serves it).

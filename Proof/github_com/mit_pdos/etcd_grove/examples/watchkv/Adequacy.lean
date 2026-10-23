@@ -137,7 +137,7 @@ theorem watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   iunfold startRights at Hrights
   simp only [watchkvNames, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Haddr, -⟩⟩
+  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Haddr, -⟩, -⟩
   ihave #Hprem' := Hprem0
   imodintro
   unfold watchkvProgram

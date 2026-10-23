@@ -191,7 +191,7 @@ theorem linkv3p_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   iunfold startRights at Hrights
   simp only [linkv3pNames, linkv3pAddrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, -⟩⟩
+  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, -⟩, -⟩
   ihave #Hprem' := Hprem0
   imodintro
   unfold linkv3pProgram

@@ -158,7 +158,7 @@ theorem stream_perm (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (a : GoSt
   iintro !> %bs %s' %k %Hf
   simp only [raftHttpNet, raftProto]
   isplitr
-  · ipureintro; intro _; decide
+  · ipureintro; exact ⟨fun _ => by decide, by decide⟩
   unfold streamResp
   iintro -
   iexists (γw, ty, pid)

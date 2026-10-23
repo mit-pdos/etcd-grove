@@ -30,12 +30,20 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Registration** (D33c): an address's listener, bound once in a run, fixes the address's
-protocol. True of a model with a global ghost map from addresses to saved protocols whose entry
-for `a` is set with `netListenerAt l a` (exclusive, the address's only listener: `net.Listen`
-consumes `netAddrFree a`). -/
+/-- **Reservation** (D34a, 2026-10-23; D33c's registration, split): the right to fix an
+address's protocol (`httpProtoFree a`, once per address from program start) fixes it, before the
+address's listener exists: a client may then send to the address (`RoundTrip` needs
+`httpProtoAt`; before the listener is bound the connection is refused, an error the spec allows).
+True of a model with a global ghost map from addresses to saved protocols whose entry for `a` is
+set once, with the exclusive `httpProtoFree a`. -/
+axiom reserve (a : GoString) (P : Proto GF) :
+  ⊢ httpProtoFree (GF := GF) a ==∗ httpProtoAt a P ∗ httpProtoOwn a P
+
+/-- **Registration** (D33c, D34a): the address's listener, with the right to serve it with the
+address's reserved protocol, serves it with that protocol (the model: the listener bound once,
+`net.Listen` consuming `netAddrFree a`; the protocol the ghost map's entry for `a`). -/
 axiom register (l : GoInterface) (a : GoString) (P : Proto GF) :
-  ⊢ netListenerAt (GF := GF) l a ==∗ httpListenerAt l a P ∗ httpProtoAt a P
+  ⊢ netListenerAt (GF := GF) l a -∗ httpProtoOwn a P ==∗ httpListenerAt l a P
 
 /-- A request body's `Read` (`bodyRead_spec`): Go's server body reader of a request's
 `Content-Length` or chunked body; a body cut short is `io.ErrUnexpectedEOF`, not `EOF`. -/

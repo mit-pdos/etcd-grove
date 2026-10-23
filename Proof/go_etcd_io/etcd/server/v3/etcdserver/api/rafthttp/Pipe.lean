@@ -60,6 +60,29 @@ structure RaftHttp (GF : BundledGFunctors) [FfiSyntax] where
   owner : GoString → w64
   γreg : GName
 
+/-- **The directory's hosts are distinct** (D34, stage 6a): no URL `http://h` is two members'. -/
+def dirHostsDistinct (dir : w64 → List GoString) : Prop :=
+  ∀ (id id' : w64) (h : GoString), go!"http://" ++ h ∈ dir id → go!"http://" ++ h ∈ dir id' →
+    id = id'
+
+open Classical in
+/-- **The member owning the host `h`** in the directory `dir` (D34, stage 6a): the member one of
+whose peer URLs is `http://h`, or `0` (no member: raft's ids are not `0`) if none. -/
+noncomputable def netOwner (dir : w64 → List GoString) (h : GoString) : w64 :=
+  if hx : ∃ id, go!"http://" ++ h ∈ dir id then Classical.choose hx else 0
+
+/-- A host of member `id`'s URLs is owned by `id`. -/
+theorem netOwner_of_mem (dir : w64 → List GoString) (hd : dirHostsDistinct dir) (id : w64)
+    (h : GoString) (hm : go!"http://" ++ h ∈ dir id) : netOwner dir h = id := by
+  unfold netOwner
+  have hx : ∃ id, go!"http://" ++ h ∈ dir id := ⟨id, hm⟩
+  rw [dif_pos hx]
+  exact hd _ _ _ (Classical.choose_spec hx) hm
+
+/-- **The network's raft-over-HTTP names** (D34, stage 6a): its owner map from the directory, its
+streams' registry. -/
+noncomputable def netRh (γn : NetNames GF) : RaftHttp GF := ⟨γn, netOwner γn.dir, γn.reg⟩
+
 /-- **A pipeline request of ticket `γk`** (persistent): its body an encoding of a message `st`,
 not a snapshot (which goes by `SendSnapshot`), without responses, for the member owning the
 request's host; with `□ N.P st` and its deposit. -/

@@ -45,7 +45,7 @@ theorem rafthttp.streamReader.start.wp_proof
   ihave #Hcfg' := Hcfg
   iunfold srCfg at Hcfg'
   icases Hcfg' with ⟨%rl, %pk, %tr, %urls, %uvs, %cid, %rt, %ec, -, -, -, -, -, #Htr, -, -, -, -,
-    -, #Hec, #Heok, -, -, -⟩
+    -, #Hec, -, -, -⟩
   (try wp_auto)
   -- `cr.ctx == nil`: a cancellable context
   wp_apply hBackground

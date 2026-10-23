@@ -68,11 +68,29 @@ structure NetPayload (GF : BundledGFunctors) [FfiSyntax] where
   img : w64 → backend.Data → IProp GF
   img_pers : ∀ i D, Persistent (img i D)
 
-/-- **A network's names** (see the file header). -/
+def streamRegN : Namespace := nroot.@"rafthttp_stream_reg"
+
+/-- A stream's type (`streamType`). -/
+inductive StreamTy where
+  | msgAppV2
+  | message
+  deriving DecidableEq
+
+instance : Pos.Countable StreamTy :=
+  .ofInjective (fun t => match t with | .msgAppV2 => 1 | .message => 2)
+    (by intro a b h; cases a <;> cases b <;> first | rfl | exact absurd h (by decide))
+
+/-- **A stream connection's ghost names**: the reader's tokens `γw`, the type and the reader. -/
+abbrev StreamKey := GName × StreamTy × w64
+
+/-- **A network's names** (see the file header). (2026-10-23, rafthttp stage 6a, D34) `reg`: the
+streams' registry (`Stream.lean`'s `streamRegInv`), one for the network, so that a member's
+stream reader and its peer's stream handler agree on a connection. -/
 structure NetNames (GF : BundledGFunctors) [FfiSyntax] where
   N : NetPayload GF
   slots : GName
   dir : w64 → List GoString
+  reg : GName
 
 /-- **Member `id`'s slot** (exclusive): held by the transport started for `id`
 (`Transport.Start`), so that one transport receives what is sent to `id`. -/
@@ -149,8 +167,9 @@ def netRecv (γn : NetNames GF) (id : w64) (γd : GName) (ml : Loc) : IProp GF :
 /-- **The receiver's `Raft`** (`rafthttp.Raft`, persistent): `Process` of a received message with
 a context the node API takes, given one of the receiver's resources `R` (back after the call),
 returns raft's error (`nodeErr`: `nil`, `ErrStopped` or the context's; 2026-10-23, rafthttp stage 4:
-the pipeline handler's error branch reads it, until then some error); `IsIDRemoved`,
-`ReportUnreachable`, `ReportSnapshot` from `True`, each with an `R` too. (D22 S-i) `γd` names the receiver's snapshot directory (`netRecv`). -/
+the pipeline handler's error branch reads it, until then some error); `IsIDRemoved` (`false`: no
+member is removed, the server's static membership; 2026-10-23, rafthttp stage 6, so the stream
+handler never answers `410`), `ReportUnreachable`, `ReportSnapshot` from `True`, each with an `R` too. (D22 S-i) `γd` names the receiver's snapshot directory (`netRecv`). -/
 def netRaftOk (γn : NetNames GF) (id : w64) (γd : GName) (R : IProp GF) (r : GoInterface) :
     IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜r = GoInterface.ok ri⌝ ∗
@@ -159,7 +178,7 @@ def netRaftOk (γn : NetNames GF) (id : w64) (γd : GName) (R : IProp GF) (r : G
         (App (App (Val #(methods ri.ty go!"Process" ri.v)) (Val #(GoInterface.ok ctx))) (Val #ml))
       {{ (err : GoInterface), RET #err; nodeErr cd err ∗ R }}) ∗
     □ (∀ x : w64, {{ R }} (App (Val #(methods ri.ty go!"IsIDRemoved" ri.v)) (Val #x))
-      {{ (b : Bool), RET #b; R }}) ∗
+      {{ RET #false; R }}) ∗
     □ (∀ x : w64, {{ R }} (App (Val #(methods ri.ty go!"ReportUnreachable" ri.v)) (Val #x))
       {{ RET #(); R }}) ∗
     □ (∀ (x : w64) (s : w64), {{ R }}
@@ -207,13 +226,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **A network's names, allocated** for the members `S` (the closed theorem's, once per
-cluster): its payload and directory chosen, a slot per member. -/
-theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GMap w64 Unit) :
-    ⊢ |==> ∃ γn : NetNames GF, ⌜γn.N = N ∧ γn.dir = dir⌝ ∗
-      [∗map] id ↦ _u ∈ S, netSlot γn id := by
+cluster): its payload and directory chosen, a slot per member, the streams' registry (empty;
+stage 6a). -/
+theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GMap w64 Unit)
+    (E : CoPset) :
+    ⊢ |={E}=> ∃ γn : NetNames GF, ⌜γn.N = N ∧ γn.dir = dir⌝ ∗
+      ([∗map] id ↦ _u ∈ S, netSlot γn id) ∗
+      inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth γn.reg 1 m) := by
   imod ghost_map_alloc (GF := GF) S with ⟨%g, -, Hs⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := GName) (V := StreamKey) with ⟨%gr, Hr⟩
+  imod (inv_alloc streamRegN E iprop(∃ m : GMap GName StreamKey, ghostMapAuth gr 1 m)) $$ [Hr]
+    with #Hi
+  · iexists _; iexact Hr
   imodintro
-  iexists ⟨N, g, dir⟩
+  iexists ⟨N, g, dir, gr⟩
+  iframe Hi
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
   unfold netSlot

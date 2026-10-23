@@ -629,6 +629,15 @@ trust-boundary spec.
    in its spec (Go's behavior), which the writer's goroutine may, instead of a physical bound on a
    message's size; (4) **the prober** (`addPeerToProber`, `probing`, untranslated): a
    trust-boundary axiom (it only measures round trips and logs).
+   **6a, first part (2026-10-23; D34, `notes/decisions.md`).** D34a (accepted by the user): an
+   address's protocol fixed before its listener (`httpProtoFree` from program start, `http.reserve`,
+   `register` with its token). `NetNames.reg`, the streams' registry, allocated by
+   `netNames_alloc`; `netRh γn` (`netOwner`: a host's owner from the directory,
+   `dirHostsDistinct`). No `410`: `netRaftOk`'s `IsIDRemoved` returns `false`, `raftProto`'s
+   responses are not `410` (`raftProto_resp_410`), the stream handler's removed branch and `dial`'s
+   report are dead; the reader's `errcOk` premise dropped. The `R` re-budget waits for 6d. Next:
+   `types.NewURLs`'s boundary spec (a plain peer URL's parse), the transport's lock invariant
+   (`t.mu`'s reader tokens for `Send`, `Get`, `CutPeer`, `MendPeer`, from `Start` and `Serve`).
 
 ## Costs and risks
 

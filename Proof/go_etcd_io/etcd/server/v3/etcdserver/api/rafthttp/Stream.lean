@@ -228,17 +228,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 def streamN : Namespace := nroot.@"rafthttp_stream"
-def streamRegN : Namespace := nroot.@"rafthttp_stream_reg"
-
-/-- A stream's type (`streamType`). -/
-inductive StreamTy where
-  | msgAppV2
-  | message
-  deriving DecidableEq
-
-instance : Pos.Countable StreamTy :=
-  .ofInjective (fun t => match t with | .msgAppV2 => 1 | .message => 2)
-    (by intro a b h; cases a <;> cases b <;> first | rfl | exact absurd h (by decide))
 
 /-- A stream type's endpoint (`streamType.endpoint`: `path.Join(RaftStreamPrefix, ...)`). -/
 def StreamTy.endpoint : StreamTy → GoString
@@ -300,15 +289,20 @@ theorem streamPath_dir (t : StreamTy) (rid : w64) :
   exact path.dirModel_segs _ _ (by cases t <;> simp [StreamTy.segs]) t.segs_plain
     (types.idStr_plain rid)
 
-/-- **A stream connection's ghost names**: the reader's tokens `γw`, the type and the reader. -/
-abbrev StreamKey := GName × StreamTy × w64
-
 /-- **The registry** (an invariant): its authority. -/
 def streamRegInv (Rh : RaftHttp GF) : IProp GF :=
   inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth Rh.γreg 1 m)
 
 instance streamRegInv_persistent (Rh : RaftHttp GF) : Persistent (streamRegInv Rh) := by
   unfold streamRegInv; infer_instance
+
+/-- The network's registry (`netNames_alloc`'s) is `netRh`'s. -/
+theorem streamRegInv_netRh (γn : NetNames GF) :
+    inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth γn.reg 1 m) ⊢
+      streamRegInv (netRh γn) := by
+  iintro H
+  unfold streamRegInv netRh
+  iexact H
 
 /-- **The ticket `γk`'s connection is `c`** (persistent). -/
 def streamReg (Rh : RaftHttp GF) (γk : GName) (c : StreamKey) : IProp GF :=
@@ -398,7 +392,8 @@ def raftProto (Rh : RaftHttp GF) : http.Proto GF where
   req R γk := iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
     (⌜R.meth = go!"GET"⌝ → streamReq Rh R γk))
   req_pers R γk := by infer_instance
-  resp R γk st w := iprop(⌜R.path = go!"/raft" → st ≠ W64 403⌝ ∗ streamResp Rh R γk st w)
+  resp R γk st w := iprop(⌜(R.path = go!"/raft" → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
+    streamResp Rh R γk st w)
   resp_pers R γk st w := by infer_instance
   rhdr _ hs := verHdrOk hs
 
@@ -429,11 +424,11 @@ theorem streamResp_not200 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st :
 
 /-- **A member's response of a status other than `403` and `200`** is in its protocol. -/
 theorem raftProto_resp_of (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
-    (w : List w8) (h403 : st ≠ W64 403) (h200 : st ≠ W64 200) :
+    (w : List w8) (h403 : st ≠ W64 403) (h200 : st ≠ W64 200) (h410 : st ≠ W64 410) :
     ⊢ (raftProto Rh).resp R γk st w := by
-  show ⊢ iprop(⌜R.path = go!"/raft" → st ≠ W64 403⌝ ∗ streamResp Rh R γk st w)
+  show ⊢ iprop(⌜(R.path = go!"/raft" → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗ streamResp Rh R γk st w)
   isplitr
-  · ipureintro; intro _; exact h403
+  · ipureintro; exact ⟨fun _ => h403, h410⟩
   · iapply streamResp_not200 Rh R γk st w h200
 
 /-- Nothing sent is a stream's bytes. -/
@@ -454,7 +449,7 @@ theorem raftProto_resp_stream_200 (Rh : RaftHttp GF) (R : http.HReq) (γk : GNam
   iintro #Hreg
   simp only [raftProto]
   isplitr
-  · ipureintro; intro h; exact absurd h hp
+  · ipureintro; exact ⟨fun h => absurd h hp, by decide⟩
   unfold streamResp
   iintro -
   iexists c
@@ -470,9 +465,17 @@ theorem streamPath_ne_raft (t : StreamTy) (rid : w64) : streamPath t rid ≠ go!
 /-- A member's `/raft` response is not a `403`. -/
 theorem raftProto_resp_403 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
     (w : List w8) : (raftProto Rh).resp R γk st w ⊢ ⌜R.path = go!"/raft" → st ≠ W64 403⌝ := by
-  show iprop(⌜R.path = go!"/raft" → st ≠ W64 403⌝ ∗ streamResp Rh R γk st w) ⊢ _
+  show iprop(⌜(R.path = go!"/raft" → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗ streamResp Rh R γk st w) ⊢ _
   iintro ⟨%h, -⟩
-  ipureintro; exact h
+  ipureintro; exact h.1
+
+/-- A member's response is never a `410` (2026-10-23, rafthttp stage 6: no member is removed,
+`netRaftOk`'s `IsIDRemoved` is `false`, so the stream handler does not answer it). -/
+theorem raftProto_resp_410 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
+    (w : List w8) : (raftProto Rh).resp R γk st w ⊢ ⌜st ≠ W64 410⌝ := by
+  show iprop(⌜(R.path = go!"/raft" → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗ streamResp Rh R γk st w) ⊢ _
+  iintro ⟨%h, -⟩
+  ipureintro; exact h.2
 
 /-- A pipeline request is in a member's protocol. -/
 theorem raftProto_req_of_pipe (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)

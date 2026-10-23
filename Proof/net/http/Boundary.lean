@@ -26,7 +26,11 @@ The model (the note's points 1-6):
   a`, one per address in a run: `net.Listen` consumes `netAddrFree a`) into `httpListenerAt l a P`,
   which `Serve` takes, and `httpProtoAt a P` (persistent), which `RoundTrip` needs of a request's
   host. Two `httpProtoAt a P` of one address are of the one registration: the facts' model is a
-  global ghost map from addresses to saved protocols, an entry set once with the listener.
+  global ghost map from addresses to saved protocols, an entry set once. (D34a, 2026-10-23,
+  stage 6a) The entry is set before the listener exists: `http.reserve` turns the address's
+  protocol right (`httpProtoFree a`, from program start) into `httpProtoAt a P` and the right to
+  serve it (`httpProtoOwn a P`), which `register` takes with the listener; a member sends to its
+  peers before they listen.
 * (2026-10-23, D33b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
   fresh exclusive ghost ticket (`reqTicket γk`) and the handler of the request receives it; the
   protocols are indexed by the ticket's name. Go's client never replays a `POST`
@@ -145,6 +149,11 @@ def httpProtoAt (a : GoString) (P : Proto GF) : IProp GF := iprop(□ httpProtoA
 instance httpProtoAt_persistent (a : GoString) (P : Proto GF) :
     Persistent (httpProtoAt (GF := GF) a P) := by
   unfold httpProtoAt; infer_instance
+
+/-- **The right to serve the address `a` with the protocol `P`** (exclusive, opaque; D34a,
+2026-10-23): what `reserve` gives with `httpProtoAt a P`, and `register` takes with the address's
+listener. -/
+opaque httpProtoOwn (a : GoString) (P : Proto GF) : IProp GF
 
 /-- **The listener `l` bound at `a`, its protocol registered as `P`** (exclusive, opaque): what
 `Serve` takes. -/

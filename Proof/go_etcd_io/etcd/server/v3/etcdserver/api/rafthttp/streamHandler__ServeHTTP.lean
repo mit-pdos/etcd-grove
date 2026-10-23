@@ -88,9 +88,8 @@ local macro "stream_rest" : tactic => `(tactic| (
   iapply Ht3 $$ [HRs]
   · iexact HRs
   inext
-  iintro %brm HRs
-  cases brm
-  · -- not removed: the peer
+  iintro HRs
+  · -- not removed (no member is: `netRaftOk`'s `IsIDRemoved`): the peer
     (try wp_auto)
     rw [Hhvok.2.2]
     (try wp_auto)
@@ -199,11 +198,8 @@ local macro "stream_rest" : tactic => `(tactic| (
       · (try simp only [hto, _root_.decide_false, Bool.not_false])
         (try wp_auto)
         zap_log
-        reply_error
-  · -- removed: `410`
-    (try wp_auto)
-    zap_log
-    reply_error))
+        reply_error))
+
 
 set_option maxHeartbeats 8000000 in
 theorem rafthttp.streamHandler.ServeHTTP.wp_proof

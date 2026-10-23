@@ -86,7 +86,7 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     -- (2026-10-19, D22 S-a) `SentMsgOk` is of the no-transfer mode (D22 S-a to S-c: of both)
     (hnx : γ.node.raft.reNoXfer = true) {γd : GName} (ml : Loc) :
     netRecv (GF := GF) γn γ.id γd ml ⊢ |==> stepP γ.node γ.id ml := by
-  obtain ⟨N, g, dir⟩ := γn
+  obtain ⟨N, g, dir, r⟩ := γn
   simp only at HN
   subst HN
   iintro Hr

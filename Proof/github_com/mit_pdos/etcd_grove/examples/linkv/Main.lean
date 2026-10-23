@@ -143,7 +143,7 @@ theorem Main.wp_proof
     Hnk, #Hkvinv, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   -- (D21 M2) the raft network, the one member's slot
-  imod (netNames_alloc (srvNet γ bud) linkvDir (GMap.insert id () ∅)) with ⟨%γn, %Hγn, Hslots⟩
+  imod (netNames_alloc (srvNet γ bud) linkvDir (GMap.insert id () ∅) _) with ⟨%γn, %Hγn, Hslots, -⟩
   ihave Hslot := (BigSepM.bigSepM_insert (GMap.lookup_empty id)).1 $$ Hslots
   icases Hslot with ⟨Hslot, -⟩
   have hblen : γ.reBoot.length ≤ 2 ^ 60 := by

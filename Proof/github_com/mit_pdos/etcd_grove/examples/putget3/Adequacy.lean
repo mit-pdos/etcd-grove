@@ -168,7 +168,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   iunfold startRights at Hrights
   simp only [putget3Names, putget3Addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩⟩
+  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩, -⟩
   ihave #Hprem' := Hprem0
   imodintro
   unfold putget3Program
