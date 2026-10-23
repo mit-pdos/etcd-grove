@@ -601,7 +601,7 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iintro %resp %err ⟨Hrc, H⟩
   iapply HΦ
   iframe Hrc
-  icases H with (⟨%Hok, H⟩ | H)
+  icases H with (⟨%Hok, -, H⟩ | H)
   · ileft
     iunfold rangeReadOk at H
     simp only [hlin, Bool.false_eq_true, ↓reduceIte]
@@ -645,7 +645,7 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iintro %resp %err ⟨Hrc, H⟩
   iapply HΦ
   iframe Hrc
-  icases H with (⟨%Hok, H⟩ | H)
+  icases H with (⟨%Hok, -, H⟩ | H)
   · ileft
     iunfold rangeReadOk at H
     icases H with ⟨%log, #Hcert, -, %Hlen, -, -, #Hres, Hown⟩

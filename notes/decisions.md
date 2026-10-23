@@ -16429,3 +16429,67 @@ track S (the store computes the meaning) could be stated either.
 
 **Next (the plan's order):** A1, the class statement for the verified KV and watch handlers
 over `permVerdict`'s first half; S1, `authpb` translated and schema's auth backend proved.
+
+## A1 of the auth plan: the class statement for the verified checks and API-layer handlers (2026-10-23 · `notes/auth-plan.md`, branch `auth-a1`)
+
+**Problem.** A0's verdicts speak of one call of one check. The matrix (`notes/auth-matrix.md`)
+speaks of requests: the keys a `Put`, `Txn`, `Range` or watch must be permitted on. A1 is the
+statement in between: what a request's check, when it passes, establishes of the principal it
+checked, in terms of the request's model (`OpFull`, `TxnModel`), so that the matrix's "keys"
+column is a theorem of the pin rather than a reading of it.
+
+**Decisions.**
+
+- **The class is a list of required permissions** (`Proof/.../apply/AuthClass.lean`, `Perm3 :=
+  key × rangeEnd × PermType`; `classOk γa info perms`: each permitted to `info` at some recorded
+  state; `classRes M info perms`: `classOk` in `on γa`, `True` in `off` and `any`), and per
+  request shape a function to it: `putClass` (the key's write; with `PrevKv` its read),
+  `deleteClass` (the range's write; with `PrevKv` its read), `rangeClass` (the read), `cmpsClass`
+  (each comparison's read), `opsClass`/`opClass` (mutual: the operations of both branches, nested
+  transactions recursively, the nested case under `□` for persistence), `txnClass`. *Rejected:*
+  one predicate by case analysis on the Go request type (the checks see the model, `txn.TxnOp`,
+  not the wire type); stating the class over `permitted` of a single state (A0: the checks'
+  TOCTOU).
+- **The range end as the check sees it** (`authEndOf`). The model's `rangeEndOf` reads a
+  non-`nil` empty `RangeEnd` as open-ended (mvcc's reading); the auth store's `isOpPermitted`
+  reads any empty one as a point. They differ only for a non-`nil` empty `RangeEnd`, which
+  protobuf-go never decodes (a present empty `bytes` field decodes as `nil`: checked with a Go
+  probe, 2026-10-23), so no wire request reaches the difference, but an in-process caller could
+  build it. A range's class is therefore stated for *some* end `e` with `authEndOf
+  o.base.rangeEnd e` (the model's end, or `[]` when the model's is `"\x00"`), proved from the
+  slice's length (`authEndOf_rangeEndOf`). *Rejected:* a premise excluding the shape (it would
+  sit on every KV spec); changing the model's reading (mvcc's is the right one for the data).
+  Not an `issues/` entry: nothing reachable, and the two readings agree on every wire request.
+- **The checks' specs gain one conjunct** (appended, as A0's: `∀ _ : err = nil, <class>`):
+  `checkPutAuth` (`putClass`), `checkTxnReqsPermission` (`opsClass` of the operations),
+  `checkTxnPermission`/`CheckTxnAuth` and the Löb-induction form `txnPermT` (`txnClass`). The
+  loops' invariants carry the class of the prefix walked (`opsClass on info (ops.take n)`,
+  `cmpsClass` likewise). Eleven destructuring sites change by one `-` (A0's pattern).
+- **Not stated: the lease's keys and a nested put's `PrevKv`.** `checkLeasePuts` (a put with a
+  lease: admin, or `IsPutPermitted` of each key `Keys()` returns) is proved as before, but the
+  lessor's contract (`isApplyLessor`, names-only) relates `Keys()` to no model, so a class over
+  them would be vacuous; the leases unit is where it gets one. A nested put's `PrevKv` read is
+  checked by the code (`checkPutAuth`) but `TxnOp` does not carry `PrevKv` (`putTxnOp`), so
+  `opClass` states the key's write only (sound: a subset of what the check establishes).
+- **The API layer.** `doSerialize.spec` takes `C : AuthInfo → IProp`, what a passed `chk`
+  establishes of the auth info it saw; its success gives `∃ info, C info` (the context's token's
+  principal, or the empty `AuthInfo` when there is none: `info` is existential because
+  `AuthInfoFromCtx`'s contract (`isReqAuth`) does not bind the token to a principal, S5's).
+  `EtcdServer.Range`'s success post gains `∃ info, rangeClass E.authMode info o` (the
+  serializable path's `chk`; the linearizable path's check is apply's, below); `EtcdServer.Txn`
+  passes `txnClass` but its post does not state it (its main path is through raft and apply).
+  `serverWatchStream.isWatchPermitted` gains `∀ _ : err = nil, ∃ info, classRes ... [(k, e,
+  read)]`. Callers change by one `-` (`kvServer.Range`, `recvLoop`).
+- **Not done: the method-level statement** (the auth applier's `Put`/`DeleteRange`/`Txn`/`Range`
+  for the principal the request's header names). `authApplierV3.Put.spec`'s post is `kvPostF E
+  (.auth E.authOn c) ...`, and the chain model's auth case hides the principal in `chainRes`'s
+  `authInfoOwn p` existential, so a class of "the request's principal" cannot be written at that
+  layer without threading the principal through `chainRes` (and `applierSpec`/`kvPostF`, which
+  the examples' closed theorems rest on). That is the next step of A1 (a follow-up: thread `p`'s
+  `AuthInfo` through `Chain.auth`, then restate the four method specs); the check-level results
+  are what it will compose.
+- **The trust base is unchanged** (`etc/tcb-report.py --check` passes without `--update`); no
+  closed theorem's statement changes.
+
+**Next:** the method-level statement above; A4 (the watch shapes over `isWatchPermitted`'s new
+conjunct); A2's handlers.

@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 
 @[expose] public section
 
@@ -35,7 +36,8 @@ abbrev apply.checkPutAuth.spec : Prop :=
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkPutAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #r))
   {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
-      ⌜on.isOn = false → err = GoInterface.nil⌝ }}
+      ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
+      (∀ _ : err = GoInterface.nil, apply.putClass on info o) }}
 
 end spec
 

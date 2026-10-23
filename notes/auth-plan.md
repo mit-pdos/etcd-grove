@@ -8,7 +8,7 @@ verdicts `permVerdict`/`adminVerdict`/`enabledVerdict`/`revisionVerdict`), the c
 `notes/auth-matrix.md`. What differed from the plan: the verdicts are two one-directional facts
 over recorded states, not `↔` at one state (the checks' own TOCTOU, decisions); the history is
 indexed by position, not by the auth revision (`AuthEnable` does not bump it); `isReqAuth` is
-untouched (the token binding is S5's). S1 to S5 and A1 to A4, E not started. Prompted by etcd-io/etcd#22595 (the
+untouched (the token binding is S5's). A1 carried out 2026-10-23 (branch `auth-a1`: the class statement for the verified checks and the API-layer handlers, `apply/AuthClass.lean`; the method-level statement is its follow-up, `notes/decisions.md`, "A1 of the auth plan"). S1 started in parallel (branch `auth-s1`); S2 to S5, A2 to A4, E not started. Prompted by etcd-io/etcd#22595 (the
 proposal to revert Auth to Beta: "the feature was never really finished", a stream of security
 reports) and #22540 / PR #22541 (an "auth matrix" test: every gRPC method on the client port
 classified public / authenticated / RBAC / admin and probed with no token, an invalid token and an
@@ -192,7 +192,7 @@ already a premise of D29's refusal-freedom and would become real with S5).
 | S3 | P2's checks re-proved to compute the model; `hasRootRole`; the token binding | S1, S2 | days |
 | S4 | the admin side as model steps; `Recover`; the apply layer's admin requests | S3 | one to two weeks |
 | S5 | `NewAuthStore`, `Authenticate`, the token providers | S4 | about a week |
-| A1 | the class statement for the verified KV and watch handlers, both layers | A0 | about a week |
+| A1 | the class statement for the verified KV and watch handlers, both layers | A0 | about a week; **done** 2026-10-23 for the checks (`checkPutAuth`, `checkTxnReqsPermission`, `checkTxnPermission`/`CheckTxnAuth`) and the API layer (`doSerialize`, `Range`, `isWatchPermitted`); the method-level statement (the auth applier's `Put`/`DeleteRange`/`Txn`, needs the principal through `chainRes`) is the follow-up |
 | A2 | the advisories' methods: Cluster, Lease, Maintenance, `Alarm`, `Compact` translated and proved | A1 | two weeks (most are names-only today) |
 | A3 | the Auth service, Lock, Election | A2 | one to two weeks |
 | A4 | the watch shapes | A1 | days |

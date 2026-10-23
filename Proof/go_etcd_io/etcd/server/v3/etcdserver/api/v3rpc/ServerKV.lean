@@ -669,7 +669,7 @@ theorem kvRangeOk_of_server (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG
     ipureintro; exact validSortTarget_of_rangeCheck o Hok.1
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, Hok'⟩ | ⟨%Hre, #HaE⟩)
+  icases Hres with (⟨%Herr, -, Hok'⟩ | ⟨%Hre, #HaE⟩)
   · obtain ⟨rfl, Hrn⟩ := Herr
     iunfold rangeReadOk at Hok'
     icases Hok' with ⟨%log, #Hcert, #Hcok, %Hlen, Hlin, HQl, #Hres, Hown⟩
