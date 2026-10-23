@@ -189,7 +189,10 @@ abbrev rafthttpInit : IProp GF :=
       ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝) ∗
     -- (2026-10-23, rafthttp stage 5b) the stream writer's heartbeat period's base (`peer.go`,
     -- translated): `DefaultConnReadTimeout`, five seconds, read-only for good (tests change it)
-    globalAddr ConnReadTimeout ↦□ (W64 5000000000))
+    globalAddr ConnReadTimeout ↦□ (W64 5000000000) ∗
+    -- (2026-10-23, rafthttp stage 5b) the heartbeat's size (`stream.go`, untranslated), which the
+    -- stream writer counts: some `int`, read-only for good
+    (∃ n : w64, globalAddr linkHeartbeatSize ↦□ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit

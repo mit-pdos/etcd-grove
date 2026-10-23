@@ -44,14 +44,19 @@ def StreamTy.str : StreamTy → GoString
   | .msgAppV2 => go!"msgappv2"
   | .message => go!"message"
 
+/-- A message's encoding is below `2^50` bytes (see `swMsg`). -/
+def swMsgBound (ml : Loc) : Prop := (pbEnc raftpb.Message.ty ml).length < 2 ^ 50
+
 /-- **A message for the stream writer of type `ty` from `lid` to `pid`** (`msgc`'s): `pipeMsg`'s
 (read-only, marshalable, for `pid`, not a snapshot, without responses, with its bundle), and for the
 msgappv2 stream an `MsgApp` of raft's shape from `lid` to `pid` (`V2EncOk`: `peer.pick` sends only
-those there). -/
+those there); (stage 5b) its encoding below `2^50` bytes (`swMsgBound`: the writer sums the sizes
+of up to 2049 messages into an `int` it adds to a counter, which must not be negative; for stage 6
+to establish, or to replace by a physical bound). -/
 def swMsg (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (ty = .msgAppV2 → V2EncOk lid pid st)⌝)
+      (ty = .msgAppV2 → V2EncOk lid pid st) ∧ swMsgBound ml⌝)
 
 /-- **The right to close `cl` once** (exclusive), giving it `Q`: its `Close()` returns some error. -/
 def closeRight (cl : GoInterface) (Q : IProp GF) : IProp GF :=
@@ -192,6 +197,42 @@ theorem typedPointsto_combine_halves {V : Type} [TypedPointsto (GF := GF) V] (l 
     isplitl [H1]
     · iexact H1
     · iexact H2
+
+/-- **`run` takes `mu`**: its halves and the lock's make the guarded fields whole. -/
+theorem swRunOwn_combine (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (cw : Loc)
+    (mc : GoChan) (wk : Bool) (cl : GoInterface) :
+    swRunOwn Rh ty lid pid cw mc wk cl ⊢ swLockInv Rh ty lid pid cw -∗
+      ∃ γm : ChanNames, cw.[rafthttp.streamWriter, go!"msgc"] ↦ mc ∗
+        cw.[rafthttp.streamWriter, go!"working"] ↦ wk ∗ cw.[rafthttp.streamWriter, go!"closer"] ↦ cl ∗
+        isChanBag γm mc (swMsg Rh ty lid pid) := by
+  iintro Hrun Hinv
+  iunfold swRunOwn at Hrun
+  icases Hrun with ⟨%γm, Hmc, Hwk, Hcl, #Hbag⟩
+  iunfold swLockInv at Hinv
+  icases Hinv with ⟨%mc0, %γm0, %wk0, %cl0, Hmc0, Hwk0, Hcl0, -⟩
+  ihave ⟨%Hemc, Hmc⟩ := typedPointsto_combine_halves _ _ _ $$ [$Hmc $Hmc0]
+  ihave ⟨%Hewk, Hwk⟩ := typedPointsto_combine_halves _ _ _ $$ [$Hwk $Hwk0]
+  ihave ⟨%Hecl, Hcl⟩ := typedPointsto_combine_halves _ _ _ $$ [$Hcl $Hcl0]
+  iexists γm
+  iframe; iframe #
+
+/-- **`run` releases `mu`**: the guarded fields whole make its halves and the lock's. -/
+theorem swRunOwn_split (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (cw : Loc)
+    (mc : GoChan) (γm : ChanNames) (wk : Bool) (cl : GoInterface) :
+    cw.[rafthttp.streamWriter, go!"msgc"] ↦ mc ∗ cw.[rafthttp.streamWriter, go!"working"] ↦ wk ∗
+      cw.[rafthttp.streamWriter, go!"closer"] ↦ cl ∗ isChanBag γm mc (swMsg Rh ty lid pid) ⊢
+      swRunOwn Rh ty lid pid cw mc wk cl ∗ swLockInv Rh ty lid pid cw := by
+  iintro ⟨Hmc, Hwk, Hcl, #Hbag⟩
+  ihave ⟨Hmc, Hmc0⟩ := (typedPointsto_halves _ _).1 $$ Hmc
+  ihave ⟨Hwk, Hwk0⟩ := (typedPointsto_halves _ _).1 $$ Hwk
+  ihave ⟨Hcl, Hcl0⟩ := (typedPointsto_halves _ _).1 $$ Hcl
+  isplitl [Hmc Hwk Hcl]
+  · iunfold swRunOwn
+    iexists γm
+    iframe; iframe #
+  · iunfold swLockInv
+    iexists mc, γm, wk, cl
+    iframe; iframe #
 
 end lemmas
 

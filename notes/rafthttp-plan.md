@@ -396,6 +396,36 @@ trust-boundary spec.
    spec gains the encoding's bound (`< 2^63`, from `Size`), which the message codec's frames need.
    Still opaque: `idStr` (`ID.String`'s result) and so `streamPath` (5d ties them to `path.Join`).
    For 5c: the decoders' specs must say a decoded copy has no responses (`netRecv`).
+   **Done 2026-10-23: 5b, the stream writer** (over its callees' specs as hypotheses; not linked
+   until stage 6). `rafthttp/Writer.lean`: what `msgc` carries (`swMsg`), an attached connection
+   (`outConnOk`: the handler's response writer after a `200`, the connection's registration, and
+   `closeRight`, the right to close it once, which gives the response writer back), the goroutine's
+   live connection (`swLive`: encoder, writer at the chain written so far, its frames' facts), the
+   fields `mu` guards split in halves between `run` and the lock (`swLockInv`, `swRunOwn`), the
+   writer's fixed fields (`swFixed`) and the stop/done rights. Proved: `streamWriter.run` (its
+   four-way select, two cases on nil channels while not working; the message's one-shot part
+   deposited as its frame's before it is encoded; a heartbeat's frame without one; the old
+   connection closed and `msgc` replaced on a failure or a new connection), `close`,
+   `closeUnlocked`, `writec`, `attach`, `stop`, `startStreamWriter`, `newMsgAppV2Encoder`,
+   `streamType.String` (and its pointer form); `WriterRun.lean`'s `wp_stream_encode` (`enc.encode`
+   for either stream type), `stream_perm` (what the encoder may write is in the response's
+   protocol), `respWriter_writerAt`. On the way: `ConnReadTimeout`'s initializer translated (five
+   seconds: `NewTicker` needs a positive period); the writer contract (`writerAt`) and both
+   encoders' specs say an error's `Error()` returns (`http.errStrOk`: the writer logs it).
+   **For the user's review (5f)**:
+   - `linkHeartbeatSize_init` (**a new init axiom**, `gen-init.py`'s custom kind, reached by every
+     result through rafthttp's initializer; **accepted by the user 2026-10-23, baseline 548 -> 549**): the heartbeat's size
+     variable holds an `int` from `0` to below `2^50` (its untranslated initializer is
+     `proto.Size(&linkHeartbeatMessage)`, two bytes); the writer adds it to a counter.
+   - **An open premise, `swMsgBound`**: a message queued to a stream writer encodes below `2^50`
+     bytes. The writer sums up to 2049 messages' sizes into an `int` it adds to a prometheus counter,
+     whose `Add` panics on a negative value (the counter spec asks `0 ≤ n`); only an overflow past
+     `2^63` bytes between two flushes would make it negative. Stage 6 must discharge it, by a physical
+     bound (a trust item: no message is a petabyte; but stated on `pbEnc` it would contradict a logical
+     heap holding a larger slice) or by letting `Add` of a negative value panic (Go's behavior, a
+     change to the counter spec), which the writer's goroutine may (its spec's fork accepts a panic).
+   - The draft `respWrite_spec` (not an axiom yet) corrected: `Write` writes the first `n` bytes, all
+     of them unless it fails (`io.Writer`'s contract), with an error whose `Error()` returns.
 6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
    it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;
    then the trust base drops by those axioms and `RaftHandler`'s, gains the HTTP specs.

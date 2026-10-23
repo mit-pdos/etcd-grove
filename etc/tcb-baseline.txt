@@ -104,6 +104,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.disconnectedPe
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatSize_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.receivedBytes_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.recvFailures_init

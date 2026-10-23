@@ -348,7 +348,10 @@ def respRead_spec (H : HttpNet GF) : Prop :=
           (□ ∃ w, ⌜r ++ ys <+: w⌝ ∗ (H.proto R.host).resp R γk st w) ∗
           p ↦* (ys ++ xs.drop ys.length) ∗ respReader H rd R γk st (r ++ ys) }}
 
-/-- `ResponseWriter.Write(b)`: needs the protocol of what has then been written; may fail. -/
+/-- `ResponseWriter.Write(b)`: needs the protocol of what has then been written; writes the first
+`n` bytes, all of them unless it fails (`io.Writer`'s contract: an error if `n < len(b)`; 2026-10-23,
+stage 5b: until then all of `b` was recorded, whatever `n`), with an error whose `Error()` returns
+(net/http's, `errStrOk`). -/
 def respWrite_spec (H : HttpNet GF) : Prop :=
   ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (γk : GName)
     (st : Option w64) (w : List w8) (b : GoSlice) (bs : List w8) (dq : DFrac),
@@ -357,7 +360,8 @@ def respWrite_spec (H : HttpNet GF) : Prop :=
           □ (H.proto a).resp R γk (st.getD (W64 200)) (w ++ bs) }}
         (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #b))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-          b ↦*{dq} bs ∗ respWriter H wr a R γk (some (st.getD (W64 200))) (w ++ bs) }}
+          ∃ k : Nat, b ↦*{dq} bs ∗ respWriter H wr a R γk (some (st.getD (W64 200))) (w ++ bs.take k) ∗
+          ⌜sint.Z n = k ∧ k ≤ bs.length ∧ (err = GoInterface.nil → k = bs.length)⌝ ∗ errStrOk err }}
 
 /-- `ResponseWriter.WriteHeader(st)` before any write: sets the status, which needs the protocol
 of the (still empty) response with it. (Stage 4e) A final status, `200` to `999`: Go panics

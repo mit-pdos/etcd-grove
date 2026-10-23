@@ -6,7 +6,8 @@ Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` hol
 error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
 variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
-states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
+states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`'s (`stream.go`);
+`opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
 `ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) are translated and set.
 -/
 module
@@ -91,7 +92,6 @@ axiom opaqueInitsOk :
         snapResponseReadTimeout.init,
         errUnsupportedStreamType.init,
         supportedStream.init,
-        linkHeartbeatSize.init,
         errMemberNotFound.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
@@ -120,6 +120,11 @@ axiom errorsNewVarsInit :
 axiom linkHeartbeatMessage_init :
     {{ (True : IProp GF) }} (App (Val linkHeartbeatMessage.init) (Val #()))
     {{ RET #(); EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt }}
+
+/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat's encoding's size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/
+axiom linkHeartbeatSize_init :
+    {{ (True : IProp GF) }} (App (Val linkHeartbeatSize.init) (Val #()))
+    {{ RET #(); ∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝ }}
 
 /-- `receivedBytes = prometheus.NewCounterVec(..., []string{"From"})`
 (`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
@@ -268,7 +273,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk errUnsupportedStreamType.init (by mem_tac))
   wp_apply (opaqueInitsOk supportedStream.init (by mem_tac))
   wp_apply linkHeartbeatMessage_init as #HlinkHeartbeatMessage
-  wp_apply (opaqueInitsOk linkHeartbeatSize.init (by mem_tac))
+  wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
   wp_apply (errorsNewVarsInit errMemberRemoved.init errMemberRemoved go!"the member has been permanently removed from the cluster" (by mem_tac))
     as ⟨%xerrMemberRemoved, HerrMemberRemoved, #MerrMemberRemoved, #CerrMemberRemoved⟩
   wp_apply (opaqueInitsOk errMemberNotFound.init (by mem_tac))
@@ -286,6 +291,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HerrMemberRemoved
   ipersist HRaftPrefix
   ipersist HConnReadTimeout
+  ipersist HlinkHeartbeatSize
   iframe Hown
   imodintro
   isplitr
@@ -302,6 +308,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iexact HRaftPrefix
   simp only [EtcdGrove.errorsNewVar]
   iframe #
+  try (ipureintro; exact BlinkHeartbeatSize)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

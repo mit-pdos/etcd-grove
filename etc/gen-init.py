@@ -169,7 +169,8 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'] = dict(
 error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
 variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
-states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
+states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`'s (`stream.go`);
+`opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
 `ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) are translated and set.''',
     newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded",
         errIncompatibleVersion="incompatible version", ErrClusterIDMismatch="cluster ID mismatch",
@@ -179,19 +180,25 @@ states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `Raft
     custom={'linkHeartbeatMessage': dict(
         doc='/-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/',
         post='EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt',
-        pat='#H@')},
+        pat='#H@'),
+        # (2026-10-23, rafthttp stage 5b) the stream writer counts a heartbeat's size
+        'linkHeartbeatSize': dict(
+        doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
+        post='∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝',
+        pat='⟨%n@, H@, %B@⟩')},
     alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64'},
     # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step
     before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto']},
     finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
             'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
-            'ipersist HRaftPrefix', 'ipersist HConnReadTimeout',
+            'ipersist HRaftPrefix', 'ipersist HConnReadTimeout', 'ipersist HlinkHeartbeatSize',
             'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
             'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'isplitr',
             '· iexists _; iexact HErrExceedSizeLimit', 'isplitr', '· iexact HlinkHeartbeatMessage',
             'isplitr', '· iexact HRaftPrefix',
-            'simp only [EtcdGrove.errorsNewVar]', 'iframe #'],
+            'simp only [EtcdGrove.errorsNewVar]', 'iframe #',
+            'try (ipureintro; exact BlinkHeartbeatSize)'],
 )
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
