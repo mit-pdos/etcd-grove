@@ -51,12 +51,13 @@ theorem apply.uberApplier.Apply.wp_proof
         apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧
           apply.kvFloorOk rq v3 F x.log o⌝ ∗
+        (∀ _ : v3 = true, apply.chainClass E.authMode (apply.principalOf rq) x.chain rq o) ∗
         apply.resTrace ar ∗ apply.dispatchResult rq v3 x.log skip ar o))
       [Ha Hkv Hwt Hcs HFS HSp HRO] as %ar Hpost
   · iframe Hw Ha Hkv Hwt Hcs HFS HSp HRO
     imodintro
     iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs, HFS, HSp, HRO⟩ HΦ'
-    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs) $$ [Hres Ha Hkv Hwt Hcs HFS HSp HRO]
+    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs (apply.principalOf rq)) $$ [Hres Ha Hkv Hwt Hcs HFS HSp HRO]
     · iframe #
       iframe Hres Ha Hkv Hwt Hcs HFS HSp HRO
       ipureintro; exact ⟨Hok, HcE⟩
@@ -66,13 +67,13 @@ theorem apply.uberApplier.Apply.wp_proof
     simp only []
     iframe Hres HFS HRO
     iexact HB
-  icases Hpost with (⟨HFS, HRO, %a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, Htr, Hres⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs, HFS, -, HRO⟩, Hrej⟩)
+  icases Hpost with (⟨⟨HFS, HRO, %a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, #Hcls, Htr, Hres⟩, #Hadm⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs, HFS, -, HRO⟩, Hrej⟩)
   · imodintro
     iapply HΦ
     iframe HFS
     iexists ⟨o.logAfter x.log, c'⟩, (.dispatched o skip)
-    simp only [apply.applyResultIs, apply.restOut]
-    iframe Hkv HPP Hres Htr HRO
+    simp only [apply.applyResultIs, apply.restOut, apply.applyAuthRes]
+    iframe Hkv HPP Hres Htr HRO Hcls Hadm
     isplitl [Ha']
     · iunfold apply.uberOwn; iexists a'; iframe Ha' Hs''
       ipureintro
@@ -99,13 +100,16 @@ theorem apply.uberApplier.Apply.wp_proof
     · ipureintro; exact ⟨⟨Hna, rfl⟩, Or.inl rfl, trivial⟩
     isplitl []
     · iapply apply.resTrace_err ar v Hvf.1 $$ Hv
-    simp only [apply.applyResultIs]
-    iunfold apply.rejectedResultIs
-    isplitr
-    · ipureintro; exact Harn
-    iexists v
-    iframe Hv HeI
-    ipureintro; exact Hvf
+    isplitr []
+    · simp only [apply.applyResultIs]
+      iunfold apply.rejectedResultIs
+      isplitr
+      · ipureintro; exact Harn
+      iexists v
+      iframe Hv HeI
+      ipureintro; exact Hvf
+    simp only [apply.applyAuthRes]
+    itrivial
 
 end proof
 

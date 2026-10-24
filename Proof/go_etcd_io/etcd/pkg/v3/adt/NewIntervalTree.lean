@@ -29,7 +29,7 @@ theorem adt.NewIntervalTree.wp_proof : adt.NewIntervalTree.spec (GF := GF) (hG :
   wp_alloc t as Ht
   wp_auto
   iapply HΦ
-  unfold adt.ownIvt
+  unfold adt.ownIvt adt.ownIvtK
   iexists _, .leaf
   iframe Ht
   simp only

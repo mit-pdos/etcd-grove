@@ -24,17 +24,17 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 theorem adt.intervalNode.successor.wp_proof
     (h_min : adt.intervalNode.min.spec (GF := GF) (hG := hG)) :
     adt.intervalNode.successor.spec (GF := GF) (hG := hG) := by
-  intro z s rp r hr
+  intro K hK z s rp r hr
   wp_start as ⟨Hzr, Hn⟩
   obtain ⟨c, l, e, r', rfl⟩ : ∃ c l e r', r = .node c l e r' := by
     cases r with
     | leaf => exact absurd rfl hr
     | node c l e r' => exact ⟨c, l, e, r', rfl⟩
-  ihave %Hrp := adt.ownNode_node_ne _ _ _ _ _ _ _ _ $$ Hn
+  ihave %Hrp := adt.ownNode_node_ne K _ _ _ _ _ _ _ _ $$ Hn
   wp_auto
   rw [_root_.decide_eq_false Hrp.1]
   wp_auto
-  wp_apply h_min rp s z (.node c l e r') (by simp) $$ [Hn] as %y ⟨%A, %ls, %yp, %cy, %ye, %yr, HA, Hy, %Hy⟩
+  wp_apply (h_min K hK) rp s z (.node c l e r') (by simp) $$ [Hn] as %y ⟨%A, %ls, %yp, %cy, %ye, %yr, HA, Hy, %Hy⟩
   · iframe
   iapply HΦ
   iframe

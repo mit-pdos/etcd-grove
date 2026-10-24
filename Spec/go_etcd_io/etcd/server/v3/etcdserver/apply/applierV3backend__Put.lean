@@ -29,12 +29,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **`a.Put(p)`**: `txn.Put(context.TODO(), lg, lessor, kv, p)` at the sole writer of `log`: the lease not found or the key missing (rejected by the backend), or the put committed as the client's put on `log`'s state (`backendStep`); the lease written known. -/
 abbrev apply.applierV3backend.Put.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log)
-    (Pre Q Post : IProp GF),
+    (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      apply.putPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+      apply.putPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Put")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) rq log F (apply.putAnswerIs log o resp err) Pre Post ∗
+      apply.kvPostF E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info rq log F (apply.putAnswerIs log o resp err) Pre Post ∗
       apply.traceRes trace }}
 
 end spec

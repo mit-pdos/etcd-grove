@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3Corrupt.Range.wp_proof :
     apply.applierV3Corrupt.Range.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq o log
+  intro E c inner p r rq o log info
   wp_start as ⟨-, Hpre⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -41,13 +41,15 @@ theorem apply.applierV3Corrupt.Range.wp_proof :
   isplitl
   rotate_left
   · iapply apply.traceRes_null
+  ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.corrupt c) rq (.rejected .corrupt) $$ []
+  · iapply apply.chainClass_corrupt_rejected
   iunfold apply.rangePost
   iexists (.rejected .corrupt)
   isplitr
   · ipureintro
     simp only [apply.chainStep, apply.corruptRejects, Hk.2.1, ↓reduceIte]
   simp only [apply.rangeOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
-  iframe Hkv Hres
+  iframe Hkv Hres Hcls
   isplitl []
   · ipureintro; trivial
   iunfold txn.errVarIs

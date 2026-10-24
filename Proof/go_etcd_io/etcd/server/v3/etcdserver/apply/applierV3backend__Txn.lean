@@ -32,7 +32,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hTxn : txn.Txn.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Txn.spec (GF := GF) (hG := hG) := by
-  intro E p r skip rq t log F Pre Q Post
+  intro E p r skip rq t log F Pre Q Post info
   wp_start as ⟨#Hb, Hpre, #HF⟩
   iunfold apply.txnPre at Hpre
   iunfold apply.mPre at Hpre
@@ -84,7 +84,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     isplitl
     rotate_left
     · rw [Herr.2.1]; iapply apply.traceRes_null
-    iunfold apply.kvPostF
+    iapply apply.kvPostF_backend
     iexists (.rejected .backend)
     isplitr
     · ipureintro
@@ -102,7 +102,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     isplitr [Htrc]
     rotate_left
     · iunfold apply.traceRes; iright; iexact Htrc
-    iunfold apply.kvPostF
+    iapply apply.kvPostF_backend
     iexists (.applied (mvcc.commitLog log
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) false)
     isplitr

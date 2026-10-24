@@ -46,7 +46,8 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
       E.RO (apply.restOut rq v3 out rs) ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip) ∧
         apply.applyFloorOk rq v3 F x.log out⌝ ∗
-      apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out }}
+      apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
+      apply.applyAuthRes E.authMode x.chain rq v3 out }}
 
 end spec
 

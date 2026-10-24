@@ -32,7 +32,7 @@ theorem apply.applierV3backend.Range.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hRange : txn.Range.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Range.spec (GF := GF) (hG := hG) := by
-  intro E p r rq o log
+  intro E p r rq o log info
   wp_start as ⟨#Hb, Hpre⟩
   iunfold apply.rangePre at Hpre
   iunfold apply.kvOwn at Hpre
@@ -66,7 +66,7 @@ theorem apply.applierV3backend.Range.wp_proof
   isplitr [Htrc]
   rotate_left
   · iunfold apply.traceRes; iright; iexact Htrc
-  iunfold apply.rangePost
+  iapply apply.rangePost_backend
   iexists (.applied log false)
   isplitr
   · ipureintro

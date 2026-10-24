@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3backend.RoleList.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.RoleList.spec (GF := GF) (hG := hG) := by
-  intro E p r log Pre Q Post
+  intro E p r log Pre Q Post info
   wp_start as ⟨#Hb, HRW, Hpre, Hwt⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
@@ -44,7 +44,7 @@ theorem apply.applierV3backend.RoleList.wp_proof
   iunfold apply.backendOptsOk at Hok
   icases Hok with ⟨-, -, -, -, #Has, -⟩
   iunfold apply.isAuthStore at Has
-  icases Has with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HM⟩
+  icases Has with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HM, -⟩
   iunfold apply.authReqContract at HM
   iStructNamed Hopts
   wp_auto
@@ -56,7 +56,7 @@ theorem apply.applierV3backend.RoleList.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iunfold apply.kvOwn
     iframe
   · -- a response: its header
@@ -67,7 +67,7 @@ theorem apply.applierV3backend.RoleList.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iunfold apply.kvOwn
     iframe
 

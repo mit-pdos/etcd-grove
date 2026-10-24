@@ -26,18 +26,19 @@ parent `p` (or as the root), `p`'s `max` recomputed from `y`'s (`updateMax` up t
 `x`'s parent is `y`. `x` is the hole of the context `C` (its parent's `max` from any `mh`); `y`
 brings its `parent` and `max` fields. The frames' locations `ls` are kept. -/
 abbrev adt.intervalTree.replaceParent.spec : Prop :=
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
   ∀ (t s : Loc) (dq : DFrac) (C : adt.RbCtx adt.Entry) (ls : List (Loc × Loc)) (x p y yp : Loc)
     (mh : Option GoString) (my : GoString),
   x ≠ s → y ≠ s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
-      t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ adt.ownCtxAt t s C ls x p mh ∗
+      t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ adt.ownCtxAt K t s C ls x p mh ∗
       x.[intervalNode, go!"parent"] ↦ p ∗
-      y.[intervalNode, go!"parent"] ↦ yp ∗ y.[intervalNode, go!"max"] ↦ adt.maxW my }}
+      y.[intervalNode, go!"parent"] ↦ yp ∗ K.maxAt y.[intervalNode, go!"max"] (DFrac.own 1) my }}
     (App (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"replaceParent"))
       (Val #x)) (Val #y))
-  {{ RET #(); t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ adt.ownCtxAt t s C ls y p (some my) ∗
+  {{ RET #(); t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ adt.ownCtxAt K t s C ls y p (some my) ∗
       x.[intervalNode, go!"parent"] ↦ y ∗
-      y.[intervalNode, go!"parent"] ↦ p ∗ y.[intervalNode, go!"max"] ↦ adt.maxW my }}
+      y.[intervalNode, go!"parent"] ↦ p ∗ K.maxAt y.[intervalNode, go!"max"] (DFrac.own 1) my }}
 
 end spec
 

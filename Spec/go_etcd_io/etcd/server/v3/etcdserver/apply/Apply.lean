@@ -75,7 +75,7 @@ abbrev apply.Apply.spec : Prop :=
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
         E.RO (apply.restOut rq v3 out rs) ∗
         ⌜apply.applyStep rq v3 x x' out ∧ apply.applyFloorOk rq v3 F x.log out⌝ ∗
-        apply.applyResultIs rq v3 x.log ar out ∗
+        apply.applyResultIs rq v3 x.log ar out ∗ apply.applyAuthRes E.authMode x.chain rq v3 out ∗
         (⌜out.waived = false⌝ ∨ G ot id) }}
 
 end spec

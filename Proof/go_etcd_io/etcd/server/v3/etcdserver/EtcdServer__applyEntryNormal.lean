@@ -353,7 +353,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       wp_apply hA fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot x.log
         _ $$ [HKV Hwt HRD HFSE HSpF HRS]
-        as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, HRS, %Hstep0, -, #Hdel⟩
+        as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, HRS, %Hstep0, -, -, #Hdel⟩
       · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpF HRS
         isplitr
         · iunfold entryRegd at Hreg
@@ -537,7 +537,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           applyBackend γ ci b) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
         _ $$ [Hst Happ Hbe HKV Hwt HRD HFSE HSpT HRS] as %ar %id
-          ⟨HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, HRS, %Hstep0, HRes, #Hdel⟩
+          ⟨HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, HRS, %Hstep0, HRes, -, #Hdel⟩
       · iunfold srvRest at HRS
         iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpT HRS
         isplitr

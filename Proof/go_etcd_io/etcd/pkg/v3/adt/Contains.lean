@@ -159,6 +159,32 @@ def containsRes (q : IvlS) (L : List Entry) : Bool :=
     | none => false
     | some me => decide (affCmp me q.2 ≥ 0 ∧ affCmp z.1.1 q.1 ≤ 0)
 
+/-- The scan over one more entry: it breaks when the entry begins above the running maximum,
+else the maximum takes the entry's end when above it (`Contains`' loop body). -/
+theorem scanFrom_snoc (z : Entry) : ∀ (zs : List Entry) (me : GoString),
+    scanFrom me (zs ++ [z]) = match scanFrom me zs with
+      | none => none
+      | some me' => if affCmp me' z.1.1 < 0 then none
+          else some (if affCmp z.1.2 me' > 0 then z.1.2 else me')
+  | [], me => by simp only [List.nil_append, scanFrom]
+  | w :: ws, me => by
+    simp only [List.cons_append, scanFrom]
+    split
+    · rfl
+    · exact scanFrom_snoc z ws _
+
+/-- A scan that broke stays broken over more entries. -/
+theorem scanFrom_none_append (ws : List Entry) : ∀ (zs : List Entry) (me : GoString),
+    scanFrom me zs = none → scanFrom me (zs ++ ws) = none
+  | [], me, h => by simp [scanFrom] at h
+  | w :: zs, me, h => by
+    simp only [List.cons_append, scanFrom] at h ⊢
+    split
+    · rfl
+    · rename_i hw
+      rw [if_neg hw] at h
+      exact scanFrom_none_append ws zs _ h
+
 /-- A key below the scan's final maximum is below its initial one or in a scanned entry. -/
 theorem scanFrom_cover (zs : List Entry) : ∀ (me me' : GoString), scanFrom me zs = some me' →
     ∀ k, affLt k me' → affLt k me ∨ ∃ z ∈ zs, inIvl z.1 k := by

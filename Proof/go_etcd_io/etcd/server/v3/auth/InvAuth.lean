@@ -4,15 +4,18 @@ P2): its locks, what they hold, and the contracts of the objects it calls throug
 Lean-first (no Rocq counterpart); see `notes/decisions.md`, "The auth store's request side (unit
 P2)".
 
-**The store** `as` (`authInv as R`, persistent):
+**The store** `as` (`authInv as R M`, persistent):
 - `revision`, an atomic (`Revision()` loads it; `commitRevision`/`setRevision`, the admin side,
-  add to or store it): its points-to in an invariant of its own;
+  add to or store it): its points-to in an invariant of its own, with the mode's verdict on its
+  value (`revisionVerdict`: in `on γa` a recorded state's revision; the auth plan's S3,
+  2026-10-23);
 - `lg`, `tokenProvider`: read-only (written by `NewAuthStore`);
 - `beMu` (an `RWMutex`, since the fork's d52eec43e, D22k (A)) guards the backend `be` with its
   contract (`beP`): `Recover` (names-only) writes it under the write lock, the permission checks
   read it under a read lock (`lockedReadTx`), so a check's read transaction is of the backend
   current when it was locked (the server closes a replaced backend only after `Recover`);
-- `enabledMu` (an `RWMutex`) guards `enabled` (`enabledP`);
+- `enabledMu` (an `RWMutex`) guards `enabled` (`enabledP`), with the mode's verdict on the flag
+  (`enabledVerdict`: in `off` false, in `on γa` a recorded state's flag; S3);
 - `rangePermCacheMu` (an `RWMutex`) guards the permission cache `rangePermCache` (`cacheP`): a
   map from user name to a `*unifiedRangePermissions` whose two interval trees (`readPerms`,
   `writePerms`) are read-only once built (`refreshRangePermCache` replaces the map whole with
@@ -40,7 +43,9 @@ P2)".
   generalization; until S2 the trees were a contract, `ivtQuery`, returning any boolean).
 
 **The mode** `M` (`AuthMode`, `Model.lean`) of the store's contract: what the backend's states are
-(`authSnap`); the request side's specs are proved for every mode (their verdicts are track S's).
+(`authSnap`), what the flag and the revision are (`enabledP`, `revInv`); the request side's specs
+are proved for every mode and return the mode's verdicts (`permVerdict`, `adminVerdict`,
+`enabledVerdict`, `revisionVerdict`: `VerdictLemmas.lean` turns the reads into them; S3).
 
 **The readers** (`authRd as R M`): `IsAuthEnabled` read-locks `enabledMu` and the permission checks
 also `rangePermCacheMu` and `beMu`, each needing a reader slot (`sync.ownRWMutex`: Perennial bounds
@@ -51,7 +56,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
-public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesIvl
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 
 @[expose] public section
 
@@ -282,9 +287,16 @@ theorem cacheVerdict_off (user k e : GoString) (pt : go_etcd_io.etcd.api.v3.auth
     (b : Bool) : ⊢ cacheVerdict (GF := GF) .off user k e pt b := by
   unfold cacheVerdict; itrivial
 
-/-- What `enabledMu` guards at `q`: `enabled`. -/
-def enabledP (st : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ b : Bool, aF go!"enabled" st ↦{DFrac.own q} b)
+/-- What `enabledMu` guards at `q` in the mode `M`: `enabled`, a recorded state's flag
+(`enabledVerdict`: in `off` false, in `on γa` some recorded state's; the auth plan's S3). -/
+def enabledP (st : Loc) (M : AuthMode) (q : Qp) : IProp GF :=
+  iprop(∃ b : Bool, aF go!"enabled" st ↦{DFrac.own q} b ∗ enabledVerdict M b)
+
+/-- The `*AuthInfo` `a` at `dq` holds `ai`: `none`, a `nil` pointer; `some info`, the message. -/
+def authInfoAt (a : Loc) (dq : DFrac) (ai : Option AuthInfo) : IProp GF :=
+  match ai with
+  | none => iprop(⌜a = null⌝)
+  | some info => iprop(a ↦{dq} info)
 
 /-- What `rangePermCacheMu` guards at `q` in the mode `M`: the cache's map, `cacheOk`. -/
 def cacheP (st : Loc) (M : AuthMode) (q : Qp) : IProp GF :=
@@ -387,28 +399,29 @@ def authReadTxLocked (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
     ∃ (sta : AuthState) (Hs : AuthState → IProp GF), Hs sta ∗ authSnap M sta ∗ authTxReads ti R Hs)
 
-/-- The invariant of `revision` (an atomic). -/
-def revInv (st : Loc) : IProp GF :=
-  iprop(∃ r : w64, aF go!"revision" st ↦ r)
+/-- The invariant of `revision` (an atomic) in the mode `M`: a recorded state's revision
+(`revisionVerdict`; the auth plan's S3). -/
+def revInv (st : Loc) (M : AuthMode) : IProp GF :=
+  iprop(∃ r : w64, aF go!"revision" st ↦ r ∗ revisionVerdict M r)
 
 /-- **The auth store** at `as` (persistent), its backend's read resource `R`, its mode `M`: the
 atomic `revision`'s invariant, the read-only `lg` (not nil) and `tokenProvider` with its contract,
 and the guards of its three locks (`beMu`'s holds `be` with its contract in the mode). -/
 def authInv (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
-  iprop(⌜st ≠ null⌝ ∗ inv (nroot.@"authRev") (revInv st) ∗
+  iprop(⌜st ≠ null⌝ ∗ inv (nroot.@"authRev") (revInv st M) ∗
     (∃ lg : Loc, aF go!"lg" st ↦□ lg ∗ ⌜lg ≠ null⌝) ∗
     sync.isRWMutexGuard (aF go!"beMu" st) (beP st R M) ∗
     (∃ tp : TokenProvider, aF go!"tokenProvider" st ↦□ tp ∗ tokenProviderOk tp) ∗
-    sync.isRWMutexGuard (aF go!"enabledMu" st) (enabledP st) ∗
+    sync.isRWMutexGuard (aF go!"enabledMu" st) (enabledP st M) ∗
     sync.isRWMutexGuard (aF go!"rangePermCacheMu" st) (cacheP st M))
 
 instance authInv_persistent (st : Loc) (R : IProp GF) (M : AuthMode) :
     Persistent (authInv (GF := GF) st R M) := by
   unfold authInv; infer_instance
 
-/-- A reader slot of `enabledMu` (`IsAuthEnabled`). -/
-def enabledRd (st : Loc) : IProp GF :=
-  sync.ownRWMutex (aF go!"enabledMu" st) (enabledP st)
+/-- A reader slot of `enabledMu` (`IsAuthEnabled`) in the mode `M`. -/
+def enabledRd (st : Loc) (M : AuthMode) : IProp GF :=
+  sync.ownRWMutex (aF go!"enabledMu" st) (enabledP st M)
 
 /-- A reader slot of `rangePermCacheMu` (`isRangeOpPermitted`). -/
 def cacheRd (st : Loc) (M : AuthMode) : IProp GF :=
@@ -420,7 +433,7 @@ def beRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
 
 /-- **A permission check's reader resource**: a slot of each lock and the backend's `R`. -/
 def authRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
-  iprop(enabledRd st ∗ cacheRd st M ∗ beRd st R M ∗ R)
+  iprop(enabledRd st M ∗ cacheRd st M ∗ beRd st R M ∗ R)
 
 /-- `err` is `nil` or one of the error variables the request side returns. -/
 def authErrIs (err : GoInterface) : IProp GF :=

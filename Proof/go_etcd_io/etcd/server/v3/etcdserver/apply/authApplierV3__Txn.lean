@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.Txn.wp_proof
     (hTxn : apply.CheckTxnAuth.spec (GF := GF) (hG := hG)) :
     apply.authApplierV3.Txn.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r skip rq t log F Pre Q Post
+  intro E c inner p r skip rq t log F Pre Q Post info
   wp_start as ⟨#Hauth, #Hinner, Hpre, #HF⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
@@ -39,9 +39,7 @@ theorem apply.authApplierV3.Txn.wp_proof
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
-  ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner $$ Happ Hres
-  iunfold apply.authInfoOwn at Hinfo
-  icases Hinfo with ⟨%info, Hinfo⟩
+  ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
   icases Hin with ⟨%bi, %Hbi, #Ht⟩
@@ -51,7 +49,7 @@ theorem apply.authApplierV3.Txn.wp_proof
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
   ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ _ $$ Hle
-  wp_apply (hTxn st le E.γ E.P E.f E.RD E.authMode E.RW _ info (DFrac.own 1) r t) $$ [$Hst $HleA $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI, %Hoff, -⟩
+  wp_apply (hTxn st le E.γ E.P E.f E.RD E.authMode E.RW _ info (DFrac.own 1) r t) $$ [$Hst $HleA $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI, %Hoff, #Hcls⟩
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
@@ -60,16 +58,19 @@ theorem apply.authApplierV3.Txn.wp_proof
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv [Hinfo]
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) info rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo
       Hres Hcs
     · simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs]
       isplitr
       · ipureintro; trivial
       · iframe HeI; ipureintro; simp
-    · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto
-  wp_apply HI $$ %r %skip %rq %t %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
+  ihave #Hcls := Hcls $$ %rfl
+  ihave #Hrc := apply.reqClass_txn E.authMode info rq t Hk.1 Hk.2.1 $$ Hcls
+  iunfold apply.chainResAny at Hres
+  icases Hres with ⟨%info', Hres⟩
+  wp_apply HI $$ %r %skip %rq %t %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.txnPre
     iunfold apply.mPre
     iframe
@@ -79,8 +80,7 @@ theorem apply.authApplierV3.Txn.wp_proof
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
-  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
-  iunfold apply.authInfoOwn; iexists info; iexact Hinfo
+  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc
 
 end proof
 

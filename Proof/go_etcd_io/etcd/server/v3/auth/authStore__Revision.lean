@@ -40,17 +40,17 @@ theorem auth.authStore.Revision.wp_proof :
   iintro Hmask
   inext
   iunfold revInv at Hi
-  icases Hi with ⟨%r, Hr⟩
+  icases Hi with ⟨%r, Hr, #Hv⟩
   iexists r
   iframe Hr
   iintro Hr
   imod Hmask with -
   imod Hclose $$ [Hr] with -
-  · inext; iunfold revInv; iexists r; iexact Hr
+  · inext; iunfold revInv; iexists r; iframe Hr; iexact Hv
   imodintro
   wp_auto
   iapply HΦ
-  ipureintro; trivial
+  iexact Hv
 
 end proof
 

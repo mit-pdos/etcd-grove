@@ -38,7 +38,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
     (hZS : zap.String.spec (GF := GF) (hG := hG))
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.ClusterVersionSet.spec (GF := GF) (hG := hG) := by
-  intro E p r v3 log Pre Q Post ver rs
+  intro E p r v3 log Pre Q Post ver rs info
   wp_start as ⟨#Hb, #Hr, %Hvalid, Hpre, Hwt, HFSt, HRO⟩
   iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩

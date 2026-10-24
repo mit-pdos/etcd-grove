@@ -32,11 +32,13 @@ abbrev apply.authApplierV3.Apply.spec : Prop :=
     (skip v3 : Bool) (af : GoFunc) (A : IProp GF) (B : Loc → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
       apply.irrWrapperIs r rq skip ∗ A ∗
-      ({{ apply.chainRes (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) ∗ A }} (App (App (Val #af) (Val #r)) (Val #v3))
-        {{ (ar : Loc), RET #ar; apply.chainRes (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) ∗ B ar }}) }}
+      ({{ apply.chainRes (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) (apply.principalOf rq) ∗ A }}
+          (App (App (Val #af) (Val #r)) (Val #v3))
+        {{ (ar : Loc), RET #ar; apply.chainResAny (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) ∗ B ar }}) }}
     (App (App (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Apply")) (Val #r)) (Val #v3)) (Val #af))
   {{ (ar : Loc), RET #ar;
-      B ar ∨ (⌜apply.needAdminPermission rq = true⌝ ∗ A ∗ apply.rejectResultIs ar) }}
+      (B ar ∗ apply.adminPass E.authMode (.auth E.authOn c) rq) ∨
+        (⌜apply.needAdminPermission rq = true⌝ ∗ A ∗ apply.rejectResultIs ar) }}
 
 end spec
 
