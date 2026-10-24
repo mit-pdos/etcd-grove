@@ -68,6 +68,27 @@ lessor, so `NewLessor`'s axiom changes statement (its count does not). The lesso
 `Attach`'s and `Detach`'s specs). `isApplyLessor`'s `Revoke` clause stops being `⌜False⌝` and is
 derived in `isApplyLessor_of_lessorInv`.
 
+*What a closer reading found (2026-10-24), the sub-stages:*
+- **L2a, the deleter's field.** `Revoke` reads `le.rd` after releasing `le.mu` (no race in etcd:
+  only construction writes it), so the lock cannot hold all of `rd`'s points-to. Split it: the
+  lock `lF "rd" ↦{q/2}`, the other half a token `rdOwn lp rd` with the apply thread, and a
+  persistent `rdIs rd kv` (calling `rd()` is calling `kv.Write(traceutil.TODO())`).
+  `SetRangeDeleter` takes the token and `rdIs`; `NewLessor`'s axiom returns `rdOwn lp nil` (its
+  statement changes, not the count); `NewStore`/`newWatchableStore` thread it, ending at the
+  watchable store's KV; the server's apply thread holds it. No ghost variable needed.
+- **L2b, the item sets.** Nothing yet relates a lease's `itemSet` to the store's state: the store
+  calls `Attach`/`Detach` but `leasesKnown` only says a key's lease is live. `Revoke` deletes
+  `l.Keys()`, so the model's `revokeChanges` needs `itemSet(id) = {k | σ.kvs[k].lease = id}`, an
+  invariant over the store's state and the lessor's per-lease sets, kept by the put and delete
+  paths (`Attach` on a put with a lease, `Detach` of the previous lease). This is the largest piece
+  of L2 and touches mvcc's write path proofs.
+- **L2c, `revokec`.** `Revoke` closes `l.revokec` (read-only field today); the close right goes in
+  the lease's map entry at `Grant` (`NewLease` makes the channel) and `Revoke` takes it.
+- **L2d, the rest of `Revoke`.** `l.Keys()` (translated, unproved), `sort.StringSlice.Sort`
+  (Perennial's sort specs), the deletes through `rd()`'s `TxnDelete` (the KV writer's
+  `DeleteRange`/`End`), `schema.UnsafeDeleteLease` under the batch lock with the bucket right
+  (as `Grant`'s `persistTo`), the `leaseRevoked` counter.
+
 **L3. The apply thread with leases.** `leasesKnown` becomes an equality: the lessor's live set
 (`leaseOwn γ.leases L`) is the model's table's ids. `plainCover` admits `LeaseGrant`,
 `LeaseRevoke` and leased puts and transactions; `SrvWorkload` gains `writes` for the lease ops;
