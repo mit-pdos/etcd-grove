@@ -22,20 +22,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-theorem adt.intervalTree.find.wp_proof
-    (h_StringAffineComparable_Compare :
-      adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG)) :
+theorem adt.intervalTree.find.wp_proof :
     adt.intervalTree.find.spec (GF := GF) (hG := hG) := by
-  intro t tv q T b e
-  wp_start as ⟨Hr, Hs, Hn⟩
+  intro K hK t tv q T vb ve db de b e
+  wp_start as ⟨Hr, Hs, Hn, Hkb, Hke⟩
   wp_auto
   ihave HI : (∃ (x p : Loc) (C : adt.RbCtx adt.Entry) (ls : List (Loc × Loc))
       (Tx : adt.RbT adt.Entry),
-      "x" ∷ x_ptr ↦ x ∗ "Hx" ∷ adt.ownNode tv.sentinel' q p x Tx ∗
-      "Hw" ∷ adt.ownPathAt tv.sentinel' q C ls x p Tx.maxEnd ∗
+      "x" ∷ x_ptr ↦ x ∗ "Hx" ∷ adt.ownNode K tv.sentinel' q p x Tx ∗
+      "Hw" ∷ adt.ownPathAt K tv.sentinel' q C ls x p Tx.maxEnd ∗
+      "Hkb" ∷ K.keyAt db vb b ∗ "Hke" ∷ K.keyAt de ve e ∗
       "%Hinv" ∷ ⌜Tx.findE (b, e) = T.findE (b, e) ∧ adt.topAt C ls x p = (tv.root', tv.sentinel') ∧
         C.plug Tx = T⌝ : IProp GF)
-      $$ [x Hn]
+      $$ [x Hn Hkb Hke]
   · iexists tv.root', tv.sentinel', .top, [], T
     iframe
     rw [adt.ownPathAt_top]
@@ -53,7 +52,7 @@ theorem adt.intervalTree.find.wp_proof
     simp only [decide_true, Bool.not_true, hvb, Bool.false_eq_true, ↓reduceIte]
     wp_auto
     iapply HΦ
-    iframe Hr Hs
+    iframe Hr Hs Hkb Hke
     iexists p, C, ls, .leaf
     rw [adt.ownNode_leaf]
     iframe Hw
@@ -63,13 +62,15 @@ theorem adt.intervalTree.find.wp_proof
     refine ⟨Hinv.2.1, Hinv.2.2, ?_⟩
     rw [← Hinv.1]; rfl
   | node c l z r =>
-    icases adt.ownNode_node_open _ _ _ _ c l z r $$ Hx with
+    icases adt.ownNode_node_open K _ _ _ _ c l z r $$ Hx with
       ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr', Hp, Hc, Hnl, Hnr⟩
     simp only [decide_false, Hn.1, Bool.not_false, decide_true, ↓reduceIte]
-    icases adt.iv_open _ _ _ _ _ $$ Hiv with ⟨Hb, He, Hv, Hivb⟩
+    icases K.ivAt_open _ _ _ $$ Hiv with ⟨%zb, %ze, Hb, He, Hv, #Hkzb, #Hkze, Hivb⟩
     wp_auto
-    wp_apply h_StringAffineComparable_Compare
-    wp_apply h_StringAffineComparable_Compare
+    wp_apply hK db .discard vb zb b z.1.1 $$ [Hkb] as ⟨Hkb, -⟩
+    · iframe ∗ #
+    wp_apply hK de .discard ve ze e z.1.2 $$ [Hke] as ⟨Hke, -⟩
+    · iframe ∗ #
     have hz : ∀ a c, sint.Z (W64 (adt.affCmp a c)) = adt.affCmp a c := by
       intro a c; have := adt.affCmp_bounds a c; word
     have hw0 : ∀ a c, W64 (adt.affCmp a c) = W64 0 ↔ adt.affCmp a c = 0 := by
@@ -106,7 +107,7 @@ theorem adt.intervalTree.find.wp_proof
         have he0 := (hw0 _ _).1 Hif
         wp_for_post
         iapply HΦ
-        iframe Hr Hs
+        iframe Hr Hs Hkb Hke
         iexists p, C, ls, .node c l z r
         iframe Hw
         ihave Hiv := Hivb $$ [Hb He Hv]
@@ -133,7 +134,7 @@ theorem adt.intervalTree.find.wp_proof
             iframe
             ihave Hiv := Hivb $$ [Hb He Hv]
             · iframe
-            ihave Hw := adt.ownPathAt_push_inL _ q C ls x p c l z r lp rp Hn $$
+            ihave Hw := adt.ownPathAt_push_inL K _ q C ls x p c l z r lp rp Hn $$
               [Hw Hiv Hmx Hl Hr' Hp Hc Hnr]
             · iframe
             iframe
@@ -146,7 +147,7 @@ theorem adt.intervalTree.find.wp_proof
             iframe
             ihave Hiv := Hivb $$ [Hb He Hv]
             · iframe
-            ihave Hw := adt.ownPathAt_push_inR _ q C ls x p c l z r lp rp Hn $$
+            ihave Hw := adt.ownPathAt_push_inR K _ q C ls x p c l z r lp rp Hn $$
               [Hw Hiv Hmx Hl Hr' Hp Hc Hnl]
             · iframe
             iframe
@@ -162,7 +163,7 @@ theorem adt.intervalTree.find.wp_proof
         iframe
         ihave Hiv := Hivb $$ [Hb He Hv]
         · iframe
-        ihave Hw := adt.ownPathAt_push_inL _ q C ls x p c l z r lp rp Hn $$
+        ihave Hw := adt.ownPathAt_push_inL K _ q C ls x p c l z r lp rp Hn $$
           [Hw Hiv Hmx Hl Hr' Hp Hc Hnr]
         · iframe
         iframe
@@ -177,7 +178,7 @@ theorem adt.intervalTree.find.wp_proof
         iframe
         ihave Hiv := Hivb $$ [Hb He Hv]
         · iframe
-        ihave Hw := adt.ownPathAt_push_inR _ q C ls x p c l z r lp rp Hn $$
+        ihave Hw := adt.ownPathAt_push_inR K _ q C ls x p c l z r lp rp Hn $$
           [Hw Hiv Hmx Hl Hr' Hp Hc Hnl]
         · iframe
         iframe

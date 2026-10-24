@@ -24,18 +24,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-theorem adt.Interval.Compare.wp_proof (h_StringAffineComparable_Compare :
-      adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG)) :
-    adt.Interval.Compare.spec (GF := GF) (hG := hG) := by
-  intro p dq b e q dq' b' e'
-  wp_start as ⟨Hp, Hq⟩
+theorem adt.Interval.Compare.wp_proof : adt.Interval.Compare.spec (GF := GF) (hG := hG) := by
+  intro K hK p dq vb ve db de b e q dq' vb' ve' db' de' b' e'
+  wp_start as ⟨Hp, Hkb, Hke, Hq, Hkb', Hke'⟩
   icases adt.ivl_split _ _ _ $$ Hp with ⟨Hpb, Hpe, %Hpn⟩
   icases adt.ivl_split _ _ _ $$ Hq with ⟨Hqb, Hqe, %Hqn⟩
-  simp only [adt.affIvl_Begin, adt.affIvl_End]
+  simp only [adt.KeyRep.ivl_Begin, adt.KeyRep.ivl_End]
   wp_auto
-  wp_apply h_StringAffineComparable_Compare
-  wp_apply h_StringAffineComparable_Compare
-  wp_apply h_StringAffineComparable_Compare
+  wp_apply hK db db' vb vb' b b' $$ [Hkb Hkb'] as ⟨Hkb, Hkb'⟩
+  · iframe
+  wp_apply hK db de' vb ve' b e' $$ [Hkb Hke'] as ⟨Hkb, Hke'⟩
+  · iframe
+  wp_apply hK de db' ve vb' e b' $$ [Hke Hkb'] as ⟨Hke, Hkb'⟩
+  · iframe
   have hz : ∀ a c, sint.Z (W64 (adt.affCmp a c)) = adt.affCmp a c := by
     intro a c; have := adt.affCmp_bounds a c; word
   have h0 : sint.Z (W64 0) = 0 := rfl
@@ -59,9 +60,12 @@ theorem adt.Interval.Compare.wp_proof (h_StringAffineComparable_Compare :
       | rw [← hc 1 (by intros; omega) (by intros; omega) (by intros; omega)]
       | rw [← hc 0 (by intros; omega) (by intros; omega) (by intros; omega)]
     iapply HΦ
+    iframe Hkb Hke Hkb' Hke'
     isplitl [Hpb Hpe]
-    · iapply adt.ivl_combine _ _ _ Hpn; simp only [adt.affIvl_Begin, adt.affIvl_End]; iframe Hpb Hpe
-    · iapply adt.ivl_combine _ _ _ Hqn; simp only [adt.affIvl_Begin, adt.affIvl_End]; iframe Hqb Hqe
+    · iapply adt.ivl_combine _ _ _ Hpn; simp only [adt.KeyRep.ivl_Begin, adt.KeyRep.ivl_End]
+      iframe Hpb Hpe
+    · iapply adt.ivl_combine _ _ _ Hqn; simp only [adt.KeyRep.ivl_Begin, adt.KeyRep.ivl_End]
+      iframe Hqb Hqe
 
 end proof
 

@@ -16890,3 +16890,94 @@ recorded states (an invariant S4 establishes). The trust base grows by the three
 tree axioms until S2b (`etc/tcb-baseline.txt`, the `server` collection); S2b removes them by
 proving the tree once over a comparator and instantiating it twice, and proves `Contains` for
 strings by extending `Visit`'s visitor contract with a stop.
+
+## S2b of the auth plan: the interval tree over a comparator, the three bytes-affine axioms removed (2026-10-24 · `notes/auth-plan.md`, branch `auth-s2b`)
+
+**Problem.** The interval tree's proof (`adt`, 8,900 lines) was for string-affine keys only
+(`StringAffineComparable`: a Go string compared by `<`, `""` the top): `ownIvt`'s nodes held
+`affIvl b e` and `maxW m`, the Go values of strings, and every comparison was
+`StringAffineComparable.Compare`'s spec. The auth store's permission cache holds trees over
+bytes-affine keys (`BytesAffineComparable`: a byte slice compared by `bytes.Compare`, a
+comparison that reads memory), so S2 stated the three facts it needs as axioms
+(`intervalTree.wp_Insert_bytes`/`wp_Intersects_bytes`/`wp_Contains_bytes`, 618). S2b removes
+them by making the proof generic in the key representation, with the string-affine results as
+before and the bytes-affine ones as instances.
+
+**Decisions.**
+
+- **The model is shared; only the representation is abstracted** (`Defs.lean`). Both comparables
+  order keys by the same affine order on contents (`affCmp` on `GoString`: a slice's contents
+  are a `GoString`), so `Model.lean`, `Tree.lean`, `TreeInsert.lean`, `TreeDelete.lean` and
+  `Contains.lean` are untouched: entries are over contents, and "equal keys are equal strings"
+  (`affCmp_eq_zero_iff`) stays a model fact (two slices with equal contents are one key). What
+  differs is how a Go value holds a key and what a comparison needs: **`KeyRep`** has the
+  `Comparable`'s dynamic type `ty` and `keyAt dq v k`, "the value `v` holds the key `k` at `dq`"
+  (persistent at `.discard`; two values of one key agree, `keyAt_agree`), and its comparison
+  contract **`KeyRep.CompareOk`**: `v.Compare(v')` on two values holding keys returns
+  `affCmp` of the keys, keeping them. `strKey` is `StringAffineComparable.ty` with `keyAt _ v k
+  := ⌜v = #k⌝` (no resource); `bytesKey` (`BytesIvl.lean`) is `BytesAffineComparable.ty` with
+  `keyAt d v k := ∃ s, ⌜v = #s⌝ ∗ s ↦*{d} k` (`bytesKeyAt`, a named predicate so that the
+  automation's simplifier leaves it alone). Their contracts come from the two `Compare` specs
+  (`strKey_ok`, `bytesKey_ok`), hypotheses of the instances' links.
+  *Rejected:* a key *type* with its own order (the plan's wording): the order is one; a class
+  instance for `K` (a `[K : KeyRep]` section variable): the generic results' links would need the
+  instance and the contract as instances, which the string instance cannot provide (its contract
+  is a linked result, not an instance), so `K` and `hK : K.CompareOk` are explicit arguments of
+  every generic spec (`∀ K, K.CompareOk → ...`).
+- **A node's key fields are atoms** (`KeyRep.ivAt l dq e`: the `iv` field holds the entry's
+  interval of two values holding its keys read-only, and the value; `KeyRep.maxAt l dq m`: the
+  `max` field holds a value holding the key `m`), so that **`ownNode K s dq`**, `ownCtx`,
+  `ownCtxAt`, `ownPathAt`, `childMax` and the helpers' specs keep their shape, and the ~130 node
+  unfoldings in the proofs keep their destructuring patterns (`⟨%lp, %rp, %Hn, Hiv, Hmx, …⟩`);
+  only the sites that read or write a key field open the atom (`ivAt_open`, `ivAt_open_ivl`,
+  `ivAt_open_raw`, `maxAt_open`) and close it (`ivAt_intro`, `maxAt_intro`), which is where the
+  ~25 `Compare` calls are (`hK d d' v v' k k'`, the nodes' keys persistent, a query's at its
+  fractions). `updateMax` copies a child's `max` value (its key resource is persistent, so it
+  comes with it), `Delete` copies the successor's `iv` whole (`ivAt_open_raw`). The fraction is a
+  `DFrac` throughout (the bytes-affine trees are read-only, `.discard`); the string-affine
+  `ownIvt t L q` is `ownIvtK strKey t L (DFrac.own q)` and `ownIvtB t L dq` is `ownIvtK bytesKey t
+  L dq`, so no statement outside `adt` changed.
+  *Rejected:* raw field points-tos with the key values and resources as more conjuncts of
+  `ownNode` (every unfolding and every spec changes), or keeping `Qp` for the string side and
+  `DFrac` for the bytes side (two predicates again).
+- **Exported statements kept, internal specs generalized in place, generic results as
+  pseudo-functions.** The specs other packages or the trust-base report see (`Insert`,
+  `Intersects`, `Visit`, `Stab`, `Find`, `Delete`, `Union`, `Len`, `NewIntervalTree`,
+  `ownIvt_split`, the `Compare`s and constructors; S2's three bytes facts) are unchanged; each
+  exported function's proof is the generic one, `<fn>_gen.spec` (`∀ K, K.CompareOk → ...`, a
+  pseudo-function in `etc/link-lean-first-adt.txt`, as `ownIvt_split` is), with the string-affine
+  `<fn>.wp_proof` and the bytes-affine `<fn>_bytes.wp_proof` short wrappers whose callees are the
+  generic result and the comparable's `Compare` (`intervalTree__Insert: intervalTree__Insert_gen
+  StringAffineComparable__Compare`). The internal helpers' specs (`Interval.Compare`, `find`,
+  `visit`, `createIntervalNode`, `updateMax`, `replaceParent`, the rotations, the fixups, `min`,
+  `successor`), used by nothing outside `adt`, are generalized in place (their old statements are
+  the `strKey` instances) rather than duplicated with wrappers. `S2`'s three axioms are now the
+  linked results `adt.intervalTree.wp_Insert_bytes`/`wp_Intersects_bytes`/`wp_Contains_bytes`
+  (`Link.lean`), under the names the auth proofs apply; `auth/InvAuth.lean` imports `adt.Link`
+  instead of `adt.BytesIvl` (the one change outside `adt`, `Spec/.../adt`, the link list and the
+  notes). The trust base: **615 axioms, 4 `sorry`s** (618 minus the three).
+- **`Contains` proved, for both key representations**, which needed `visit`'s contract to admit
+  a visitor that stops and a query that is degenerate (`Contains_bytes`'s statement, S2's axiom,
+  has no premise on the query: the auth check calls it with any range and uses the result only
+  under its premises). The visitor protocols (`nodeVisitorOk`, `ivVisitorOkK`) take two
+  invariants, `I` for going on and `J` for stopping (`(r : Bool), RET #r; if r then I … else J …`),
+  and tell the visitor its entries are a sublist of the stabbed ones, a prefix for a query that is
+  not empty-and-finite. The holes predicate `ownNodeH K s dq p n T ns es` lends an explicit list of
+  nodes `ns` with their entries `es` (a Bool per node: lent or not), with `ownNodeH_fill` taking
+  them back; `visit`'s post says `es` is a sublist of the stabbed entries (`visitL_sublist`, the
+  pruned descent of a degenerate query), and for a query that is not degenerate, all of them
+  when no visitor stopped, a non-empty prefix otherwise. `Contains_gen`'s visitor is the greedy
+  scan (`cstate`: `minBegin`/`maxEnd` hold values of the first begin and the running maximum,
+  `scanFrom` of the entries so far; `scanFrom_snoc`, `scanFrom_none_append` in `Contains.lean`),
+  and the result is `containsRes` under the premise, some boolean otherwise. The string-affine
+  `Contains.spec` (new, `Spec/.../adt/intervalTree__Contains.lean`) is its `strKey` instance; the
+  string-affine `Visit.spec` (unchanged, with the old `ivVisitorOk`, a visitor that never stops)
+  is `Visit_gen` with `J := False`.
+  *Rejected:* a second, weaker spec of `visit` for degenerate queries (a second walk through the
+  same code), or lending a prefix by count (the first version here: it cannot describe the
+  degenerate case).
+- **Not done.** `NewStringAffineInterval`/`Point`, `NewBytesAffineInterval`/`Point`, `Len` and
+  `NewIntervalTree` have no generic form (their specs mention no comparison; `NewIntervalTree`'s
+  empty tree is converted by `ownIvtB_of_empty` as before). `Find`/`Delete`/`Union`/`Stab` have
+  generic results but no bytes-affine instance (nothing needs one; a bytes-affine `Find`/`Delete`
+  is the wrapper `Insert_bytes` is). No Perennial change was needed.

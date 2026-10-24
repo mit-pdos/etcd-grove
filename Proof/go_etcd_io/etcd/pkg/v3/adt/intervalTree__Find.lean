@@ -1,12 +1,14 @@
+/-
+`intervalTree.Find` (`interval_tree.go`) over string-affine keys: the generic proof
+(`intervalTree__Find_gen.lean`) instantiated for `strKey` (the auth plan's S2b). Lean-first.
+-/
 module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Find
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__find
-public import Proof.go_etcd_io.etcd.pkg.v3.adt.NodeLemmas
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Find_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.StrKey
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -23,63 +25,41 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 theorem adt.intervalTree.Find.wp_proof
-    (h_find : adt.intervalTree.find.spec (GF := GF) (hG := hG)) :
+    (h_Find_gen : adt.intervalTree.Find_gen.spec (GF := GF) (hG := hG))
+    (h_StringAffineComparable_Compare :
+      adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.Find.spec (GF := GF) (hG := hG) := by
   intro t L b e q
-  wp_start as Ht
-  icases adt.ownIvt_read _ _ _ $$ Ht with ⟨%tv, %T, Hr, Hc, Hs, Hn, %Hp, Hback⟩
-  obtain ⟨hTL, -, hsorted, -⟩ := Hp
-  subst hTL
-  wp_auto
-  wp_apply h_find t tv q T b e $$ [Hr Hs Hn] as %n ⟨Hr, Hs, %p, %C, %ls, %Tz, Hw, Hz, %HTz⟩
-  · iframe
-  obtain ⟨Htop, Hplug, HTz⟩ := HTz
-  cases hf : T.findE (b, e) with
-  | none =>
-    rw [hf] at HTz
-    subst HTz
-    icases adt.ownNode_leaf_open _ _ _ _ $$ Hz with %Hn
-    subst Hn
-    wp_auto
-    iapply HΦ
-    iright
-    isplitl []
-    · ipureintro; exact ⟨rfl, adt.findE_none _ T hsorted hf⟩
-    iapply Hback
-    iframe
-    rw [← Hplug]
-    iapply adt.ownPathAt_plug' _ _ _ _ _ _ _ _ _ Htop
-    iframe
-  | some z =>
-    rw [hf] at HTz
-    obtain ⟨c, l, r, rfl⟩ := HTz
-    obtain ⟨hzm, hz1⟩ := adt.findE_some _ T z hf
-    obtain ⟨⟨zb, ze⟩, zv⟩ := z
-    simp only [Prod.mk.injEq] at hz1
-    obtain ⟨rfl, rfl⟩ := hz1
-    icases adt.ownNode_node_open _ _ _ _ c l ((zb, ze), zv) r $$ Hz with
-      ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr', Hp, Hc', Hnl, Hnr⟩
-    wp_if_destruct
-    · exfalso; first | exact Hn.1 ‹_› | exact Hn.1 rfl
-    ihave %Hivn := typedPointsto_not_null _ _ _ $$ Hiv
-    iapply HΦ
-    ileft
-    iexists ((zb, ze), zv)
-    isplitl []
-    · ipureintro; exact ⟨hzm, rfl⟩
-    isplitl []
-    · ipureintro; exact Hivn
+  unfold adt.ownIvt
+  rw [adt.affIvl_eq (GF := GF)]
+  wp_start_folded as Ht
+  wp_apply (h_Find_gen adt.strKey (adt.strKey_ok h_StringAffineComparable_Compare) t L
+    #b #e .discard .discard b e (DFrac.own q)) $$ [Ht] as %p ⟨-, -, Hpost⟩
+  · simp only [adt.strKey_keyAt]
+    iframe Ht
+    all_goals (try (isplitl []; · ipureintro; trivial))
+    all_goals (try (isplitl []; · ipureintro; trivial))
+    all_goals (try (ipureintro; trivial))
+  iapply HΦ
+  icases Hpost with (⟨%z, %hz, %hpn, Hiv, Hw⟩ | H)
+  · ileft
+    have hb : z.1.1 = b := by rw [hz.2]
+    have he : z.1.2 = e := by rw [hz.2]
+    iexists z
+    icases (adt.strKey_ivAt _ _ _).1 $$ Hiv with Hiv
+    rw [hb, he, adt.affIvl_eq (GF := GF)]
     iframe Hiv
+    isplitl []
+    · ipureintro; exact ⟨hz.1, hz.2⟩
+    isplitl []
+    · ipureintro; exact hpn
     iintro Hiv
-    iapply Hback
-    iframe
-    rw [← Hplug]
-    iapply adt.ownPathAt_plug' _ _ _ _ _ _ _ _ _ Htop
-    iframe
-    iapply adt.ownNode_node_close
-    iexists lp, rp
-    iframe
-    ipureintro; exact Hn
+    iapply Hw
+    iapply (adt.strKey_ivAt _ _ _).2
+    rw [hb, he, adt.affIvl_eq (GF := GF)]
+    iexact Hiv
+  · iright
+    iexact H
 
 end proof
 

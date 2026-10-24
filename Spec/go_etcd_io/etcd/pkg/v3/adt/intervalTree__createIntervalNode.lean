@@ -21,17 +21,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-/-- `t.createIntervalNode(ivl, v)` (internal, `Insert`'s): a new red node with the entry, its
+/-- `t.createIntervalNode(ivl, v)` (internal, `Insert`'s), over the keys `K` (the interval's
+values holding its keys read-only: the node keeps them): a new red node with the entry, its
 `max` the interval's end, its links the sentinel (read from the tree struct). -/
 abbrev adt.intervalTree.createIntervalNode.spec : Prop :=
-  ∀ (t s : Loc) (dq : DFrac) (b e : GoString) (v : GoInterface),
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
+  ∀ (t s : Loc) (dq : DFrac) (vb ve : val) (b e : GoString) (v : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
-      t.[intervalTree, go!"sentinel"] ↦{dq} s }}
+      t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ K.keyAt .discard vb b ∗ K.keyAt .discard ve e }}
     (App (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"createIntervalNode"))
-      (Val #(adt.affIvl b e))) (Val #v))
+      (Val #(K.ivl vb ve))) (Val #v))
   {{ (z : Loc), RET #z; t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ ⌜z ≠ null⌝ ∗
-      z.[intervalNode, go!"iv"] ↦ ({ Ivl' := adt.affIvl b e, Val' := v } : IntervalValue) ∗
-      z.[intervalNode, go!"max"] ↦ adt.maxW e ∗
+      K.ivAt z.[intervalNode, go!"iv"] (DFrac.own 1) ((b, e), v) ∗
+      K.maxAt z.[intervalNode, go!"max"] (DFrac.own 1) e ∗
       z.[intervalNode, go!"left"] ↦ s ∗ z.[intervalNode, go!"right"] ↦ s ∗
       z.[intervalNode, go!"parent"] ↦ s ∗ z.[intervalNode, go!"c"] ↦ adt.colorW .red }}
 

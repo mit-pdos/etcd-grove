@@ -1,11 +1,15 @@
+/-
+`intervalTree.Visit` (`interval_tree.go`) over string-affine keys, for a visitor that goes on: the
+generic proof (`intervalTree__Visit_gen.lean`) instantiated for `strKey` (the auth plan's S2b).
+Lean-first.
+-/
 module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Visit
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalNode__visit
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Visit_gen
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.StrKey
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -22,62 +26,58 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 theorem adt.intervalTree.Visit.wp_proof
-    (h_visit : adt.intervalNode.visit.spec (GF := GF) (hG := hG)) :
+    (h_Visit_gen : adt.intervalTree.Visit_gen.spec (GF := GF) (hG := hG))
+    (h_StringAffineComparable_Compare :
+      adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.Visit.spec (GF := GF) (hG := hG) := by
   intro t L b e q ivv I hq
-  wp_start as ⟨Ht, #Hivv, HI⟩
-  icases adt.ownIvt_read _ _ _ $$ Ht with ⟨%tv, %T, Hr, Hc, Hs, Hn, %Hp, Hback⟩
-  obtain ⟨hTL, -, hsorted, -⟩ := Hp
-  subst hTL
-  wp_auto
-  ipersist ivv
-  simp only [recv_eq_func_mk]
-  let I' : List (Loc × adt.Entry) → IProp GF :=
-    fun acc => I (acc.map fun x => (x.1.[intervalNode, go!"iv"], x.2))
-  wp_apply (h_visit tv.sentinel' q tv.sentinel' tv.root' T ivl_ptr (DFrac.own 1) b e _ (adt.stab (b, e) T.inorder) I' []
-    hsorted hq (by simp)) $$ [Hn ivl HI] as ⟨%ns, Hn, ivl, HI⟩
-  · iframe Hn ivl
-    isplitr [HI]
-    · iunfold adt.nodeVisitorOk
-      imodintro
-      iintro %n %z %acc %Φ'
-      imodintro
-      iintro ⟨%hpre, HIa, Hivn⟩ HΦ'
-      wp_auto
-      ihave Hivv' := Hivv
-      iunfold adt.ivVisitorOk at Hivv'
-      ispecialize Hivv' $$ %(n.[intervalNode, go!"iv"]) %z
-        %(acc.map fun x => (x.1.[intervalNode, go!"iv"], x.2))
-      simp only [I', List.map_append, List.map_cons, List.map_nil]
-      wp_bind (App (Val #ivv) (Val #(n.[intervalNode, go!"iv"])))
-      iapply Hivv' $$ [HIa Hivn]
-      · iframe
-        ipureintro
-        simpa [List.map_map, Function.comp_def] using hpre
-      inext
-      iintro HIa
-      wp_auto
-      iapply HΦ'
-      iexact HIa
-    simp only [I', List.map_nil]
-    iexact HI
-  ihave %hlen := adt.ownNodeH_length _ _ _ _ _ _ _ $$ Hn
-  ispecialize HΦ $$ %(ns.map fun m => m.[intervalNode, go!"iv"])
-  iapply HΦ
-  isplitl []
-  · ipureintro; simpa using hlen
-  isplitl [HI]
-  · simp only [I', List.nil_append]
-    rw [List.zip_map_left]
-    have hf : (Prod.map (fun m : Loc => m.[intervalNode, go!"iv"]) (id : adt.Entry → adt.Entry)) =
-        (fun x : Loc × adt.Entry => (x.1.[intervalNode, go!"iv"], x.2)) := rfl
-    rw [hf]
-    iexact HI
-  iintro Hlent
-  iapply Hback
-  iframe Hr Hc Hs
-  iapply adt.ownNodeH_fill $$ [Hn Hlent]
-  iframe
+  unfold adt.ownIvt
+  rw [adt.affIvl_eq (GF := GF)]
+  wp_start_folded as ⟨Ht, #Hivv, HI⟩
+  wp_apply (h_Visit_gen adt.strKey (adt.strKey_ok h_StringAffineComparable_Compare) t L #b #e
+    .discard .discard b e (DFrac.own q) ivv I (fun _ => iprop(False))) $$ [Ht HI]
+    as ⟨-, -, %ps, %es, %r, %hpl, HI, Hwand⟩
+  · simp only [adt.strKey_keyAt]
+    iframe Ht HI
+    all_goals (try (isplitl []; · ipureintro; trivial))
+    all_goals (try (isplitl []; · ipureintro; trivial))
+    -- the visitor that goes on, as one that may stop
+    iunfold adt.ivVisitorOkK
+    imodintro
+    iintro %pv %z %acc %Φ'
+    imodintro
+    iintro ⟨%hpre, HIa, Hiv⟩ HΦ'
+    icases (adt.strKey_ivAt _ _ _).1 $$ Hiv with Hiv
+    ihave Hivv' := Hivv
+    iunfold adt.ivVisitorOk at Hivv'
+    ispecialize Hivv' $$ %pv %z %acc
+    -- `wp_apply` of the hypothesis admits silently here (its post is `RET #true`, the
+    -- continuation's is over any Boolean): applied by hand
+    iapply Hivv' $$ [HIa Hiv]
+    · iframe; ipureintro; exact hpre.2 hq
+    inext
+    iintro HIa
+    (try wp_auto)
+    ispecialize HΦ' $$ %true
+    iapply HΦ'
+    simp only [↓reduceIte]
+    iexact HIa
+  cases r with
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iexfalso; iexact HI
+  | true =>
+    simp only [↓reduceIte]
+    obtain ⟨-, hpl, hes⟩ := hpl
+    rw [hes hq] at hpl ⊢
+    ispecialize HΦ $$ %ps
+    iapply HΦ
+    iframe HI
+    isplitl []
+    · ipureintro; exact hpl
+    iintro Hlent
+    iapply Hwand
+    iapply (adt.strKey_bigSep_ivAt _ _).2 $$ Hlent
 
 end proof
 

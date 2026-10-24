@@ -51,7 +51,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
-public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesIvl
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 
 @[expose] public section
 

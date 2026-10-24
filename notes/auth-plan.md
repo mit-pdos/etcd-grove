@@ -15,7 +15,7 @@ verdicts `permVerdict`/`adminVerdict`/`enabledVerdict`/`revisionVerdict`), the c
 `notes/auth-matrix.md`. What differed from the plan: the verdicts are two one-directional facts
 over recorded states, not `↔` at one state (the checks' own TOCTOU, decisions); the history is
 indexed by position, not by the auth revision (`AuthEnable` does not bump it); `isReqAuth` is
-untouched (the token binding is S5's). A1 carried out 2026-10-23 (branch `auth-a1`: the class statement for the verified checks and the API-layer handlers, `apply/AuthClass.lean`; the method-level statement is its follow-up, `notes/decisions.md`, "A1 of the auth plan"). S1 carried out 2026-10-23 (branch `auth-s1`: `authpb` as data, schema's auth backend's read side proved over the buckets, the store's contract with the mode, two `proto.Unmarshal` sibling axioms; `notes/decisions.md`, "S1 of the auth plan"). A2 carried out 2026-10-23 (branch `auth-a2`: the API layer's two guards and the entry points they guard -- `Compact`, the eight maintenance wrappers, `RemoveMember`, `MemberList` -- over their inner operations as token-carrying contracts; left: the member operations that marshal JSON, the lease entry points and their key checks; `notes/decisions.md`, "A2 of the auth plan"); S2 carried out 2026-10-23 (branch `auth-s2`: the permission cache computes the model's `coversPoint`/`coversRange` of a recorded state, `getMergedPerms`/`refreshRangePermCache`/`isValidPermissionRange` proved, the bytes-affine tree's three facts axioms pending S2b; `notes/decisions.md`, "S2 of the auth plan"); S2b, S3 to S5, A3, A4, E not started. Prompted by etcd-io/etcd#22595 (the
+untouched (the token binding is S5's). A1 carried out 2026-10-23 (branch `auth-a1`: the class statement for the verified checks and the API-layer handlers, `apply/AuthClass.lean`; the method-level statement is its follow-up, `notes/decisions.md`, "A1 of the auth plan"). S1 carried out 2026-10-23 (branch `auth-s1`: `authpb` as data, schema's auth backend's read side proved over the buckets, the store's contract with the mode, two `proto.Unmarshal` sibling axioms; `notes/decisions.md`, "S1 of the auth plan"). A2 carried out 2026-10-23 (branch `auth-a2`: the API layer's two guards and the entry points they guard -- `Compact`, the eight maintenance wrappers, `RemoveMember`, `MemberList` -- over their inner operations as token-carrying contracts; left: the member operations that marshal JSON, the lease entry points and their key checks; `notes/decisions.md`, "A2 of the auth plan"); S2 carried out 2026-10-23 (branch `auth-s2`: the permission cache computes the model's `coversPoint`/`coversRange` of a recorded state, `getMergedPerms`/`refreshRangePermCache`/`isValidPermissionRange` proved, the bytes-affine tree's three facts axioms pending S2b; `notes/decisions.md`, "S2 of the auth plan"); S2b carried out 2026-10-24 (branch `auth-s2b`: the tree's proof generic in the key representation `adt.KeyRep`, the string- and bytes-affine results its instances, the three axioms removed, `Contains` proved; `notes/decisions.md`, "S2b of the auth plan"); S3 to S5, A3, A4, E not started. Prompted by etcd-io/etcd#22595 (the
 proposal to revert Auth to Beta: "the feature was never really finished", a stream of security
 reports) and #22540 / PR #22541 (an "auth matrix" test: every gRPC method on the client port
 classified public / authenticated / RBAC / admin and probed with no token, an invalid token and an
@@ -138,7 +138,11 @@ in the model", judged "mechanical but wide") is subsumed: `on = st.enabled`.
   its Go value, its `Compare` spec and the resource a comparison needs (nothing for strings, a
   slice's read-only contents for bytes), instantiated for `StringAffineComparable` and
   `BytesAffineComparable`, replacing the three axioms; `Contains` proved (`Visit`'s visitor
-  contract extended with a stop). Independent of S3-S5.
+  contract extended with a stop). Independent of S3-S5. **Done 2026-10-24** (branch `auth-s2b`:
+  `adt.KeyRep`, the generic `ownIvtK`/`ownNode` with the key fields as atoms, the exported
+  functions' generic results `<fn>_gen` with string- and bytes-affine wrappers, the internal
+  specs generalized in place; `Contains` proved for both; 615 axioms; `notes/decisions.md`,
+  "S2b of the auth plan").
 - S3 `isOpPermitted`, `IsAdminPermitted`, `hasRootRole` (translated: `sort.SearchStrings` over a
   sorted `Roles`, so `UserGrantRole`'s sorting becomes a model invariant), `AuthInfoFromCtx` with
   the token binding: the P2 specs restated as D-AU2 and re-proved.
@@ -203,7 +207,7 @@ already a premise of D29's refusal-freedom and would become real with S5).
 | A0 | `AuthState`, `permits`, `adminOk`, `revisionOk`; `isAuthStore`/`isReqAuth`/`tokenProviderOk` restated with the oracle (the 26 files that name `.auth`/`authOn`, about 100 lines, D-AU2); the matrix table in the notes | — | days |
 | S1 | `authpb` translated, schema's auth backend proved, the auth buckets as the model | A0 | about a week |
 | S2 | the permission cache = `permits` (bytes-affine interval tree) | S1 | about a week; **done** 2026-10-23 with the bytes-affine tree's `Insert`/`Intersects`/`Contains` as axioms (`adt/BytesIvl.lean`, +3) |
-| S2b | the interval tree generalized to a comparator (string- and bytes-affine), the three axioms removed; `Contains` proved | S2 | about a week (8,200 lines touched at about 130 node unfoldings and 25 comparisons) |
+| S2b | the interval tree generalized to a comparator (string- and bytes-affine), the three axioms removed; `Contains` proved | S2 | about a week; **done** 2026-10-24 (the key fields as atoms kept the node unfoldings; `visit` re-proved for a stopping visitor and a degenerate query; 615 axioms) |
 | S3 | P2's checks re-proved to compute the model; `hasRootRole`; the token binding | S1, S2 | days |
 | S4 | the admin side as model steps; `Recover`; the apply layer's admin requests | S3 | one to two weeks |
 | S5 | `NewAuthStore`, `Authenticate`, the token providers | S4 | about a week |

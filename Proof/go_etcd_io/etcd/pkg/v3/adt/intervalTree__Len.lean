@@ -23,8 +23,9 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 theorem adt.intervalTree.Len.wp_proof : adt.intervalTree.Len.spec (GF := GF) (hG := hG) := by
   intro t L q
+  unfold adt.ownIvt
   wp_start as Ht
-  icases adt.ownIvt_read _ _ _ $$ Ht with ⟨%tv, %T, Hr, Hc, Hs, Hn, %Hp, Hback⟩
+  icases adt.ownIvtK_read adt.strKey _ _ _ $$ Ht with ⟨%tv, %T, Hr, Hc, Hs, Hn, %Hp, Hback⟩
   wp_auto
   rw [Hp.2.2.2.1]
   iapply HΦ

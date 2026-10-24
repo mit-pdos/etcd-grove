@@ -26,24 +26,24 @@ theorem adt.intervalTree.rotateLeft.wp_proof
     (h_updateMax : adt.intervalNode.updateMax.spec (GF := GF) (hG := hG))
     (h_replaceParent : adt.intervalTree.replaceParent.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.rotateLeft.spec (GF := GF) (hG := hG) := by
-  intro t s dq C ls x p y ap bp dp cx cy a b d xe ye hx hy
+  intro K hK t s dq C ls x p y ap bp dp cx cy a b d xe ye hx hy
   wp_start as ⟨Hs, HC, Hxiv, Hxmx, Hxl, Hxr, Hxp, Hxc, Hyiv, Hymx, Hyl, Hyr, Hyp, Hyc, Ha, Hb, Hd⟩
   wp_auto
   rw [_root_.decide_eq_false hy.1]
   wp_auto
-  wp_join iprop(adt.ownNode s 1 x bp b ∗ y.[intervalNode, go!"left"] ↦ bp ∗ y_ptr ↦ y ∗
+  wp_join iprop(adt.ownNode K s (DFrac.own 1) x bp b ∗ y.[intervalNode, go!"left"] ↦ bp ∗ y_ptr ↦ y ∗
       x_ptr ↦ x)
     with [Hb Hyl y x] as ⟨Hb, Hyl, y, x⟩
   · cases b with
     | leaf => rw [adt.ownNode_leaf, adt.ownNode_leaf]; iframe
     | node cb lb eb rb =>
-      icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hb with ⟨%lp, %rp, %Hn, -⟩
+      icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hb with ⟨%lp, %rp, %Hn, -⟩
       exact absurd Hif Hn.1
   · cases b with
     | leaf =>
       rw [adt.ownNode_leaf]; icases Hb with %Hn; exact absurd Hn Hif
     | node cb lb eb rb =>
-      icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hb with
+      icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hb with
         ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr, Hp, Hc, Hnl, Hnr⟩
       wp_auto
       iframe
@@ -54,20 +54,20 @@ theorem adt.intervalTree.rotateLeft.wp_proof
       iframe
       ipureintro; exact Hn
   -- `x`'s max over its new children
-  icases adt.ownNode_childMax _ _ _ a $$ Ha with ⟨Ham, Haback⟩
-  icases adt.ownNode_childMax _ _ _ b $$ Hb with ⟨Hbm, Hbback⟩
-  wp_apply h_updateMax t s C ls x p ap bp xe (adt.nodeMax a xe (.node cy b ye d)) a.maxEnd b.maxEnd
+  icases adt.ownNode_childMax K _ _ _ a $$ Ha with ⟨Ham, Haback⟩
+  icases adt.ownNode_childMax K _ _ _ b $$ Hb with ⟨Hbm, Hbback⟩
+  wp_apply (h_updateMax K hK) t s C ls x p ap bp xe (adt.nodeMax a xe (.node cy b ye d)) a.maxEnd b.maxEnd
     hx.1 $$ [HC Hxiv Hxmx Hxl Hxr Hxp Ham Hbm] as ⟨HC, Hxiv, Hxmx, Hxl, Hxr, Hxp, Ham, Hbm⟩
   · iframe
   ihave Ha := Haback $$ Ham
   ihave Hb := Hbback $$ Hbm
   -- `y` in `x`'s place
-  wp_apply h_replaceParent t s dq C ls x p y x _ (adt.nodeMax b ye d) hx.1 hy.1
+  wp_apply (h_replaceParent K hK) t s dq C ls x p y x _ (adt.nodeMax b ye d) hx.1 hy.1
     $$ [Hs HC Hxp Hyp Hymx] as ⟨Hs, HC, Hxp, Hyp, Hymx⟩
   · iframe
   -- `x` under `y`, `y`'s max
-  icases adt.ownNode_childMax _ _ _ d $$ Hd with ⟨Hdm, Hdback⟩
-  wp_apply h_updateMax t s C ls y p x dp ye (adt.nodeMax b ye d)
+  icases adt.ownNode_childMax K _ _ _ d $$ Hd with ⟨Hdm, Hdback⟩
+  wp_apply (h_updateMax K hK) t s C ls y p x dp ye (adt.nodeMax b ye d)
     (some (adt.nodeMaxO a.maxEnd xe b.maxEnd)) d.maxEnd hy.1
     $$ [HC Hyiv Hymx Hyl Hyr Hyp Hxmx Hdm] as ⟨HC, Hyiv, Hymx, Hyl, Hyr, Hyp, Hxm, Hdm⟩
   · rw [adt.childMax_some]; iframe; ipureintro; exact hx.1
