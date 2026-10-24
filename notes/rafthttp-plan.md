@@ -832,6 +832,103 @@ trust-boundary spec.
    k8s store's `path.Join(["/", p])` is a theorem over it (`Proof/path/CleanAbs.lean`, with
    `PathCleanAbs` bounded below `2^60`). Baseline at the merge: 696 axioms, 4 `sorry`s (k8s's).
 
+## Stage 7: the snapshot stream (planned 2026-10-24)
+
+**Goal.** The last of rafthttp's own code still assumed: the snapshot sender and handler. Today
+five trust-boundary axioms stand for them (`Transport.SendSnapshot`, `newSnapshotSender`,
+`snapshotSender.stop`, `newSnapshotHandler`, and, inside the handler, `snapReq`'s opaque request
+protocol). Stage 7 translates them with their bodies and proves them, so that `SendSnapshot`'s
+statement (today's `netSnapBundle` contract, unchanged) and the handler's (`handlerFor ... snapPath`,
+unchanged) become theorems. In the examples the path is dead (raft's no-snapshot mode,
+`rnSnapMsg_false`), so no closed theorem's statement changes; the axioms leave the trust base of
+every result that links the transport, and the server's snapshot path (D22's) rests on a proved
+transport instead of an assumed one.
+
+**The code** (etcd pin `bc9c3868`): `snapshot_sender.go` (199 lines: `newSnapshotSender`, `stop`,
+`send`, `post` with a function-local `responseAndError`, which Goose translates since its name is
+unique in the package, `createSnapBody`), `peer.sendSnap` (`go p.snapSender.send(m)`),
+`Transport.SendSnapshot` (`transport.go:409-418`, under `t.mu`; a missing peer closes `m` with
+`errMemberNotFound`), `newSnapshotHandler` and `snapshotHandler.ServeHTTP` (`http.go:172-330`).
+
+**What it calls, and how each is covered.**
+- Already proved (stages 4-6): `createPostRequest`, `checkPostResponse`, the URL picker, the peer
+  status, `messageEncoder.encode`, `messageDecoder.decodeLimit` (stated over any reader with the
+  prefix contract, `readFullAt`), `checkClusterCompatibilityFromHeader`, `addRemoteFromRequest`
+  (dead since D40), `reportCriticalError`, `errors.As` of `writerToResponse`.
+- Already boundary specs: the HTTP boundary's (`RoundTrip`, `WithContext`, `ReadAll_resp`,
+  `bodyRead`, headers, `http.Error`), `httputil.GracefulClose`, `time.AfterFunc` (Perennial's),
+  `context.WithCancel`, `snap.NewMessage`/`GetTo`/`CloseNotify` (D22 S-h), `Raft`'s `Process`,
+  `ReportUnreachable`, `ReportSnapshot` (`netRaftOk`), `proto.Size`.
+- New boundary specs (no-op or arbitrary-result, as stage 6's): `snap.Message.CloseWithError`
+  (the reader closed, one `true`/`false` on `closeC`: S-h's channel, D22's), `humanize.Bytes`
+  (some string), `zap.Uint64`/`Int`/`Int64`, the prometheus calls (`Inc`, `Dec`, `Add`,
+  `Observe`), `fmt.Sprintf` of `%v` (some string). And the two below, which are the stage's
+  substance.
+
+**The two design questions (D42, for the user).**
+1. **A streamed request body.** The HTTP boundary fixes a request's body when the request is made
+   (`HReq.body : List w8`, from `NewRequest`'s reader at its bytes). The snapshot sender's body
+   is `io.MultiReader(buf, merged.ReadCloser)`: the envelope, then the merged snapshot's pipe,
+   whose bytes the sender never sees; Go sends it chunked as `RoundTrip` reads it.
+   - *(A, recommended)* A second request kind: a request whose body is a reader with a stream
+     contract (D22's `readerStreams r Φ`: one reader, any complete stream satisfies `Φ`). The
+     protocol's request clause is then stated of the bytes a server reads to `EOF`: a handler
+     that reads the body to its end learns `Φ` of what it read, and nothing if it stops early or
+     sees an error. The physical assumption added: an HTTP/1.1 chunked body that the server reads
+     to `EOF` is a complete stream of the client's reader (a truncated one ends with
+     `io.ErrUnexpectedEOF`, not `EOF`). New boundary specs: `NewRequest` of a streamed reader,
+     `RoundTrip` of such a request (it consumes the stream right), and on the server side the
+     body's reads at the stream contract (`bodyRead`'s variant).
+   - *(B)* Keep the snapshot stream's transfer one axiom, smaller than today's: the sender's
+     `post` and the handler's body reads and `SaveDBFrom` as a pair of boundary specs at the
+     stream; everything else proved. Less boundary work, two axioms stay.
+2. **`snapReq`, defined.** Today an opaque predicate only the two axioms speak of. Defined
+   (with (A)): a `POST` to `snapPath` with the raft headers, its body stream's complete values
+   `msgFrame (enc st) ++ bs` with `boltImage bs D`, and as the pipeline's (`pipeDeposit`) a deposit
+   under the request's ticket of the message's one-shot part `N.O st`, with `□ N.P st` and the
+   image's certificate `□ N.img i D` at the snapshot's index. The handler withdraws the deposit
+   once (`pipe_withdraw`'s argument), so a replayed request gets nothing.
+
+**`SaveDBFrom`** (`snap/db.go:37-90`: `io.Copy` to a temp file, fsync, rename to
+`<index>.snap.db`, keeping an existing file of that index) stays a boundary spec, in the `snap`
+package (names-only, D22's): given the rest of the body at its stream contract and the snapshot
+directory's invariant (`snapDirInv`, D22 S-i), on success the index is saved (`snapSaved γd i`)
+with a file holding some `D'` with `□ img i D'` (its own `D` when it wrote the file, another
+sender's when one was there: D22's finding 7, harmless, both are the committed state at `i`).
+This is D22's interface: its statement is agreed with the D22 owner before 7b.
+
+**Stages.**
+- **7a. Scope** (this section), D42 drafted. *Stop for the user's choices and the D22 owner's
+  agreement on `SaveDBFrom`'s spec and on the HTTP boundary's streamed body.*
+- **7b. Boundary statements**: the streamed-body request kind (or (B)'s pair), `snapReq`
+  defined in `Stream.lean` with its deposit and withdrawal lemma, `SaveDBFrom`'s spec, the small
+  library specs. Statements only, for review.
+- **7c. Translation**: drop the snapshot names from `rafthttp.toml`'s exclusions (the sender,
+  `createSnapBody`, `snapResponseReadTimeout`, the handler, `SendSnapshot`, `sendSnap`, the five
+  snapshot metrics' initializers as `opaqueInitsOk`); `pkg/v3/ioutil`'s `ReaderAndCloser` with
+  its methods; `etc/gen-init.py` for the new variables.
+- **7d. The sender**: `createSnapBody` (the envelope encoded into a `bytes.Buffer`, the
+  multi-reader's stream contract: `msgFrame (enc st) ++` the pipe's), `post` (the goroutine,
+  the one-slot result channel, the `select` with `stopc`; `stop` closes `stopc` once:
+  `snapSenderStop`), `send` (the reports to `Raft`, `CloseWithError` once), `newSnapshotSender`,
+  `peer.sendSnap`, `Transport.SendSnapshot` under the read lock: today's statements, proved.
+  `snapSenderOk`/`snapSenderStop` defined (today opaque).
+- **7e. The handler**: `newSnapshotHandler`, `snapshotHandler.ServeHTTP`: the method check, the
+  compatibility check, the envelope's `decodeLimit` over the body's prefix, the type check,
+  `SaveDBFrom` of the rest, `Process` of the decoded message with `netRecv` and its
+  `netSnapRecv` (the index saved), the deposit withdrawn; each error path's status.
+- **7f. Link and notes**: the entries in `etc/link-lean-first-server.txt` (gen-link), the trust
+  check (expected: the five snapshot axioms and the opaque `snapReqRaw` gone; the new boundary
+  items in), the collections, STATUS, decisions.
+
+**Risks.** (1) The streamed body is a new kind of request in a boundary every rafthttp proof
+uses; (A) adds it beside the fixed-body kind, so the stage 4-6 proofs are untouched. (2) The
+handler reads one body twice (the decoder's prefix, then `SaveDBFrom`'s rest): the stream contract
+must split at a prefix (a lemma of the reader's contract, as `bodyReader_prefixOk`). (3) D22's
+interfaces (`snapDirInv`, `readerStreams`, `snap.Message`'s predicates) are another owner's; stage
+7 uses them as they are and changes none without that owner. (4) Size: about 330 Go lines, the
+handler the larger half; comparable to stage 4 (the pipeline).
+
 ## Costs and risks
 
 - Several weeks, comparable to the watch client. Stage 5 carries most of the risk (a goroutine

@@ -17970,3 +17970,24 @@ its handler with `Serve_ok`; linkv3p's partitioner holds each member's reader to
 **Lean**: `(netRh γn).owner h` against `netOwner γn.dir h` exceeds the default recursion depth by
 `rfl` (the check unfolds `netOwner`'s classical `if` over the `go!` byte literal); `netRh_owner`,
 proved by `simp only [netRh]`, is the rewrite.
+
+## D42 (draft): the snapshot stream proved over a streamed request body (2026-10-24 · rafthttp stage 7a, for the user; `notes/rafthttp-plan.md`, "Stage 7")
+
+rafthttp's snapshot sender and handler are its last code still assumed (`SendSnapshot`,
+`newSnapshotSender`, `snapshotSender.stop`, `newSnapshotHandler`, the opaque `snapReq`). Their
+transfer is a chunked `POST` whose body is a stream (the envelope, then the merged snapshot's
+pipe) that the sender never sees, which the HTTP boundary's requests (a body fixed at
+`NewRequest`) cannot carry.
+
+- *(A, recommended)* A streamed-body request kind beside the fixed one: its body a reader with a
+  stream contract (`backend.readerStreams`), the protocol stated of what a server reads to `EOF`
+  (the physical assumption: a chunked body read to `EOF` is a complete stream of the client's
+  reader). `snapReq` defined over it: the envelope's encoding, then a bbolt image of `D` with the
+  certificate `N.img i D`, and the message's one-shot part deposited under the request's ticket
+  (as the pipeline's `pipeDeposit`). The sender and handler are then proved; `SaveDBFrom` stays a
+  boundary spec in `snap` (D22's), its statement agreed with the D22 owner.
+- *(B)* The stream's transfer stays one smaller axiom pair (the sender's `post`, the handler's body
+  reads with `SaveDBFrom`); the rest proved.
+
+Either way `SendSnapshot`'s and the handler's statements are unchanged, so no closed theorem
+changes; (A) leaves fewer assumptions and touches D22's interfaces only through `SaveDBFrom`'s spec.
