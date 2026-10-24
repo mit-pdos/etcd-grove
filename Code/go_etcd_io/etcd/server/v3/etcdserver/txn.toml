@@ -12,7 +12,7 @@ translate = ["!*",
   # put.go
   "Put", "put", "checkPut", "checkLease", "checkAndGetPrevKV", "getPrevKV",
   # range.go
-  "Count", "Range", "executeRange", "rangeLimit", "IsDefaultOrdering", "HasRevisionFilters",
+  "Count", "Range", "executeRange", "rangeLimit", "IsDefaultOrdering", "rangeSortOrder", "HasRevisionFilters",
   "filterRangeResults", "sortRangeResults", "asembleRangeResponse", "checkRange", "pruneKVs",
   "kvSort", "kvSort.Swap", "kvSort.Len",
   "kvSortByKey", "kvSortByKey.Less", "kvSortByVersion", "kvSortByVersion.Less",

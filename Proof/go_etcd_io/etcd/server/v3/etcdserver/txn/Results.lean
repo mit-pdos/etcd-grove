@@ -188,7 +188,7 @@ end unit1
 Every function of `range.go` has a `Spec`/`Proof` pair and a linked result (`Link.lean`).
 
 * **`Range` in the client's terms** (`range_rangeSel`): `rangeKvsOk` of the client model's
-  `rangeSel`, unless the sort is cut early (`issues/etcd-range-sort-none-limit.md`).
+  `rangeSel` (`not_cutEarly` discharges `¬ cutEarly o`, fixing `issues/etcd-range-sort-none-limit.md`).
 * **At the sole writer** (`range_soleWriter`): the read is at its log exactly.
 * **`Count` at the sole writer** (`count_result`): the client's `rangeIn` length.
 -/
@@ -203,15 +203,15 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **`Range` in the client's terms**: `Range`'s spec (`txn.Range.spec`) with the success case
 stated over the client model's selection (`rangeResultClient`: `rangeKvsOk` of `rangeSel` of the
-state read, up to a fast keys-only read's zero lease), for a request whose sort is not cut early
-(`cutEarly`, `issues/etcd-range-sort-none-limit.md`). -/
+state read, up to a fast keys-only read's zero lease). With `etcd-io/etcd#22616`, `not_cutEarly`
+discharges `¬ cutEarly o` (`issues/etcd-range-sort-none-limit.md`). -/
 theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc)
     (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (r : Loc) (o : OpFull) (withTotal : Bool)
     (m : Nat) (log₀ : mvcc.Log) (ot : Option Loc) (te : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
         rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ ⌜lg ≠ null⌝ ∗
-        ⌜validSortTarget o ∧ ¬ cutEarly o ∧
+        ⌜validSortTarget o ∧
           ∀ log : mvcc.Log, log₀ <+: log → log.length + m + 3 ≤ 2 ^ 63 → sortOk o log⌝ }}
       (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg))
         (Val #kv)) (Val #r)) (Val #withTotal))
@@ -232,7 +232,7 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
     isplitr
     · ipureintro; exact Hpre.1
     iintro !> %log' %h -
-    ipureintro; exact Hpre.2.2 log' h.1 h.2
+    ipureintro; exact Hpre.2 log' h.1 h.2
   inext
   iintro %resp %tr %err ⟨Hrd, Ht, %Htr, -, -, %log, %rev, #Hcert, -, %Hp, #Hres, -, -⟩
   iapply HΦ
@@ -243,7 +243,7 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
   iframe Hcert
   isplitr
   · ipureintro; exact Hp
-  iapply rangeResult_client resp err log rev o withTotal Hset Hpre.2.1 $$ Hres
+  iapply rangeResult_client resp err log rev o withTotal Hset $$ Hres
 
 /-- **`Range` at the sole writer** reads its log exactly (`soleWriter_pins_read`): the response
 is `rangeResult` at `log`'s last revision. -/
@@ -320,10 +320,13 @@ end unit2
 #print axioms Perennial.EtcdGrove.txn.wp_executeRange
 #print axioms Perennial.EtcdGrove.txn.wp_checkRange
 #print axioms Perennial.EtcdGrove.txn.wp_sortRangeResults
+#print axioms Perennial.EtcdGrove.txn.wp_rangeLimit
+#print axioms Perennial.EtcdGrove.txn.wp_rangeSortOrder
 #print axioms Perennial.EtcdGrove.txn.wp_filterRangeResults
 #print axioms Perennial.EtcdGrove.txn.wp_asembleRangeResponse
 #print axioms Perennial.EtcdGrove.txn.wp_mkGteRange
 #print axioms Perennial.EtcdGrove.txn.srvRangeOk_rangeKvsOk
+#print axioms Perennial.EtcdGrove.txn.not_cutEarly
 #print axioms Perennial.EtcdGrove.mvcc.metricsTxnWrite.wp_Rev
 #print axioms Perennial.EtcdGrove.mvcc.metricsTxnWrite.wp_FirstRev
 

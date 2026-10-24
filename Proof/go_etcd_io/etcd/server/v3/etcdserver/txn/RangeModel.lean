@@ -9,7 +9,8 @@ relates it to the client model's `rangeSel`/`rangeKvsOk` (`InvEtcd.lean`).
 
 * **The limit mvcc reads with** (`rangeLimitOf`, `rangeLimit`): the request's limit plus one
   when it is positive and below `MaxInt64`, the ordering is the default (`isDefaultOrd` of the
-  request's raw target and order) and there is no revision filter; else no limit (`0`).
+  request's target and adjusted order `rangeSortOrderOf`) and there is no revision filter; else
+  no limit (`0`).
 * **What mvcc reads** (`kvRead`): with `FastKeysOnly` (`fastKeysOnly`: keys-only and not sorted
   by value) a key-value without its value *and its lease* (mvcc's `kvPtrIs false`): the
   server's keys-only responses carry lease `0` unless sorted by value.
@@ -21,13 +22,10 @@ relates it to the client model's `rangeSel`/`rangeKvsOk` (`InvEtcd.lean`).
 * **Limited and assembled** (`srvTrunc`, `srvMore`, `respKv`): the first `limit`, `More` when
   more remained, values dropped if keys-only.
 
-**Where the server and the client model differ** (`srvRangeOk_rangeKvsOk`): (1) a fast keys-only
-response's key-values have lease `0` (`leaseZ`); (2) a sort by a target other than the key with
-no order (`SortOrder = NONE`: the server sorts ascending) and a positive limit (no revision
-filter) sorts only the first `limit + 1` keys of the range, since `rangeLimit` tests the
-request's raw order (`IsDefaultOrdering(target, NONE)` is true) while `sortRangeResults` tests
-the adjusted one (`cutEarly`): the response is not the first `limit` of the sorted range
-(`issues/etcd-range-sort-limit.md`). Outside these, the response is `rangeKvsOk` of `rangeSel`.
+**Where the server and the client model differ** (`srvRangeOk_rangeKvsOk`): a fast keys-only
+response's key-values have lease `0` (`leaseZ`). Outside this, the response is `rangeKvsOk` of
+`rangeSel` (both `rangeLimit` and `sortRangeResults` now pass the request through
+`rangeSortOrder`, so `cutEarly` is never true).
 
 **The sort's premises**: `sort.Sort`'s axiom wants at most `2 ^ 62` elements and a strict weak
 order; the comparators `(a - b) < 0` on versions and revisions are the signed order only for
@@ -72,6 +70,13 @@ theorem sext32_eq (x : w32) (c : Int) (hc0 : -2 ^ 31 ≤ c) (hc1 : c < 2 ^ 31) :
     rw [h1, h4]
   · intro h; subst h; congr 1; word
 
+theorem sext32_inj (x y : w32) (h : W64 (sint.Z x) = W64 (sint.Z y)) : x = y := by
+  have h1 : sint.Z (W64 (sint.Z x)) = sint.Z (W64 (sint.Z y)) := by rw [h]
+  have h2 : sint.Z (W64 (sint.Z x)) = sint.Z x := by word
+  have h3 : sint.Z (W64 (sint.Z y)) = sint.Z y := by word
+  rw [h2, h3] at h1
+  exact BitVec.eq_of_toInt_eq h1
+
 theorem isDefaultOrd_sext (target order : w32) :
     isDefaultOrd (W64 (sint.Z target)) (W64 (sint.Z order)) =
       decide (order = W32 0 ∨ (target = W32 0 ∧ order = W32 1)) := by
@@ -79,16 +84,36 @@ theorem isDefaultOrd_sext (target order : w32) :
   simp only [sext32_eq order 0 (by omega) (by omega), sext32_eq target 0 (by omega) (by omega),
     sext32_eq order 1 (by omega) (by omega)]
 
+/-- `rangeSortOrder(r)`: `ASCEND` (`1`) when the target is not the key (`0`) and the order is
+`NONE` (`0`), else the request's order. -/
+abbrev rangeSortOrderOf (o : OpFull) : w64 :=
+  if o.sortTarget ≠ W64 0 ∧ o.sortOrder = W64 0 then W64 1 else o.sortOrder
+
+theorem rangeSortOrderOf_sext (target order : w32) :
+    W64 (sint.Z (if target ≠ W32 0 ∧ order = W32 0 then W32 1 else order)) =
+      if W64 (sint.Z target) ≠ W64 0 ∧ W64 (sint.Z order) = W64 0 then W64 1 else W64 (sint.Z order) := by
+  simp only [ne_eq, sext32_eq target 0 (by omega) (by omega),
+    sext32_eq order 0 (by omega) (by omega)]
+  split <;> rfl
+
+theorem isDefaultOrd_rangeSortOrderOf (o : OpFull) :
+    isDefaultOrd o.sortTarget (rangeSortOrderOf o) = true ↔
+      o.sortTarget = W64 0 ∧ (o.sortOrder = W64 0 ∨ o.sortOrder = W64 1) := by
+  unfold isDefaultOrd rangeSortOrderOf
+  simp only [decide_eq_true_eq]
+  by_cases ht : o.sortTarget = 0#64 <;> by_cases ho : o.sortOrder = 0#64 <;>
+    simp [ht, ho]
+
 /-- `HasRevisionFilters(r)`. -/
 def hasRevFilters (o : OpFull) : Bool :=
   decide (o.base.minModRev ≠ W64 0 ∨ o.base.maxModRev ≠ W64 0 ∨
     o.base.minCreateRev ≠ W64 0 ∨ o.base.maxCreateRev ≠ W64 0)
 
-/-- `rangeLimit(r)`: the limit `executeRange` reads with: none (`0`) if the ordering is not the
-default or there is a revision filter; one more than the request's (to tell `More`) if it is
+/-- `rangeLimit(r)`: the limit `executeRange` reads with: none (`0`) if the ordering (`rangeSortOrderOf`)
+is not the default or there is a revision filter; one more than the request's (to tell `More`) if it is
 positive and below `MaxInt64`. -/
 def rangeLimitOf (o : OpFull) : w64 :=
-  let l := if isDefaultOrd o.sortTarget o.sortOrder = false ∨ hasRevFilters o = true then W64 0
+  let l := if isDefaultOrd o.sortTarget (rangeSortOrderOf o) = false ∨ hasRevFilters o = true then W64 0
     else o.base.limit
   if 0 < sint.Z l ∧ sint.Z l < 2 ^ 63 - 1 then l + W64 1 else l
 
@@ -564,18 +589,18 @@ theorem filter_true_of_noFilters (o : OpFull) (h : hasRevFilters o = false) (l :
   simp [h.1, h.2.1, h.2.2.1, h.2.2.2]
 
 theorem rangeLimitOf_pos (o : OpFull) (h : 0 < sint.Z (rangeLimitOf o)) :
-    isDefaultOrd o.sortTarget o.sortOrder = true ∧ hasRevFilters o = false ∧
+    isDefaultOrd o.sortTarget (rangeSortOrderOf o) = true ∧ hasRevFilters o = false ∧
       0 < sint.Z o.base.limit ∧
       (sint.Z (rangeLimitOf o) = sint.Z o.base.limit + 1 ∨
         (sint.Z (rangeLimitOf o) = sint.Z o.base.limit ∧ sint.Z o.base.limit = 2 ^ 63 - 1)) := by
   unfold rangeLimitOf at h ⊢
   simp only at h ⊢
-  by_cases hc : isDefaultOrd o.sortTarget o.sortOrder = false ∨ hasRevFilters o = true
+  by_cases hc : isDefaultOrd o.sortTarget (rangeSortOrderOf o) = false ∨ hasRevFilters o = true
   · simp only [hc, ↓reduceIte] at h
     exfalso
     split at h <;> word
-  · have hd : isDefaultOrd o.sortTarget o.sortOrder = true := by
-      cases h' : isDefaultOrd o.sortTarget o.sortOrder <;> simp_all
+  · have hd : isDefaultOrd o.sortTarget (rangeSortOrderOf o) = true := by
+      cases h' : isDefaultOrd o.sortTarget (rangeSortOrderOf o) <;> simp_all
     have hn : hasRevFilters o = false := by cases h' : hasRevFilters o <;> simp_all
     simp only [hc, ↓reduceIte] at h ⊢
     refine ⟨hd, hn, ?_⟩
@@ -588,6 +613,17 @@ theorem rangeLimitOf_pos (o : OpFull) (h : 0 < sint.Z (rangeLimitOf o)) :
       refine ⟨h, Or.inr ?_⟩
       simp only [hl, ↓reduceIte]
       refine ⟨?_, ?_⟩ <;> (first | trivial | rfl | word)
+
+/-- With `rangeLimit` testing `IsDefaultOrdering(r.SortTarget, rangeSortOrder(r))` (`etcd-io/etcd#22616`),
+`cutEarly` is impossible: whenever `rangeLimitOf o > 0`, `isDefaultOrd o.sortTarget (rangeSortOrderOf o)`
+holds so `o.sortTarget = W64 0` and `o.sortOrder = W64 0 ∨ o.sortOrder = W64 1`, hence
+`o.effSortOrder = W64 0`. -/
+theorem not_cutEarly (o : OpFull) : ¬ cutEarly o := by
+  rintro ⟨hsort, hL⟩
+  obtain ⟨hdef, -⟩ := rangeLimitOf_pos o hL
+  rw [isDefaultOrd_rangeSortOrderOf] at hdef
+  rcases hdef with ⟨ht, ho | ho⟩ <;>
+    cases hs : o.base.sortSet <;> simp [OpFull.effSortOrder, hs, ht, ho] at hsort
 
 theorem srvTrunc_map (o : OpFull) (f : EtcdKv → EtcdKv) (L : List EtcdKv) :
     srvTrunc o (L.map f) = (srvTrunc o L).map f := by
@@ -618,11 +654,11 @@ theorem respKv_map_kvRead (o : OpFull) (L : List EtcdKv) :
   simp [clientResp, respKv_kvRead]
 
 /-- **The server's range is the client's** (`rangeKvsOk` of `rangeSel`), up to the lease of a
-fast keys-only read (`leaseZ`), unless the sort is cut early (`cutEarly`); and `More` is the
-client's (`getRespMore`'s) below the largest limit. -/
+fast keys-only read (`leaseZ`); and `More` is the client's (`getRespMore`'s) below the largest
+limit (`not_cutEarly` discharges `¬ cutEarly o`). -/
 theorem srvRangeOk_rangeKvsOk (o : OpFull) (s : List EtcdKv) (kvs : List EtcdKv) (more : Bool)
-    (hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
-    (h : srvRangeOk o s kvs more) (hcut : ¬ cutEarly o) :
+    (_hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
+    (h : srvRangeOk o s kvs more) (hcut : ¬ cutEarly o := not_cutEarly o) :
     ∃ kvs', rangeKvsOk o (rangeSel s o) kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o)) ∧
       (o.base.countOnly = false → sint.Z o.base.limit < 2 ^ 63 - 1 →
         more = decide (0 < sint.Z o.base.limit ∧
@@ -695,18 +731,9 @@ theorem srvRangeOk_rangeKvsOk (o : OpFull) (s : List EtcdKv) (kvs : List EtcdKv)
         exact filter_true_of_noFilters o hnf _
       -- the order is the default: `effSortOrder = 0`
       have heff : o.effSortOrder = W64 0 := by
-        unfold isDefaultOrd at hdef
-        simp only [decide_eq_true_eq] at hdef
-        unfold OpFull.effSortOrder at hsort ⊢
-        rw [hset] at hsort ⊢
-        rcases hdef with ho | ⟨ht, ho⟩
-        · by_cases ht : o.sortTarget = W64 0
-          · simp [ho, ht]
-          · exfalso; apply hsort; left
-            simp only [ho, ht, ne_eq, not_false_eq_true, not_true_eq_false,
-              or_true, decide_true, Bool.true_eq_false, ↓reduceIte,
-              and_self]
-        · simp [ho, ht]
+        rw [isDefaultOrd_rangeSortOrderOf] at hdef
+        rcases hdef with ⟨ht, ho | ho⟩ <;>
+          cases hs : o.base.sortSet <;> simp [OpFull.effSortOrder, hs, ht, ho]
       rw [hl, hpre] at hkvs hmore
       have hLn : (sint.Z o.base.limit).toNat ≤ (sint.Z (rangeLimitOf o)).toNat := by omega
       refine ⟨_, ⟨rangeSel s o, List.Perm.refl _, (fun _ => rfl), (fun h => by rw [heff] at h; cases h),

@@ -134,6 +134,9 @@ noncomputable def rangeLimit [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def IsDefaultOrdering [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.IsDefaultOrdering"
 
+noncomputable def rangeSortOrder [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/txn.rangeSortOrder"
+
 noncomputable def HasRevisionFilters [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.HasRevisionFilters"
 
@@ -956,7 +959,8 @@ noncomputable def rangeLimit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"SortTarget"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"SortOrder"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve rangeSortOrder []))) (Val #())) (Var "$a0")))
   (App (App (App (Val (GoInstruction (FuncResolve IsDefaultOrdering []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
   (App (App (Val (GoInstruction (FuncResolve HasRevisionFilters []))) (Val #())) (Var "$a0"))))
   (Let "$r0" (Val #(W64 0))
@@ -978,6 +982,20 @@ noncomputable def IsDefaultOrdering.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_NONE))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (Var "sortTarget")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_KEY))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_ASCEND))) (Val #false)))))))))
 
 /-- go: range.go:105:6 -/
+noncomputable def rangeSortOrder.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "r"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"SortOrder"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"SortTarget"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_KEY)))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"SortOrder"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_NONE))) (Val #false)))
+  (App (Val doReturn)
+  (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_ASCEND))
+  (App (Val doExecute)
+  (Val #())))))))
+
+/-- go: range.go:112:6 -/
 noncomputable def HasRevisionFilters.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
@@ -985,7 +1003,7 @@ noncomputable def HasRevisionFilters.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MinModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MaxModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0)))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MinCreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0)))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MaxCreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0))))))))))
 
-/-- go: range.go:110:6 -/
+/-- go: range.go:117:6 -/
 noncomputable def filterRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "r"
@@ -1043,7 +1061,7 @@ noncomputable def filterRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: range.go:125:6 -/
+/-- go: range.go:132:6 -/
 noncomputable def sortRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "r"
@@ -1055,9 +1073,9 @@ noncomputable def sortRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"SortOrder"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve rangeSortOrder []))) (Val #())) (Var "$a0")))
   (Let "sortOrder" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"SortTarget"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder"))
@@ -1116,16 +1134,10 @@ noncomputable def sortRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))))))))))
   (App (Val doExecute)
   (Val #())))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"SortTarget"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_KEY)))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_NONE))) (Val #false)))
-  (Let "$r0" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_ASCEND)
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (Var "sortOrder") (Var "$r0")))))
-  (App (Val doExecute)
-  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (Var "sortOrder") (Var "$r0")))))))))))))))
 
-/-- go: range.go:156:6 -/
+/-- go: range.go:159:6 -/
 noncomputable def asembleRangeResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "r"
@@ -1186,7 +1198,7 @@ noncomputable def asembleRangeResponse.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
 
-/-- go: range.go:174:6 -/
+/-- go: range.go:177:6 -/
 noncomputable def checkRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "req"
@@ -1209,7 +1221,7 @@ noncomputable def checkRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))))
 
-/-- go: range.go:186:6 -/
+/-- go: range.go:189:6 -/
 noncomputable def pruneKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "isPrunable"
@@ -1248,7 +1260,7 @@ noncomputable def pruneKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))))))))
 
-/-- go: range.go:199:18 -/
+/-- go: range.go:202:18 -/
 noncomputable def kvSort.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1273,7 +1285,7 @@ noncomputable def kvSort.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (Pair (Var "t") (Var "$r0")))))))))))))))
 
-/-- go: range.go:204:18 -/
+/-- go: range.go:207:18 -/
 noncomputable def kvSort.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1283,7 +1295,7 @@ noncomputable def kvSort.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (Var "s"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))))))))
 
-/-- go: range.go:208:23 -/
+/-- go: range.go:211:23 -/
 noncomputable def kvSortByKey.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1297,7 +1309,7 @@ noncomputable def kvSortByKey.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByKey.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByKey.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 0))))))))))))
 
-/-- go: range.go:214:27 -/
+/-- go: range.go:217:27 -/
 noncomputable def kvSortByVersion.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1309,7 +1321,7 @@ noncomputable def kvSortByVersion.Less.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByVersion.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByVersion.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByVersion.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByVersion.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))) (Val #(W64 0))))))))))))
 
-/-- go: range.go:220:26 -/
+/-- go: range.go:223:26 -/
 noncomputable def kvSortByCreate.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1321,7 +1333,7 @@ noncomputable def kvSortByCreate.Less.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByCreate.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByCreate.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByCreate.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByCreate.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))) (Val #(W64 0))))))))))))
 
-/-- go: range.go:226:23 -/
+/-- go: range.go:229:23 -/
 noncomputable def kvSortByMod.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1333,7 +1345,7 @@ noncomputable def kvSortByMod.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByMod.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByMod.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByMod.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByMod.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))) (Val #(W64 0))))))))))))
 
-/-- go: range.go:232:25 -/
+/-- go: range.go:235:25 -/
 noncomputable def kvSortByValue.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -3104,6 +3116,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   executeRange_unfold : FuncUnfold executeRange [] executeRange.impl
   rangeLimit_unfold : FuncUnfold rangeLimit [] rangeLimit.impl
   IsDefaultOrdering_unfold : FuncUnfold IsDefaultOrdering [] IsDefaultOrdering.impl
+  rangeSortOrder_unfold : FuncUnfold rangeSortOrder [] rangeSortOrder.impl
   HasRevisionFilters_unfold : FuncUnfold HasRevisionFilters [] HasRevisionFilters.impl
   filterRangeResults_unfold : FuncUnfold filterRangeResults [] filterRangeResults.impl
   sortRangeResults_unfold : FuncUnfold sortRangeResults [] sortRangeResults.impl
@@ -3164,6 +3177,7 @@ attribute [instance] Assumptions.kvSort_instance
   Assumptions.executeRange_unfold
   Assumptions.rangeLimit_unfold
   Assumptions.IsDefaultOrdering_unfold
+  Assumptions.rangeSortOrder_unfold
   Assumptions.HasRevisionFilters_unfold
   Assumptions.filterRangeResults_unfold
   Assumptions.sortRangeResults_unfold

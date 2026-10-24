@@ -59,8 +59,8 @@ theorem srvRangeOk_getKey1 (key : GoString) (s kvs : List EtcdKv) (more : Bool)
   have hpre : txn.srvPre (getKey1Op key) s = (s.filter (fun v => decide (v.key = key))).take 2 := by
     have hr : txn.kvRead false = id := by funext v; simp [txn.kvRead]
     unfold txn.srvPre
-    simp [txn.rangeLimitOf, txn.hasRevFilters, txn.isDefaultOrd, mvcc.limitOf, mvcc.takeLimit,
-      txn.fastKeysOnly, rangeIn, inRange, hr]
+    simp [txn.rangeLimitOf, txn.rangeSortOrderOf, txn.hasRevFilters, txn.isDefaultOrd, mvcc.limitOf,
+      mvcc.takeLimit, txn.fastKeysOnly, rangeIn, inRange, hr]
     have h2 : sint.Z (2#64) = 2 := by decide
     rw [h2]
     simp only [show (0 : Int) < 2 from by decide, ↓reduceIte]

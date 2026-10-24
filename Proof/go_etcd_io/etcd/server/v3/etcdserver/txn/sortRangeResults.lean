@@ -10,6 +10,7 @@ branch (`lg.Panic`) is unreachable: the target is one of the five (`validSortTar
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.sortRangeResults
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.rangeSortOrder
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.IsDefaultOrdering
 public import Spec.sort.Sort
 public import Spec.sort.Reverse
@@ -202,6 +203,7 @@ theorem txn.swo_flip {E : Type} {R : E → E → Prop} (h : slices.StrictWeakOrd
       ⟨r.2, r.1⟩ }
 
 theorem txn.sortRangeResults.wp_proof
+    (hSortOrd : txn.rangeSortOrder.spec (GF := GF) (hG := hG))
     (hIsDef : txn.IsDefaultOrdering.spec (GF := GF) (hG := hG))
     (hSort : sort.«Sort».spec (GF := GF) (hG := hG))
     (hRev : sort.Reverse.spec (GF := GF) (hG := hG))
@@ -223,19 +225,9 @@ theorem txn.sortRangeResults.wp_proof
   iunfold txn.kvsOwnAt at Hsl
   icases Hsl with ⟨Hs, Hkv⟩
   wp_auto
-  wp_join iprop(∃ so : w32, sortOrder_ptr ↦ so ∗
-      ⌜so = if target ≠ W32 0 ∧ order = W32 0 then W32 1 else order⌝) with [sortOrder]
-    as ⟨%so, sortOrder, %Hso⟩
-  · iexists order; iframe; ipureintro; simp
-  · wp_if_destruct
-    · simp only [etcdserverpb.RangeRequest_ASCEND]
-      wp_auto
-      isplitl []
-      · ipureintro; trivial
-      iexists (W32 1); iframe; ipureintro; exact (ite_eq_left ⟨Hif, trivial⟩).symm
-    · isplitl []
-      · ipureintro; trivial
-      iexists order; iframe; ipureintro; exact (ite_eq_right (fun h => Hif h.2)).symm
+  wp_apply (hSortOrd r o) $$ [$Hr] as %so %Hso0
+  have Hso : so = if target ≠ W32 0 ∧ order = W32 0 then W32 1 else order :=
+    txn.sext32_inj _ _ (by rw [Hso0, Ho]; exact (txn.rangeSortOrderOf_sext target order).symm)
   wp_apply hIsDef
   have Heff : o.effSortOrder =
       if so = W32 0 ∨ (target = W32 0 ∧ so = W32 1) then W64 0 else W64 (sint.Z so) := by

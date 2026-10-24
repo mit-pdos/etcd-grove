@@ -63,8 +63,9 @@ Put: traceutil_EnsureTrace proto_Size checkLease mvcc_store__Write mvcc_watchabl
 #
 # Unit 2: range.go.
 IsDefaultOrdering:
+rangeSortOrder:
 HasRevisionFilters:
-rangeLimit: IsDefaultOrdering HasRevisionFilters
+rangeLimit: rangeSortOrder IsDefaultOrdering HasRevisionFilters
 pruneKVs:
 filterRangeResults: pruneKVs
 kvSort__Swap:
@@ -74,7 +75,7 @@ kvSortByVersion__Less:
 kvSortByCreate__Less:
 kvSortByMod__Less:
 kvSortByValue__Less:
-sortRangeResults: IsDefaultOrdering sort_Sort sort_Reverse kvSort__Len kvSort__Swap kvSortByKey__Less kvSortByVersion__Less kvSortByCreate__Less kvSortByMod__Less kvSortByValue__Less
+sortRangeResults: rangeSortOrder IsDefaultOrdering sort_Sort sort_Reverse kvSort__Len kvSort__Swap kvSortByKey__Less kvSortByVersion__Less kvSortByCreate__Less kvSortByMod__Less kvSortByValue__Less
 asembleRangeResponse:
 checkRange: mvcc_metricsTxnWrite__Rev mvcc_metricsTxnWrite__FirstRev
 executeRange: traceutil_Get rangeLimit mkGteRange mvcc_metricsTxnWrite__Range mvcc_txnReadWrite__Range filterRangeResults sortRangeResults traceutil_Trace__Step asembleRangeResponse

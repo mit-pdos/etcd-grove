@@ -1,0 +1,27 @@
+# etcd-io/etcd#22616 (etcdserver: read the whole range before sorting with SortOrder NONE),
+# branch pr-verify/etcd-22616: the new function `txn.rangeSortOrder`, the changed functions
+# `txn.rangeLimit` and `txn.sortRangeResults`, their callers `txn.executeRange` and `txn.Range`,
+# `txn.IsDefaultOrdering`, and the range results (`range_rangeSel`, `range_soleWriter`,
+# `srvRangeOk_rangeKvsOk`, `not_cutEarly`).
+# Report: notes/pr-verify/etcd-22616.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22616.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/(rangeSortOrder|IsDefaultOrdering|rangeLimit|sortRangeResults|executeRange|Range)\.lean$
+roots \btxn\.(range_rangeSel|range_soleWriter|srvRangeOk_rangeKvsOk|not_cutEarly)$
+axiom backend.isDB
+axiom backend.optsAt
+axiom backend.ownDB
+axiom backend.ownWTx
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txDB
+axiom backend.txLive
+axiom context.WithValue.wp_proof
+axiom proto.Unmarshal.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.String.wp_proof

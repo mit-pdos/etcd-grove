@@ -52,6 +52,7 @@ public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.pruneKVs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.rangeLimit
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.rangeSortOrder
 public import Proof.reflect.ValueOf
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.sortRangeResults
 public import Proof.sort.Reverse
@@ -174,9 +175,13 @@ theorem traceutil.Trace.wp_StartSubTrace :
     EtcdGrove.traceutil.Trace.StartSubTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Trace.StartSubTrace.wp_proof
 
+theorem wp_rangeSortOrder :
+    EtcdGrove.txn.rangeSortOrder.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.rangeSortOrder.wp_proof
+
 theorem wp_rangeLimit :
     EtcdGrove.txn.rangeLimit.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.rangeLimit.wp_proof wp_IsDefaultOrdering wp_HasRevisionFilters
+  EtcdGrove.txn.rangeLimit.wp_proof wp_rangeSortOrder wp_IsDefaultOrdering wp_HasRevisionFilters
 
 theorem wp_pruneKVs :
     EtcdGrove.txn.pruneKVs.spec (GF := GF) (hG := hG) :=
@@ -224,7 +229,7 @@ theorem kvSortByValue.wp_Less :
 
 theorem wp_sortRangeResults :
     EtcdGrove.txn.sortRangeResults.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.sortRangeResults.wp_proof wp_IsDefaultOrdering sort.wp_Sort sort.wp_Reverse kvSort.wp_Len kvSort.wp_Swap kvSortByKey.wp_Less kvSortByVersion.wp_Less kvSortByCreate.wp_Less kvSortByMod.wp_Less kvSortByValue.wp_Less
+  EtcdGrove.txn.sortRangeResults.wp_proof wp_rangeSortOrder wp_IsDefaultOrdering sort.wp_Sort sort.wp_Reverse kvSort.wp_Len kvSort.wp_Swap kvSortByKey.wp_Less kvSortByVersion.wp_Less kvSortByCreate.wp_Less kvSortByMod.wp_Less kvSortByValue.wp_Less
 
 theorem wp_asembleRangeResponse :
     EtcdGrove.txn.asembleRangeResponse.spec (GF := GF) (hG := hG) :=
