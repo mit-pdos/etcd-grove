@@ -125,8 +125,18 @@ instance protoreflect_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
   build_get_is_pkg_init_wf
 
+/-- **`authpb`'s fact** (the auth plan's S4e, 2026-10-24; `authpb.toml`, `etc/gen-init.py`): the
+permission type's name map `Permission_Type_name` (a generated `map[int32]string` literal), fixed:
+its entries are the three types' names. `RoleGrantPermission` looks the granted type's name up for
+its log line (`auth.typeNamesOk`). -/
+abbrev authpbInit : IProp GF :=
+  iprop(∃ (mp : Loc) (M : GMap w32 GoString),
+    globalAddr go_etcd_io.etcd.api.v3.authpb.Permission_Type_name ↦□ mp ∗ mp ↦$□ M ∗
+    ⌜M !! (W32 0) = some go!"READ" ∧ M !! (W32 1) = some go!"WRITE" ∧
+      M !! (W32 2) = some go!"READWRITE"⌝)
+
 instance authpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init authpbInit
 instance authpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
   build_get_is_pkg_init_wf

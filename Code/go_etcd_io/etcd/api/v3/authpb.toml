@@ -6,12 +6,13 @@
 # the protobuf runtime plumbing is names only, as raftpb's (`Code/go_etcd_io/raft/v3/raftpb.toml`):
 # `ProtoReflect`, `Descriptor`, `Reset`, `String`, `ProtoMessage`, the enum's `Type`/`Number`/
 # `EnumDescriptor`, the file descriptor and its tables (`file_auth_proto*`, `File_auth_proto`)
-# and `init` (`initFuncsOk`, `opaqueInitsOk` of the package's generated `Init.lean`), and the
-# enum's name maps (nothing verified reads them).
+# and `init` (`initFuncsOk`, `opaqueInitsOk` of the package's generated `Init.lean`). The enum's
+# name maps `Permission_Type_name`/`_value` are translated (2026-10-24, the auth plan's S4e:
+# `RoleGrantPermission` looks the granted type's name up; the package's fact, `authpbInit`).
 translate = ["*",
   "!*.ProtoReflect", "!*.Descriptor", "!*.Reset", "!*.String", "!*.ProtoMessage",
   "!*.EnumDescriptor", "!*.Type", "!*.Number", "!file_auth_proto*", "!File_auth_proto",
-  "!init.*", "!Permission_Type_name", "!Permission_Type_value"]
+  "!init.*"]
 
 # auth.pb.go imports the protobuf runtime (names only, translated with this project:
 # Code/google_golang_org/protobuf/)

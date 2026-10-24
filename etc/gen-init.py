@@ -279,6 +279,34 @@ Perennial's `context.wp_New_errorString`).''',
            ['imodintro', 'unfold v3electionInit', 'iexists _; iexact HErrMissingLeaderKey'],
 )
 
+# (2026-10-24, the auth plan's S4e) the permission type's name maps, translated: the store's
+# `RoleGrantPermission` looks the granted type's name up for its log line
+SPECIAL['go_etcd_io.etcd.api.v3.authpb'] = dict(
+    doc='''Its fact (`authpbInit`, `cache/v3/Base.lean`): `Permission_Type_name` holds a map, read-only
+for good, whose entries are the permission types' names (`0` `READ`, `1` `WRITE`, `2`
+`READWRITE`). Its initializer allocates and sets the two translated name maps
+(`Permission_Type_name`, `Permission_Type_value`: `map[int32]string`/`map[string]int32` literals,
+`auth.pb.go`), initializes its imports and runs its other variables' untranslated initializers (the
+generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` says run.''',
+    alloc_types={'Permission_Type_name': 'Loc', 'Permission_Type_value': 'Loc'},
+    before={
+        'Permission_Type_name': [
+            'try wp_auto',
+            'wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mn Hmn',
+            'try wp_auto',
+            'repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hmn as Hmn; try wp_auto)'],
+        'Permission_Type_value': [
+            'try wp_auto',
+            'wp_apply (wp_map_make1 (K := GoString) (V := w32) go.string go.int32) as %mv Hmv',
+            'try wp_auto',
+            'repeat (wp_apply (wp_mapInsert (K := GoString) (V := w32) go.string) $$ Hmv as Hmv; try wp_auto)']},
+    finish=['ipersist HPermission_Type_name', 'ipersist Hmn'] + [
+        'iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+        'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro',
+        'unfold go_etcd_io.etcd.cache.v3.authpbInit',
+        'iexists _, _', 'iframe #', 'ipureintro', 'simp (config := {decide := true})'],
+)
+
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
     doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
 `MinClusterVersion` `"3.0.0"`. Its
