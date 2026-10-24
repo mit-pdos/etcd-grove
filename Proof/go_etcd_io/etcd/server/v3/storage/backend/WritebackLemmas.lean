@@ -79,6 +79,18 @@ theorem mem_bkOf_wbMerge {W R : GMap w64 (List Ent)} {i : w64} {e : Ent}
     · exact Or.inl h
     · exact Or.inr (by simpa using h)
 
+/-- A write-back of a write buffer empty off the hook's buckets keeps the read buffer clean (the
+restore plan's R5a). -/
+theorem rbClean_writeback {P : BParams} {W : WBuf} {R : RBuf}
+    (hW : ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf W.bks i = [])
+    (hR : rbClean P R) : rbClean P (writebackR W R) := by
+  intro n i hn hb
+  apply List.eq_nil_iff_forall_not_mem.2
+  intro e he
+  rcases mem_bkOf_wbMerge he with h | h
+  · rw [hR n i hn hb] at h; simp at h
+  · rw [hW n i hn hb] at h; simp at h
+
 /-- The write-back keeps the safe-range discipline: the merged read buffer's keys are the read
 buffer's and the write buffer's, both above the committed ones. -/
 theorem safeSt_writeback {P : BParams} {st : BSess} (hs : safeSt P st) : safeSt P (wbSt P st) := by

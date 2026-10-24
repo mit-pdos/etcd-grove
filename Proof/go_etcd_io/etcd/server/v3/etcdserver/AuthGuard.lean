@@ -26,7 +26,8 @@ its request side (`isReqAuth`, `AuthInfoFromCtx`), the certificate flag `ClientC
 and the store's contract (`apply.isAuthStore`); from the proposer's and the reader's views of the
 server (`srvAuthAt_of_views`).
 
-**A premise the contracts lack** (`adminNilOk st RD M`, `srvAdminNilOk s E`): the admin check
+**A premise the contracts lacked** (`adminNilOk st RD M`, `srvAdminNilOk s E`; since the auth
+plan's S3, 2026-10-23, derivable from the store's contract, `adminNilOk_of_isAuthStore`): the admin check
 calls `IsAdminPermitted(authInfo)` with the `nil` auth info `AuthInfoFromCtx` returns when the
 request carries none; the store's contract (`apply.isAuthStore`) and the real store's spec
 (`auth.authStore.IsAdminPermitted.spec`) take a non-`nil` one (`a ↦{dq} info`). The real method
@@ -193,6 +194,32 @@ def srvAdminNilOk (s : Loc) (E : apply.AEnv GF) : IProp GF :=
 instance srvAdminNilOk_persistent (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvAdminNilOk s E) := by
   unfold srvAdminNilOk; infer_instance
+
+/-- **The premise is the store's contract's last clause** (the auth plan's S3, 2026-10-23: the
+real store's spec covers a `nil` auth info, `apply.isAuthStore` states it): `adminNilOk` and
+`srvAdminNilOk` are derivable, and the guarded entry points' specs can drop them (a mechanical
+follow-up). -/
+theorem adminNilOk_of_isAuthStore (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
+    (f : val) (RD : IProp GF) (M : auth.AuthMode) (RW : IProp GF) :
+    apply.isAuthStore st γ P f RD M RW ⊢ adminNilOk st RD M := by
+  iintro H
+  iunfold apply.isAuthStore at H
+  icases H with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    #HNil⟩
+  iunfold adminNilOk
+  iexists ai
+  iframe HNil
+  ipureintro; exact Hai
+
+theorem srvAdminNilOk_of_srvAuthAt (s : Loc) (E : apply.AEnv GF) :
+    srvAuthAt s E ⊢ srvAdminNilOk s E := by
+  iintro H
+  iunfold srvAuthAt at H
+  icases H with ⟨%st, %cca, %P, %f, #Has, -, -, #Hast⟩
+  iunfold srvAdminNilOk
+  iexists st
+  iframe Has
+  iapply adminNilOk_of_isAuthStore st E.γ P f E.RD E.authMode E.RW $$ Hast
 
 /-- The server's auth fields, from the proposer's view (the store's request side, the flag) and
 the reader's (the store's contract). -/

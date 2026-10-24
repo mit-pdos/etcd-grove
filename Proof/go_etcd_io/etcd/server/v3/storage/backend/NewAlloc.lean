@@ -264,18 +264,18 @@ theorem rtRes_init (γ : BNames) (P : BParams) (rt rtx wg : Loc) (m cm : GoMap) 
     structFieldRef txReadBuffer go!"bufVersion" (rbufOf (baseOf rt)) ↦ (W64 0) ∗
     ownMap m (DFrac.own 1) (∅ : GMap w64 Loc) ∗ rbktOf (baseOf rt) ↦ cm ∗
     ghostVar γ.view (1 : Qp).half.half (vData P (rv0 D)) ∗
-    ghostVar γ.rd 1 (⟨rtx, wg, γw, γo, γt, 0, false, true⟩ : RdSt) ∗
-    ghostVar γ.rvs (1 : Qp).half (rv0 D, false) ∗
+    ghostVar γ.rd 1 (⟨rtx, wg, γw, γo, γt, 0, false, true, true⟩ : RdSt) ∗
+    ghostVar γ.rvs (1 : Qp).half (rv0 D, false) ∗ ghostVar γ.cln (1 : Qp).half true ∗
     ghostVar γ.cur (1 : Qp).half ((((W64 0), 0) : w64 × Nat), false) ∗
     ghostMapAuth γ.hist 1 (H0 D) ∗ histAt γ (W64 0) 0 (rv0 D) ∗
     rtxOf (baseOf rt) ↦ rtx ∗ rwgOf (baseOf rt) ↦ wg ∗
     ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ txLive rtx (1 : Qp).half ∗ rtxSnap rtx D ∗
     intvInv γ P rtx cm D ∗ wgInv γ rtx wg γw γo γt ∗ ghostVar γw 1 () ∗ ghostVar γt 1 () ⊢
     rtRes (GF := GF) γ P rt 1 := by
-  iintro ⟨Hrb1, Hrb2, Hm, Hcm, Hv, Hrd, Hrvs, Hcur, Hh, #Hh0, Hrtx, Hwg, #Hrdt, Hl, #Hs, #Hi, #Hw,
-    Hgw, Hgt⟩
-  unfold rtRes rtResAt rtRest rtCore rtIntv rbAt bksAt wgOpen
-  iexists ⟨rtx, wg, γw, γo, γt, 0, false, true⟩, rv0 D, H0 D, m, ∅, cm
+  iintro ⟨Hrb1, Hrb2, Hm, Hcm, Hv, Hrd, Hrvs, Hcln, Hcur, Hh, #Hh0, Hrtx, Hwg, #Hrdt, Hl, #Hs, #Hi,
+    #Hw, Hgw, Hgt⟩
+  unfold rtRes rtResAt rtRest rtCore rtIntv rbAt bksAt wgOpen clnPart
+  iexists ⟨rtx, wg, γw, γo, γt, 0, false, true, true⟩, rv0 D, H0 D, m, ∅, cm
   simp only [↓reduceIte, Bool.false_eq_true, rv0, rb0]
   rw [GMap.fmap_empty]
   iframe
@@ -284,6 +284,8 @@ theorem rtRes_init (γ : BNames) (P : BParams) (rt rtx wg : Loc) (m cm : GoMap) 
   · iapply bbs_empty
   isplitr
   · ipureintro; intro id x es h; simp at h
+  isplitr
+  · ipureintro; intro _ n i _ _; rfl
   isplitr
   · ipureintro
     exact ⟨fun id es h => by simp at h, fun i es h => by simp at h,
@@ -459,7 +461,7 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
   imod ghost_map_alloc_empty (K := Nat) (V := Qp) with ⟨%go, Hgo⟩
   imod ghostVar_alloc () with ⟨%gt, Hgt⟩
   imod ghostVar_alloc (vData P (rv0 D)) with ⟨%gview, Hview⟩
-  imod ghostVar_alloc (⟨rtx, wg, gw, go, gt, 0, false, true⟩ : RdSt) with ⟨%grd, Hrd⟩
+  imod ghostVar_alloc (⟨rtx, wg, gw, go, gt, 0, false, true, true⟩ : RdSt) with ⟨%grd, Hrd⟩
   imod ghost_map_alloc_empty (K := w64 × Nat) (V := RView) with ⟨%ghist, Hhist⟩
   imod ghost_map_insert_persist ((W64 0, 0) : w64 × Nat) (rv0 D) (by rfl) $$ Hhist
     with ⟨Hhist, #Hh0⟩
@@ -480,9 +482,10 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
   imod ghostVar_alloc () with ⟨%gstk, Hstk⟩
   imod ghostVar_alloc (hkData P D) with ⟨%ghkd, Hhkd⟩
   imod ghostVar_alloc (rbData P D) with ⟨%grbk, Hrbk⟩
+  imod ghostVar_alloc true with ⟨%gcln, Hcln⟩
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
-    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk⟩
-  let rd0 : RdSt := ⟨rtx, wg, gw, go, gt, 0, false, true⟩
+    grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln⟩
+  let rd0 : RdSt := ⟨rtx, wg, gw, go, gt, 0, false, true, true⟩
   -- the shares
   icases gv_halves gview _ $$ Hview with ⟨Hviewc, Hview⟩
   icases gv_quarters gview _ $$ Hview with ⟨Hviewb, Hviewr⟩
@@ -495,6 +498,7 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
   icases gv_halves gused _ $$ Hused with ⟨Husedb, Husedr⟩
   icases gv_halves ghkd _ $$ Hhkd with ⟨Hhkdb, Hhkdc⟩
   icases gv_halves grbk _ $$ Hrbk with ⟨Hrbkb, Hrbkc⟩
+  icases gv_halves gcln _ $$ Hcln with ⟨Hclnc, Hclnr⟩
   -- the tokens
   imod ownTokAuth_add wbInit gwb 0 $$ Hwba with ⟨Hwba, Hwbt⟩
   imod ownTokAuth_add rdMax grdt 0 $$ Hrdta with ⟨Hrdta, Hrdtt⟩
@@ -518,7 +522,7 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
   · iframe
     iframe #
   ihave Hrt1 := rtRes_init γ P rt rtx wg m cm D gw go gt $$
-    [Hrb1 Hrb2 Hm Hcm Hviewr Hrd Hrvsr Hcurr Hhist Hrtx Hrwg Hlive1 Hgw Hgt]
+    [Hrb1 Hrb2 Hm Hcm Hviewr Hrd Hrvsr Hclnr Hcurr Hhist Hrtx Hrwg Hlive1 Hgw Hgt]
   · unfold histAt
     iframe
     iframe #
@@ -585,7 +589,7 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
   iexists γ
   isplitr
   · ipureintro; rfl
-  isplitl [Hopnc Hcls Hviewc Hcvwc Hhookc Hwbt Hrbkc Hrds]
+  isplitl [Hopnc Hcls Hviewc Hcvwc Hclnc Hhookc Hwbt Hrbkc Hrds]
   · unfold newPost
     isplitr
     · iexact Hb
@@ -596,10 +600,10 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
     isplitl [Hopnc Hcls]
     · unfold bOpen
       iframe Hopnc Hcls
-    isplitl [Hviewc Hcvwc]
-    · unfold bView
+    isplitl [Hviewc Hcvwc Hclnc]
+    · unfold bViewC
       simp only [rv0, rb0]
-      iframe Hviewc Hcvwc
+      iframe Hviewc Hcvwc Hclnc
     isplitl [Hhookc]
     · unfold plHook plHookAt
       iexact Hhookc

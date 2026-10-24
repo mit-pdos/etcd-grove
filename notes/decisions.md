@@ -16891,6 +16891,98 @@ tree axioms until S2b (`etc/tcb-baseline.txt`, the `server` collection); S2b rem
 proving the tree once over a comparator and instantiating it twice, and proves `Contains` for
 strings by extending `Visit`'s visitor contract with a stop.
 
+## S3 of the auth plan: the store's checks return the model's verdicts in every mode; the verdict's shape corrected (2026-10-24 · `notes/auth-plan.md`, branch `auth-s3`)
+
+**Problem.** A0 stated the verdicts (`permVerdict`, `adminVerdict`, `enabledVerdict`,
+`revisionVerdict`) and the apply layer's contract over them; S1 and S2 gave the store's reads their
+meaning (the transaction's state, the cache's coverage); the request-side specs still returned
+`authErrIs err` only, `hasRootRole` was an axiom returning any boolean, and the real store met the
+contract in the mode `any` only (`isAuthStore_of_authInv`). The API layer's admin guards took
+`IsAdminPermitted(nil)` as a premise (A2's `srvAdminNilOk`).
+
+**Decisions.**
+
+- **A0's one-state verdict was unprovable; the pass half drops the revision, the refused half is
+  over the four states read.** `isOpPermitted` reads the enabled flag, the revision, the user and
+  the cache under four locks, at four times. A0's `permVerdict` promised, on a pass, one recorded
+  state at which `permitted` held with the revision conjunct (`st.revision ≤ ai.rev`): false of the
+  code -- an admin change between the revision read and the user read (say, a grant of the root
+  role to the token's user) bumps the revision above the token's and makes the user permitted, so
+  the check passes while no recorded state has both the revision admitting the token and the user
+  granted. On a refusal, one state at which `¬ permitted` held: also false -- a missing user is read
+  at the transaction's state, the flag at another, and `¬ permitted` needs `enabled = true` of the
+  same state. So (`auth/Model.lean`): **`permitted st ai key rangeEnd op := st.enabled = false ∨
+  granted st ai key rangeEnd op`**, `granted` the user's existence with the root role or the
+  coverage (no revision); **`permVerdict`'s `on γa` case** is three facts: a recorded state at which
+  `permitted` holds if the check passed, a recorded state whose revision admits the token (or at
+  which auth is disabled) if it passed, and a view of four recorded states (`AuthView`: the flag's,
+  the revision's, the user's, the cache's; `recordedV`) in which it refuses (`refusedV`: enabled,
+  and the revision `0`, or below the view's revision, or every user of the name without the root
+  role and, for a request the cache decides, without coverage at the cache's state) if it refused.
+  `adminVerdict`'s refused half likewise names the flag's and the user's states (`adminRefused`);
+  its pass half is A0's (`adminOk` has no revision conjunct, and `adminOk` of the user's state holds
+  whatever its flag). `refusedV_diag`: at one state, for a request the cache decides, a refusal is
+  `¬ permitted` up to the revision check. A1's `classOk`/`classRes_of_permVerdict` and A2's
+  `adminRes_of_adminVerdict` consume the first conjunct, whose shape is unchanged, and are untouched;
+  what `classOk` says is weaker by the revision conjunct, which the code never guarantees of the
+  state that grants. *Rejected:* keeping the revision in `permitted` and leaving the pass half
+  unprovable; a verdict over a single state with "latest" semantics (the four reads are of four
+  states, latest or not); indices ordered along the history (true, but needs the write side's
+  invariant: S4 may add it).
+- **The request's shape is a premise inside the model** (`reqShape key rangeEnd`: a non-empty key,
+  a point, an open-ended or a proper range -- what S2's `cacheVerdict` decides). `granted`'s
+  coverage disjunct is `reqShape → covers`, `refusedV`'s `reqShape → ¬ covers`: for an empty key or
+  an inverted range the cache's answer is not the model's (the tree's `""` is the top, the model's
+  the least key), so the model says the user is granted whenever it exists and not refused for lack
+  of coverage. A premise *outside* the verdict (in `permCheck2`/`permCheck3`'s precondition or in
+  `classRes_of_permVerdict`) would have reached every apply-layer caller (A1's and A3's files).
+  *Rejected:* proving the cache's answer for an empty key (false, probably: a point at the top
+  stabs nothing) from the tree's pure model, S2b's territory while it is being rewritten.
+- **Recorded states have valid permission keys**: `authStateAt γa i st` and `authHist γa hs` carry
+  `permKeysOk` (every permission's key non-empty, S2's premise of the cache's verdict), so every
+  verdict's state has it without a premise; S4 establishes it at each append (`isValidPermissionRange`
+  on grant; the backend's data on boot is a premise there). `authHist_alloc`/`authHist_append` take
+  it as a hypothesis (no user yet).
+- **The flag and the revision are a recorded state's** (`auth/InvAuth.lean`): `enabledP st M q`
+  holds `enabledVerdict M b` beside the flag, `revInv st M` `revisionVerdict M r` beside the atomic;
+  `enabledRd st M`, `authRd` and `authInv` thread the mode (nothing produces `authInv` yet, so no
+  closed theorem changes). In `off` the flag is false (A0's "disabled and never enabled").
+- **The specs return the verdicts, in every mode** (`Spec/.../auth/`): `isOpPermitted` is stated for
+  an `AuthInfo` `info` whose fields are the Go arguments (the callers pass exactly those; the
+  verdict is A0's, over `info`), returning `permVerdict M info k e (permOp pt) err`;
+  `IsPutPermitted`/`IsRangePermitted`/`IsDeleteRangePermitted` the verdict with `.write`/`.read`/
+  `.write`; `IsAdminPermitted` takes `authInfoAt a dq ai` (`ai : Option AuthInfo`, `none` a `nil`
+  pointer) and returns `adminVerdict M ai err`; `IsAuthEnabled` `enabledVerdict M b`, `Revision`
+  `revisionVerdict M x`; `AuthInfoFromCtx` only threads the mode. **`VerdictLemmas.lean`** turns the
+  reads into the verdicts, one lemma per branch of the Go code (`permVerdict_of_disabled`, `_rev0`,
+  `_oldRev`, `_noUser`, `_root`, `_cache_pass`, `_cache_refused`; `adminVerdict_of_disabled`,
+  `_noPrincipal`, `_noUser`, `_notRoot`, `_root`; `userOut_null`/`userOut_some` read S1's
+  `userOut`), for every mode: in `off` a flag `true` is absurd, in `any` the verdicts are trivial.
+  So **`isAuthStore_of_authInv` derives the contract in the store's own mode `M`** (`.any` is an
+  instance), with `⌜M.isOn = false → err = nil⌝` from the verdicts (`permVerdict_isOn`).
+- **`hasRootRole` stays an axiom, restated** (`Spec/.../auth/hasRootRole.lean`): of a user message
+  holding a record with sorted roles (`ownUser`, S1's `userOut` gives the sorting:
+  `UserGrantRole` sorts), it returns `decide (isRoot ur.roles)` and keeps the message. Translating
+  it needs a spec of `sort.SearchStrings`, which Perennial lacks (`notes/perennial-changes.md`,
+  "Specs: `sort.SearchStrings`"); with one, it is translated and proved and the axiom goes. The
+  axiom count is unchanged (618).
+- **`IsAdminPermitted(nil)` is the contract's last clause** (`apply/Contracts.lean`): appended after
+  the admin requests, so the ~25 destructurings of `isAuthStore` (every pattern ends in `-` but
+  `RoleList`'s, which gains one) and the apply layer's non-`nil` callers (`authApplierV3.Apply`,
+  A3's area) are untouched. `adminNilOk_of_isAuthStore`/`srvAdminNilOk_of_srvAuthAt`
+  (`AuthGuard.lean`) derive A2's premise; dropping it from the 12 guarded entry points' specs is a
+  mechanical follow-up. *Rejected:* one Option-shaped clause (the real store's spec is one; the
+  contract's shape change would have reached `authApplierV3__Apply.lean` while A3 edits it).
+
+**Consequences.** In the mode `on γa` the store's checks are the model's: a passing check names a
+recorded state that permitted the operation and one whose revision admitted the token; a refusal
+names the states it read. Track A's results over `classOk` are unchanged in form, weaker by the
+revision conjunct (which was never true of one state). S4 produces `authInv` in `on γa` (the
+history's authority with `permKeysOk`, the flag's and the revision's verdicts) and its admin side
+appends states; then `isAuthStore_of_authInv` gives the apply layer the contract in `on γa`. The
+hasRootRole axiom's statement changed (same count); `etc/tcb-report.py --check` passes without
+`--update`.
+
 ## A3 of the auth plan, the apply layer: the request's principal through the chain, the method-level class statement (2026-10-24 · `notes/auth-plan.md`, branch `auth-a3`)
 
 **Problem.** A1 stated the class a passed check establishes (`checkPutAuth`, `CheckTxnAuth`, the

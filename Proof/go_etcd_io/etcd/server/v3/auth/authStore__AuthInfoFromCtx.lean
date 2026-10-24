@@ -53,7 +53,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   wp_auto
-  wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en Hen
+  wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en ⟨Hen, -⟩
   cases en
   · wp_auto
     iapply HΦ

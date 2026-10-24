@@ -95,7 +95,8 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
   isplitl [Hv]
   · unfold mvcc.bkView
     iexists _
-    iframe Hv
+    isplitl [Hv]
+    · unfold backend.bView; iexists true; iexact Hv
     ipureintro; exact hD
   obtain ⟨k, hk⟩ : ∃ k, backend.wbInit = k + (N + 7) :=
     ⟨backend.wbInit - (N + 7), (Nat.sub_add_cancel hN).symm⟩

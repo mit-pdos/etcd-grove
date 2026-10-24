@@ -44,7 +44,7 @@ theorem apply.applierV3backend.RoleList.wp_proof
   iunfold apply.backendOptsOk at Hok
   icases Hok with ⟨-, -, -, -, #Has, -⟩
   iunfold apply.isAuthStore at Has
-  icases Has with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HM⟩
+  icases Has with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HM, -⟩
   iunfold apply.authReqContract at HM
   iStructNamed Hopts
   wp_auto

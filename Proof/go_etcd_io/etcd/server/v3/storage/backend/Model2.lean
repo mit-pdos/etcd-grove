@@ -267,6 +267,11 @@ def freeOk (P : BParams) (st : BSess) : Prop :=
   sessWf P st ∧ sint.Z st.pend < sint.Z P.limit ∧ st.ndel = W64 0 ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []) ∧ st.cnt.hw = false
 
+/-- The read buffer has nothing off the hook's buckets (what a backend's readers' view promises
+while its `γ.cln` flag is `true`: the restore plan's R5a). -/
+def rbClean (P : BParams) (R : RBuf) : Prop :=
+  ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf R.bks i = []
+
 /-- The session changed nothing the readers see: the writer's contents read, off the hook's
 buckets, as the readers' view, and the write buffer is empty off them (so the write-back leaves
 the view as it is). A session that only put in, or deleted from, the hook's buckets has it (and

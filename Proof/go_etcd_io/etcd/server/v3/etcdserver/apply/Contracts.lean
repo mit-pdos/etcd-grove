@@ -188,7 +188,14 @@ which is what the real store's proofs give until the auth plan's track S (`AuthD
 **Its writes' right `RW`** (D22, 2026-10-23: the backend over every bucket): the writing methods
 take and give back the right to write the auth buckets (the real store's, `∃ r, backend.rbOwn γB
 r`: its writes change the backend's tracked buckets); the server's environment has none (`AEnv.RW
-= False`), its workload admitting no auth request. -/
+= False`), its workload admitting no auth request.
+
+**`IsAdminPermitted(nil)`** (the last clause; the auth plan's S3, 2026-10-23): the API layer's
+admin guards pass `AuthInfoFromCtx`'s answer, `nil` for a request without a token, and the real
+method answers it (`ErrUserEmpty` with auth enabled: `adminVerdict M none err`). A clause of its
+own, after the others, so that the apply layer's callers, which pass a field's address, keep
+the non-`nil` clause's shape (the real store's spec, `auth.authStore.IsAdminPermitted.spec`,
+covers both in one, over `auth.authInfoAt`). -/
 def isAuthStore (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF)
     (M : auth.AuthMode) (RW : IProp GF) :
     IProp GF :=
@@ -233,7 +240,10 @@ def isAuthStore (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : va
     authReqContract ai go!"RoleRevokePermission" etcdserverpb.AuthRoleRevokePermissionResponse γ P f RW ∗
     authReqContract ai go!"RoleDelete" etcdserverpb.AuthRoleDeleteResponse γ P f RW ∗
     authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse γ P f RW ∗
-    authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse γ P f RW)
+    authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse γ P f RW ∗
+    □ ({{ RD }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #(null : Loc)))
+      {{ (err : GoInterface), RET #err; RD ∗ applyErrIs err ∗
+          ⌜M.isOn = false → err = GoInterface.nil⌝ ∗ auth.adminVerdict M none err }}))
 
 instance isAuthStore_persistent (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RD : IProp GF) (M : auth.AuthMode) (RW : IProp GF) : Persistent (isAuthStore st γ P f RD M RW) := by
