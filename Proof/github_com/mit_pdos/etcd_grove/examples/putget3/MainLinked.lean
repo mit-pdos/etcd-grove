@@ -42,7 +42,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putget3.Assumptions]
 
 /-- **`startMember` linked** (see the file header). -/
-theorem putget3.wp_startMember [Float64ToInt64Semantics] :
+theorem putget3.wp_startMember [Float64ToInt64Semantics] [ErrorStringLeaf] [ErrorStringNotWriter] :
     putget3.startMember.spec (GF := GF) (hG := hG) :=
   putget3.startMember.wp_proof features.NewDefaultServerFeatureGate.wp_proof wp_NewServer
     EtcdServer.wp_Start net.Listen.wp_proof EtcdServer.wp_RaftHandler
@@ -50,7 +50,8 @@ theorem putget3.wp_startMember [Float64ToInt64Semantics] :
 /-- **putget3's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/putget3/Main.lean`), under the semantic premises of
 its callees' linked results (putget's). -/
-theorem putget3.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem putget3.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf]
+    [ErrorStringNotWriter] :
     putget3.Main.spec (GF := GF) (hG := hG) :=
   putget3.Main.wp_proof zap.NewNop.wp_proof putget3.wp_startMember v3rpc.wp_Server
     net.Listen.wp_proof grpc.Server.Serve.wp_proof client.v3.clientv3.wp_New context.wp_Background

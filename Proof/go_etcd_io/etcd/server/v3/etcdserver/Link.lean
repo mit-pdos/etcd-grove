@@ -139,7 +139,11 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
+public import Proof.encoding.binary.ReadUint64
+public import Proof.encoding.binary.WriteUint64
+public import Proof.encoding.binary.WriteUint8
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
+public import Proof.internal.bytealg.LastIndexByteString
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__PeerDialTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
@@ -150,8 +154,11 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
+public import Proof.context.TODO
 public import Proof.context.ValueStartTime
+public import Proof.context.WithCancelBackground
 public import Proof.context.WithValue
+public import Proof.errors.AsLeaf
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
@@ -163,14 +170,18 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstCompareKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpType
+public import Proof.fmt.ErrorfPlain
+public import Proof.fmt.SprintfID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Push
+public import Proof.go_etcd_io.etcd.pkg.v3.httputil.GracefulClose
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Generator__Next
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.lowbit
 public import Proof.io.Pipe
 public import Proof.io.PipeWriter__CloseWithError
+public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.NewLimitedBufferReader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isPriorityRequest
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Len
@@ -210,13 +221,32 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.numConnectedSince
 public import Proof.os.Rename
+public import Proof.path.Base
+public import Proof.path.Clean
+public import Proof.path.Dir
+public import Proof.path.Join
+public import Proof.path.Split
+public import Proof.path.lazybuf__append
+public import Proof.path.lazybuf__index
+public import Proof.path.lazybuf__string
+public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
+public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessagePb
+public import Proof.github_com.xiang90.probing.NewHandler
+public import Proof.github_com.xiang90.probing.NewProber
+public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
+public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.google_golang_org.protobuf.proto.ClonePb
+public import Proof.google_golang_org.protobuf.proto.MarshalAppendPb
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
+public import Proof.google_golang_org.protobuf.proto.MarshalPb
 public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.google_golang_org.protobuf.proto.SizeMessage
+public import Proof.google_golang_org.protobuf.proto.SizePb
+public import Proof.google_golang_org.protobuf.proto.UnmarshalPb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.quorum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
@@ -228,12 +258,94 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__processMessag
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NewRoundTripper
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__ActiveSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddRemote
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__CutPeer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Get
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Handler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__MendPeer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Send
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__SendSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Start
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.addPeerToProber
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.addRemoteFromRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.checkClusterCompatibilityFromHeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.checkPostResponse
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.checkStreamSupport
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.checkVersionCompatibility
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.closeNotifier__Close
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.closeNotifier__closeNotify
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.compareMajorMinorVersion
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.createPostRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.isLinkHeartbeatMessage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.isMsgApp
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.isMsgSnap
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageDecoder__decode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageDecoder__decodeLimit
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEncoder__encode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.minClusterVersion
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Decoder__decode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder__encode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newCloseNotifier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newMsgAppV2Decoder
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newMsgAppV2Encoder
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newPeerStatus
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newPipelineHandler
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newSnapshotHandler
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newSnapshotSender
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newStreamHandler
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newStreamRoundTripper
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newURLPicker
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus__activate
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus__deactivate
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peerStatus__isActive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__Pause
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__Resume
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__attachOutgoingConn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__pick
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__send
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler__ServeHTTP
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline__handle
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline__post
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline__start
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipeline__stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__send
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.reportCriticalError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.serverVersion
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.setPeerURLsHeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender__stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.startPeer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.startRemote
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.startStreamWriter
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler__ServeHTTP
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader__close
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader__decodeLoop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader__dial
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader__pause
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader__resume
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader__run
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader__start
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader__stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamType__String
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamType__String_ptr
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamType__endpoint
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter__attach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter__close
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter__closeUnlocked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter__run
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter__stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWriter__writec
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__pick
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__unreachable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.waitSchedule
+public import Proof.go_etcd_io.raft.v3.raftpb.MessageType__String
+public import Proof.golang_org.x.time.rate.Every
+public import Proof.golang_org.x.time.rate.Limiter__Wait
+public import Proof.golang_org.x.time.rate.NewLimiter
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.NewAlarmBackend
@@ -243,6 +355,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsisten
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
+public import Proof.github_com.Masterminds.semver.v3.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__CloseNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__GetTo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.NewMessage
@@ -253,6 +366,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
 public import Proof.strconv.FormatBool
+public import Proof.strings.TrimSuffix
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
 public import Proof.time.Time__After
@@ -270,14 +384,25 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__SetStartTime
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
+public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.IsClosedConnError
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDFromString
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.NewURLs
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs__StringSlice
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats__Fail
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats__Succ
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats__Follower
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewLeaderStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewServerStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__RecvAppendReq
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__SendAppendReq
+public import Proof.github_com.Masterminds.semver.v3.MustParse
+public import Proof.github_com.Masterminds.semver.v3.Version__LessThan
+public import Proof.github_com.Masterminds.semver.v3.Version__Major
+public import Proof.github_com.Masterminds.semver.v3.Version__Minor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.NewAlarmStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.New
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
@@ -292,11 +417,19 @@ public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Trigger
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Wait
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Trigger
+public import Proof.go_uber_org.zap.Bool
 public import Proof.go_uber_org.zap.ByteString
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
+public import Proof.go_uber_org.zap.Strings
 public import Proof.go_uber_org.zap.Uint64
+public import Proof.net.http.Axioms
+public import Perennial.Proof.time.Link
+public import Perennial.Proof.sync.Link
+public import Perennial.Proof.context.Link
+public import Perennial.Proof.strings.Link
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.context.Link
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
@@ -463,6 +596,50 @@ theorem PutRequest.wp_GetKey :
     PutRequest.GetKey.spec (GF := GF) (hG := hG) :=
   PutRequest.GetKey.wp_proof
 
+theorem semver.wp_MustParse :
+    semver.MustParse.spec (GF := GF) (hG := hG) :=
+  semver.MustParse.wp_proof
+
+theorem semver.wp_New :
+    semver.New.spec (GF := GF) (hG := hG) :=
+  semver.New.wp_proof
+
+theorem semver.Version.wp_Major :
+    semver.Version.Major.spec (GF := GF) (hG := hG) :=
+  semver.Version.Major.wp_proof
+
+theorem semver.Version.wp_Minor :
+    semver.Version.Minor.spec (GF := GF) (hG := hG) :=
+  semver.Version.Minor.wp_proof
+
+theorem semver.Version.wp_LessThan :
+    semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
+  semver.Version.LessThan.wp_proof
+
+theorem semver.Version.wp_String :
+    semver.Version.String.spec (GF := GF) (hG := hG) :=
+  semver.Version.String.wp_proof
+
+theorem types.ID.wp_String_ptr :
+    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
+  types.ID.String_ptr.wp_proof
+
+theorem proto.wp_UnmarshalPb :
+    proto.UnmarshalPb.spec (GF := GF) (hG := hG) :=
+  proto.UnmarshalPb.wp_proof
+
+theorem context.wp_TODO :
+    context.TODO.spec (GF := GF) (hG := hG) :=
+  context.TODO.wp_proof
+
+theorem prometheus.CounterVec.wp_WithLabelValues :
+    prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
+  prometheus.CounterVec.WithLabelValues.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Debug.wp_proof
+
 theorem «attribute».wp_Int64 :
     «attribute».Int64.spec (GF := GF) (hG := hG) :=
   «attribute».Int64.wp_proof
@@ -530,14 +707,6 @@ theorem zap.wp_Uint64 :
 theorem membership.RaftCluster.wp_ID :
     membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.ID.wp_proof
-
-theorem semver.Version.wp_String :
-    semver.Version.String.spec (GF := GF) (hG := hG) :=
-  semver.Version.String.wp_proof
-
-theorem zap.Logger.wp_Debug :
-    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Debug.wp_proof
 
 theorem zap.wp_Stringer :
     zap.Stringer.spec (GF := GF) (hG := hG) :=
@@ -723,6 +892,18 @@ theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
 
+theorem binary.wp_ReadUint64 :
+    binary.ReadUint64.spec (GF := GF) (hG := hG) :=
+  binary.ReadUint64.wp_proof
+
+theorem binary.wp_WriteUint64 :
+    binary.WriteUint64.spec (GF := GF) (hG := hG) :=
+  binary.WriteUint64.wp_proof
+
+theorem binary.wp_WriteUint8 :
+    binary.WriteUint8.spec (GF := GF) (hG := hG) :=
+  binary.WriteUint8.wp_proof
+
 theorem config.ServerConfig.wp_BackendPath :
     config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.BackendPath.wp_proof
@@ -755,10 +936,6 @@ theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
   v2stats.NewLeaderStats.wp_proof zap.wp_NewNop
 
-theorem types.ID.wp_String_ptr :
-    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
-  types.ID.String_ptr.wp_proof
-
 theorem types.URLs.wp_StringSlice :
     types.URLs.StringSlice.spec (GF := GF) (hG := hG) :=
   types.URLs.StringSlice.wp_proof
@@ -778,6 +955,62 @@ theorem math.wp_Ceil :
 theorem schema.wp_NewAuthBackend :
     schema.NewAuthBackend.spec (GF := GF) (hG := hG) :=
   schema.NewAuthBackend.wp_proof
+
+theorem raftpb.MessageType.wp_String :
+    raftpb.MessageType.String.spec (GF := GF) (hG := hG) :=
+  raftpb.MessageType.String.wp_proof
+
+theorem zap.wp_Bool :
+    zap.Bool.spec (GF := GF) (hG := hG) :=
+  zap.Bool.wp_proof
+
+theorem types.wp_NewURLs :
+    types.NewURLs.spec (GF := GF) (hG := hG) :=
+  types.NewURLs.wp_proof
+
+theorem strings.wp_TrimSuffix :
+    strings.TrimSuffix.spec (GF := GF) (hG := hG) :=
+  strings.TrimSuffix.wp_proof
+
+theorem fmt.wp_ErrorfPlain :
+    fmt.ErrorfPlain.spec (GF := GF) (hG := hG) :=
+  fmt.ErrorfPlain.wp_proof
+
+theorem prometheus.GaugeVec.wp_WithLabelValues :
+    prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
+  prometheus.GaugeVec.WithLabelValues.wp_proof
+
+theorem fmt.wp_SprintfID :
+    fmt.SprintfID.spec (GF := GF) (hG := hG) :=
+  fmt.SprintfID.wp_proof
+
+theorem proto.wp_MarshalPb :
+    proto.MarshalPb.spec (GF := GF) (hG := hG) :=
+  proto.MarshalPb.wp_proof
+
+theorem pbutil.wp_MustMarshalMessage :
+    pbutil.MustMarshalMessage.spec (GF := GF) (hG := hG) :=
+  pbutil.MustMarshalMessage.wp_proof proto.wp_MarshalPb
+
+theorem proto.wp_SizePb :
+    proto.SizePb.spec (GF := GF) (hG := hG) :=
+  proto.SizePb.wp_proof
+
+theorem zap.wp_Strings :
+    zap.Strings.spec (GF := GF) (hG := hG) :=
+  zap.Strings.wp_proof
+
+theorem proto.wp_MarshalAppendPb :
+    proto.MarshalAppendPb.spec (GF := GF) (hG := hG) :=
+  proto.MarshalAppendPb.wp_proof
+
+theorem proto.wp_ClonePb :
+    proto.ClonePb.spec (GF := GF) (hG := hG) :=
+  proto.ClonePb.wp_proof
+
+theorem pbutil.wp_MustUnmarshalMessagePb :
+    pbutil.MustUnmarshalMessagePb.spec (GF := GF) (hG := hG) :=
+  pbutil.MustUnmarshalMessagePb.wp_proof proto.wp_UnmarshalPb
 
 theorem lease.lessor.wp_GetLease :
     lease.lessor.GetLease.spec (GF := GF) (hG := hG) :=
@@ -950,9 +1183,17 @@ theorem EtcdServer.wp_CommittedIndex :
     EtcdServer.CommittedIndex.spec (GF := GF) (hG := hG) :=
   EtcdServer.CommittedIndex.wp_proof EtcdServer.wp_getCommittedIndex
 
+theorem rafthttp.streamReader.wp_pause :
+    rafthttp.streamReader.pause.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamReader.pause.wp_proof
+
+theorem rafthttp.peer.wp_Pause :
+    rafthttp.peer.Pause.spec (GF := GF) (hG := hG) :=
+  rafthttp.peer.Pause.wp_proof rafthttp.streamReader.wp_pause
+
 theorem rafthttp.Transport.wp_CutPeer :
     rafthttp.Transport.CutPeer.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.CutPeer.wp_proof
+  rafthttp.Transport.CutPeer.wp_proof rafthttp.peer.wp_Pause
 
 theorem EtcdServer.wp_CutPeer :
     EtcdServer.CutPeer.spec (GF := GF) (hG := hG) :=
@@ -1054,9 +1295,17 @@ theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.LinearizableReadNotify.wp_proof
 
+theorem rafthttp.streamReader.wp_resume :
+    rafthttp.streamReader.resume.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamReader.resume.wp_proof
+
+theorem rafthttp.peer.wp_Resume :
+    rafthttp.peer.Resume.spec (GF := GF) (hG := hG) :=
+  rafthttp.peer.Resume.wp_proof rafthttp.streamReader.wp_resume
+
 theorem rafthttp.Transport.wp_MendPeer :
     rafthttp.Transport.MendPeer.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.MendPeer.wp_proof
+  rafthttp.Transport.MendPeer.wp_proof rafthttp.peer.wp_Resume
 
 theorem EtcdServer.wp_MendPeer :
     EtcdServer.MendPeer.spec (GF := GF) (hG := hG) :=
@@ -1086,11 +1335,135 @@ theorem EtcdServer.wp_Put :
     EtcdServer.Put.spec (GF := GF) (hG := hG) :=
   EtcdServer.Put.wp_proof EtcdServer.wp_raftRequest PutRequest.wp_GetKey traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String context.wp_WithValue
 
-theorem rafthttp.Transport.wp_Handler :
-    rafthttp.Transport.Handler.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.Handler.wp_proof
+theorem rafthttp.wp_newPipelineHandler :
+    rafthttp.newPipelineHandler.spec (GF := GF) (hG := hG) :=
+  rafthttp.newPipelineHandler.wp_proof
 
-theorem EtcdServer.wp_RaftHandler :
+theorem rafthttp.wp_newStreamHandler :
+    rafthttp.newStreamHandler.spec (GF := GF) (hG := hG) :=
+  rafthttp.newStreamHandler.wp_proof
+
+theorem rafthttp.wp_newSnapshotHandler :
+    rafthttp.newSnapshotHandler.spec (GF := GF) (hG := hG) :=
+  rafthttp.newSnapshotHandler.wp_proof
+
+theorem probing.wp_NewHandler :
+    probing.NewHandler.spec (GF := GF) (hG := hG) :=
+  probing.NewHandler.wp_proof
+
+theorem rafthttp.Transport.wp_Get :
+    rafthttp.Transport.Get.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.Get.wp_proof
+
+theorem rafthttp.wp_serverVersion :
+    rafthttp.serverVersion.spec (GF := GF) (hG := hG) :=
+  rafthttp.serverVersion.wp_proof http.HeaderGetPtr_ok semver.wp_MustParse
+
+theorem rafthttp.wp_minClusterVersion :
+    rafthttp.minClusterVersion.spec (GF := GF) (hG := hG) :=
+  rafthttp.minClusterVersion.wp_proof http.HeaderGetPtr_ok semver.wp_MustParse
+
+theorem rafthttp.wp_compareMajorMinorVersion :
+    rafthttp.compareMajorMinorVersion.spec (GF := GF) (hG := hG) :=
+  rafthttp.compareMajorMinorVersion.wp_proof semver.wp_New semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_LessThan
+
+theorem rafthttp.wp_checkVersionCompatibility :
+    rafthttp.checkVersionCompatibility.spec (GF := GF) (hG := hG) :=
+  rafthttp.checkVersionCompatibility.wp_proof semver.wp_MustParse rafthttp.wp_compareMajorMinorVersion semver.Version.wp_String fmt.wp_Errorf
+
+theorem rafthttp.wp_checkClusterCompatibilityFromHeader :
+    rafthttp.checkClusterCompatibilityFromHeader.spec (GF := GF) (hG := hG) :=
+  rafthttp.checkClusterCompatibilityFromHeader.wp_proof http.HeaderGetPtr_ok rafthttp.wp_serverVersion rafthttp.wp_minClusterVersion rafthttp.wp_checkVersionCompatibility semver.Version.wp_String types.ID.wp_String_ptr zap.Logger.wp_Warn zap.wp_String zap.wp_Error
+
+theorem ioutil.wp_NewLimitedBufferReader :
+    ioutil.NewLimitedBufferReader.spec (GF := GF) (hG := hG) :=
+  ioutil.NewLimitedBufferReader.wp_proof
+
+theorem errors.wp_AsLeaf :
+    errors.AsLeaf.spec (GF := GF) (hG := hG) :=
+  errors.AsLeaf.wp_proof
+
+theorem rafthttp.pipelineHandler.wp_ServeHTTP [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
+    rafthttp.pipelineHandler.ServeHTTP.spec (GF := GF) (hG := hG) :=
+  rafthttp.pipelineHandler.ServeHTTP.wp_proof http.RespHeader_ok http.HeaderSet_ok http.Error_ok http.respWriteHeader_ok http.Flush_ok http.bodyRead_ok http.ReadAll_ok rafthttp.wp_checkClusterCompatibilityFromHeader ioutil.wp_NewLimitedBufferReader proto.wp_UnmarshalPb errors.wp_AsLeaf context.wp_TODO zap.Logger.wp_Warn zap.wp_String zap.wp_Error types.ID.wp_String types.ID.wp_String_ptr prometheus.CounterVec.wp_WithLabelValues raftpb.Message.wp_GetFrom rafthttp_writerToResponse_asTarget
+
+theorem path.lazybuf.wp_index :
+    path.lazybuf.index.spec (GF := GF) (hG := hG) :=
+  path.lazybuf.index.wp_proof
+
+theorem path.lazybuf.wp_append :
+    path.lazybuf.append.spec (GF := GF) (hG := hG) :=
+  path.lazybuf.append.wp_proof
+
+theorem path.lazybuf.wp_string :
+    path.lazybuf.string.spec (GF := GF) (hG := hG) :=
+  path.lazybuf.string.wp_proof
+
+theorem path.wp_Clean :
+    path.Clean.spec (GF := GF) (hG := hG) :=
+  path.Clean.wp_proof path.lazybuf.wp_index path.lazybuf.wp_append path.lazybuf.wp_string
+
+theorem path.wp_Join :
+    path.Join.spec (GF := GF) (hG := hG) :=
+  path.Join.wp_proof path.wp_Clean
+
+theorem rafthttp.streamType.wp_endpoint :
+    rafthttp.streamType.endpoint.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamType.endpoint.wp_proof path.wp_Join
+
+theorem bytealg.wp_LastIndexByteString :
+    bytealg.LastIndexByteString.spec (GF := GF) (hG := hG) :=
+  bytealg.LastIndexByteString.wp_proof
+
+theorem path.wp_Split :
+    path.Split.spec (GF := GF) (hG := hG) :=
+  path.Split.wp_proof bytealg.wp_LastIndexByteString
+
+theorem path.wp_Dir :
+    path.Dir.spec (GF := GF) (hG := hG) :=
+  path.Dir.wp_proof path.wp_Split path.wp_Clean
+
+theorem path.wp_Base :
+    path.Base.spec (GF := GF) (hG := hG) :=
+  path.Base.wp_proof bytealg.wp_LastIndexByteString
+
+theorem types.wp_IDFromString :
+    types.IDFromString.spec (GF := GF) (hG := hG) :=
+  types.IDFromString.wp_proof
+
+theorem rafthttp.wp_newCloseNotifier :
+    rafthttp.newCloseNotifier.spec (GF := GF) (hG := hG) :=
+  rafthttp.newCloseNotifier.wp_proof
+
+theorem rafthttp.closeNotifier.wp_Close :
+    rafthttp.closeNotifier.Close.spec (GF := GF) (hG := hG) :=
+  rafthttp.closeNotifier.Close.wp_proof
+
+theorem rafthttp.closeNotifier.wp_closeNotify :
+    rafthttp.closeNotifier.closeNotify.spec (GF := GF) (hG := hG) :=
+  rafthttp.closeNotifier.closeNotify.wp_proof
+
+theorem rafthttp.streamWriter.wp_attach :
+    rafthttp.streamWriter.attach.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamWriter.attach.wp_proof
+
+theorem rafthttp.peer.wp_attachOutgoingConn :
+    rafthttp.peer.attachOutgoingConn.spec (GF := GF) (hG := hG) :=
+  rafthttp.peer.attachOutgoingConn.wp_proof rafthttp.streamWriter.wp_attach
+
+theorem rafthttp.streamHandler.wp_ServeHTTP :
+    rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamHandler.ServeHTTP.wp_proof http.RespHeader_ok http.HeaderSet_ok http.HeaderGetPtr_ok http.Error_ok http.respWriteHeader_ok http.Flush_ok rafthttp.wp_checkClusterCompatibilityFromHeader rafthttp.streamType.wp_endpoint path.wp_Dir path.wp_Base types.wp_IDFromString types.ID.wp_String types.ID.wp_String_ptr _root_.Perennial.strings.wp_Split rafthttp.wp_newCloseNotifier rafthttp.closeNotifier.wp_Close rafthttp.closeNotifier.wp_closeNotify rafthttp.peer.wp_attachOutgoingConn zap.Logger.wp_Warn zap.Logger.wp_Debug zap.wp_String zap.wp_Error
+
+theorem rafthttp.wp_addRemoteFromRequest :
+    rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG) :=
+  rafthttp.addRemoteFromRequest.wp_proof http.HeaderGetPtr_ok types.wp_IDFromString _root_.Perennial.strings.wp_Split
+
+theorem rafthttp.Transport.wp_Handler [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
+    rafthttp.Transport.Handler.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.Handler.wp_proof rafthttp.wp_newPipelineHandler rafthttp.wp_newStreamHandler rafthttp.wp_newSnapshotHandler probing.wp_NewHandler rafthttp.Transport.wp_Get rafthttp.pipelineHandler.wp_ServeHTTP rafthttp.streamHandler.wp_ServeHTTP rafthttp.wp_addRemoteFromRequest
+
+theorem EtcdServer.wp_RaftHandler [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
     EtcdServer.RaftHandler.spec (GF := GF) (hG := hG) :=
   EtcdServer.RaftHandler.wp_proof rafthttp.Transport.wp_Handler
 
@@ -1398,6 +1771,10 @@ theorem bootstrappedRaft.wp_newRaftNode [StorageModel GF] :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=
   bootstrappedRaft.newRaftNode.wp_proof wp_StartNode EtcdGrove.wp_newRaftNode
 
+theorem context.wp_WithCancelBackground :
+    context.WithCancelBackground.spec (GF := GF) (hG := hG) :=
+  context.WithCancelBackground.wp_proof
+
 theorem membership.RaftCluster.wp_String :
     membership.RaftCluster.String.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.String.wp_proof
@@ -1422,17 +1799,277 @@ theorem v3compactor.wp_New :
     v3compactor.New.spec (GF := GF) (hG := hG) :=
   v3compactor.New.wp_proof
 
+theorem rafthttp.wp_newStreamRoundTripper :
+    rafthttp.newStreamRoundTripper.spec (GF := GF) (hG := hG) :=
+  rafthttp.newStreamRoundTripper.wp_proof
+
+theorem rafthttp.wp_NewRoundTripper :
+    rafthttp.NewRoundTripper.spec (GF := GF) (hG := hG) :=
+  rafthttp.NewRoundTripper.wp_proof
+
+theorem probing.wp_NewProber :
+    probing.NewProber.spec (GF := GF) (hG := hG) :=
+  probing.NewProber.wp_proof
+
+theorem rate.wp_Every :
+    rate.Every.spec (GF := GF) (hG := hG) :=
+  rate.Every.wp_proof
+
+theorem rafthttp.streamWriter.wp_writec :
+    rafthttp.streamWriter.writec.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamWriter.writec.wp_proof
+
+theorem rafthttp.wp_isMsgApp :
+    rafthttp.isMsgApp.spec (GF := GF) (hG := hG) :=
+  rafthttp.isMsgApp.wp_proof raftpb.Message.wp_GetType
+
+theorem rafthttp.wp_isMsgSnap :
+    rafthttp.isMsgSnap.spec (GF := GF) (hG := hG) :=
+  rafthttp.isMsgSnap.wp_proof raftpb.Message.wp_GetType
+
+theorem rafthttp.peer.wp_pick :
+    rafthttp.peer.pick.spec (GF := GF) (hG := hG) :=
+  rafthttp.peer.pick.wp_proof rafthttp.streamWriter.wp_writec rafthttp.wp_isMsgApp rafthttp.wp_isMsgSnap
+
+theorem rafthttp.peerStatus.wp_isActive :
+    rafthttp.peerStatus.isActive.spec (GF := GF) (hG := hG) :=
+  rafthttp.peerStatus.isActive.wp_proof
+
+theorem rafthttp.peer.wp_send :
+    rafthttp.peer.send.spec (GF := GF) (hG := hG) :=
+  rafthttp.peer.send.wp_proof rafthttp.peer.wp_pick rafthttp.wp_isMsgSnap rafthttp.peerStatus.wp_isActive raftpb.MessageType.wp_String raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetType types.ID.wp_String types.ID.wp_String_ptr prometheus.CounterVec.wp_WithLabelValues zap.Logger.wp_Warn zap.wp_String zap.wp_Bool
+
+theorem rafthttp.remote.wp_send :
+    rafthttp.remote.send.spec (GF := GF) (hG := hG) :=
+  rafthttp.remote.send.wp_proof rafthttp.wp_isMsgSnap rafthttp.peerStatus.wp_isActive raftpb.MessageType.wp_String raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetType types.ID.wp_String types.ID.wp_String_ptr prometheus.CounterVec.wp_WithLabelValues zap.Logger.wp_Warn zap.wp_String zap.wp_Bool
+
+theorem v2stats.ServerStats.wp_SendAppendReq :
+    v2stats.ServerStats.SendAppendReq.spec (GF := GF) (hG := hG) :=
+  v2stats.ServerStats.SendAppendReq.wp_proof
+
+theorem rafthttp.Transport.wp_Send :
+    rafthttp.Transport.Send.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.Send.wp_proof rafthttp.peer.wp_send rafthttp.remote.wp_send rafthttp.wp_isMsgApp v2stats.ServerStats.wp_SendAppendReq proto.wp_SizeMessage raftpb.Message.wp_GetTo raftpb.Message.wp_GetType raftpb.MessageType.wp_String types.ID.wp_String types.ID.wp_String_ptr zap.Logger.wp_Debug zap.wp_String
+
+theorem rafthttp.streamWriter.wp_stop :
+    rafthttp.streamWriter.stop.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamWriter.stop.wp_proof
+
+theorem rafthttp.pipeline.wp_stop :
+    rafthttp.pipeline.stop.spec (GF := GF) (hG := hG) :=
+  rafthttp.pipeline.stop.wp_proof zap.Logger.wp_Info zap.wp_String types.ID.wp_String_ptr _root_.Perennial.sync.WaitGroup.wp_Wait
+
+theorem rafthttp.streamReader.wp_close :
+    rafthttp.streamReader.close.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamReader.close.wp_proof http.RespCloseAny_ok zap.Logger.wp_Warn zap.wp_String zap.wp_Error types.ID.wp_String_ptr
+
+theorem rafthttp.streamReader.wp_stop :
+    rafthttp.streamReader.stop.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamReader.stop.wp_proof rafthttp.streamReader.wp_close
+
+theorem rafthttp.snapshotSender.wp_stop :
+    rafthttp.snapshotSender.stop.spec (GF := GF) (hG := hG) :=
+  rafthttp.snapshotSender.stop.wp_proof
+
+theorem rafthttp.peer.wp_stop :
+    rafthttp.peer.stop.spec (GF := GF) (hG := hG) :=
+  rafthttp.peer.stop.wp_proof rafthttp.streamWriter.wp_stop rafthttp.pipeline.wp_stop rafthttp.streamReader.wp_stop rafthttp.snapshotSender.wp_stop types.ID.wp_String_ptr zap.Logger.wp_Info zap.wp_String
+
+theorem rafthttp.remote.wp_stop :
+    rafthttp.remote.stop.spec (GF := GF) (hG := hG) :=
+  rafthttp.remote.stop.wp_proof rafthttp.pipeline.wp_stop
+
+theorem rafthttp.Transport.wp_SendSnapshot :
+    rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.SendSnapshot.wp_proof
+
+theorem rafthttp.Transport.wp_ActiveSince :
+    rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.ActiveSince.wp_proof
+
 theorem rafthttp.Transport.wp_Start :
     rafthttp.Transport.Start.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.Start.wp_proof
+  rafthttp.Transport.Start.wp_proof rafthttp.wp_newStreamRoundTripper rafthttp.wp_NewRoundTripper probing.wp_NewProber rate.wp_Every rafthttp.Transport.wp_Send rafthttp.peer.wp_stop rafthttp.remote.wp_stop rafthttp.Transport.wp_SendSnapshot rafthttp.Transport.wp_ActiveSince
 
-theorem rafthttp.Transport.wp_AddRemote :
+theorem rafthttp.wp_newPeerStatus :
+    rafthttp.newPeerStatus.spec (GF := GF) (hG := hG) :=
+  rafthttp.newPeerStatus.wp_proof
+
+theorem rafthttp.wp_newURLPicker :
+    rafthttp.newURLPicker.spec (GF := GF) (hG := hG) :=
+  rafthttp.newURLPicker.wp_proof
+
+theorem rafthttp.urlPicker.wp_pick :
+    rafthttp.urlPicker.pick.spec (GF := GF) (hG := hG) :=
+  rafthttp.urlPicker.pick.wp_proof
+
+theorem rafthttp.urlPicker.wp_unreachable :
+    rafthttp.urlPicker.unreachable.spec (GF := GF) (hG := hG) :=
+  rafthttp.urlPicker.unreachable.wp_proof
+
+theorem rafthttp.wp_setPeerURLsHeader :
+    rafthttp.setPeerURLsHeader.spec (GF := GF) (hG := hG) :=
+  rafthttp.setPeerURLsHeader.wp_proof http.URLStringAny_ok strings.Join.wp_proof http.HeaderSetPtr_ok
+
+theorem rafthttp.wp_createPostRequest :
+    rafthttp.createPostRequest.spec (GF := GF) (hG := hG) :=
+  rafthttp.createPostRequest.wp_proof http.URLString_ok http.NewRequest_ok http.HeaderSetPtr_ok types.ID.wp_String_ptr rafthttp.wp_setPeerURLsHeader
+
+theorem rafthttp.wp_checkPostResponse [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.checkPostResponse.spec (GF := GF) (hG := hG) :=
+  rafthttp.checkPostResponse.wp_proof strings.wp_TrimSuffix fmt.wp_ErrorfPlain zap.Logger.wp_Error zap.wp_String types.ID.wp_String_ptr http.HeaderGetPtr_ok http.HeaderGetOwnPtr_ok http.StatusText_ok http.URLStringAny_ok http.reqURL_ok
+
+theorem rafthttp.wp_waitSchedule :
+    rafthttp.waitSchedule.spec (GF := GF) (hG := hG) :=
+  rafthttp.waitSchedule.wp_proof
+
+theorem rafthttp.pipeline.wp_post [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.pipeline.post.spec (GF := GF) (hG := hG) :=
+  rafthttp.pipeline.post.wp_proof rafthttp.urlPicker.wp_pick rafthttp.urlPicker.wp_unreachable rafthttp.wp_createPostRequest rafthttp.wp_checkPostResponse rafthttp.wp_waitSchedule http.NewBuffer_ok http.WithContext_ok http.ReadAll_resp_ok http.RespClose_ok context.wp_WithCancelBackground _root_.Perennial.context.wp_Background errors.wp_Is
+
+theorem rafthttp.peerStatus.wp_activate :
+    rafthttp.peerStatus.activate.spec (GF := GF) (hG := hG) :=
+  rafthttp.peerStatus.activate.wp_proof zap.Logger.wp_Info zap.wp_String types.ID.wp_String_ptr prometheus.GaugeVec.wp_WithLabelValues _root_.Perennial.time.wp_Now
+
+theorem rafthttp.peerStatus.wp_deactivate :
+    rafthttp.peerStatus.deactivate.spec (GF := GF) (hG := hG) :=
+  rafthttp.peerStatus.deactivate.wp_proof zap.Logger.wp_Warn zap.Logger.wp_Debug zap.wp_String zap.wp_Error types.ID.wp_String_ptr prometheus.GaugeVec.wp_WithLabelValues prometheus.CounterVec.wp_WithLabelValues fmt.wp_SprintfID
+
+theorem v2stats.FollowerStats.wp_Succ :
+    v2stats.FollowerStats.Succ.spec (GF := GF) (hG := hG) :=
+  v2stats.FollowerStats.Succ.wp_proof
+
+theorem v2stats.FollowerStats.wp_Fail :
+    v2stats.FollowerStats.Fail.spec (GF := GF) (hG := hG) :=
+  v2stats.FollowerStats.Fail.wp_proof
+
+theorem rafthttp.pipeline.wp_handle [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.pipeline.handle.spec (GF := GF) (hG := hG) :=
+  rafthttp.pipeline.handle.wp_proof rafthttp.pipeline.wp_post rafthttp.peerStatus.wp_activate rafthttp.peerStatus.wp_deactivate rafthttp.wp_isMsgApp rafthttp.wp_isMsgSnap v2stats.FollowerStats.wp_Succ v2stats.FollowerStats.wp_Fail pbutil.wp_MustMarshalMessage proto.wp_SizePb raftpb.Message.wp_GetTo types.ID.wp_String prometheus.CounterVec.wp_WithLabelValues _root_.Perennial.time.wp_Now _root_.Perennial.time.Time.wp_Sub _root_.Perennial.sync.WaitGroup.wp_Done
+
+theorem rafthttp.pipeline.wp_start [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.pipeline.start.spec (GF := GF) (hG := hG) :=
+  rafthttp.pipeline.start.wp_proof rafthttp.pipeline.wp_handle zap.Logger.wp_Info zap.wp_String types.ID.wp_String_ptr _root_.Perennial.sync.WaitGroup.wp_Add
+
+theorem rafthttp.wp_startRemote [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.startRemote.spec (GF := GF) (hG := hG) :=
+  rafthttp.startRemote.wp_proof rafthttp.wp_newPeerStatus rafthttp.wp_newURLPicker rafthttp.pipeline.wp_start
+
+theorem rafthttp.Transport.wp_AddRemote [EtcdGrove.ErrorStringLeaf] :
     rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.AddRemote.wp_proof
+  rafthttp.Transport.AddRemote.wp_proof types.wp_NewURLs rafthttp.wp_startRemote types.ID.wp_String_ptr zap.Logger.wp_Info zap.wp_String zap.wp_Strings
 
-theorem rafthttp.Transport.wp_AddPeer :
+theorem v2stats.LeaderStats.wp_Follower :
+    v2stats.LeaderStats.Follower.spec (GF := GF) (hG := hG) :=
+  v2stats.LeaderStats.Follower.wp_proof
+
+theorem rafthttp.wp_newSnapshotSender :
+    rafthttp.newSnapshotSender.spec (GF := GF) (hG := hG) :=
+  rafthttp.newSnapshotSender.wp_proof
+
+theorem rafthttp.streamWriter.wp_closeUnlocked :
+    rafthttp.streamWriter.closeUnlocked.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamWriter.closeUnlocked.wp_proof zap.Logger.wp_Warn zap.wp_String zap.wp_Error types.ID.wp_String_ptr
+
+theorem rafthttp.streamWriter.wp_close :
+    rafthttp.streamWriter.close.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamWriter.close.wp_proof rafthttp.streamWriter.wp_closeUnlocked
+
+theorem rafthttp.wp_newMsgAppV2Encoder :
+    rafthttp.newMsgAppV2Encoder.spec (GF := GF) (hG := hG) :=
+  rafthttp.newMsgAppV2Encoder.wp_proof
+
+theorem rafthttp.messageEncoder.wp_encode :
+    rafthttp.messageEncoder.encode.spec (GF := GF) (hG := hG) :=
+  rafthttp.messageEncoder.encode.wp_proof proto.wp_SizePb binary.wp_WriteUint64 pbutil.wp_MustMarshalMessage
+
+theorem rafthttp.wp_isLinkHeartbeatMessage :
+    rafthttp.isLinkHeartbeatMessage.spec (GF := GF) (hG := hG) :=
+  rafthttp.isLinkHeartbeatMessage.wp_proof raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo
+
+theorem rafthttp.msgAppV2Encoder.wp_encode :
+    rafthttp.msgAppV2Encoder.encode.spec (GF := GF) (hG := hG) :=
+  rafthttp.msgAppV2Encoder.encode.wp_proof _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_Since rafthttp.wp_isLinkHeartbeatMessage raftpb.Message.wp_GetIndex raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetTerm raftpb.Message.wp_GetCommit raftpb.Entry.wp_GetIndex proto.wp_SizePb proto.wp_MarshalAppendPb pbutil.wp_MustMarshalMessage binary.wp_WriteUint8 binary.wp_WriteUint64 v2stats.FollowerStats.wp_Succ
+
+theorem rafthttp.streamType.wp_String :
+    rafthttp.streamType.String.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamType.String.wp_proof
+
+theorem rafthttp.streamType.wp_String_ptr :
+    rafthttp.streamType.String_ptr.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamType.String_ptr.wp_proof rafthttp.streamType.wp_String
+
+theorem rafthttp.streamWriter.wp_run :
+    rafthttp.streamWriter.run.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamWriter.run.wp_proof rafthttp.streamWriter.wp_close rafthttp.streamWriter.wp_closeUnlocked rafthttp.wp_newMsgAppV2Encoder rafthttp.messageEncoder.wp_encode rafthttp.msgAppV2Encoder.wp_encode http.respWrite_ok http.Flush_ok rafthttp.streamType.wp_String_ptr rafthttp.peerStatus.wp_activate rafthttp.peerStatus.wp_deactivate proto.wp_SizePb proto.wp_ClonePb raftpb.Message.wp_GetTo types.ID.wp_String_ptr prometheus.CounterVec.wp_WithLabelValues zap.Logger.wp_Info zap.Logger.wp_Warn zap.wp_String time.wp_NewTicker time.Ticker.wp_Stop
+
+theorem rafthttp.wp_startStreamWriter :
+    rafthttp.startStreamWriter.spec (GF := GF) (hG := hG) :=
+  rafthttp.startStreamWriter.wp_proof rafthttp.streamWriter.wp_run
+
+theorem rafthttp.wp_checkStreamSupport :
+    rafthttp.checkStreamSupport.spec (GF := GF) (hG := hG) :=
+  rafthttp.checkStreamSupport.wp_proof semver.wp_New semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_String
+
+theorem httputil.wp_GracefulClose :
+    httputil.GracefulClose.spec (GF := GF) (hG := hG) :=
+  httputil.GracefulClose.wp_proof
+
+theorem rafthttp.streamReader.wp_dial [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.streamReader.dial.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamReader.dial.wp_proof rafthttp.urlPicker.wp_pick rafthttp.urlPicker.wp_unreachable rafthttp.streamType.wp_endpoint path.wp_Join types.ID.wp_String_ptr types.ID.wp_String http.HeaderGetPtr_ok http.URLString_ok http.NewRequest_ok http.readerHas_nil http.HeaderSetPtr_ok rafthttp.wp_setPeerURLsHeader http.WithContext_ok rafthttp.wp_serverVersion semver.wp_MustParse rafthttp.wp_compareMajorMinorVersion rafthttp.wp_checkStreamSupport httputil.wp_GracefulClose http.ReadAll_resp_ok http.RespClose_ok strings.wp_TrimSuffix fmt.wp_ErrorfPlain zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_String zap.wp_Error
+
+theorem rafthttp.wp_newMsgAppV2Decoder :
+    rafthttp.newMsgAppV2Decoder.spec (GF := GF) (hG := hG) :=
+  rafthttp.newMsgAppV2Decoder.wp_proof
+
+theorem rafthttp.messageDecoder.wp_decodeLimit [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.messageDecoder.decodeLimit.spec (GF := GF) (hG := hG) :=
+  rafthttp.messageDecoder.decodeLimit.wp_proof binary.wp_ReadUint64 proto.wp_UnmarshalPb
+
+theorem rafthttp.messageDecoder.wp_decode [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.messageDecoder.decode.spec (GF := GF) (hG := hG) :=
+  rafthttp.messageDecoder.decode.wp_proof rafthttp.messageDecoder.wp_decodeLimit
+
+theorem rafthttp.msgAppV2Decoder.wp_decode :
+    rafthttp.msgAppV2Decoder.decode.spec (GF := GF) (hG := hG) :=
+  rafthttp.msgAppV2Decoder.decode.wp_proof raftpb.Message.wp_GetIndex raftpb.Message.wp_GetTerm raftpb.Entry.wp_GetIndex raftpb.MessageType.wp_Enum proto.wp_ClonePb pbutil.wp_MustUnmarshalMessagePb binary.wp_ReadUint64
+
+theorem rafthttp.streamReader.wp_decodeLoop [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.streamReader.decodeLoop.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamReader.decodeLoop.wp_proof rafthttp.streamReader.wp_close rafthttp.wp_newMsgAppV2Decoder rafthttp.messageDecoder.wp_decode rafthttp.msgAppV2Decoder.wp_decode http.ReadFull_resp_ok http.RespCloseAny_ok rafthttp.peerStatus.wp_isActive rafthttp.wp_isLinkHeartbeatMessage raftpb.MessageType.wp_String proto.wp_SizeMessage raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetType types.ID.wp_String types.ID.wp_String_ptr prometheus.CounterVec.wp_WithLabelValues zap.Logger.wp_Warn zap.wp_String zap.wp_Bool
+
+theorem transport.wp_IsClosedConnError :
+    transport.IsClosedConnError.spec (GF := GF) (hG := hG) :=
+  transport.IsClosedConnError.wp_proof
+
+theorem rate.Limiter.wp_Wait :
+    rate.Limiter.Wait.spec (GF := GF) (hG := hG) :=
+  rate.Limiter.Wait.wp_proof
+
+theorem rafthttp.streamReader.wp_run [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.streamReader.run.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamReader.run.wp_proof rafthttp.streamReader.wp_dial rafthttp.streamReader.wp_decodeLoop rafthttp.streamType.wp_String_ptr rafthttp.peerStatus.wp_activate rafthttp.peerStatus.wp_deactivate types.ID.wp_String_ptr errors.wp_Is transport.wp_IsClosedConnError rate.Limiter.wp_Wait zap.Logger.wp_Info zap.Logger.wp_Warn zap.wp_String zap.wp_Error
+
+theorem rafthttp.streamReader.wp_start [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.streamReader.start.spec (GF := GF) (hG := hG) :=
+  rafthttp.streamReader.start.wp_proof rafthttp.streamReader.wp_run context.wp_WithCancelBackground _root_.Perennial.context.wp_Background
+
+theorem rate.wp_NewLimiter :
+    rate.NewLimiter.spec (GF := GF) (hG := hG) :=
+  rate.NewLimiter.wp_proof
+
+theorem rafthttp.wp_startPeer [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.startPeer.spec (GF := GF) (hG := hG) :=
+  rafthttp.startPeer.wp_proof rafthttp.wp_newPeerStatus rafthttp.wp_newURLPicker rafthttp.wp_newSnapshotSender rafthttp.pipeline.wp_start rafthttp.wp_startStreamWriter rafthttp.streamReader.wp_start types.ID.wp_String_ptr rate.wp_NewLimiter zap.Logger.wp_Info zap.Logger.wp_Warn zap.wp_String zap.wp_Error context.wp_WithCancelBackground _root_.Perennial.context.wp_Background
+
+theorem rafthttp.wp_addPeerToProber :
+    rafthttp.addPeerToProber.spec (GF := GF) (hG := hG) :=
+  rafthttp.addPeerToProber.wp_proof
+
+theorem rafthttp.Transport.wp_AddPeer [EtcdGrove.ErrorStringLeaf] :
     rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.AddPeer.wp_proof
+  rafthttp.Transport.AddPeer.wp_proof types.wp_NewURLs v2stats.LeaderStats.wp_Follower rafthttp.wp_startPeer rafthttp.wp_addPeerToProber types.ID.wp_String types.ID.wp_String_ptr zap.Logger.wp_Info zap.wp_String zap.wp_Strings
 
 theorem lease.wp_NewLease :
     lease.NewLease.spec (GF := GF) (hG := hG) :=
@@ -1454,7 +2091,7 @@ theorem lease.lessor.wp_ExpiredLeasesC :
     lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG) :=
   lease.lessor.ExpiredLeasesC.wp_proof
 
-theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] [EtcdGrove.Float64ToInt64Semantics] :
+theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf] :
     NewServer.spec (GF := GF) (hG := hG) :=
   NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer mvcc.watchableStore.wp_Close schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket node.wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion MemoryStorage.wp_Snapshot node.wp_ApplyConfChange node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot
 
@@ -1469,6 +2106,10 @@ theorem raftNode.wp_getLatestTickTs :
 theorem raftNode.wp_stop :
     raftNode.stop.spec (GF := GF) (hG := hG) :=
   raftNode.stop.wp_proof
+
+theorem rafthttp.wp_reportCriticalError :
+    rafthttp.reportCriticalError.spec (GF := GF) (hG := hG) :=
+  rafthttp.reportCriticalError.wp_proof
 
 theorem storage.wp_OpenBackend :
     storage.OpenBackend.spec (GF := GF) (hG := hG) :=

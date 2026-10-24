@@ -815,6 +815,46 @@ theorem bodyReader_prefixOk (hR : bodyRead_spec (GF := GF)) (rd : GoInterface) (
 
 end defs
 
+/-! **The representations of `http.Request` and `http.Response`** (rafthttp stage 6f). Their
+types are axiomatized (Goose translates `net/http` names-only), so their generated
+`IntoValTyped` instances are `sorry -- axiomatized type`; a field access (`req.Header`, a `StructFieldRef` of the
+struct type) needs only `TypeRepr`, which instance search would take from those `sorry`s
+(`IntoValTyped.type_repr`). These take it from the translation's own type assumptions
+(`Request.TypeAssumptions.type_repr`, in `net.http.Assumptions`) instead: no `sorry`, no axiom. -/
+section typeRepr
+variable [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [package_sem : _root_.Perennial.net.http.Assumptions]
+
+instance (priority := high) Request_typeRepr :
+    TypeRepr _root_.Perennial.net.http.Request.ty _root_.Perennial.net.http.Request :=
+  haveI : go.IsUnderlying _root_.Perennial.net.http.Request.ty _root_.Perennial.net.http.Request.underlying :=
+    ⟨(go.underlying_unfold (t := _root_.Perennial.net.http.Request.ty)).trans go.is_underlying⟩
+  haveI := _root_.Perennial.net.http.Request.TypeAssumptions.type_repr
+  go.type_repr_underlying (u := _root_.Perennial.net.http.Request.underlying)
+
+/-- (The struct type itself: what a field reference `StructFieldRef` names.) -/
+instance (priority := high) Request_underlying_typeRepr :
+    TypeRepr _root_.Perennial.net.http.Request.underlying _root_.Perennial.net.http.Request :=
+  haveI := _root_.Perennial.net.http.Request.TypeAssumptions.isUnderlying
+  haveI := _root_.Perennial.net.http.Request.TypeAssumptions.type_repr
+  go.type_repr_underlying (u := _root_.Perennial.net.http.Request.underlying)
+
+instance (priority := high) Response_typeRepr :
+    TypeRepr _root_.Perennial.net.http.Response.ty _root_.Perennial.net.http.Response :=
+  haveI : go.IsUnderlying _root_.Perennial.net.http.Response.ty _root_.Perennial.net.http.Response.underlying :=
+    ⟨(go.underlying_unfold (t := _root_.Perennial.net.http.Response.ty)).trans go.is_underlying⟩
+  haveI := _root_.Perennial.net.http.Response.TypeAssumptions.type_repr
+  go.type_repr_underlying (u := _root_.Perennial.net.http.Response.underlying)
+
+/-- (The struct type itself: what a field reference `StructFieldRef` names.) -/
+instance (priority := high) Response_underlying_typeRepr :
+    TypeRepr _root_.Perennial.net.http.Response.underlying _root_.Perennial.net.http.Response :=
+  haveI := _root_.Perennial.net.http.Response.TypeAssumptions.isUnderlying
+  haveI := _root_.Perennial.net.http.Response.TypeAssumptions.type_repr
+  go.type_repr_underlying (u := _root_.Perennial.net.http.Response.underlying)
+
+end typeRepr
+
 end http
 end EtcdGrove
 end Perennial

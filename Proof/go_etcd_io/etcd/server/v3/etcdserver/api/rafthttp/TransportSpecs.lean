@@ -1,8 +1,7 @@
 /-
 **The transport's specs, proved over their callees'** (rafthttp stage 6d, 2026-10-24): `Start`,
-`AddPeer`, `AddRemote`, `CutPeer`, `MendPeer` and `Handler`, the statements their `wp_proof`
-axioms assert until stage 6f links rafthttp's functions and the axioms become these theorems.
-Lean-first.
+`AddPeer`, `AddRemote`, `CutPeer`, `MendPeer` and `Handler`: their `wp_proof`s (axioms until
+stage 6f, which linked rafthttp's functions) are these theorems. Lean-first.
 -/
 module
 

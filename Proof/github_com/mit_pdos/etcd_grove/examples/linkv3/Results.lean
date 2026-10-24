@@ -44,7 +44,7 @@ variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`Link.lean`'s `linkv3.wp_Main`). -/
 theorem linkv3_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf] [ErrorStringNotWriter] :
     linkv3.Main.spec (GF := GF) (hG := hG) :=
   linkv3.wp_Main
 
@@ -60,7 +60,7 @@ theorem linkv3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
+    [ErrorStringLeaf] [ErrorStringNotWriter] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
     [context.DeadlineExceededIsError] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hms : v3rpc.ServerMethodSets)

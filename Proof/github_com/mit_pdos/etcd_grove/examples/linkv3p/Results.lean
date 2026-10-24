@@ -84,14 +84,14 @@ variable [NaInvG GF]
 
 /-- **`Main` does not panic, for every schedule** (`Link.lean`'s `linkv3p.wp_Main`). -/
 theorem linkv3p_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf] [ErrorStringNotWriter] :
     linkv3p.Main.spec (GF := GF) (hG := hG) :=
   linkv3p.wp_Main
 
 /-- **`MainWatch` does not panic, for every schedule** (`Link.lean`'s `linkv3p.wp_MainWatch`; W4
 of `notes/watch-cut-plan.md`). -/
 theorem linkv3p_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf] [ErrorStringNotWriter] :
     linkv3p.MainWatch.spec (GF := GF) (hG := hG) :=
   linkv3p.wp_MainWatch
 
@@ -107,7 +107,7 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
+    [ErrorStringLeaf] [ErrorStringNotWriter] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
     [context.DeadlineExceededIsError] [log.NewModel]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     [PeerPausable]
@@ -146,7 +146,7 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [ErrorStringNoGRPCStatus] [RpctypesEtcdErrorMethods]
+    [ErrorStringLeaf] [ErrorStringNotWriter] [ErrorStringNoGRPCStatus] [RpctypesEtcdErrorMethods]
     [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     [PeerPausable]

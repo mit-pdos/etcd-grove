@@ -122,7 +122,7 @@ theorem wp_collect :
     EtcdGrove.watchkv.collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.watchkv.collect.wp_proof client.v3.WatchResponse.wp_Err
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] :
     EtcdGrove.watchkv.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.watchkv.Main.wp_proof wp_genAll wp_writer wp_maxRev wp_collect wp_check zap.wp_NewNop features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.v3.clientv3.wp_New context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 

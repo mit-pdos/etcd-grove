@@ -44,7 +44,7 @@ variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`Link.lean`'s `linkvtxn.wp_Main`). -/
 theorem linkvtxn_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf] :
     linkvtxn.Main.spec (GF := GF) (hG := hG) :=
   linkvtxn.wp_Main
 

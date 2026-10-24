@@ -65,11 +65,11 @@ theorem net.wp_Listen :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.net.Listen.wp_proof
 
-theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
+theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
     EtcdGrove.linkv3.startMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
     EtcdGrove.linkv3.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3.Main.wp_proof zap.wp_NewNop wp_startMember v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.v3.clientv3.wp_New linkv.wp_Check
 

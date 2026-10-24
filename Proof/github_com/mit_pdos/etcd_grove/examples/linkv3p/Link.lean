@@ -161,7 +161,7 @@ theorem net.wp_Listen :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.net.Listen.wp_proof
 
-theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
+theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
     EtcdGrove.linkv3p.startMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
 
@@ -173,7 +173,7 @@ theorem wp_newClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.newClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.newClient.wp_proof client.v3.clientv3.wp_New
 
-theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
     EtcdGrove.linkv3p.startCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.startCluster.wp_proof wp_startMember wp_startBridge wp_newClient
 
@@ -189,7 +189,7 @@ theorem wp_partitioner :
     EtcdGrove.linkv3p.partitioner.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.partitioner.wp_proof wp_peerStep wp_clientStep
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
     EtcdGrove.linkv3p.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.Main.wp_proof zap.wp_NewNop wp_startCluster wp_partitioner wp_Check
 
@@ -201,7 +201,7 @@ theorem wp_collect :
     EtcdGrove.linkv3p.collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.collect.wp_proof client.v3.WatchResponse.wp_Err
 
-theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
     EtcdGrove.linkv3p.MainWatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.MainWatch.wp_proof wp_genAll zap.wp_NewNop wp_startCluster wp_partitioner wp_writer wp_maxRev wp_collect wp_checkWatch context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 

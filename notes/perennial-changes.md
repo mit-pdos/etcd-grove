@@ -262,3 +262,13 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   `etc/tcb-report.py` see. Workaround here: `wp_bind` the call and `iapply` the hypothesis
   (`raftNode__start.lean`). Proposed change: find the escaping free variable (probably the case's
   generalized context) and make `wp_apply` report it as an error. Not yet proposed.
+- (2026-10-24, rafthttp stage 6f) **An axiomatized type's `sorry` instances shadow its `TypeRepr`**:
+  for a type Goose cannot translate (`net/http`'s `Request`, `Response`) the generated proof has
+  `X_typed_pointsto`/`X_into_val_typed` as `sorry -- axiomatized type`, and instance search takes
+  `TypeRepr X.underlying X` from them (`IntoValTyped.type_repr`) although the translation's
+  `X.TypeAssumptions.type_repr` gives it: a field reference (`StructFieldRef`, `req.Header`)
+  then reaches the `sorry` (`etc/tcb-report.py`), with no load or store of the whole value.
+  Workaround here: `Proof/net/http/Boundary.lean`'s `Request_typeRepr`,
+  `Request_underlying_typeRepr` (and `Response`'s), high-priority instances from the type
+  assumptions. Proposed change: Goose emits no `IntoValTyped` instance for an axiomatized type
+  (or one of low priority), so its `TypeRepr` comes from the type assumptions. Not yet proposed.

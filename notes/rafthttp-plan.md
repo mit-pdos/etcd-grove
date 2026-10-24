@@ -806,6 +806,26 @@ trust-boundary spec.
    `fmt.ErrorfPlain`'s statement strengthened (its error's `errorString` cell holds the message,
    which begins with the format's literal text, `fmt.litPrefix`: what tells an `Errorf` error from
    `errMemberRemoved`). Trust check: `supportedStream_init` new, baseline 554 -> 555 (the HTTP items reached at 6f). Left: 6f (linking).
+- **6f done (2026-10-24): rafthttp linked.** `etc/link-lean-first-server.txt` lists rafthttp's
+   functions with their callees and every callee they reach (142 entries; the raft getters `@`,
+   linked in raft's Link). `etc/gen-link.py` takes `=term` callees, passed as is: the HTTP
+   boundary's axioms (`=http.respWrite_ok`, `Proof/net/http/Axioms.lean`), Perennial's linked
+   results that have no spec file here (`time.Now`/`Since`/`Time.Sub`, `context.Background`,
+   `sync.WaitGroup.Add`/`Done`/`Wait`, `strings.Split`), `strings.Join.wp_proof` (raft's linked
+   `strings.wp_Join` takes `[StorageModel GF]`; its proof's unused `[StorageModel GF]` variable
+   dropped) and `rafthttp_writerToResponse_asTarget` (`rafthttp/Lemmas.lean`: `writerToResponse`
+   is an interface type, so `errors.As` accepts it). The six transport axioms (`Start`,
+   `AddPeer`, `AddRemote`, `CutPeer`, `MendPeer`, `Handler`) are theorems, each its `_ok` of
+   `TransportSpecs.lean`. `ErrorStringLeaf` and `ErrorStringNotWriter` join `SEM_PREMISES`: the
+   results reaching `pipelineHandler.ServeHTTP` take them, so do the examples' closed theorems
+   (linkv3, linkv3p, putget3 gain `[ErrorStringNotWriter]`; the other examples' `Main`
+   restatements gain `[ErrorStringLeaf]`, which their adequacy theorems already took). Linking
+   first reached four `sorry`s, the generated `IntoValTyped`/`TypedPointsto` instances of the
+   axiomatized `http.Request` and `http.Response`: a field reference's step takes `TypeRepr` from
+   them; `Boundary.lean` now gives `TypeRepr` from the translation's type assumptions
+   (`Request.TypeAssumptions.type_repr`), at the named and the struct type, no axiom
+   (`notes/perennial-changes.md`). Trust check: no axiom added, the six gone, the 71 boundary items
+   accepted at stages 1 to 6e reached; baseline 555 -> 620, 0 `sorry`s; the collections updated.
 
 ## Costs and risks
 
