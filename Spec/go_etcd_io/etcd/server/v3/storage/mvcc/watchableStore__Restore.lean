@@ -50,7 +50,9 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
       mvcc.certOk γ.st ([[], []] ++ R) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
         mvcc.storeBackendT b' st (γ.st.withPhys p) P') ∗
-      mvcc.kbView (some d') γb' 1 (mvcc.bucketMap ([[], []] ++ R)) ∗
+      (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
+        mvcc.keyCleanRead b' (mvcc.bucketViewC (γ.st.withPhys p)) (mvcc.storeRT (γ.st.withPhys p))) ∗
+      mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap ([[], []] ++ R)) ∗
       mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbRegRight (some d') ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Restore")) (Val #b'))

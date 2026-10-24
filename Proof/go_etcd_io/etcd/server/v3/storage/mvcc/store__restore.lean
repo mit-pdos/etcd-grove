@@ -214,7 +214,9 @@ theorem mvcc.store.restore.wp_proof
       (try wp_auto)
       -- `s.revMu.Lock()` on private memory; `s.currentRev = <-revc`
       iunfold mvcc.revLockW at HLk
-      wp_apply HLk $$ [$HRevP] as Hcur2 HRevK
+      wp_apply HLk $$ [$HRevP] as %v0 Hcur2 HRevK
+      icombine Hcur1 Hcur2 gives %Hv0
+      obtain ⟨-, rfl⟩ := Hv0
       ihave Hcur := (mvcc.typedPointsto_parts _ _ q1 q2 hq12).2 $$ [Hcur1 Hcur2]
       · iframe
       (try wp_auto)
@@ -246,7 +248,7 @@ theorem mvcc.store.restore.wp_proof
       wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
         #(s.[store, go!"revMu"]))) (Val #()))
       icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
-      iapply HUl $$ Hcur2 HRevK
+      iapply HUl $$ Hcur2 HRevK Hbv
       inext
       iintro HRevQ
       (try wp_auto)
@@ -368,7 +370,9 @@ theorem mvcc.store.restore.wp_proof
       (try wp_auto)
       -- `s.revMu.Lock()` on private memory; `s.currentRev = <-revc`
       iunfold mvcc.revLockW at HLk
-      wp_apply HLk $$ [$HRevP] as Hcur2 HRevK
+      wp_apply HLk $$ [$HRevP] as %v0 Hcur2 HRevK
+      icombine Hcur1 Hcur2 gives %Hv0
+      obtain ⟨-, rfl⟩ := Hv0
       ihave Hcur := (mvcc.typedPointsto_parts _ _ q1 q2 hq12).2 $$ [Hcur1 Hcur2]
       · iframe
       (try wp_auto)
@@ -400,7 +404,7 @@ theorem mvcc.store.restore.wp_proof
       wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
         #(s.[store, go!"revMu"]))) (Val #()))
       icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
-      iapply HUl $$ Hcur2 HRevK
+      iapply HUl $$ Hcur2 HRevK Hbv
       inext
       iintro HRevQ
       (try wp_auto)
@@ -679,7 +683,9 @@ theorem mvcc.store.restore.wp_proof
   (try wp_auto)
   -- `s.revMu.Lock()` on private memory; `s.currentRev = <-revc`
   iunfold mvcc.revLockW at HLk
-  wp_apply HLk $$ [$HRevP] as Hcur2 HRevK
+  wp_apply HLk $$ [$HRevP] as %v0 Hcur2 HRevK
+  icombine Hcur1 Hcur2 gives %Hv0
+  obtain ⟨-, rfl⟩ := Hv0
   ihave Hcur := (mvcc.typedPointsto_parts _ _ q1 q2 hq12).2 $$ [Hcur1 Hcur2]
   · iframe
   (try wp_auto)
@@ -705,7 +711,9 @@ theorem mvcc.store.restore.wp_proof
   wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
     #(s.[store, go!"revMu"]))) (Val #()))
   icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
-  iapply HUl $$ Hcur2 HRevK
+  ihave Hview : mvcc.restoreViewOut (GF := GF) γ q [] $$ [Hbv]
+  · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv
+  iapply HUl $$ Hcur2 HRevK Hview
   inext
   iintro HRevQ
   (try wp_auto)
@@ -754,8 +762,6 @@ theorem mvcc.store.restore.wp_proof
   · iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
   iapply HΦ
-  iunfold mvcc.restoreViewOut
-  simp only [↓reduceIte]
   iframe
   iexact Hti
 

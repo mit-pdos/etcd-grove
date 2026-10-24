@@ -397,7 +397,8 @@ theorem mvcc.NewStore.wp_proof
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64))
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
-        «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64))
+        «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
+        mvcc.restoreViewOut γ (1 : Qp).half [])
       (DFrac.own 1) (1 : Qp).half (1 : Qp).half mvcc.restoreLogOk_nil (Qp.half_add_half 1)
   simp only [List.append_nil] at hR
   icases (mvcc.idxWriter_split γ.idx [[], []] []).1 $$ Hiw with ⟨Hiw, -⟩
@@ -413,21 +414,21 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.revLockW
     iintro %Ψ ⟨HrevMu, Hc⟩ HΨ
     wp_apply (plain.wp_Lock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
-    iapply HΨ $$ Hc HrevMu
+    iapply HΨ $$ %_ Hc HrevMu
   ihave HUl : mvcc.revUnlockW (GF := GF) «$r0_ptr» (1 : Qp).half ([[], []] : mvcc.Log)
-      iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
+      iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW) (mvcc.restoreViewOut γ (1 : Qp).half [])
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
-        «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64)) $$ []
+        «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
+        mvcc.restoreViewOut γ (1 : Qp).half []) $$ []
   · iunfold mvcc.revUnlockW
     rw [show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl]
-    iintro %Ψ Hc HrevMu HΨ
+    iintro %Ψ Hc HrevMu Hv HΨ
     wp_apply (plain.wp_Unlock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
     iapply HΨ
-    iframe HrevMu
-    iexact Hc
+    iframe HrevMu Hc Hv
   wp_apply hR
       $$ [$Hbv2 $Hrt1 $HcurA $compactMainRev $revMu $HcurB $HLk $HUl $Hncmp $b $kvindex $Hix $Hig $Hiw]
-      as ⟨Hbv2, Hrt1, #Hti, Hird, Hiw, ⟨revMu, HcurB⟩, HcurA, compactMainRev, b, kvindex⟩
+      as ⟨Hrt1, #Hti, Hird, Hiw, ⟨revMu, HcurB, Hbv2⟩, HcurA, compactMainRev, b, kvindex⟩
   · iframe #; ipureintro; exact Hlgnn
   ihave Hbv2 : mvcc.bucketView (GF := GF) γ (1 : Qp).half ∅ $$ [Hbv2]
   · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv2

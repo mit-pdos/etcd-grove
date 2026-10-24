@@ -4060,20 +4060,23 @@ theorem typedPointsto_parts {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v
   exact (typedPointsto_dfractional (GF := GF) l v).dfractional _ _
 
 /-- **`store.restore`'s lock of `s.revMu`** (the restore plan's R5e), as its caller gives it: from
-`RevP`, `Lock` returns the lock's part `q` of `currentRev` at `1`, with `RevK` (`NewStore`: private
-memory; `store.Restore`: the lock in restoring mode). -/
+`RevP`, `Lock` returns the lock's part `q` of `currentRev` (at some value: `restore`'s own part
+says which), with `RevK` (`NewStore`: private memory; `store.Restore`: the lock in restoring mode,
+whose parts of the counters are at any values). -/
 def revLockW (s : Loc) (q : Qp) (RevP RevK : IProp GF) : IProp GF :=
   iprop(∀ Ψ : val → IProp GF, RevP -∗
-    ▷ ((s.[store, go!"currentRev"] ↦{DFrac.own q} (W64 1 : w64) : IProp GF) -∗ RevK -∗ Ψ #()) -∗
+    ▷ (∀ v : w64, (s.[store, go!"currentRev"] ↦{DFrac.own q} v : IProp GF) -∗ RevK -∗ Ψ #()) -∗
     WP (App (Val (s.[store, go!"revMu"] @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"Lock"))
       (Val #())) {{ Ψ }})
 
 /-- **`store.restore`'s unlock of `s.revMu`**: with the lock's part `q` of `currentRev` at the
-restored log `L'`'s last revision and `RevK`, `Unlock` gives `RevQ`. -/
-def revUnlockW (s : Loc) (q : Qp) (L' : Log) (RevK RevQ : IProp GF) : IProp GF :=
+restored log `L'`'s last revision, `RevK` and `V` (`restore`'s share of the bucket's view, idle
+after its read transaction's `RLock`: `store.Restore` puts it in `s.revMu`'s body), `Unlock` gives
+`RevQ`. -/
+def revUnlockW (s : Loc) (q : Qp) (L' : Log) (RevK V RevQ : IProp GF) : IProp GF :=
   iprop(∀ Ψ : val → IProp GF,
     (s.[store, go!"currentRev"] ↦{DFrac.own q} (W64 ((L'.length : Int) - 1) : w64) : IProp GF) -∗
-    RevK -∗
+    RevK -∗ V -∗
     ▷ (RevQ -∗ Ψ #()) -∗
     WP (App (Val (s.[store, go!"revMu"] @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"Unlock"))
       (Val #())) {{ Ψ }})

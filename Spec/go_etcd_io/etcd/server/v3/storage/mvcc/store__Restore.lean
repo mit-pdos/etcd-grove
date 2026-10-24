@@ -47,7 +47,9 @@ authority (`logQ`, its lock's). The restored log `L' = [[], []] ++ R` extends `L
 panics on a snapshot not newer, and the image is of a longer committed prefix of the same raft
 log), each of its revisions has a change, it is well formed and puts no lease (`restoreLogOk`), and
 the caller certifies it (`certOk`). The new backend: its contract at every physical names of its
-bucket and instance with the witness `True` (`storeBackendT`; `storeBackendT_of_backend`), its view
+bucket and instance with the witness `True` (`storeBackendT`; `storeBackendT_of_backend`) and its
+clean-view `ReadTx` (`keyCleanRead`, `keyCleanRead_of_backend`: the restore plan's R5c), its clean
+view (a fresh backend's read buffer is empty: `kbViewC`, R5a)
 of the `Key` bucket holding `L'` (all of it), no compaction recorded (`kbNoCmp`), the right to
 register a store in it (`kbRegRight`: its batch lock holds `lateW` unregistered) and its readers'
 tokens (`nReaders`, `backend.newPost`'s).
@@ -121,7 +123,9 @@ abbrev mvcc.store.Restore.spec : Prop :=
       mvcc.certOk γ ([[], []] ++ R) ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
         mvcc.storeBackendT b' s (γ.withPhys p) P') ∗
-      mvcc.kbView (some d') γb' 1 (mvcc.bucketMap ([[], []] ++ R)) ∗
+      (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
+        mvcc.keyCleanRead b' (mvcc.bucketViewC (γ.withPhys p)) (mvcc.storeRT (γ.withPhys p))) ∗
+      mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap ([[], []] ++ R)) ∗
       mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbRegRight (some d') ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #b'))

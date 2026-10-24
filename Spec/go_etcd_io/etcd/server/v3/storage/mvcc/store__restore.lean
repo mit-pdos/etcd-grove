@@ -45,7 +45,8 @@ some).
 * **`currentRev`** is stored the last revision, `|L'| - 1` (what the goroutine answers: every
   revision of `R` has an entry), under `s.revMu`, which `restore` locks once: the caller gives the
   lock's protocol, `RevP` before, its part `q2` of `currentRev` (at `1`) with `RevK` once locked,
-  `RevQ` once unlocked with it at `|L'| - 1`; `restore` holds the other part `q1` and a part of
+  `RevQ` once unlocked with it at `|L'| - 1` and the view `restore` read through (idle after its
+  `RLock`); `restore` holds the other part `q1` and a part of
   `compactMainRev` (`-1`), which it reads outside the lock too (`NewStore`:
   private memory, `PlainRWMutex.lean`; `store.Restore`: the lock in restoring mode, the restore
   plan's R5e).
@@ -71,9 +72,10 @@ abbrev mvcc.store.restore.spec : Prop :=
       ⌜lg ≠ null⌝ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP ∗
-      mvcc.revLockW s q2 RevP RevK ∗ mvcc.revUnlockW s q2 ([[], []] ++ R) RevK RevQ }}
+      mvcc.revLockW s q2 RevP RevK ∗
+      mvcc.revUnlockW s q2 ([[], []] ++ R) RevK (mvcc.restoreViewOut γ q R) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; mvcc.restoreViewOut γ q R ∗ RT ∗
+  {{ RET #GoInterface.nil; RT ∗
       mvcc.isTreeIndex ti γ.idx ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.idxReader ti γ.idx) ∗
