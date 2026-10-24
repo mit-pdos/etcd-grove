@@ -26,7 +26,7 @@ pipeline's four goroutines'): a started peer (`peerOk`) and the right to stop it
 abbrev rafthttp.startPeer.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (urls : GoSlice)
     (uvs : List net.url.URL) (pid : w64) (fs : Loc),
-  uvs ≠ [] → (∀ u ∈ uvs, peerURL Rh pid u) → fs ≠ null →
+  uvs ≠ [] → (∀ u ∈ uvs, peerURL Rh pid u) → fs ≠ null → Rh.member lid → lid ≠ pid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       trFixed Rh t lid γd R ∗ urls ↦*□ uvs ∗ [∗list] _x ∈ List.replicate 8 (), R }}
     (App (App (App (App (Val (@! rafthttp.startPeer)) (Val #t)) (Val #urls)) (Val #pid)) (Val #fs))

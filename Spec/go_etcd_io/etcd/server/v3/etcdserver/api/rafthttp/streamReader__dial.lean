@@ -31,6 +31,7 @@ the program, whose handlers set it to `version.Version` or not at all (the proto
 (no member is removed; stage 6). -/
 abbrev rafthttp.streamReader.dial.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (ty : StreamTy),
+  Rh.member lid → lid ≠ pid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       srFixed Rh lid pid γd cr ∗ srDial Rh pid ty cr }}
     (App (Val (cr @!! go.GoType.PointerType rafthttp.streamReader.ty @!! go!"dial")) (Val #ty.str))

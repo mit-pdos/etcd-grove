@@ -26,6 +26,7 @@ variable [sem : go.Semantics]
 closes `done` and returns. -/
 abbrev rafthttp.streamReader.run.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (ty : StreamTy),
+  Rh.member lid → lid ≠ pid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       srFixed Rh lid pid γd cr ∗ srDial Rh pid ty cr ∗ srDoneRight cr }}
     (App (Val (cr @!! go.GoType.PointerType rafthttp.streamReader.ty @!! go!"run")) (Val #()))

@@ -62,7 +62,8 @@ def pipeSenderOk (Rh : RaftHttp GF) (p : Loc) (to : w64) : IProp GF :=
     tr.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     tr.[rafthttp.Transport, go!"ID"] ↦□ lid ∗ tr.[rafthttp.Transport, go!"ClusterID"] ↦□ cid ∗
     tr.[rafthttp.Transport, go!"pipelineRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗
-    pickerOk pk (peerURL Rh to) ∗ ownBroadcastChan sc γs iprop(True) .Unknown ∗ pipeReg Rh to)
+    pickerOk pk (peerURL Rh to) ∗ ownBroadcastChan sc γs iprop(True) .Unknown ∗ pipeReg Rh to ∗
+    ⌜Rh.member lid ∧ lid ≠ to⌝)
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in

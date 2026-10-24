@@ -285,7 +285,7 @@ theorem rafthttp.streamReader.dial.wp_proof
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZError : zap.Error.spec (GF := GF) (hG := hG)) :
     rafthttp.streamReader.dial.spec (GF := GF) (hG := hG) := by
-  intro Rh lid pid γd cr ty
+  intro Rh lid pid γd cr ty Hmem Hnp
   wp_start as ⟨#Hf, #Hd⟩
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
@@ -407,7 +407,10 @@ theorem rafthttp.streamReader.dial.wp_proof
       iunfold streamReq
       iexists (γw, ty, lid)
       iframe #
-      ipureintro; rfl
+      ipureintro
+      refine ⟨rfl, Hmem, ?_⟩
+      show lid ≠ Rh.owner u.Host'
+      rw [howner]; exact Hnp
     iunfold pipeReg at Hpreg
     ihave #Hpa0 := Hpreg $$ %u.Host' %howner
     ihave #Hpa : http.httpProtoAt u.Host' ((raftHttpNet Rh).proto u.Host') $$ []

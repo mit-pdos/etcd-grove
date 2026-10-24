@@ -54,7 +54,7 @@ theorem rafthttp.pipeline.post.wp_proof
   wp_start as ⟨#Hs, Hd, #HP, HO⟩
   iunfold pipeSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %sc, %ec, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, #Htr, #Hpk, #Hsc, #Hec,
-    #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg⟩
+    #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg, %Hmem⟩
   wp_apply wp_with_defer as %defer defer
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -64,7 +64,7 @@ theorem rafthttp.pipeline.post.wp_proof
   wp_apply hNewBuffer d bs $$ [$Hd] as %bf Hbf
   (try wp_auto)
   wp_apply hCreate lg u go!"/raft" _ bs _ urls uvs lid cid Hlgnn Hu.1 $$ [$Hbf $Huvs]
-    as %req ⟨%hdrs, Hreq⟩
+    as %req ⟨%hdrs, Hreq, %Hfrom⟩
   wp_apply (chan.wp_make2 (V := Unit) (W64 1))
   · ipureintro; exact ⟨by decide, by decide⟩
   iintro %dc %γd ⟨#Hdc, %Hcap, Hdo⟩
@@ -144,7 +144,7 @@ theorem rafthttp.pipeline.post.wp_proof
     iexists st
     iframe #
     ipureintro
-    exact ⟨Hw, by rw [Hto]; exact Hu.2.symm, Hns, Hrs⟩
+    exact ⟨Hw, by rw [Hto]; exact Hu.2.symm, Hns, Hrs, lid, Hfrom, Hmem.1, by rw [Hu.2]; exact Hmem.2⟩
   iunfold pipeReg at Hreg
   ihave #Hpa0 := Hreg $$ %u.Host' %Hu.2
   ihave #Hpa : http.httpProtoAt u.Host' ((raftHttpNet Rh).proto u.Host') $$ []

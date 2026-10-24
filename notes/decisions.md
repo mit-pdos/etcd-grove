@@ -15620,3 +15620,39 @@ snapshot stream a smaller axiom, no `410`, `Counter.Add` may panic, the prober a
 *Rejected:* deriving a protocol right from `netAddrFree` (two reservations of an address with
 different protocols would be possible); weakening `RoundTrip` to unregistered hosts (a request to
 an address whose protocol is unknown could not be tied to the handler that later serves it).
+
+## D35: the handlers' `AddRemote` is dead: a request's sender is a peer (2026-10-24 · rafthttp stage 6d; the user: "carry on with 6d")
+
+**Context.** Every raft handler calls `AddRemote` of the request's sender: the pipeline and
+snapshot handlers through `addRemoteFromRequest` (`X-Server-From`, `X-PeerURLs`), the stream
+handler for a reader it has no peer of. They do so at any time, after the transport is given up
+for `Serve`, without `transportLive`'s exclusive half that `AddRemote_core` needs, and with URLs
+from the request's headers. A remote added there would get messages `Send` routes to it, posted
+to URLs no one checked, and `CutPeer`'s premise (`id` not among the remotes' ids) would no longer
+be stable. In Go, `AddRemote` returns at once for a stopped transport or an id that is already a
+peer, and in a static cluster every member adds every other one as a peer before it serves
+(`NewServer`'s `AddPeer` loop, `server.go:437-441`).
+
+**Decision** (no trust; our specs only):
+- the lock's ghost record `γr` also holds the ids `AddPeer` was called for (`trIds`: the remotes'
+  and the peers'), and the lock covers them: while `remotes` is not `nil`, each is a key of
+  `peers` (`trLockP`); `AddPeer` adds its id, `Stop` empties the maps with `remotes` `nil`. After
+  the freeze (`trRemotesFrozen`), `AddRemote` of a recorded peer returns at once
+  (`AddRemote_frozen`), with no `R` and no ghost step;
+- the protocol carries the sender: `RaftHttp.member` (the network's: members are those with peer
+  URLs, `netRh`), a pipeline request's `X-Server-From` is another member's id (`fromOkAt`, in
+  `pipeReq`; `createPostRequest`'s spec states the header), a stream request's reader is another
+  member (`streamReq`). The sending transport's member is a member (`trFixed`), its peers and
+  remotes others (`AddPeer_core`/`AddRemote_core`'s `lid ≠ id`, through `startPeer`,
+  `startRemote`, the pipeline and the stream reader);
+- the handlers' premises take a sender other than their member (`pipeHandlerOk`,
+  `streamHandlerOk`, `newSnapshotHandler`'s axiom), `addRemoteFromRequest` is proved over it, and
+  `trAddRemote_of_frozen` discharges them from the frozen state and the caller's coverage: every
+  other member among the recorded peers (`NewServer`'s, 6d).
+*Note for D22 S-j (the snapshot receiver, the D22 owner's):* `applySnapshot` calls
+`RemoveAllPeers` and then `AddPeer` for every member after the transport is serving; between the
+two a handler's `AddRemote` would add a remote (Go's behavior). The coverage invariant above does
+not hold through that window; S-j must state it differently (e.g. `RemoveAllPeers` keeping the
+recorded ids, and the window's remotes stopped by the re-add, or a premise).
+*Rejected:* a premise that the handlers' `AddRemote` returns (it is the code's behavior and
+provable); letting the handlers add remotes (their URLs come from the request).

@@ -30,7 +30,7 @@ abbrev rafthttp.newPipelineHandler.spec : Prop :=
   {{ t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ t.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
       □ netRaftOk Rh.γn lid γd Rs r ∗
       □ (∀ (r' : Loc) (R : http.HReq) (rd : GoInterface),
-        {{ http.reqAt r' R rd }}
+        {{ http.reqAt r' R rd ∗ ⌜fromOkAt Rh lid R.hdr⌝ }}
           (App (App (Val (@! rafthttp.addRemoteFromRequest))
             (Val #(interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t))) (Val #r'))
         {{ RET #(); True }}) }}

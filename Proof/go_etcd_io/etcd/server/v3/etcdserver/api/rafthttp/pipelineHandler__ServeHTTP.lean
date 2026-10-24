@@ -98,7 +98,13 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
     · rcases Hrv with rfl | ⟨p, rfl⟩
       · -- `nil`: `addRemoteFromRequest(h.tr, r)`, then the body, read whole
         wp_auto
+        ihave #Hpr0 : pipeReq Rh R γk $$ []
+        · iapply raftProto_req_pipe $$ Hreq
+          ipureintro; exact ⟨Hif, Hpath⟩
+        iunfold pipeReq at Hpr0
+        icases Hpr0 with ⟨%st0, %Hst0, -, -⟩
         wp_apply Haddr $$ [$HR0]
+        · ipureintro; rw [← Hhvok.2, ← Hhost]; exact Hst0.2.2.2.2
         ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
         · iPkgInit
         ihave #Heof0 := io.eof_of_init $$ Hio

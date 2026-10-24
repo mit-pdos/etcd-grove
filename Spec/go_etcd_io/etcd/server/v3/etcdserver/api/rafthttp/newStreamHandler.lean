@@ -35,7 +35,8 @@ abbrev rafthttp.newStreamHandler.spec : Prop :=
         {{ (pi : GoInterface), RET #pi; Rs ∗ (⌜pi = GoInterface.nil⌝ ∨
             ∃ pl : Loc, ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #pl⌝ ∗
               peerStreams Rh id pid pl) }}) ∗
-      □ (∀ (pid : w64) (sl : GoSlice) (us : List GoString), {{ sl ↦* us }}
+      □ (∀ (pid : w64) (sl : GoSlice) (us : List GoString),
+        {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ id⌝ }}
           (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
             (Val #pid)) (Val #sl))
         {{ RET #(); True }}) ∗

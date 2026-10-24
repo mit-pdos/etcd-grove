@@ -125,7 +125,7 @@ local macro "sp_reader" cr:term "," ty:term "," rl:term : tactic => `(tactic| (
     [pausedR closerR] with #Hmu
   · inext; iunfold srLockInv; iexists _, _; iframe; ileft; ipureintro; rfl
   (try wp_auto)
-  wp_apply hReaderStart Rh lid pid γd $cr $ty _ _ $$ [doneR errorcR ctxR cancelR]
+  wp_apply hReaderStart Rh lid pid γd $cr $ty _ _ Hmem Hnp $$ [doneR errorcR ctxR cancelR]
     as ⟨#Hsr, #Hstop⟩
   · iframe
     iframe #
@@ -158,7 +158,7 @@ theorem rafthttp.startPeer.wp_proof
     (hWithCancel : context.WithCancelBackground.spec (GF := GF) (hG := hG))
     (hBackground : context.Background.spec (GF := GF) (hG := hG)) :
     rafthttp.startPeer.spec (GF := GF) (hG := hG) := by
-  intro Rh t lid γd R urls uvs pid fs Hne Hurls Hfs
+  intro Rh t lid γd R urls uvs pid fs Hne Hurls Hfs Hmem Hnp
   rw [show List.replicate 8 () = [(), (), (), (), (), (), (), ()] from rfl]
   wp_start as ⟨#Htr, #Hus, HRs⟩
   icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR1, HRs⟩
@@ -173,7 +173,7 @@ theorem rafthttp.startPeer.wp_proof
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %Hmem⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   rw [_root_.decide_eq_false Hlgnn]
@@ -197,7 +197,9 @@ theorem rafthttp.startPeer.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    iapply Hpreg
+    isplitr
+    · iapply Hpreg
+    ipureintro; exact ⟨Hmem, Hnp⟩
   (try wp_auto)
   obtain ⟨pl, hpl⟩ : ∃ pl : Loc, pl = «$r0_ptr» := ⟨_, rfl⟩
   subst hpl

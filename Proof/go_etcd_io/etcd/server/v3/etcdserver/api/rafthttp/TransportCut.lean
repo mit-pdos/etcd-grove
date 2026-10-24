@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 variable [PeerPausable]
 
 set_option hygiene false in
-/-- `CutPeer`'s and `MendPeer`'s body: the read-locked lookups (no remote: `id ∉ rs`), then the
+/-- `CutPeer`'s and `MendPeer`'s body: the read-locked lookups (no remote: `id ∉ rs.1`), then the
 peer's `M` (`hM`), if any. -/
 local macro "cut_body" : tactic => `(tactic| (
   wp_start as ⟨Htok, #Hfr⟩
@@ -82,12 +82,12 @@ local macro "cut_body" : tactic => `(tactic| (
     (try wp_auto)
     iapply HΦ; iunfold trReadTok; iexact Htok))
 
-/-- **`t.CutPeer(id)`** with a reader's token, `id` no remote (`id ∉ rs`, the ids `AddRemote` was
+/-- **`t.CutPeer(id)`** with a reader's token, `id` no remote (`id ∉ rs.1`, the ids `AddRemote` was
 called for, frozen): it returns, the peer of `id`, if any, paused. -/
 theorem rafthttp.Transport.CutPeer_core
     (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : List w64) (id : w64) (Hid : id ∉ rs) :
+    (rs : trIds) (id : w64) (Hid : id ∉ rs.1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trReadTok Rh t lid γd R γs γr ∗ trRemotesFrozen γr rs }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"CutPeer")) (Val #id))
@@ -98,7 +98,7 @@ theorem rafthttp.Transport.CutPeer_core
 theorem rafthttp.Transport.MendPeer_core
     (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : List w64) (id : w64) (Hid : id ∉ rs) :
+    (rs : trIds) (id : w64) (Hid : id ∉ rs.1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trReadTok Rh t lid γd R γs γr ∗ trRemotesFrozen γr rs }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))

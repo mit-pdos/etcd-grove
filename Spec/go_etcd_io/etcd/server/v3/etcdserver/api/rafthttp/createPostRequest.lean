@@ -33,7 +33,8 @@ abbrev rafthttp.createPostRequest.spec : Prop :=
     (App (App (App (App (App (App (App (App (Val (@! rafthttp.createPostRequest)) (Val #lg))
       (Val #u)) (Val #path)) (Val #body)) (Val #ct)) (Val #urls)) (Val #fr)) (Val #cid))
   {{ (req : Loc), RET #req; ∃ hdrs : List (GoString × GoString),
-        http.reqOwn req ⟨go!"POST", u.Host', path, hdrs, bs⟩ }}
+        http.reqOwn req ⟨go!"POST", u.Host', path, hdrs, bs⟩ ∗
+        ⌜http.hdrGet hdrs go!"X-Server-From" = types.idStr fr⌝ }}
 
 end spec
 

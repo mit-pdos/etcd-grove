@@ -66,7 +66,8 @@ def pipeFixed (Rh : RaftHttp GF) (p : Loc) (to : w64) (R : IProp GF) : IProp GF 
     pickerOk pk (peerURL Rh to) ∗
     p.[rafthttp.pipeline, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
     p.[rafthttp.pipeline, go!"followerStats"] ↦□ fs ∗
-    p.[rafthttp.pipeline, go!"raft"] ↦□ r ∗ netRaftOk Rh.γn id γd R r ∗ pipeReg Rh to)
+    p.[rafthttp.pipeline, go!"raft"] ↦□ r ∗ netRaftOk Rh.γn id γd R r ∗ pipeReg Rh to ∗
+    ⌜Rh.member lid ∧ lid ≠ to⌝)
 
 set_option synthInstance.maxHeartbeats 2000000 in
 set_option synthInstance.maxSize 16384 in

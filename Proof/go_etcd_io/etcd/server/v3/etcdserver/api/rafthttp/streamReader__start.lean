@@ -32,7 +32,7 @@ theorem rafthttp.streamReader.start.wp_proof
     (hWithCancel : context.WithCancelBackground.spec (GF := GF) (hG := hG))
     (hBackground : context.Background.spec (GF := GF) (hG := hG)) :
     rafthttp.streamReader.start.spec (GF := GF) (hG := hG) := by
-  intro Rh lid pid γd cr ty dc0 cf0
+  intro Rh lid pid γd cr ty dc0 cf0 Hmem Hnp
   wp_start as ⟨#H0, #Hcfg, Hdone, Herrc, Hctx, Hcancel⟩
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %dc %γdn ⟨#Hdcc, %-, Hdco⟩
@@ -57,7 +57,7 @@ theorem rafthttp.streamReader.start.wp_proof
   ihave #Hfixed := srFixed_intro Rh lid pid γd cr ctx' _ $$ H0 Hctx Hctx'
   wp_apply wp_fork $$ [Hdb]
   · (try wp_auto)
-    wp_apply hRun Rh lid pid γd cr ty $$ [Hdb]
+    wp_apply hRun Rh lid pid γd cr ty Hmem Hnp $$ [Hdb]
     · iframe #
       isplitr
       · iunfold srDial

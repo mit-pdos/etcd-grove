@@ -59,7 +59,7 @@ theorem rafthttp.Transport.Stop_core
     (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
     (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : List w64) :
+    (rs : trIds) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
@@ -71,7 +71,7 @@ theorem rafthttp.Transport.Stop_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %Hmem⟩
   iunfold trProbers at Hprb
   icases Hprb with ⟨%pp, %sp, #Hppf, #Hppok, #Hspf, #Hspok⟩
   iunfold probing.proberOk at Hppok Hspok
@@ -162,7 +162,7 @@ theorem rafthttp.Transport.Stop_core
       · iunfold mapOrNil; ileft; ipureintro; exact ⟨rfl, rfl⟩
       isplitr
       · ipureintro
-        exact ⟨fun k hk => by simp at hk, fun h => by cases h⟩
+        exact ⟨fun k hk => by simp at hk, fun h => (by cases h), fun h => absurd rfl h⟩
       isplitr
       · imodintro; iunfold peersOk; iapply BigSepM.bigSepM_empty.2; itrivial
       imodintro; iunfold remotesOk; iapply BigSepM.bigSepM_empty.2; itrivial

@@ -107,7 +107,7 @@ theorem rafthttp.streamReader.run.wp_proof
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZError : zap.Error.spec (GF := GF) (hG := hG)) :
     rafthttp.streamReader.run.spec (GF := GF) (hG := hG) := by
-  intro Rh lid pid γd cr ty
+  intro Rh lid pid γd cr ty Hmem Hnp
   wp_start as ⟨#Hf, #Hdial, Hdone⟩
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
@@ -141,7 +141,7 @@ theorem rafthttp.streamReader.run.wp_proof
   ihave IH : iprop("Hdone" ∷ srDoneRight cr) $$ [Hdone]
   · iframe
   wp_for IH
-  wp_apply hDial Rh lid pid γd cr ty $$ [] as %rc %err ⟨#Herr, Hres⟩
+  wp_apply hDial Rh lid pid γd cr ty Hmem Hnp $$ [] as %rc %err ⟨#Herr, Hres⟩
   · iframe #
   cases err with
   | ok ei =>

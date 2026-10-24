@@ -2,8 +2,9 @@
 **The transport and its peers' shared definitions** (rafthttp stage 6; D34). Lean-first.
 * `trFixed`: the transport's fields after `Start`, read-only (its logger, id, URLs, cluster id,
   `Raft`, `ErrorC`, round trippers, dial-retry rate, stats), the network's stream registry, the
-  registration of every member's hosts (`pipeReg`) and `RaftStreamPrefix`'s value: what the peers,
-  remotes and handlers read.
+  registration of every member's hosts (`pipeReg`), `RaftStreamPrefix`'s value and (stage 6d) that
+  the transport's member is one of the network's (`Rh.member`, a request's sender): what the
+  peers, remotes and handlers read.
 * `peerOk` (persistent): a started peer of `pid` (`startPeer`'s): its fields, its status, picker,
   stream writers, pipeline, snapshot sender, stream readers, receive channels and lock (`paused`);
   `peerStop`, the right to stop it once.
@@ -70,7 +71,7 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"pipelineProber"] ↦□ pp ∗
     t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗
     streamRegInv Rh ∗ (□ ∀ pid : w64, pipeReg Rh pid) ∗
-    globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream")
+    globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream" ∗ ⌜Rh.member lid⌝)
 
 set_option synthInstance.maxHeartbeats 8000000 in
 set_option synthInstance.maxSize 65536 in

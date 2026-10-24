@@ -13,6 +13,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newStreamHa
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newSnapshotHandler
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Get
 public import Spec.github_com.xiang90.probing.NewHandler
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.addRemoteFromRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportAdd
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler__ServeHTTP
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler__ServeHTTP
 
@@ -87,28 +89,65 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
-/-- **`addRemoteFromRequest` of the transport `t` returns** (persistent; the handlers' premise,
-which 6d proves of the transport's state: in a static cluster, the request's sender is a peer). -/
-def trAddRemoteReq (t : Loc) : IProp GF :=
+/-- **`addRemoteFromRequest` of the transport `t` of member `lid` returns** on a request from
+another member (persistent; the handlers' premise, `trAddRemoteReq_of_frozen`: in a static
+cluster, the request's sender is a peer). -/
+def trAddRemoteReq (Rh : RaftHttp GF) (t : Loc) (lid : w64) : IProp GF :=
   iprop(□ ∀ (r : Loc) (R' : http.HReq) (rd : GoInterface),
-    {{ http.reqAt r R' rd }}
+    {{ http.reqAt r R' rd ∗ ⌜fromOkAt Rh lid R'.hdr⌝ }}
       (App (App (Val (@! rafthttp.addRemoteFromRequest))
         (Val #(interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t))) (Val #r))
     {{ RET #(); True }})
 
-instance trAddRemoteReq_persistent (t : Loc) : Persistent (trAddRemoteReq (GF := GF) t) := by
+instance trAddRemoteReq_persistent (Rh : RaftHttp GF) (t : Loc) (lid : w64) :
+    Persistent (trAddRemoteReq Rh t lid) := by
   unfold trAddRemoteReq; infer_instance
 
-/-- **`AddRemote` of the transport `t` returns** (persistent; the stream handler's premise, as
-`trAddRemoteReq`). -/
-def trAddRemote (t : Loc) : IProp GF :=
-  iprop(□ ∀ (pid : w64) (sl : GoSlice) (us : List GoString), {{ sl ↦* us }}
+/-- **`AddRemote` of the transport `t` of member `lid` returns** for another member (persistent;
+the stream handler's premise, as `trAddRemoteReq`). -/
+def trAddRemote (Rh : RaftHttp GF) (t : Loc) (lid : w64) : IProp GF :=
+  iprop(□ ∀ (pid : w64) (sl : GoSlice) (us : List GoString),
+    {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ lid⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
       (Val #pid)) (Val #sl))
     {{ RET #(); True }})
 
-instance trAddRemote_persistent (t : Loc) : Persistent (trAddRemote (GF := GF) t) := by
+instance trAddRemote_persistent (Rh : RaftHttp GF) (t : Loc) (lid : w64) :
+    Persistent (trAddRemote Rh t lid) := by
   unfold trAddRemote; infer_instance
+
+/-- **After the freeze, the handlers' `AddRemote` returns** (D35): every other member is among
+the ids `AddPeer` was called for (the caller's premise: a static cluster's members all added as
+peers before the transport is given up), so `AddRemote` of one does nothing
+(`AddRemote_frozen`). -/
+theorem trAddRemote_of_frozen (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName)
+    (R : IProp GF) (γs γr : GName) (rs : trIds)
+    (Hcov : ∀ f, Rh.member f → f ≠ lid → f ∈ rs.2) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
+      sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) -∗
+      trRemotesFrozen γr rs -∗ trAddRemote Rh t lid := by
+  iintro #Hpkg #Hgd #Hfr
+  iunfold trAddRemote
+  iintro !> %pid %sl %us %Φ !> ⟨Hsl, %Hp⟩ HΦ
+  iapply (rafthttp.Transport.AddRemote_frozen Rh t lid γd R γs γr rs pid sl (DFrac.own 1) us
+    (Hcov pid Hp.1 Hp.2)) $$ [Hsl]
+  · iframe #; iframe Hsl
+  iintro !> -
+  iapply HΦ; itrivial
+
+/-- **`addRemoteFromRequest` of the transport returns** on a request from another member, given
+its `AddRemote` does. -/
+theorem trAddRemoteReq_of (hARR : rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG))
+    (Rh : RaftHttp GF) (t : Loc) (lid : w64) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
+      trAddRemote Rh t lid -∗ trAddRemoteReq Rh t lid := by
+  iintro #Hpkg #HAR
+  iunfold trAddRemote at HAR
+  iunfold trAddRemoteReq
+  iintro !> %r %R' %rd %Φ !> ⟨HR, %Hf⟩ HΦ
+  iapply (hARR Rh lid ⟨go.GoType.PointerType rafthttp.Transport.ty, #t⟩ r R' rd) $$ [HR]
+  · iframe; iframe #; ipureintro; exact Hf
+  iexact HΦ
 
 /-- A raft of `netRaftOk` borrowing `R` borrows `R ∗ T` too. -/
 theorem netRaftOk_frame (γn : NetNames GF) (id : w64) (γd : GName) (R T : IProp GF)
@@ -188,7 +227,7 @@ theorem rafthttp.Transport.Handler_core
         trFixed Rh t lid γd R ∗
         t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗ snap.isSnapshotter ss ∗
         inv snapDirN (snapDirInv ss γd Rh.γn.N.img Rm) ∗
-        trAddRemoteReq t ∗ trAddRemote t }}
+        trAddRemoteReq Rh t lid ∗ trAddRemote Rh t lid }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
     {{ (h : GoInterface), RET #h;
         http.handlerOk (raftHttpNet Rh) a iprop(R ∗ trReadTok Rh t lid γd R γs γr) h }} := by
@@ -197,7 +236,7 @@ theorem rafthttp.Transport.Handler_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss0, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss0, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %Hmem⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, #HRP, #HPP, -, #HSP, -⟩

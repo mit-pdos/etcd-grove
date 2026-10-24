@@ -26,6 +26,7 @@ variable [sem : go.Semantics]
 abbrev rafthttp.streamReader.start.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (ty : StreamTy) (dc0 : GoChan)
     (cf0 : GoFunc),
+  Rh.member lid → lid ≠ pid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       srFixed0 Rh lid pid γd cr ∗ srCfg Rh pid ty cr ∗
       cr.[rafthttp.streamReader, go!"done"] ↦ dc0 ∗

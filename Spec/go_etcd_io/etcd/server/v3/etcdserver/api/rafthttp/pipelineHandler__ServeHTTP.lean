@@ -23,14 +23,14 @@ variable [sem : go.Semantics]
 
 /-- **A pipeline handler of the address `a`** at `h` (persistent): read-only for good, its logger
 set, its `Raft` the receiver's (`netRaftOk`, borrowing `Rs` per call), the member owning `a` its
-local id, and `addRemoteFromRequest` of its transport returning (stage 6's transport invariant
-gives it; a premise until then). -/
+local id, and `addRemoteFromRequest` of its transport returning on a request from another member
+(stage 6d: the transport's state gives it, the sender being a peer). -/
 def pipeHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) :
     IProp GF :=
   iprop(∃ hv : rafthttp.pipelineHandler, h ↦□ hv ∗ ⌜hv.lg' ≠ null ∧ Rh.owner a = hv.localID'⌝ ∗
     □ netRaftOk Rh.γn hv.localID' γd Rs hv.r' ∗
     □ (∀ (r : Loc) (R : http.HReq) (rd : GoInterface),
-      {{ http.reqAt r R rd }}
+      {{ http.reqAt r R rd ∗ ⌜fromOkAt Rh hv.localID' R.hdr⌝ }}
         (App (App (Val (@! rafthttp.addRemoteFromRequest)) (Val #hv.tr')) (Val #r))
       {{ RET #(); True }}))
 

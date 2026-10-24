@@ -120,7 +120,10 @@ local macro "stream_rest" : tactic => `(tactic| (
         wp_bind (App (App (Val (htr @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
           (Val #rid)) (Val #sl))
         iapply HA1 $$ [Hsl]
-        · iexact Hsl
+        · iframe Hsl
+          ipureintro
+          refine ⟨Hrmem, ?_⟩
+          rw [← Hhvok.2.1, ← Hhost]; exact Hrne
         inext
         iintro -
         (try wp_auto)
@@ -265,9 +268,10 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
   ihave Hsr := raftProto_req_stream Rh R γk $$ Hreq
   ihave #Hsr := Hsr $$ %(And.intro Hif Hnp)
   iunfold streamReq at Hsr
-  icases Hsr with ⟨%c, #Hreg, %Hpath⟩
+  icases Hsr with ⟨%c, #Hreg, %Hsq⟩
   obtain ⟨γw, ty, rid⟩ := c
-  simp only at Hpath
+  obtain ⟨Hpath, Hrmem, Hrne⟩ := Hsq
+  simp only at Hpath Hrmem Hrne
   ihave #Hpver : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version $$ []
   · iPkgInit
   ihave #Hvi : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗

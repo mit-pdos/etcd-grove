@@ -347,9 +347,10 @@ instance streamSent_persistent (C : StreamCodec) (N : NetPayload GF) (γw : GNam
   unfold streamSent; infer_instance
 
 /-- **A stream request of ticket `γk`** (persistent): its connection registered, its path the
-stream's. -/
+stream's, (stage 6d) its reader a member other than the one owning the request's host. -/
 def streamReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) : IProp GF :=
-  iprop(∃ c : StreamKey, streamReg Rh γk c ∗ ⌜R.path = streamPath c.2.1 c.2.2⌝)
+  iprop(∃ c : StreamKey, streamReg Rh γk c ∗ ⌜R.path = streamPath c.2.1 c.2.2 ∧
+    Rh.member c.2.2 ∧ c.2.2 ≠ Rh.owner R.host⌝)
 
 instance streamReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
     Persistent (streamReq Rh R γk) := by
