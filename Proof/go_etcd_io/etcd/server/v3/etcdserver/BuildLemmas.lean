@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+public import Proof.go_etcd_io.etcd.server.v3.auth.ModeTag
 
 @[expose] public section
 
@@ -57,7 +58,8 @@ theorem server_kv_watchable_of
     (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
-    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode)
+    (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
@@ -89,14 +91,16 @@ theorem server_kv_watchable_of
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st }} := by
+        mvcc.wsCloser ws st γw.st ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hif, Hok⟩ HΦ
+  -- the auth mode's tag (the auth plan's A4): the store's owner tag names the mode `M`
+  imod auth.modeTag_alloc (GF := GF) M with ⟨%γtag, #Htag⟩
   ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
     hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
-  iapply (hNew lg _ le cfg (some d) γb γl Pk f γi γok hcfg hrb)
+  iapply (hNew lg _ le cfg (some d) γb γl Pk f γi γok γtag hcfg hrb)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd Hif Hok]
   · iframe Hpkg Hle Hif Hok
     isplitr
@@ -111,14 +115,16 @@ theorem server_kv_watchable_of
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
   iintro %ws ⟨%st, %γw, %Hγ, #Hws, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hfrag⟩
-  obtain ⟨hb, hl, hk, hi, hc⟩ := Hγ
+  obtain ⟨hb, hl, hk, hi, hc, ht⟩ := Hγ
   ihave #Hws' := Hws
   iunfold mvcc.isWatchableStore at Hws'
   icases Hws' with ⟨%vc, %stc, %rv, %γv, Hws'⟩
   iNamed Hws'
   iapply HΦ
   iexists st, γw
+  rw [ht]
   iframe Hws Hhk Hwt Hcok Hrds Hcl
+  iframe Htag
   isplitr
   · ipureintro; exact ⟨hb, hl, hk, hi, hc⟩
   isplitr

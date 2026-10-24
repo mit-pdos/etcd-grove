@@ -410,6 +410,60 @@ instance userGetClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.ser
     (n : GoString) : Persistent (userGetClass (GF := GF) M info n) := by
   unfold userGetClass; infer_instance
 
+/-! ## The watch service's class (the auth plan's A4, 2026-10-24) -/
+
+/-- **The key a watch create request's check sees** (`watch.go`'s `recvLoop`): an empty key is
+`"\x00"`, the smallest key. -/
+def watchKey (key : GoString) : GoString := if key = [] then [W8 0] else key
+
+/-- **The read a watch create request asks** (`serverWatchStream.isWatchPermitted`,
+`IsRangePermitted(authInfo, creq.Key, creq.RangeEnd)` with the key normalized and the range end as
+the request gave it: a point when empty, from the key on when `"\x00"` (`WithFromKey`), else the
+range `[Key, RangeEnd)`); the check runs before `recvLoop` rewrites the range end for mvcc. -/
+def watchPerms (key rangeEnd : GoString) : List Perm3 := [(watchKey key, rangeEnd, .read)]
+
+/-- **The class of a watch create request** for the principal `info` in the mode `M`
+(`notes/auth-matrix.md`'s `Watch` row: RBAC read `[Key, RangeEnd)`). -/
+def watchClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (key rangeEnd : GoString) : IProp GF :=
+  classRes M info (watchPerms key rangeEnd)
+
+instance watchClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (key rangeEnd : GoString) : Persistent (watchClass (GF := GF) M info key rangeEnd) := by
+  unfold watchClass; infer_instance
+
+theorem watchKey_ne_nil (key : GoString) : watchKey key ≠ [] := by
+  unfold watchKey; split <;> simp_all
+
+/-- In the mode `on γa`, the watch class names a recorded state that permitted the read. -/
+theorem watchClass_on (γa : auth.AuthNames) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (key rangeEnd : GoString) :
+    watchClass (GF := GF) (.on γa) info key rangeEnd ⊢
+      ∃ (i : Nat) (st : auth.AuthState), auth.authStateAt γa i st ∗
+        ⌜auth.permitted st (auth.authInfoM info) (watchKey key) rangeEnd .read⌝ := by
+  unfold watchClass classRes classOk watchPerms
+  iintro H
+  ihave ⟨H1, -⟩ := BigSepL.bigSepL_cons.1 $$ H
+  icases H1 with ⟨%i, %st, #Hst, %Hp⟩
+  iexists i, st
+  iframe #
+  ipureintro; exact Hp
+
+/-- A registered watch's request has the shape the permission cache decides (`auth.reqShape`):
+mvcc's `Watch` registers `[k, e')` (`e'` the rewritten range end: empty for `"\x00"`) only for
+`e' = []` or `k < e'`. -/
+theorem reqShape_of_watch (key e : GoString)
+    (h : (if e = [W8 0] then [] else e) = [] ∨
+      go.GoStringLt (watchKey key) (if e = [W8 0] then [] else e)) :
+    auth.reqShape (watchKey key) e := by
+  refine ⟨watchKey_ne_nil key, ?_⟩
+  by_cases he : e = [W8 0]
+  · right; left; rw [he]; rfl
+  · simp only [he, ↓reduceIte] at h
+    rcases h with h | h
+    · left; exact h
+    · right; right; exact h
+
 end defs
 
 end apply

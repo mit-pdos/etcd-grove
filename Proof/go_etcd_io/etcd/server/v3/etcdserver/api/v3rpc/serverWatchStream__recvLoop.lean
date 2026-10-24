@@ -206,7 +206,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
   iunfold v3rpc.upOk at Hup
   iunfold v3rpc.watchSrvOk at Hsrv
-  icases Hsrv with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars, -⟩
+  icases Hsrv with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars, -, #Htag⟩
   iunfold v3rpc.watchVars at Hvars
   icases Hvars with ⟨#Heof, #Hwpv⟩
   iunfold v3rpc.watchPkgVars at Hwpv
@@ -321,7 +321,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       have hsr0 : 0 ≤ sint.Z c.startRev := by
         have := Hif; simp only [show sint.Z (W64 0) = 0 from rfl] at this; omega
       wp_apply hPerm sws r cr ks' es (if c.key = [] then [W8 0] else c.key) c.rangeEnd
-        (DFrac.own 1) (DFrac.own 1) $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr, -⟩
+        (DFrac.own 1) (DFrac.own 1) $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr, #Hcls⟩
       · iframe #
         ipureintro
         split
@@ -572,6 +572,18 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               iframe Hia Hit Hfl
               isplitr
               · iexact HWS
+              -- the registration's authorization (the auth plan's A4): the passed check's class
+              isplitr
+              · iunfold v3rpc.watchAuthed
+                ihave ⟨%info, #Hcl⟩ := Hcls $$ %rfl
+                iexists r.srv.E.authMode, info
+                iframe Htag
+                isplitl
+                · iunfold apply.watchClass
+                  unfold apply.watchPerms apply.watchKey
+                  iexact Hcl
+                ipureintro
+                exact apply.reqShape_of_watch c.key c.rangeEnd Hrng
               iexists l0, nr
               isplitr
               · iapply (mvcc.chanSentLb_stream r.γo r.γc l0 Hγoc.2.2.1).1 $$ Hl0

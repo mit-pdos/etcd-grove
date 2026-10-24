@@ -841,7 +841,7 @@ loops', the right to close it). The index's names `γi` and the map `γok` are t
 theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
-    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
@@ -873,7 +873,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st }} :=
+        mvcc.wsCloser ws st γw.st ∗ auth.modeTag γw.tag M }} :=
   server_kv_watchable_of mvcc.wp_New backend.backend.wp_ConcurrentReadTx
     backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
     backend.backend.wp_Size backend.backend.wp_SizeInUse
@@ -883,7 +883,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok hcfg hrb
+    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok M hcfg hrb
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's
