@@ -279,6 +279,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitU
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.storage__Release
 public import Proof.strconv.FormatBool
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
@@ -1612,6 +1613,10 @@ theorem storage.wp_OpenBackend :
 theorem storage.wp_OpenSnapshotBackend :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) :=
   storage.OpenSnapshotBackend.wp_proof raftpb.SnapshotMetadata.wp_GetIndex snap.Snapshotter.wp_DBFilePath fmt.wp_Errorf os.wp_Rename config.ServerConfig.wp_BackendPath storage.wp_OpenBackend
+
+theorem storage.storage.wp_Release :
+    storage.storage.Release.spec (GF := GF) (hG := hG) :=
+  storage.storage.Release.wp_proof
 
 theorem wait.wp_NewWithResponse :
     wait.NewWithResponse.spec (GF := GF) (hG := hG) :=

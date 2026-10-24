@@ -38,6 +38,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.InvPb
 public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.MonoNat
 
 @[expose] public section
 
@@ -126,6 +127,18 @@ def snapDirInv (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF
     ([∗map] i ↦ D ∈ M, backend.fileHolds (snap.snapDBPath ss i) D ∗ □ img i D) ∗
     □ (∀ i, ⌜E.lookup i ≠ none⌝ → snapSaved γd i) ∗
     □ (∀ i, ⌜E.lookup i ≠ none ∧ M.lookup i = none⌝ → Rm i))
+
+/-- **A snapshot at index `j` or above was opened** (persistent; D22 receiver epochs, S8d,
+2026-10-24; the orchestrator's decision on W1, `notes/decisions.md`): a lower bound of the
+monotone counter `γt` of the highest snapshot index `applySnapshot` has opened, whose authority the
+apply thread keeps at most its applied index. The server's removal fact of its snapshot directory
+(`snapDirInv`'s `Rm`): `OpenSnapshotBackend(i)` takes the file `i` after raising the counter to
+`i`, and `storage.Release(i)` removes the files below `i`, whose `Rm j` follows from `Rm i`. -/
+def snapTakenLb (γt : GName) (j : w64) : IProp GF := monoNatLbOwn γt (uint.nat j)
+
+instance snapTakenLb_persistent (γt : GName) (j : w64) :
+    Persistent (snapTakenLb (GF := GF) γt j) := by
+  unfold snapTakenLb; infer_instance
 
 /-- **What `Process` gets of a received message besides its bundle** (D22 S-i): for a `MsgSnap`,
 its snapshot's index saved in the receiver's directory (`γd`). -/

@@ -17346,3 +17346,64 @@ W5 an environment premise for the snapshot file's directory read and rename (`DB
 members (the network directory facts `AddPeer` needs and the in-memory members' agreement with the
 rest model), W7 the old backend's `Close` (its `isStopChans` dropped at boot by `NewServer`, and all
 of its open token to gather), and W1's `Rm` (the variant to confirm).
+
+## D22 S8d's premises: W1's `Rm` and W5's named premise (2026-10-24 · W1 decided by the orchestrator)
+
+- **W1 (supersedes the earlier W1 decision).** The snapshot directory's removal fact is
+  `Rm j := snapTakenLb γt j` (`rafthttp/Net.lean`): a lower bound of a monotone counter `γt` of the
+  highest snapshot index `applySnapshot` has opened, whose authority the apply thread keeps at most
+  its applied index. Sound as long as raft never hands `applySnapshot` an index at or below the
+  applied one (Go's panic guard, `server.go:1039`) and the apply thread keeps the counter at most its
+  applied index. `storage.storage.Release`'s axiom is stated over it (a new axiom,
+  `Spec/.../storage/storage__Release.lean`: the removals below `i` from `snapTakenLb γt i`); the
+  server's storage is named by `storageSnap p ss` (opaque: `NewStorage`'s storage over `ss`; its
+  struct is not translated), which `applySnapshot`'s spec takes for S-j1 to supply.
+- **W5, pending the user's decision.** `applySnapshot` panics when the snapshot directory's read,
+  the rename onto the backend's path, or the release fails. Three named environment facts, opaque
+  `Prop`s each stated where the operation is: `snap.dirReadOk ss`, `backend.renameOk src dst`,
+  `storage.releaseOk`; their trust-boundary axioms say an error implies the fact fails
+  (`snap.Snapshotter.DBFilePath`, now over the held file, `os.Rename`, `storage.storage.Release`;
+  true: each fact is defined as that operation not failing for the environment's reasons), and
+  `OpenSnapshotBackend`'s spec carries it. `storage.snapOpensOk` (`InvOpen.lean`) bundles them; S8d's
+  spec takes it as a premise; where it comes from (a premise of `NewServer.spec` and the closed
+  theorems, as `dbOpensOk` is) is the user's decision, not made here.
+
+## D22 S8d: W6 and W7 as decided do not go through (2026-10-24 · stopped, for the orchestrator)
+
+Both were laid against the code and the definitions before writing anything; each needs a change
+the S8 rules leave to the orchestrator.
+
+- **W6 (`RaftCluster.Recover`'s members with their directory facts).** The `AddPeer` loop reads the
+  members through `s.cluster.Members()` (`server.go:1155`), after `Recover`: clones of the map's
+  members, read under `c`'s mutex, whose invariant is `rcLockInv c` (`isRaftCluster`). `rcLockInv`
+  holds each member as `ownMember` (owned fields, `peerURLsOk`), with nothing about the network
+  directory, so whatever `Recover`'s axiom says of the members it installs cannot reach
+  `Members()`'s result: the facts would have to live in the mutex's invariant. Making `rcLockInv`
+  say "each member's peer URLs are `dir id`" changes `isRaftCluster`'s body (or adds a `dir`
+  parameter), and `isRaftCluster` is in a closed theorem's statement
+  (`api/v3rpc/Results.lean:729`) and in `bootOk`'s contract. (A second invariant on the same mutex is
+  not possible; a separate Iris invariant cannot speak of the members' fields, which `rcLockInv`
+  owns.) Options: (a) `rcLockInv` with the directory (each member `memberDirIs dir m id`, `dir` the
+  network's, a parameter of `isRaftCluster` or fixed by the cluster's names), `Members()`' spec
+  giving `memberDirIs`, `bootstrap`'s contract giving the stronger cluster (true of Go: the boot
+  cluster's members are the configured peers); a closed theorem's statement changes. (b) Leave the
+  `AddPeer` loop to a premise of `applySnapshot.spec` (a fact about `Members()` after `Recover`), which
+  is (a) postponed.
+- **W7 (the old backend's `Close`: its stop channels and open token kept from `NewServer`).** Keeping
+  `isStopChans` is easy (persistent; `bootBackend_of_newPost` drops it). The open token is not:
+  `backend.Close.spec` takes `bOpen γ 1` (the stop protocol's `stop_take`: no client may commit after
+  the stop), and the boot backend's token is split into `qo` and the readers' tokens, each `bkRTx` /
+  `mvcc.kbRT` = `rdTok ∗ ∃ q, bOpen γ q`: an existential fraction, so the shares, even all of them,
+  do not add up to a known `1`. Moreover `store.Restore.spec` (the restore track's, not to be
+  changed) returns `k + 1` of the old tokens with `k` existential (`k + 1 ≤ nReaders`), and the
+  monitor's (`srv_be_swap`) is one more: nothing says these are all of them. And `Close`'s
+  post is `True` about `err`, while the goroutine panics on an error (`server.go:1137`): a fourth
+  environment fact (bbolt's `DB.Close` failing: munmap, file close, flock) would be needed, with
+  `DB.Close_kv`'s axiom saying an error implies it fails. Options: (a) the readers' tokens at a fixed
+  fraction (`kbRT`'s `bOpen` at `1 / (2 · nReaders)`, say) and `Restore` returning exactly the
+  pool's count (no slot out under `s.mu`: `k = nReaders - 2` at the server, the two retired ones
+  known), plus a `closeOk` premise: changes `kbRT` (`InvStore.lean`) and `store.Restore.spec`
+  (another track's); (b) a `Close` for a backend whose readers may be in flight (bbolt's `Close`
+  waits for read transactions on `mmaplock`; the backend's stop protocol letting readers keep
+  `bOpen` shares after the stop, since they do not commit): a backend proof change, no closed
+  theorem; (c) the old backend's `Close` as a premise of `applySnapshot.spec`, postponed.

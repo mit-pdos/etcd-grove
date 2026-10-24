@@ -57,7 +57,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
   · iPkgInit
   wp_auto
   wp_apply wp_GetIndex $$ [$Hraftpb $Hsm] as Hsm
-  wp_apply wp_DBFilePath $$ [$Hss] as %p %err Hp
+  wp_apply wp_DBFilePath $$ [$Hss $Hf] as %p %err ⟨Hf, Hp⟩
   icases Hp with (%Hp | ⟨%Herr, Hok⟩)
   · obtain ⟨rfl, rfl⟩ := Hp
     wp_auto
@@ -80,7 +80,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
       ipureintro; rfl
     · obtain ⟨ei, rfl⟩ : ∃ ei, err2 = GoInterface.ok ei := by
         cases err2 with
-        | nil => exact absurd rfl Hr
+        | nil => exact absurd rfl Hr.1
         | ok ei => exact ⟨ei, rfl⟩
       wp_auto
       wp_apply wp_slice_literal
@@ -95,10 +95,10 @@ theorem storage.OpenSnapshotBackend.wp_proof
       iright
       iframe Hf Hpo
       ipureintro
-      exact ⟨nofun, rfl⟩
+      exact ⟨nofun, rfl, fun h => Hr.2 h.2⟩
   · obtain ⟨ei, rfl⟩ : ∃ ei, err = GoInterface.ok ei := by
       cases err with
-      | nil => exact absurd rfl Herr
+      | nil => exact absurd rfl Herr.1
       | ok ei => exact ⟨ei, rfl⟩
     wp_auto
     wp_apply wp_slice_literal
@@ -113,7 +113,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     iright
     iframe Hf Hpo
     ipureintro
-    exact ⟨nofun, rfl⟩
+    exact ⟨nofun, rfl, fun h => Herr.2 h.1⟩
 
 end proof
 

@@ -45,6 +45,26 @@ open Iris Iris.BI backend
 /-- **bbolt opens the server's database files** (opaque; see the file header). -/
 opaque dbOpensOk : Prop
 
+/-- **The server's storage `p` was made over the snapshotter `ss`** (opaque; D22 receiver epochs,
+S8d, 2026-10-24): `NewStorage(lg, w, ss)` returned `p` (the `*storage` wrapping the WAL and `ss`,
+names-only: its struct is not translated). What `storage.Release`'s axiom names the snapshot
+directory by. -/
+opaque storageSnap (p ss : Loc) : Prop
+
+/-- **The server's storage releases succeed** (opaque, a named premise about the program's
+environment; D22 receiver epochs, S8d, 2026-10-24): `storage.Release`'s closing of the WAL's lock
+files below a snapshot and removal of the older `.snap.db` files do not fail (I/O). -/
+opaque releaseOk : Prop
+
+/-- **The file system cooperates for an applied snapshot's files** (a named premise about the
+program's environment, as `dbOpensOk`; D22 receiver epochs, S8d, 2026-10-24): the snapshot
+directories' reads (`snap.dirReadOk`), the renames of a held file onto an owned entry
+(`backend.renameOk`), and the storage's releases (`releaseOk`) do not fail. `applySnapshot` panics
+otherwise (`server.go:1059`, `:1101`); `applySnapshot.spec` takes it. Not yet a premise of any
+closed theorem (S-l's wiring; the user's decision, W5). -/
+def snapOpensOk : Prop :=
+  (∀ ss : Loc, snap.dirReadOk ss) ∧ (∀ src dst : GoString, renameOk src dst) ∧ releaseOk
+
 /-- The batch limit `newBackend(cfg, hooks)` configures (`DefaultBackendConfig`'s
 `defaultBatchLimit`, unless the configuration sets one). -/
 def openLimit [FfiSyntax] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : w64 :=

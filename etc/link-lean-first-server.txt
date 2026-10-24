@@ -545,6 +545,9 @@ snap_Snapshotter__DBFilePath:
 os_Rename:
 config_ServerConfig__BackendPath:
 storage_OpenBackend:
+# (D22 receiver epochs, S8d, 2026-10-24) `applySnapshot`'s release of the WAL and older snapshot
+# files, an axiom true of the Go code (its spec's docstring).
+storage_storage__Release:
 storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
 # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
 # SnapSendBundle.lean, SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`

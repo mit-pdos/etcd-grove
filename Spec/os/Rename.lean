@@ -31,14 +31,16 @@ variable [sem : go.Semantics]
 
 /-- `os.Rename(src, dst)` of the file holding `D` onto the program's entry `dst`: on success the
 file is at `dst` and the entry `src` the program's; on an error (an error `fmt` can format)
-nothing moved. -/
+nothing moved, the environment failing it (`¬ renameOk src dst`: D22 receiver epochs, S8d,
+2026-10-24; the program holds `src` and owns `dst`, so an error is the environment's). -/
 abbrev os.Rename.spec : Prop :=
   ∀ (src dst : GoString) (D : Data),
   {{ fileHolds (GF := GF) src D ∗ pathOwn dst }}
     (App (App (Val (@! _root_.Perennial.os.Rename)) (Val #src)) (Val #dst))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ fileHolds dst D ∗ pathOwn src) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ fmt.argOk err ∗ fileHolds src D ∗ pathOwn dst) }}
+      (⌜err ≠ GoInterface.nil ∧ ¬ renameOk src dst⌝ ∗ fmt.argOk err ∗ fileHolds src D ∗
+        pathOwn dst) }}
 
 end spec
 

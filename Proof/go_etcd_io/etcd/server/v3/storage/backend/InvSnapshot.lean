@@ -90,6 +90,13 @@ theorem snapOpenQ_half (sp : Loc) (D : Data) (γ : GName) (q : Qp) :
 /-- **The directory entry `p` is the program's** (opaque, exclusive; see the file header). -/
 opaque pathOwn (p : GoString) : IProp GF
 
+/-- **The file system lets `src` be renamed onto `dst`** (opaque, a named premise about the
+program's environment, D19a's first kind; D22 receiver epochs, S8d, 2026-10-24): `os.Rename(src,
+dst)` of a file the program holds onto an entry it owns fails for no reason of the environment
+(I/O, permissions, a full disk). `os.Rename`'s axiom gives `¬ renameOk src dst` on an error; the
+premise excluding it is `storage.snapOpensOk`. -/
+opaque renameOk (src dst : GoString) : Prop
+
 /-- **The `io.Writer` `w`'s contract** (persistent), by `Wr c bs`, the bytes `bs` written so far
 (`c`: whether a `Write` has returned): `Write(p)` of a slice holding `chunk` (read at `dq`, given
 back) appends the first `k` bytes of `chunk` and returns `k`, all of them unless the error is

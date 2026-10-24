@@ -194,10 +194,13 @@ removed, ..., adequacy coverage" below.
 - **Snapshots (track T-S, D22).** Done: S-0..S-d4, S-f..S-i, S-g/S-h, S-r (snapshots in
   `examples/kv`), the fork fixes, the receiver epochs' S1-S7f and S8a-S8c. Open:
   - **S8d of the receiver epochs** (`applySnapshot` past the empty case; S8a-S8c done, section
-    "D22 receiver epochs, S8" below): the spec and proof, blocked on W1 (`Rm`'s variant to confirm),
-    W5 (an environment premise for the snapshot file's directory read and rename: the user's to
-    approve), W6 (`RaftCluster.Recover`'s members: the network directory and the rest model) and W7
-    (the old backend's `Close`: its stop channels and open token kept from boot);
+    "D22 receiver epochs, S8" below): the spec and proof. W1 done (`Rm := snapTakenLb`,
+    `storage.Release`'s axiom); W5 written against the named premise `storage.snapOpensOk` (where it
+    comes from: the user's decision); blocked on W6 (`RaftCluster.Recover`'s members: the directory
+    facts cannot reach `Members()` without changing `rcLockInv`, in a closed statement) and W7 (the
+    old backend's `Close`: `bOpen 1` cannot be reassembled from the readers' existential shares, and
+    `Close`'s error panics the goroutine), `notes/decisions.md`, "D22 S8d: W6 and W7 as decided do not
+    go through";
     `notes/snapshot-s8-plan.md`, "Where S8 stops, second pass".
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
@@ -974,8 +977,11 @@ decided" and "D22 receiver epochs, S8c carried out"): W3, the transport's peers 
 W1's decided `Rm` is not establishable at `Release` (a variant proposed); new axioms
 `lessor.Recover`, `authStore.Recover`, `RaftCluster.SetBackend`, the gauge's initializer;
 `NewMembershipBackend` proved; S8d's lemmas `kv_cert_jump` (W4) and `srv_be_swap`. Axioms 615 ->
-620. Issue filed: `issues/etcd-rafthttp-leaderstats-followers-race.md`. **Left** (S8d): the open-work
-item above.
+620. Issue filed: `issues/etcd-rafthttp-leaderstats-followers-race.md`. Then W1 and W5
+(`notes/decisions.md`, "D22 S8d's premises"): `snapTakenLb`, `storage.Release`'s axiom (620 -> 621),
+the opaque `snap.dirReadOk`, `backend.renameOk`, `storage.releaseOk`, `storageSnap` and the bundle
+`storage.snapOpensOk`; `os.Rename`, `DBFilePath` (now over the held file) and `OpenSnapshotBackend`
+restated (an error implies the fact fails). **Left** (S8d): the open-work item above.
 
 ## D22 receiver epochs, S7f: the apply protocol per backend (2026-10-23, branch `worktree-agent-a5fae76133d772e18`)
 
