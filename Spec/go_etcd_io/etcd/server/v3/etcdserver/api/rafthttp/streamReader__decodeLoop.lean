@@ -31,7 +31,7 @@ succeeds) whose `Error()` returns. -/
 abbrev rafthttp.streamReader.decodeLoop.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (ty : StreamTy) (rc : GoInterface)
     (R : http.HReq) (γk γw : GName),
-  Rh.owner R.host = pid →
+  Rh.owner R.host = pid → R.path ≠ probingPath →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       srFixed Rh lid pid γd cr ∗ http.respReader (raftHttpNet Rh) rc R γk (W64 200) [] ∗
       http.respCloser rc ∗ ⌜rc ≠ GoInterface.nil⌝ ∗ streamReg Rh γk (γw, ty, lid) ∗ streamRd γw 0 }}

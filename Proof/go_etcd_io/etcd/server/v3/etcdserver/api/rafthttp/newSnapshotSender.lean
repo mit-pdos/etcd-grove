@@ -22,7 +22,9 @@ variable [sem : go.Semantics]
 
 /-- **Trust boundary** (rafthttp stage 6b, D34): `newSnapshotSender` (`snapshot_sender.go`) reads the
 transport's fields (its `Raft`, `ErrorC`, ids, `pipelineRt`, logger) and makes a sender with a fresh
-`stopc`; no goroutine. What its `send` does is `Transport.SendSnapshot`'s axiom's. -/
+`stopc`; no goroutine. What its `send` does is `Transport.SendSnapshot`'s axiom's; its post of a
+snapshot to a peer's `/raft/snapshot` is a snapshot request of the raft protocol (`snapReq`, stage
+6c), which only this sender makes. -/
 axiom rafthttp.newSnapshotSender.wp_proof :
   rafthttp.newSnapshotSender.spec (GF := GF) (hG := hG)
 

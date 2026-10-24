@@ -732,14 +732,14 @@ def handlerFor (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoSt
 /-- **A built mux is a handler of `a`** (the mux's dispatch, stated as what its `ServeHTTP` does):
 each registered handler handles what is routed to it; a request routed nowhere (or redirected,
 for a path not in `ServeMux`'s clean form) gets the mux's own `404`/`301` response, which the
-protocol must allow. -/
+protocol must allow (2026-10-23, rafthttp stage 6c: of those two statuses only, was of any). -/
 def mux_handlerOk_spec (H : HttpNet GF) : Prop :=
   ∀ (m : Loc) (regs : List (GoString × GoInterface)) (a : GoString) (Rs : IProp GF),
     ⊢ muxOwn (GF := GF) m regs -∗
       ([∗list] reg ∈ regs, handlerFor H a Rs (regs.map Prod.fst) reg.1 reg.2) -∗
-      (□ ∀ (R : HReq) (γk : GName) (st : w64) (w : List w8),
+      (□ ∀ (R : HReq) (γk : GName) (w : List w8),
         ⌜route (regs.map Prod.fst) R.path = none⌝ → (H.proto a).req R γk -∗
-          (H.proto a).resp R γk st w) -∗
+          (H.proto a).resp R γk (W64 404) w ∗ (H.proto a).resp R γk (W64 301) w) -∗
       ⌜∀ (R : HReq) (loc : GoString), route (regs.map Prod.fst) R.path = none →
         (H.proto a).rhdr R [] ∧ (H.proto a).rhdr R (hdrSet [] go!"Location" loc)⌝ -∗
       handlerOk H a Rs (interface.mkOk (go.GoType.PointerType

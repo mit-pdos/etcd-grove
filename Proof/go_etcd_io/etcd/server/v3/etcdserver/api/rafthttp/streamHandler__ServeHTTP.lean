@@ -95,10 +95,10 @@ local macro "stream_rest" : tactic => `(tactic| (
     (try wp_auto)
     ihave #HG1 := HGet $$ %rid
     wp_bind (App (Val #(methods gi.ty go!"Get" gi.v)) (Val #rid))
-    iapply HG1
-    · itrivial
+    iapply HG1 $$ [HRs]
+    · iexact HRs
     inext
-    iintro %pi Hpi
+    iintro %pi ⟨HRs, Hpi⟩
     icases Hpi with (%Hnil | ⟨%pl, %Hpl, #Hps⟩)
     · -- no peer: `AddRemote` with the request's `X-PeerURLs`, if any; `404`
       subst Hnil
@@ -226,7 +226,7 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZError : zap.Error.spec (GF := GF) (hG := hG)) :
     rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG) := by
-  intro Rh a γd Rs h wi r R γk rd Hhost
+  intro Rh a γd Rs h wi r R γk rd Hhost Hnp
   iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw Hhd %hfl HRs
   iunfold streamHandlerOk at Hh
   icases Hh with ⟨%hv, %gi, #Hhv, %Hhvok, #HtrID, #Hraft, #HGet, #HAddR, #HPfx⟩
@@ -263,7 +263,7 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
     iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
   -- a `GET`: a stream request
   ihave Hsr := raftProto_req_stream Rh R γk $$ Hreq
-  ihave #Hsr := Hsr $$ %Hif
+  ihave #Hsr := Hsr $$ %(And.intro Hif Hnp)
   iunfold streamReq at Hsr
   icases Hsr with ⟨%c, #Hreg, %Hpath⟩
   obtain ⟨γw, ty, rid⟩ := c

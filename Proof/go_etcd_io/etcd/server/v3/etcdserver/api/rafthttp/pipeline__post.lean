@@ -139,7 +139,7 @@ theorem rafthttp.pipeline.post.wp_proof
   ihave #Hpr : ((raftHttpNet Rh).proto u.Host').req
       ⟨go!"POST", u.Host', go!"/raft", hdrs, bs⟩ γk $$ []
   · simp only [raftHttpNet]
-    iapply raftProto_req_of_pipe _ _ _ rfl
+    iapply raftProto_req_of_pipe _ _ _ rfl rfl
     iunfold pipeReq
     iexists st
     iframe #

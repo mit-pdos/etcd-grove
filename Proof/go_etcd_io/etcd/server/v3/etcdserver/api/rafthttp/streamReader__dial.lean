@@ -134,7 +134,7 @@ local macro "status_switch" : tactic => `(tactic| (
     iexists _, γk, γw
     iframe
     iframe #
-    ipureintro; exact ⟨howner, Hrdnn⟩
+    ipureintro; exact ⟨⟨howner, streamPath_ne_probing _ _⟩, Hrdnn⟩
   rw [_root_.decide_eq_false (show ¬ rst = W64 200 from h200)]
   (try wp_auto)
   ihave #Htyp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []

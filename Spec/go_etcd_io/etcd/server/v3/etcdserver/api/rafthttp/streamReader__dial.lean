@@ -36,7 +36,7 @@ abbrev rafthttp.streamReader.dial.spec : Prop :=
     (App (Val (cr @!! go.GoType.PointerType rafthttp.streamReader.ty @!! go!"dial")) (Val #ty.str))
   {{ (rc err : GoInterface), RET (PairV #rc #err); http.errStrOk err ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗
-        ∃ (R : http.HReq) (γk γw : GName), ⌜Rh.owner R.host = pid⌝ ∗
+        ∃ (R : http.HReq) (γk γw : GName), ⌜Rh.owner R.host = pid ∧ R.path ≠ probingPath⌝ ∗
           http.respReader (raftHttpNet Rh) rc R γk (W64 200) [] ∗ http.respCloser rc ∗
           ⌜rc ≠ GoInterface.nil⌝ ∗ streamReg Rh γk (γw, ty, lid) ∗ streamRd γw 0) }}
 

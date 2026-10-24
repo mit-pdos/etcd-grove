@@ -3,7 +3,7 @@
 of `Proof/net/http/Boundary.lean` the proofs use, assumed, and the registration of an address's
 protocol. Lean-first. Each is a fact about Go's `net/http`, `io` and `bytes` (read against the
 statement's docstring in `Boundary.lean`); the specs not listed (`Serve_spec`, `respRead_spec`,
-`HeaderGet_spec`, the mux's) stay statements until a proof uses them.
+`HeaderGet_spec`) stay statements until a proof uses them.
 
 Soundness of the specs stated for any `HttpNet` (`Error_ok`, ...): their resources
 (`respWriter H`, `respReader H`) come only from `Serve` and `RoundTrip`, which need an address's
@@ -105,6 +105,15 @@ axiom RespCloseAny_ok : RespCloseAny_spec (GF := GF)
 /-- (stage 6c: `rafthttp.Transport.Stop`) closing a `*http.Transport` round tripper's idle
 connections (`CloseIdleConnections_spec`). -/
 axiom CloseIdleConnections_ok (H : HttpNet GF) : CloseIdleConnections_spec H
+
+/-- (stage 6c: `rafthttp.Transport.Handler`) `http.NewServeMux()` (`NewServeMux_spec`). -/
+axiom NewServeMux_ok : NewServeMux_spec (GF := GF)
+
+/-- (stage 6c) `m.Handle(pat, h)` of a pattern not yet registered (`Handle_spec`). -/
+axiom Handle_ok : Handle_spec (GF := GF)
+
+/-- (stage 6c) a built mux's dispatch (`mux_handlerOk_spec`). -/
+axiom mux_handlerOk_ok (H : HttpNet GF) : mux_handlerOk_spec H
 
 /-- (stage 5e-3) `nil` is a reader of no bytes, an empty request body (`readerHas`'s docstring,
 `NewRequest`'s `nil` body). -/

@@ -188,7 +188,7 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
         $$ [HdecO Hrr] as %ml %err ⟨#Herr, %rs', %s', Hrr, HdecO, Hok⟩
     · iframe; iframe #
       iintro !> %bs HB
-      iapply stream_known Rh R γk γw $T lid pid bs Hown $$ Hreg HB
+      iapply stream_known Rh R γk γw $T lid pid bs Hown Hpath $$ Hreg HB
     wp_auto_lc 3
     cases err with
     | ok e =>
@@ -266,7 +266,7 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
       · -- a link heartbeat: dropped
         dl_skip
       -- the frame's facts: a message to `lid` with its deposit
-      ihave #Hss := stream_known Rh R γk γw $T lid pid _ Hown $$ Hreg HB
+      ihave #Hss := stream_known Rh R γk γw $T lid pid _ Hown Hpath $$ Hreg HB
       ihave #Hdep := streamSent_frame _ Rh.γn.N γw lid fr s s' w bs Hc Hf $$ Hss
       iunfold frameDep at Hdep
       icases Hdep with (%Hhb | ⟨%st0, %Hst0, #HP, #Hdeposit⟩)
@@ -352,7 +352,7 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZBool : zap.Bool.spec (GF := GF) (hG := hG)) :
     rafthttp.streamReader.decodeLoop.spec (GF := GF) (hG := hG) := by
-  intro Rh lid pid γd cr ty rc R γk γw Hown
+  intro Rh lid pid γd cr ty rc R γk γw Hown Hpath
   wp_start as ⟨#Hf, Hrr, #Hcl, %Hrcnn, #Hreg, Hrd⟩
   ihave #Hf' := Hf
   iunfold srFixed at Hf'

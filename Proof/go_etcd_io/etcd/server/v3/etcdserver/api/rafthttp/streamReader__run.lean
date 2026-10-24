@@ -168,13 +168,13 @@ theorem rafthttp.streamReader.run.wp_proof
   | nil =>
     -- connected: the peer active, the stream decoded until it fails; the status deactivated
     -- unless the stream ended (`io.EOF`) or the connection was closed
-    icases Hres with (%Hne | ⟨-, %R, %γk, %γw, %Hown, Hrr, #Hcl, %Hrcnn, #Hreg, Hrd⟩)
+    icases Hres with (%Hne | ⟨-, %R, %γk, %γw, ⟨%Hown, %Hpath⟩, Hrr, #Hcl, %Hrcnn, #Hreg, Hrd⟩)
     · exact absurd rfl Hne
     (try wp_auto)
     wp_apply hActivate ps $$ [$Hpsok]
     (try wp_auto)
     lg_log
-    wp_apply hDecodeLoop Rh lid pid γd cr ty rc R γk γw Hown $$ [$Hrr $Hrd]
+    wp_apply hDecodeLoop Rh lid pid γd cr ty rc R γk γw Hown Hpath $$ [$Hrr $Hrd]
       as %derr ⟨%Hdnn, #Hderr⟩
     · iframe #; ipureintro; exact Hrcnn
     (try wp_auto)

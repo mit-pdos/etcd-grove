@@ -98,7 +98,7 @@ theorem streamSent_prefix (C : StreamCodec) (N : NetPayload GF) (γw : GName) (r
 /-- **What the reader knows of the bytes it read**: a prefix of a `200` response's bytes, of the
 stream request registered as `(γw, ty, lid)` to the address of `pid`, is a stream's bytes. -/
 theorem stream_known (Rh : RaftHttp GF) (R : http.HReq) (γk γw : GName) (ty : StreamTy)
-    (lid pid : w64) (bs : List w8) (Hown : Rh.owner R.host = pid) :
+    (lid pid : w64) (bs : List w8) (Hown : Rh.owner R.host = pid) (Hpath : R.path ≠ probingPath) :
     ⊢ streamReg Rh γk (γw, ty, lid) -∗
       (□ ∃ w, ⌜bs <+: w⌝ ∗ ((raftHttpNet Rh).proto R.host).resp R γk (W64 200) w) -∗
       streamSent (ty.codec pid lid) Rh.γn.N γw lid bs := by
@@ -106,6 +106,7 @@ theorem stream_known (Rh : RaftHttp GF) (R : http.HReq) (γk γw : GName) (ty : 
   icases Hw with ⟨%w, %Hp, Hr⟩
   simp only [raftHttpNet, raftProto]
   icases Hr with ⟨-, Hs⟩
+  ihave Hs := Hs $$ %Hpath
   unfold streamResp
   ihave ⟨%c, #Hreg', Hs⟩ := Hs $$ %rfl
   ihave %Hc := streamReg_agree Rh γk _ _ $$ Hreg Hreg'

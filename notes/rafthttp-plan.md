@@ -708,6 +708,30 @@ trust-boundary spec.
    protocol must then allow, `addPeerToProber`'s axiom sends them on the pipeline's round
    tripper).
 
+   **6c, fifth part (2026-10-24).** `Start`'s boundary specs and the probe in the protocol accepted
+   by the user. `raftProto` (`rafthttp/Stream.lean`): a `GET` is a stream request, and a `200` a
+   stream's, only off the prober's path (`probingPath`); a `POST` to the snapshot path is a
+   snapshot sender's (`snapReq`, opaque: only the snapshot stream's axioms speak of it, so no
+   verified client can post a snapshot the handler's axiom would take). The stream reader's
+   `dial`, `decodeLoop` and the stream handler carry that their path is not the prober's.
+   `Handler` proved (`rafthttp/TransportHandler.lean`, `Handler_core`): the mux of the four
+   handlers is a handler of the member's address for the raft protocol (`http.handlerOk`),
+   lending each invocation an `R` and a reader's token of the transport's lock
+   (`trReadTok`, for the stream handler's `Get`; `streamHandlerOk`'s `Get` now borrows `Rs`).
+   Proved: `newPipelineHandler`, `newStreamHandler`, the routing lemmas (`http.route_matches`:
+   a path is routed to a pattern that matches it), `netRaftOk_frame`. New boundary items, for
+   review: the mux's three specs as axioms (`NewServeMux_ok`, `Handle_ok`, `mux_handlerOk_ok`;
+   the last one's premise now only of the mux's own `404` and `301`, was of any status),
+   `probing.NewHandler` (a `200` with no header) and `newSnapshotHandler` (the snapshot stream's
+   receiving end, D22's contract cut at its own function: `SaveDBFrom`'s ghost steps, `Process`
+   with a `snapReq`'s message). Premises until 6d: the values of `ProbingPrefix` and
+   `RaftSnapshotPrefix` (with `RaftStreamPrefix`'s in `trFixed`: untranslated initializers,
+   `path.Join(RaftPrefix, ...)`; translate them or state them as init facts), and that the
+   handlers' `addRemoteFromRequest` and `AddRemote` return (`trAddRemoteReq`, `trAddRemote`):
+   `AddRemote_core` needs `transportLive`'s exclusive half, which the handlers do not have; in a
+   static cluster every sender is a peer by the time the handler serves, so `AddRemote` returns
+   early, which 6d must show (the peers' keys cover the directory when `Serve` starts).
+
 ## Costs and risks
 
 - Several weeks, comparable to the watch client. Stage 5 carries most of the risk (a goroutine
