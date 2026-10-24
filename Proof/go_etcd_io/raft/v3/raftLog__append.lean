@@ -232,6 +232,8 @@ theorem raftLog.append.wp_proof
             + (ls.uents.length : Int) + 1 →
           (uint.Z (logTruncInprogress ls e0.Index') - uint.Z uv'.offset').toNat
             = (uint.Z ls.inprogress - uint.Z lv.unstable'.offset').toNat) := by
+      -- `omega` case-splits on every `toNat`/`min` in context: leave it what it needs
+      clear Hm Hlens' Hidx' Hst2 Hss2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
       unfold logTruncInprogress
       repeat' split
       all_goals omega
@@ -239,6 +241,8 @@ theorem raftLog.append.wp_proof
         uint.Z (logTruncInprogress ls e0.Index') ≤ uint.Z uv'.offset'
           + ((ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
               - (ls.sents.length : Int)).toNat ++ e0 :: ents').length : Int) := by
+      -- `omega` case-splits on every `toNat`/`min` in context: leave it what it needs
+      clear Hm Hlens' Hidx' Hst2 Hss2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
       unfold logTruncInprogress
       simp only [List.length_append, List.length_take, List.length_cons]
       repeat' split
@@ -272,6 +276,8 @@ theorem raftLog.append.wp_proof
       have := Happlied.2
       simp only [logTruncateAppend, ← Hip2]
       rw [Hip2]
+      -- `omega` case-splits on every `toNat`/`min` in context: leave it what it needs
+      clear Hm Hlens' Hidx' Hst2 Hss2 Hls' Hnw2 Hoff2 Hcm2 Hsplit
       unfold logTruncInprogress
       repeat' split
       all_goals omega
