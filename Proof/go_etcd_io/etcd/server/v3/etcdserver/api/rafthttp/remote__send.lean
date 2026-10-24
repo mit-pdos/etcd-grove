@@ -134,7 +134,7 @@ theorem rafthttp.remote.send.wp_proof
   icases Hpay with ⟨%st, #Hm, #HP, HO, %Hst⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, ⟨%vSF, #HSF, %HSFl⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vSF, #HSF, %HSFl⟩, -⟩
   ihave Hpay : pipeMsg Rh pid ml $$ [HO]
   · iunfold pipeMsg; iexists st; iframe; iframe #; ipureintro; exact Hst
   wp_auto_lc 1

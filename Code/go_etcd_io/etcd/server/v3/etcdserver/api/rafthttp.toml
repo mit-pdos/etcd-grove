@@ -19,7 +19,9 @@ translate = ["*", "!init.*",
   "!errMemberNotFound", "!errMemberRemoved", "!linkHeartbeatSize", "!linkHeartbeatMessage", "!supportedStream",
   "!errUnsupportedStreamType", "!statusErrorInterval", "!statusMonitoringInterval", "!proberInterval", "!errStopped",
   "!ConnWriteTimeout", "!ErrExceedSizeLimit", "!ErrClusterIDMismatch",
-  "!errIncompatibleVersion", "!RaftSnapshotPrefix", "!RaftStreamPrefix", "!ProbingPrefix"]
+  "!errIncompatibleVersion"]
+# (2026-10-24, rafthttp stage 6d) `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
+# translated: `path.Join(RaftPrefix, ...)`, their values facts of `rafthttpInit`
 imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "io", "net", "net/http",
   "net/url", "path", "strings", "sync", "time",
   "github.com/Masterminds/semver/v3", "github.com/dustin/go-humanize",

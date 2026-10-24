@@ -300,7 +300,7 @@ theorem rafthttp.streamReader.dial.wp_proof
   subst Htreq
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, -, #HIV, #HCM, -, #HMR, -, -, -, -, -, -, -, -, -, #HUS, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, #HIV, #HCM, -, #HMR, -, -, -, -, -, -, -, -, -, #HUS, -⟩
   ihave #Hpver : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version $$ []
   · iPkgInit
   ihave #Hvi : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗

@@ -164,15 +164,29 @@ states.''',
             'exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩'],
 )
 
+def raft_subpath(seg, tag):
+    """(2026-10-24, rafthttp stage 6d) `X = path.Join(RaftPrefix, seg)` (`http.go`): the slice
+    literal, `path.Join`'s proof (over `path.Clean`'s and `lazybuf`'s), its model's value."""
+    es = f'[go!"/raft", go!"{seg}"]'
+    return ['try wp_auto',
+            f'wp_apply (wp_slice_literal (l := {es})); isplitr; (· ipureintro; rfl); iintro %pj{tag} ⟨Sj{tag}, -⟩',
+            'try wp_auto',
+            'wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof '
+            'EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof '
+            f'EtcdGrove.path.lazybuf.string.wp_proof)) _ {es} _ (by decide) $$ [$Sj{tag}] as %rj{tag} ⟨%Hj{tag}, -⟩',
+            f'subst Hj{tag}',
+            f'rw [show EtcdGrove.path.joinModel {es} = go!"/raft/{seg}" from by decide]',
+            'try wp_auto']
+
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'] = dict(
     doc='''Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` holds a non-nil
 error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
 variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
 states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`'s (`stream.go`);
-`opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
-`ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) and `readBytesLimit` (512 MiB) are translated
-and set.''',
+`opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`), its subpaths `ProbingPrefix`,
+`RaftStreamPrefix` and `RaftSnapshotPrefix` (`path.Join`, proved), `ConnReadTimeout`
+(`DefaultConnReadTimeout`, five seconds) and `readBytesLimit` (512 MiB) are translated and set.''',
     newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded",
         errIncompatibleVersion="incompatible version", ErrClusterIDMismatch="cluster ID mismatch",
         errStopped="stopped",
@@ -189,12 +203,21 @@ and set.''',
         doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
         post='∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝',
         pat='⟨%n@, H@, %B@⟩')},
-    alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64'},
-    # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step
-    before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto']},
+    alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64',
+                 'ProbingPrefix': 'GoString', 'RaftStreamPrefix': 'GoString',
+                 'RaftSnapshotPrefix': 'GoString'},
+    # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step;
+    # (2026-10-24, rafthttp stage 6d) the three subpaths of `RaftPrefix`: `path.Join` (proved)
+    before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto'],
+            'ProbingPrefix': raft_subpath('probing', 'P'),
+            'RaftStreamPrefix': raft_subpath('stream', 'S'),
+            'RaftSnapshotPrefix': raft_subpath('snapshot', 'N')},
+    imports=['Proof.path.Join', 'Proof.path.Clean', 'Proof.path.lazybuf__index',
+             'Proof.path.lazybuf__append', 'Proof.path.lazybuf__string'],
     finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
             'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
-            'ipersist HRaftPrefix', 'ipersist HConnReadTimeout', 'ipersist HlinkHeartbeatSize',
+            'ipersist HRaftPrefix', 'ipersist HProbingPrefix', 'ipersist HRaftStreamPrefix',
+            'ipersist HRaftSnapshotPrefix', 'ipersist HConnReadTimeout', 'ipersist HlinkHeartbeatSize',
             'ipersist HreadBytesLimit', 'ipersist HerrUnsupportedStreamType',
             'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
@@ -202,6 +225,8 @@ and set.''',
             '· simp only [EtcdGrove.errorsNewVar]; iframe #',
             'isplitr', '· iexact HlinkHeartbeatMessage',
             'isplitr', '· iexact HRaftPrefix',
+            'isplitr', '· iexact HProbingPrefix', 'isplitr', '· iexact HRaftStreamPrefix',
+            'isplitr', '· iexact HRaftSnapshotPrefix',
             'simp only [EtcdGrove.errorsNewVar]', 'iframe #',
             'try (ipureintro; exact BlinkHeartbeatSize)'],
 )

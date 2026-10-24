@@ -58,7 +58,7 @@ theorem rafthttp.pipeline.post.wp_proof
   wp_apply wp_with_defer as %defer defer
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, #HRP, #HIV, #HCM, #HES, #HMR, -, -, -, -⟩
+  icases Hri with ⟨-, -, #HRP, -, -, -, #HIV, #HCM, #HES, #HMR, -, -, -, -⟩
   wp_apply hPick pk (peerURL Rh to) $$ [$Hpick] as %u %Hu
   (try wp_auto)
   wp_apply hNewBuffer d bs $$ [$Hd] as %bf Hbf

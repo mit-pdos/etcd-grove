@@ -140,7 +140,7 @@ theorem rafthttp.Transport.AddPeer_core
   -- the probers, the log
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vrtt, #Hrtt⟩⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vrtt, #Hrtt⟩⟩
   repeat' (first
     | (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
     | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)

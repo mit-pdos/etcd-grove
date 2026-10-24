@@ -69,7 +69,7 @@ theorem rafthttp.pipeline.handle.wp_proof
     -, -, -, -, -, -, -, -, -, -, #Hstop, -⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, -, -, -, -, -, -, -, ⟨%vSB, #HSB, %HSBl⟩, ⟨%vSF, #HSF, %HSFl⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, ⟨%vSB, #HSB, %HSBl⟩, ⟨%vSF, #HSF, %HSFl⟩, -⟩
   iunfold netRaftOk at Hraft
   icases Hraft with ⟨%ri, %Hri, -, -, #HRU, #HRS⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []

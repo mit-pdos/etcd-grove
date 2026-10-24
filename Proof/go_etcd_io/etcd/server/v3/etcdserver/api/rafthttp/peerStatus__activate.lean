@@ -41,7 +41,7 @@ theorem rafthttp.peerStatus.activate.wp_proof
   icases Hs with ⟨%lg, %lid, %id, #Hlg, %Hlgnn, #Hlid, #Hid, #Hmu⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, ⟨%vAP, #HAP, %HAPl⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vAP, #HAP, %HAPl⟩, -⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

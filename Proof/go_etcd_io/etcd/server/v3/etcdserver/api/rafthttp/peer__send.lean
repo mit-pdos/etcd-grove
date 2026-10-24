@@ -141,7 +141,7 @@ theorem rafthttp.peer.send.wp_proof
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, ⟨%vSF, #HSF, %HSFl⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%vSF, #HSF, %HSFl⟩, -⟩
   wp_auto
   wp_apply sync.Mutex.wp_Lock _ (peerLockInv p) $$ [] as ⟨Hlocked, Hinv⟩
   · iexact Hmu

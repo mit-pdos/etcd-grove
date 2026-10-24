@@ -297,7 +297,7 @@ theorem rafthttp.streamHandler.ServeHTTP.wp_proof
   wp_apply hCheck hlg hid hcid hm R.hdr Hhvok.1 $$ [$Hhs] as %rv Hrv
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, -, #HIV, #HCM, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, #HIV, #HCM, -⟩
   icases Hrv with (%Hrv | ⟨%e, %Hre, #He⟩)
   · rcases Hrv with rfl | ⟨p, rfl⟩
     · -- compatible: the stream's type from the path's `Dir`

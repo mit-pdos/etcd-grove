@@ -7,9 +7,9 @@ error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initi
 variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
 states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`'s (`stream.go`);
-`opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
-`ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) and `readBytesLimit` (512 MiB) are translated
-and set.
+`opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`), its subpaths `ProbingPrefix`,
+`RaftStreamPrefix` and `RaftSnapshotPrefix` (`path.Join`, proved), `ConnReadTimeout`
+(`DefaultConnReadTimeout`, five seconds) and `readBytesLimit` (512 MiB) are translated and set.
 -/
 module
 
@@ -42,6 +42,11 @@ public import Proof.net.Init
 public import Proof.net.http.Init
 public import Proof.net.url.Init
 public import Proof.path.Init
+public import Proof.path.Join
+public import Proof.path.Clean
+public import Proof.path.lazybuf__index
+public import Proof.path.lazybuf__append
+public import Proof.path.lazybuf__string
 public import Proof.errors.NewVarCell
 public import Proof.runtime.PkgInitExt
 
@@ -73,10 +78,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([ProbingPrefix.init,
-        RaftStreamPrefix.init,
-        RaftSnapshotPrefix.init,
-        snapshotSend.init,
+    ∀ v ∈ ([snapshotSend.init,
         snapshotSendInflights.init,
         snapshotSendFailures.init,
         snapshotSendSeconds.init,
@@ -196,6 +198,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := w64) ConnReadTimeout _ as HConnReadTimeout
   wp_apply wp_GlobalAlloc (V := w64) readBytesLimit _ as HreadBytesLimit
+  wp_apply wp_GlobalAlloc (V := GoString) RaftSnapshotPrefix _ as HRaftSnapshotPrefix
+  wp_apply wp_GlobalAlloc (V := GoString) RaftStreamPrefix _ as HRaftStreamPrefix
+  wp_apply wp_GlobalAlloc (V := GoString) ProbingPrefix _ as HProbingPrefix
   wp_apply wp_GlobalAlloc (V := GoString) RaftPrefix _ as HRaftPrefix
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd30⟩
   wp_apply (_root_.Perennial.net.url.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd29⟩
@@ -240,9 +245,30 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
       EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of RaftPrefix))
-  wp_apply (opaqueInitsOk ProbingPrefix.init (by mem_tac))
-  wp_apply (opaqueInitsOk RaftStreamPrefix.init (by mem_tac))
-  wp_apply (opaqueInitsOk RaftSnapshotPrefix.init (by mem_tac))
+  -- translated initializer of ProbingPrefix))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"/raft", go!"probing"])); isplitr; (· ipureintro; rfl); iintro %pjP ⟨SjP, -⟩
+  try wp_auto
+  wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof EtcdGrove.path.lazybuf.string.wp_proof)) _ [go!"/raft", go!"probing"] _ (by decide) $$ [$SjP] as %rjP ⟨%HjP, -⟩
+  subst HjP
+  rw [show EtcdGrove.path.joinModel [go!"/raft", go!"probing"] = go!"/raft/probing" from by decide]
+  try wp_auto
+  -- translated initializer of RaftStreamPrefix))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"/raft", go!"stream"])); isplitr; (· ipureintro; rfl); iintro %pjS ⟨SjS, -⟩
+  try wp_auto
+  wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof EtcdGrove.path.lazybuf.string.wp_proof)) _ [go!"/raft", go!"stream"] _ (by decide) $$ [$SjS] as %rjS ⟨%HjS, -⟩
+  subst HjS
+  rw [show EtcdGrove.path.joinModel [go!"/raft", go!"stream"] = go!"/raft/stream" from by decide]
+  try wp_auto
+  -- translated initializer of RaftSnapshotPrefix))
+  try wp_auto
+  wp_apply (wp_slice_literal (l := [go!"/raft", go!"snapshot"])); isplitr; (· ipureintro; rfl); iintro %pjN ⟨SjN, -⟩
+  try wp_auto
+  wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof EtcdGrove.path.lazybuf.string.wp_proof)) _ [go!"/raft", go!"snapshot"] _ (by decide) $$ [$SjN] as %rjN ⟨%HjN, -⟩
+  subst HjN
+  rw [show EtcdGrove.path.joinModel [go!"/raft", go!"snapshot"] = go!"/raft/snapshot" from by decide]
+  try wp_auto
   wp_apply (errorsNewVarsInit errIncompatibleVersion.init errIncompatibleVersion go!"incompatible version" (by mem_tac))
     as ⟨%xerrIncompatibleVersion, HerrIncompatibleVersion, #MerrIncompatibleVersion, #CerrIncompatibleVersion⟩
   wp_apply (errorsNewVarsInit ErrClusterIDMismatch.init ErrClusterIDMismatch go!"cluster ID mismatch" (by mem_tac))
@@ -284,6 +310,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     as ⟨%xerrMemberRemoved, HerrMemberRemoved, #MerrMemberRemoved, #CerrMemberRemoved⟩
   wp_apply (opaqueInitsOk errMemberNotFound.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- translated initializer of RaftPrefix))
+  -- translated initializer of RaftPrefix))
+  -- translated initializer of RaftPrefix))
   ipersist HreceivedBytes
   ipersist HrecvFailures
   ipersist HsentBytes
@@ -297,6 +326,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HerrStopped
   ipersist HerrMemberRemoved
   ipersist HRaftPrefix
+  ipersist HProbingPrefix
+  ipersist HRaftStreamPrefix
+  ipersist HRaftSnapshotPrefix
   ipersist HConnReadTimeout
   ipersist HlinkHeartbeatSize
   ipersist HreadBytesLimit
@@ -315,6 +347,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iexact HlinkHeartbeatMessage
   isplitr
   · iexact HRaftPrefix
+  isplitr
+  · iexact HProbingPrefix
+  isplitr
+  · iexact HRaftStreamPrefix
+  isplitr
+  · iexact HRaftSnapshotPrefix
   simp only [EtcdGrove.errorsNewVar]
   iframe #
   try (ipureintro; exact BlinkHeartbeatSize)

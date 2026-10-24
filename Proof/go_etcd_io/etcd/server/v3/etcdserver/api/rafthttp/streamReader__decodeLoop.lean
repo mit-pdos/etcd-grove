@@ -218,7 +218,7 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
       obtain ⟨Hf, rfl, Hw, Hres⟩ := Hfr
       ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hpkg
-      icases Hri with ⟨-, -, -, -, -, -, -, ⟨%vRB, #HRB, %HRBl⟩, ⟨%vRF, #HRF, %HRFl⟩, -⟩
+      icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, ⟨%vRB, #HRB, %HRBl⟩, ⟨%vRF, #HRF, %HRFl⟩, -⟩
       wp_auto
       -- `receivedBytes.WithLabelValues(types.ID(m.GetFrom()).String()).Add(float64(proto.Size(m)))`
       wp_apply hSize ml _ _ _ st $$ [Hm] as %n ⟨Hm, %Hn⟩

@@ -121,7 +121,7 @@ theorem rafthttp.streamReader.run.wp_proof
     -, -, -, -, -, -, -, -⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HUS, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HUS, -⟩
   iunfold EtcdGrove.errorsNewVar at HUS
   icases HUS with ⟨%xus, #Hxus, -⟩
   ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []

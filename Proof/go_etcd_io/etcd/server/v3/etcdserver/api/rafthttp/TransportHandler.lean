@@ -171,8 +171,8 @@ theorem stream_handlerFor (hServe : rafthttp.streamHandler.ServeHTTP.spec (GF :=
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in
 /-- **`t.Handler()`** of a started transport of the member `lid` owning `a` (`trFixed`), with its
-snapshotter and directory, the values of the prober's and the snapshot handler's paths, and its
-`addRemoteFromRequest` and `AddRemote` returning (premises until 6d): a handler of `a` for the
+snapshotter and directory, and its `addRemoteFromRequest` and `AddRemote` returning (premises until
+6d): a handler of `a` for the
 raft protocol, lending each invocation an `R` and a reader's token of the transport's lock. -/
 theorem rafthttp.Transport.Handler_core
     (hNPH : rafthttp.newPipelineHandler.spec (GF := GF) (hG := hG))
@@ -188,13 +188,11 @@ theorem rafthttp.Transport.Handler_core
         trFixed Rh t lid γd R ∗
         t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗ snap.isSnapshotter ss ∗
         inv snapDirN (snapDirInv ss γd Rh.γn.N.img Rm) ∗
-        globalAddr rafthttp.ProbingPrefix ↦□ probingPath ∗
-        globalAddr rafthttp.RaftSnapshotPrefix ↦□ snapPath ∗
         trAddRemoteReq t ∗ trAddRemote t }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
     {{ (h : GoInterface), RET #h;
         http.handlerOk (raftHttpNet Rh) a iprop(R ∗ trReadTok Rh t lid γd R γs γr) h }} := by
-  wp_start as ⟨#Htr, #Hssf, #Hss, #Hdir, #HPP, #HSP, #Harr, #HAddR⟩
+  wp_start as ⟨#Htr, #Hssf, #Hss, #Hdir, #Harr, #HAddR⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
@@ -202,7 +200,7 @@ theorem rafthttp.Transport.Handler_core
     #Hdrf, #Hls, %Hlsnn, #Hss0, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, #HRP, -⟩
+  icases Hri with ⟨-, -, #HRP, #HPP, -, #HSP, -⟩
   ihave #HraftRs := netRaftOk_frame Rh.γn lid γd R (trReadTok Rh t lid γd R γs γr) r $$ Hraft
   wp_alloc_auto
   wp_auto
@@ -268,7 +266,8 @@ theorem rafthttp.Transport.Handler_core
     · iapply stream_handlerFor hSServe $$ Hpkg Hhsok
     iapply BigSepL.bigSepL_cons.2
     isplitr
-    · iapply Hsnok
+    · iunfold snapPath at Hsnok
+      iapply Hsnok
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · iapply Hprok
