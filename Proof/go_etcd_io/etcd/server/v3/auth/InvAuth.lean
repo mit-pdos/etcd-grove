@@ -540,7 +540,17 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val) (
     □ (∀ (st : AuthState) (X : IProp GF) (hs : List AuthState),
       {{ Lk st X ∗ authOwn M hs ∗ ⌜histLast M hs st⌝ }}
         (App (Val #(methods ti.ty go!"Unlock" ti.v)) (Val #()))
-      {{ RET #(); X ∗ T ∗ authOwn M hs }}))
+      {{ RET #(); X ∗ T ∗ authOwn M hs }}) ∗
+    -- the reads with the message as `proto.Unmarshal` returns it, the caller's (appended; the
+    -- auth plan's S4c): `UserGrantRole` appends to a user's `Roles`, `RoleGrantPermission` to a
+    -- role's `KeyPermission` and writes an entry (schema's `unsafeGetUser`/`unsafeGetRole` return
+    -- them so: `userOutDX`, `roleOutDX`)
+    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
+      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
+      {{ (u : Loc), RET #u; Lk st X ∗ userOutX u st name }}) ∗
+    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
+      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeGetRole" ti.v)) (Val #name))
+      {{ (r : Loc), RET #r; Lk st X ∗ roleOutX r st name }}))
 
 instance authBatchTxLk_persistent (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val)
     (T : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :

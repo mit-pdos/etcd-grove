@@ -24,15 +24,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `proto.Unmarshal(b, m)` of the encoding of the record `x` into the `*authpb.User` at `p`
-(whatever it held) makes it hold `x` (`auth.ownUser`: its byte fields fresh read-only slices, the
-message's internal fields as it likes) and returns `nil`. -/
+(whatever it held) makes it hold `x` (`auth.ownUserX`: a fresh message the caller owns, its byte fields read-only
+slices, its `Roles` slice owned with its capacity, the message's internal fields as it
+likes; the auth plan's S4c, 2026-10-24: Go's decoder allocates them) and returns `nil`. -/
 abbrev proto.UnmarshalUser.spec : Prop :=
   ∀ (b : GoSlice) (x : auth.UserRec) (p : Loc) (v : authpb.User) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗
       b ↦*{dq} auth.userEncode x ∗ p ↦ v }}
     (App (App (Val (@! proto.Unmarshal)) (Val #b))
       (Val #(interface.mkOk (go.GoType.PointerType authpb.User.ty) #p)))
-  {{ RET #(GoInterface.nil); b ↦*{dq} auth.userEncode x ∗ auth.ownUser p x }}
+  {{ RET #(GoInterface.nil); b ↦*{dq} auth.userEncode x ∗ auth.ownUserX p x }}
 
 end spec
 

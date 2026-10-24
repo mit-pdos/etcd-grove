@@ -121,7 +121,7 @@ theorem auth.authStore.UserDelete.wp_proof
   subst Hti
   ihave #HLk' := HLk
   iunfold authBatchTxLk at HLk'
-  icases HLk' with ⟨#HLock, #HRd, -, #HDelU, -, -, -, -, #HUnlock⟩
+  icases HLk' with ⟨#HLock, #HRd, -, #HDelU, -, -, -, -, #HUnlock, -, -⟩
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]

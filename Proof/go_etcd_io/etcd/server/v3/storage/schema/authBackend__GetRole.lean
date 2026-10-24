@@ -43,6 +43,7 @@ theorem schema.authBackend.GetRole.wp_proof
   wp_apply (hRL l rt R Held) $$ [$Htxf $Hrtx $HR] as ⟨%D, %Hwf, HD, #HrdD⟩
   (try wp_auto)
   wp_apply (hG_ l rt lg name (Held D) D Hlgnn Hwf.2.1) $$ [$Htxf $Hlgf $HrdD $HD] as %u ⟨HD, Hu⟩
+  imod (schema.roleOutDX_persist _ _ _) $$ Hu with Hu
   (try wp_auto)
   wp_bind (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"RUnlock")) (Val #()))
   -- `iapply`, not `wp_apply`: a Lean spec applied at the deferred call leaves a stray goal
