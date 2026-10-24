@@ -24,15 +24,26 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **`authpb.Permission_Type_name` holds a map, read-only** (a premise: the variable's initializer,
-a map literal of the enum's three names, is untranslated, `Code/go_etcd_io/etcd/api/v3/authpb.toml`;
-`RoleGrantPermission` looks the granted type's name up for its log line). -/
+/-- **`authpb.Permission_Type_name` holds a map, read-only** (`RoleGrantPermission` looks the
+granted type's name up for its log line): `authpb`'s fact gives it (`typeNamesOk_of_init`; until the
+auth plan's S4e, 2026-10-24, a premise of the spec, the map literal untranslated). -/
 def auth.typeNamesOk : IProp GF :=
   iprop(∃ (mp : Loc) (Mn : GMap w32 GoString),
     globalAddr authpb.Permission_Type_name ↦□ mp ∗ mp ↦$□ Mn)
 
 instance auth.typeNamesOk_persistent : Persistent (auth.typeNamesOk (GF := GF)) := by
   unfold auth.typeNamesOk; infer_instance
+
+/-- `authpb`'s fact (`authpbInit`) gives `typeNamesOk`. -/
+theorem auth.typeNamesOk_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb ⊢ auth.typeNamesOk (GF := GF) := by
+  iintro #Hp
+  ihave Hi : (go_etcd_io.etcd.cache.v3.authpbInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  icases Hi with ⟨%mp, %Mn, #H1, #H2, -⟩
+  unfold auth.typeNamesOk
+  iexists mp, Mn
+  iframe #
 
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -42,7 +53,7 @@ abbrev auth.authStore.RoleGrantPermission.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (w : Option PermW),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ auth.typeNamesOk ∗
+      roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
       authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
       ⌜stepOk M hs (roleGrantPermissionR name w)⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGrantPermission")) (Val #r))

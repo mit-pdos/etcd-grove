@@ -168,7 +168,7 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString)
         (w : Option auth.PermW),
       {{ auth.roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
-          auth.typeNamesOk ∗ auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
+          auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
           ⌜auth.stepOk M hs (auth.roleGrantPermissionR name w)⌝ }}
         (App (Val #(methods ai.ty go!"RoleGrantPermission" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
@@ -424,7 +424,7 @@ theorem isAuthSteps_of_authInv
     iapply HΦ
     iframe
     iframe #
-  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, #Htn, Ho, HW, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hok⟩ HΦ
     iapply (hRoleGrantPermission st R M P f T hs Pre Q Post r name w) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -560,7 +560,7 @@ abbrev applierV3backend.RoleGrantPermission.stepSpec : Prop :=
     auth.stepOk E.authMode hs (auth.roleGrantPermissionR name w) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleGrantPermissionReqIs r name w ∗
-        auth.typeNamesOk ∗ auth.authOwn E.authMode hs ∗ W ∗
+        auth.authOwn E.authMode hs ∗ W ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleGrantPermission")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -934,7 +934,7 @@ theorem applierV3backend.RoleGrantPermission.wp_step
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.RoleGrantPermission.stepSpec (GF := GF) (hG := hG) := by
   intro E W p r log Pre Q Post info hs name w hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, #Htn, Ho, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -948,7 +948,7 @@ theorem applierV3backend.RoleGrantPermission.wp_step
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %name %w [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
-  · iframe Hr Htn; isplitr
+  · iframe Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp

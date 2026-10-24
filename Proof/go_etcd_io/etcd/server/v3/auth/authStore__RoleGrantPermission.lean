@@ -145,7 +145,10 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.RoleGrantPermission.spec (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post r name w
-  wp_start as ⟨#Hinv, #Hr, %Hnamelen, #Htn, Hown, HWR, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hok⟩
+  ihave #Htn : auth.typeNamesOk (GF := GF) $$ []
+  · iapply auth.typeNamesOk_of_init
+    iPkgInit
   icases authErrVar_of_init .permissionNotGiven $$ Hpkg with ⟨%ePNG, #HePNG⟩
   icases authErrVar_of_init .invalidAuthMgmt $$ Hpkg with ⟨%eIAM, #HeIAM⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩

@@ -18169,3 +18169,21 @@ appends the permission and sorts the permissions by key (`sort.Sort(permSlice(..
 at the apply layer: `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`,
 `UserGrantRole`, `UserRevokeRole`, `RoleAdd`, `RoleDelete`, `RoleGrantPermission`,
 `RoleRevokePermission`. Trust base unchanged.
+
+## S4e of the auth plan: `authpb`'s name map a package fact, S4d's premise gone (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4e`)
+
+**Problem.** S4d's `RoleGrantPermission` logs `authpb.Permission_Type_name[...]`, whose initializer
+(a `map[int32]string` literal) was untranslated: the spec and the apply clause took
+`auth.typeNamesOk` (the variable holds a map, read-only) as a premise.
+
+**Decision.** Translate the two name maps (`Permission_Type_name`, `Permission_Type_value`: dropped
+from `authpb.toml`'s exclusions; their `X.init` constants leave the translation and
+`opaqueInitsOk`'s list) and give `authpb` a fact, `authpbInit` (`cache/v3/Base.lean`): the name map's
+points-to, read-only, with its three entries (`0` `READ`, `1` `WRITE`, `2` `READWRITE`). The
+generated initializer proof steps the two literals (`wp_map_make1`, `wp_mapInsert`; the `SPECIAL`
+entry of `etc/gen-init.py`). `auth.typeNamesOk_of_init` derives the old premise from `authpb`'s
+`isPkgInit`, which `RoleGrantPermission`'s proof reaches from the auth package's (`iPkgInit`), so the
+spec, `apply.isAuthSteps`'s clause and `applierV3backend.RoleGrantPermission.stepSpec` drop it.
+
+**Consequences.** No axiom added or removed (the `X.init`s were translation constants under
+`opaqueInitsOk`, which stays for the descriptors); no closed theorem's statement changed.
