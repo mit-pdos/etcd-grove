@@ -64,7 +64,7 @@ instance Input.countable : Pos.Countable Input :=
 
 end enc
 
-instance KVState.inhabited : Inhabited KVState := ⟨⟨[], 0⟩⟩
+instance KVState.inhabited : Inhabited KVState := ⟨{ kvs := [], rev := 0 }⟩
 
 /-! ## Pure part -/
 

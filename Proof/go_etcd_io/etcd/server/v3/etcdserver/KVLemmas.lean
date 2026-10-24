@@ -47,12 +47,13 @@ above the consistent index. -/
 theorem kvModel_snoc_state (γk : KVNames) (L : List EntryModel) (e : EntryModel)
     (rq : apply.IRRModel) (hch : γk.ch0 = apply.alarmChain false false false)
     (h0 : γk.log0 ≠ []) (ht : e.typ = W32 0) (hd : e.data ≠ [])
-    (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index) :
+    (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
+    (hlf : reqLeaseFree rq) :
     kvStateOf (kvModel γk (L ++ [e])) = kvReqStep rq (kvStateOf (kvModel γk L)) := by
   have h1 : kvModel γk (L ++ [e]) = kvEntry γk.c0 γk.ch0 (kvModel γk L) e := by
     unfold kvModel; rw [kvRaftOf_snoc]
   rw [h1, hch, kvEntry_base γk.c0 _ e rq ht hd hdec hidx]
-  exact kvStateOf_backendLog rq _ (kvModel_ne_nil γk L h0)
+  exact kvStateOf_backendLog rq _ (kvModel_ne_nil γk L h0) hlf
 
 /-- A write-free entry keeps the model's state. -/
 theorem kvModel_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : EntryModel)
@@ -257,7 +258,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         omega
       have hst : kvStateOf (kvModel γk (L ++ [e])) = kvOpStep op σ := by
         rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
-          (by rw [hed]; exact hdec) hidxe, Hag]
+          (by rw [hed]; exact hdec) hidxe (plainCover_leaseFree rq hplain.1), Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
@@ -321,7 +322,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         omega
       have hst : kvStateOf (kvModel γk (L ++ [e])) = kvOpStep op σ := by
         rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
-          (by rw [hed]; exact hdec) hidxe, Hag]
+          (by rw [hed]; exact hdec) hidxe (plainCover_leaseFree rq hplain.1), Hag]
         unfold kvReqStep; rw [hop]
       ihave #Hw' := kvWork_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)

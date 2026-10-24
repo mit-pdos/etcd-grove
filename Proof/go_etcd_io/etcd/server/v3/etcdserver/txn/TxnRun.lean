@@ -355,6 +355,26 @@ def PathsIgnOk (s0 : List EtcdKv) : List TxnOp → Prop
 end
 
 mutual
+/-- Every put of `op`'s path names no lease or a live one of `L` (what `checkTxn` checks, unit
+T3, 2026-10-24). -/
+def PathLeaseOk (s0 : List EtcdKv) (L : List w64) : TxnOp → Prop
+  | .put _ _ l => l = W64 0 ∨ l ∈ L
+  | .putIgnVal _ (some l) => l = W64 0 ∨ l ∈ L
+  | .putIgnVal _ none => True
+  | .putKeep _ _ => True
+  | .txn cs ts es =>
+    match cs.all (cmpHolds s0) with
+    | true => PathsLeaseOk s0 L ts
+    | false => PathsLeaseOk s0 L es
+  | .get _ => True
+  | .delete _ => True
+
+def PathsLeaseOk (s0 : List EtcdKv) (L : List w64) : List TxnOp → Prop
+  | [] => True
+  | op :: ops => PathLeaseOk s0 L op ∧ PathsLeaseOk s0 L ops
+end
+
+mutual
 theorem opOk_strong (s0 : List EtcdKv) (r : w64) :
     ∀ (s : List EtcdKv) (op : TxnOp), OpOk true s0 r s op → PathIgnOk s0 op → OpOk false s0 r s op
   | s, .txn cs ts es, h, hp => by
@@ -542,6 +562,28 @@ theorem txnPlain_branch (t : TxnModel) (b : Bool) (h : txnPlain t) : opsPlain (t
   unfold TxnModel.branch; cases b
   · exact h.2
   · exact h.1
+
+mutual
+/-- A plain operation's path names no lease (unit T3). -/
+theorem pathLeaseOk_plain (s0 : List EtcdKv) (L : List w64) :
+    ∀ op : TxnOp, opPlain op → PathLeaseOk s0 L op
+  | .get _, _ => by simp [PathLeaseOk]
+  | .put _ _ _, h => by simp only [opPlain] at h; simp [PathLeaseOk, h]
+  | .putIgnVal _ _, h => by simp only [opPlain] at h; subst h; simp [PathLeaseOk]
+  | .putKeep _ _, h => by simp [opPlain] at h
+  | .delete _, _ => by simp [PathLeaseOk]
+  | .txn cs ts es, h => by
+    simp only [opPlain] at h
+    simp only [PathLeaseOk]
+    split
+    · exact pathsLeaseOk_plain s0 L ts h.1
+    · exact pathsLeaseOk_plain s0 L es h.2
+
+theorem pathsLeaseOk_plain (s0 : List EtcdKv) (L : List w64) :
+    ∀ ops : List TxnOp, opsPlain ops → PathsLeaseOk s0 L ops
+  | [], _ => by simp [PathsLeaseOk]
+  | op :: ops, h => ⟨pathLeaseOk_plain s0 L op h.1, pathsLeaseOk_plain s0 L ops h.2⟩
+end
 
 theorem pathsIgnOk_get (s0 : List EtcdKv) : ∀ (ops : List TxnOp) (i : Nat) (op : TxnOp),
     ops[i]? = some op → PathsIgnOk s0 ops → PathIgnOk s0 op

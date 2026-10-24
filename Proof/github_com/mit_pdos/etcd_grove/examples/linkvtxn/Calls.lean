@@ -163,7 +163,8 @@ theorem kvOpStep_txnOf_eq (cs : List (linkv.MCmp GoString GoString))
     kvOpStep (opIn (.txn cs t e)) σ =
       σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (linkv.txnOf cs t e)).2.1 := by
   simp only [opIn, linkv.opOf, kvOpStep]
-  rw [if_pos (by rw [linkv.txnOf_branch]; exact linkv.pathsIgnOk_tOpOf σ.kvs _)]
+  rw [if_pos ⟨by rw [linkv.txnOf_branch]; exact linkv.pathsIgnOk_tOpOf σ.kvs _,
+    by rw [linkv.txnOf_branch]; exact txn.pathsLeaseOk_plain _ _ _ (linkv.opsPlain_tOpOf _)⟩]
 
 /-- What a transaction's input decodes. -/
 theorem decIn_txn (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input)

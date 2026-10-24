@@ -96,7 +96,7 @@ theorem store.deleteOnce.wp_proof
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
   (try wp_auto)
   ihave Hau' := (k8sAusRW_kvAu1 c.ms c (delStep key validate) W Φu
-    (.txn (kubernetes.optDelTxn key s.rev true))
+    (.txn (kubernetes.optDelTxn key s.rev true)) trivial
     (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
       (kubernetes.optDelTxn key s.rev true)).1)
     (stepHand c (delStep key validate))

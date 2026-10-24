@@ -343,6 +343,15 @@ theorem txnOf_branch (cs : List (MCmp GoString GoString)) (t e : List (MOp GoStr
   unfold TxnModel.branch txnOf
   cases ok <;> rfl
 
+/-- The client's transaction operations are plain (gets at the transaction's revision, puts with
+no lease). -/
+theorem opsPlain_tOpOf : ∀ ops : List (MOp GoString GoString), txn.opsPlain (ops.map tOpOf)
+  | [] => by simp [txn.opsPlain]
+  | op :: ops => by
+    simp only [List.map_cons, txn.opsPlain]
+    refine ⟨?_, opsPlain_tOpOf ops⟩
+    cases op <;> simp [tOpOf, txn.opPlain, txn.rangeOpOf, op_simps]
+
 /-- The client's operations need no previous key-value. -/
 theorem pathsIgnOk_tOpOf (s0 : List EtcdKv) :
     ∀ ops : List (MOp GoString GoString), txn.PathsIgnOk s0 (ops.map tOpOf)
@@ -359,6 +368,10 @@ def opOf (lk le : GoString) : MIn GoString GoString → KVOp
   | .put k v => .put (putOp k v)
   | .del k => .deleteRange (delOp k)
   | .txn cs t e => .txn (txnOf cs t e)
+
+/-- A model input's operation is a key-value one (unit T3). -/
+theorem opOf_isKV (lk le : GoString) (i : MIn GoString GoString) : (opOf lk le i).isKV := by
+  cases i <;> simp [opOf, KVOp.isKV]
 
 /-- **The server's step follows the model's**: on a sorted state, the model state after
 `kvOpStep` of an operation is the model's step's (the outputs: `TxnModelKV`'s next section). -/
@@ -403,7 +416,8 @@ theorem absSt_kvOpStep (ks : List GoString) (lk le : GoString) (σ : KVState)
     obtain ⟨h1, -, h3⟩ := srvOps_tOpOf σ.kvs (σ.rev + 1) (if cs.all (MCmp.holds (absM σ.kvs)) then t else e)
       σ.kvs hs
     simp only [opOf, kvOpStep]
-    rw [if_pos (by rw [txnOf_branch]; exact pathsIgnOk_tOpOf σ.kvs _)]
+    rw [if_pos ⟨by rw [txnOf_branch]; exact pathsIgnOk_tOpOf σ.kvs _,
+      by rw [txnOf_branch]; exact txn.pathsLeaseOk_plain _ _ _ (opsPlain_tOpOf _)⟩]
     unfold txn.srvRunTxn KVState.commit absSt
     simp only [mStep]
     rw [txnOf_branch, hok]
@@ -475,6 +489,9 @@ theorem kvOpStep_sorted (op : KVOp) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvL
   cases op with
   | put o =>
     simp only [kvOpStep]
+    by_cases hl : σ.leaseMissing o.leaseID
+    · rw [if_pos hl]; exact hs
+    rw [if_neg hl]
     by_cases h : (txn.needsPrev o && (findKey o.key σ.kvs).isNone) = true
     · rw [if_pos h]; exact hs
     · rw [if_neg h]; exact hc _
@@ -482,9 +499,20 @@ theorem kvOpStep_sorted (op : KVOp) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvL
   | deleteRange o => exact hc _
   | txn t =>
     simp only [kvOpStep]
-    by_cases h : txn.PathsIgnOk σ.kvs (t.branch (txn.txnOk σ.kvs t))
+    by_cases h : txn.PathsIgnOk σ.kvs (t.branch (txn.txnOk σ.kvs t)) ∧
+        txn.PathsLeaseOk σ.kvs σ.leases.ids (t.branch (txn.txnOk σ.kvs t))
     · rw [if_pos h]; exact hc _
     · rw [if_neg h]; exact hs
+  | leaseGrant id ttl =>
+    simp only [kvOpStep]
+    split
+    · exact hs
+    · exact hs
+  | leaseRevoke id =>
+    simp only [kvOpStep]
+    split
+    · exact hc _
+    · exact hs
 
 /-- The state's keys are among `ks`. -/
 def KeysIn (ks : List GoString) (σ : KVState) : Prop := ∀ e ∈ σ.kvs, e.key ∈ ks
@@ -693,16 +721,7 @@ theorem mStep_list_out (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (l
 /-! ## The start, and the transactions' shape -/
 
 /-- **The empty state at revision `1` is the model's initial state.** -/
-theorem absSt_init : absSt ⟨[], 1⟩ = (mInit : MSt GoString GoString) := rfl
-
-/-- The client's transaction operations are plain (gets at the transaction's revision, puts with
-no lease). -/
-theorem opsPlain_tOpOf : ∀ ops : List (MOp GoString GoString), txn.opsPlain (ops.map tOpOf)
-  | [] => by simp [txn.opsPlain]
-  | op :: ops => by
-    simp only [List.map_cons, txn.opsPlain]
-    refine ⟨?_, opsPlain_tOpOf ops⟩
-    cases op <;> simp [tOpOf, txn.opPlain, txn.rangeOpOf, op_simps]
+theorem absSt_init : absSt ⟨[], 1, []⟩ = (mInit : MSt GoString GoString) := rfl
 
 /-- **The instance's transactions are plain** (`txnPlain`, the server's specs' premise). -/
 theorem txnPlain_txnOf (cs : List (MCmp GoString GoString)) (t e : List (MOp GoString GoString)) :

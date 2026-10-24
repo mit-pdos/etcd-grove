@@ -37,15 +37,15 @@ def v0 (k : GoString) : GoString := encodeWith tagV0 k go!"x"
 def seedOp (k : GoString) : KVOp := .put (linkv.putOp (mkeyL k) (v0 k))
 
 /-- A new member's start state: no key, at revision `1`. -/
-def σb : KVState := ⟨[], 1⟩
+def σb : KVState := { kvs := [], rev := 1 }
 
 /-- The seeded key-values. -/
 def kvA : EtcdKv := ⟨mkeyL go!"a", W64 2, W64 2, W64 1, v0 go!"a", W64 0⟩
 def kvB : EtcdKv := ⟨mkeyL go!"b", W64 3, W64 3, W64 1, v0 go!"b", W64 0⟩
 
 /-- After the seeds. -/
-def σs1 : KVState := ⟨[kvA], 2⟩
-def σs2 : KVState := ⟨[kvA, kvB], 3⟩
+def σs1 : KVState := { kvs := [kvA], rev := 2 }
+def σs2 : KVState := { kvs := [kvA, kvB], rev := 3 }
 
 theorem seed_step1 : kvOpStep (seedOp go!"a") σb = σs1 := by
   rfl

@@ -1,7 +1,8 @@
 # Leases in the KV model (unit T3)
 
-**Status:** planned (2026-10-24, branch `leases-t3`, worktree `/shared/etcd-grove-t3`); L0 done
-(this plan); nothing proved yet.
+**Status:** active (2026-10-24, branch `leases-t3`, worktree `/shared/etcd-grove-t3`); L0 done
+(this plan); L1 done (the model's table and steps; the server's state keeps an empty table until
+L3).
 
 The design sketch is `notes/decisions.md`, "Unit T3: leases (the plan; not implemented)". This
 file stages it against the proofs as they stand on `lean` at `f9ba6b6d6e`.
@@ -39,7 +40,17 @@ the decision's `σ.leases`), not a function of the mvcc log: `kvInv`'s ghost var
 `ErrLeaseNotFound`), else attaches; a revoke deletes every key attached to `id` at one revision
 (the lessor's sorted order) and removes `id`; a grant of an existing id is the identity
 (`ErrLeaseExists`). With `leaseID = 0` every existing step is unchanged, so the existing lemmas
-about `kvOpStep` keep their statements (the lease-free ones gain no premise). `KVState` is in 64
+about `kvOpStep` keep their statements (the lease-free ones gain no premise).
+
+*Done (2026-10-24).* `KVState.leases : LeaseTable` (default `[]`), `KVOp.leaseGrant`/`leaseRevoke`,
+`kvOpStep`'s lease checks (`KVState.leaseMissing`; a transaction's path `txn.PathsLeaseOk`, true of a
+plain path, `txn.pathsLeaseOk_plain`), `revokeChanges`. `kvStateOf` keeps an empty table, so
+`kvStateOf_backendLog` (and `kvModel_snoc_state`) take `reqLeaseFree rq` (`plainCover_leaseFree`
+gives it); L3 replaces it by the table. Three lemmas that said a step keeps the state or makes a
+revision (linkvtxn's `kvOpStep_cases`, `revOwn_step`, the k8s store's `kvNext_step` and its
+`k8sAu1_kvAu1`/`k8sAuRW_kvAu1`/`k8sAusRW_kvAu1`) are now of a key-value operation (`KVOp.isKV`):
+a grant changes the table at the same revision. No result's statement changed otherwise; trust
+base unchanged (696 axioms, 4 sorries). `KVState` is in 64
 files (353 uses), mostly through `σ.kvs`/`σ.rev`; the literal constructions (`kvStateOf`,
 `KVState.commit`, the countable instance) change. Fingerprint check: no closed theorem's text
 changes but through `KVState`'s definition.
@@ -47,7 +58,13 @@ changes but through `KVState`'s definition.
 **L2. `lessor.Revoke`.** Its spec and proof: the lessor's invariant records the store's range
 deleter (set by `SetRangeDeleter`), `Revoke` deletes the lease's item set through it in one
 transaction, then the lease bucket's entry (`schema.MustUnsafeDeleteLease`: the bucket right
-`RW`). The lessor's item set stays `{k | σ.kvs[k].lease = id}` by `Attach`/`Detach` (already in
+`RW`). The range deleter: mvcc sets it twice (`NewStore`: the store's `Write`;
+`newWatchableStore`: the watchable store's, so revocations notify watchers), so the lessor's lock
+records the current `rd` against a ghost record whose other half travels with the store's
+construction (`NewStore` → `newWatchableStore` → the server's apply thread, in `AEnv`), with the
+deleter's spec over the store's writer (`rd()` a `TxnDelete` whose `DeleteRange`/`End` are the
+KV writer's delete and commit, the watchable store's notifying). The record is created with the
+lessor, so `NewLessor`'s axiom changes statement (its count does not). The lessor's item set stays `{k | σ.kvs[k].lease = id}` by `Attach`/`Detach` (already in
 `Attach`'s and `Detach`'s specs). `isApplyLessor`'s `Revoke` clause stops being `⌜False⌝` and is
 derived in `isApplyLessor_of_lessorInv`.
 
@@ -81,7 +98,7 @@ client asks for if the clients' model has no spontaneous revocations; see Q1).
 
 ## Open questions
 
-- **Q1. Expiry in scope?** (a) In scope (L5): spontaneous revocations in the model; every client
+- **Q1. Expiry in scope?** Decided (the user, 2026-10-24): (b) first, (a) last, as recommended. (a) In scope (L5): spontaneous revocations in the model; every client
   result over a lease-admitting server allows them; `revokeExpiredLeases` translated and proved.
   (b) Out of scope for now: the lease-admitting workload keeps a premise that no lease expires
   (`lessorOk`'s `⌜W.noGrant⌝` replaced by a premise of the lease-enabled instance, recorded as a

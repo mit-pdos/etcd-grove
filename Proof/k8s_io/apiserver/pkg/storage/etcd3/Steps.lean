@@ -142,7 +142,7 @@ theorem del_cases (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ)
       kvOpStep (linkv.opOf [] [] (delTxn pk r true)) σ = σ := by
     intro h1
     have hrev := congrArg linkv.MSt.rev (habs.trans h1)
-    rcases linkvtxn.kvOpStep_cases (linkv.opOf [] [] (delTxn pk r true)) σ with h | h
+    rcases linkvtxn.kvOpStep_cases (linkv.opOf [] [] (delTxn pk r true)) σ (linkv.opOf_isKV _ _ _) with h | h
     · exact h
     · simp only [linkv.absSt] at hrev
       omega
@@ -306,7 +306,7 @@ theorem put_cases (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ)
       kvOpStep (linkv.opOf [] [] (putTxn pk v r true)) σ = σ := by
     intro h1
     have hrev := congrArg linkv.MSt.rev (habs.trans h1)
-    rcases linkvtxn.kvOpStep_cases (linkv.opOf [] [] (putTxn pk v r true)) σ with h | h
+    rcases linkvtxn.kvOpStep_cases (linkv.opOf [] [] (putTxn pk v r true)) σ (linkv.opOf_isKV _ _ _) with h | h
     · exact h
     · simp only [linkv.absSt] at hrev
       omega

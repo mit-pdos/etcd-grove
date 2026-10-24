@@ -79,12 +79,35 @@ def plainCover (rq : apply.IRRModel) : Prop :=
       apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
   | _ => False
 
+/-- **A request names no lease** (unit T3, 2026-10-24; until L3 of `notes/leases-plan.md` the
+server's model tracks no lease table): a put with no lease, a plain transaction. -/
+def reqLeaseFree (rq : apply.IRRModel) : Prop :=
+  match apply.dispatchKind rq with
+  | .put => ∀ op, rq.put = some op → op.leaseID = W64 0
+  | .txn => ∀ t, rq.txn = some t → txn.txnPlain t
+  | _ => True
+
+theorem plainCover_leaseFree (rq : apply.IRRModel) (h : plainCover rq) : reqLeaseFree rq := by
+  unfold plainCover at h
+  unfold reqLeaseFree
+  split <;> simp_all
+
 /-- **A KV operation** as the server applies it. -/
 inductive KVOp where
   | put (o : OpFull)
   | range (o : OpFull)
   | deleteRange (o : OpFull)
   | txn (t : TxnModel)
+  /-- (unit T3, 2026-10-24) `LeaseGrant(id, ttl)`, its id fixed before the proposal -/
+  | leaseGrant (id ttl : w64)
+  /-- (unit T3) `LeaseRevoke(id)` -/
+  | leaseRevoke (id : w64)
+
+/-- **A key-value operation** (unit T3): not a lease's grant or revocation. -/
+def KVOp.isKV : KVOp → Prop
+  | .leaseGrant _ _ => False
+  | .leaseRevoke _ => False
+  | _ => True
 
 /-- **The KV operation of a request**, by `dispatch`'s kind. -/
 def reqKVOp (rq : apply.IRRModel) : Option KVOp :=
@@ -479,20 +502,44 @@ revision. A log's state is `kvStateOf`; an operation's effect on it is `kvOpStep
 identity, a rejected request's too), a function of the state, which the backend's log follows
 (`kvStateOf_backendLog`). -/
 
+/-- **The lessor's table** (unit T3, 2026-10-24): every live lease's id and granted TTL, in
+grant order. Not a function of the mvcc log: a grant makes no revision. -/
+abbrev LeaseTable := List (w64 × w64)
+
+/-- The live leases' ids. -/
+def LeaseTable.ids (ls : LeaseTable) : List w64 := ls.map Prod.fst
+
 /-- **The store at its latest revision**: the key-values (sorted by key) and the current
-revision. -/
+revision; (unit T3) the lessor's table. -/
 structure KVState where
   kvs : List EtcdKv
   rev : Nat
+  leases : LeaseTable := []
 
 /-- **The state of a log**: after every revision, at its last revision (`log.length - 1`: a read
-at `log` answers it). -/
-def kvStateOf (l : mvcc.Log) : KVState := ⟨mvcc.stateAfter l, l.length - 1⟩
+at `log` answers it); no lease (unit T3: the server's tracks its table beside, from L3 of
+`notes/leases-plan.md`). -/
+def kvStateOf (l : mvcc.Log) : KVState := { kvs := mvcc.stateAfter l, rev := l.length - 1 }
 
 /-- A write's commit of the changes `cs` at the next revision (none if it changed nothing:
-`mvcc.commitLog`'s). -/
+`mvcc.commitLog`'s); the lease table unchanged. -/
 def KVState.commit (σ : KVState) (cs : List mvcc.Change) : KVState :=
-  if cs = [] then σ else ⟨mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs, σ.rev + 1⟩
+  if cs = [] then σ
+  else { σ with kvs := mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs, rev := σ.rev + 1 }
+
+/-- A put's lease is set and not live (unit T3: `ErrLeaseNotFound`, the request rejected). -/
+def KVState.leaseMissing (σ : KVState) (l : w64) : Prop := l ≠ W64 0 ∧ l ∉ σ.leases.ids
+
+instance (σ : KVState) (l : w64) : Decidable (σ.leaseMissing l) := by
+  unfold KVState.leaseMissing; infer_instance
+
+theorem KVState.leaseMissing_zero (σ : KVState) : ¬ σ.leaseMissing (W64 0) := by
+  simp [KVState.leaseMissing]
+
+/-- **A revocation's deletions** (unit T3): every key attached to `id`, in key order (the
+lessor's `Revoke` sorts its item set; the state is sorted by key). -/
+def revokeChanges (s : List EtcdKv) (id : w64) : List mvcc.Change :=
+  (s.filter (fun v => v.lease = id)).map fun v => .del v.key
 
 open Classical in
 /-- **The operation's effect on the state**: a put not finding the previous key-value its
@@ -502,13 +549,21 @@ key-value it needs changes nothing (`checkTxn`'s error), else commits the server
 (`srvRunTxn`, nested branches by their verdicts at the state). -/
 def kvOpStep : KVOp → KVState → KVState
   | .put o, σ =>
-    if txn.needsPrev o && (mvcc.findKey o.key σ.kvs).isNone then σ
+    if σ.leaseMissing o.leaseID then σ
+    else if txn.needsPrev o && (mvcc.findKey o.key σ.kvs).isNone then σ
     else σ.commit [txn.putChangeOf o (mvcc.findKey o.key σ.kvs)]
   | .range _, σ => σ
   | .deleteRange o, σ => σ.commit (txn.delChanges σ.kvs o)
   | .txn t, σ =>
-    if txn.PathsIgnOk σ.kvs (t.branch (txn.txnOk σ.kvs t)) then
+    if txn.PathsIgnOk σ.kvs (t.branch (txn.txnOk σ.kvs t)) ∧
+        txn.PathsLeaseOk σ.kvs σ.leases.ids (t.branch (txn.txnOk σ.kvs t)) then
       σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1
+    else σ
+  | .leaseGrant id ttl, σ =>
+    if id ∈ σ.leases.ids then σ else { σ with leases := σ.leases ++ [(id, ttl)] }
+  | .leaseRevoke id, σ =>
+    if id ∈ σ.leases.ids then
+      { σ.commit (revokeChanges σ.kvs id) with leases := σ.leases.filter (fun p => p.1 ≠ id) }
     else σ
 
 /-- **A request's effect on the state**: its operation's, or none. -/
@@ -524,14 +579,16 @@ theorem kvStateOf_commitLog (l : mvcc.Log) (cs : List mvcc.Change) (hl : l ≠ [
   split
   · rfl
   · simp only [List.length_append, List.length_singleton, KVState.mk.injEq]
-    refine ⟨?_, by omega⟩
+    refine ⟨?_, by omega, trivial⟩
     rw [mvcc.stateAfter_append]
     congr 2
     omega
 
 /-- **The backend's log follows the state**: the state after a request's backend log is the
-request's step on the state before (a log with a revision: the server's always has two). -/
-theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []) :
+request's step on the state before (a log with a revision: the server's always has two); (unit
+T3) a request naming no lease, the state's table empty. -/
+theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ [])
+    (hlf : reqLeaseFree rq) :
     kvStateOf (backendLog rq l) = kvReqStep rq (kvStateOf l) := by
   have hpos := List.length_pos_iff.2 hl
   have hrev : (kvStateOf l).rev + 1 = l.length := by unfold kvStateOf; simp only; omega
@@ -543,7 +600,8 @@ theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []
     cases hp : rq.put with
     | none => rfl
     | some op =>
-      simp only [Option.map_some, kvOpStep]
+      have hz : op.leaseID = W64 0 := by unfold reqLeaseFree at hlf; rw [hk] at hlf; exact hlf op hp
+      simp only [Option.map_some, kvOpStep, hz, KVState.leaseMissing_zero, ite_false]
       rw [hs]
       split
       · rfl
@@ -569,11 +627,14 @@ theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []
     cases hp : rq.txn with
     | none => rfl
     | some t =>
+      have hpl : txn.txnPlain t := by unfold reqLeaseFree at hlf; rw [hk] at hlf; exact hlf t hp
+      have hlo := txn.pathsLeaseOk_plain (mvcc.stateAfter l) (kvStateOf l).leases.ids _
+        (txn.txnPlain_branch t (txn.txnOk (mvcc.stateAfter l) t) hpl)
       simp only [Option.map_some, kvOpStep]
       rw [hs, hrev]
-      split
-      · rw [kvStateOf_commitLog _ _ hl]
-      · rfl
+      by_cases hi : txn.PathsIgnOk (mvcc.stateAfter l) (t.branch (txn.txnOk (mvcc.stateAfter l) t))
+      · rw [if_pos hi, if_pos ⟨hi, hlo⟩, kvStateOf_commitLog _ _ hl]
+      · rw [if_neg hi, if_neg (fun h => hi h.1)]
   all_goals rfl
 
 end EtcdGrove

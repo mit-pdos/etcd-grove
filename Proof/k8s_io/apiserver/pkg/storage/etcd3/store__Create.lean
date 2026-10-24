@@ -173,7 +173,7 @@ theorem store.Create.wp_proof
           unfold kvOpAu1
           isplitr
           · ipureintro; exact Hwl x (List.mem_of_getElem? hx) _
-          iapply (k8sAu1_kvAu1 x.γr.kv c _ _ Ψ (stepOk_create c _ v o hpfx hdv)) $$ HAU
+          iapply (k8sAu1_kvAu1 x.γr.kv c _ _ Ψ (stepOk_create c _ v o hpfx hdv) trivial) $$ HAU
       ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
       rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
         (m := go!"OptimisticPut")]
