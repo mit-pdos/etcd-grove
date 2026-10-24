@@ -105,33 +105,8 @@ theorem rangeLimit_nonpos (l : w64) (h : sint.Z l ≤ 0) :
     sint.Z (if 0 < sint.Z l ∧ sint.Z l < 2 ^ 63 - 1 then l + W64 1 else l) ≤ 0 := by
   rw [if_neg (by omega)]; exact h
 
-theorem wire_not_cutEarly (o : OpFull) (hx : o.getExact) : ¬ txn.cutEarly (rangeWireOf o) := by
-  rintro ⟨he, hlim⟩
-  rw [(wire_sort o hx).1] at he
-  have hc := hx.2.1
-  cases hs : o.base.sortSet
-  · simp [OpFull.effSortOrder, hs] at he
-  obtain ⟨eo, et⟩ := wire_sort_fields o hx hs
-  have el := (wire_fields o).2.2.2.1
-  have key : sint.Z (if txn.isDefaultOrd (rangeWireOf o).sortTarget (rangeWireOf o).sortOrder = false ∨
-      txn.hasRevFilters (rangeWireOf o) = true then W64 0 else (rangeWireOf o).base.limit) ≤ 0 := by
-    rw [eo, et, el]
-    unfold OpFull.effSortOrder at he
-    simp only [hs, Bool.true_eq_false, ↓reduceIte] at he
-    unfold txn.isDefaultOrd
-    by_cases a : o.sortOrder = W64 0 <;> by_cases b : o.sortTarget = W64 0
-    · simp [a, b] at he
-    · have hl : ¬ 0 < sint.Z o.base.limit := fun h => hc ⟨hs, b, a, h⟩
-      split
-      · simp
-      · omega
-    · by_cases c : o.sortOrder = W64 1
-      · simp [a, b, c] at he
-      · rw [if_pos (Or.inl (by simp; exact ⟨a, fun _ => c⟩))]; simp
-    · rw [if_pos (Or.inl (by simp; exact ⟨a, fun h => absurd h b⟩))]; simp
-  have := rangeLimit_nonpos _ key
-  unfold txn.rangeLimitOf at hlim
-  exact absurd hlim (by simp only [] at this ⊢; omega)
+theorem wire_not_cutEarly (o : OpFull) (_hx : o.getExact) : ¬ txn.cutEarly (rangeWireOf o) :=
+  txn.not_cutEarly (rangeWireOf o)
 
 theorem wire_fastKeysOnly (o : OpFull) (hx : o.getExact) : txn.fastKeysOnly (rangeWireOf o) = false := by
   simp [txn.fastKeysOnly, (wire_fields o).2.2.2.2.2.1, hx.1]

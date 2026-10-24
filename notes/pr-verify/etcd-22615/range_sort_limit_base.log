@@ -1,0 +1,52 @@
+=== RUN   TestRangeSortLimit
+    logger.go:146: 2026-10-24T00:23:47.026-0400	INFO	bbolt	Opening db file (/tmp/TestRangeSortLimit1794121538/001/etcd_backend_test2006039304/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2a2641482038, NoStatistics: false}
+    logger.go:146: 2026-10-24T00:23:47.026-0400	INFO	bbolt	Opening bbolt db (/tmp/TestRangeSortLimit1794121538/001/etcd_backend_test2006039304/database) successfully
+    logger.go:146: 2026-10-24T00:23:47.026-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T00:23:47.026-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T00:23:47.026-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T00:23:47.026-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T00:23:47.026-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-24T00:23:47.026-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-24T00:23:47.026-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-24T00:23:47.026-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-24T00:23:47.027-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T00:23:47.027-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-24T00:23:47.027-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T00:23:47.027-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T00:23:47.027-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T00:23:47.027-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T00:23:47.032-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-24T00:23:47.035-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-24T00:23:47.035-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-24T00:23:47.037-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x03_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-24T00:23:47.038-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x03_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-24T00:23:47.038-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x04_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-24T00:23:47.038-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x04_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+=== RUN   TestRangeSortLimit/limit_1
+    range_sort_limit_test.go:39: 
+        	Error Trace:	/root/etcd-pr/etcd-22615/server/etcdserver/txn/range_sort_limit_test.go:39
+        	Error:      	Not equal: 
+        	            	expected: []string{"c"}
+        	            	actual  : []string{"b"}
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1,3 +1,3 @@
+        	            	 ([]string) (len=1) {
+        	            	- (string) (len=1) "c"
+        	            	+ (string) (len=1) "b"
+        	            	 }
+        	Test:       	TestRangeSortLimit/limit_1
+=== RUN   TestRangeSortLimit/limit_2
+=== RUN   TestRangeSortLimit/limit_3
+=== NAME  TestRangeSortLimit
+    logger.go:146: 2026-10-24T00:23:47.038-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-24T00:23:47.038-0400	DEBUG	bbolt	Committing transaction 3 successfully
+--- FAIL: TestRangeSortLimit (0.02s)
+    --- FAIL: TestRangeSortLimit/limit_1 (0.00s)
+    --- PASS: TestRangeSortLimit/limit_2 (0.00s)
+    --- PASS: TestRangeSortLimit/limit_3 (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/txn	0.048s
+FAIL

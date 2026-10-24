@@ -79,8 +79,8 @@ theorem v3rpc.checkRangeStreamRequest.wp_proof
     subst Hee
     wp_auto
     wp_apply (hDef target order)
-    have hord : (o.sortOrder = W64 0 ∨ (o.sortTarget = W64 0 ∧ o.sortOrder = W64 1)) ↔
-        (order = W32 0 ∨ (target = W32 0 ∧ order = W32 1)) := by
+    have hord : (o.sortTarget = W64 0 ∧ (o.sortOrder = W64 0 ∨ o.sortOrder = W64 1)) ↔
+        (target = W32 0 ∧ (order = W32 0 ∨ order = W32 1)) := by
       subst Hop
       simp only [txn.rangeOpOf]
       rw [v3rpc.w64_of_w32_eq order 0 (by decide) (by decide), v3rpc.w64_of_w32_eq target 0 (by decide) (by decide),
@@ -96,7 +96,7 @@ theorem v3rpc.checkRangeStreamRequest.wp_proof
       constructor
       · intro h; exact absurd h He2
       · intro h; exact absurd (hord.1 h.1) (by simpa using Hif)
-    have hdef : order = W32 0 ∨ (target = W32 0 ∧ order = W32 1) := by simpa using Hif
+    have hdef : target = W32 0 ∧ (order = W32 0 ∨ order = W32 1) := by simpa using Hif
     wp_apply (hRev r o) $$ [$Hr]
     cases hrf : txn.hasRevFilters o
     rotate_left

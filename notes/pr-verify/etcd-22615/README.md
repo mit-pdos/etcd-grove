@@ -1,0 +1,14 @@
+# etcd-io/etcd#22615: tests and logs
+
+The verification report is `notes/pr-verify/etcd-22615.md`. Revisions:
+- PR head: `017cb18c344bcaf006518682362a479a81185699` (`etcd-io/etcd` `pull/22615/head`)
+- Upstream base: `22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4`
+- Goose fork branch: `pr-etcd-22615-goose-lean` (`3502de21b9751cd60bc916260ffbe397ce92481e`, onto pinned `goose-lean` `bc9c3868ced67e518fb2fecba44ce0fa70b7303b`)
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `range_sort_limit_test.go` | `TestRangeSortLimit` (from PR #22615): `txn.Range` with `SortTarget: CREATE`, `SortOrder: NONE`, and `Limit: 1, 2, 3` over keys `"c"`, `"b"`, `"a"` created in that order. On base, `limit_1` fails (`expected ["c"], actual ["b"]` because `rangeLimit` reads `limit + 1 = 2` keys `"a", "b"` in key order before sorting); on the PR head / fork branch, all subtests pass. | PR head / fork branch, base | `cp range_sort_limit_test.go <etcd>/server/etcdserver/txn/ && cd <etcd>/server && GOTOOLCHAIN=go1.27.1 go test -v -count=1 -run '^TestRangeSortLimit$' ./etcdserver/txn/` |
+| `range_sort_limit_head.log`, `range_sort_limit_base.log` | Output of `TestRangeSortLimit` on the fork branch (`pr-etcd-22615-goose-lean`) and on the base (`bc9c3868c`). | Fork branch, base | as above |
+| `rangestream_sort_none_test.go` | `TestCheckRangeStreamRequestSortNone`: `v3rpc.checkRangeStreamRequest` with `SortOrder: NONE` and non-key `SortTarget` (`VERSION`, `CREATE`, `MOD`, `VALUE`). On base, `checkRangeStreamRequest` returns `nil` (allowing `RangeStream` to stream keys unsorted in key order, `issues/etcd-rangestream-sort-none.md`); with PR #22615's change to `txn.IsDefaultOrdering`, `checkRangeStreamRequest` rejects non-key `SortTarget` + `SortOrder: NONE` with `codes.Unimplemented`. | Fork branch, base | `cp rangestream_sort_none_test.go <etcd>/server/etcdserver/api/v3rpc/ && cd <etcd>/server && GOTOOLCHAIN=go1.27.1 go test -v -count=1 -run '^TestCheckRangeStreamRequestSortNone$' ./etcdserver/api/v3rpc/` |
+| `rangestream_sort_none_head.log`, `rangestream_sort_none_base.log` | Output of `TestCheckRangeStreamRequestSortNone` on the fork branch and on the base. | Fork branch, base | as above |
+| `v3_grpc_sort_head.log` | Output of `TestV3RangeRequest/sort` (`tests/integration/v3_grpc_test.go`) on the fork branch: fails at `v3_grpc_test.go:1566` (`rangeStream` at `v3_grpc_test.go:1609`, `rpc error: code = Unimplemented desc = RangeStream does not support custom sort orders`) because `TestV3RangeRequest/sort` runs every sort test case through both `Range` and `RangeStream`, including `reqs[5]` (`{SortOrder: NONE, SortTarget: CREATE}`, lines 1457–1462) with `streamUnsupported[5]: false` (line 1476: `// Only ASCEND+KEY (index 0) and SortOrder_NONE (index 5) are supported by RangeStream`). | Fork branch / PR head | `cd <etcd>/tests && GOTOOLCHAIN=go1.27.1 go test -v -count=1 -run '^TestV3RangeRequest/sort$' ./integration/` |

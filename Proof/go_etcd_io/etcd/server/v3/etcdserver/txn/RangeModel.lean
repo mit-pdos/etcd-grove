@@ -52,9 +52,9 @@ open mvcc
 
 /-! ## The request's options -/
 
-/-- `IsDefaultOrdering(target, order)`: no order, or ascending by key (mvcc's own order). -/
+/-- `IsDefaultOrdering(target, order)`: by key, no order or ascending (mvcc's own order). -/
 def isDefaultOrd (target order : w64) : Bool :=
-  decide (order = W64 0 ∨ (target = W64 0 ∧ order = W64 1))
+  decide (target = W64 0 ∧ (order = W64 0 ∨ order = W64 1))
 
 /-- A protobuf enumeration value (`int32`) as the request's `OpFull` holds it (sign-extended):
 equal to a small constant iff the `int32` is. -/
@@ -74,7 +74,7 @@ theorem sext32_eq (x : w32) (c : Int) (hc0 : -2 ^ 31 ≤ c) (hc1 : c < 2 ^ 31) :
 
 theorem isDefaultOrd_sext (target order : w32) :
     isDefaultOrd (W64 (sint.Z target)) (W64 (sint.Z order)) =
-      decide (order = W32 0 ∨ (target = W32 0 ∧ order = W32 1)) := by
+      decide (target = W32 0 ∧ (order = W32 0 ∨ order = W32 1)) := by
   unfold isDefaultOrd
   simp only [sext32_eq order 0 (by omega) (by omega), sext32_eq target 0 (by omega) (by omega),
     sext32_eq order 1 (by omega) (by omega)]
@@ -589,6 +589,17 @@ theorem rangeLimitOf_pos (o : OpFull) (h : 0 < sint.Z (rangeLimitOf o)) :
       simp only [hl, ↓reduceIte]
       refine ⟨?_, ?_⟩ <;> (first | trivial | rfl | word)
 
+/-- With `IsDefaultOrdering` requiring `target = KEY` (`etcd-io/etcd#22615`), `cutEarly` is
+impossible: whenever `rangeLimitOf o > 0`, `isDefaultOrd` holds so `o.sortTarget = W64 0` and
+`o.sortOrder = W64 0 ∨ o.sortOrder = W64 1`, hence `o.effSortOrder = W64 0`. -/
+theorem not_cutEarly (o : OpFull) : ¬ cutEarly o := by
+  rintro ⟨hsort, hL⟩
+  obtain ⟨hdef, -⟩ := rangeLimitOf_pos o hL
+  unfold isDefaultOrd at hdef
+  simp only [decide_eq_true_eq] at hdef
+  rcases hdef with ⟨ht, ho | ho⟩ <;>
+    cases hs : o.base.sortSet <;> simp [OpFull.effSortOrder, hs, ht, ho] at hsort
+
 theorem srvTrunc_map (o : OpFull) (f : EtcdKv → EtcdKv) (L : List EtcdKv) :
     srvTrunc o (L.map f) = (srvTrunc o L).map f := by
   unfold srvTrunc srvMore
@@ -618,11 +629,11 @@ theorem respKv_map_kvRead (o : OpFull) (L : List EtcdKv) :
   simp [clientResp, respKv_kvRead]
 
 /-- **The server's range is the client's** (`rangeKvsOk` of `rangeSel`), up to the lease of a
-fast keys-only read (`leaseZ`), unless the sort is cut early (`cutEarly`); and `More` is the
-client's (`getRespMore`'s) below the largest limit. -/
+fast keys-only read (`leaseZ`); and `More` is the client's (`getRespMore`'s) below the largest
+limit (`not_cutEarly` discharges `¬ cutEarly o`). -/
 theorem srvRangeOk_rangeKvsOk (o : OpFull) (s : List EtcdKv) (kvs : List EtcdKv) (more : Bool)
-    (hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
-    (h : srvRangeOk o s kvs more) (hcut : ¬ cutEarly o) :
+    (_hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
+    (h : srvRangeOk o s kvs more) (hcut : ¬ cutEarly o := not_cutEarly o) :
     ∃ kvs', rangeKvsOk o (rangeSel s o) kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o)) ∧
       (o.base.countOnly = false → sint.Z o.base.limit < 2 ^ 63 - 1 →
         more = decide (0 < sint.Z o.base.limit ∧
@@ -697,16 +708,8 @@ theorem srvRangeOk_rangeKvsOk (o : OpFull) (s : List EtcdKv) (kvs : List EtcdKv)
       have heff : o.effSortOrder = W64 0 := by
         unfold isDefaultOrd at hdef
         simp only [decide_eq_true_eq] at hdef
-        unfold OpFull.effSortOrder at hsort ⊢
-        rw [hset] at hsort ⊢
-        rcases hdef with ho | ⟨ht, ho⟩
-        · by_cases ht : o.sortTarget = W64 0
-          · simp [ho, ht]
-          · exfalso; apply hsort; left
-            simp only [ho, ht, ne_eq, not_false_eq_true, not_true_eq_false,
-              or_true, decide_true, Bool.true_eq_false, ↓reduceIte,
-              and_self]
-        · simp [ho, ht]
+        rcases hdef with ⟨ht, ho | ho⟩ <;>
+          cases hs : o.base.sortSet <;> simp [OpFull.effSortOrder, hs, ht, ho]
       rw [hl, hpre] at hkvs hmore
       have hLn : (sint.Z o.base.limit).toNat ≤ (sint.Z (rangeLimitOf o)).toNat := by omega
       refine ⟨_, ⟨rangeSel s o, List.Perm.refl _, (fun _ => rfl), (fun h => by rw [heff] at h; cases h),

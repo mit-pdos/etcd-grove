@@ -1,0 +1,369 @@
+=== RUN   TestV3RangeRequest
+=== RUN   TestV3RangeRequest/sort
+    cluster.go:540: Creating listener with addr: 127.0.0.1:210022954366
+    cluster.go:540: Creating listener with addr: 127.0.0.1:210032954366
+    logger.go:146: 2026-10-24T00:21:43.331-0400	INFO	m0	feature gates: {map[LeaseCheckpoint:false LeaseCheckpointPersist:false]}	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.331-0400	INFO	m0	LISTEN GRPC	{"member": "m0", "grpcAddr": "localhost:m0", "m.Name": "m0", "workdir": "/tmp/TestV3RangeRequest2838465550/001"}
+    logger.go:146: 2026-10-24T00:21:43.331-0400	INFO	m0	LISTEN GRPC SUCCESS	{"member": "m0", "grpcAddr": "unix://localhost:m0", "m.Name": "m0", "workdir": "/tmp/TestV3RangeRequest2838465550/001", "port": "m0"}
+    cluster.go:540: Creating listener with addr: 127.0.0.1:210052954366
+    cluster.go:540: Creating listener with addr: 127.0.0.1:210062954366
+    logger.go:146: 2026-10-24T00:21:43.331-0400	INFO	m1	feature gates: {map[LeaseCheckpoint:false LeaseCheckpointPersist:false]}	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.331-0400	INFO	m1	LISTEN GRPC	{"member": "m1", "grpcAddr": "localhost:m1", "m.Name": "m1", "workdir": "/tmp/TestV3RangeRequest2838465550/001"}
+    logger.go:146: 2026-10-24T00:21:43.331-0400	INFO	m1	LISTEN GRPC SUCCESS	{"member": "m1", "grpcAddr": "unix://localhost:m1", "m.Name": "m1", "workdir": "/tmp/TestV3RangeRequest2838465550/001", "port": "m1"}
+    cluster.go:540: Creating listener with addr: 127.0.0.1:210082954366
+    cluster.go:540: Creating listener with addr: 127.0.0.1:210092954366
+    logger.go:146: 2026-10-24T00:21:43.331-0400	INFO	m2	feature gates: {map[LeaseCheckpoint:false LeaseCheckpointPersist:false]}	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.331-0400	INFO	m2	LISTEN GRPC	{"member": "m2", "grpcAddr": "localhost:m2", "m.Name": "m2", "workdir": "/tmp/TestV3RangeRequest2838465550/001"}
+    logger.go:146: 2026-10-24T00:21:43.331-0400	INFO	m2	LISTEN GRPC SUCCESS	{"member": "m2", "grpcAddr": "unix://localhost:m2", "m.Name": "m2", "workdir": "/tmp/TestV3RangeRequest2838465550/001", "port": "m2"}
+    cluster.go:215: Launching new cluster...
+    logger.go:146: 2026-10-24T00:21:43.332-0400	INFO	m2	launching a member	{"member": "m2", "name": "m2", "advertise-peer-urls": ["unix://127.0.0.1:210082954366"], "listen-client-urls": ["unix://127.0.0.1:210092954366"], "grpc-url": "unix://localhost:m2"}
+    logger.go:146: 2026-10-24T00:21:43.332-0400	INFO	m2	cleaned up all legacy v2 snapshot files	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.332-0400	INFO	m0	launching a member	{"member": "m0", "name": "m0", "advertise-peer-urls": ["unix://127.0.0.1:210022954366"], "listen-client-urls": ["unix://127.0.0.1:210032954366"], "grpc-url": "unix://localhost:m0"}
+    logger.go:146: 2026-10-24T00:21:43.333-0400	INFO	m0	cleaned up all legacy v2 snapshot files	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.333-0400	INFO	m0.bbolt	Opening db file (/tmp/TestV3RangeRequestsort4114875715/001/etcd775441214/member/snap/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x65ca27020f0, NoStatistics: false}	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.333-0400	INFO	m0.bbolt	Opening bbolt db (/tmp/TestV3RangeRequestsort4114875715/001/etcd775441214/member/snap/db) successfully	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.333-0400	INFO	m0	opened backend db	{"member": "m0", "path": "/tmp/TestV3RangeRequestsort4114875715/001/etcd775441214/member/snap/db", "took": "227.26µs"}
+    logger.go:146: 2026-10-24T00:21:43.333-0400	INFO	m0	restore consistentIndex	{"member": "m0", "index": 0}
+    logger.go:146: 2026-10-24T00:21:43.333-0400	INFO	m0	bootstrapping cluster	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.333-0400	INFO	m1	launching a member	{"member": "m1", "name": "m1", "advertise-peer-urls": ["unix://127.0.0.1:210052954366"], "listen-client-urls": ["unix://127.0.0.1:210062954366"], "grpc-url": "unix://localhost:m1"}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m1	cleaned up all legacy v2 snapshot files	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m1.bbolt	Opening db file (/tmp/TestV3RangeRequestsort4114875715/002/etcd1176536354/member/snap/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x65ca2702178, NoStatistics: false}	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m1.bbolt	Opening bbolt db (/tmp/TestV3RangeRequestsort4114875715/002/etcd1176536354/member/snap/db) successfully	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m1	opened backend db	{"member": "m1", "path": "/tmp/TestV3RangeRequestsort4114875715/002/etcd1176536354/member/snap/db", "took": "133.425µs"}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m1	restore consistentIndex	{"member": "m1", "index": 0}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m1	bootstrapping cluster	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m2.bbolt	Opening db file (/tmp/TestV3RangeRequestsort4114875715/003/etcd814681110/member/snap/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x65ca25960d0, NoStatistics: false}	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m2.bbolt	Opening bbolt db (/tmp/TestV3RangeRequestsort4114875715/003/etcd814681110/member/snap/db) successfully	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m2	opened backend db	{"member": "m2", "path": "/tmp/TestV3RangeRequestsort4114875715/003/etcd814681110/member/snap/db", "took": "1.742359ms"}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m2	restore consistentIndex	{"member": "m2", "index": 0}
+    logger.go:146: 2026-10-24T00:21:43.334-0400	INFO	m2	bootstrapping cluster	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.354-0400	INFO	m0	bootstrapping storage	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.360-0400	INFO	m1	bootstrapping storage	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.363-0400	INFO	m2	bootstrapping storage	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.452-0400	INFO	m0	bootstrapping raft	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.452-0400	INFO	m0	starting local member	{"member": "m0", "local-member-id": "1d860512e2f918ec", "cluster-id": "1c235015aebdc26f"}
+    logger.go:146: 2026-10-24T00:21:43.453-0400	INFO	m0	bootstrap successfully	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.453-0400	INFO	m0.raft	1d860512e2f918ec switched to configuration voters=()	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.453-0400	INFO	m0.raft	1d860512e2f918ec became follower at term 0	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.453-0400	INFO	m0.raft	newRaft 1d860512e2f918ec [peers: [], term: 0, commit: 0, applied: 0, lastindex: 0, lastterm: 0]	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.453-0400	INFO	m0.raft	1d860512e2f918ec became follower at term 1	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.453-0400	INFO	m0.raft	1d860512e2f918ec switched to configuration voters=(1d860512e2f918ec)	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.453-0400	INFO	m0.raft	1d860512e2f918ec switched to configuration voters=(1d860512e2f918ec 79370e790bac859f)	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.453-0400	INFO	m0.raft	1d860512e2f918ec switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.453-0400	WARN	m0	simple token is not cryptographically signed	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	kvstore restored	{"member": "m0", "current-rev": 1}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	enabled backend quota with default value	{"member": "m0", "quota-name": "v3-applier", "quota-size-bytes": 2147483648, "quota-size": "2.1 GB"}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	starting remote peer	{"member": "m0", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	started HTTP pipelining with remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	started remote peer	{"member": "m0", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f", "remote-peer-urls": ["unix://127.0.0.1:210052954366"]}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	starting remote peer	{"member": "m0", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	started HTTP pipelining with remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	started remote peer	{"member": "m0", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d", "remote-peer-urls": ["unix://127.0.0.1:210082954366"]}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	starting etcd server	{"member": "m0", "local-member-id": "1d860512e2f918ec", "local-server-version": "3.8.0-alpha.0", "cluster-version": "to_be_decided"}
+    logger.go:146: 2026-10-24T00:21:43.454-0400	INFO	m0	grpc service status changed	{"member": "m0", "service": "", "status": "SERVING"}
+    logger.go:146: 2026-10-24T00:21:43.455-0400	INFO	m0	started stream reader with remote peer	{"member": "m0", "stream-reader-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.463-0400	INFO	m0	started stream reader with remote peer	{"member": "m0", "stream-reader-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.455-0400	INFO	m0	started stream writer with remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.455-0400	INFO	m0	started stream writer with remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.455-0400	INFO	m0	started stream writer with remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.455-0400	INFO	m0	started stream reader with remote peer	{"member": "m0", "stream-reader-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m0.raft	1d860512e2f918ec switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m0	added member	{"member": "m0", "cluster-id": "1c235015aebdc26f", "local-member-id": "1d860512e2f918ec", "added-peer-id": "1d860512e2f918ec", "added-peer-peer-urls": ["unix://127.0.0.1:210022954366"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T00:21:43.472-0400	INFO	m1	bootstrapping raft	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m0.raft	1d860512e2f918ec switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m1	starting local member	{"member": "m1", "local-member-id": "79370e790bac859f", "cluster-id": "1c235015aebdc26f"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m1	bootstrap successfully	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m1.raft	79370e790bac859f switched to configuration voters=()	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m0	added member	{"member": "m0", "cluster-id": "1c235015aebdc26f", "local-member-id": "1d860512e2f918ec", "added-peer-id": "79370e790bac859f", "added-peer-peer-urls": ["unix://127.0.0.1:210052954366"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m1.raft	79370e790bac859f became follower at term 0	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m1.raft	newRaft 79370e790bac859f [peers: [], term: 0, commit: 0, applied: 0, lastindex: 0, lastterm: 0]	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m1.raft	79370e790bac859f became follower at term 1	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m1.raft	79370e790bac859f switched to configuration voters=(1d860512e2f918ec)	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m1.raft	79370e790bac859f switched to configuration voters=(1d860512e2f918ec 79370e790bac859f)	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m1.raft	79370e790bac859f switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.476-0400	INFO	m0	starting initial election tick advance	{"member": "m0", "election-ticks": 10}
+    logger.go:146: 2026-10-24T00:21:43.467-0400	INFO	m0	started to purge file	{"member": "m0", "dir": "/tmp/TestV3RangeRequestsort4114875715/001/etcd775441214/member/snap", "suffix": "snap.db", "max": 5, "interval": "30s"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	INFO	m0.raft	1d860512e2f918ec switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.479-0400	WARN	m1	simple token is not cryptographically signed	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m0	added member	{"member": "m0", "cluster-id": "1c235015aebdc26f", "local-member-id": "1d860512e2f918ec", "added-peer-id": "7efe0996ed6e768d", "added-peer-peer-urls": ["unix://127.0.0.1:210082954366"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T00:21:43.477-0400	INFO	m2	bootstrapping raft	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m2	starting local member	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "cluster-id": "1c235015aebdc26f"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m2	bootstrap successfully	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m2.raft	7efe0996ed6e768d switched to configuration voters=()	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	kvstore restored	{"member": "m1", "current-rev": 1}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m2.raft	7efe0996ed6e768d became follower at term 0	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m2.raft	newRaft 7efe0996ed6e768d [peers: [], term: 0, commit: 0, applied: 0, lastindex: 0, lastterm: 0]	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m2.raft	7efe0996ed6e768d became follower at term 1	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m2.raft	7efe0996ed6e768d switched to configuration voters=(1d860512e2f918ec)	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m2.raft	7efe0996ed6e768d switched to configuration voters=(1d860512e2f918ec 79370e790bac859f)	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m2.raft	7efe0996ed6e768d switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	starting remote peer	{"member": "m1", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	started HTTP pipelining with remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	started remote peer	{"member": "m1", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	added remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec", "remote-peer-urls": ["unix://127.0.0.1:210022954366"]}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	starting remote peer	{"member": "m1", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	started HTTP pipelining with remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	started remote peer	{"member": "m1", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	added remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d", "remote-peer-urls": ["unix://127.0.0.1:210082954366"]}
+    logger.go:146: 2026-10-24T00:21:43.476-0400	INFO	m0	launched a member	{"member": "m0", "name": "m0", "advertise-peer-urls": ["unix://127.0.0.1:210022954366"], "listen-client-urls": ["unix://127.0.0.1:210032954366"], "grpc-url": "unix://localhost:m0"}
+    logger.go:146: 2026-10-24T00:21:43.455-0400	INFO	m0	started stream writer with remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	started stream writer with remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	WARN	m2	simple token is not cryptographically signed	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	started stream reader with remote peer	{"member": "m1", "stream-reader-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.481-0400	INFO	m1	started stream reader with remote peer	{"member": "m1", "stream-reader-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.458-0400	INFO	m0	started stream reader with remote peer	{"member": "m0", "stream-reader-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	started stream writer with remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	starting etcd server	{"member": "m1", "local-member-id": "79370e790bac859f", "local-server-version": "3.8.0-alpha.0", "cluster-version": "to_be_decided"}
+    logger.go:146: 2026-10-24T00:21:43.492-0400	INFO	m1	grpc service status changed	{"member": "m1", "service": "", "status": "SERVING"}
+    logger.go:146: 2026-10-24T00:21:43.492-0400	INFO	m0	set message encoder	{"member": "m0", "from": "1d860512e2f918ec", "to": "79370e790bac859f", "stream-type": "stream Message"}
+    logger.go:146: 2026-10-24T00:21:43.492-0400	INFO	m0	peer became active	{"member": "m0", "peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.492-0400	INFO	m0	established TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.492-0400	INFO	m1	started to purge file	{"member": "m1", "dir": "/tmp/TestV3RangeRequestsort4114875715/002/etcd1176536354/member/snap", "suffix": "snap.db", "max": 5, "interval": "30s"}
+    logger.go:146: 2026-10-24T00:21:43.492-0400	INFO	m1	peer became active	{"member": "m1", "peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.492-0400	INFO	m1	established TCP streaming connection with remote peer	{"member": "m1", "stream-reader-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.481-0400	INFO	m1	started stream writer with remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.481-0400	INFO	m1	started stream reader with remote peer	{"member": "m1", "stream-reader-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.481-0400	INFO	m1	started stream writer with remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.491-0400	INFO	m2	kvstore restored	{"member": "m2", "current-rev": 1}
+    logger.go:146: 2026-10-24T00:21:43.493-0400	INFO	m1.raft	79370e790bac859f switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.493-0400	INFO	m2	starting remote peer	{"member": "m2", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.493-0400	INFO	m2	started HTTP pipelining with remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.493-0400	INFO	m1	launched a member	{"member": "m1", "name": "m1", "advertise-peer-urls": ["unix://127.0.0.1:210052954366"], "listen-client-urls": ["unix://127.0.0.1:210062954366"], "grpc-url": "unix://localhost:m1"}
+    logger.go:146: 2026-10-24T00:21:43.492-0400	INFO	m1	starting initial election tick advance	{"member": "m1", "election-ticks": 10}
+    logger.go:146: 2026-10-24T00:21:43.480-0400	INFO	m1	started stream reader with remote peer	{"member": "m1", "stream-reader-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started remote peer	{"member": "m2", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	added remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec", "remote-peer-urls": ["unix://127.0.0.1:210022954366"]}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	starting remote peer	{"member": "m2", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started HTTP pipelining with remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m1	added member	{"member": "m1", "cluster-id": "1c235015aebdc26f", "local-member-id": "79370e790bac859f", "added-peer-id": "1d860512e2f918ec", "added-peer-peer-urls": ["unix://127.0.0.1:210022954366"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started stream reader with remote peer	{"member": "m2", "stream-reader-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m1.raft	79370e790bac859f switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started stream writer with remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started stream writer with remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started stream reader with remote peer	{"member": "m2", "stream-reader-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m1	added member	{"member": "m1", "cluster-id": "1c235015aebdc26f", "local-member-id": "79370e790bac859f", "added-peer-id": "79370e790bac859f", "added-peer-peer-urls": ["unix://127.0.0.1:210052954366"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started stream reader with remote peer	{"member": "m2", "stream-reader-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started stream writer with remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started stream writer with remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started stream reader with remote peer	{"member": "m2", "stream-reader-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m1.raft	79370e790bac859f switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.498-0400	INFO	m2	started remote peer	{"member": "m2", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2	added remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f", "remote-peer-urls": ["unix://127.0.0.1:210052954366"]}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2	starting etcd server	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "local-server-version": "3.8.0-alpha.0", "cluster-version": "to_be_decided"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2	grpc service status changed	{"member": "m2", "service": "", "status": "SERVING"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m1	established TCP streaming connection with remote peer	{"member": "m1", "stream-reader-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m0	set message encoder	{"member": "m0", "from": "1d860512e2f918ec", "to": "7efe0996ed6e768d", "stream-type": "stream MsgApp v2"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m0	peer became active	{"member": "m0", "peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m0	established TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m0	set message encoder	{"member": "m0", "from": "1d860512e2f918ec", "to": "7efe0996ed6e768d", "stream-type": "stream Message"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m0	established TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2	peer became active	{"member": "m2", "peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2	established TCP streaming connection with remote peer	{"member": "m2", "stream-reader-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2	established TCP streaming connection with remote peer	{"member": "m2", "stream-reader-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2	started to purge file	{"member": "m2", "dir": "/tmp/TestV3RangeRequestsort4114875715/003/etcd814681110/member/snap", "suffix": "snap.db", "max": 5, "interval": "30s"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2.raft	7efe0996ed6e768d switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m1	added member	{"member": "m1", "cluster-id": "1c235015aebdc26f", "local-member-id": "79370e790bac859f", "added-peer-id": "7efe0996ed6e768d", "added-peer-peer-urls": ["unix://127.0.0.1:210082954366"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2	added member	{"member": "m2", "cluster-id": "1c235015aebdc26f", "local-member-id": "7efe0996ed6e768d", "added-peer-id": "1d860512e2f918ec", "added-peer-peer-urls": ["unix://127.0.0.1:210022954366"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T00:21:43.500-0400	INFO	m2.raft	7efe0996ed6e768d switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m2	starting initial election tick advance	{"member": "m2", "election-ticks": 10}
+    logger.go:146: 2026-10-24T00:21:43.500-0400	INFO	m1	set message encoder	{"member": "m1", "from": "79370e790bac859f", "to": "1d860512e2f918ec", "stream-type": "stream MsgApp v2"}
+    logger.go:146: 2026-10-24T00:21:43.500-0400	INFO	m1	established TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.499-0400	INFO	m0	set message encoder	{"member": "m0", "from": "1d860512e2f918ec", "to": "79370e790bac859f", "stream-type": "stream MsgApp v2"}
+    logger.go:146: 2026-10-24T00:21:43.500-0400	INFO	m0	established TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.500-0400	INFO	m2	added member	{"member": "m2", "cluster-id": "1c235015aebdc26f", "local-member-id": "7efe0996ed6e768d", "added-peer-id": "79370e790bac859f", "added-peer-peer-urls": ["unix://127.0.0.1:210052954366"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T00:21:43.500-0400	INFO	m2	launched a member	{"member": "m2", "name": "m2", "advertise-peer-urls": ["unix://127.0.0.1:210082954366"], "listen-client-urls": ["unix://127.0.0.1:210092954366"], "grpc-url": "unix://localhost:m2"}
+    logger.go:146: 2026-10-24T00:21:43.520-0400	INFO	m2	set message encoder	{"member": "m2", "from": "7efe0996ed6e768d", "to": "79370e790bac859f", "stream-type": "stream Message"}
+    logger.go:146: 2026-10-24T00:21:43.520-0400	INFO	m2	peer became active	{"member": "m2", "peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.520-0400	INFO	m0	established TCP streaming connection with remote peer	{"member": "m0", "stream-reader-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.520-0400	INFO	m1	set message encoder	{"member": "m1", "from": "79370e790bac859f", "to": "1d860512e2f918ec", "stream-type": "stream Message"}
+    logger.go:146: 2026-10-24T00:21:43.520-0400	INFO	m1	established TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.520-0400	INFO	m2	established TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.520-0400	INFO	m2	set message encoder	{"member": "m2", "from": "7efe0996ed6e768d", "to": "1d860512e2f918ec", "stream-type": "stream Message"}
+    logger.go:146: 2026-10-24T00:21:43.520-0400	INFO	m2	established TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.522-0400	INFO	m1	set message encoder	{"member": "m1", "from": "79370e790bac859f", "to": "7efe0996ed6e768d", "stream-type": "stream Message"}
+    logger.go:146: 2026-10-24T00:21:43.522-0400	INFO	m1	peer became active	{"member": "m1", "peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.522-0400	INFO	m1	established TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.500-0400	INFO	m2.raft	7efe0996ed6e768d switched to configuration voters=(1d860512e2f918ec 79370e790bac859f 7efe0996ed6e768d)	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.522-0400	INFO	m0	established TCP streaming connection with remote peer	{"member": "m0", "stream-reader-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.522-0400	INFO	m2	added member	{"member": "m2", "cluster-id": "1c235015aebdc26f", "local-member-id": "7efe0996ed6e768d", "added-peer-id": "7efe0996ed6e768d", "added-peer-peer-urls": ["unix://127.0.0.1:210082954366"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T00:21:43.522-0400	INFO	m2	established TCP streaming connection with remote peer	{"member": "m2", "stream-reader-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.522-0400	INFO	m2	set message encoder	{"member": "m2", "from": "7efe0996ed6e768d", "to": "1d860512e2f918ec", "stream-type": "stream MsgApp v2"}
+    logger.go:146: 2026-10-24T00:21:43.524-0400	INFO	m2	established TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.525-0400	INFO	m2	set message encoder	{"member": "m2", "from": "7efe0996ed6e768d", "to": "79370e790bac859f", "stream-type": "stream MsgApp v2"}
+    logger.go:146: 2026-10-24T00:21:43.525-0400	INFO	m2	established TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.525-0400	INFO	m0	established TCP streaming connection with remote peer	{"member": "m0", "stream-reader-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.525-0400	INFO	m1	established TCP streaming connection with remote peer	{"member": "m1", "stream-reader-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.525-0400	INFO	m1	set message encoder	{"member": "m1", "from": "79370e790bac859f", "to": "7efe0996ed6e768d", "stream-type": "stream MsgApp v2"}
+    logger.go:146: 2026-10-24T00:21:43.525-0400	INFO	m1	established TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.525-0400	INFO	m2	established TCP streaming connection with remote peer	{"member": "m2", "stream-reader-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.525-0400	INFO	m1	established TCP streaming connection with remote peer	{"member": "m1", "stream-reader-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.531-0400	INFO	m0	initialized peer connections; fast-forwarding election ticks	{"member": "m0", "local-member-id": "1d860512e2f918ec", "forward-ticks": 8, "forward-duration": "80ms", "election-ticks": 10, "election-timeout": "100ms", "active-remote-members": 2}
+    logger.go:146: 2026-10-24T00:21:43.545-0400	INFO	m1	initialized peer connections; fast-forwarding election ticks	{"member": "m1", "local-member-id": "79370e790bac859f", "forward-ticks": 8, "forward-duration": "80ms", "election-ticks": 10, "election-timeout": "100ms", "active-remote-members": 2}
+    logger.go:146: 2026-10-24T00:21:43.545-0400	INFO	m1.raft	79370e790bac859f is starting a new election at term 1	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.545-0400	INFO	m1.raft	79370e790bac859f became pre-candidate at term 1	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.545-0400	INFO	m1.raft	79370e790bac859f [logterm: 1, index: 3] sent MsgPreVote request to 1d860512e2f918ec at term 1	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.545-0400	INFO	m1.raft	79370e790bac859f [logterm: 1, index: 3] sent MsgPreVote request to 7efe0996ed6e768d at term 1	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.546-0400	INFO	m1.raft	79370e790bac859f received MsgPreVoteResp from 79370e790bac859f at term 1	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.546-0400	INFO	m1.raft	79370e790bac859f has received 1 MsgPreVoteResp votes and 0 vote rejections	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.546-0400	INFO	m0	established TCP streaming connection with remote peer	{"member": "m0", "stream-reader-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.546-0400	INFO	m2.raft	7efe0996ed6e768d [logterm: 1, index: 3, vote: 0] cast MsgPreVote for 79370e790bac859f [logterm: 1, index: 3] at term 1	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.546-0400	INFO	m0.raft	1d860512e2f918ec [logterm: 1, index: 3, vote: 0] cast MsgPreVote for 79370e790bac859f [logterm: 1, index: 3] at term 1	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m1.raft	79370e790bac859f received MsgPreVoteResp from 1d860512e2f918ec at term 1	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m1.raft	79370e790bac859f has received 2 MsgPreVoteResp votes and 0 vote rejections	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m1.raft	79370e790bac859f became candidate at term 2	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m1.raft	79370e790bac859f [logterm: 1, index: 3] sent MsgVote request to 1d860512e2f918ec at term 2	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m1.raft	79370e790bac859f [logterm: 1, index: 3] sent MsgVote request to 7efe0996ed6e768d at term 2	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m1.raft	79370e790bac859f received MsgVoteResp from 79370e790bac859f at term 2	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m1.raft	79370e790bac859f has received 1 MsgVoteResp votes and 0 vote rejections	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m0.raft	1d860512e2f918ec [term: 1] received a MsgVote message with higher term from 79370e790bac859f [term: 2]	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m0.raft	1d860512e2f918ec became follower at term 2	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.549-0400	INFO	m0.raft	1d860512e2f918ec [logterm: 1, index: 3, vote: 0] cast MsgVote for 79370e790bac859f [logterm: 1, index: 3] at term 2	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m2	initialized peer connections; fast-forwarding election ticks	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "forward-ticks": 8, "forward-duration": "80ms", "election-ticks": 10, "election-timeout": "100ms", "active-remote-members": 2}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m2.raft	7efe0996ed6e768d [term: 1] received a MsgVote message with higher term from 79370e790bac859f [term: 2]	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m2.raft	7efe0996ed6e768d became follower at term 2	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m2.raft	7efe0996ed6e768d [logterm: 1, index: 3, vote: 0] cast MsgVote for 79370e790bac859f [logterm: 1, index: 3] at term 2	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m1.raft	79370e790bac859f received MsgVoteResp from 7efe0996ed6e768d at term 2	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m1.raft	79370e790bac859f has received 2 MsgVoteResp votes and 0 vote rejections	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m1.raft	79370e790bac859f became leader at term 2	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m1.raft	raft.node: 79370e790bac859f elected leader 79370e790bac859f at term 2	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m0.raft	raft.node: 1d860512e2f918ec elected leader 79370e790bac859f at term 2	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.550-0400	INFO	m2.raft	raft.node: 7efe0996ed6e768d elected leader 79370e790bac859f at term 2	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.552-0400	INFO	m1	setting up initial cluster version using v3 API	{"member": "m1", "cluster-version": "3.8"}
+    logger.go:146: 2026-10-24T00:21:43.552-0400	INFO	m1	published local member to cluster through raft	{"member": "m1", "local-member-id": "79370e790bac859f", "local-member-attributes": "{Name:m1 ClientURLs:[unix://127.0.0.1:210062954366]}", "cluster-id": "1c235015aebdc26f", "publish-timeout": "5.2s"}
+    logger.go:146: 2026-10-24T00:21:43.552-0400	INFO	m1	set initial cluster version	{"member": "m1", "cluster-id": "1c235015aebdc26f", "local-member-id": "79370e790bac859f", "cluster-version": "3.8"}
+    logger.go:146: 2026-10-24T00:21:43.553-0400	INFO	m1	enabled capabilities for version	{"member": "m1", "cluster-version": "3.8"}
+    logger.go:146: 2026-10-24T00:21:43.553-0400	INFO	m1	cluster version is updated	{"member": "m1", "cluster-version": "3.8"}
+    logger.go:146: 2026-10-24T00:21:43.553-0400	INFO	m1	cluster version differs from storage version.	{"member": "m1", "cluster-version": "3.8.0", "storage-version": "3.5.0"}
+    logger.go:146: 2026-10-24T00:21:43.553-0400	INFO	m1	updated storage version	{"member": "m1", "new-storage-version": "3.6.0"}
+    logger.go:146: 2026-10-24T00:21:43.553-0400	INFO	m1	updated storage version	{"member": "m1", "new-storage-version": "3.7.0"}
+    logger.go:146: 2026-10-24T00:21:43.553-0400	INFO	m1	updated storage version	{"member": "m1", "new-storage-version": "3.8.0"}
+    logger.go:146: 2026-10-24T00:21:43.553-0400	INFO	m0	published local member to cluster through raft	{"member": "m0", "local-member-id": "1d860512e2f918ec", "local-member-attributes": "{Name:m0 ClientURLs:[unix://127.0.0.1:210032954366]}", "cluster-id": "1c235015aebdc26f", "publish-timeout": "5.2s"}
+    logger.go:146: 2026-10-24T00:21:43.554-0400	INFO	m2	published local member to cluster through raft	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "local-member-attributes": "{Name:m2 ClientURLs:[unix://127.0.0.1:210092954366]}", "cluster-id": "1c235015aebdc26f", "publish-timeout": "5.2s"}
+    logger.go:146: 2026-10-24T00:21:43.557-0400	INFO	m0	set initial cluster version	{"member": "m0", "cluster-id": "1c235015aebdc26f", "local-member-id": "1d860512e2f918ec", "cluster-version": "3.8"}
+    logger.go:146: 2026-10-24T00:21:43.557-0400	INFO	m0	cluster version differs from storage version.	{"member": "m0", "cluster-version": "3.8.0", "storage-version": "3.5.0"}
+    logger.go:146: 2026-10-24T00:21:43.560-0400	INFO	m0	updated storage version	{"member": "m0", "new-storage-version": "3.6.0"}
+    logger.go:146: 2026-10-24T00:21:43.560-0400	INFO	m0	updated storage version	{"member": "m0", "new-storage-version": "3.7.0"}
+    logger.go:146: 2026-10-24T00:21:43.560-0400	INFO	m0	updated storage version	{"member": "m0", "new-storage-version": "3.8.0"}
+    logger.go:146: 2026-10-24T00:21:43.561-0400	INFO	m2	set initial cluster version	{"member": "m2", "cluster-id": "1c235015aebdc26f", "local-member-id": "7efe0996ed6e768d", "cluster-version": "3.8"}
+    cluster.go:234:  - m0 -> 1d860512e2f918ec (unix://localhost:m0)
+    cluster.go:234:  - m1 -> 79370e790bac859f (unix://localhost:m1)
+    cluster.go:234:  - m2 -> 7efe0996ed6e768d (unix://localhost:m2)
+    logger.go:146: 2026-10-24T00:21:43.561-0400	INFO	m2	cluster version differs from storage version.	{"member": "m2", "cluster-version": "3.8.0", "storage-version": "3.5.0"}
+    logger.go:146: 2026-10-24T00:21:43.561-0400	INFO	m2	updated storage version	{"member": "m2", "new-storage-version": "3.6.0"}
+    logger.go:146: 2026-10-24T00:21:43.561-0400	INFO	m2	updated storage version	{"member": "m2", "new-storage-version": "3.7.0"}
+    logger.go:146: 2026-10-24T00:21:43.561-0400	INFO	m2	updated storage version	{"member": "m2", "new-storage-version": "3.8.0"}
+    v3_grpc_test.go:1566: 
+        	Error Trace:	/root/etcd-pr/etcd-22615/tests/integration/v3_grpc_test.go:1609
+        	            				/root/etcd-pr/etcd-22615/tests/integration/v3_grpc_test.go:1566
+        	Error:      	Received unexpected error:
+        	            	rpc error: code = Unimplemented desc = RangeStream does not support custom sort orders
+        	Test:       	TestV3RangeRequest/sort
+    cluster.go:1416: ========= Cluster termination started =====================
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m2	terminating a member	{"member": "m2", "name": "m2", "advertise-peer-urls": ["unix://127.0.0.1:210082954366"], "listen-client-urls": ["unix://127.0.0.1:210092954366"], "grpc-url": "unix://localhost:m2"}
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m0	terminating a member	{"member": "m0", "name": "m0", "advertise-peer-urls": ["unix://127.0.0.1:210022954366"], "listen-client-urls": ["unix://127.0.0.1:210032954366"], "grpc-url": "unix://localhost:m0"}
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m1	terminating a member	{"member": "m1", "name": "m1", "advertise-peer-urls": ["unix://127.0.0.1:210052954366"], "listen-client-urls": ["unix://127.0.0.1:210062954366"], "grpc-url": "unix://localhost:m1"}
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m2	server has stopped; stopping storage version's monitor	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m2	server has stopped; stopping cluster version's monitor	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m0	server has stopped; stopping storage version's monitor	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m0	server has stopped; stopping cluster version's monitor	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m1	server has stopped; stopping cluster version's monitor	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	closed TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	closed TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream Message", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream Message", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.591-0400	INFO	m1	server has stopped; stopping storage version's monitor	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m1	stopping remote peer	{"member": "m1", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m1	closed TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m1	stopped TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m1	closed TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream Message", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m1	stopped TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream Message", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped HTTP pipelining with remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	lost TCP streaming connection with remote peer	{"member": "m0", "stream-reader-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f", "error": "context canceled"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	peer became inactive (message send to peer failed)	{"member": "m0", "peer-id": "79370e790bac859f", "error": "failed to read 79370e790bac859f on stream MsgApp v2 (context canceled)"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped stream reader with remote peer	{"member": "m0", "stream-reader-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	lost TCP streaming connection with remote peer	{"member": "m0", "stream-reader-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f", "error": "context canceled"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped stream reader with remote peer	{"member": "m0", "stream-reader-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped remote peer	{"member": "m0", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	closed TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	closed TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream Message", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped TCP streaming connection with remote peer	{"member": "m0", "stream-writer-type": "stream Message", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m1	stopped HTTP pipelining with remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m2	stopping remote peer	{"member": "m2", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped HTTP pipelining with remote peer	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m2	closed TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m2	stopped TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m2	closed TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream Message", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m2	stopped TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream Message", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m1	lost TCP streaming connection with remote peer	{"member": "m1", "stream-reader-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec", "error": "EOF"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m1	stopped stream reader with remote peer	{"member": "m1", "stream-reader-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m2	lost TCP streaming connection with remote peer	{"member": "m2", "stream-reader-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec", "error": "EOF"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	lost TCP streaming connection with remote peer	{"member": "m0", "stream-reader-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d", "error": "context canceled"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m2	stopped HTTP pipelining with remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	lost TCP streaming connection with remote peer	{"member": "m0", "stream-reader-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d", "error": "EOF"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m0	peer became inactive (message send to peer failed)	{"member": "m0", "peer-id": "7efe0996ed6e768d", "error": "failed to read 7efe0996ed6e768d on stream MsgApp v2 (context canceled)"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped stream reader with remote peer	{"member": "m0", "stream-reader-type": "stream MsgApp v2", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped stream reader with remote peer	{"member": "m0", "stream-reader-type": "stream Message", "local-member-id": "1d860512e2f918ec", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m0	stopped remote peer	{"member": "m0", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m2	lost TCP streaming connection with remote peer	{"member": "m2", "stream-reader-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec", "error": "EOF"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m2	stopped stream reader with remote peer	{"member": "m2", "stream-reader-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m2	peer became inactive (message send to peer failed)	{"member": "m2", "peer-id": "1d860512e2f918ec", "error": "failed to dial 1d860512e2f918ec on stream Message (context canceled)"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	WARN	m1	lost TCP streaming connection with remote peer	{"member": "m1", "stream-reader-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec", "error": "EOF"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m1	stopped stream reader with remote peer	{"member": "m1", "stream-reader-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m1	stopped remote peer	{"member": "m1", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m1	stopping remote peer	{"member": "m1", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	WARN	m1	closed TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m1	stopped TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	WARN	m1	closed TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream Message", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m1	stopped TCP streaming connection with remote peer	{"member": "m1", "stream-writer-type": "stream Message", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.592-0400	INFO	m2	stopped stream reader with remote peer	{"member": "m2", "stream-reader-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m2	stopped remote peer	{"member": "m2", "remote-peer-id": "1d860512e2f918ec"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m2	stopping remote peer	{"member": "m2", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	WARN	m2	closed TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m2	stopped TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream MsgApp v2", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	WARN	m0	failed to find remote peer in cluster	{"member": "m0", "local-member-id": "1d860512e2f918ec", "remote-peer-id-stream-handler": "1d860512e2f918ec", "remote-peer-id-from": "7efe0996ed6e768d", "cluster-id": "1c235015aebdc26f"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m1	stopped HTTP pipelining with remote peer	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	WARN	m2	closed TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream Message", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	WARN	m1	lost TCP streaming connection with remote peer	{"member": "m1", "stream-reader-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d", "error": "context canceled"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	WARN	m1	peer became inactive (message send to peer failed)	{"member": "m1", "peer-id": "7efe0996ed6e768d", "error": "failed to read 7efe0996ed6e768d on stream MsgApp v2 (context canceled)"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m1	stopped stream reader with remote peer	{"member": "m1", "stream-reader-type": "stream MsgApp v2", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	WARN	m2	lost TCP streaming connection with remote peer	{"member": "m2", "stream-reader-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f", "error": "EOF"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	WARN	m1	lost TCP streaming connection with remote peer	{"member": "m1", "stream-reader-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d", "error": "EOF"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m1	stopped stream reader with remote peer	{"member": "m1", "stream-reader-type": "stream Message", "local-member-id": "79370e790bac859f", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m1	stopped remote peer	{"member": "m1", "remote-peer-id": "7efe0996ed6e768d"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m2	stopped TCP streaming connection with remote peer	{"member": "m2", "stream-writer-type": "stream Message", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.593-0400	INFO	m2	stopped HTTP pipelining with remote peer	{"member": "m2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.601-0400	WARN	m2	lost TCP streaming connection with remote peer	{"member": "m2", "stream-reader-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f", "error": "EOF"}
+    logger.go:146: 2026-10-24T00:21:43.601-0400	WARN	m2	peer became inactive (message send to peer failed)	{"member": "m2", "peer-id": "79370e790bac859f", "error": "failed to dial 79370e790bac859f on stream MsgApp v2 (context canceled)"}
+    logger.go:146: 2026-10-24T00:21:43.601-0400	WARN	m1	failed to find remote peer in cluster	{"member": "m1", "local-member-id": "79370e790bac859f", "remote-peer-id-stream-handler": "79370e790bac859f", "remote-peer-id-from": "7efe0996ed6e768d", "cluster-id": "1c235015aebdc26f"}
+    logger.go:146: 2026-10-24T00:21:43.601-0400	INFO	m2	stopped stream reader with remote peer	{"member": "m2", "stream-reader-type": "stream MsgApp v2", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.601-0400	INFO	m2	stopped stream reader with remote peer	{"member": "m2", "stream-reader-type": "stream Message", "local-member-id": "7efe0996ed6e768d", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.601-0400	INFO	m2	stopped remote peer	{"member": "m2", "remote-peer-id": "79370e790bac859f"}
+    logger.go:146: 2026-10-24T00:21:43.614-0400	INFO	m0	verification of persisted state	{"member": "m0", "data-dir": "/tmp/TestV3RangeRequestsort4114875715/001/etcd775441214"}
+    logger.go:146: 2026-10-24T00:21:43.614-0400	INFO	m0.bbolt	Opening db file (/tmp/TestV3RangeRequestsort4114875715/001/etcd775441214/member/snap/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x65ca2c04050, NoStatistics: false}	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.641-0400	INFO	m1	verification of persisted state	{"member": "m1", "data-dir": "/tmp/TestV3RangeRequestsort4114875715/002/etcd1176536354"}
+    logger.go:146: 2026-10-24T00:21:43.642-0400	INFO	m1.bbolt	Opening db file (/tmp/TestV3RangeRequestsort4114875715/002/etcd1176536354/member/snap/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x65ca27880f8, NoStatistics: false}	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.644-0400	INFO	m2	verification of persisted state	{"member": "m2", "data-dir": "/tmp/TestV3RangeRequestsort4114875715/003/etcd814681110"}
+    logger.go:146: 2026-10-24T00:21:43.644-0400	INFO	m2.bbolt	Opening db file (/tmp/TestV3RangeRequestsort4114875715/003/etcd814681110/member/snap/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x65ca2c04070, NoStatistics: false}	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.663-0400	INFO	m0.bbolt	Opening bbolt db (/tmp/TestV3RangeRequestsort4114875715/001/etcd775441214/member/snap/db) successfully	{"member": "m0"}
+    logger.go:146: 2026-10-24T00:21:43.664-0400	INFO	m0	verification: consistentIndex OK	{"member": "m0", "backend-consistent-index": 13, "hardstate-commit": 13}
+    logger.go:146: 2026-10-24T00:21:43.664-0400	INFO	m0	verification of persisted state successful	{"member": "m0", "data-dir": "/tmp/TestV3RangeRequestsort4114875715/001/etcd775441214"}
+    logger.go:146: 2026-10-24T00:21:43.694-0400	INFO	m2.bbolt	Opening bbolt db (/tmp/TestV3RangeRequestsort4114875715/003/etcd814681110/member/snap/db) successfully	{"member": "m2"}
+    logger.go:146: 2026-10-24T00:21:43.695-0400	INFO	m2	verification: consistentIndex OK	{"member": "m2", "backend-consistent-index": 13, "hardstate-commit": 13}
+    logger.go:146: 2026-10-24T00:21:43.696-0400	INFO	m2	verification of persisted state successful	{"member": "m2", "data-dir": "/tmp/TestV3RangeRequestsort4114875715/003/etcd814681110"}
+    logger.go:146: 2026-10-24T00:21:43.697-0400	INFO	m1.bbolt	Opening bbolt db (/tmp/TestV3RangeRequestsort4114875715/002/etcd1176536354/member/snap/db) successfully	{"member": "m1"}
+    logger.go:146: 2026-10-24T00:21:43.698-0400	INFO	m1	verification: consistentIndex OK	{"member": "m1", "backend-consistent-index": 13, "hardstate-commit": 13}
+    logger.go:146: 2026-10-24T00:21:43.698-0400	INFO	m1	verification of persisted state successful	{"member": "m1", "data-dir": "/tmp/TestV3RangeRequestsort4114875715/002/etcd1176536354"}
+    logger.go:146: 2026-10-24T00:21:43.705-0400	INFO	m0	terminated a member	{"member": "m0", "name": "m0", "advertise-peer-urls": ["unix://127.0.0.1:210022954366"], "listen-client-urls": ["unix://127.0.0.1:210032954366"], "grpc-url": "unix://localhost:m0"}
+    logger.go:146: 2026-10-24T00:21:43.729-0400	INFO	m1	terminated a member	{"member": "m1", "name": "m1", "advertise-peer-urls": ["unix://127.0.0.1:210052954366"], "listen-client-urls": ["unix://127.0.0.1:210062954366"], "grpc-url": "unix://localhost:m1"}
+    logger.go:146: 2026-10-24T00:21:43.739-0400	INFO	m2	terminated a member	{"member": "m2", "name": "m2", "advertise-peer-urls": ["unix://127.0.0.1:210082954366"], "listen-client-urls": ["unix://127.0.0.1:210092954366"], "grpc-url": "unix://localhost:m2"}
+    cluster.go:1433: ========= Cluster termination succeeded ===================
+--- FAIL: TestV3RangeRequest (0.43s)
+    --- FAIL: TestV3RangeRequest/sort (0.41s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	0.563s
+FAIL

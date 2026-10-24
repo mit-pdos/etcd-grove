@@ -29,15 +29,15 @@ theorem txn.IsDefaultOrdering.wp_proof : txn.IsDefaultOrdering.spec (GF := GF) (
   wp_start
   wp_auto
   wp_if_destruct
-  · rw [show decide (True ∨ target = W32 0 ∧ W32 0 = W32 1) = true by simp]
-    wp_end
+  · wp_if_destruct
+    · rw [show decide (True ∧ (True ∨ W32 0 = W32 1)) = true by simp]
+      wp_end
+    · rename_i Hif
+      simp only [Hif, _root_.true_and, _root_.false_or]
+      iapply HΦ; itrivial
   · rename_i Hif
-    wp_if_destruct
-    · simp only [Hif, _root_.false_or, _root_.true_and]
-      iapply HΦ; itrivial
-    · rename_i Hif2
-      simp only [Hif, Hif2, _root_.false_or, _root_.false_and, decide_false]
-      iapply HΦ; itrivial
+    simp only [Hif, _root_.false_and, decide_false]
+    iapply HΦ; itrivial
 
 end proof
 

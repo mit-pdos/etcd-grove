@@ -38,7 +38,7 @@ theorem txn.rangeLimit.wp_proof
   wp_auto
   wp_apply hIsDef
   have hdef : txn.isDefaultOrd o.sortTarget o.sortOrder =
-      decide (order = W32 0 ∨ (target = W32 0 ∧ order = W32 1)) := by
+      decide (target = W32 0 ∧ (order = W32 0 ∨ order = W32 1)) := by
     subst Ho; exact txn.isDefaultOrd_sext target order
   have hlimo : o.base.limit = limit := by subst Ho; rfl
   wp_if_destruct

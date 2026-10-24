@@ -1,0 +1,31 @@
+# etcd-io/etcd#22615 (etcdserver: fix range limit with non-key sort target and sort order NONE),
+# branch pr-verify/etcd-22615: the changed function `txn.IsDefaultOrdering`, its callers
+# `txn.rangeLimit`, `txn.sortRangeResults`, `txn.executeRange`, `txn.Range`, and
+# `v3rpc.checkRangeStreamRequest`, and the range results (`range_rangeSel`, `range_soleWriter`,
+# `srvRangeOk_rangeKvsOk`, `not_cutEarly`).
+# Report: notes/pr-verify/etcd-22615.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22615.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/(IsDefaultOrdering|rangeLimit|sortRangeResults|executeRange|Range)\.lean$
+roots ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/checkRangeStreamRequest\.lean$
+roots \btxn\.(range_rangeSel|range_soleWriter|srvRangeOk_rangeKvsOk|not_cutEarly)$
+roots \bv3rpc\.wp_checkRangeStreamRequest$
+axiom backend.isDB
+axiom backend.optsAt
+axiom backend.ownDB
+axiom backend.ownWTx
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txDB
+axiom backend.txLive
+axiom context.WithValue.wp_proof
+axiom promSrvMetrics
+axiom proto.Unmarshal.wp_proof
+axiom status.Errorf.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.String.wp_proof

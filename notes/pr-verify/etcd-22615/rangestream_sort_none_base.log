@@ -1,0 +1,10 @@
+=== RUN   TestCheckRangeStreamRequestSortNone
+    rangestream_sort_none_test.go:39: 
+        	Error Trace:	/root/etcd-pr/etcd-22615/server/etcdserver/api/v3rpc/rangestream_sort_none_test.go:39
+        	Error:      	An error is expected but got nil.
+        	Test:       	TestCheckRangeStreamRequestSortNone
+        	Messages:   	target=VERSION
+--- FAIL: TestCheckRangeStreamRequestSortNone (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.046s
+FAIL

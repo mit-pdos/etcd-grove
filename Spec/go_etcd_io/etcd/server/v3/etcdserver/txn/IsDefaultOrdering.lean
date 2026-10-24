@@ -24,12 +24,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `IsDefaultOrdering(target, order)`: no order, or ascending by key (mvcc's own order). -/
+/-- `IsDefaultOrdering(target, order)`: by key, no order or ascending (mvcc's own order). -/
 abbrev txn.IsDefaultOrdering.spec : Prop :=
   ∀ (target order : w32),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn }}
     (App (App (Val (@! txn.IsDefaultOrdering)) (Val #target)) (Val #order))
-  {{ RET #(decide (order = W32 0 ∨ (target = W32 0 ∧ order = W32 1))); True }}
+  {{ RET #(decide (target = W32 0 ∧ (order = W32 0 ∨ order = W32 1))); True }}
 
 end spec
 

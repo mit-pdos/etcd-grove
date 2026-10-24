@@ -68,9 +68,9 @@ open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
 /-! ## Pure: the checks' outcomes the specs name -/
 
 /-- `checkRangeStreamRequest` past `checkRangeRequest`: the default sort (`txn.IsDefaultOrdering`:
-no order, or ascending by key) and no revision filter (`txn.HasRevisionFilters`). -/
+by key, no order or ascending) and no revision filter (`txn.HasRevisionFilters`). -/
 def streamOk (o : OpFull) : Prop :=
-  (o.sortOrder = W64 0 ∨ (o.sortTarget = W64 0 ∧ o.sortOrder = W64 1)) ∧
+  (o.sortTarget = W64 0 ∧ (o.sortOrder = W64 0 ∨ o.sortOrder = W64 1)) ∧
     txn.hasRevFilters o = false
 
 /-- **What `kvServer.Txn` checks**, in order: `checkTxnRequest` at the budget `n`, then

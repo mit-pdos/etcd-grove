@@ -230,11 +230,11 @@ theorem rangeRequestIs_sortSet (r : Loc) (o : OpFull) :
   simp only [rangeOpOf, ne_eq, sext32_eq order 0 (by omega) (by omega),
     sext32_eq target 0 (by omega) (by omega)]
 
-/-- **The server's range in the client's terms**, unless the sort is cut early. -/
+/-- **The server's range in the client's terms** (`not_cutEarly` discharges `¬ cutEarly o`). -/
 theorem rangeResult_client (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64)
     (o : OpFull) (withTotal : Bool)
     (hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
-    (hcut : ¬ cutEarly o) :
+    (hcut : ¬ cutEarly o := not_cutEarly o) :
     rangeResult (GF := GF) resp err log rev o withTotal ⊢
       rangeResultClient resp err log rev o withTotal := by
   unfold rangeResult rangeResultClient

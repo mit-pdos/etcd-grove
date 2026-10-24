@@ -182,7 +182,7 @@ theorem txn.effSortOrder_srv (k re : GoString) (rev limit : w64) (order target :
     (ser ko co : Bool) (minM maxM minC maxC : w64) :
     (txn.rangeOpOf k re rev limit order target ser ko co minM maxM minC maxC).effSortOrder =
       (let so := if target ≠ W32 0 ∧ order = W32 0 then W32 1 else order
-       if so = W32 0 ∨ (target = W32 0 ∧ so = W32 1) then W64 0 else W64 (sint.Z so)) := by
+       if target = W32 0 ∧ (so = W32 0 ∨ so = W32 1) then W64 0 else W64 (sint.Z so)) := by
   simp only [OpFull.effSortOrder, txn.rangeOpOf]
   simp only [sext32_eq order 0 (by omega) (by omega), sext32_eq target 0 (by omega) (by omega),
     sext32_eq order 1 (by omega) (by omega)]
@@ -238,7 +238,7 @@ theorem txn.sortRangeResults.wp_proof
       iexists order; iframe; ipureintro; exact (ite_eq_right (fun h => Hif h.2)).symm
   wp_apply hIsDef
   have Heff : o.effSortOrder =
-      if so = W32 0 ∨ (target = W32 0 ∧ so = W32 1) then W64 0 else W64 (sint.Z so) := by
+      if target = W32 0 ∧ (so = W32 0 ∨ so = W32 1) then W64 0 else W64 (sint.Z so) := by
     rw [Ho, txn.effSortOrder_srv, Hso]
   have Htgt : o.sortTarget = W64 (sint.Z target) := by rw [Ho]; rfl
   wp_if_destruct
@@ -337,7 +337,7 @@ theorem txn.sortRangeResults.wp_proof
               rcases txn.target_cases o target Hvalid Htgt with h | h | h | h | h <;> simp_all
 
     -- the sort
-    have Hsorts : ¬(so = W32 0 ∨ target = W32 0 ∧ so = W32 1) := by assumption
+    have Hsorts : ¬(target = W32 0 ∧ (so = W32 0 ∨ so = W32 1)) := by assumption
     have Heffs : o.effSortOrder = W64 (sint.Z so) := by rw [Heff, ite_eq_right Hsorts]
     have Hpre : (o.effSortOrder = W64 1 ∨ o.effSortOrder = W64 2) →
         l.length ≤ 2 ^ 62 ∧ ∀ y ∈ l, txn.kvOk y.2 := by
