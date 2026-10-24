@@ -17390,3 +17390,50 @@ What the API layer adds is the path from the gRPC handler to the proposal: no ch
 **Next:** `Authenticate` once `auth.ErrAuthNotEnabled` is in the auth package's fact (S4);
 `UserAdd`/`UserChangePassword` with a model of `encoding/base64`; Lock/Election as above; the matrix's remaining rows (the lease entry points'
 key checks, the member operations that marshal JSON).
+
+## Restore R4a: `store.restore` takes `s.revMu` as a caller-given lock protocol (2026-10-24 · `notes/restore-plan.md`, R4a, R5e)
+
+**Problem.** `store.restore` locks `s.revMu` once, around its write of `currentRev`, and reads
+`compactMainRev` outside it. Its axiom took `s.revMu ↦ zero_val sync.RWMutex` and gave it back so,
+with both counters as plain points-to. No proof can do that once the mutex has been used as a lock.
+The two callers hold the lock differently. In `NewStore` the store is private memory, and so is
+its `revMu`. In `store.Restore` the lock is live: `hashStorage.HashByRev` reads it without `s.mu`,
+and `Restore` has put it in its restoring mode.
+
+**Decided.** The spec is generic in how its caller holds the lock (`Spec/.../store__restore.lean`,
+the `currentRev` bullet). The caller chooses three propositions: `RevP` before the lock, `RevK`
+while it is held, and `RevQ` after the unlock. It supplies two wands, both in `InvStore.lean`:
+- `revLockW s q2 RevP RevK` is `Lock`'s WP, which gives the lock's part `q2` of `currentRev` at
+  any value, together with `RevK`;
+- `revUnlockW s q2 L' RevK V RevQ` is `Unlock`'s WP, which takes that part at `|L'| - 1`, `RevK`
+  and the unlock's view `V`, and gives `RevQ`.
+`restore` keeps the other part `q1` of `currentRev` and a part of `compactMainRev` at `-1`, which
+are enough for its reads outside the lock. `V` holds whatever the caller needs to rebuild its state
+at the unlock:
+- `restore`'s share of the bucket's view, idle after its `RLock`;
+- the index's lock with every reader's token;
+- the restored log's change count below the time receipts' bound.
+
+Each caller then proves the two wands:
+- `NewStore` proves them over private memory (`PlainRWMutex.lean`'s sequential `Lock`/`Unlock`).
+  `RevP`, `RevK` and `RevQ` carry only the store's own resources.
+- `store.Restore` proves them over the live lock (`Lock_guard`/`Unlock_guard` of `revMuInv`). Its
+  `RevK` holds the restoring mode's state. Its unlock wand runs `restore_switch`
+  (`RestoreMoves.lean`) inside the critical section, which moves the store's current objects to the
+  new backend, index and scheduler and refills the readers' pool from `V`.
+
+R4 first settled the question for `NewStore` alone, with plain memory in and out. R5e generalized
+the spec to these wands so that `Restore` could use the same spec.
+
+*Rejected:*
+- `NewStore` allocating the lock before `restore` and passing it in. This fixes one invariant in
+  the spec, so `Restore`'s restoring mode would need a second spec, or the spec would have to
+  quantify over the invariant, which is what the wands do with less ceremony.
+- A restoring mode inside `revMuInv` that `restore` reads directly. This puts `Restore`'s ghost
+  moves into `restore`'s proof, which then depends on the snapshot path's names.
+
+**What it changed.** `store.restore.spec` is an intermediate spec: `NewStore` and `store.Restore`
+are its only users, and no closed theorem states it. Both functions' axioms are gone.
+`mvcc.store.restore.wp_proof` went at R4 (`a90066a654`), replaced by the narrower trust-boundary
+fact `mvcc.kbNoCmp_metaNone`: the backend's compaction keys read nothing when it records no
+compaction. `mvcc.store.Restore.wp_proof` went at R5f (`ddf5c01a7a`, 615 to 614 axioms).
