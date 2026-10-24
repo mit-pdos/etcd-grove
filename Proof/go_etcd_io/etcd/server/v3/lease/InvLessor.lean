@@ -231,15 +231,16 @@ def lessorExtra (lp : Loc) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
     lF go!"b" lp ↦{DFrac.own q.half} b)
 
 /-- **What `le.mu` guards** at fraction `q`: the lease map `M` (whose domain is the live set
-`L`; the lessor's share of it, `q/2`, and of the ghost map's authority), the item map, the range
-deleter; every lease of the map `isLeaseObj`; and (2026-10-13, unit 9) the apply-side fields
+`L`; the lessor's share of it, `q/2`, and of the ghost map's authority), the item map, half of
+the range deleter (`q/2`: unit T3, the other half is `rdOwn`'s, since `Revoke` reads `le.rd`
+after releasing the lock); every lease of the map `isLeaseObj`; and (2026-10-13, unit 9) the apply-side fields
 (`lessorExtra`). -/
 def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
   iprop(∃ (lm im : Loc) (M : GMap w64 Loc) (I : GMap LeaseItem w64) (rd : GoFunc)
       (L : List w64),
     lF go!"leaseMap" lp ↦{DFrac.own q} lm ∗ lm ↦${DFrac.own q} M ∗
     lF go!"itemMap" lp ↦{DFrac.own q} im ∗ im ↦${DFrac.own q} I ∗
-    lF go!"rd" lp ↦{DFrac.own q} rd ∗
+    lF go!"rd" lp ↦{DFrac.own q.half} rd ∗
     lessorAuth γl q lp L ∗ leaseFrag γl q.half L ∗
     ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗
     ([∗map] _id ↦ l ∈ M, isLeaseObj l) ∗ lessorExtra lp M q)
@@ -294,6 +295,13 @@ instance lessorErrIs_persistent (err : GoInterface) : Persistent (lessorErrIs (G
 /-- A reader slot of the lessor's lock (`GetLease`, `Lookup`). -/
 def lessorRd (lp : Loc) (γl : GName) : IProp GF :=
   sync.ownRWMutex (lF go!"mu" lp) (lessorMu lp γl)
+
+/-- **The range deleter's owner** (unit T3, 2026-10-24): the other half of the lessor's `rd`
+field, at `rd`. `SetRangeDeleter` takes it (with the lock's half it writes the field) and
+`Revoke` reads the field by it, outside the lock. `NewLessor` gives it at `nil`; mvcc's
+constructors set the store's deleter with it. -/
+def rdOwn (γl : GName) (rd : GoFunc) : IProp GF :=
+  iprop(∃ lp : Loc, lessorPin γl lp ∗ lF go!"rd" lp ↦{DFrac.own (1 : Qp).half} rd)
 
 /-- **The lease owner's half** of the live set: holding it, `L` is the live set (the apply
 thread's). -/

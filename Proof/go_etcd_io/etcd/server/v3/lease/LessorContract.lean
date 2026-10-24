@@ -69,9 +69,9 @@ theorem isLessor_of_lessorInv
   · iintro !> %id %items %l %dq %Φ !> Hitems HΦ
     iapply (hDt lp γl id items l dq) $$ [Hitems] HΦ
     iframe Hpkg Hinv Hitems
-  · iintro !> %f %Φ !> - HΦ
-    iapply (hSRD lp γl f) $$ [] HΦ
-    iframe Hpkg Hinv
+  · iintro !> %f0 %f %Φ !> Hro HΦ
+    iapply (hSRD lp γl f0 f) $$ [Hro] HΦ
+    iframe Hpkg Hinv Hro
 
 /-- **The txn package's lessor contract, of the real lessor**: mvcc's, and `Lookup(id)` by the
 lease owner (`lessorUser γl L`) returns nil or a lease of the live set `L`. -/

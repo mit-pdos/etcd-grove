@@ -1240,9 +1240,9 @@ owner's half and the lease's membership, and `GetLease` a reader slot of the les
 `GetLease(item)` returns some lease id (`NoLease` if none), with a reader slot; `Attach(id,
 items)` of a live lease (`id ∈ L`, the owner's half held) returns `nil`; `Detach(id, items)`
 returns `nil` or an error (which the code logs). The items are read. `SetRangeDeleter(f)`
-returns: `NewStore` passes the closure `func() lease.TxnDelete { return s.Write(traceutil.TODO())
-}` (the store's own verified `store.Write`), which the contract takes as an opaque value; the
-lessor's later calls of it (`Revoke`) are outside the model. The lessor's ghost name `γl` is its
+sets the deleter, by its owner (`lease.rdOwn γl`, unit T3): `NewStore` passes the closure
+`func() lease.TxnDelete { return s.Write(traceutil.TODO()) }` (the store's own verified
+`store.Write`), `newWatchableStore` the watchable store's. The lessor's ghost name `γl` is its
 own (it exists before the store). -/
 def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
   iprop(∃ lp : Loc, ⌜le = lease.lessorIface lp⌝ ∗ lease.lessorPin γl lp ∗
@@ -1263,11 +1263,11 @@ def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"Detach" #lp)) (Val #id)) (Val #items))
       {{ (err : GoInterface), RET #err; items ↦*{dq} l }}) ∗
-    □ (∀ f : GoFunc,
-      {{ True }}
+    □ (∀ (f0 f : GoFunc),
+      {{ lease.rdOwn γl f0 }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"SetRangeDeleter" #lp)) (Val #f))
-      {{ RET #(); True }}))
+      {{ RET #(); lease.rdOwn γl f }}))
 
 instance isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (isLessor (GF := GF) le γl) := by
   unfold isLessor; infer_instance

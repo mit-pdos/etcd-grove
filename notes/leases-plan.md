@@ -76,14 +76,27 @@ derived in `isApplyLessor_of_lessorInv`.
   `SetRangeDeleter` takes the token and `rdIs`; `NewLessor`'s axiom returns `rdOwn lp nil` (its
   statement changes, not the count); `NewStore`/`newWatchableStore` thread it, ending at the
   watchable store's KV; the server's apply thread holds it. No ghost variable needed.
+  *Done (2026-10-24)*, but for `rdIs` (with L2d, where `Revoke` needs it): `lessorMu`'s `rd` at
+  `q/2`, `lease.rdOwn γl rd`, `SetRangeDeleter` by the owner, mvcc's `isLessor` clause, `NewStore`
+  / `newWatchableStore` / `New` and the backend wrappers (`NewStore_backend`,
+  `mvcc_NewStore_backend`, `server_kv_backend`, `server_kv_backend_hooks`,
+  `server_kv_watchable`) take `rdOwn γl rd0` and return it; `NewLessor`'s axiom gives
+  `rdOwn γl func.nil`; `NewServer` passes it to `mvcc.New` and drops what comes back (until L3).
 - **L2b, the item sets.** Nothing yet relates a lease's `itemSet` to the store's state: the store
   calls `Attach`/`Detach` but `leasesKnown` only says a key's lease is live. `Revoke` deletes
   `l.Keys()`, so the model's `revokeChanges` needs `itemSet(id) = {k | σ.kvs[k].lease = id}`, an
   invariant over the store's state and the lessor's per-lease sets, kept by the put and delete
   paths (`Attach` on a put with a lease, `Detach` of the previous lease). This is the largest piece
   of L2 and touches mvcc's write path proofs.
-- **L2c, `revokec`.** `Revoke` closes `l.revokec` (read-only field today); the close right goes in
-  the lease's map entry at `Grant` (`NewLease` makes the channel) and `Revoke` takes it.
+- **L2c, `revokec`.** `Revoke` closes `l.revokec` (read-only field today). The close right
+  (`ownBroadcastChan`, as the store's `stopCloser`) is exclusive, so it cannot sit in `le.mu`'s
+  invariant, which is fractional for the readers (`lessorMu lp γl q`; `NewLessor`'s axiom asserts
+  its splitting law). So it goes with the lease owner: a ghost map `γcl` (lease id to `*Lease`),
+  its authority at `q` in `le.mu` at the lease map `M`, its exclusive elements with each lease's
+  close right in the owner's resource beside `leaseOwn`; `Grant` inserts (the channel from
+  `NewLease`, whose spec then returns its ownership), `Revoke` deletes at its second critical
+  section and closes after. `γcl` is pinned with the lessor (`lessorPinG`'s tuple), another change
+  to `NewLessor`'s statement.
 - **L2d, the rest of `Revoke`.** `l.Keys()` (translated, unproved), `sort.StringSlice.Sort`
   (Perennial's sort specs), the deletes through `rd()`'s `TxnDelete` (the KV writer's
   `DeleteRange`/`End`), `schema.UnsafeDeleteLease` under the batch lock with the bucket right
