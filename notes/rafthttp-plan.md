@@ -901,9 +901,45 @@ This is D22's interface: its statement is agreed with the D22 owner before 7b.
 - **7a. Scope** (this section), D42: (A), the user's choice. *Still open: the D22 owner's
   agreement on `SaveDBFrom`'s spec and on the HTTP boundary's streamed body, asked with 7b's
   statements.*
-- **7b. Boundary statements**: the streamed-body request kind (or (B)'s pair), `snapReq`
-  defined in `Stream.lean` with its deposit and withdrawal lemma, `SaveDBFrom`'s spec, the small
-  library specs. Statements only, for review.
+- **7b. Boundary statements** (drafted 2026-10-24, for review; the D22 owner's agreement pending
+  on the three `snap` statements):
+  - *The HTTP boundary* (`Proof/net/http/Boundary.lean`, mine): a protocol's streamed requests
+    (`Proto.streamed`) and their contract (`Proto.sreq R γk Pre Φ`: every prefix of the body in
+    `Pre`, every complete stream in `Φ`); the client's stream reader (`streamReaderOk`, a `Read`
+    contract over a state `Src`, transparent so that wrappers such as `ReaderAndCloser` are
+    proved; `streamHas`, its right at the start, with `prefixClosed Pre`); a request's body kind
+    (`Body`: `fixed bs` or `stream Pre Φ`; `bodyHas`, `reqStream`, `reqSendOk`); `NewRequest` and
+    `WithContext` over either kind; `RoundTrip` of a body of the kind the protocol allows; the
+    handler's body (`reqBody`: `bodyReader` for a request the protocol does not stream,
+    `bodyStream` for one it does, with the protocol's `sreq`), `bodyStreamRead_spec` (the
+    physical assumption: what the server reads of a chunked body is a prefix of what the
+    client's reader yielded, `EOF` only where its stream ended), `ReadFull_stream_spec` (the
+    envelope decoder's read), `bodyStream_streamReaderOk`.
+  - *The raft protocol* (`Stream.lean`): `snapReq` defined (the sender's `fromOkAt`, was opaque),
+    `snapStreamed` (a `POST` to `snapPath`), `snapSReq` (the body's prefixes comparable with the
+    frame of an encoding `bs` of a `MsgSnap` `st` of index `i` for the request's host's member, its
+    complete streams the frame followed by a bbolt image of `D`; `□ N.P st`, the deposit of `N.O
+    st` under the ticket, `□ N.img i D`).
+  - *`io.MultiReader`* (`Spec/io/MultiReader.lean`, mine): the envelope's buffer (`ownBuffer`)
+    then the merged message's reader (`readerStreams`): `streamHas` of `pre`'s comparable prefixes
+    and `pre ++` its complete streams. The buffer's `Write` is the existing `bytes.Buffer.Write`
+    spec (k8s-etcd3's), its allocation `ownBuffer_new`.
+  - *D22's interface* (`Spec/.../snap/`, for the D22 owner): `snap.Message.fields.spec` (what
+    reading `Message`, `TotalSize` and `ReadCloser` of a `msgIs` gives: the raft message, some
+    size, and the exact-size reader around `rc`, whose complete streams are `rc`'s and whose
+    `Close` returns from any goroutine: `send` closes it on the stop path while the request's
+    goroutine may still be reading it), `snap.Message.CloseWithError.spec` (returns, from
+    `msgIs`), `snap.Snapshotter.SaveDBFrom.spec` (over any `streamReaderOk` reader from what has
+    been read, the rest's complete streams images of `D` with `□ img id D`, and `snapDirInv`: on
+    success the rest read to its end and `snapSaved γd id`). The plan's list had `SaveDBFrom` and
+    `CloseWithError`; the message's fields are new (`msgIs` is opaque).
+  - *The stage 4-6 proofs, updated*: `createPostRequest`'s spec over either body kind (the sender
+    posts a stream with it); the pipeline's `post` and the stream's `dial` send a fixed body
+    (`reqSendOk`: not a snapshot `POST`); the pipeline and stream handlers get their bytes from
+    `reqBody` (`reqBody_fixed`: their paths are not the snapshot's, `route_stream_snap`). Unlike
+    the plan's risk (1) said, these changed, by a few lines each.
+  - The axioms are unchanged: the sender's and the handler's stand until 7d/7e; the new specs are
+    statements only, linked (as axioms) when their callers' proofs use them.
 - **7c. Translation**: drop the snapshot names from `rafthttp.toml`'s exclusions (the sender,
   `createSnapBody`, `snapResponseReadTimeout`, the handler, `SendSnapshot`, `sendSnap`, the five
   snapshot metrics' initializers as `opaqueInitsOk`); `pkg/v3/ioutil`'s `ReaderAndCloser` with
@@ -923,7 +959,8 @@ This is D22's interface: its statement is agreed with the D22 owner before 7b.
   items in), the collections, STATUS, decisions.
 
 **Risks.** (1) The streamed body is a new kind of request in a boundary every rafthttp proof
-uses; (A) adds it beside the fixed-body kind, so the stage 4-6 proofs are untouched. (2) The
+uses; (A) adds it beside the fixed-body kind (7b: the stage 4-6 proofs changed by a few lines, a
+request's kind to show at each `RoundTrip` and each handler). (2) The
 handler reads one body twice (the decoder's prefix, then `SaveDBFrom`'s rest): the stream contract
 must split at a prefix (a lemma of the reader's contract, as `bodyReader_prefixOk`). (3) D22's
 interfaces (`snapDirInv`, `readerStreams`, `snap.Message`'s predicates) are another owner's; stage

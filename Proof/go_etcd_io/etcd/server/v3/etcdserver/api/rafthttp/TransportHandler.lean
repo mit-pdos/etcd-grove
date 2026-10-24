@@ -82,6 +82,15 @@ theorem http.route_stream (pats : List GoString) (p : GoString)
   revert this
   decide
 
+/-- A path routed to the stream prefix is not the snapshot's (D42, stage 7b). -/
+theorem http.route_stream_snap (pats : List GoString) (p : GoString)
+    (h : http.route pats p = some go!"/raft/stream/") : p ≠ snapPath := by
+  have := http.route_matches _ _ _ h
+  intro hp
+  subst hp
+  revert this
+  decide
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -184,6 +193,10 @@ theorem pipe_handlerFor (hServe : rafthttp.pipelineHandler.ServeHTTP.spec (GF :=
   ihave #Hreq : (raftProto Rh).req R γk $$ []
   · rw [show (raftProto Rh).req R γk = ((raftHttpNet Rh).proto a).req R γk from rfl]
     iexact Hreq0
+  ihave Hbody := http.reqBody_fixed (raftHttpNet Rh) a R γk rd (fun h => by
+    simp only [raftHttpNet, raftProto, snapStreamed] at h
+    rw [http.route_raft _ _ Hr.2] at h
+    exact absurd h.2 (by decide)) $$ Hbody
   iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_raft _ _ Hr.2)) $$ Hpkg Hh Hra Hreq Htk
     Hbody Hw Hhd %Hfl HRs
 
@@ -204,6 +217,9 @@ theorem stream_handlerFor (hServe : rafthttp.streamHandler.ServeHTTP.spec (GF :=
   ihave #Hreq : (raftProto Rh).req R γk $$ []
   · rw [show (raftProto Rh).req R γk = ((raftHttpNet Rh).proto a).req R γk from rfl]
     iexact Hreq0
+  ihave Hbody := http.reqBody_fixed (raftHttpNet Rh) a R γk rd (fun h => by
+    simp only [raftHttpNet, raftProto, snapStreamed] at h
+    exact http.route_stream_snap _ _ Hr.2 h.2) $$ Hbody
   iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_stream _ _ Hr.2)) $$ Hpkg Hh Hra Hreq
     Htk Hbody Hw Hhd %Hfl HRs
 

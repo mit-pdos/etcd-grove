@@ -352,8 +352,9 @@ theorem rafthttp.streamReader.dial.wp_proof
   -- `http.NewRequest("GET", uu.String(), nil)`: no error
   wp_apply hURLString uu_ptr _ { u with Path' := streamPath ty lid } hu1 hu2 hu3 hu4 hu5 hu6 hu7 hu8 hu9 $$ [$uu] as uu
   ihave Hnb := hNilBody
-  wp_apply hNewRequest go!"GET" _ GoInterface.nil [] u.Host' (streamPath ty lid) rfl hhost
-    (Or.inr rfl) $$ [$Hnb] as %req Hreq
+  wp_apply hNewRequest go!"GET" _ GoInterface.nil (.fixed []) u.Host' (streamPath ty lid) rfl hhost
+    (Or.inr rfl) $$ [Hnb] as %req ⟨Hreq, Hstr⟩
+  · rw [http.bodyHas_fixed]; iexact Hnb
   (try wp_auto)
   -- the headers
   iunfold http.reqOwn at Hreq
@@ -373,7 +374,7 @@ theorem rafthttp.streamReader.dial.wp_proof
   wp_apply hSetPeer req _ urls uvs $$ [$Hreq] as ⟨%hs, -, Hreq⟩
   · iframe #
   (try wp_auto)
-  wp_apply hWithContext req _ ctx $$ [$Hreq] as %req' Hreq
+  wp_apply hWithContext req _ (.fixed []) ctx $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr⟩
   (try wp_auto)
   ihave #Hfmtp : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
@@ -418,7 +419,12 @@ theorem rafthttp.streamReader.dial.wp_proof
     ihave #Hpa : http.httpProtoAt u.Host' ((raftHttpNet Rh).proto u.Host') $$ []
     · rw [show (raftHttpNet Rh).proto u.Host' = raftProto Rh from rfl]
       iexact Hpa0
-    wp_apply HRT $$ [$Hreq $Htk $Hpa $Hpr] as %resp %rerr ⟨Hreq, Hres⟩
+    ihave #Hso : http.reqSendOk (raftHttpNet Rh) ⟨go!"GET", u.Host', streamPath ty lid, hs, []⟩ γk
+        (.fixed []) $$ []
+    · ipureintro
+      simp only [raftHttpNet, raftProto, snapStreamed]
+      exact fun h => absurd h.1 (by decide)
+    wp_apply HRT $$ [$Hreq $Hstr $Hso $Htk $Hpa $Hpr] as %resp %rerr ⟨Hreq, Hres⟩
     (try wp_auto)
     icases Hres with (⟨%Herr, #HerrS⟩ | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr, #Hrc⟩)
     · -- `RoundTrip` failed

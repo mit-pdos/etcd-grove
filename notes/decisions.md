@@ -18149,3 +18149,20 @@ changes; (A) leaves fewer assumptions and touches D22's interfaces only through 
 The user chose (A): it leaves fewer assumptions, and both sides of the transfer are proved. What
 remains open is the D22 owner's agreement on `SaveDBFrom`'s statement and on the streamed body's
 use of `readerStreams`, which stage 7b's statements are drafted for.
+
+**7b's shape (2026-10-24).** The kind of a request's body is the protocol's, not the request's
+(`Proto.streamed`): the server cannot tell a chunked body from a fixed one by anything the
+handler sees, so the handler's body (`reqBody`) is chosen by the protocol, and `RoundTrip` checks
+the client agrees (`reqSendOk`: a fixed body only for a request the protocol does not stream, a
+stream only for one it does, with its `sreq`). Without the check a fixed body sent to the
+snapshot path would reach a handler expecting the protocol's stream contract, which the client
+never gave. A stream's contract has two parts: `Pre` of every prefix (the handler decodes the
+envelope before the stream ends, and needs to know the frame it reads is the sender's: `Pre`
+says every prefix is comparable with that frame, which the sender knows when it builds the body)
+and `Φ` of a complete stream (the image, learned only at `EOF`). The certificates (`N.P`, the
+deposit, `N.img i D`) are in `sreq`, persistent at send time: only the image-ness of the bytes is
+learned at the end. The client's stream reader is a `Read` contract (`streamReaderOk`), not an
+opaque predicate, so that the sender's `ReaderAndCloser` wrapper is proved; D22's opaque
+`readerStreams` enters only through `io.MultiReader`'s spec. `RoundTrip` gives the request back
+after consuming a stream; a second send of it would need another `sreq` (another deposit) and its
+reader yields nothing, so `prefixClosed` asks `Pre []`.

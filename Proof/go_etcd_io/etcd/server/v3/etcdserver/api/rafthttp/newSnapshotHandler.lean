@@ -33,8 +33,8 @@ handler (`http.go:182-330`) is an `*snapshotHandler` of the transport's logger a
   the body is chunked, the exact-size reader `NewMessage` wraps errors on a short or long stream)
   and to `E`; nothing at a kept file; so `snapSaved γd i` (`netSnapRecv`);
 * then it calls `Process` (borrowing `R`, as `netRaftOk` allows) with the message: a POST to the
-  snapshot path is a snapshot sender's (`snapReq`, the protocol's; the sender's axiom posts it,
-  `snapSenderOk`), whose envelope is a message a started transport was given by `SendSnapshot` for
+  snapshot path is a snapshot sender's (`snapReq`, the protocol's; (D42, stage 7b) its body a
+  stream of the contract `snapSReq`, the handler's `reqBody`), whose envelope is a message a started transport was given by `SendSnapshot` for
   the member owning `a`, with its bundle (`netRecv`: its one-shot part, withdrawn once, by the
   request's ticket); on an error, a `writerToResponse`'s status (etcd's `Process` makes `403`,
   for a removed member, none here) or `500`; else `204`.
