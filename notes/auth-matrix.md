@@ -199,3 +199,12 @@ needs the authority in the apply environment); `UserGrantRole`, `UserRevokeRole`
 `RoleGrantPermission`, `RoleRevokePermission`, `UserGet`, `RoleGet`, `UserList`, `RoleList` are
 translated, not proved.
 
+
+**At apply** (S4's apply part, 2026-10-24; `notes/decisions.md`, "S4's apply part";
+`apply/AuthSteps.lean`): `applierV3backend.AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`,
+`UserChangePassword`, `RoleAdd` perform the store's step (`apply_AuthEnable_step`, ...,
+`etcdserver/Results.lean`), from the auth store's `isAuthSteps` (of the real store:
+`auth_apply_steps`), the admin side's authority and the store's write resource; with A3's
+`adminPass`, an applied one is a step of the history made by an admin. The other admin rows at
+apply (`UserGrantRole`, `UserRevokeRole`, `RoleDelete`, `RoleGrantPermission`,
+`RoleRevokePermission`, the reads) keep the contract clause.

@@ -52,6 +52,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthSteps
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadRaft
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
@@ -1058,10 +1059,57 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
     lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lp s γ P f RW
 
+/-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
+apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
+`apply.isAuthSteps` with its write resource `auth.authWR st M P f T`, from S4's proofs of
+`AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd`. -/
+theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val)
+    (T : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
+      EtcdGrove.apply.isAuthSteps (auth.authIface st) P f M (auth.authWR st M P f T) :=
+  EtcdGrove.apply.isAuthSteps_of_authInv auth.authStore.wp_AuthEnable auth.authStore.wp_AuthDisable
+    auth.authStore.wp_UserAdd auth.authStore.wp_UserDelete auth.authStore.wp_UserChangePassword
+    auth.authStore.wp_RoleAdd st R M P f T
+
+/-- **The apply layer's admin requests perform the model's step** (`apply/AuthSteps.lean`):
+`applierV3backend.X` from the backend's options' `isAuthSteps`, the admin side's authority and
+the store's write resource. -/
+theorem apply_AuthEnable_step :
+    EtcdGrove.apply.applierV3backend.AuthEnable.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.AuthEnable.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_AuthDisable_step :
+    EtcdGrove.apply.applierV3backend.AuthDisable.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.AuthDisable.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_UserAdd_step :
+    EtcdGrove.apply.applierV3backend.UserAdd.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserAdd.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_UserDelete_step :
+    EtcdGrove.apply.applierV3backend.UserDelete.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserDelete.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_UserChangePassword_step :
+    EtcdGrove.apply.applierV3backend.UserChangePassword.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserChangePassword.wp_step
+    EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_RoleAdd_step :
+    EtcdGrove.apply.applierV3backend.RoleAdd.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleAdd.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
 end backend
 
 #print axioms Perennial.EtcdGrove.lessor_server_contract
 #print axioms Perennial.EtcdGrove.lessor_apply_contract
+#print axioms Perennial.EtcdGrove.auth_apply_steps
+#print axioms Perennial.EtcdGrove.apply_AuthEnable_step
+#print axioms Perennial.EtcdGrove.apply_AuthDisable_step
+#print axioms Perennial.EtcdGrove.apply_UserAdd_step
+#print axioms Perennial.EtcdGrove.apply_UserDelete_step
+#print axioms Perennial.EtcdGrove.apply_UserChangePassword_step
+#print axioms Perennial.EtcdGrove.apply_RoleAdd_step
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
