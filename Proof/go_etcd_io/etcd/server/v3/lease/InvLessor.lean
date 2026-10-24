@@ -98,6 +98,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
+/-- **The right to close a lease's `revokec`** (unit T3, 2026-10-24): `NewLease` makes it,
+`Revoke` closes the channel with it. -/
+def revokeCloser (c : GoChan) : IProp GF :=
+  iprop(∃ γc : ChanNames, isChan c γc Unit ∗ ownChan γc Unit .Idle)
+
 /-- What a lease's lock `l.mu` guards: its item set. -/
 def leaseItems (l : Loc) (q : Qp) : IProp GF :=
   iprop(∃ (sm : Loc) (S : GMap LeaseItem Unit), lsF go!"itemSet" l ↦{DFrac.own q} sm ∗
@@ -110,31 +115,32 @@ def isLeaseObj (l : Loc) : IProp GF :=
 instance isLeaseObj_persistent (l : Loc) : Persistent (isLeaseObj (GF := GF) l) := by
   unfold isLeaseObj; infer_instance
 
-/-- The values of the lessor's ghost map `γl`: at `false` its location and the name of its grant
-guard (D19n), at `true` its live set. -/
-abbrev LessorGV := (Loc × GName) ⊕ List w64
+/-- The values of the lessor's ghost map `γl`: at `false` its location, the name of its grant
+guard (D19n) and (unit T3) of its closers' map `γcl` (lease id to `*Lease`), at `true` its live
+set. -/
+abbrev LessorGV := (Loc × GName × GName) ⊕ List w64
 
 /-- The lessor's ghost map `γl`'s contents: its location and its grant guard's name `γga` at
 `false` (pinned for good), its live set at `true`. -/
-def lessorGhost (lp : Loc) (γga : GName) (L : List w64) : GMap Bool LessorGV :=
-  (((∅ : GMap Bool LessorGV).insert false (Sum.inl (lp, γga))).insert true (Sum.inr L))
+def lessorGhost (lp : Loc) (γga γcl : GName) (L : List w64) : GMap Bool LessorGV :=
+  (((∅ : GMap Bool LessorGV).insert false (Sum.inl (lp, γga, γcl))).insert true (Sum.inr L))
 
 /-- A share `q` of the live set `L` (the ghost map `γl`'s element `true`). -/
 def leaseFrag (γl : GName) (q : Qp) (L : List w64) : IProp GF :=
   ghostMapElem γl true (DFrac.own q) (Sum.inr L : LessorGV)
 
-/-- The lessor of `γl` is at `lp`, its grant guard named `γga` (persistent: the ghost map's
-element `false`, discarded). -/
-def lessorPinG (γl : GName) (lp : Loc) (γga : GName) : IProp GF :=
-  ghostMapElem γl false DFrac.discard (Sum.inl (lp, γga) : LessorGV)
+/-- The lessor of `γl` is at `lp`, its grant guard named `γga`, its closers' map `γcl`
+(persistent: the ghost map's element `false`, discarded). -/
+def lessorPinG (γl : GName) (lp : Loc) (γga γcl : GName) : IProp GF :=
+  ghostMapElem γl false DFrac.discard (Sum.inl (lp, γga, γcl) : LessorGV)
 
-instance lessorPinG_persistent (γl : GName) (lp : Loc) (γga : GName) :
-    Persistent (lessorPinG (GF := GF) γl lp γga) := by
+instance lessorPinG_persistent (γl : GName) (lp : Loc) (γga γcl : GName) :
+    Persistent (lessorPinG (GF := GF) γl lp γga γcl) := by
   unfold lessorPinG; infer_instance
 
 /-- The lessor of `γl` is at `lp` (persistent). -/
 def lessorPin (γl : GName) (lp : Loc) : IProp GF :=
-  iprop(∃ γga : GName, lessorPinG γl lp γga)
+  iprop(∃ γga γcl : GName, lessorPinG γl lp γga γcl)
 
 instance lessorPin_persistent (γl : GName) (lp : Loc) : Persistent (lessorPin (GF := GF) γl lp) := by
   unfold lessorPin; infer_instance
@@ -145,7 +151,8 @@ with `GA` of its id (`Grant`'s `leaseGranted`); so every lease of the lessor's m
 lease its expiry loop sends on `expiredC`, has it. A server whose policy admits no `LeaseGrant`
 picks `GA := False`. -/
 def lessorGuard (γl : GName) (GA : w64 → IProp GF) : IProp GF :=
-  iprop(∃ (lp : Loc) (γga : GName), lessorPinG γl lp γga ∗ savedPredOwn γga DFrac.discard GA)
+  iprop(∃ (lp : Loc) (γga γcl : GName), lessorPinG γl lp γga γcl ∗
+    savedPredOwn γga DFrac.discard GA)
 
 instance lessorGuard_persistent (γl : GName) (GA : w64 → IProp GF) :
     Persistent (lessorGuard (GF := GF) γl GA) := by
@@ -160,9 +167,9 @@ instance leaseGranted_persistent (γl : GName) (id : w64) :
   unfold leaseGranted; infer_instance
 
 /-- **The lessor's share `q` of its ghost map's authority**, at the live set `L`, every lease of
-which may be granted (D19n). -/
-def lessorAuth (γl : GName) (q : Qp) (lp : Loc) (L : List w64) : IProp GF :=
-  iprop(∃ γga : GName, ghostMapAuth γl q (lessorGhost lp γga L) ∗
+which may be granted (D19n); (unit T3) and of its closers' map, at the lease map `M`. -/
+def lessorAuth (γl : GName) (q : Qp) (lp : Loc) (L : List w64) (M : GMap w64 Loc) : IProp GF :=
+  iprop(∃ γga γcl : GName, ghostMapAuth γl q (lessorGhost lp γga γcl L) ∗ ghostMapAuth γcl q M ∗
     □ ([∗list] id ∈ L, leaseGranted γl id))
 
 /-! ### The lessor's apply-side state (2026-10-13, unit 9)
@@ -241,7 +248,7 @@ def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
     lF go!"leaseMap" lp ↦{DFrac.own q} lm ∗ lm ↦${DFrac.own q} M ∗
     lF go!"itemMap" lp ↦{DFrac.own q} im ∗ im ↦${DFrac.own q} I ∗
     lF go!"rd" lp ↦{DFrac.own q.half} rd ∗
-    lessorAuth γl q lp L ∗ leaseFrag γl q.half L ∗
+    lessorAuth γl q lp L M ∗ leaseFrag γl q.half L ∗
     ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗
     ([∗map] _id ↦ l ∈ M, isLeaseObj l) ∗ lessorExtra lp M q)
 
@@ -303,9 +310,19 @@ constructors set the store's deleter with it. -/
 def rdOwn (γl : GName) (rd : GoFunc) : IProp GF :=
   iprop(∃ lp : Loc, lessorPin γl lp ∗ lF go!"rd" lp ↦{DFrac.own (1 : Qp).half} rd)
 
+/-- **The lease owner's closers** (unit T3, 2026-10-24): for every lease of the live set `L`,
+the closers' map's element (its `*Lease`, which the lessor's map agrees with) and the right to
+close its `revokec`. Exclusive, so outside `le.mu`'s fractional invariant. -/
+def leaseClosers (γl : GName) (L : List w64) : IProp GF :=
+  iprop(∃ (lp : Loc) (γga γcl : GName) (C : GMap w64 Loc), lessorPinG γl lp γga γcl ∗
+    ⌜∀ id : w64, id ∈ L ↔ (C.lookup id).isSome⌝ ∗
+    [∗map] id ↦ l ∈ C, ghostMapElem γcl id (DFrac.own 1) l ∗
+      ∃ c : GoChan, lsF go!"revokec" l ↦□ c ∗ revokeCloser c)
+
 /-- **The lease owner's half** of the live set: holding it, `L` is the live set (the apply
-thread's). -/
-def leaseOwn (γl : GName) (L : List w64) : IProp GF := leaseFrag γl (1 : Qp).half L
+thread's); (unit T3) with the live leases' closers. -/
+def leaseOwn (γl : GName) (L : List w64) : IProp GF :=
+  iprop(leaseFrag γl (1 : Qp).half L ∗ leaseClosers γl L)
 
 /-- A reader slot of the lessor of `γl`, wherever it is (`lessorPin`). -/
 def lessorRdOf (γl : GName) : IProp GF :=
@@ -320,7 +337,7 @@ def lessorUser (γl : GName) (L : List w64) : IProp GF :=
 theorem lessorPin_agree (γl : GName) (lp lp' : Loc) :
     lessorPin (GF := GF) γl lp ∗ lessorPin γl lp' ⊢ ⌜lp = lp'⌝ := by
   unfold lessorPin lessorPinG
-  iintro ⟨⟨%γ1, H1⟩, ⟨%γ2, H2⟩⟩
+  iintro ⟨⟨%γ1, %γ1', H1⟩, ⟨%γ2, %γ2', H2⟩⟩
   icombine H1 H2 gives %H
   ipureintro
   have h2 := H.2

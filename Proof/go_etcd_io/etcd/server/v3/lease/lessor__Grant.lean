@@ -100,7 +100,7 @@ theorem lease.lessor.Grant.wp_proof
     iframe Hetl
     ipureintro; exact ⟨Or.inr (Or.inr rfl), rfl⟩
   (try wp_auto)
-  wp_apply hNew as %l ⟨%Hlnn, HID, Httl, Hrem, HexMu, Hexp, Hmu0, ⟨%sm, HiS, Hsm⟩, ⟨%rc, Hrc⟩⟩
+  wp_apply hNew as %l ⟨%Hlnn, HID, Httl, Hrem, HexMu, Hexp, Hmu0, ⟨%sm, HiS, Hsm⟩, ⟨%rc, Hrc, Hrcl⟩⟩
   ipersist HID
   ipersist Hrc
   -- the new lease's locks
@@ -124,6 +124,7 @@ theorem lease.lessor.Grant.wp_proof
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx⟩
   iunfold leaseOwn at Hown
+  icases Hown with ⟨Hown, Hcls⟩
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
   iunfold lessorExtra at Hx
@@ -150,7 +151,7 @@ theorem lease.lessor.Grant.wp_proof
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
     iunfold leaseOwn
-    iframe Hown HPre
+    iframe Hown Hcls HPre
     isplitr
     · ipureintro; intro h; cases h
     iunfold lessorErrIs
@@ -214,7 +215,8 @@ theorem lease.lessor.Grant.wp_proof
       wp_join_done
     (try wp_auto)
     -- the live set grows; the lessor's state with the new lease
-    imod lessor_live_grant γl lp L id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
+    imod closers_grant γl lp L M id l rc hM HL $$ [$Ha $Hcls $Hrc $Hrcl] with ⟨Ha, Hcls⟩
+    imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
     ihave Hml : leaseMeta id l 1 $$ [Hrem Hexp]
     · iunfold leaseMeta
       iframe HID HexG
@@ -256,7 +258,7 @@ theorem lease.lessor.Grant.wp_proof
     iframe Hrtk
     iright
     iunfold leaseOwn
-    iframe Hown HPost HID
+    iframe Hown Hcls HPost HID
     isplitr
     · ipureintro; exact ⟨rfl, Hlnn, hnot⟩
     iexists t; iexact Httl

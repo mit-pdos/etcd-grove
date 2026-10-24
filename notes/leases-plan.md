@@ -97,10 +97,21 @@ derived in `isApplyLessor_of_lessorInv`.
   `NewLease`, whose spec then returns its ownership), `Revoke` deletes at its second critical
   section and closes after. `γcl` is pinned with the lessor (`lessorPinG`'s tuple), another change
   to `NewLessor`'s statement.
-- **L2d, the rest of `Revoke`.** `l.Keys()` (translated, unproved), `sort.StringSlice.Sort`
-  (Perennial's sort specs), the deletes through `rd()`'s `TxnDelete` (the KV writer's
-  `DeleteRange`/`End`), `schema.UnsafeDeleteLease` under the batch lock with the bucket right
-  (as `Grant`'s `persistTo`), the `leaseRevoked` counter.
+  *Done (2026-10-24).* `revokeCloser c` (the channel's `isChan` and `ownChan … .Idle`: not
+  `ownBroadcastChan`, which needs `HeapGS HasLC.hasLC` where the lease package's definitions are
+  generic; `Revoke` makes the broadcast channel when it closes it), `NewLease` returns it;
+  `lessorPinG γl lp γga γcl`; `lessorAuth γl q lp L M` with `ghostMapAuth γcl q M`;
+  `leaseClosers γl L`, now part of `leaseOwn`; `closers_grant` (with `lessorAuth_pin`) in
+  `Grant`.
+- **L2d, the rest of `Revoke`.** `l.Keys()` (translated, unproved), `sort.StringSlice.Sort`,
+  the deletes through `rd()`'s `TxnDelete` (the KV writer's `DeleteRange`/`End`),
+  `schema.UnsafeDeleteLease` with the bucket right while the KV write transaction holds the batch
+  lock (as `Grant`'s `persistTo`), the `leaseRevoked` counter. Two callees have no model:
+  `sort.StringSlice`'s methods are not in Perennial's `sort` (its type only; `sort.Strings` is
+  proved over `slices.Sort`), and `schema.UnsafeDeleteLease` is names-only here (as
+  `MustUnsafePutLease`, an axiom). Each needs a trust-boundary spec here (+2 axioms) or a
+  translation (Perennial's `sort` for the first: a Perennial change, `notes/perennial-changes.md`;
+  etcd's goose configuration for the second).
 
 **L3. The apply thread with leases.** `leasesKnown` becomes an equality: the lessor's live set
 (`leaseOwn γ.leases L`) is the model's table's ids. `plainCover` admits `LeaseGrant`,

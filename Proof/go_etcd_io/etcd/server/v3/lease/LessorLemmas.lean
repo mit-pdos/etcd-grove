@@ -114,8 +114,8 @@ instance leaseExpiry_fractional (l : Loc) : Fractional (leaseExpiry (GF := GF) l
       iexists e1
       iapply (typedPointsto_frac_add _ _ _ _).2; iframe
 
-theorem lessorGhost_insert (lp : Loc) (γga : GName) (L L' : List w64) :
-    (lessorGhost lp γga L).insert true (Sum.inr L' : LessorGV) = lessorGhost lp γga L' := by
+theorem lessorGhost_insert (lp : Loc) (γga γcl : GName) (L L' : List w64) :
+    (lessorGhost lp γga γcl L).insert true (Sum.inr L' : LessorGV) = lessorGhost lp γga γcl L' := by
   apply GMap.ext
   intro k
   unfold lessorGhost
@@ -123,13 +123,13 @@ theorem lessorGhost_insert (lp : Loc) (γga : GName) (L L' : List w64) :
 
 /-- **The live set grows by a lease that may be granted** (`leaseGranted`, D19n), with both
 halves (the lessor's under `le.mu`, the owner's). -/
-theorem lessor_live_grant (γl : GName) (lp : Loc) (L : List w64) (id : w64) :
-    lessorAuth (GF := GF) γl 1 lp L ∗ leaseFrag γl (1 : Qp).half L ∗
+theorem lessor_live_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc) (id : w64) :
+    lessorAuth (GF := GF) γl 1 lp L M ∗ leaseFrag γl (1 : Qp).half L ∗
       leaseFrag γl (1 : Qp).half L ∗ leaseGranted γl id ==∗
-      lessorAuth γl 1 lp (L ++ [id]) ∗ leaseFrag γl (1 : Qp).half (L ++ [id]) ∗
+      lessorAuth γl 1 lp (L ++ [id]) M ∗ leaseFrag γl (1 : Qp).half (L ++ [id]) ∗
         leaseFrag γl (1 : Qp).half (L ++ [id]) := by
   unfold lessorAuth leaseFrag
-  iintro ⟨⟨%γga, Ha, #Hgr⟩, H1, H2, #Hid⟩
+  iintro ⟨⟨%γga, %γcl, Ha, Hcl, #Hgr⟩, H1, H2, #Hid⟩
   ihave #Hl : iprop([∗list] x ∈ L ++ [id], leaseGranted (GF := GF) γl x) $$ []
   · iapply BigSepL.bigSepL_snoc.2
     iframe Hgr Hid
@@ -138,15 +138,80 @@ theorem lessor_live_grant (γl : GName) (lp : Loc) (L : List w64) (id : w64) :
   · rw [dfrac_own_half_half 1]; iexact H
   imod ghost_map_update (Sum.inr (L ++ [id]) : LessorGV) $$ Ha H with ⟨Ha, H⟩
   rw [lessorGhost_insert]
-  isplitl [Ha]
-  · iexists γga
-    iframe Ha
+  isplitl [Ha Hcl]
+  · iexists γga, γcl
+    iframe Ha Hcl
     iframe Hl
   ihave H : ghostMapElem (GF := GF) γl true (DFrac.own ((1 : Qp).half + (1 : Qp).half))
       (Sum.inr (L ++ [id]) : LessorGV) $$ [H]
   · rw [Qp.half_add_half]; iexact H
   iapply ((ghostMapElem_fractional (GF := GF) true γl (Sum.inr (L ++ [id]) : LessorGV)).fractional
     (1 : Qp).half (1 : Qp).half).1 $$ H
+
+/-- The lessor's authority names the pin's closers' map. -/
+theorem lessorAuth_pin (γl : GName) (q : Qp) (lp lp' : Loc) (L : List w64) (M : GMap w64 Loc)
+    (γga γcl : GName) :
+    lessorAuth (GF := GF) γl q lp L M ∗ lessorPinG γl lp' γga γcl ⊢
+      ⌜lp = lp'⌝ ∗ ghostMapAuth γcl q M ∗
+        (∀ M' : GMap w64 Loc, ghostMapAuth γcl q M' -∗ lessorAuth γl q lp L M') := by
+  unfold lessorAuth lessorPinG
+  iintro ⟨⟨%γa, %γc, Ha, Hcl, #Hgr⟩, #Hp⟩
+  ihave %Hl := ghost_map_lookup $$ Ha Hp
+  have hl : (lessorGhost lp γa γc L).lookup false = some (Sum.inl (lp, γa, γc)) := by
+    unfold lessorGhost; simp [GMap.lookup_insert_eq_iff]
+  rw [hl] at Hl
+  cases Hl
+  iframe Hcl
+  isplitr
+  · ipureintro; rfl
+  iintro %M' Hcl
+  iexists γga, γcl
+  iframe Ha Hcl Hgr
+
+/-- **A granted lease's closer joins the owner's** (unit T3): the closers' map gains the lease
+(with the lessor's map), the owner its element and the right to close its `revokec`. -/
+theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc) (id : w64)
+    (l : Loc) (c : GoChan) (hM : M.lookup id = none)
+    (hL : ∀ x : w64, x ∈ L ↔ (M.lookup x).isSome) :
+    lessorAuth (GF := GF) γl 1 lp L M ∗ leaseClosers γl L ∗ lsF go!"revokec" l ↦□ c ∗
+        revokeCloser c ==∗
+      lessorAuth γl 1 lp L (M.insert id l) ∗ leaseClosers γl (L ++ [id]) := by
+  iintro ⟨Ha, Hcls, #Hrc, Hrcl⟩
+  iunfold leaseClosers at Hcls
+  icases Hcls with ⟨%lp', %γga, %γcl, %C, #Hp, %HC, Hcs⟩
+  icases lessorAuth_pin γl 1 lp lp' L M γga γcl $$ [$Ha $Hp] with ⟨%Hlp, Hcl, Hback⟩
+  subst Hlp
+  have hnotL : id ∉ L := by
+    intro h; have := (hL id).1 h; rw [hM] at this; cases this
+  have hC : C.lookup id = none := by
+    cases h : C.lookup id with
+    | none => rfl
+    | some _ => exact absurd ((HC id).2 (by rw [h]; rfl)) hnotL
+  imod ghost_map_insert id l hM $$ Hcl with ⟨Hcl, He⟩
+  ihave Ha := Hback $$ %(M.insert id l) Hcl
+  iframe Ha
+  iunfold leaseClosers
+  iexists lp, γga, γcl, (C.insert id l)
+  iframe Hp
+  isplitr
+  · ipureintro
+    intro x
+    rw [List.mem_append, List.mem_singleton, HC x]
+    by_cases hx : id = x
+    · subst hx; simp [GMap.lookup_insert_eq_iff, hC]
+    · have : (C.insert id l).lookup x = C.lookup x := GMap.lookup_insert_ne C l hx
+      rw [this]
+      constructor
+      · rintro (h | h)
+        · exact h
+        · exact absurd h.symm hx
+      · intro h; exact Or.inl h
+  iapply (BigSepM.bigSepM_insert (Φ := fun (i : w64) (x : Loc) =>
+    iprop(ghostMapElem (GF := GF) γcl i (DFrac.own 1) x ∗
+      ∃ c : GoChan, lsF go!"revokec" x ↦□ c ∗ revokeCloser c)) hC).2
+  iframe Hcs He
+  iexists c
+  iframe Hrc Hrcl
 
 /-- Two whole points-to of one `int` field contradict. -/
 theorem w64Field_excl (a : Loc) (v w : w64) :

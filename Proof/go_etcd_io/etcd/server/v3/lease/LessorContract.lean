@@ -58,13 +58,14 @@ theorem isLessor_of_lessorInv
   isplitr
   · iintro !> %id %items %l %dq %L %Φ !> ⟨Hown, %Hin, Hitems⟩ HΦ
     iunfold leaseOwn at Hown
+    icases Hown with ⟨Hown, Hcls⟩
     iapply (hAt lp γl id items l dq _ L) $$ [Hown Hitems]
     · iframe Hpkg Hinv Hown Hitems
     iintro !> %err ⟨Hown, Hitems, %Herr⟩
     rw [Herr Hin]
     iapply HΦ
     iunfold leaseOwn
-    iframe Hown Hitems
+    iframe Hown Hcls Hitems
   isplitr
   · iintro !> %id %items %l %dq %Φ !> Hitems HΦ
     iapply (hDt lp γl id items l dq) $$ [Hitems] HΦ
@@ -102,12 +103,13 @@ theorem isTxnLessor_of_lessorInv
   ihave %Heq := lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
   subst Heq
   iunfold leaseOwn at Hown
+  icases Hown with ⟨Hown, Hcls⟩
   iapply (hLk lp γl id _ L) $$ [Hrd Hown]
   · iframe Hpkg Hinv Hrd Hown
   iintro !> %l ⟨Hrd, Hown, %Hl, -⟩
   iapply HΦ
-  isplitl [Hrd Hown]
-  · iunfold lessorUser; iunfold leaseOwn; iframe Hown
+  isplitl [Hrd Hown Hcls]
+  · iunfold lessorUser; iunfold leaseOwn; iframe Hown Hcls
     iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
   by_cases hn : l = null
   · ileft; ipureintro; exact hn
