@@ -392,13 +392,42 @@ theorem mvcc.NewStore.wp_proof
   have hR := hRestore «$r0_ptr» γ (GoInterface.ok bi) (lease.lessorIface lp) ti lg'
       (1 : Qp).half P (mvcc.hookFn γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storeW «$r0_ptr» γ)
       (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) (mvcc.storePutOk γ)
-      (DFrac.own 1) (DFrac.own 1) [] mvcc.restoreLogOk_nil
+      (DFrac.own 1) (DFrac.own 1) []
+      iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
+        «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64))
+      iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
+      iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
+        «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64))
+      (DFrac.own 1) (1 : Qp).half (1 : Qp).half mvcc.restoreLogOk_nil (Qp.half_add_half 1)
   simp only [List.append_nil] at hR
+  icases (mvcc.idxWriter_split γ.idx [[], []] []).1 $$ Hiw with ⟨Hiw, -⟩
   rw [show (mvcc.evsOf ([[], []] ++ [[]])).length = 0 from rfl,
     show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl] at hR
+  icases (mvcc.typedPointsto_parts _ _ (1 : Qp).half (1 : Qp).half (Qp.half_add_half 1)).1
+    $$ currentRev with ⟨HcurA, HcurB⟩
+  -- `restore`'s lock of `s.revMu`: private memory (`PlainRWMutex.lean`)
+  ihave HLk : mvcc.revLockW (GF := GF) «$r0_ptr» (1 : Qp).half
+      iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
+        «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64))
+      iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW) $$ []
+  · iunfold mvcc.revLockW
+    iintro %Ψ ⟨HrevMu, Hc⟩ HΨ
+    wp_apply (plain.wp_Lock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
+    iapply HΨ $$ Hc HrevMu
+  ihave HUl : mvcc.revUnlockW (GF := GF) «$r0_ptr» (1 : Qp).half ([[], []] : mvcc.Log)
+      iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
+      iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
+        «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64)) $$ []
+  · iunfold mvcc.revUnlockW
+    rw [show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl]
+    iintro %Ψ Hc HrevMu HΨ
+    wp_apply (plain.wp_Unlock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
+    iapply HΨ
+    iframe HrevMu
+    iexact Hc
   wp_apply hR
-      $$ [$Hbv2 $Hrt1 $currentRev $compactMainRev $revMu $Hncmp $b $kvindex $Hix $Hig $Hiw]
-      as ⟨Hbv2, Hrt1, #Hti, Hird, Hiw, currentRev, compactMainRev, revMu, b, kvindex, -⟩
+      $$ [$Hbv2 $Hrt1 $HcurA $compactMainRev $revMu $HcurB $HLk $HUl $Hncmp $b $kvindex $Hix $Hig $Hiw]
+      as ⟨Hbv2, Hrt1, #Hti, Hird, Hiw, ⟨revMu, HcurB⟩, HcurA, compactMainRev, b, kvindex⟩
   · iframe #; ipureintro; exact Hlgnn
   ihave Hbv2 : mvcc.bucketView (GF := GF) γ (1 : Qp).half ∅ $$ [Hbv2]
   · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv2
@@ -406,10 +435,6 @@ theorem mvcc.NewStore.wp_proof
   · iexact Hrt1
   ispecialize Hrts $$ Hrt1
   (try wp_auto)
-  ihave Hcur2 : («$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half}
-      (W64 1 : w64) : IProp GF) $$ [currentRev]
-  · rw [← hsplit]; iexact currentRev
-  icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcur2 with ⟨HcurA, HcurB⟩
   -- the writer's state, in the writer's invariant (D22 receiver epochs, S2)
   ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd]
   · iunfold mvcc.writerL

@@ -49,15 +49,15 @@ theorem mvcc.store.restore.wp_proof
     (hZI64 : zap.Int64.spec (GF := GF) (hG := hG))
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     mvcc.store.restore.spec (GF := GF) (hG := hG) := by
-  intro s γ b le ti lg q P HF RT WT W Wi Dep Cmp PutOk dqb dqi R hR
+  intro s γ b le ti lg q P HF RT WT W Wi Dep Cmp PutOk dqb dqi R RevP RevK RevQ dqc q1 q2 hR hq12
   by_cases hR0 : R = []
   rotate_left
   · -- a bucket with data (the restore plan's R5c)
     obtain ⟨hRne, ⟨hwf', hlen1, -, hcs⟩, hlease⟩ := hR
     have hb : mvcc.LogB ([[], []] ++ R) := ⟨by omega, hcs⟩
     have hok := mvcc.logEnts_restoreOk ([[], []] ++ R) hb.1 hcs rfl
-    wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, Hiw, #Hle, #Hlg, %Hlgnn, Hcur, Hcmp,
-      HrevMu⟩
+    wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp, HRevP, HLk,
+      HUl⟩
     iunfold mvcc.restoreView at Hview
     icases Hview with ⟨Hbv, Hcr⟩
     unfold mvcc.restoreViewOut
@@ -213,7 +213,10 @@ theorem mvcc.store.restore.wp_proof
       · ipureintro; exact Hall
       (try wp_auto)
       -- `s.revMu.Lock()` on private memory; `s.currentRev = <-revc`
-      wp_apply (plain.wp_Lock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
+      iunfold mvcc.revLockW at HLk
+      wp_apply HLk $$ [$HRevP] as Hcur2 HRevK
+      ihave Hcur := (mvcc.typedPointsto_parts _ _ q1 q2 hq12).2 $$ [Hcur1 Hcur2]
+      · iframe
       (try wp_auto)
       wp_apply (wp_spsc_receive γr revc
           (mvcc.revProt ti TokB (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length))
@@ -239,10 +242,16 @@ theorem mvcc.store.restore.wp_proof
         simp only [List.length_append, List.length_cons, List.length_nil,
           show sint.Z (W64 0) = 0 from rfl]; omega)]
       (try wp_auto)
-      wp_apply (plain.wp_Unlock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
+      iunfold mvcc.revUnlockW at HUl
+      wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
+        #(s.[store, go!"revMu"]))) (Val #()))
+      icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
+      iapply HUl $$ Hcur2 HRevK
+      inext
+      iintro HRevQ
       (try wp_auto)
       -- `for key, lid := range keyToLease`: the map is empty
-      wp_func_lits
+      (try wp_func_lits)
       wp_bind (App (App (Val (map.forRange _ _)) _) _)
       iapply wp_map_for_range (fun (_ : List GoString) (_ : Int) => iprop(True)) $$ Hktl
       iintro %keys -
@@ -280,6 +289,8 @@ theorem mvcc.store.restore.wp_proof
       have hidx : mvcc.idxOfEntries Lx = mvcc.indexOf (mvcc.evsOf (([[], []] ++ R) ++ [[]])) := by
         rw [HL, mvcc.idxRestore_logEnts' _ hb.1 hcs hwfL, mvcc.evsOf_append]
         simp [mvcc.evsOfRev]
+      ihave Hiw := (mvcc.idxWriter_split γ.idx ([[], []] ++ R) []).2 $$ [Hiw Hlc]
+      · rw [List.length_nil, Nat.add_zero, ← mvcc.logEnts_length]; iframe Hiw; iexact Hlc
       have Hrep : mvcc.IdxCRep (-1) (mvcc.evsOf (([[], []] ++ R) ++ [[]])) (mvcc.idxOfEntries Lx) := by
         rw [hidx]
         have hb' : mvcc.LogB (([[], []] ++ R) ++ [[]]) := ⟨by simp at hlen1 ⊢; omega, by
@@ -356,7 +367,10 @@ theorem mvcc.store.restore.wp_proof
       · ipureintro; exact Hall
       (try wp_auto)
       -- `s.revMu.Lock()` on private memory; `s.currentRev = <-revc`
-      wp_apply (plain.wp_Lock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
+      iunfold mvcc.revLockW at HLk
+      wp_apply HLk $$ [$HRevP] as Hcur2 HRevK
+      ihave Hcur := (mvcc.typedPointsto_parts _ _ q1 q2 hq12).2 $$ [Hcur1 Hcur2]
+      · iframe
       (try wp_auto)
       wp_apply (wp_spsc_receive γr revc
           (mvcc.revProt ti TokB (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length))
@@ -382,10 +396,16 @@ theorem mvcc.store.restore.wp_proof
         simp only [List.length_append, List.length_cons, List.length_nil,
           show sint.Z (W64 0) = 0 from rfl]; omega)]
       (try wp_auto)
-      wp_apply (plain.wp_Unlock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
+      iunfold mvcc.revUnlockW at HUl
+      wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
+        #(s.[store, go!"revMu"]))) (Val #()))
+      icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
+      iapply HUl $$ Hcur2 HRevK
+      inext
+      iintro HRevQ
       (try wp_auto)
       -- `for key, lid := range keyToLease`: the map is empty
-      wp_func_lits
+      (try wp_func_lits)
       wp_bind (App (App (Val (map.forRange _ _)) _) _)
       iapply wp_map_for_range (fun (_ : List GoString) (_ : Int) => iprop(True)) $$ Hktl
       iintro %keys -
@@ -423,6 +443,8 @@ theorem mvcc.store.restore.wp_proof
       have hidx : mvcc.idxOfEntries Lx = mvcc.indexOf (mvcc.evsOf (([[], []] ++ R) ++ [[]])) := by
         rw [HL, mvcc.idxRestore_logEnts' _ hb.1 hcs hwfL, mvcc.evsOf_append]
         simp [mvcc.evsOfRev]
+      ihave Hiw := (mvcc.idxWriter_split γ.idx ([[], []] ++ R) []).2 $$ [Hiw Hlc]
+      · rw [List.length_nil, Nat.add_zero, ← mvcc.logEnts_length]; iframe Hiw; iexact Hlc
       have Hrep : mvcc.IdxCRep (-1) (mvcc.evsOf (([[], []] ++ R) ++ [[]])) (mvcc.idxOfEntries Lx) := by
         rw [hidx]
         have hb' : mvcc.LogB (([[], []] ++ R) ++ [[]]) := ⟨by simp at hlen1 ⊢; omega, by
@@ -538,8 +560,8 @@ theorem mvcc.store.restore.wp_proof
         rw [mvcc.w64_toNat_of_lt i (by omega)]; omega
       exact mvcc.sub_succ_nonneg _ h2
   subst hR0
-  wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, Hiw, #Hle, #Hlg, %Hlgnn, Hcur, Hcmp,
-    HrevMu⟩
+  wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp, HRevP, HLk,
+    HUl⟩
   iunfold mvcc.restoreView at Hview
   icases Hview with ⟨Hbv, -⟩
   iunfold mvcc.restoreViewOut at Hbv
@@ -656,7 +678,10 @@ theorem mvcc.store.restore.wp_proof
   · ipureintro; rfl
   (try wp_auto)
   -- `s.revMu.Lock()` on private memory; `s.currentRev = <-revc`
-  wp_apply (plain.wp_Lock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
+  iunfold mvcc.revLockW at HLk
+  wp_apply HLk $$ [$HRevP] as Hcur2 HRevK
+  ihave Hcur := (mvcc.typedPointsto_parts _ _ q1 q2 hq12).2 $$ [Hcur1 Hcur2]
+  · iframe
   (try wp_auto)
   wp_apply (wp_spsc_receive γr revc (mvcc.revProt ti iprop(True) []) (fun _ => iprop(False)) [])
     $$ [$Hsr $Hcons] as %v %okr Hr
@@ -675,10 +700,17 @@ theorem mvcc.store.restore.wp_proof
     exact List.map_eq_nil_iff.1 this
   subst HL0
   (try wp_auto)
-  wp_apply (plain.wp_Unlock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
+  iunfold mvcc.revUnlockW at HUl
+  rw [show mvcc.restoreLastRev [] = W64 ((([[], []] ++ ([] : mvcc.Log)).length : Int) - 1) from rfl]
+  wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
+    #(s.[store, go!"revMu"]))) (Val #()))
+  icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
+  iapply HUl $$ Hcur2 HRevK
+  inext
+  iintro HRevQ
   (try wp_auto)
   -- `for key, lid := range keyToLease`: the map is empty
-  wp_func_lits
+  (try wp_func_lits)
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (_ : List GoString) (_ : Int) => iprop(True)) $$ Hktl
   iintro %keys -
@@ -710,6 +742,10 @@ theorem mvcc.store.restore.wp_proof
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   -- the index's lock, from the rebuilt (empty) index
+  ihave Hiw := (mvcc.idxWriter_split γ.idx ([[], []] ++ []) []).2 $$ [Hiw Hlc]
+  · rw [show mvcc.logCh ([[], []] ++ []) + ([] : List mvcc.Change).length =
+      ([] : List mvcc.KvEnt).length from rfl]
+    iframe Hiw; iexact Hlc
   have Hrep : mvcc.IdxCRep (-1) (mvcc.evsOf (([[], []] ++ []) ++ [[]])) (mvcc.idxOfEntries []) :=
     mvcc.IdxCRep.nil (by decide)
   imod (mvcc.idx_publish (GF := GF) ti γ.idx [] ([[], []] ++ []) Hrep) $$ Hix Hig Hiw
@@ -717,12 +753,9 @@ theorem mvcc.store.restore.wp_proof
   wp_apply (hInfo lg) $$ []
   · iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
-  have hE : mvcc.logEnts ([[], []] ++ ([] : mvcc.Log)) 0 ([[], []] ++ ([] : mvcc.Log)).length = [] := by
-    rfl
   iapply HΦ
   iunfold mvcc.restoreViewOut
   simp only [↓reduceIte]
-  rw [hE]
   iframe
   iexact Hti
 

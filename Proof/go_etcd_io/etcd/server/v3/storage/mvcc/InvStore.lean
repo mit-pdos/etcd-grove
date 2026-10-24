@@ -4051,6 +4051,33 @@ def restoreView (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R 
   iprop(restoreViewOut γ q R ∗
     (if R = [] then iprop(True) else keyCleanRead b (bucketViewC γ) RT))
 
+/-- Two parts summing to one make the whole points-to. -/
+theorem typedPointsto_parts {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (q1 q2 : Qp)
+    (h : q1 + q2 = 1) :
+    typedPointsto (GF := GF) l v (DFrac.own 1) ⊣⊢ (l ↦{DFrac.own q1} v ∗ l ↦{DFrac.own q2} v) := by
+  have h' : (DFrac.own 1 : DFrac) = DFrac.own q1 • DFrac.own q2 := by rw [DFrac.op_own, h]
+  rw [h']
+  exact (typedPointsto_dfractional (GF := GF) l v).dfractional _ _
+
+/-- **`store.restore`'s lock of `s.revMu`** (the restore plan's R5e), as its caller gives it: from
+`RevP`, `Lock` returns the lock's part `q` of `currentRev` at `1`, with `RevK` (`NewStore`: private
+memory; `store.Restore`: the lock in restoring mode). -/
+def revLockW (s : Loc) (q : Qp) (RevP RevK : IProp GF) : IProp GF :=
+  iprop(∀ Ψ : val → IProp GF, RevP -∗
+    ▷ ((s.[store, go!"currentRev"] ↦{DFrac.own q} (W64 1 : w64) : IProp GF) -∗ RevK -∗ Ψ #()) -∗
+    WP (App (Val (s.[store, go!"revMu"] @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"Lock"))
+      (Val #())) {{ Ψ }})
+
+/-- **`store.restore`'s unlock of `s.revMu`**: with the lock's part `q` of `currentRev` at the
+restored log `L'`'s last revision and `RevK`, `Unlock` gives `RevQ`. -/
+def revUnlockW (s : Loc) (q : Qp) (L' : Log) (RevK RevQ : IProp GF) : IProp GF :=
+  iprop(∀ Ψ : val → IProp GF,
+    (s.[store, go!"currentRev"] ↦{DFrac.own q} (W64 ((L'.length : Int) - 1) : w64) : IProp GF) -∗
+    RevK -∗
+    ▷ (RevQ -∗ Ψ #()) -∗
+    WP (App (Val (s.[store, go!"revMu"] @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"Unlock"))
+      (Val #())) {{ Ψ }})
+
 /-- `NewStore`'s log: no revision after its two. -/
 theorem restoreLogOk_nil : restoreLogOk [] := by
   refine ⟨by simp, ⟨⟨fun _ => rfl, ?_⟩, by decide, by decide, by simp⟩, by simp⟩

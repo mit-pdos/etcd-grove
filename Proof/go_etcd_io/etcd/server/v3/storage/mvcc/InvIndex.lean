@@ -956,6 +956,21 @@ def idxWriter (γ : IdxNames) (ilog : Log) (pend : List Change) : IProp GF :=
     monoNatLbOwn γ.nev (evsOf (ilog ++ [pend])).length ∗ ⌜IdxWf ilog pend⌝ ∗
     idxLogAuth γ (1 : Qp).half ilog ∗ ⧗ (logCh ilog + pend.length))
 
+/-- **The writer's handle without its receipts** (the restore plan's R5c: a restored index's
+handle, whose receipts come from the rebuild's steps, `revProt`). -/
+def idxWriterNR (γ : IdxNames) (ilog : Log) (pend : List Change) : IProp GF :=
+  iprop(monoListAuthOwn γ.hist 1 (histShape ilog pend) ∗
+    monoNatLbOwn γ.nev (evsOf (ilog ++ [pend])).length ∗ ⌜IdxWf ilog pend⌝ ∗
+    idxLogAuth γ (1 : Qp).half ilog)
+
+theorem idxWriter_split (γ : IdxNames) (ilog : Log) (pend : List Change) :
+    idxWriter (GF := GF) γ ilog pend ⊣⊢
+      idxWriterNR γ ilog pend ∗ ⧗ (logCh ilog + pend.length) := by
+  unfold idxWriter idxWriterNR
+  constructor
+  · iintro ⟨H1, H2, %H3, H4, H5⟩; iframe; ipureintro; exact H3
+  · iintro ⟨⟨H1, H2, %H3, H4⟩, H5⟩; iframe; ipureintro; exact H3
+
 theorem idxWriter_wf (γ : IdxNames) (ilog : Log) (pend : List Change) :
     idxWriter (GF := GF) γ ilog pend ⊢ ⌜IdxWf ilog pend⌝ := by
   unfold idxWriter; iintro ⟨-, -, %H, -⟩; ipureintro; exact H
