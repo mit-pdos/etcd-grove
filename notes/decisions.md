@@ -18075,3 +18075,47 @@ credits, Perennial's contexts are not), and that is where the gap is. The keeper
 provider; threading the binding into A2's guards and A4's watch (blocked on `NewAuthStore`: its axiom
 states the unbound `isReqAuth`, so the server's guards cannot get `isReqAuthBound` without proving it).
 
+## S4d of the auth plan: `RoleGrantPermission` performs the model's step (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4d`)
+
+**Problem.** `RoleGrantPermission` was the last admin operation without a proof (S4c's "Not
+finished"): it searches the role's permissions (`sort.Search` with a closure comparing keys by
+`bytes.Compare`), overwrites the type of the entry of the same key and range end in place, or
+appends the permission and sorts the permissions by key (`sort.Sort(permSlice(...))`).
+
+**Decisions.**
+- **Any index.** Perennial's `sort.Search` spec needs the predicate to go from false to true
+  (`IsMonoPred`), which here means the role's permissions sorted by key; nothing records that of
+  the backend's records (a record is whatever `proto.Unmarshal` decodes). The step relation
+  `roleGrantPermissionR` already holds at any index the search returns (update: the entry there
+  matches; insert: otherwise), so all the proof needs is an index in `[0, n]`:
+  `auth.wp_Search_any` (`auth/SearchAny.lean`) proves that of Perennial's translation of
+  `sort.Search` for any predicate, a local workaround; the general spec belongs to Perennial
+  (`notes/perennial-changes.md`, "Specs: `sort.Search` without monotonicity").
+- **The sorter.** `permSlice`'s `Len`/`Less`/`Swap` meet Perennial's `isSorter` over the pairs
+  (message, wire permission), each message read-only (`auth.permsOwn`, `auth.permSlice_isSorter`,
+  `auth/PermSorter.lean`); the order is the keys' (`keyLt`, a strict weak order pulled back from
+  `GoStringLt`).
+- **The step corrected.** `roleGrantPermissionR`'s case of a permission of an unknown type said
+  the model's list is a sublist of the old one; the sort is unstable, so entries of one key may
+  change places: a sublist up to a permutation (`Steps.lean`; nothing used the relation yet).
+- **`sort.Sort`'s bound.** Perennial's `sort.Sort` needs at most `2^62` elements; the model cannot
+  bound the record's count (it drops permissions of an unknown type). `ownRoleX` (what S4c's
+  restated `proto.UnmarshalRole` returns) now also says the record holds fewer than `2^62`
+  permissions: each takes at least two bytes of the encoding (a length-delimited field: a tag and
+  a length), and the encoding is a Go slice, below `2^63` bytes. A restatement, true of protobuf's
+  wire format; no axiom added (the axiom's name and the baseline unchanged).
+- **The log line's map.** The grant logs `authpb.Permission_Type_name[r.Perm.PermType]`, a map
+  whose initializer is untranslated (`Code/go_etcd_io/etcd/api/v3/authpb.toml`): the spec takes
+  `auth.typeNamesOk` (the variable holds a map, read-only) as a premise, threaded to the apply
+  layer's clause; translating the map literal (Perennial's semantics has it: `make` and one
+  `map.insert` per key) and proving the fact in authpb's initializer would discharge it (it needs
+  a package fact for authpb, `etc/gen-init.py`'s `SPECIAL`). The other route, a `<X>_init`
+  trust-boundary axiom as for `etcdserverpb`'s enum maps, was not taken (no axiom added).
+- **The apply layer**: `apply.isAuthSteps` gains the clause (appended), `isAuthSteps_of_authInv`
+  its case, `applierV3backend.RoleGrantPermission.wp_step`, `apply_RoleGrantPermission_step`
+  (`etcdserver/Results.lean`).
+
+**Result.** Every admin operation of the store is now a proved step of the model at the store and
+at the apply layer: `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`,
+`UserGrantRole`, `UserRevokeRole`, `RoleAdd`, `RoleDelete`, `RoleGrantPermission`,
+`RoleRevokePermission`. Trust base unchanged.

@@ -244,3 +244,10 @@ naming the bound principal.
 `proto.Unmarshal` axioms' posts restated: `notes/decisions.md`, "S4c of the auth plan"). The
 store's `HasRole` answers the latest state's (with the admin side's authority). Left:
 `RoleGrantPermission` (its contract clause), `UserGet`, `RoleGet`, `UserList`, `RoleList`.
+
+## What is proved of the table (S4d, 2026-10-24)
+
+`RoleGrantPermission` performs the model's step at the store and at the apply layer
+(`auth/authStore__RoleGrantPermission.lean`, `apply_RoleGrantPermission_step`): every admin
+operation of the store is a proved step. Its spec takes the read-only ownership of
+`authpb.Permission_Type_name` (an untranslated initializer) as a premise (`auth.typeNamesOk`).

@@ -17,6 +17,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Specs: `sort.Search` without monotonicity
+
+- **Missing.** A spec of `sort.Search(n, f)` for a predicate that need not go from false to true:
+  Perennial's (`Perennial/Spec/sort/Search.lean`) takes `IsMonoPred f n`; without it, the binary
+  search still returns an index in `[0, n]` (its loop keeps `0 ≤ i ≤ j ≤ n`).
+- **Needed by.** `authStore.RoleGrantPermission` (`server/auth/store.go`): it searches a role's
+  permissions by key, and nothing records that a role record's permissions are sorted (the auth
+  plan's S4d, 2026-10-24).
+- **Workaround here.** `auth.wp_Search_any` (`Proof/go_etcd_io/etcd/server/v3/auth/SearchAny.lean`),
+  a proof of that weaker fact over Perennial's translation of `sort.Search`.
+- **Proposed change.** `sort.wp_Search_any` (or a spec whose monotonicity premise is optional)
+  in Perennial's `Proof/sort`, general; then the local copy goes.
+- **Status.** Open.
+
 ### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`
 
 - **Missing.** Perennial does not translate `strconv` (`Perennial/Code/strconv.toml` translates
