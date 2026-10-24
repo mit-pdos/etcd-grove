@@ -244,3 +244,12 @@ naming the bound principal.
 `proto.Unmarshal` axioms' posts restated: `notes/decisions.md`, "S4c of the auth plan"). The
 store's `HasRole` answers the latest state's (with the admin side's authority). Left:
 `RoleGrantPermission` (its contract clause), `UserGet`, `RoleGet`, `UserList`, `RoleList`.
+
+## What is proved of the table (E1 in part, the binding at the guards, 2026-10-24)
+
+The admin rows' guards (`checkMembershipOperationPermission`, `AuthAdmin.isPermitted`), the
+authenticated rows' (`requireAuthInfo`, the server's, `AuthAdmin`'s and the maintenance
+server's) and the `Watch` row's check (`isWatchPermitted`) have bound variants: the principal they
+checked is one to whom some token was issued (or the anonymous one for the watch, or the TLS
+fallback's), over the store's bound contract as a premise (`srvAuthBound`; `notes/decisions.md`,
+"E1 of the auth plan"). The premise is the real store's once `NewAuthStore` is proved.
