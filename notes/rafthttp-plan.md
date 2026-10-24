@@ -940,10 +940,14 @@ This is D22's interface: its statement is agreed with the D22 owner before 7b.
     the plan's risk (1) said, these changed, by a few lines each.
   - The axioms are unchanged: the sender's and the handler's stand until 7d/7e; the new specs are
     statements only, linked (as axioms) when their callers' proofs use them.
-- **7c. Translation**: drop the snapshot names from `rafthttp.toml`'s exclusions (the sender,
-  `createSnapBody`, `snapResponseReadTimeout`, the handler, `SendSnapshot`, `sendSnap`, the five
-  snapshot metrics' initializers as `opaqueInitsOk`); `pkg/v3/ioutil`'s `ReaderAndCloser` with
-  its methods; `etc/gen-init.py` for the new variables.
+- **7c. Translation** (done 2026-10-24): `rafthttp.toml` translates the sender (`newSnapshotSender`,
+  `stop`, `send`, `post` with its function-local `responseAndError`, `createSnapBody`), the handler
+  (`newSnapshotHandler`, `ServeHTTP`), `Transport.SendSnapshot` and `peer.sendSnap`;
+  `snapResponseReadTimeout` and the snapshot metrics stay names-only (their initializers
+  `opaqueInitsOk`'s: any duration does, the metrics have no effect). `pkg/v3/ioutil.toml` adds
+  `ReaderAndCloser.Read` and `.Close`: goose emits the `MethodUnfold` wrappers of an embedded
+  field's promoted methods only for names its filter lists. No new package variables
+  (`gen-init.py`: up to date). The four axioms stand until 7d/7e; trust base unchanged.
 - **7d. The sender**: `createSnapBody` (the envelope encoded into a `bytes.Buffer`, the
   multi-reader's stream contract: `msgFrame (enc st) ++` the pipe's), `post` (the goroutine,
   the one-slot result channel, the `select` with `stopc`; `stop` closes `stopc` once:

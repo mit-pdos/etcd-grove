@@ -224,6 +224,14 @@ class ReaderAndCloser.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_Reader : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : ReaderAndCloser)))
   get_Closer : ∀ (x : ReaderAndCloser), go.IsGoStepPureDetTagged under (StructFieldGet ReaderAndCloser.underlying go!"Closer") #x (Val #(x.Closer'))
   set_Closer : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Closer), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Closer") (PairV #x #y) (Val #(({ x with Closer' := y } : ReaderAndCloser)))
+  Close_unfold : MethodUnfold ReaderAndCloser.ty go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (StructFieldGet ReaderAndCloser.ty go!"Closer"))) (Var "$r"))))
+  Read_unfold : MethodUnfold ReaderAndCloser.ty go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (StructFieldGet ReaderAndCloser.ty go!"Reader"))) (Var "$r"))))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Closer.ty))) (App (Val (GoInstruction (StructFieldRef ReaderAndCloser.ty go!"Closer"))) (Var "$r")))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType ReaderAndCloser.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef ReaderAndCloser.ty go!"Reader"))) (Var "$r")))))
 
 attribute [instance] ReaderAndCloser.TypeAssumptions.type_repr
   ReaderAndCloser.TypeAssumptions.underlying
@@ -231,6 +239,10 @@ attribute [instance] ReaderAndCloser.TypeAssumptions.type_repr
   ReaderAndCloser.TypeAssumptions.set_Reader
   ReaderAndCloser.TypeAssumptions.get_Closer
   ReaderAndCloser.TypeAssumptions.set_Closer
+  ReaderAndCloser.TypeAssumptions.Close_unfold
+  ReaderAndCloser.TypeAssumptions.Read_unfold
+  ReaderAndCloser.TypeAssumptions.ptr_Close_unfold
+  ReaderAndCloser.TypeAssumptions.ptr_Read_unfold
 
 structure exactReadCloser [FfiSyntax] where
   mk ::
