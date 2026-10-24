@@ -211,6 +211,8 @@ abbrev stepFollower.spec : Prop :=
      SnapScopeIf id sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ m.From' ≠ id ∧
      -- (2026-10-19, D21 M3) outside the no-snapshot mode
      s.gh.ns = false) →
+  -- (2026-10-22, D38a) a message forwarded to the leader has no responses (`send`'s premise)
+  (m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader → rs = []) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a

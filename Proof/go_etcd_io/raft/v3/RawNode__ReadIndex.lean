@@ -114,6 +114,8 @@ theorem RawNode.ReadIndex.wp_proof
       isplitr
       · ipureintro; msg_ne
       isplitr
+      · ipureintro; simp
+      isplitr
       · ipureintro; msg_ne
       imodintro
       iintro %ty %Hty _

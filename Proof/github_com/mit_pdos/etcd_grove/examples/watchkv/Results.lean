@@ -41,7 +41,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.watchkv.Assumpti
 
 /-- **`Main` does not panic** (`Link.lean`'s `watchkv.wp_Main`). -/
 theorem watchkv_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf] :
     watchkv.Main.spec (GF := GF) (hG := hG) :=
   watchkv.wp_Main
 

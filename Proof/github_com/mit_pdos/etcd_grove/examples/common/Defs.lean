@@ -186,18 +186,31 @@ configuration `cfg` with the logger `lg`, no tracer options and no progress-noti
 budget `bud`), what `Start` takes besides (the storage version monitor's backend access, the
 monitors off, `lgMu`'s reader slot of the downgrade monitor), and what `NewServer` left for serving
 (`srvServeBuilt`, the watchable store's readers) and for the member's place in the network `γn`
-(`srvNetMember`). -/
+(`srvNetMember`, with its transport `τ`; 2026-10-24, rafthttp stage 6d: the raft loop's key to the
+transport's `Send`, `srvTrKey`, under `γk`, one of the transport's reader tokens, `srvTrTok`, and
+what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer address is served:
+`served`). -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
-    (id : w64) (N : Nat) (bud : BudgetNames) : IProp GF :=
+    (id : w64) (N : Nat) (bud : BudgetNames) (served : Bool) : IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-      (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig),
+      (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+      (γk : GName) (τ : SrvTr GF),
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     srvWatchBuilt s E ∗
-    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn b (W64 0)
+    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk))
+      γrn b (W64 0)
       (W64 0) (W64 0) bootKV N ∗
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
-    srvReadyCloser s ∗ srvNetMember γn s id ∗ srvWatchReaders s E 64)
+    srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
+    (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
+    srvWatchReaders s E 64)
+
+/-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
+network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens
+(`srvTrTok`), which `CutPeer` and `MendPeer` borrow. -/
+def srvPeerCtl (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
+  iprop(∃ τ : SrvTr GF, srvNetMember γn s id τ ∗ srvTrTok γn τ)
 
 /-- **A member started** (`Start`'s success from `memberBuilt`): the server `s` started with its
 request names `ρ` (the wait registry's `γw`) at an apply environment `E` agreeing with the stand-in
@@ -222,7 +235,7 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvNetMember γn s id ∗ srvWatchReaders s E 64)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64)
 
 /-- **What `v3rpc.Server` and `Listen` return** (the ghost step's input): the gRPC server `gs`
 being built with etcd's interceptor chains and services (`v3rpc.Server.spec`'s postcondition, at

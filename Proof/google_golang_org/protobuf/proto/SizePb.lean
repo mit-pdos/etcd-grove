@@ -1,10 +1,10 @@
 /-
-Trust boundary: `http.Serve` of a member's raft handler (an axiom; D21 stage M5, the user's (A);
-why it is true of the Go code: `Spec/net/http/Serve.lean`).
+The trust boundary: `proto.Size` of any message type at the bytes (names-only; the message types
+are `PbType`s, `InvProto.lean`).
 -/
 module
 
-public import Spec.net.http.Serve
+public import Spec.google_golang_org.protobuf.proto.SizePb
 
 @[expose] public section
 
@@ -18,10 +18,10 @@ open Iris Iris.BI
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-axiom net.http.Serve.wp_proof : net.http.Serve.spec (GF := GF) (hG := hG)
+axiom proto.SizePb.wp_proof : proto.SizePb.spec (GF := GF) (hG := hG)
 
 end proof
 

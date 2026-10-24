@@ -67,7 +67,7 @@ theorem wp_collect :
     EtcdGrove.cachekv.collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cachekv.collect.wp_proof
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] :
     EtcdGrove.cachekv.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cachekv.Main.wp_proof common.wp_GenAll common.wp_Writer common.wp_MaxRev wp_collect common.wp_Check zap.wp_NewNop common.wp_StartServer common.wp_Serve common.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_RequestProgress wp_New Cache.wp_Watch
 

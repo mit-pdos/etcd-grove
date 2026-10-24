@@ -227,7 +227,7 @@ theorem node.stepWithWaitOption.wp_proof
     · iexact Hm
     wp_if_destruct
     rotate_left
-    · exact absurd Hty Hif
+    · exact absurd Hty.1 Hif
     wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking_nil

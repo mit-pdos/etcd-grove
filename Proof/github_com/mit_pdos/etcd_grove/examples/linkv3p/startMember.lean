@@ -64,9 +64,9 @@ theorem startMember.wp_proof
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀
     Φs γn W hW
-    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hdbo Hms
+    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
-    Hslot⟩
+    #Hnet, Hpown⟩
   -- the premises in the shared start's form
   iunfold bootPremise at Hboot
   ihave #Hb := common.bootPremise_of N ps bootLog dir go!"linkv3p" name
@@ -104,8 +104,8 @@ theorem startMember.wp_proof
   wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" peer cluster lg
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog dir id γ bud ρ E₀ Φs γn
-      W hW (by omega) Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hslot] as %srv %err Hres
+      W hW (by omega) Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hpown] as %srv %err Hres
   · iframe; iframe #
     iExactEq Hpeer; rfl
   icases Hres with (%Herr | ⟨%Herr, Hmb⟩)
@@ -130,12 +130,12 @@ theorem startMember.wp_proof
   subst Hcerr
   wp_auto
   -- `s.Start()`
-  wp_apply (common.wp_Start_built wp_Start srv ρ E₀ lg γn id N bud HrbN) $$ [Hmb Htok] as Hup
+  wp_apply (common.wp_Start_built wp_Start srv ρ E₀ lg γn id N bud _ HrbN) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   iunfold memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, #Hnm, HWR⟩
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, Hctl, HWR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `v3rpc.Server(s, nil, nil, opt)`: its configuration from `NewServer`'s and `Start`'s
   ihave ⟨%C, #Hgc, %HC, HWRs⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk srv C ∗
@@ -221,7 +221,7 @@ theorem startMember.wp_proof
   isplitr; · ipureintro; rfl
   iunfold memberServed
   iexists E, γw, cid, mid
-  iframe Hgo2 HPut HRange HDel HTxn
+  iframe Hgo2 HPut HRange HDel HTxn Hctl
   iframe #
   isplitl []
   · ipureintro

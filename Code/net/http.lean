@@ -863,23 +863,33 @@ axiom protoHTTP3 [FfiSyntax] [GoGlobalContext] : val
 
 axiom maxInt64 [FfiSyntax] [GoGlobalContext] : val
 
-axiom MethodGet [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodGet [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"GET")
 
-axiom MethodHead [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodHead [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"HEAD")
 
-axiom MethodPost [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodPost [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"POST")
 
-axiom MethodPut [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodPut [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"PUT")
 
-axiom MethodPatch [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 5789 -/
+@[reducible] noncomputable def MethodPatch [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"PATCH")
 
-axiom MethodDelete [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodDelete [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"DELETE")
 
-axiom MethodConnect [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodConnect [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"CONNECT")
 
-axiom MethodOptions [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodOptions [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"OPTIONS")
 
-axiom MethodTrace [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodTrace [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"TRACE")
 
 axiom equivalent [FfiSyntax] [GoGlobalContext] : val
 
@@ -953,129 +963,253 @@ axiom socksauthUsernamePasswordVersion [FfiSyntax] [GoGlobalContext] : val
 
 axiom socksauthStatusSucceeded [FfiSyntax] [GoGlobalContext] : val
 
-axiom StatusContinue [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.2.1 -/
+@[reducible] noncomputable def StatusContinue [FfiSyntax] [GoGlobalContext] : val :=
+  #(100 : Int)
 
-axiom StatusSwitchingProtocols [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.2.2 -/
+@[reducible] noncomputable def StatusSwitchingProtocols [FfiSyntax] [GoGlobalContext] : val :=
+  #(101 : Int)
 
-axiom StatusProcessing [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 2518, 10.1 -/
+@[reducible] noncomputable def StatusProcessing [FfiSyntax] [GoGlobalContext] : val :=
+  #(102 : Int)
 
-axiom StatusEarlyHints [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 8297 -/
+@[reducible] noncomputable def StatusEarlyHints [FfiSyntax] [GoGlobalContext] : val :=
+  #(103 : Int)
 
-axiom StatusOK [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.3.1 -/
+@[reducible] noncomputable def StatusOK [FfiSyntax] [GoGlobalContext] : val :=
+  #(200 : Int)
 
-axiom StatusCreated [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.3.2 -/
+@[reducible] noncomputable def StatusCreated [FfiSyntax] [GoGlobalContext] : val :=
+  #(201 : Int)
 
-axiom StatusAccepted [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.3.3 -/
+@[reducible] noncomputable def StatusAccepted [FfiSyntax] [GoGlobalContext] : val :=
+  #(202 : Int)
 
-axiom StatusNonAuthoritativeInfo [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.3.4 -/
+@[reducible] noncomputable def StatusNonAuthoritativeInfo [FfiSyntax] [GoGlobalContext] : val :=
+  #(203 : Int)
 
-axiom StatusNoContent [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.3.5 -/
+@[reducible] noncomputable def StatusNoContent [FfiSyntax] [GoGlobalContext] : val :=
+  #(204 : Int)
 
-axiom StatusResetContent [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.3.6 -/
+@[reducible] noncomputable def StatusResetContent [FfiSyntax] [GoGlobalContext] : val :=
+  #(205 : Int)
 
-axiom StatusPartialContent [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.3.7 -/
+@[reducible] noncomputable def StatusPartialContent [FfiSyntax] [GoGlobalContext] : val :=
+  #(206 : Int)
 
-axiom StatusMultiStatus [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 4918, 11.1 -/
+@[reducible] noncomputable def StatusMultiStatus [FfiSyntax] [GoGlobalContext] : val :=
+  #(207 : Int)
 
-axiom StatusAlreadyReported [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 5842, 7.1 -/
+@[reducible] noncomputable def StatusAlreadyReported [FfiSyntax] [GoGlobalContext] : val :=
+  #(208 : Int)
 
-axiom StatusIMUsed [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 3229, 10.4.1 -/
+@[reducible] noncomputable def StatusIMUsed [FfiSyntax] [GoGlobalContext] : val :=
+  #(226 : Int)
 
-axiom StatusMultipleChoices [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.4.1 -/
+@[reducible] noncomputable def StatusMultipleChoices [FfiSyntax] [GoGlobalContext] : val :=
+  #(300 : Int)
 
-axiom StatusMovedPermanently [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.4.2 -/
+@[reducible] noncomputable def StatusMovedPermanently [FfiSyntax] [GoGlobalContext] : val :=
+  #(301 : Int)
 
-axiom StatusFound [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.4.3 -/
+@[reducible] noncomputable def StatusFound [FfiSyntax] [GoGlobalContext] : val :=
+  #(302 : Int)
 
-axiom StatusSeeOther [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.4.4 -/
+@[reducible] noncomputable def StatusSeeOther [FfiSyntax] [GoGlobalContext] : val :=
+  #(303 : Int)
 
-axiom StatusNotModified [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.4.5 -/
+@[reducible] noncomputable def StatusNotModified [FfiSyntax] [GoGlobalContext] : val :=
+  #(304 : Int)
 
-axiom StatusUseProxy [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.4.6 -/
+@[reducible] noncomputable def StatusUseProxy [FfiSyntax] [GoGlobalContext] : val :=
+  #(305 : Int)
 
-axiom StatusTemporaryRedirect [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.4.8 -/
+@[reducible] noncomputable def StatusTemporaryRedirect [FfiSyntax] [GoGlobalContext] : val :=
+  #(307 : Int)
 
-axiom StatusPermanentRedirect [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.4.9 -/
+@[reducible] noncomputable def StatusPermanentRedirect [FfiSyntax] [GoGlobalContext] : val :=
+  #(308 : Int)
 
-axiom StatusBadRequest [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.1 -/
+@[reducible] noncomputable def StatusBadRequest [FfiSyntax] [GoGlobalContext] : val :=
+  #(400 : Int)
 
-axiom StatusUnauthorized [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.2 -/
+@[reducible] noncomputable def StatusUnauthorized [FfiSyntax] [GoGlobalContext] : val :=
+  #(401 : Int)
 
-axiom StatusPaymentRequired [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.3 -/
+@[reducible] noncomputable def StatusPaymentRequired [FfiSyntax] [GoGlobalContext] : val :=
+  #(402 : Int)
 
-axiom StatusForbidden [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.4 -/
+@[reducible] noncomputable def StatusForbidden [FfiSyntax] [GoGlobalContext] : val :=
+  #(403 : Int)
 
-axiom StatusNotFound [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.5 -/
+@[reducible] noncomputable def StatusNotFound [FfiSyntax] [GoGlobalContext] : val :=
+  #(404 : Int)
 
-axiom StatusMethodNotAllowed [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.6 -/
+@[reducible] noncomputable def StatusMethodNotAllowed [FfiSyntax] [GoGlobalContext] : val :=
+  #(405 : Int)
 
-axiom StatusNotAcceptable [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.7 -/
+@[reducible] noncomputable def StatusNotAcceptable [FfiSyntax] [GoGlobalContext] : val :=
+  #(406 : Int)
 
-axiom StatusProxyAuthRequired [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.8 -/
+@[reducible] noncomputable def StatusProxyAuthRequired [FfiSyntax] [GoGlobalContext] : val :=
+  #(407 : Int)
 
-axiom StatusRequestTimeout [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.9 -/
+@[reducible] noncomputable def StatusRequestTimeout [FfiSyntax] [GoGlobalContext] : val :=
+  #(408 : Int)
 
-axiom StatusConflict [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.10 -/
+@[reducible] noncomputable def StatusConflict [FfiSyntax] [GoGlobalContext] : val :=
+  #(409 : Int)
 
-axiom StatusGone [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.11 -/
+@[reducible] noncomputable def StatusGone [FfiSyntax] [GoGlobalContext] : val :=
+  #(410 : Int)
 
-axiom StatusLengthRequired [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.12 -/
+@[reducible] noncomputable def StatusLengthRequired [FfiSyntax] [GoGlobalContext] : val :=
+  #(411 : Int)
 
-axiom StatusPreconditionFailed [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.13 -/
+@[reducible] noncomputable def StatusPreconditionFailed [FfiSyntax] [GoGlobalContext] : val :=
+  #(412 : Int)
 
-axiom StatusRequestEntityTooLarge [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.14 -/
+@[reducible] noncomputable def StatusRequestEntityTooLarge [FfiSyntax] [GoGlobalContext] : val :=
+  #(413 : Int)
 
-axiom StatusRequestURITooLong [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.15 -/
+@[reducible] noncomputable def StatusRequestURITooLong [FfiSyntax] [GoGlobalContext] : val :=
+  #(414 : Int)
 
-axiom StatusUnsupportedMediaType [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.16 -/
+@[reducible] noncomputable def StatusUnsupportedMediaType [FfiSyntax] [GoGlobalContext] : val :=
+  #(415 : Int)
 
-axiom StatusRequestedRangeNotSatisfiable [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.17 -/
+@[reducible] noncomputable def StatusRequestedRangeNotSatisfiable [FfiSyntax] [GoGlobalContext] : val :=
+  #(416 : Int)
 
-axiom StatusExpectationFailed [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.18 -/
+@[reducible] noncomputable def StatusExpectationFailed [FfiSyntax] [GoGlobalContext] : val :=
+  #(417 : Int)
 
-axiom StatusTeapot [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.19 (Unused) -/
+@[reducible] noncomputable def StatusTeapot [FfiSyntax] [GoGlobalContext] : val :=
+  #(418 : Int)
 
-axiom StatusMisdirectedRequest [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.20 -/
+@[reducible] noncomputable def StatusMisdirectedRequest [FfiSyntax] [GoGlobalContext] : val :=
+  #(421 : Int)
 
-axiom StatusUnprocessableEntity [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.21 -/
+@[reducible] noncomputable def StatusUnprocessableEntity [FfiSyntax] [GoGlobalContext] : val :=
+  #(422 : Int)
 
-axiom StatusLocked [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 4918, 11.3 -/
+@[reducible] noncomputable def StatusLocked [FfiSyntax] [GoGlobalContext] : val :=
+  #(423 : Int)
 
-axiom StatusFailedDependency [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 4918, 11.4 -/
+@[reducible] noncomputable def StatusFailedDependency [FfiSyntax] [GoGlobalContext] : val :=
+  #(424 : Int)
 
-axiom StatusTooEarly [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 8470, 5.2. -/
+@[reducible] noncomputable def StatusTooEarly [FfiSyntax] [GoGlobalContext] : val :=
+  #(425 : Int)
 
-axiom StatusUpgradeRequired [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.5.22 -/
+@[reducible] noncomputable def StatusUpgradeRequired [FfiSyntax] [GoGlobalContext] : val :=
+  #(426 : Int)
 
-axiom StatusPreconditionRequired [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 6585, 3 -/
+@[reducible] noncomputable def StatusPreconditionRequired [FfiSyntax] [GoGlobalContext] : val :=
+  #(428 : Int)
 
-axiom StatusTooManyRequests [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 6585, 4 -/
+@[reducible] noncomputable def StatusTooManyRequests [FfiSyntax] [GoGlobalContext] : val :=
+  #(429 : Int)
 
-axiom StatusRequestHeaderFieldsTooLarge [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 6585, 5 -/
+@[reducible] noncomputable def StatusRequestHeaderFieldsTooLarge [FfiSyntax] [GoGlobalContext] : val :=
+  #(431 : Int)
 
-axiom StatusUnavailableForLegalReasons [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 7725, 3 -/
+@[reducible] noncomputable def StatusUnavailableForLegalReasons [FfiSyntax] [GoGlobalContext] : val :=
+  #(451 : Int)
 
-axiom StatusInternalServerError [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.6.1 -/
+@[reducible] noncomputable def StatusInternalServerError [FfiSyntax] [GoGlobalContext] : val :=
+  #(500 : Int)
 
-axiom StatusNotImplemented [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.6.2 -/
+@[reducible] noncomputable def StatusNotImplemented [FfiSyntax] [GoGlobalContext] : val :=
+  #(501 : Int)
 
-axiom StatusBadGateway [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.6.3 -/
+@[reducible] noncomputable def StatusBadGateway [FfiSyntax] [GoGlobalContext] : val :=
+  #(502 : Int)
 
-axiom StatusServiceUnavailable [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.6.4 -/
+@[reducible] noncomputable def StatusServiceUnavailable [FfiSyntax] [GoGlobalContext] : val :=
+  #(503 : Int)
 
-axiom StatusGatewayTimeout [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.6.5 -/
+@[reducible] noncomputable def StatusGatewayTimeout [FfiSyntax] [GoGlobalContext] : val :=
+  #(504 : Int)
 
-axiom StatusHTTPVersionNotSupported [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 9110, 15.6.6 -/
+@[reducible] noncomputable def StatusHTTPVersionNotSupported [FfiSyntax] [GoGlobalContext] : val :=
+  #(505 : Int)
 
-axiom StatusVariantAlsoNegotiates [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 2295, 8.1 -/
+@[reducible] noncomputable def StatusVariantAlsoNegotiates [FfiSyntax] [GoGlobalContext] : val :=
+  #(506 : Int)
 
-axiom StatusInsufficientStorage [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 4918, 11.5 -/
+@[reducible] noncomputable def StatusInsufficientStorage [FfiSyntax] [GoGlobalContext] : val :=
+  #(507 : Int)
 
-axiom StatusLoopDetected [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 5842, 7.2 -/
+@[reducible] noncomputable def StatusLoopDetected [FfiSyntax] [GoGlobalContext] : val :=
+  #(508 : Int)
 
-axiom StatusNotExtended [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 2774, 7 -/
+@[reducible] noncomputable def StatusNotExtended [FfiSyntax] [GoGlobalContext] : val :=
+  #(510 : Int)
 
-axiom StatusNetworkAuthenticationRequired [FfiSyntax] [GoGlobalContext] : val
+/-- RFC 6585, 6 -/
+@[reducible] noncomputable def StatusNetworkAuthenticationRequired [FfiSyntax] [GoGlobalContext] : val :=
+  #(511 : Int)
 
 axiom DefaultMaxIdleConnsPerHost [FfiSyntax] [GoGlobalContext] : val
 

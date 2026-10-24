@@ -4,7 +4,7 @@ member of a new cluster started -- its peer URL slice, `newServer` (with the clu
 `{name ↦ peer}` and the token `name`), `s.Start()`; what putget's, linkv's, linkvtxn's, watchkv's
 and cachekv's `Main`s did up to `Start`. Lean-first (no Rocq counterpart).
 
-**The triple:** given the member's ghost state (`memberBoot`, `alloc1`'s) and network slot, a thread
+**The triple:** given the member's ghost state (`memberBoot`, `alloc1`'s) and the network's HTTP side (`netHttpOk`), a thread
 token (`Start` forks the server's goroutines; it comes back in `srvGoRes`), `bootstrap`'s contract
 for it (`bootPremise` at the one-member cluster `[id]`, the token `name` and the URLs `urls1`) and
 the premises the members share: an error with the thread token, or the server started
@@ -43,14 +43,17 @@ abbrev StartServer.spec : Prop :=
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.reCfg = GMap.listToSet [id] → γ.reDyn = none → γ.reCCOk = ccOk [id] → γ.reBoot = bootLog →
   γ.reNoSnap = true → γ.reNoXfer = true → bootLog.length ≤ 2 ^ 60 →
-  γn.N = srvNet γ bud → γn.dir = dir →
+  γn.N = srvNet γ bud → γn.dir = dir → netDirOk dir →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       threadTok ∗
       bootPremise N [id] bootLog dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot W γ bud bootLog ρ E₀ Φs id ∗ netSlot γn id }}
+      memberBoot W γ bud bootLog ρ E₀ Φs id ∗
+      -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
+      -- side for it
+      netHttpOk γn id }}
     (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.StartServer))
       (Val #name)) (Val #peerAddr)) (Val #client)) (Val #lg))

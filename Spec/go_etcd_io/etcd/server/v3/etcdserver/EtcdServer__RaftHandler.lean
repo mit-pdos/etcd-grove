@@ -1,11 +1,13 @@
 /-
-`(*EtcdServer).RaftHandler()` (`server.go`): names-only (its body, `s.r.transport.Handler()`, calls
-rafthttp's names-only `Transport.Handler`). Lean-first (no Rocq counterpart); D21 stage M5
-(2026-10-19, the user's (A)), an axiom at the trust boundary, why it is true of the Go code below.
+`(*EtcdServer).RaftHandler()` (`server.go`): its body, `s.r.transport.Handler()`. Lean-first (no
+Rocq counterpart); D21 stage M5 (2026-10-19, the user's (A)), an axiom over the names-only
+transport until rafthttp stage 6d (2026-10-24), which translated it and proved it over rafthttp's
+`Transport.Handler`.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Stream
 
 @[expose] public section
 
@@ -26,23 +28,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.RaftHandler()`** on member `id`'s server in the network `γn` (`srvNetMember`, which
-`NewServer` gives): a handler `h` of the transport holding `id`'s slot (`raftHandlerOf γn id h`).
-
-Why it is true of the Go code (`server.go`, `rafthttp/transport.go` at the etcd pin):
-`RaftHandler` returns `s.r.transport.Handler()`; `s.r.transport` is the `*rafthttp.Transport` `t`
-that `NewServer` started for member `id` with `id`'s slot (`srvNetMember`'s
-`rnTransportAddr ↦□ t`, `transportStarted γn t`). `Handler()` builds a fresh `http.ServeMux` (no
-panic, no side effect on `t`) routing `/raft` to a pipeline handler, `/raft/stream/` to a stream
-handler and `/raft/snapshot` to a snapshot handler over `t`, `t.Raft` (the server), `t.ID` and
-`t.ClusterID`, and the prober's path to `probing.NewHandler()`: every message it receives goes to
-`t.Raft`'s `Process` (directly, or through `t`'s peer for the sender), as `Transport.Start`'s
-axiom describes. It reads only fields `NewServer` set before the transport started. -/
+`NewServer` gives, with its transport `τ`), for an address `a` the member owns (one of its peer
+URLs' hosts): a handler of `a` for the raft protocol (`raftProto`, `http.handlerOk`), each request
+it serves borrowing `srvServeRes γn τ` (an `R` of the transport's and one of its reader tokens).
+`s.r.transport` is `τ.t`, frozen with every other member added as a peer: its `Handler()`
+(`rafthttp.Transport.Handler`). -/
 abbrev EtcdServer.RaftHandler.spec : Prop :=
-  ∀ (s : Loc) (γn : NetNames GF) (id : w64),
+  ∀ (s : Loc) (γn : NetNames GF) (id : w64) (τ : SrvTr GF) (a : GoString),
+  (netRh γn).owner a = id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNetMember γn s id }}
+      srvNetMember γn s id τ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RaftHandler")) (Val #()))
-  {{ (h : GoInterface), RET #h; raftHandlerOf γn id h }}
+  {{ (h : GoInterface), RET #h; http.handlerOk (raftHttpNet (netRh γn)) a (srvServeRes γn τ) h }}
 
 end spec
 

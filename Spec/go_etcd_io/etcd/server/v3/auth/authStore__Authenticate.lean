@@ -31,7 +31,8 @@ abbrev auth.authStore.Authenticate.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (ctx : GoInterface) (username password : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      enabledRd st M ∗ authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post }}
+      enabledRd st M ∗ authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
+      authnCtx M ctx }}
     (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Authenticate"))
       (Val #ctx)) (Val #username)) (Val #password))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ enabledRd st M ∗

@@ -71,7 +71,8 @@ theorem raft.handleHeartbeat.wp_proof
       [{ Msg.plain .heartbeatResp id m.From' s'.term false with ctx := cl }] := fun s' =>
     Or.inr (Or.inl ⟨.heartbeatResp, Or.inr (Or.inr (Or.inr rfl)), rfl, rfl, Hfrom, rfl⟩)
   wp_apply wp_raft_send c r id _ «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) (Hok _)
-    (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hr] as Hphys
+    (fun h => absurd h (by simp [MsgSnap]))
+      (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hr] as Hphys
   · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   try wp_auto
   iapply HΦ

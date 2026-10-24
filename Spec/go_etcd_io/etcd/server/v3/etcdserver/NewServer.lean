@@ -58,12 +58,16 @@
 * (D19r (B), (F), 2026-10-18) what `bootstrap` takes: the configuration's URLs read-only
   (`bootCfgRO cfg U`) and the storage registry's authority, empty (`memStorRegAuth ∅`), which the
   caller allocates; `bootstrap`'s new `MemoryStorage` joins it.
-* (D21 M2, 2026-10-19) **the raft network** (`rafthttp/Net.lean`): the member's slot `netSlot γn
-  id` in a network whose payload is the server's messages' bundle (`srvNet`) and whose URL
-  directory is `bootstrap`'s (`dir`: the members' records name their own URLs), which
-  `rafthttp.Transport.Start` takes with the server's inbound methods (`srv_netRaftOk`:
-  `Process`, `IsIDRemoved`, the two reports) and `2 ^ 29` of `lgMu`'s reader slots. Until then the
-  named premise `transportEffectsOk`, opaque.
+* (D21 M2, 2026-10-19) **the raft network** (`rafthttp/Net.lean`): a network whose payload is the
+  server's messages' bundle (`srvNet`) and whose URL directory is `bootstrap`'s (`dir`: the
+  members' records name their own URLs), which `rafthttp.Transport.Start` takes with the server's
+  inbound methods (`srv_netRaftOk`: `Process`, `IsIDRemoved`, the two reports). (2026-10-24,
+  rafthttp stage 6d) The network's HTTP side ready (`netHttpOk`: every other member's hosts
+  registered with the raft protocol) and its directory well formed (`netDirOk`); each peer `AddPeer` adds
+  borrows eight of `lgMu`'s reader slots, each request the member's raft handler serves one (with
+  one of the transport's reader tokens), `httpProcSlots` of them. (Until stage 6d the member's
+  slot `netSlot γn id`, and `2 ^ 29` of `lgMu`'s reader slots for the transport's axiom; until D21
+  M2 the named premise `transportEffectsOk`, opaque.)
 
 * (D22 S-j2, 2026-10-20; approved by the user, `notes/decisions.md`, "D22's environment assumptions
   approved") `storage.dbOpensOk`: bbolt's `Open` succeeds on the files the server opens after its
@@ -82,9 +86,13 @@ lends `InitialState` and gives back, and `MemoryStorage.Snapshot`'s application 
 with `start`. The watch store
 (`srvWatchBuilt`, 2026-10-18): the server's `kv` the watchable store, with the watch-token pool
 allocated from `mvcc.New`'s tokens (`mvcc.watchTokPool_alloc`, under the time-receipt bound).
-(D21 M5, 2026-10-19) The server's membership in the network (`srvNetMember γn srv id`: what its
-inbound path reads and its transport, started in `γn`), which `RaftHandler`'s axiom takes to give
-the member's raft handler, for serving it on the member's peer URL.
+(D21 M5, 2026-10-19) The server's membership in the network (`srvNetMember γn srv id τ`: what its
+inbound path reads and its transport `τ`, frozen, every other member added as a peer), which
+`RaftHandler` takes to give the member's raft handler, for serving it on the member's peer URL;
+(2026-10-24, rafthttp stage 6d) one of the transport's reader tokens (`srvTrTok`, for
+`CutPeer`/`MendPeer`) and `httpProcSlots` copies of what each request the handler serves borrows
+(`srvServeRes`, for `http.Serve`). The raft loop's key to the transport's `Send` (`srvTrKey`,
+`srvEr`'s `S`) is in the built part.
 -/
 module
 
@@ -155,6 +163,8 @@ abbrev NewServer.spec : Prop :=
   ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) → Φs ρ.ids.pfx = srvFloorFact E₀ →
   (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
+  -- (2026-10-24, rafthttp stage 6d) the network's directory well formed
+  netDirOk dir →
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
@@ -183,10 +193,10 @@ abbrev NewServer.spec : Prop :=
       -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
       -- whose standing update `noopAu` it gives, `srvRaftBoot_alloc`)
       "#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv ∗
-      -- (D21 M2, 2026-10-19) the member's slot in the raft network, whose payload is the
-      -- server's (`srvNet`) and directory `bootstrap`'s (until then the named premise
-      -- `transportEffectsOk`)
-      "Hslot" ∷ netSlot γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ bud ∧ γn.dir = dir⌝ ∗
+      -- (D21 M2, 2026-10-19) the raft network, whose payload is the server's (`srvNet`) and
+      -- directory `bootstrap`'s (until then the named premise `transportEffectsOk`); (2026-10-24,
+      -- rafthttp stage 6d) its HTTP side ready (until then the member's slot, `netSlot γn id`)
+      "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ bud ∧ γn.dir = dir⌝ ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the lessor's
       -- checkpointer's effects and the auth store's record bound
       "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
@@ -198,7 +208,7 @@ abbrev NewServer.spec : Prop :=
       "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗
+      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       "#Hstop" ∷ rnStopOkStarted ∗
       -- the packages' init facts `start` needs
@@ -208,14 +218,15 @@ abbrev NewServer.spec : Prop :=
       ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨
       ⌜err = GoInterface.nil⌝ ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-          (γrn : RNNames) (b : GoInterface),
+          (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
           -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
           srvKVCloser srv E ∗
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
           -- `applySnapshot`'s `OpenSnapshotBackend`
           backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
-          srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn b (W64 0)
+          srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk))
+            γrn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
           srvBuildGap srv γrn (W64 0) (W64 0) ∗
@@ -230,8 +241,11 @@ abbrev NewServer.spec : Prop :=
           -- (2026-10-23) the right to close `readych`, for `publishV3`
           srvReadyCloser srv ∗
           -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
-          -- started there: what `RaftHandler`'s axiom takes, to serve the member's raft handler
-          srvNetMember γn srv id ∗
+          -- started there: what `RaftHandler` takes, to serve the member's raft handler;
+          -- (2026-10-24, rafthttp stage 6d) a reader's token of the transport (`CutPeer`,
+          -- `MendPeer`) and what each request the handler serves borrows (`http.Serve`)
+          srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
+          ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
           -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
           -- service's run slots (`v3rpc.watchRunSlot`)
           srvWatchReaders srv E 64 }}

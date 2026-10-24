@@ -38,11 +38,12 @@ theorem lease.lessor.shouldPersistCheckpoints.wp_proof
   subst Hcli
   ihave #Hver : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version $$ []
   · iPkgInit
-  ihave #Hvi : iprop((∃ v : GoString, globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ v) ∗
+  ihave #Hvi : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗
       (∃ v : github_com.Masterminds.semver.v3.Version,
-        globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v)) $$ []
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗
+      globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0") $$ []
   · iapply isPkgInit_access $$ Hver
-  icases Hvi with ⟨-, ⟨%v36, #Hv36⟩⟩
+  icases Hvi with ⟨-, ⟨%v36, #Hv36⟩, -⟩
   wp_apply (IntoValTyped.wp_load (t := cluster.ty) _ _ _) $$ Hcl as Hcl
   wp_apply HVer as %cv Hcv
   wp_pures

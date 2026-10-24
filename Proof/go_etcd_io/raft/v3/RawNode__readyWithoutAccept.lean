@@ -555,9 +555,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases HHP with ⟨%hrd, #HHP, #Hhsw⟩
   ihave #Hrdhard : iprop(∃ h, hsOpt HP h ∗ phsWit γ h) $$ []
   · iexists hrd; iframe HHP; iapply phsWit_of_hsWit_next γ rs.phs hrd _ $$ Hhsw
-  ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ q.st) $$ []
-  · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
-      (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout Hqc
+  ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ id q.st) $$ []
+  · iapply outboxRelP_isRaftMsgs γ id (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
+      (fun h => (Hxf.2.1 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) Hxf.2.2 $$ Hout Hqc
   -- (D22 S-d3a) the snapshot handed out, if any: half of the clone to the application, half kept
   -- for the acknowledgement; the loan (`SnapLoan`): the clone, the floor, the committed log up to
   -- the snapshot (the full prefix below the log's boundary, `fp0`)

@@ -66,8 +66,10 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [ErrorStringNoGRPCStatus] [RpctypesEtcdErrorMethods]
+    [ErrorStringLeaf] [ErrorStringNotWriter] [ErrorStringNoGRPCStatus] [RpctypesEtcdErrorMethods]
     [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
+    -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
+    [PeerPausable]
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF,
       ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
@@ -107,9 +109,10 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.linkv3p.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.linkv3p.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok Has
+  iintro #Hinit Htok ⟨Has, Hps⟩
   simp only [linkv3pAddrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Has with ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, -⟩
+  icases Hps with ⟨Hf₁, Hf₂, Hf₃, -⟩
   -- the schedule's slice literal: the array of an abstract list takes one pure step
   -- (`pure_wp_array_lit_full`, before the generic automation unfolds it), then the slice over it
   -- (`wp_slice_literal`)
@@ -154,7 +157,7 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     steps Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
     H0 H31 Hops Hmul
-  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Htok]
+  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro

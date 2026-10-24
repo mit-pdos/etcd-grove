@@ -64,7 +64,7 @@ theorem raftNode.start.wp_proof
   have wp_GetTerm := wp_hardStateAt_GetTerm wp_GetTerm
   have wp_GetType := wp_entryAt_GetType wp_GetType
   intro E γ r rh L R
-  wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone⟩
+  wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone, HS⟩
   ihave #Hr' := Hr
   iunfold isRaftNode at Hr'
   iNamed Hr'
@@ -104,7 +104,7 @@ theorem raftNode.start.wp_proof
   icases Hclcs with ⟨#HlcInc, -⟩
   wp_auto
   ipersist internalTimeout
-  wp_apply wp_fork $$ [Htok Hdone r rh HR]
+  wp_apply wp_fork $$ [Htok Hdone r rh HR HS]
   · -- the goroutine
     wp_apply wp_with_defer as %defer defer
     -- (D22a) `raftTerm`, the latest non-empty `HardState`'s term, carried to the batches; (D22 S-b)
@@ -115,7 +115,7 @@ theorem raftNode.start.wp_proof
     ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64) (p : HardStateM),
         "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗
         "%Hrt" ∷ ⌜uint.Z rt = 0 ∨ rt = p.Term'⌝ ∗
-        "Htok" ∷ rnLoopTokP γ L' p ∗ "HR" ∷ R) $$ [islead raftTerm Htok HR]
+        "Htok" ∷ rnLoopTokP γ L' p ∗ "HR" ∷ R ∗ "HS" ∷ E.S) $$ [islead raftTerm Htok HR HS]
     · iexists L, false, _, p0
       iframe
       ipureintro; left; rfl
@@ -441,14 +441,20 @@ theorem raftNode.start.wp_proof
         wp_auto
         -- `if islead { r.transport.Send(r.processMessages(rd.Messages)) }`
         -- (D21 stage M1) the messages' bundles go to the transport here, or stay for a follower's
-        wp_join iprop(rh_ptr ↦ rh ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r ∗ islead_ptr ↦ b' ∗
+        wp_join iprop(rh_ptr ↦ rh ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r ∗ islead_ptr ↦ b' ∗ E.S ∗
             (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgR E γ.node m))
-          with [rh rd r islead Hmsok] as ⟨rh, rd, r, islead, Hmsok⟩
+          with [rh rd r islead HS Hmsok] as ⟨rh, rd, r, islead, HS, Hmsok⟩
         -- the cases that reach the join with nothing sent close by framing (`ileft` once the
         -- bundles went to the transport)
         all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
         · wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
-          wp_apply HSend $$ [$Hout $Houtok]
+          -- (`wp_apply HSend` here trips over an unknown free variable inside the join's case)
+          wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
+          iapply HSend $$ [Hout Houtok HS]
+          · iframe
+          inext
+          iintro HS
+          (try wp_auto)
           wp_join_done
           all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
         -- `if !raft.IsEmptySnap(raftSnap)`: the snapshot is nil
@@ -536,7 +542,12 @@ theorem raftNode.start.wp_proof
           wp_apply wp_bag_send γnc nc () (fun _ => iprop(True)) $$ [$Hncb]
           cases cc
           · wp_auto
-            wp_apply HSend $$ [$Hout $Houtok]
+            wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
+            iapply HSend $$ [Hout Houtok HS]
+            · iframe
+            inext
+            iintro HS
+            (try wp_auto)
             -- `r.Advance()`: the driver moves to `L' ++ ce`
             rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
             wp_auto
@@ -577,7 +588,12 @@ theorem raftNode.start.wp_proof
               · itrivial
               inext
               wp_auto
-              wp_apply HSend $$ [$Hout $Houtok]
+              wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
+              iapply HSend $$ [Hout Houtok HS]
+              · iframe
+              inext
+              iintro HS
+              (try wp_auto)
               -- `r.Advance()`: the driver moves to `L' ++ ce`
               rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
               wp_auto

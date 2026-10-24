@@ -39,7 +39,7 @@ theorem auth.authStore.Authenticate.wp_proof
     (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG)) :
     auth.authStore.Authenticate.spec (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post ctx username password
-  wp_start as ⟨#Hinv, Hen, Hown, HWR, Hcs⟩
+  wp_start as ⟨#Hinv, Hen, Hown, HWR, Hcs, Hctx⟩
   icases authErrVar_of_init .authNotEnabled $$ Hpkg with ⟨%eNE, #HeNE⟩
   icases authErrVar_of_init .authFailed $$ Hpkg with ⟨%eAF, #HeAF⟩
   simp only [AuthErr.var]
@@ -105,8 +105,8 @@ theorem auth.authStore.Authenticate.wp_proof
     iunfold authOwnOpt at Hown
     (try wp_auto)
     wp_bind (App (App (App (Val #(methods tpi.ty go!"assign" tpi.v)) (Val #ctx)) (Val #username)) (Val #rev))
-    iapply HAssign $$ %ctx %username %rev
-    · itrivial
+    iapply HAssign $$ %ctx %username %rev [Hctx]
+    · iexact Hctx
     inext
     iintro %tok %err Htok
     (try wp_auto)
@@ -209,8 +209,8 @@ theorem auth.authStore.Authenticate.wp_proof
     iunfold authOwnOpt at Hown
     (try wp_auto)
     wp_bind (App (App (App (Val #(methods tpi.ty go!"assign" tpi.v)) (Val #ctx)) (Val #username)) (Val #rev))
-    iapply HAssign $$ %ctx %username %rev
-    · itrivial
+    iapply HAssign $$ %ctx %username %rev [Hctx]
+    · iexact Hctx
     inext
     iintro %tok %err Htok
     (try wp_auto)

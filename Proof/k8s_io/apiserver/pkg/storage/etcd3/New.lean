@@ -16,6 +16,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrAggregatorFac
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.newStorageKeyReverseFunc
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.NewEtcdMetricsTracker
 public import Spec.path.Join
+public import Proof.path.CleanAbs
 public import Spec.strings.TrimSuffix
 public import Spec.go_etcd_io.etcd.client.v3.Client__Ctx
 public import Spec.reflect.TypeOf
@@ -83,7 +84,9 @@ theorem New.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %jsl ⟨Hjsl, -⟩
-  wp_apply wp_Join _ _ pfx0 hp $$ [Hjsl] as Hjsl
+  ihave #Ppath : isPkgInit (PROP := IProp GF) pkg_id.path $$ []
+  · iPkgInit
+  wp_apply (path.Join_cleanAbs wp_Join _ _ pfx0 hp) $$ [Hjsl] as Hjsl
   · have heq : ([[47#8], zero_val GoString].set (sint.nat (W64 (0 + 1))) pfx0) =
         [go!"/", pfx0] := rfl
     rw [← heq]
