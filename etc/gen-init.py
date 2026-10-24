@@ -36,7 +36,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 PERENNIAL_CODE = '.lake/packages/perennial/Perennial/Code'
 
-ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.server.v3.etcdserver',
+ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
+         # the auth plan's A3c (2026-10-24): the Lock and Election services' servers
+         'go_etcd_io.etcd.server.v3.etcdserver.api.v3lock',
+         'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
          'github_com.mit_pdos.etcd_grove.examples.putget',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
@@ -238,8 +241,43 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
             'iframe #', 'try (ipureintro; exact BlinkHeartbeatSize)'],
 )
 
+
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
+
+# (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
+# package into the closure) its five error variables, translated `errors.New` calls
+_CC = [('ErrElectionNotLeader', 'N'), ('ErrElectionNoLeader', 'O'), ('ErrLocked', 'L'),
+       ('ErrSessionExpired', 'S'), ('ErrLockReleased', 'R')]
+_CCF = ['ErrLocked', 'ErrSessionExpired', 'ErrLockReleased', 'ErrElectionNotLeader',
+        'ErrElectionNoLeader']
+
+SPECIAL['go_etcd_io.etcd.client.v3.concurrency'] = dict(
+    doc='''Its fact (`concurrencyInit`, `Base.lean`): `Mutex`'s three errors and `Election`'s two each
+hold a fixed non-nil error. Its initializer allocates them, initializes its imports and runs their
+translated initializers (`errors.New` calls, `mutex.go`, `election.go`; Perennial's
+`context.wp_New_errorString`).''',
+    imports=['Perennial.Proof.context.NewErrorString'],
+    alloc_types={x: 'GoInterface' for x, _ in _CC},
+    before={'$end': ['try wp_auto'] + [l for _, t in _CC for l in [
+        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+    finish=[f'ipersist H{x}' for x, _ in _CC] + FIN_PRE[:6] + ['imodintro', 'unfold concurrencyInit'] +
+           [l for x in _CCF[:-1] for l in ['isplitr', f'· iexists _; iexact H{x}']] +
+           [f'iexists _; iexact H{_CCF[-1]}'],
+)
+
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3election'] = dict(
+    doc='''Its fact (`v3electionInit`, `etcdserver/api/v3election/Base.lean`; the auth plan's A3c,
+2026-10-24): `ErrMissingLeaderKey` holds a fixed non-nil error. Its initializer allocates it,
+initializes its imports and runs its translated initializer (an `errors.New` call, `election.go`;
+Perennial's `context.wp_New_errorString`).''',
+    imports=['Perennial.Proof.context.NewErrorString'],
+    alloc_types={'ErrMissingLeaderKey': 'GoInterface'},
+    before={'$end': ['try wp_auto',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xM #MM', 'try wp_auto']},
+    finish=['ipersist HErrMissingLeaderKey'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold v3electionInit', 'iexists _; iexact HErrMissingLeaderKey'],
+)
 
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
     doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and

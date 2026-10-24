@@ -1,0 +1,14 @@
+# The Election service's server (election.go), with bodies (the auth plan's A3c, 2026-10-24):
+# `electionServer`, `NewElectionServer`, `Campaign`, `Proclaim`, `Observe`, `Leader`, `Resign` and
+# `session` (a session over the request's lease), over the client's `concurrency` package.
+# `ErrMissingLeaderKey` is an `errors.New` variable (its initializer untranslated: the package's
+# `Init.lean`, `errorsNewVarsInit`).
+translate = ["!*", "electionServer", "NewElectionServer", "electionServer.Campaign",
+  "electionServer.Proclaim", "electionServer.Observe", "electionServer.Leader",
+  "electionServer.Resign", "electionServer.session", "ErrMissingLeaderKey"]
+imports = ["!*", "context", "errors", "go.etcd.io/etcd/client/v3",
+  "go.etcd.io/etcd/client/v3/concurrency",
+  "go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

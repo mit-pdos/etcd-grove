@@ -208,6 +208,13 @@ PROJECTS = [
             # with bodies (etcdserver/api/v3rpc.toml): the gRPC KV service's handlers, the
             # request checks, the response header, togRPCError (the request path)
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc",
+            # with bodies (etcdserver/api/v3lock.toml, v3election.toml; the auth plan's A3c):
+            # the Lock and Election services' servers over the client's concurrency package,
+            # and their protobuf messages (v3lock/v3lockpb.toml, v3election/v3electionpb.toml)
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3lock",
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb",
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3election",
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb",
             # names only, with the two features the request path reads
             "go.etcd.io/etcd/server/v3/features",
             # with bodies (storage/backend.toml): the backend over bbolt, its buffers and
