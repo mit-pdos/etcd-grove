@@ -61,7 +61,7 @@ Lean notes:
 * `msg_abs`, `abs_list`, `outbox_rel`, `send_no_snap` are `msgAbs`, `absList`,
   `outboxRel`, `send_no_snap`; Rocq `omap (λ a, a) as_` is `as_.filterMap id`.
   `state_w64`, `send_msgs`, `own_tracker`, `own_raftLog`, `own_Progress`, `is_Logger`,
-  `own_ReadOnly`, `own_raft_misc` are `stateW64`, `sendMsgs`, `ownTracker`,
+  `own_ReadOnly`, `own_raft_misc` are `stateW64`, `sendMsgs`, `ownTrackerC`,
   `ownRaftLog`, `ownProgress`, `isLogger`, `ownReadOnly`, `ownRaftMisc`; `trk.mk v p q`
   is `⟨v, p, q⟩ : Trk`.
 * Rocq's local `wp_load_access`/`wp_store_access` are kept (private), stated as
@@ -2955,8 +2955,8 @@ end physCfields
 `ownRaftPhys cfg r id s` is `ownRaftPhysC` at `CfgM.simple cfg (domSet s.progress \ cfg)`: the
 voters `cfg`, the learners the other tracked ids. Sealed, as the other variants, so that a static
 proof does not see the configuration; its interface is the `C` lemmas' at that configuration
-(`ownRaftPhys_toC`/`ownRaftPhys_ofC`), with the tracker as `ownTracker cfg` where a lemma hands it
-out. (Until 2026-10-24 it was a second instance of the body, at `ownTracker cfg`.) -/
+(`ownRaftPhys_toC`/`ownRaftPhys_ofC`), the tracker at that
+configuration. (Until 2026-10-24 it was a second instance of the body, at `ownTracker cfg`.) -/
 
 section physS
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -3013,8 +3013,7 @@ theorem ownRaftPhysC_toPhys (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (CfgM.simple c.incoming (domSet s.progress \ c.incoming)).voters r id s
     (by rw [CfgM.voters_simple, ← CfgM.voters_of_out ho]; exact Hv) $$ H
     with ⟨%tv, Hf, Htrk, Hback⟩
-  icases ownTrackerC_toSimple c tv _ ho $$ Htrk with ⟨Htrk, %Hl⟩
-  ihave Htrk := ownTracker_toC c.incoming tv _ $$ Htrk
+  icases ownTrackerC_resimple c tv _ ho $$ Htrk with ⟨Htrk, %Hl⟩
   ihave H := Hback $$ %tv %s.progress %s.prvals Hf Htrk %Hok
   isplitl
   · iapply ownRaftPhys_ofC
@@ -3136,25 +3135,18 @@ theorem ownRaftPhys_eq (r : Loc) (id : w64) (s1 s2 : NState) :
   intro H; subst H; iintro H; iexact H
 
 /-- The tracker, as the tracker's own specs take it: the embedded struct's points-to and
-`ownTracker`, put back at the same tally (`ownRaftPhysC_tracker_same`): a read-only use (a map
-lookup, `JointConfig.IDs`). -/
+`ownTrackerC` at the simple configuration, put back at the same tally
+(`ownRaftPhysC_tracker_same`): a read-only use (a map lookup, `JointConfig.IDs`). -/
 theorem ownRaftPhys_tracker_same (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
       ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
-        ownTracker cfg tv ⟨s.votes, s.progress, s.prvals⟩ ∗
+        ownTrackerC (CfgM.simple cfg (domSet s.progress \ cfg)) tv
+          ⟨s.votes, s.progress, s.prvals⟩ ∗
         (∀ tvx, r.[raft, go!"trk"] ↦ tvx -∗
-           ownTracker cfg tvx ⟨s.votes, s.progress, s.prvals⟩ -∗
+           ownTrackerC (CfgM.simple cfg (domSet s.progress \ cfg)) tvx
+             ⟨s.votes, s.progress, s.prvals⟩ -∗
            ownRaftPhys cfg r id s) := by
-  iintro H
-  ihave H := ownRaftPhys_toC cfg r id s $$ H
-  icases ownRaftPhysC_tracker_same _ r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
-  icases ownTrackerC_toTracker cfg _ tv _ $$ Htrk with ⟨Htrk, -⟩
-  iexists tv
-  iframe Hf Htrk
-  iintro %tvx Hf Htrk
-  ihave Htrk := ownTracker_toC cfg tvx _ $$ Htrk
-  iapply ownRaftPhys_ofC
-  iapply Hback $$ Hf Htrk
+  simp only [ownRaftPhys_unseal]; exact ownRaftPhysC_tracker_same _ r id s
 
 /-- The log, at the state `s` records, put back at any state. This is the accessor for
 a function that changes the log (`appendEntry`'s `append`, `loadState`'s `committed`,
@@ -3180,7 +3172,7 @@ theorem ownRaftPhys_log_same (r : Loc) (id : w64) (s : NState) :
 stage R8b): the struct's `trk` field and the re-sealing wand `switchToConfig`'s spec takes, for a
 struct whose tracker is about to be replaced. `newRaft` on an empty conf state installs the empty
 tracker's own maps, which `confchange.Restore` hands back unchanged
-(`confchange.Restore.spec_empty`): they cannot also make an `ownTracker` for the struct first. -/
+(`confchange.Restore.spec_empty`): they cannot also make a tracker predicate for the struct first. -/
 theorem ownRaftPhys_intro_trk (r : Loc) (id : w64) (s : NState) (rv : raft)
     (msgs msgsAA : List QMsg) (lok : GoInterfaceOk) :
     rv.id' = id →
@@ -3222,7 +3214,7 @@ theorem ownRaftPhys_intro_trk (r : Loc) (id : w64) (s : NState) (rv : raft)
       qSrcs s.logst.storage (msgs ++ msgsAA) -∗
       r.[raft, go!"trk"] ↦ rv.trk' ∗
         (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ownTrackerC (CfgM.simple cfg (domSet prs' \ cfg)) tv' ⟨s.votes, prs', pvs'⟩ -∗
            ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
            ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) := by
   intro Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum
@@ -3233,7 +3225,6 @@ theorem ownRaftPhys_intro_trk (r : Loc) (id : w64) (s : NState) (rv : raft)
   iframe Hf
   iintro %tv' %prs' %pvs' Hf Htrk %Hok
   ihave Hr := Hback $$ %tv' Hf
-  ihave Htrk := ownTracker_toC cfg tv' _ $$ Htrk
   iapply ownRaftPhys_ofC
   iapply ownRaftPhysCV_intro _ _ r id { s with progress := prs', prvals := pvs' }
       { rv with trk' := tv' } msgs msgsAA lok
