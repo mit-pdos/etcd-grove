@@ -865,12 +865,12 @@ unique in the package, `createSnapBody`), `peer.sendSnap` (`go p.snapSender.send
   `Observe`), `fmt.Sprintf` of `%v` (some string). And the two below, which are the stage's
   substance.
 
-**The two design questions (D42, for the user).**
+**The two design questions (D42; the user chose (A), 2026-10-24).**
 1. **A streamed request body.** The HTTP boundary fixes a request's body when the request is made
    (`HReq.body : List w8`, from `NewRequest`'s reader at its bytes). The snapshot sender's body
    is `io.MultiReader(buf, merged.ReadCloser)`: the envelope, then the merged snapshot's pipe,
    whose bytes the sender never sees; Go sends it chunked as `RoundTrip` reads it.
-   - *(A, recommended)* A second request kind: a request whose body is a reader with a stream
+   - *(A, chosen)* A second request kind: a request whose body is a reader with a stream
      contract (D22's `readerStreams r Φ`: one reader, any complete stream satisfies `Φ`). The
      protocol's request clause is then stated of the bytes a server reads to `EOF`: a handler
      that reads the body to its end learns `Φ` of what it read, and nothing if it stops early or
@@ -879,7 +879,7 @@ unique in the package, `createSnapBody`), `peer.sendSnap` (`go p.snapSender.send
      `io.ErrUnexpectedEOF`, not `EOF`). New boundary specs: `NewRequest` of a streamed reader,
      `RoundTrip` of such a request (it consumes the stream right), and on the server side the
      body's reads at the stream contract (`bodyRead`'s variant).
-   - *(B)* Keep the snapshot stream's transfer one axiom, smaller than today's: the sender's
+   - *(B, not taken)* Keep the snapshot stream's transfer one axiom, smaller than today's: the sender's
      `post` and the handler's body reads and `SaveDBFrom` as a pair of boundary specs at the
      stream; everything else proved. Less boundary work, two axioms stay.
 2. **`snapReq`, defined.** Today an opaque predicate only the two axioms speak of. Defined
@@ -898,8 +898,9 @@ sender's when one was there: D22's finding 7, harmless, both are the committed s
 This is D22's interface: its statement is agreed with the D22 owner before 7b.
 
 **Stages.**
-- **7a. Scope** (this section), D42 drafted. *Stop for the user's choices and the D22 owner's
-  agreement on `SaveDBFrom`'s spec and on the HTTP boundary's streamed body.*
+- **7a. Scope** (this section), D42: (A), the user's choice. *Still open: the D22 owner's
+  agreement on `SaveDBFrom`'s spec and on the HTTP boundary's streamed body, asked with 7b's
+  statements.*
 - **7b. Boundary statements**: the streamed-body request kind (or (B)'s pair), `snapReq`
   defined in `Stream.lean` with its deposit and withdrawal lemma, `SaveDBFrom`'s spec, the small
   library specs. Statements only, for review.
