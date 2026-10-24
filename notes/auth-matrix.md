@@ -228,3 +228,11 @@ The store's `UserRevokeRole`, `RoleRevokePermission` and `RoleDelete` perform th
 root shortcut) is proved. Left: `UserGrantRole`, `RoleGrantPermission` (they write into the
 messages the read contract gives read-only: `notes/decisions.md`, "S4b of the auth plan").
 
+## What is proved of the table (S5b in part, the simple provider, 2026-10-24)
+
+The binding every row's principal rests on (S5's `ctxBound`) is now met by etcd's default provider
+for the tokens it accepts and issues: `tokenSimple`'s `info` returns a user only for a token the
+map holds, each issued to that user, and `assign` issues the token it stores
+(`auth/TokenSimple.lean`). Not yet: the provider's `enable`, `disable` and `invalidateUser`
+(so not yet `tokenProviderOk` of `tokenSimple` as a whole), and the guards' statements (A2, A4)
+naming the bound principal.

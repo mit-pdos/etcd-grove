@@ -17656,3 +17656,50 @@ capacity: a strengthening of S1's `proto.UnmarshalUser`/`UnmarshalRole` axioms (
 fresh, so it is true of Go) and of the batch transaction's read contract, an assumption change,
 so not made here. The reads (`UserGet`, `RoleGet`, `HasRole`, the lists) are S5's or open.
 
+## S5b of the auth plan, in part: the simple provider's `info` and `assign` keep the token binding (2026-10-24 · `notes/auth-plan.md`, branch `auth-s5b`)
+
+**Problem.** S5 stated the token binding over the provider's contract (`tokenProviderOk`) and proved
+only the no-op provider meets it; etcd's default is the simple provider (`simple_token.go`).
+
+**What is proved** (`Proof/go_etcd_io/etcd/server/v3/auth/TokenSimple.lean`, theorems with explicit
+hypotheses, not linked: the provider's other methods are not proved yet, so no `tokenProviderOk` of
+`tokenSimple` is concluded):
+
+- **The lock invariant** (`simpleLk p γt γf`, what `simpleTokensMu` guards): the map `simpleTokens`
+  with, for each entry `t ↦ u`, the persistent issued element `(t, u)` under `γt` and the right to
+  issue `t` under `γf` (exclusive; `[∗map]`); the issued tokens' authority (`tokAuth γt`); the
+  current keeper (nil, or one of the keepers created, whose maps it holds: an old keeper's goroutine
+  can still take the lock after `disable()`); a positive TTL (so `enable` never reads the package
+  default; etcd's default TTL is 300 s).
+- **`info`** (`tokenSimple_info`): a returned user was issued the token, in `on γa` with
+  `γa.tok = γt`; the keeper's reset keeps its map (`keeper_reset`).
+- **`assignSimpleTokenToUser`** (`tokenSimple_assignToUser`): given the right to issue `tok`, `tok` is
+  issued to the user (the ghost element always; the map entry when a keeper is set). The panic on a
+  token already in the map is unreachable: the map holds that token's right too
+  (`ghostMapElem_ne`).
+- **`assign`** (`tokenSimple_assign`): on an `Authenticate` context (`authnCtx`), the token
+  `pre ++ "." ++ decimal idx` (`sprintfOut_simpleTok`: `Sprintf("%s.%d")`'s output, an inversion
+  lemma in the style of Perennial's `SprintfOut.str_slash_v_int64`) is issued to the user.
+
+**The contract changed** (additively in spirit, one precondition): `tokenProviderOk`'s `assign` clause
+takes `authnCtx M ctx`: the context's `Value` returns the raft index and the token prefix for the
+two keys (other keys unconstrained), and the caller holds `freshOk M (simpleTok pre idx)` (in `on γa`,
+`tokFresh γa`, a new ghost name `AuthNames.fresh`; `authHist_alloc` takes it). `Authenticate`'s spec
+takes the premise and passes it on. Why a right to issue rather than a pure premise: the token is
+`<prefix>.<raft index>` and the index is unique per applied entry, but the provider cannot see that;
+whoever applies the entry (E's apply thread) mints the right once per index from the `γf` authority.
+
+**Hypotheses, and why:** `isValidSimpleToken` (`ValidSpec`) parses the index with `strconv.ParseUint`,
+which Perennial does not translate, and waits on the raft index or `ctx.Done()`; it is assumed to
+return. Stated for every context, which is stronger than the Go code gives for an arbitrary
+`GoInterface`: the contract's `info` clause has no context premise (`InvAuth` is generic over later
+credits, Perennial's contexts are not), and that is where the gap is. The keeper's `run` and `stop`
+(`time.Ticker`, `Time.After`, a channel protocol) are untranslated; they are needed for `enable` and
+`disable`, which are not proved yet.
+
+**Not finished:** `enable`, `disable`, `invalidateUser`, `newTokenProviderSimple` (so
+`tokenSimple_ok`, the provider meeting the whole contract); the mode `off`/`any` (the contract's
+`assign` premise carries no right to issue there, which the panic's refutation needs); the JWT
+provider; threading the binding into A2's guards and A4's watch (blocked on `NewAuthStore`: its axiom
+states the unbound `isReqAuth`, so the server's guards cannot get `isReqAuthBound` without proving it).
+

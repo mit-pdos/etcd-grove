@@ -17,6 +17,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`
+
+- **Missing.** Perennial does not translate `strconv` (`Perennial/Code/strconv.toml` translates
+  nothing) nor `time.NewTicker`, `Ticker.Stop` and `Time.After` (`time.toml`).
+- **Needed by.** etcd's simple token provider (`server/auth/simple_token.go`):
+  `isValidSimpleToken` parses a token's raft index with `strconv.ParseUint`; the TTL keeper's `run`
+  ticks with a `time.Ticker` and compares with `Time.After` (the auth plan's S5b, 2026-10-24).
+- **Workaround here.** Both stay names only; `auth/TokenSimple.lean` takes their specs as hypotheses
+  of its theorems (not axioms).
+- **Proposed change.** `strconv.ParseUint` (and `Itoa`/`FormatUint`, its usual partners) translated
+  with specs over the decimal model `fmt.decimal` already has; `time.Ticker` modelled like `Timer`.
+- **Status.** Open.
+
 ### Tactics: `word`'s caches shared between parallel declarations
 
 - **Missing.** Deterministic elaboration under a parallel build. `word`'s caches
