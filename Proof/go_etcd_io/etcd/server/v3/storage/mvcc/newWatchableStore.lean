@@ -34,7 +34,7 @@ theorem mvcc.newWatchableStore.wp_proof
     (hNewWG : mvcc.newWatcherGroup.spec (GF := GF) (hG := hG))
     (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f γi γok Hcfg0 Hrb0
+  intro lg b le cfg kb γb γl P f γi γok γtag Hcfg0 Hrb0
   wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -88,7 +88,7 @@ theorem mvcc.newWatchableStore.wp_proof
   imod ownTokAuth_alloc (GF := GF) with ⟨%γt, Hta⟩
   imod ownTokAuth_add (2 ^ 63 - 3) γt 0 $$ Hta with ⟨Hta, Htw⟩
   imod mono_nat_own_alloc (GF := GF) mvcc.wsInit.Lmu.length with ⟨%γrel, Hrel, -⟩
-  let γ : mvcc.WsNames := ⟨γs, γm, γwl, γwst, γt, γrel⟩
+  let γ : mvcc.WsNames := ⟨γs, γm, γwl, γwst, γt, γrel, γtag⟩
   ihave Hwt : mvcc.watchBudget γ 1 (∅ : GMap Loc mvcc.WatcherNames) $$ [Hta]
   · iunfold mvcc.watchBudget
     iexists 0 + (2 ^ 63 - 3)
@@ -150,7 +150,7 @@ theorem mvcc.newWatchableStore.wp_proof
   iapply HΦ
   iexists st, γ
   isplitr
-  · ipureintro; exact ⟨hγb, hγl, hγk, hγi, hγok⟩
+  · ipureintro; exact ⟨hγb, hγl, hγk, hγi, hγok, rfl⟩
   isplitr
   · iunfold mvcc.isWatchableStore
     iexists vc, stc, rv, γv

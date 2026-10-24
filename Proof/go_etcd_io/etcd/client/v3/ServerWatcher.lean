@@ -205,7 +205,7 @@ theorem watchTokPool_of_server (p : Loc) (R : v3rpc.WSrv GF) :
   iunfold v3rpc.isWatchServer at H
   icases H with ⟨-, -, -, -, -, -, -, -, Hok⟩
   iunfold v3rpc.watchSrvOk at Hok
-  icases Hok with ⟨-, -, -, -, -, #Hp⟩
+  icases Hok with ⟨-, -, -, -, -, #Hp, -⟩
   iexact Hp
 
 /-- The watch server's store names are its environment's (`watchSrvOk`). -/
