@@ -153,7 +153,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   translates none of them).
 - **Missing specs.** `strconv.ParseInt`, `ParseUint`, `FormatInt`, `FormatUint`, `ParseBool`;
   some of `strings`; `fmt.Sprint`, `Sprintln`, `Fprintf`; `os.Getenv`; `json.Marshal`,
-  `Unmarshal`; `base64.RawURLEncoding`'s methods; `path.Join`, `Clean`.
+  `Unmarshal`; `base64.RawURLEncoding`'s methods; `path.Join`, `Clean`. (2026-10-24, rafthttp stage 7d)
+  `io.MultiReader` (names-only: an axiom here, `Proof/io/MultiReader.lean`, stated over the
+  snapshot pipe's `readerStreams`); `bytes.Buffer`'s methods (a struct without method bodies: the
+  k8s-etcd3 axioms `ownBuffer_new` and `Buffer.Write`, which the snapshot sender also uses).
 - **Needed by.** The k8s etcd3 store and `k8s.io/apiserver/pkg/storage`: continue tokens (JSON in
   base64), `prepareKey` (`path`), resource versions (`strconv`), `GetList`'s iterators (`iter`).
 - **Workaround here.** The four packages names-only in this repository's configuration (survey
