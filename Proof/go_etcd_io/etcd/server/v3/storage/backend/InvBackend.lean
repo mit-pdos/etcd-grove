@@ -196,10 +196,6 @@ def bView (γ : BNames) (q : Qp) (vd : VData) : IProp GF :=
 instance bView_timeless (γ : BNames) (q : Qp) (vd : VData) : Timeless (bView (GF := GF) γ q vd) := by
   unfold bView; infer_instance
 
-theorem bViewC_bView (γ : BNames) (q : Qp) (vd : VData) (c : Bool) :
-    bViewC (GF := GF) γ q vd c ⊢ bView γ q vd := by
-  unfold bView; iintro H; iexists c; iexact H
-
 /-- The clients' share of the backend being open (`γ.opn`, a `dghostVar` of whether it
 stopped: half of it the clients', a quarter the `run` goroutine's, a quarter the batch lock's;
 the stop makes it `true` and persistent), and of the right to close it (`γ.cls`: `Close`, with all

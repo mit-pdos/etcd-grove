@@ -56,19 +56,6 @@ theorem revBytes_le_iff (r e : Rev) (t : Bool) :
         · rw [revBytes_true]
           exact Or.inr (by simpa using lex_prefix (revBytes r false) markTomb [])
 
-/-- An entry's key is below a revision's key iff the entry's revision is below it. -/
-theorem revBytes_lt_iff (r e : Rev) (t : Bool) :
-    go.GoStringLt (revBytes e t) (revBytes r false) ↔ ¬ revLeN r e := by
-  rw [← revBytes_le_iff r e t]
-  constructor
-  · exact fun h => goStringLe_of_lt_not h
-  · intro h
-    rcases goStringLe_total (revBytes r false) (revBytes e t) with h' | h'
-    · exact absurd h' h
-    · rcases h' with h' | h'
-      · exact absurd (Or.inl h'.symm) h
-      · exact h'
-
 /-- `{MaxInt64, MaxInt64}`, `restore`'s range's end. -/
 def revMax : Rev := ⟨W64 (2 ^ 63 - 1), W64 (2 ^ 63 - 1)⟩
 

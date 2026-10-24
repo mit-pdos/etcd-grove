@@ -92,11 +92,6 @@ def restBuckets : List GoString :=
   [go!"lease", go!"alarm", go!"auth", go!"authUsers", go!"authRoles", go!"members",
    go!"members_removed", go!"cluster"]
 
-theorem key_not_rest : keyName ∉ restBuckets := by decide
-
-theorem meta_not_rest :
-    go_etcd_io.etcd.server.v3.storage.schema.metaName ∉ restBuckets := by decide
-
 /-- The backend's parameters of a real instance: the hook's buckets all but `Key`, `Key` the one
 safe-range bucket, the hook's own keys the consistent index's two in `Meta` (2026-10-13, unit 7:
 only the server's pre-commit hook writes them), the tracked buckets the rest buckets (D22,
@@ -416,13 +411,6 @@ theorem curAt_pin (γ : StoreNames) (p : PhysNames) (dq dq' : DFrac) (o o' : Sto
   ihave %Hv := curAt_agree γ (γ.withPhys p) rfl dq dq' o o' $$ H
   ipureintro
   exact ⟨Hv.1.symm, by have h2 := Hv.2; simp only [StoreNames.withPhys_phys] at h2; exact h2.symm⟩
-
-/-- Two parts of the current objects and names at the same names: the same objects. -/
-theorem curAt_agree_o (γ : StoreNames) (dq dq' : DFrac) (o o' : StoreObjs) :
-    curAt (GF := GF) γ dq o ∗ curAt γ dq' o' ⊢ ⌜o = o'⌝ := by
-  iintro H
-  ihave %Hv := curAt_agree γ γ rfl dq dq' o o' $$ H
-  ipureintro; exact Hv.1
 
 instance curAt_fractional (γ : StoreNames) (o : StoreObjs) :
     Fractional (fun q => curAt (GF := GF) γ (DFrac.own q) o) := by
@@ -1300,17 +1288,6 @@ def kbViewC (kb : Option KBReal) (γb : GName) (q : Qp) (m : Bucket) : IProp GF 
   | none => ghostMapAuth γb q m
   | some d => bkViewC d.γB q m
 
-theorem kbViewC_kbView (kb : Option KBReal) (γb : GName) (q : Qp) (m : Bucket) :
-    kbViewC (GF := GF) kb γb q m ⊢ kbView kb γb q m := by
-  cases kb with
-  | none => unfold kbViewC kbView; iintro H; iexact H
-  | some d =>
-    unfold kbViewC kbView bkViewC bkView
-    iintro ⟨%vd, Hv, %Hk⟩
-    iexists vd
-    iframe %Hk
-    iapply backend.bViewC_bView $$ Hv
-
 /-- A reader's token in the instance `kb`: for the real backend, a reader's slot of it and a
 share of it open (given back at the reader's `RUnlock`). -/
 def kbRT (kb : Option KBReal) : IProp GF :=
@@ -1365,10 +1342,6 @@ def bucketView (γ : StoreNames) (q : Qp) (m : Bucket) : IProp GF := kbView γ.k
 /-- The store's view of its bucket with the backend's read buffer known clean (the restore plan's
 R5a). -/
 def bucketViewC (γ : StoreNames) (q : Qp) (m : Bucket) : IProp GF := kbViewC γ.kb γ.bucket q m
-
-theorem bucketViewC_bucketView (γ : StoreNames) (q : Qp) (m : Bucket) :
-    bucketViewC (GF := GF) γ q m ⊢ bucketView γ q m :=
-  kbViewC_kbView γ.kb γ.bucket q m
 
 /-- The store's reader token (`kbRT`). -/
 abbrev storeRT (γ : StoreNames) : IProp GF := kbRT γ.kb
@@ -2806,16 +2779,6 @@ theorem muHeld_phys (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   iexists o
   iframe Hph
   ipureintro; exact Ho
-
-/-- A transaction's tree index (persistent; S5b: until then `isStore`'s). -/
-theorem muHeld_tree' (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
-    muHeld (GF := GF) s γ c ti ⊢ isTreeIndex ti γ.idx := by
-  iintro H
-  ihave ⟨%o, %Ho, #Hph⟩ := muHeld_phys s γ c ti $$ H
-  iunfold physOk at Hph
-  iNamed Hph
-  subst Ho
-  iexact Hti
 
 /-- A transaction's tree index, keeping the transaction. -/
 theorem muHeld_tree (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
@@ -4326,12 +4289,6 @@ theorem readerPool_checkin (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
     ipureintro; omega
   imodintro
   iframe Ht Hd Hpin
-
-/-- `readerPool_checkin` at a pin of some physical names `p` (S5b). -/
-theorem readerPool_checkin_p (γ : StoreNames) (p : PhysNames) (dq : DFrac) (o : StoreObjs) :
-    ⊢ £ 1 -∗ readerPool (GF := GF) γ -∗ curAt (γ.withPhys p) dq o -∗ idxSlot (γ.withPhys p) o -∗
-      ownToks γ.tko 1 ={⊤}=∗ ownToks γ.tk 1 ∗ wDep γ ∗ curAt (γ.withPhys p) dq o :=
-  readerPool_checkin (γ.withPhys p) dq o
 
 /-- **The watchable store's `syncWatchers` checks a slot out** (D22 receiver epochs, S5a; one later
 credit), with an idle reader's ticket and the watchable store's deposit (it holds the watchable

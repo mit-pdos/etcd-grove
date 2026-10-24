@@ -94,9 +94,6 @@ end bt
 def underPfx (pfx : GoString) (s : List EtcdKv) : List EtcdKv :=
   s.filter (fun v => decide (pfx <+: v.key))
 
-theorem underPfx_stateAt (log : Log) (r : Nat) (pfx : GoString) :
-    underPfx pfx (stateAt log r) = stateAtPfx log r pfx := rfl
-
 theorem mem_underPfx {pfx : GoString} {s : List EtcdKv} {v : EtcdKv} :
     v ∈ underPfx pfx s ↔ v ∈ s ∧ pfx <+: v.key := by
   unfold underPfx; rw [List.mem_filter, decide_eq_true_iff]

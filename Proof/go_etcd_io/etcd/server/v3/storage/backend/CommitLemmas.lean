@@ -195,11 +195,6 @@ variable (st : BSess) (x : Bool)
 theorem setHw_C : (st.setHw x).C = st.C := rfl
 theorem setHw_S : (st.setHw x).S = st.S := rfl
 theorem setHw_R : (st.setHw x).R = st.R := rfl
-theorem setHw_W : (st.setHw x).W = st.W := rfl
-theorem setHw_pend : (st.setHw x).pend = st.pend := rfl
-theorem setHw_ndel : (st.setHw x).ndel = st.ndel := rfl
-theorem setHw_tx : (st.setHw x).tx = st.tx := rfl
-theorem setHw_hw : (st.setHw x).cnt.hw = x := rfl
 end setHw_proj
 
 /-- Opening the hook's window keeps the state's facts. -/
@@ -240,7 +235,6 @@ theorem commitSt_W : (commitSt st C' tx' cnt').W = st.W := rfl
 theorem commitSt_pend : (commitSt st C' tx' cnt').pend = W64 0 := rfl
 theorem commitSt_ndel : (commitSt st C' tx' cnt').ndel = W64 0 := rfl
 theorem commitSt_tx : (commitSt st C' tx' cnt').tx = tx' := rfl
-theorem commitSt_cnt : (commitSt st C' tx' cnt').cnt = cnt' := rfl
 end commitSt_proj
 
 /-- The views and the free lock's facts after a commit from `st` (where the hook ran into

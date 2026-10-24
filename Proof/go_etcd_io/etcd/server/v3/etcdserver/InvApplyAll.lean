@@ -161,10 +161,6 @@ theorem beSucc_γbe {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ 
     E'.γbe = E.γbe := by
   obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
 
-theorem beSucc_ci {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E') :
-    γ'.ci = γ.ci := by
-  rw [h.1]
-
 /-- The batch's claims do not depend on the environment's backend. -/
 theorem batchWaitOk_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E')
     (ρ : ReqNames) (ms : List EntryModel) : batchWaitOk ρ E' ms = batchWaitOk ρ E ms := by

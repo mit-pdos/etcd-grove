@@ -764,39 +764,6 @@ theorem IdxWf.logB {ilog : Log} {pend : List Change} (h : IdxWf ilog pend) : Log
   · exact hcs cs hc
   · rw [List.mem_singleton] at hc; rw [hc]; exact hp
 
-/-- A key's index of the events is `isEmpty` exactly when it is the empty one. -/
-theorem kiOfKey_isEmpty_iff (evs : List Ev) (k : GoString) :
-    kiIsEmpty (kiOfKey evs k) = true ↔ kiOfKey evs k = kiEmpty := by
-  constructor
-  · intro h
-    rcases KiHead.kiOfKey evs k with he | he
-    · exact he
-    · rw [(kiIsEmpty_false_of_head he).1] at h; cases h
-  · intro h; rw [h]; rfl
-
-/-- With no compaction (every level `-1`), the index is the uncompacted one, key by key. -/
-theorem IdxCRep.get_neg (log : Log) (hb : LogB log) {idx : IndexM}
-    (h : IdxCRep (-1) (evsOf log) idx) (k : GoString) :
-    idxGet idx k = idxGet (indexOf (evsOf log)) k := by
-  obtain ⟨c, h0, h1, h2⟩ := h.2 k
-  have hc : c = -1 := by omega
-  subst hc
-  rw [h2]
-  unfold kiCompactO
-  rw [kiCompact_neg log hb k]
-  by_cases he : kiIsEmpty (kiOfKey (evsOf log) k) = true
-  · simp only [he, ↓reduceIte]
-    exact ((idxGet_indexOf_eq_none_iff _ k).2 ((kiOfKey_isEmpty_iff _ k).1 he)).symm
-  · simp only [he, Bool.false_eq_true, ↓reduceIte]
-    have hne : kiOfKey (evsOf log) k ≠ kiEmpty := fun e => he ((kiOfKey_isEmpty_iff _ k).2 e)
-    cases hg : idxGet (indexOf (evsOf log)) k with
-    | none => exact absurd ((idxGet_indexOf_eq_none_iff _ k).1 hg) hne
-    | some ki =>
-      have := (indexOf_rep (evsOf log)).2 k
-      rw [hg] at this
-      simp only [Option.getD_some] at this
-      rw [this]
-
 /-- **A reader's answer under compaction** (pure): `reader_answer` through the lock's compacted
 index, at a revision at or above every level. -/
 theorem reader_answerC (log₀ ilog : Log) (pend : List Change) (L : List IdxEntry) (cmax : Int)
@@ -1403,38 +1370,6 @@ theorem idxKnows_facts (γ : IdxNames) (kn : IdxKnow) (log : Log) (hlog : kn.log
         rcases List.mem_append.1 hcs' with h | h
         · exact hcs cs h
         · rw [List.mem_singleton] at h; rw [h]; exact hpend
-    iunfold idxWriter
-    iframe Hauth Hlauth
-    iframe #
-    ipureintro; exact Hwwf
-
-/-- With the writer's handle, the lock's events are the writer's (`writer_events`). -/
-theorem idxKnows_writer_events (γ : IdxNames) (kn : IdxKnow) (ilog : Log) (pend : List Change)
-    (q : Qp) :
-    ⊢ idxKnows (GF := GF) γ kn -∗ monoListLbOwn γ.hist (histShape ilog pend) -∗
-      monoNatAuthOwn γ.nev q (evsOf (ilog ++ [pend])).length -∗
-      ⌜∀ ilog' pend', kn = .writer ilog' pend' →
-        evsOf (ilog ++ [pend]) = evsOf (ilog' ++ [pend'])⌝ ∗
-      idxKnows γ kn ∗ monoNatAuthOwn γ.nev q (evsOf (ilog ++ [pend])).length := by
-  cases kn with
-  | cert log =>
-    iintro Hkn _ Hnev
-    iframe Hkn Hnev
-    ipureintro; intro _ _ h; cases h
-  | writer ilog' pend' =>
-    rw [idxKnows_writer]
-    iintro Hkn #Hlb Hnev
-    iunfold idxWriter at Hkn
-    icases Hkn with ⟨Hauth, #Hwlb, %Hwwf, Hlauth⟩
-    ihave %Hpre := mono_list_auth_lb_valid γ.hist 1 _ _ $$ Hauth Hlb
-    ihave %Hcnt := monoNatLbOwn_valid γ.nev q _ _ $$ Hnev Hwlb
-    iframe Hnev
-    isplitl []
-    · ipureintro
-      intro a b h
-      injection h with h1 h2
-      subst h1 h2
-      exact writer_events ilog' ilog pend' pend Hpre.2 Hcnt.2
     iunfold idxWriter
     iframe Hauth Hlauth
     iframe #

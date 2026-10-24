@@ -34,48 +34,6 @@ theorem kvModel_congr (γk γk' : KVNames) (hc0 : γk'.c0 = γk.c0) (hch : γk'.
     (hlog : γk'.log0 = γk.log0) (A : List EntryModel) : kvModel γk' A = kvModel γk A := by
   unfold kvModel; rw [hc0, hch, hlog]
 
-/-- **Two members' certified logs are in prefix order** (see the file header): the stores `γs`
-and `γs'` of two members, certified at their KV names `γk` and `γk'` (each its own certificates'
-map), over the same raft names `γ`, the names agreeing on what the model reads; logs of more than
-two revisions (`NewStore`'s free certificates are of at most two). -/
-theorem kv_cert_cmp (γ : ServerRaftNames) (γk γk' : KVNames) (γs γs' : mvcc.StoreNames)
-    (hγ : γs.cok = γk.cok) (hγ' : γs'.cok = γk'.cok) (hc0 : γk'.c0 = γk.c0)
-    (hch : γk'.ch0 = γk.ch0) (hlog : γk'.log0 = γk.log0) (E : CoPset) (hE : ↑kvcN ⊆ E)
-    (l l' : mvcc.Log) (h2 : 2 < l.length) (h2' : 2 < l'.length) :
-    ⊢ kvCertInv (GF := GF) γ γk -∗ kvCertInv γ γk' -∗ mvcc.certOk γs l -∗ mvcc.certOk γs' l' ={E}=∗
-      ⌜l <+: l' ∨ l' <+: l⌝ := by
-  iintro #Hinv #Hinv' #Hc #Hc'
-  imod kv_cert_read γ γk γs hγ E hE l $$ Hinv Hc with (%hl | ⟨%A, #HA, %hA⟩)
-  · exfalso; omega
-  imod kv_cert_read γ γk' γs' hγ' E hE l' $$ Hinv' Hc' with (%hl' | ⟨%A', #HA', %hA'⟩)
-  · exfalso; omega
-  ihave %Hp := srvRLogLb_prefix γ A A' $$ [$HA $HA']
-  imodintro
-  ipureintro
-  rw [kvModel_congr γk γk' hc0 hch hlog] at hA'
-  subst hA hA'
-  rcases Hp with h | h
-  · exact Or.inl (kvRaftOf_prefix _ _ _ _ _ h)
-  · exact Or.inr (kvRaftOf_prefix _ _ _ _ _ h)
-
-/-- **A revision is the same at two members**: the `r`th revision of two members' certified logs
-(of more than two revisions), both having it, is the same change list. -/
-theorem kv_cert_rev (γ : ServerRaftNames) (γk γk' : KVNames) (γs γs' : mvcc.StoreNames)
-    (hγ : γs.cok = γk.cok) (hγ' : γs'.cok = γk'.cok) (hc0 : γk'.c0 = γk.c0)
-    (hch : γk'.ch0 = γk.ch0) (hlog : γk'.log0 = γk.log0) (E : CoPset) (hE : ↑kvcN ⊆ E)
-    (l l' : mvcc.Log) (h2 : 2 < l.length) (h2' : 2 < l'.length) (r : Nat)
-    (hr : r < l.length) (hr' : r < l'.length) :
-    ⊢ kvCertInv (GF := GF) γ γk -∗ kvCertInv γ γk' -∗ mvcc.certOk γs l -∗ mvcc.certOk γs' l' ={E}=∗
-      ⌜l[r]? = l'[r]?⌝ := by
-  iintro #Hinv #Hinv' #Hc #Hc'
-  imod kv_cert_cmp γ γk γk' γs γs' hγ hγ' hc0 hch hlog E hE l l' h2 h2' $$ Hinv Hinv' Hc Hc'
-    with %Hp
-  imodintro
-  ipureintro
-  rcases Hp with ⟨t, rfl⟩ | ⟨t, rfl⟩
-  · rw [List.getElem?_append_left hr]
-  · rw [List.getElem?_append_left hr']
-
 end cmp
 
 end EtcdGrove

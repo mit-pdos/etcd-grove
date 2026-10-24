@@ -262,23 +262,6 @@ theorem batchLocked_hk (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
     ipureintro; exact ⟨Hok, Hwf⟩
   · ipureintro; exact Heq.2
 
-/-- The client's half of the tracked buckets agrees with the batch lock's state. -/
-theorem batchLocked_rb (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
-    (r : GMap GoString BktData) :
-    batchLocked (GF := GF) γ P b st ∗ rbOwn γ r ⊢
-      batchLocked γ P b st ∗ rbOwn γ r ∗ ⌜r = rbData P st.S⌝ := by
-  unfold batchLocked batchLockedAt batchGhost batchGhostAt rbOwn trkHalf
-  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, %Hok⟩, %Hwf⟩,
-    Hc⟩
-  icombine Hc Hb gives %Heq
-  iframe Hc
-  isplitl
-  · iexists t, db
-    iframe
-    iframe #
-    ipureintro; exact ⟨Hok, Hwf⟩
-  · ipureintro; exact Heq.2
-
 /-- The batch lock's ghost share bounds the buffers' buckets. -/
 theorem batchGhostAt_bound (γ : BNames) (P : BParams) (st : BSess) (free : Bool) (hP : P.Wf)
     (hst : sessWf P st) :

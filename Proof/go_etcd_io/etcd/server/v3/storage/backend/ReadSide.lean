@@ -173,10 +173,6 @@ theorem rtIntv_congr (γ : BNames) (P : BParams) (q : Qp) (rd rd' : RdSt) (cm : 
     rtIntv (GF := GF) γ P q rd cm D ⊢ rtIntv γ P q rd' cm D := by
   unfold rtIntv; rw [h1, h2, h3, h4, h5, h6]
 
-theorem rtIntv_upd (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (i : Nat) (w : Bool)
-    (cm : GoMap) (D : Data) :
-    rtIntv (GF := GF) γ P q { rd with idx := i, win := w } cm D = rtIntv γ P q rd cm D := rfl
-
 /-- The clients' half of the clean flag clears `readTx.mu`'s (held whole): both `false` (a
 write-back that changes the view may put off the hook's buckets; the restore plan's R5a). -/
 theorem rtCore_clear_cln (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)

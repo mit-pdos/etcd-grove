@@ -1198,20 +1198,6 @@ def msgDat (γ : RaftNames) (st : MsgSt) : IProp GF :=
 instance msgDat_pers (γ : RaftNames) (st : MsgSt) : Persistent (msgDat (GF := GF) γ st) := by
   unfold msgDat; infer_instance
 
-/-- No data certificate is needed of a message other than a `MsgSnap`. -/
-theorem msgDat_of_ne (γ : RaftNames) (st : MsgSt) (h : st.msg.Type' ≠ MsgSnap) :
-    ⊢ msgDat (GF := GF) γ st := by
-  unfold msgDat
-  iintro !> %sv %Hs
-  exact absurd Hs.1 h
-
-/-- ... nor of one without a snapshot. -/
-theorem msgDat_of_none (γ : RaftNames) (st : MsgSt) (h : st.snap = none) :
-    ⊢ msgDat (GF := GF) γ st := by
-  unfold msgDat
-  iintro !> %sv %Hs
-  rw [h] at Hs; cases Hs.2
-
 /-- A message `Ready` hands to the application to send: what it contributes to the
 protocol's messages (`msgAbs`: nothing, for a type the protocol does not describe) was
 legitimately sent (`isMessage`). (2026-10-16, stage R5: on the message's state; `msgAbs` is
@@ -1546,12 +1532,6 @@ theorem ackInv_keep (γ : RaftNames) {rs rs' : RNState} {s s' : NState}
     · ipureintro; exact Hp
     iintro %ht
     iapply Hb $$ %(And.intro ht.1 (ack_term_back Hpo.1 hterm ht.2))
-
-/-- `ackInv` at an unchanged state, the queue unchanged. -/
-theorem ackInv_eq (γ : RaftNames) {rs rs' : RNState} (s : NState) (hst : rs'.steps = rs.steps) :
-    ackInv (GF := GF) γ rs s ⊢ ackInv γ rs' s := by
-  unfold ackInv
-  rw [hst]
 
 /-- (D22 S-d3b) **A restore's mark, established** (`ackBaseW`, the pure core): with what the
 storage holds after `b` (`es`) agreeing with a log `G2` of the leader of `t` that has the restored

@@ -33,10 +33,6 @@ def fmt.stringMethodSpec (ii : GoInterfaceOk) (m : GoString) : IProp GF :=
   iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ s : GoString, Φ #s) -∗
     WP (App (Val #(methods ii.ty m ii.v)) (Val #())) {{ Φ }})
 
-theorem fmt.stringMethodSpec_unfold (ii : GoInterfaceOk) (m : GoString) :
-    fmt.stringMethodSpec (GF := GF) ii m = iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ s : GoString, Φ #s) -∗
-      WP (App (Val #(methods ii.ty m ii.v)) (Val #())) {{ Φ }}) := rfl
-
 instance fmt.stringMethodSpec_persistent (ii : GoInterfaceOk) (m : GoString) :
     Persistent (fmt.stringMethodSpec (GF := GF) ii m) := by
   unfold fmt.stringMethodSpec; infer_instance

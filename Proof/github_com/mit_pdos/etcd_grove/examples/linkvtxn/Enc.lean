@@ -61,8 +61,6 @@ def outOf : MO → Output
 /-- A failed call's `Output` (`Output{Err: true}`). -/
 def errOut : Output := { zOut with Err' := true }
 
-theorem absVR_encVR (r : linkv.VR GoString) : absVR (encVR r) = r := rfl
-
 theorem uint_nat_W64 (n : Nat) (h : n < 2 ^ 64) : uint.nat (W64 (n : Int)) = n := by
   unfold uint.nat; word
 

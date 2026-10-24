@@ -37,9 +37,6 @@ theorem stab_node (qv : IvlS) (c : RbColor) (l : RbT Entry) (e : Entry) (r : RbT
   rw [RbT.inorder_node, stab_append, stab_cons]
   split <;> simp
 
-/-- The number of entries of a subtree the query overlaps. -/
-abbrev nstab (qv : IvlS) (T : RbT Entry) : Nat := (stab qv T.inorder).length
-
 /-- `visit` visits overlapping entries only, in order: a sublist of the stabbed ones, for any
 query (the pruning on the subtrees' `max` may skip some for a degenerate one). -/
 theorem visitL_sublist (q : IvlS) : ∀ T : RbT Entry, List.Sublist (T.visitL q) (stab q T.inorder)
@@ -66,42 +63,6 @@ theorem visitL_sublist (q : IvlS) : ∀ T : RbT Entry, List.Sublist (T.visitL q)
         simp only [h0, ↓reduceIte]
         rw [List.append_assoc, List.singleton_append]
         exact hl.append (hr.cons₂ e)
-
-theorem nstab_node (qv : IvlS) (c : RbColor) (l : RbT Entry) (e : Entry) (r : RbT Entry) :
-    nstab qv (.node c l e r) = nstab qv l + (if ivlCmp qv e.1 = 0 then 1 else 0) + nstab qv r := by
-  unfold nstab
-  rw [stab_node]
-  simp only [List.length_append]
-  split <;> rfl
-
-/-- The first `k` stabbed entries of a node's subtree: the left subtree's first `k`, the node's
-entry if it overlaps and the left subtree has fewer than `k`, the right subtree's first
-`k - nstab l - (1 or 0)`. -/
-theorem take_stab_node (qv : IvlS) (c : RbColor) (l : RbT Entry) (e : Entry) (r : RbT Entry)
-    (k : Nat) :
-    (stab qv (RbT.node c l e r).inorder).take k =
-      (stab qv l.inorder).take k ++
-        (if ivlCmp qv e.1 = 0 ∧ nstab qv l < k then [e] else []) ++
-        (stab qv r.inorder).take (k - nstab qv l - if ivlCmp qv e.1 = 0 then 1 else 0) := by
-  rw [stab_node, List.take_append, List.take_append, List.length_append]
-  have hB : (if ivlCmp qv e.1 = 0 then [e] else []).take (k - (stab qv l.inorder).length) =
-      if ivlCmp qv e.1 = 0 ∧ nstab qv l < k then [e] else [] := by
-    unfold nstab
-    by_cases h : ivlCmp qv e.1 = 0
-    · simp only [h, _root_.true_and, ↓reduceIte]
-      by_cases hk : (stab qv l.inorder).length < k
-      · have : k - (stab qv l.inorder).length = (k - (stab qv l.inorder).length - 1) + 1 := by
-          omega
-        rw [this]; simp [hk]
-      · have : k - (stab qv l.inorder).length = 0 := by omega
-        rw [this]; simp [hk]
-    · simp [h]
-  have hl : (if ivlCmp qv e.1 = 0 then [e] else []).length =
-      if ivlCmp qv e.1 = 0 then 1 else 0 := by
-    split <;> rfl
-  rw [hB, hl]
-  unfold nstab
-  rw [Nat.sub_sub]
 
 end entries
 
