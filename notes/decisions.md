@@ -17243,3 +17243,24 @@ prefix (`kvApplied` at `A'`, S-j2's item 6). Writing the axioms before these are
 risk false trusted statements or a second restatement; S8a and S8b do not depend on them.
 `applyAll` still calls the empty case (its proof unchanged); the general spec and its wiring wait
 for S8d.
+
+## D22 S8's four questions decided (2026-10-24 · decided by the orchestrator for the user's goal)
+
+The questions W1-W4 of "D22 receiver epochs, S8 carried out" (`notes/snapshot-s8-plan.md`, "S8c/S8d,
+callee by callee"), decided by the orchestrating session for the user's goal (finish the snapshot
+code's proofs):
+- **W1.** The snapshot directory's removal fact is `Rm j := snapTaken j ∨ appliedAtLeast γr (j + 1)`,
+  `snapTaken` minted from an exclusive claim raft's hand-off gives `applySnapshot(i)` (S-j1 supplies
+  the claim). S8d takes the snapshot file in its precondition; `storage.Release`'s axiom is stated
+  over this `Rm`. If `Rm` is false of the Go code (with the fork fix), stop and say why.
+- **W2.** `NewAuthStore`'s reader resource `RD` is restated, minimally, as a reader resource of
+  whichever backend the auth store currently uses (keyed by its backend half or the server's
+  `γbe`, whichever is smaller and true); `authStore.Recover` is written over it. Only what W2
+  needs is touched, with a dated note in `notes/auth-plan.md`.
+- **W3.** An exclusive peers right that the transport's `Stop` consumes: `Transport.Start`'s axiom
+  and the raft node's transport contract restated, the right passed from the apply thread to the
+  raft node's stop when `run` returns; `RemoveAllPeers` over `transportStarted`, `AddPeer` over the
+  right. Stop and report if a closed theorem's statement would change.
+- **W4.** Designed and done here (`kvApplied` at the image's prefix through `kvInv`, the committed
+  prefix's certificate); raft-side facts only S-j1 can give become premises of `applySnapshot.spec`,
+  listed for S-j1.
