@@ -264,6 +264,11 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
   `kbNoCmp_metaNone`'s premise widened to the clean snapshot (`keyReadSnapC`), the same fact. The
   code after the loop is written twice (one per exit: a tactic macro cannot hold Iris's `$$`).
 - **R5d. `newTreeIndex` over the store's names** (not `idxFresh`'s): the variant `Restore` needs.
+  *Done (2026-10-24)*: `newTreeIndex`'s one spec takes the event count's authority at any `n` and
+  the compactor's state (fresh), with lower bounds of the compaction revision and the committed log,
+  and gives the private index, `idxLockG γ n` and the compactor's token; `NewStore` splits its
+  fresh names (`idxFresh_split`), `store.Restore` will make new event-count and compactor names
+  around the store's (`idx_renew`).
 - **R5e. The ghost moves** (the list below) as `InvStore` lemmas.
 - **R5f. `Restore`'s proof** over R5c-R5e; `NewStore` and `watchableStore.Restore` unchanged.
 
