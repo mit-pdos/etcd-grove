@@ -1,0 +1,57 @@
+=== RUN   TestLessorRenewConcurrentCheckpointShortensExpiry
+=== RUN   TestLessorRenewConcurrentCheckpointShortensExpiry/ScheduledCheckpointAppliesDuringClear
+    logger.go:146: 2026-10-24T01:45:58.687-0400	INFO	bbolt	Opening db file (/tmp/TestLessorRenewConcurrentCheckpointShortensExpiryScheduledCheck260469934/001/be) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2cc6186ba9a8, NoStatistics: false}
+    logger.go:146: 2026-10-24T01:45:58.687-0400	INFO	bbolt	Opening bbolt db (/tmp/TestLessorRenewConcurrentCheckpointShortensExpiryScheduledCheck260469934/001/be) successfully
+    logger.go:146: 2026-10-24T01:45:58.687-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T01:45:58.687-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T01:45:58.687-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:45:58.687-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:45:58.687-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-24T01:45:58.687-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01"
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01" successfully
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01"
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01" successfully
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01"
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01" successfully
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01"
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01" successfully
+    renew_checkpoint_race_test.go:86: after Renew: returned ttl=100s, actual l.Remaining()=4.999999228s, in-memory l.remainingTTL=5, persisted RemainingTTL=5
+    renew_checkpoint_race_test.go:90: BUG: Renew returned ttl=100s, nil, but l.Remaining()=4.999999228s (shortened to stale checkpoint TTL 5s; in-memory remainingTTL=5, persisted RemainingTTL=5)
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-24T01:45:58.688-0400	DEBUG	bbolt	Committing transaction 3 successfully
+=== RUN   TestLessorRenewConcurrentCheckpointShortensExpiry/ScheduledCheckpointAppliesBetweenRUnlockAndLock
+    logger.go:146: 2026-10-24T01:45:58.689-0400	INFO	bbolt	Opening db file (/tmp/TestLessorRenewConcurrentCheckpointShortensExpiryScheduledCheck2583659216/001/be) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2cc6186baa18, NoStatistics: false}
+    logger.go:146: 2026-10-24T01:45:58.689-0400	INFO	bbolt	Opening bbolt db (/tmp/TestLessorRenewConcurrentCheckpointShortensExpiryScheduledCheck2583659216/001/be) successfully
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01"
+    logger.go:146: 2026-10-24T01:45:58.689-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01" successfully
+    logger.go:146: 2026-10-24T01:45:58.700-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01"
+    logger.go:146: 2026-10-24T01:45:58.700-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01" successfully
+    renew_checkpoint_race_test.go:165: after Renew (cpCalls=0): returned ttl=100s, actual l.Remaining()=4.999995389s, in-memory l.remainingTTL=5, persisted RemainingTTL=5
+    renew_checkpoint_race_test.go:169: BUG: Renew returned ttl=100s, nil (cpCalls=0), but l.Remaining()=4.999995389s (shortened to stale checkpoint TTL 5s; in-memory remainingTTL=5, persisted RemainingTTL=5)
+    logger.go:146: 2026-10-24T01:45:58.700-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-24T01:45:58.700-0400	DEBUG	bbolt	Committing transaction 3 successfully
+--- FAIL: TestLessorRenewConcurrentCheckpointShortensExpiry (0.01s)
+    --- FAIL: TestLessorRenewConcurrentCheckpointShortensExpiry/ScheduledCheckpointAppliesDuringClear (0.00s)
+    --- FAIL: TestLessorRenewConcurrentCheckpointShortensExpiry/ScheduledCheckpointAppliesBetweenRUnlockAndLock (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/lease	0.024s
+FAIL

@@ -1,0 +1,84 @@
+=== RUN   TestNewServerCheckpointerPropagatesRaftRequestError
+    logger.go:146: 2026-10-24T01:42:03.980-0400	INFO	feature gates: {map[LeaseCheckpoint:true]}
+    logger.go:146: 2026-10-24T01:42:03.980-0400	WARN	check file permission	{"error": "directory \"/tmp/TestNewServerCheckpointerPropagatesRaftRequestError2451501266/001\" exist, but the permission is \"drwxr-xr-x\". The recommended permission is \"-rwx------\" to prevent possible unprivileged access to the data"}
+    logger.go:146: 2026-10-24T01:42:03.981-0400	INFO	cleaned up all legacy v2 snapshot files
+    logger.go:146: 2026-10-24T01:42:03.981-0400	INFO	bbolt	Opening db file (/tmp/TestNewServerCheckpointerPropagatesRaftRequestError2451501266/001/member/snap/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x1ff29fa5e1d0, NoStatistics: false}
+    logger.go:146: 2026-10-24T01:42:03.981-0400	INFO	bbolt	Opening bbolt db (/tmp/TestNewServerCheckpointerPropagatesRaftRequestError2451501266/001/member/snap/db) successfully
+    logger.go:146: 2026-10-24T01:42:03.981-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T01:42:03.981-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T01:42:03.981-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:42:03.981-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:42:03.981-0400	INFO	opened backend db	{"path": "/tmp/TestNewServerCheckpointerPropagatesRaftRequestError2451501266/001/member/snap/db", "took": "230.689µs"}
+    logger.go:146: 2026-10-24T01:42:03.981-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-24T01:42:03.981-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-24T01:42:03.981-0400	INFO	restore consistentIndex	{"index": 0}
+    logger.go:146: 2026-10-24T01:42:03.981-0400	INFO	bootstrapping cluster
+    logger.go:146: 2026-10-24T01:42:03.981-0400	INFO	bootstrapping storage
+    logger.go:146: 2026-10-24T01:42:04.003-0400	DEBUG	bbolt	Creating bucket if not exist "members"
+    logger.go:146: 2026-10-24T01:42:04.003-0400	DEBUG	bbolt	Creating bucket if not exist "members" successfully
+    logger.go:146: 2026-10-24T01:42:04.003-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed"
+    logger.go:146: 2026-10-24T01:42:04.003-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed" successfully
+    logger.go:146: 2026-10-24T01:42:04.003-0400	DEBUG	bbolt	Creating bucket if not exist "cluster"
+    logger.go:146: 2026-10-24T01:42:04.003-0400	DEBUG	bbolt	Creating bucket if not exist "cluster" successfully
+    logger.go:146: 2026-10-24T01:42:04.003-0400	INFO	bootstrapping raft
+    logger.go:146: 2026-10-24T01:42:04.003-0400	INFO	starting local member	{"local-member-id": "c2bf667d22b712ba", "cluster-id": "644967dd265d4268"}
+    logger.go:146: 2026-10-24T01:42:04.003-0400	INFO	bootstrap successfully
+    logger.go:146: 2026-10-24T01:42:04.004-0400	INFO	raft	c2bf667d22b712ba switched to configuration voters=()
+    logger.go:146: 2026-10-24T01:42:04.004-0400	INFO	raft	c2bf667d22b712ba became follower at term 0
+    logger.go:146: 2026-10-24T01:42:04.004-0400	INFO	raft	newRaft c2bf667d22b712ba [peers: [], term: 0, commit: 0, applied: 0, lastindex: 0, lastterm: 0]
+    logger.go:146: 2026-10-24T01:42:04.004-0400	INFO	raft	c2bf667d22b712ba became follower at term 1
+    logger.go:146: 2026-10-24T01:42:04.004-0400	INFO	raft	c2bf667d22b712ba switched to configuration voters=(c2bf667d22b712ba)
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:42:04.004-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:42:04.005-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-24T01:42:04.005-0400	WARN	use default bcrypt cost instead of the invalid given cost	{"min-cost": 4, "max-cost": 31, "default-cost": 10, "given-cost": 0}
+    logger.go:146: 2026-10-24T01:42:04.005-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-24T01:42:04.005-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-24T01:42:04.005-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-24T01:42:04.005-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-24T01:42:04.005-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-24T01:42:04.005-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	INFO	enabled backend quota with default value	{"quota-name": "v3-applier", "quota-size-bytes": 2147483648, "quota-size": "2.1 GB"}
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01"
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x01" successfully
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	The member is active, skip checking leadership	{"latestTickTs": "2026-10-24T01:42:04.006-0400", "now": "2026-10-24T01:42:04.006-0400"}
+    logger.go:146: 2026-10-24T01:42:04.006-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-24T01:42:04.007-0400	DEBUG	bbolt	Committing transaction 6 successfully
+--- PASS: TestNewServerCheckpointerPropagatesRaftRequestError (0.05s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.077s

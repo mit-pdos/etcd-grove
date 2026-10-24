@@ -11,6 +11,10 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+public import Spec.go_uber_org.zap.Logger__Warn
+public import Spec.go_uber_org.zap.Uint64
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 
 @[expose] public section
 
@@ -180,6 +184,159 @@ theorem backend_server_hooks_of
   iintro !> #Hb %t #Ht
   iapply ci_saveSpec hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH
   iframe #
+
+/-- The checkpointer closure literal `NewServer` passes to `srv.lessor.SetCheckpointer`
+(`server.go:398-407`; `srv` at stack address `srv_ptr`). -/
+abbrev newServerCkptLit (srv_ptr : Loc) : GoFunc :=
+  ⟨BAnon, "ctx", (Lam "cp"
+  (App (Val exceptionDo)
+  (Let "cp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)))) (Var "cp"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)))) (Var "cp"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"LeaseCheckpoint")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty) (Var "$v0")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"raftRequest"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Val #srv_ptr))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"ensureLeadership"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Val #srv_ptr))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.lease.ErrNotPrimary))) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Ignore the checkpoint request because current member isn't a leader"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Val #srv_ptr))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Val #srv_ptr))))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))))⟩
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 4000000 in
+/-- **`NewServer`'s checkpointer closure meets `newServerCkptFn`** (`server.go:398-407`;
+`etcd-io/etcd#22650`): when `srv.ensureLeadership()` returns `false`, it logs a warning and returns
+`lease.ErrNotPrimary`; when `srv.ensureLeadership()` returns `true`, it proposes
+`&pb.InternalRaftRequest{LeaseCheckpoint: cp}` through `srv.raftRequest` and returns its `err`. -/
+theorem newServer_ckptFn_of
+    (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
+    (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
+    (srv_ptr s lg : Loc) (id : w64) (Hlgnn : lg ≠ null) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srv_ptr ↦□ s ∗
+      structFieldRef EtcdServer go!"lg" s ↦□ lg ∗
+      srvMemberIDAddr s ↦□ id ⊢
+      newServerCkptFn s (newServerCkptLit srv_ptr) := by
+  iintro ⟨#Hpkg, #Hsrvp, #Hlg, #Hmid⟩
+  iunfold newServerCkptFn
+  iintro !> %E %ρ %ctx %cd %cp %ocms %Qr %F %Plead %Qlead %eNP #Hlead
+  iintro %Φ !> ⟨Hplead, #HeNP, #Hsrv, Hrd, Hard, Hcred, #Hctx, #Hcp, Hok, #HF⟩ HΦ
+  unfold newServerCkptLit
+  (try wp_auto)
+  wp_apply Hlead $$ [$Hplead] as %lead Hqlead
+  cases lead
+  · -- `!srv.ensureLeadership()` (`lead = false`): log warning and return `lease.ErrNotPrimary`
+    simp only [Bool.not_false]
+    (try wp_auto)
+    ihave #Hzpkg : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+    · iPkgInit
+    wp_apply (hMID s id) $$ []
+    · iframe #
+    (try wp_auto)
+    wp_apply (hU64 go!"local-member-id" id) $$ [] as %zf -
+    wp_apply wp_slice_literal (l := [zf])
+    isplitr
+    · ipureintro; rfl
+    iintro %fsl -
+    (try wp_auto)
+    wp_apply hWarn
+    · iframe #; ipureintro; exact Hlgnn
+    (try wp_auto)
+    iapply HΦ
+    ileft
+    iframe Hqlead Hrd Hard Hcred Hok
+    ipureintro; rfl
+  · -- `srv.ensureLeadership()` (`lead = true`): propose `&pb.InternalRaftRequest{LeaseCheckpoint: cp}`
+    -- via `srv.raftRequest` and return its `err`
+    simp only [Bool.not_true]
+    (try wp_auto)
+    ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
+    iStructNamed Hirr
+    ipersist ID
+    ipersist Range
+    ipersist Put
+    ipersist DeleteRange
+    ipersist Txn
+    ipersist Compaction
+    ipersist LeaseGrant
+    ipersist LeaseRevoke
+    ipersist Alarm
+    ipersist LeaseCheckpoint
+    ipersist AuthEnable
+    ipersist AuthDisable
+    ipersist AuthStatus
+    ipersist Authenticate
+    ipersist AuthUserAdd
+    ipersist AuthUserDelete
+    ipersist AuthUserGet
+    ipersist AuthUserChangePassword
+    ipersist AuthUserGrantRole
+    ipersist AuthUserRevokeRole
+    ipersist AuthUserList
+    ipersist AuthRoleList
+    ipersist AuthRoleAdd
+    ipersist AuthRoleDelete
+    ipersist AuthRoleGet
+    ipersist AuthRoleGrantPermission
+    ipersist AuthRoleRevokePermission
+    ipersist ClusterVersionSet
+    ipersist ClusterMemberAttrSet
+    ipersist DowngradeInfoSet
+    ipersist DowngradeVersionTest
+    ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrLeaseCheckpoint ocms) $$ []
+    · iunfold irrNoHdrIs
+      simp only [irrLeaseCheckpoint, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField]
+      isplitr
+      · ipureintro; exact Hirrn
+      isplitr
+      · have h0 : (W64 0 : w64) = 0 := by decide
+        rw [h0]; iexact ID
+      repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
+      iexists _; iframe #; try (ipureintro; simp)
+    (try wp_auto)
+    wp_apply (hRR s E ρ ctx cd «$a1_ptr» (irrLeaseCheckpoint ocms) Qr F rfl)
+      $$ [Hrd Hard Hcred Header Hok] as %resp %err ⟨Hrd, Hard, Hres⟩
+    · iframe # Hrd Hard Hcred Hok
+      iexists _; iexact Header
+    (try wp_auto)
+    iapply HΦ
+    iright
+    iframe Hqlead Hrd Hard
+    icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, HQL⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    · ileft
+      isplitr
+      · ipureintro; exact Herr
+      iexists hm, rq', lb, resp
+      iframe Hok HQL
+      ipureintro; exact Hwire
+    · iright
+      isplitr
+      · ipureintro; exact Hre.2
+      iframe HaE Hfail
 
 end backend
 

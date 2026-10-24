@@ -100,6 +100,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ClusterVersion
+public import Spec.go_uber_org.zap.Uint64
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 
 @[expose] public section
 
@@ -261,7 +263,9 @@ theorem NewServer.wp_proof
     (h90 : EtcdServer.Process.spec (GF := GF) (hG := hG))
     (h91 : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
-    (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG)) :
+    (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG))
+    (h94 : zap.Uint64.spec (GF := GF) (hG := hG))
+    (h95 : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp
@@ -670,9 +674,14 @@ theorem NewServer.wp_proof
   · iframe #; ipureintro; simp [serverFeatures]
   unfold lease.lessorIface at Hlci
   cases Hlci
-  wp_join iprop(srv_ptr ↦ s) with [srv] as srv
+  ipersist memberID
+  ipersist srv
+  wp_join with [Hopen]
   · wp_func_lits
-    wp_apply Hsetcp
+    ihave #Hsetcp' := Hsetcp $$ %s
+    wp_apply Hsetcp'
+    · iapply (newServer_ckptFn_of h3 h79 h94 h95 srv_ptr s cfg.Logger' bc.nodeID' Hlgnn)
+      iframe #
     (try wp_auto)
     wp_join_done
   (try wp_auto)
@@ -716,7 +725,6 @@ theorem NewServer.wp_proof
     iunfold rnFixed at Hfix
     iNamed Hfix
     iexact NodeC
-  ipersist memberID
   ipersist stats
   ihave #Hprocok : srvProcOk γn s id $$ []
   · iunfold srvProcOk

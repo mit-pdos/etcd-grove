@@ -487,13 +487,60 @@ theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterfac
     itrivial
   · iexact Hstop
 
+/-- `&pb.InternalRaftRequest{LeaseCheckpoint: cp}` for `cp` holding `ocms` (`optReqIs`). -/
+def irrLeaseCheckpoint (ocms : Option (List apply.CheckpointModel)) : apply.IRRModel :=
+  { apply.irrEmpty with leaseCheckpoint := ocms }
+
+/-- **The checkpointer closure `NewServer` installs on the lessor** (`server.go:398-407`;
+`etcd-io/etcd#22650`): called with `(ctx, cp)` where `cp` holds `ocms`:
+- it checks `srv.ensureLeadership()`; if `false`, logs a warning and returns `lease.ErrNotPrimary`;
+- if `true`, allocates `&pb.InternalRaftRequest{LeaseCheckpoint: cp}`, proposes it through
+  `srv.raftRequest(ctx, ...)`, and **propagates the returned `err`** (`nil` on `appliedOk`,
+  a non-nil `applyErrIs` error on `appliedErr` or `srvMaybeDeposited`). -/
+def newServerCkptFn (s : Loc) (cp_fn : GoFunc) : IProp GF :=
+  iprop(□ (∀ (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+      (cd : context.ContextDesc (IProp GF)) (cp : Loc)
+      (ocms : Option (List apply.CheckpointModel))
+      (Qr : List EntryModel → IProp GF) (F : mvcc.Log)
+      (Plead : IProp GF) (Qlead : Bool → IProp GF) (eNP : GoInterface),
+    □ ({{ Plead }}
+        (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ensureLeadership")) (Val #()))
+      {{ (lead : Bool), RET #lead; Qlead lead }}) -∗
+    {{ Plead ∗
+        globalAddr go_etcd_io.etcd.server.v3.lease.ErrNotPrimary ↦□ eNP ∗
+        isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
+        context.isContext ctx cd ∗
+        apply.optReqIs cp ocms apply.leaseCheckpointIs ∗
+        reqPropOk ρ.kv (irrLeaseCheckpoint ocms) Qr ∗
+        mvcc.idxCert E.γ.idx F }}
+      (App (App (Val #cp_fn) (Val #(GoInterface.ok ctx))) (Val #cp))
+    {{ (err : GoInterface), RET #err;
+        (Qlead false ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
+          reqPropOk ρ.kv (irrLeaseCheckpoint ocms) Qr ∗ ⌜err = eNP⌝) ∨
+        (Qlead true ∗ srvLeadTimeReader s ∗ E.RD ∗
+          ((⌜err = GoInterface.nil⌝ ∗
+              ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (lb : mvcc.Log) (resp : GoInterface),
+                ⌜irrWireOf (apply.withHeader (irrLeaseCheckpoint ocms) hm) rq'⌝ ∗
+                appliedOk E ρ.rd rq' F resp lb ∗
+                ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜kvModel ρ.kv L = lb⌝ ∗ □ Qr L) ∨
+           (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+              ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
+                  ⌜irrWireOf (apply.withHeader (irrLeaseCheckpoint ocms) hm) rq'⌝ ∗
+                  appliedErr E rq' F err) ∨
+               srvMaybeDeposited ρ (irrLeaseCheckpoint ocms))))) }}))
+
 /-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the
-checkpointer an opaque value (the lessor calls it later, outside the model: `NewServer`'s
-closure over `raftRequest`). -/
+checkpointer `NewServer`'s closure over `raftRequest` (`newServerCkptFn`). -/
 def lessorCkptOk (l : GoInterface) : IProp GF :=
   iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
-    □ (∀ cp : GoFunc,
-      {{ True }} (App (Val #(methods li.ty go!"SetCheckpointer" li.v)) (Val #cp)) {{ RET #(); True }}))
+    □ (∀ (s : Loc) (cp : GoFunc),
+      {{ newServerCkptFn s cp }}
+        (App (Val #(methods li.ty go!"SetCheckpointer" li.v)) (Val #cp))
+      {{ RET #(); True }}))
+
+instance newServerCkptFn_persistent (s : Loc) (cp_fn : GoFunc) :
+    Persistent (newServerCkptFn (GF := GF) s cp_fn) := by
+  unfold newServerCkptFn; infer_instance
 
 instance lessorCkptOk_persistent (l : GoInterface) : Persistent (lessorCkptOk (GF := GF) l) := by
   unfold lessorCkptOk; infer_instance

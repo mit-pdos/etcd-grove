@@ -1123,6 +1123,22 @@ postconditions); untracked, it runs with its own `Pre` while the scheduler is li
 theorem scheduler_fifo : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) :=
   schedule.Scheduler.wp_Schedule
 
+/-- **`NewServer`'s lease checkpointer closure** (`server.go:398-407`; `etcd-io/etcd#22650`):
+linked with `zap.Logger.wp_Warn`, `EtcdServer.wp_MemberID`, `zap.wp_Uint64` and
+`EtcdServer.wp_raftRequest`, `NewServer`'s checkpointer closure returns `lease.ErrNotPrimary` when
+`!srv.ensureLeadership()` and otherwise proposes `&pb.InternalRaftRequest{LeaseCheckpoint: cp}`
+through `srv.raftRequest` and returns its `err` (`nil` on `appliedOk`, non-nil `applyErrIs` on
+`appliedErr` or `srvMaybeDeposited`). -/
+theorem server_checkpointer_spec [MemStorReg GF]
+    (srv_ptr s lg : Loc) (id : w64) (Hlgnn : lg ≠ null) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srv_ptr ↦□ s ∗
+      structFieldRef EtcdServer go!"lg" s ↦□ lg ∗
+      srvMemberIDAddr s ↦□ id ⊢
+      newServerCkptFn s (newServerCkptLit srv_ptr) :=
+  newServer_ckptFn_of zap.Logger.wp_Warn EtcdServer.wp_MemberID zap.wp_Uint64
+    EtcdServer.wp_raftRequest srv_ptr s lg id Hlgnn
+
 end goroutines
 
 #print axioms Perennial.EtcdGrove.cindex_hook_backend
@@ -1167,3 +1183,5 @@ end Perennial
 #print axioms Perennial.EtcdGrove.start_gives_views
 #print axioms Perennial.EtcdGrove.scheduler_fifo
 #print axioms Perennial.EtcdGrove.server_raft_node_start
+#print axioms Perennial.EtcdGrove.server_checkpointer_spec
+#print axioms Perennial.EtcdGrove.wp_NewServer
