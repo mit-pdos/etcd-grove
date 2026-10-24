@@ -53,6 +53,8 @@ public import Proof.google_golang_org.grpc.InvGrpc
 public import Proof.google_golang_org.grpc.InvGrpcStream
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.DGhostVar
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
+public import Proof.go_etcd_io.etcd.server.v3.auth.ModeTag
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Perennial.Proof.io
@@ -466,13 +468,31 @@ instance downLbW_persistent (γ : StreamNames) (L : List WatchRespM) :
     Persistent (downLbW (GF := GF) γ L) := by
   unfold downLbW; infer_instance
 
+/-- **A registered watcher's authorization** (the auth plan's A4, 2026-10-24; persistent): in the
+mode some tag of the store's owner tag names (`auth.modeTag γ.tag M`: the server's,
+`watchSrvOk`), the class of the create request's read (`apply.watchClass`: the request's key,
+normalized, and its range end as the check saw it) for some principal (the stream's context's
+auth info, or the empty one), and the request's shape (`auth.reqShape`: a non-empty key, a range
+that is a point, open-ended or proper -- mvcc's `Watch` refused the rest), so that in `on γa`
+every key the watcher covers was readable by that principal at a recorded state
+(`WatchClass.lean`, `ctrlWatcher_authorized`). -/
+def watchAuthed (γ : mvcc.WsNames) (c : CreateReqM) : IProp GF :=
+  iprop(∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+    auth.modeTag γ.tag M ∗ apply.watchClass M info c.key c.rangeEnd ∗
+    ⌜auth.reqShape (apply.watchKey c.key) c.rangeEnd⌝)
+
+instance watchAuthed_persistent (γ : mvcc.WsNames) (c : CreateReqM) :
+    Persistent (watchAuthed (GF := GF) γ c) := by
+  unfold watchAuthed; infer_instance
+
 /-- **The watcher a created response names** (the watch slice's units W-M and W-C): for a
 create request `c` answered by a registered (not canceled) response `m`, the mvcc watcher `w`
 the store registered for it (`mvcc.watcherIs`: its names, its fixed range `r`, the request's
 key, range and start revision with the response's id, `createRangeOk c m.watchId r`, its
 filters, its first revision `lo`: `c.startRev`, or for `0` the length of a committed log at the
 registration; no filter: `fcs` holds none, as `watchReqOk` asks), the stream `γo` having assigned the id to it (`mvcc.idAssigned`, persistent) and
-the id's token (`mvcc.idTok`, exclusive: a stream announces an id once), and (unit W-K) a
+the id's token (`mvcc.idTok`, exclusive: a stream announces an id once), the
+request's authorization (`watchAuthed`, the auth plan's A4), and (unit W-K) a
 snapshot of the stream's channel's sent list taken after the registration (`streamSentLb`: the
 point of the channel's order the response is sent after, so `sendLoop` sends every response of
 id `-1` queued before it first), at least as long as the watcher's registration index
@@ -485,7 +505,7 @@ def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM)
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
         fcs ↦*□ ([] : List GoFunc) ∗
         (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta γ w γw) ∗
-        mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId ∗
+        mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId ∗ watchAuthed γ c ∗
         ∃ (l : List mvcc.RespM) (n : Nat), mvcc.streamSentLb γo l ∗ mvcc.streamRegAt γo w n ∗
           ⌜n ≤ l.length⌝)
   | _ => iprop(True)
@@ -619,7 +639,7 @@ theorem ctrlWatcher_snap (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (c : Cre
   unfold ctrlWatcher
   rw [h]
   simp only [Bool.false_eq_true, ↓reduceIte]
-  iintro ⟨%w, %rg, %fcs, %lo, %Hrg, #Hwi, #Hfcs, #Hws, #Hia, Hit, %l, %n, #Hl, #Hn, %Hnl⟩
+  iintro ⟨%w, %rg, %fcs, %lo, %Hrg, #Hwi, #Hfcs, #Hws, #Hia, Hit, #Hau, %l, %n, #Hl, #Hn, %Hnl⟩
   isplitl [Hit]
   · iexists w, rg, fcs, lo
     iframe Hit

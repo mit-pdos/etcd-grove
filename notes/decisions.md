@@ -17243,3 +17243,79 @@ prefix (`kvApplied` at `A'`, S-j2's item 6). Writing the axioms before these are
 risk false trusted statements or a second restatement; S8a and S8b do not depend on them.
 `applyAll` still calls the empty case (its proof unchanged); the general spec and its wiring wait
 for S8d.
+
+## A4 of the auth plan: the watch service's request shapes, the registered watcher's authorization in the stream specification (2026-10-24 · `notes/auth-plan.md`, branch `auth-a4`)
+
+**Problem.** A1 proved `serverWatchStream.isWatchPermitted` returns, when it passes, the class
+of the read of `[Key, RangeEnd)` for some principal (`apply.classRes`), and `recvLoop`'s proof
+dropped it: nothing said of a registered watcher that its registration was authorized, and
+nothing tied the interval the check saw to the interval mvcc registers -- which is exactly what
+GHSA-xg4h-6gfc-h4m8 broke (the matrix's `Watch` row: `recvLoop` rewrote `RangeEnd = "\x00"` to
+`[]byte{}` *before* the check, and `IsRangePermitted` of an empty range end is the check of the
+point, so a single-key READ grant let a `WithFromKey` watch through). The pinned code checks
+first and rewrites after; the proof is what says it stays so.
+
+**Where the statement can live.** The stream specification (`watchDn γs γ cid mid j m`, the
+content of every response the handler sends, through `ctrlOk`/`ctrlWatcher`) is written over
+the stream's names `γs` and the store's `γ : mvcc.WsNames`, with no auth mode in scope, and its
+arity is fixed by the client's proofs and the examples' definitions (`linkv3p/Defs.lean`,
+`client/v3/*`: about fifteen files). The mode is a field of the apply environment
+(`AEnv.authMode`), which the stream cannot name; a ghost agreement on the mode needs a name tied
+to something the specification already carries. Options weighed: a parameter on
+`ctrlOk`/`watchDn`/`watchStreamSpec` (the fifteen files, the client learning the server's auth
+mode); a name added to the stream's auxiliary list `auxOf` (its twenty-five client-side uses); a
+ghost field in the *watchable store's* names, which `ctrlWatcher` has in scope. The last is the
+change: `mvcc.WsNames.tag`, the **owner's tag**, a ghost name the store's creator passes to
+`newWatchableStore`/`mvcc.New` (a new binder `γtag`, stated as `γ.tag = γtag` in their posts, of
+no meaning to mvcc), and `auth.modeTag γtag M` (`auth/ModeTag.lean`: `dghostVar` at `.discard`,
+persistent, `modeTag_agree`; `AuthMode` made countable) the server's record of its mode under
+it: `server_kv_watchable_of` (`BuildLemmas.lean`) takes the mode, allocates and tags;
+`srvWatchBuilt`/`srvWatchReaders` (`NewServer`'s export) and `v3rpc.watchSrvOk` (the watch
+server's contract) hold `auth.modeTag γ.tag E.authMode`. No arity of the stream specification
+changes; `watchDn` is stronger by one conjunct.
+
+**The statement.** `ctrlWatcher γ γo (.create c) m` (a created, not canceled, response) gains
+`watchAuthed γ c`: for *some* mode `M` tagged at `γ.tag` (the server's, by agreement) and some
+principal `info`, `apply.watchClass M info c.key c.rangeEnd` -- the class
+`[(watchKey c.key, c.rangeEnd, READ)]`, the key normalized (an empty key is `"\x00"`), the range
+end as the request gave it (`apply/AuthClass.lean`) -- and `auth.reqShape (watchKey c.key)
+c.rangeEnd` (a non-empty key; a range that is a point, open-ended or proper: mvcc's `Watch`
+refuses an inverted one, `ErrEmptyWatcherRange`, so `recvLoop` has `e' = [] ∨ k < e'` of the
+rewritten end). `recvLoop`'s proof keeps the check's class (`Hcls`) and `watchSrvOk`'s tag and
+builds the conjunct at the registration. The pure bridge (`v3rpc/WatchClass.lean`):
+`createRangeOk_inRange`, every key the registered range `r` covers (`mvcc.WatchRange.covers`, the
+affine order) is in the model's `[watchKey c.key, c.rangeEnd)` (`auth.inRange`), by cases on the
+request shape (a point: `r.end? = none`, the key itself; `"\x00"`: `r.end? = some []` or, in the
+model only, `none`, every key at or after the key; a proper range: `some c.rangeEnd`); and
+`watch_permitted_covers`, a permitted request's principal may read every covered key at the
+permitting state. The result, `ctrlWatcher_authorized` (restated as
+`Results.lean`'s `watch_registered_authorized`): in the mode `on γa`, a created response's
+watcher `w` of range `r` comes with a principal `info` and a recorded state `st` at which auth
+was disabled, or `info` named a user with the root role, or one whose READ permissions cover
+every key `r` covers. The shapes: `Key` alone (a point), `RangeEnd` (a range), `RangeEnd = "\x00"`
+(`WithFromKey`), `Key = RangeEnd = "\x00"` (all keys: the normalized key `"\x00"` with the
+open end), `WithPrefix` (a range at the server); `ProgressRequest` and `CancelRequest` carry no
+keys and register nothing (`ctrlWatcher` is `True` of them); `Fragment` and the filters change
+no class.
+
+**The principal, per request.** `isWatchPermitted` calls `sws.ag.AuthInfoFromCtx` on the stream's
+context for each create request (the token-to-principal binding, S5's; A2's `authedRes` style:
+stated as "some principal, the context's or the empty one"). A watcher registered under a token
+later revoked keeps delivering: the check is at registration, and nothing re-checks a live
+watcher; the statement says so in that `watchAuthed` names one recorded state (etcd's documented
+behaviour, not a finding: the auth revision rule applies to requests, not to streams).
+
+**Cost.** Mechanical: `WsNames` (one constructor site, `newWatchableStore`), two specs and proofs
+(`newWatchableStore`, `New`), `server_kv_watchable_of` and `NewServer`'s three frames,
+`srvWatchBuilt`/`srvWatchReaders` and `ServeFromStart`'s two destructurings, `watchSrvOk` and one
+destructuring that named its last conjunct (`ServerWatcher.lean`), `ctrlWatcher` and
+`ctrlWatcher_snap`'s pattern, `recvLoop`'s construction. The client's proofs destructure
+`ctrlWatcher` with a trailing `-` and `watchSrvOk` likewise, so they were untouched. No axiom,
+no closed theorem's statement changed (the examples run in `off`, where `watchClass` is `True`).
+
+**Not done.** The statement over `recvLoop`'s own post (its spec returns only the control
+stream's producer token; the registrations are visible through the control responses, which is
+where the statement went); `issues/` has no file for GHSA-xg4h-6gfc-h4m8 (fixed before the pin;
+the matrix's advisory table records it, and `createRangeOk_inRange` is the proof's word that the
+fix holds at the pinned revision). E's closed theorem will consume `watch_registered_authorized`
+through the client's `watchDn` and the server's `watchSrvOk`.
