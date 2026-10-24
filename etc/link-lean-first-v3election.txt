@@ -1,0 +1,19 @@
+# The functions linked in `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3election/Link.lean`
+# (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --v3election`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `v3election` (`v3election.electionServer.wp_Campaign`). The auth plan's A3c (2026-10-24): the
+# Election service's server over the client's concurrency package (`@`: linked in its
+# `Link.lean`) and the server's client as a contract (`v3election/Defs.lean`: `electionClientOk`,
+# a hypothesis of the specs). Not linked yet: `Observe` (a stream over the election's channel).
+NewSession: @
+WithLease: @
+WithContext: @
+Session__Orphan: @
+Session__Lease: @
+NewElection: @
+Election__Campaign: @
+Election__Header: @
+Election__Key: @
+Election__Rev: @
+electionServer__session: NewSession WithLease WithContext Session__Orphan
+electionServer__Campaign: electionServer__session NewElection Election__Campaign Election__Header Election__Key Election__Rev Session__Lease
