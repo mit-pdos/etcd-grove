@@ -559,6 +559,24 @@ theorem raftProto_req_of_pipe (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)
     rw [hp] at hs
     exact absurd hs.2 (by simp [snapPath])
 
+/-- A snapshot request is in a member's protocol (D42, stage 7d). -/
+theorem raftProto_req_of_snap (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)
+    (h : R.meth = go!"POST") (hp : R.path = snapPath) :
+    snapReq Rh R γk ⊢ (raftProto Rh).req R γk := by
+  show snapReq Rh R γk ⊢ iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
+    (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
+    (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk))
+  iintro #Hs
+  isplitr
+  · iintro %hr
+    rw [hp] at hr
+    exact absurd hr.2 (by simp [snapPath])
+  isplitr
+  · iintro %hg
+    rw [h] at hg
+    exact absurd hg.1 (by decide)
+  · iintro -; iexact Hs
+
 /-- A member's protocol of a `POST` to `/raft`: a pipeline request. -/
 theorem raftProto_req_pipe (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
     (raftProto Rh).req R γk ⊢ ⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk := by

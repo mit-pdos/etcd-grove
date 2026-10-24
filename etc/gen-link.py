@@ -369,7 +369,11 @@ EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3r
                  "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
                               "Perennial.Proof.sync.Link", "Perennial.Proof.context.Link",
                               "Perennial.Proof.strings.Link",
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas"]}
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas",
+                              # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
+                              # axiom, net/http's errors not `errMemberRemoved`
+                              "Proof.bytes.Buffer__Write",
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr"]}
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes"}

@@ -71,7 +71,7 @@ theorem rafthttp.snapshotSender.post.wp_proof
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, #HES, #HMR, -, -, -, -, -, -, -, -, -, -, -,
-    #Hcells, -, #HcES, -, -, -, -, -, -, -, -, ⟨%dto, #Hdto⟩⟩
+    #Hcells, -, #HcES, -, -, -, -, -, -, -, -, ⟨%dto, #Hdto⟩, -⟩
   iunfold EtcdGrove.errorsNewVar at HES HMR
   icases HES with ⟨%xES, #HxESg, #HxESM⟩
   icases HMR with ⟨%xMR, #HxMRg, #HxMRM⟩

@@ -115,6 +115,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.opaqueInitsO
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.activePeers_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.disconnectedPeers_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errMemberNotFound_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage_init
@@ -125,6 +126,15 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.recvFailures_i
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rttSec_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.sentBytes_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.sentFailures_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapResponseReadTimeout_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotReceiveFailures_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotReceiveInflights_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotReceiveSeconds_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotReceive_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSendFailures_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSendInflights_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSendSeconds_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSend_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.supportedStream_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.opaqueInitsOk
@@ -298,6 +308,8 @@ axiom bbolt.Tx.Stats_kv.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
+axiom bufferM.ownBuffer_new
+axiom bytes.Buffer.Write.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
@@ -379,6 +391,7 @@ axiom http.HeaderGetPtr_ok
 axiom http.HeaderSetPtr_ok
 axiom http.NewBuffer_ok
 axiom http.NewRequest_ok
+axiom http.ReadAll_any_ok
 axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
 axiom http.RespCloseAny_ok
@@ -389,11 +402,13 @@ axiom http.URLString_ok
 axiom http.WithContext_ok
 axiom http.readerHas_nil
 axiom http.reqURL_ok
+axiom http.respReadAny_of_ok
 axiom http.respWrite_ok
 axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
 axiom initLb_of_spec
 axiom insecure.NewCredentials.wp_proof
+axiom io.MultiReader.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
@@ -449,11 +464,9 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.NewRoundTripper.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
-axiom rafthttp.Transport.SendSnapshot.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
-axiom rafthttp.newSnapshotSender.wp_proof
+axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
-axiom rafthttp.snapshotSender.stop.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
@@ -473,6 +486,8 @@ axiom semver.Version.Major.wp_proof
 axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
+axiom snap.Message.CloseWithError.wp_proof
+axiom snap.Message.fields.wp_proof
 axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof

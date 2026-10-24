@@ -240,7 +240,10 @@ abbrev rafthttpInit : IProp GF :=
       ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
     -- (2026-10-24, rafthttp stage 7d) the snapshot sender's response-read timeout
     -- (`snapshot_sender.go`, untranslated): some duration, read-only for good
-    (∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦□ d))
+    (∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦□ d) ∗
+    -- (2026-10-24, rafthttp stage 7d) `SendSnapshot`'s error for a message without a peer
+    -- (`util.go`, untranslated): some error, read-only for good
+    (∃ e : GoInterface, globalAddr errMemberNotFound ↦□ e))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit

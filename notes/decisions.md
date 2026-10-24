@@ -18166,3 +18166,12 @@ opaque predicate, so that the sender's `ReaderAndCloser` wrapper is proved; D22'
 `readerStreams` enters only through `io.MultiReader`'s spec. `RoundTrip` gives the request back
 after consuming a stream; a second send of it would need another `sreq` (another deposit) and its
 reader yields nothing, so `prefixClosed` asks `Pre []`.
+
+**7d (2026-10-24), the user's two choices.** (1) A response body read by two goroutines (the
+snapshot sender's `io.ReadAll` and its timer's `GracefulClose`): either may take bytes the other
+would have read, so the boundary gives a weaker, shared read (`respReadAny`, given up from the
+exclusive reader) rather than keeping `post` an axiom; the sender reads only the status
+(`checkPostResponse`), so nothing is lost. (2) The server's error channel carries `False` (a static
+cluster's member is never removed), so `send` must show `errors.Is(err, errMemberRemoved)` false of
+every error `post` returns: net/http's errors are tagged (`netErr`) and one rafthttp axiom says they
+are not it, rather than making critical errors reachable in the server's proof.

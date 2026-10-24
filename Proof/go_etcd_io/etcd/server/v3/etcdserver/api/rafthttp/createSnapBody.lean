@@ -59,7 +59,7 @@ theorem rafthttp.createSnapBody.wp_proof
     rafthttp.createSnapBody.spec (GF := GF) (hG := hG) := by
   intro lg m ml rc st Φ Hlg Hms
   wp_start as ⟨#Hmsg, #Hml, Hrs⟩
-  ihave ⟨#HfM, ⟨%tsz, #HfT⟩, %rd, %ri, #HfR, %Hrd, #Hwrap, #Hclose⟩ := hFields m ml rc $$ Hmsg
+  ihave ⟨#HfM, ⟨%tsz, #HfT, -⟩, %rd, %ri, #HfR, %Hrd, #Hwrap, #Hclose⟩ := hFields m ml rc $$ Hmsg
   wp_auto
   rename_i Φs bp
   irename: (bp ↦ (zero_val _root_.Perennial.bytes.Buffer)) => Hb0

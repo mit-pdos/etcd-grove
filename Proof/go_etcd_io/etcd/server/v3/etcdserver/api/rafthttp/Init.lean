@@ -81,8 +81,7 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([ConnWriteTimeout.init,
         proberInterval.init,
         statusMonitoringInterval.init,
-        statusErrorInterval.init,
-        errMemberNotFound.init] : List val),
+        statusErrorInterval.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`'s untranslated `init` functions return.** Goose
@@ -215,6 +214,11 @@ axiom snapshotReceiveSeconds_init :
 axiom snapResponseReadTimeout_init :
     {{ (True : IProp GF) }} (App (Val snapResponseReadTimeout.init) (Val #()))
     {{ RET #(); ∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦ d }}
+
+/-- `errMemberNotFound = errors.New("member not found")` (`util.go`): some error, read-only for good. -/
+axiom errMemberNotFound_init :
+    {{ (True : IProp GF) }} (App (Val errMemberNotFound.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterface, globalAddr errMemberNotFound ↦ e }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits
@@ -356,11 +360,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
   wp_apply (errorsNewVarsInit errMemberRemoved.init errMemberRemoved go!"the member has been permanently removed from the cluster" (by mem_tac))
     as ⟨%xerrMemberRemoved, HerrMemberRemoved, #MerrMemberRemoved, #CerrMemberRemoved⟩
-  wp_apply (opaqueInitsOk errMemberNotFound.init (by mem_tac))
+  wp_apply errMemberNotFound_init as ⟨%eerrMemberNotFound, HerrMemberNotFound⟩
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   -- translated initializer of RaftPrefix))
   -- translated initializer of RaftPrefix))
   -- translated initializer of RaftPrefix))
+  ipersist HerrMemberNotFound
   ipersist HsnapResponseReadTimeout
   ipersist HsnapshotSend
   ipersist HsnapshotSendInflights

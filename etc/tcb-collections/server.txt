@@ -104,6 +104,8 @@ axiom bbolt.Tx.Stats_kv.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
+axiom bufferM.ownBuffer_new
+axiom bytes.Buffer.Write.wp_proof
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
@@ -130,6 +132,7 @@ axiom http.HeaderSet_ok
 axiom http.NewBuffer_ok
 axiom http.NewRequest_ok
 axiom http.NewServeMux_ok
+axiom http.ReadAll_any_ok
 axiom http.ReadAll_ok
 axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
@@ -144,9 +147,11 @@ axiom http.bodyRead_ok
 axiom http.mux_handlerOk_ok
 axiom http.readerHas_nil
 axiom http.reqURL_ok
+axiom http.respReadAny_of_ok
 axiom http.respWriteHeader_ok
 axiom http.respWrite_ok
 axiom httputil.GracefulClose.wp_proof
+axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
@@ -191,12 +196,10 @@ axiom proto.UnmarshalRole.wp_proof
 axiom proto.UnmarshalUser.wp_proof
 axiom rafthttp.NewRoundTripper.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
-axiom rafthttp.Transport.SendSnapshot.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
+axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newSnapshotHandler.wp_proof
-axiom rafthttp.newSnapshotSender.wp_proof
 axiom rafthttp.newStreamRoundTripper.wp_proof
-axiom rafthttp.snapshotSender.stop.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
@@ -214,7 +217,9 @@ axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.Message.CloseNotify.wp_proof
+axiom snap.Message.CloseWithError.wp_proof
 axiom snap.Message.GetTo.wp_proof
+axiom snap.Message.fields.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.Stable.wp_proof

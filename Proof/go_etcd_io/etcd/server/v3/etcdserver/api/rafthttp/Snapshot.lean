@@ -56,6 +56,17 @@ instance snapSenderOk_persistent (Rh : RaftHttp GF) (pid : w64) (s : Loc) :
     Persistent (snapSenderOk Rh pid s) := by
   unfold snapSenderOk; infer_instance
 
+/-- **A snapshot message for the peer `pid`** (D22 S-i's `netSnapBundle`, the message to `pid`): the
+raft message `ml`, a `MsgSnap` of a snapshot `sn` to `pid`, read-only for good, with its bundle,
+and the right to read the merged message's reader `rc`, whose complete streams are bbolt images
+of some `D` with the payload's certificate at the snapshot's index. What `send` takes. -/
+def snapBundleTo (N : NetPayload GF) (pid : w64) (ml : Loc) (rc : GoInterface) : IProp GF :=
+  iprop(∃ (st : MsgSt) (sn : SnapshotM) (D : backend.Data), msgOwn ml DFrac.discard st ∗
+    (□ N.P st) ∗ N.O st ∗
+    ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sn ∧ st.resps = [] ∧ st.msg.To' = pid⌝ ∗
+    backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗
+    □ N.img sn.Metadata'.Index' D)
+
 /-- **The snapshot body's prefixes** (D42): comparable with the envelope's frame `msgFrame bs`. -/
 def snapPre (bs : List w8) (x : List w8) : Prop := x <+: msgFrame bs ∨ msgFrame bs <+: x
 

@@ -476,6 +476,13 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['snapResp
     post='∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦ d', pat='⟨%d@, H@⟩')
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     'ipersist HsnapResponseReadTimeout']
+# (2026-10-24, rafthttp stage 7d) the error `SendSnapshot` closes a message with when it has no
+# peer for it (`CloseWithError` takes any error)
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['errMemberNotFound'] = dict(
+    doc='/-- `errMemberNotFound = errors.New("member not found")` (`util.go`): some error, read-only for good. -/',
+    post='∃ e : GoInterface, globalAddr errMemberNotFound ↦ e', pat='⟨%e@, H@⟩')
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
+    'ipersist HerrMemberNotFound']
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
     doc='''Its fact (`etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a fixed pointer

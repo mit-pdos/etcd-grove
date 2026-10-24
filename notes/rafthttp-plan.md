@@ -948,12 +948,29 @@ This is D22's interface: its statement is agreed with the D22 owner before 7b.
   `ReaderAndCloser.Read` and `.Close`: goose emits the `MethodUnfold` wrappers of an embedded
   field's promoted methods only for names its filter lists. No new package variables
   (`gen-init.py`: up to date). The four axioms stand until 7d/7e; trust base unchanged.
-- **7d. The sender**: `createSnapBody` (the envelope encoded into a `bytes.Buffer`, the
-  multi-reader's stream contract: `msgFrame (enc st) ++` the pipe's), `post` (the goroutine,
-  the one-slot result channel, the `select` with `stopc`; `stop` closes `stopc` once:
-  `snapSenderStop`), `send` (the reports to `Raft`, `CloseWithError` once), `newSnapshotSender`,
-  `peer.sendSnap`, `Transport.SendSnapshot` under the read lock: today's statements, proved.
-  `snapSenderOk`/`snapSenderStop` defined (today opaque).
+- **7d. The sender** (done 2026-10-24): `newSnapshotSender`, `stop`, `createSnapBody`, `post`,
+  `send`, `peer.sendSnap` and `Transport.SendSnapshot` proved; `snapSenderOk`/`snapSenderStop`
+  defined. What it took beyond the plan:
+  - *Two trust-boundary additions, the user's choices.* `post`'s timer drains the response body
+    (`GracefulClose`) while the goroutine reads it: the HTTP boundary's `respReadAny` (a body read
+    without a guarantee: `respReadAny_of_ok`, `ReadAll_any_ok`; `GracefulClose`'s spec takes it).
+    `send` asks `errors.Is(err, errMemberRemoved)` of every `post` error and the server's
+    `errorc` carries `False`: net/http's errors are tagged (`netErr`, with `RoundTrip`'s and the new
+    `ReadAll`'s) and `rafthttp.netErrNotRemoved_ok` states they are not `errMemberRemoved`.
+  - *The raft protocol's 403 exclusion covers the snapshot path* (a member's snapshot handler
+    answers no `403`), so `checkPostResponse`'s `errMemberRemoved` is unreachable as in the pipeline.
+  - *`writerAtF nf`*, `writerAt` that never fails if `nf` (a `bytes.Buffer`), carried by
+    `messageEncoder.encode`'s spec: `createSnapBody`'s `lg.Panic` on an encoding error is unreachable.
+  - *Translation*: `snap.Message`'s promoted `GetTo` (D22's `snap.toml`, an addition), so
+    `SendSnapshot` looks up the peer of the raft message's `To`.
+  - *Facts*: `rafthttpInit` gains `errStopped`'s cell, the eight snapshot metric vectors, the read
+    timeout and `errMemberNotFound` (their `_init` axioms, as the other metrics').
+  - *D22's interface, pending its owner*: `snap.Message.fields` (now with `0 ≤ TotalSize`: the sender
+    adds it to a counter) and `CloseWithError`, as axioms; `io.MultiReader` an axiom (names-only
+    in Perennial).
+  - The trust base: 3 axioms gone (`SendSnapshot`, `newSnapshotSender`, `snapshotSender.stop`), 16
+    new (the 10 `_init` facts, `respReadAny_of_ok`, `ReadAll_any_ok`, `netErrNotRemoved_ok`,
+    `io.MultiReader`, the two `snap` statements): 713 entries.
 - **7e. The handler**: `newSnapshotHandler`, `snapshotHandler.ServeHTTP`: the method check, the
   compatibility check, the envelope's `decodeLimit` over the body's prefix, the type check,
   `SaveDBFrom` of the rest, `Process` of the decoded message with `netRecv` and its
