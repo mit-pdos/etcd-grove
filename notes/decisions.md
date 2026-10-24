@@ -17149,3 +17149,69 @@ before and the bytes-affine ones as instances.
   empty tree is converted by `ownIvtB_of_empty` as before). `Find`/`Delete`/`Union`/`Stab` have
   generic results but no bytes-affine instance (nothing needs one; a bytes-affine `Find`/`Delete`
   is the wrapper `Insert_bytes` is). No Perennial change was needed.
+
+## S4 of the auth plan: the admin side as steps of the model's state (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4`)
+
+**Problem.** The auth store's admin operations (`AuthEnable`, `UserAdd`, ..., `Recover`) were names
+only, assumed of the real store by the apply layer's contract (`isAuthStoreAdmin`: a critical
+section returning some error), so nothing related A0's history of states (`authHist`) to what the
+store does, and the request side's verdicts were over states nobody recorded.
+
+**Decisions.**
+
+- **The steps are relations of the model** (`auth/Steps.lean`): an operation's `Outcome` at the state
+  it found is a refusal with one of the package's errors (`AuthErr`, the state unchanged), nothing to
+  do (`same`), or the next state (`next`, the records written and the revision bumped, `bump`). Most
+  are functions (`authEnableF`, `authDisableF`, `userAddF`, `userDeleteF`, `userChangePasswordF`,
+  `userRevokeRoleF`, `roleAddF`, `roleDeleteF`); `UserGrantRole` (`sort.Strings`) and
+  `RoleGrantPermission` (an unstable `sort.Sort` of the record, a permission of an unknown type the
+  model drops) and `RoleRevokePermission` (a match among the record's permissions the model may not
+  see) are relations. `AuthEnable` does not bump the revision (it restores the stored one, A0's
+  reason for indexing the history by position).
+- **The flag read outside the lock is a parameter** (`en`): `UserDelete`, `UserRevokeRole` and
+  `RoleDelete` refuse to touch `root` when `as.enabled`, read without `enabledMu` in the apply thread
+  (its only writer); the step is relative to the flag read (`∃ en, enabledVerdict M en ∗ adminOut ...`),
+  in the spirit of the checks' verdicts. To make the read sound, `enabled`'s points-to is split in
+  halves: `enabledMu` guards one (`enabledP`), the admin side holds the other (`enabledHalf`); a write
+  takes the lock and both halves.
+- **The latest state is shared by two halves of a ghost variable** (`AuthNames` is now the history's
+  name and the latest state's, `authCurHalf`): the admin side's authority (`authOwn M hs`: the
+  history's authority and one half) and the store's revision invariant (`revInv`, the other half, with
+  the atomic at its revision, `revCur`). So `commitRevision`'s `AddUint64` adds to the latest state's
+  revision and records `bump sta` atomically (`authOwn_revCur_append`); `setRevision` (`Recover`,
+  `AuthEnable`'s restore) and a ghost-only append at the same revision (`authOwn_append_same`, the
+  invariant reopened) are the other two ways a state is recorded. `Revision()` with the authority
+  returns the latest state's revision exactly (`authOwnOpt`, `revCur_agree`; `commitRevision` needs it
+  for `UnsafeSaveAuthRevision(as.Revision())`).
+- **The write side is a contract** (`InvAuth.lean`, `authBatchTxLk`/`authBatchTxOk`/`authWBackendOk`,
+  the lessor's `leaseBatchTx` shape): `Lock()` under the batch lock's critical-section contract and
+  the write token gives the token `Lk st Post` of the latest state (`histLast M hs st`); the
+  transaction's reads are the state's (`authReaderOk`); `UnsafePutUser`/`DeleteUser`/`PutRole`/
+  `DeleteRole`/`SaveAuthEnabled`/`SaveAuthRevision` move the token's state; `Unlock()` needs the
+  authority at a history whose latest state is the token's (the step appended first). The admin side's
+  write resource `authWR st M P f T` holds the store's user's half of `be` with this contract, the
+  write token and `enabledHalf`. Not yet derived of schema's `authBatchTx` over the real backend (the
+  read side's `authReadTxOk` is not derived either): the next step on the S side.
+- **bcrypt is the trust boundary** (`authStore.selectPassword`, names only: an axiom returning some
+  read-only hash and some error; `ErrNoPasswordUser` is a data-dependent refusal, `adminOut`'s
+  `extra`); the model keeps no passwords. **+2 axioms** (`authStore.selectPassword`, `zap.Strings`);
+  `hasRootRole` stays the S3 axiom (it stays names only: `sort.SearchStrings`).
+  The store's admin methods are translated with bodies (`auth.toml`), and `AuthUserDeleteRequest`/
+  `AuthUserChangePasswordRequest` as data (`etcdserverpb.toml`: an axiomatized type's generated
+  instances are `sorry`s, which the proofs would reach).
+- **The premises**: the revision below `2^64 - 1` and the next state's permissions fitting the
+  cache's trees (`stepOk`, from the caller: the records' growth is unbounded,
+  `issues/etcd-auth-record-too-large-fatal.md`); a new record's name within bbolt's key bound
+  (`UserAdd`, `RoleAdd`: `issues/etcd-auth-useradd-long-name-fatal.md`; `UserChangePassword` too,
+  since the write contract does not record that an existing record's key was accepted).
+
+**Proved** (linked in the server's `Link.lean`): `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`,
+`UserChangePassword`, `RoleAdd`, `Recover`, `commitRevision`, `setRevision` (and `Revision` restated),
+each in every mode, appending the step's state or returning the model's error. **Not done**:
+`UserGrantRole`, `UserRevokeRole`, `RoleDelete`, `RoleGrantPermission`, `RoleRevokePermission`
+(loops over the record, `sort.*` without Perennial specs), the reads `UserGet`/`RoleGet`/`UserList`/
+`RoleList`/`HasRole` (their backend reads need a `backend.UnsafeForEach` spec for the lists; the steps
+and the step relations are in `Steps.lean`); the apply layer: `apply.isAuthStore`'s admin clauses and
+`isAuthStoreAdmin` are unchanged, because stating them as steps needs the authority `authOwn` in the
+apply environment (a resource of the server's apply thread, beside `RW`), which is the next step on
+the A side; the derivation of the write contract from the real backend.

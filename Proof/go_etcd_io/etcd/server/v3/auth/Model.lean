@@ -41,6 +41,7 @@ module
 
 public import Code.go_etcd_io.etcd.server.v3.auth
 public import Perennial.Ghost.MonoList
+public import Perennial.Ghost.GhostVar
 public import Perennial.Golang.Theory.String
 public import Perennial.Std.GMap
 
@@ -320,8 +321,14 @@ instance AuthState.countable : Pos.Countable AuthState :=
 
 /-! ## The mode and the history -/
 
-/-- The ghost name of an auth store's history. -/
-abbrev AuthNames := GName
+/-- The ghost names of an auth store's history: the monotone list of its states (`hist`), and
+the ghost variable of its latest state (`cur`; the auth plan's S4, 2026-10-24): the admin side's
+authority (`authOwn`, `Steps.lean`) holds one half, the store's revision invariant the other
+(`revInv`, `InvAuth.lean`), so that `commitRevision`'s atomic add is to the latest state's
+revision and the step it records is the model's. -/
+structure AuthNames where
+  hist : GName
+  cur : GName
 
 /-- **A contract's mode** (see the file header). -/
 inductive AuthMode where
@@ -352,11 +359,24 @@ with valid permission keys (`permKeysOk`: what `isValidPermissionRange` enforces
 backend's data is assumed to have on boot; the permission cache computes the model's coverage of
 such states, the auth plan's S2). -/
 def authHist (γa : AuthNames) (hs : List AuthState) : IProp GF :=
-  iprop(monoListAuthOwn γa 1 hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝)
+  iprop(monoListAuthOwn γa.hist 1 hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝)
+
+/-- Half of the ghost variable of the latest state (S4). -/
+def authCurHalf (γa : AuthNames) (st : AuthState) : IProp GF :=
+  ghostVar γa.cur (1 : Qp).half st
+
+theorem authCurHalf_agree (γa : AuthNames) (st st' : AuthState) :
+    ⊢ authCurHalf (GF := GF) γa st -∗ authCurHalf γa st' -∗ ⌜st = st'⌝ :=
+  ghostVar_agree γa.cur st _ st' _
+
+theorem authCurHalf_update (γa : AuthNames) (st st' new : AuthState) :
+    ⊢ authCurHalf (GF := GF) γa st -∗ authCurHalf γa st' ==∗
+      authCurHalf γa new ∗ authCurHalf γa new :=
+  ghostVar_update_halves new γa.cur st st'
 
 /-- The `i`-th state of the history (persistent), with valid permission keys. -/
 def authStateAt (γa : AuthNames) (i : Nat) (st : AuthState) : IProp GF :=
-  iprop(monoListIdxOwn γa i st ∗ ⌜permKeysOk st⌝)
+  iprop(monoListIdxOwn γa.hist i st ∗ ⌜permKeysOk st⌝)
 
 instance authStateAt_persistent (γa : AuthNames) (i : Nat) (st : AuthState) :
     Persistent (authStateAt (GF := GF) γa i st) := by
@@ -372,14 +392,14 @@ theorem authStateAt_agree (γa : AuthNames) (i : Nat) (st st' : AuthState) :
     authStateAt (GF := GF) γa i st ∗ authStateAt γa i st' ⊢ ⌜st = st'⌝ := by
   unfold authStateAt
   iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
-  iapply (mono_list_idx_agree γa i st st') $$ H1 H2
+  iapply (mono_list_idx_agree γa.hist i st st') $$ H1 H2
 
 theorem authHist_stateAt (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState)
     (h : hs[i]? = some st) : authHist (GF := GF) γa hs ⊢ authStateAt γa i st := by
   unfold authHist authStateAt
   iintro ⟨H, %Hk⟩
   isplitl [H]
-  · ihave Hlb := monoListLbOwn_get γa 1 hs $$ H
+  · ihave Hlb := monoListLbOwn_get γa.hist 1 hs $$ H
     iapply (monoListIdxOwn_get i st h) $$ Hlb
   · ipureintro; exact Hk st (List.mem_of_getElem? h)
 
@@ -387,23 +407,27 @@ theorem authHist_lookup (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : 
     authHist (GF := GF) γa hs ∗ authStateAt γa i st ⊢ ⌜hs[i]? = some st⌝ := by
   unfold authHist authStateAt
   iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
-  iapply (mono_list_auth_idx_lookup γa 1 hs i st) $$ H1 H2
+  iapply (mono_list_auth_idx_lookup γa.hist 1 hs i st) $$ H1 H2
 
-theorem authHist_alloc (hs : List AuthState) (hk : ∀ st ∈ hs, permKeysOk st) :
-    ⊢ |==> ∃ γa : AuthNames, authHist (GF := GF) γa hs := by
-  unfold authHist
+/-- A history and its latest state's ghost variable, both halves. -/
+theorem authHist_alloc (hs : List AuthState) (cur : AuthState) (hk : ∀ st ∈ hs, permKeysOk st) :
+    ⊢ |==> ∃ γa : AuthNames, authHist (GF := GF) γa hs ∗ authCurHalf γa cur ∗ authCurHalf γa cur := by
+  unfold authHist authCurHalf
   iintro
   imod (mono_list_own_alloc (GF := GF) hs) with ⟨%γ, H, -⟩
+  imod (ghostVar_alloc (GF := GF) cur) with ⟨%γc, Hc⟩
   imodintro
-  iexists γ
+  iexists ⟨γ, γc⟩
   iframe H
-  ipureintro; exact hk
+  isplitr
+  · ipureintro; exact hk
+  · iapply (ghostVar_split_half γc 1 cur).1 $$ Hc
 
 theorem authHist_append (γa : AuthNames) (hs : List AuthState) (st : AuthState)
     (hk : permKeysOk st) : authHist (GF := GF) γa hs ⊢ |==> authHist γa (hs ++ [st]) := by
   unfold authHist
   iintro ⟨H, %Hk⟩
-  imod (monoListAuthOwn_update_app (γ := γa) (l := hs) [st]) $$ H with ⟨H, -⟩
+  imod (monoListAuthOwn_update_app (γ := γa.hist) (l := hs) [st]) $$ H with ⟨H, -⟩
   imodintro
   iframe H
   ipureintro

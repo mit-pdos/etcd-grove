@@ -260,6 +260,7 @@ axiom audit.GetAuditIDTruncated.wp_proof
 axiom auth.NewAuthStore.wp_proof
 axiom auth.NewTokenProvider.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
+axiom auth.authStore.selectPassword.wp_proof
 axiom auth.hasRootRole.wp_proof
 axiom auth.redactToken.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
@@ -611,6 +612,7 @@ axiom zap.NewNop.wp_proof
 axiom zap.Stack.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
+axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof

@@ -22,8 +22,23 @@ translate = ["!*", "AuthInfo",
   "getMergedPerms", "authStore.refreshRangePermCache", "isValidPermissionRange",
   "authStore.AuthInfoFromCtx", "authStore.authInfoFromToken",
   "ErrUserEmpty", "ErrUserNotFound", "ErrPermissionDenied", "ErrAuthOldRevision",
-  "ErrInvalidAuthToken"]
-imports = ["!*", "context", "errors", "strings", "sync", "sync/atomic",
+  "ErrInvalidAuthToken",
+  # The admin side (the auth plan's S4, 2026-10-24): the store's write methods, their helpers
+  # (`commitRevision`, `setRevision`, `hasRootRole`, `permSlice`'s sorter), the constants
+  # `rootUser`/`rootRole` (names-only constants are values of unknown shape) and the error
+  # variables they return; `selectPassword` stays names only (bcrypt and base64: the trust
+  # boundary), as do `Authenticate`/`CheckPassword` (S5) and `NewAuthStore`.
+  "authStore.AuthEnable", "authStore.AuthDisable", "authStore.Recover",
+  "authStore.UserAdd", "authStore.UserDelete", "authStore.UserChangePassword",
+  "authStore.UserGrantRole", "authStore.UserGet", "authStore.UserList", "authStore.UserRevokeRole",
+  "authStore.RoleGet", "authStore.RoleList", "authStore.RoleRevokePermission",
+  "authStore.RoleDelete", "authStore.RoleAdd", "authStore.RoleGrantPermission",
+  "authStore.HasRole", "authStore.commitRevision", "authStore.setRevision",
+  "permSlice.Len", "permSlice.Less", "permSlice.Swap", "rootUser", "rootRole",
+  "ErrRootUserNotExist", "ErrRootRoleNotExist", "ErrUserAlreadyExist", "ErrRoleAlreadyExist",
+  "ErrRoleNotFound", "ErrRoleEmpty", "ErrPermissionNotGiven", "ErrNoPasswordUser",
+  "ErrRoleNotGranted", "ErrPermissionNotGranted", "ErrInvalidAuthMgmt"]
+imports = ["!*", "bytes", "context", "errors", "sort", "strings", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
   "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt"]

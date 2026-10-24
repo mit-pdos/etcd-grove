@@ -931,10 +931,6 @@ axiom AuthStatusRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthenticateRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom AuthUserDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom AuthUserChangePasswordRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom AuthUserGrantRoleRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthUserRevokeRoleRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -7213,31 +7209,115 @@ attribute [instance] AuthUserGetRequest.TypeAssumptions.type_repr
   AuthUserGetRequest.TypeAssumptions.get_sizeCache
   AuthUserGetRequest.TypeAssumptions.set_sizeCache
 
-axiom AuthUserDeleteRequest : Type
-axiom AuthUserDeleteRequest.zero_val : ZeroVal AuthUserDeleteRequest
-attribute [instance] AuthUserDeleteRequest.zero_val
+structure AuthUserDeleteRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance AuthUserDeleteRequest.zero_val [FfiSyntax] : ZeroVal AuthUserDeleteRequest :=
+  ⟨AuthUserDeleteRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def AuthUserDeleteRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def AuthUserDeleteRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthUserDeleteRequest.fieldsUnsealed
+
+instance equals_unfold_AuthUserDeleteRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthUserDeleteRequest.fields AuthUserDeleteRequest.fieldsUnsealed :=
+  ⟨by unfold AuthUserDeleteRequest.fields; rfl⟩
+
+@[reducible] def AuthUserDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthUserDeleteRequest.fields)
 
 class AuthUserDeleteRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserDeleteRequest.underlying AuthUserDeleteRequest
   underlying : go.UnderlyingDirectedEq AuthUserDeleteRequest.ty AuthUserDeleteRequest.underlying
-  isUnderlying : go.IsUnderlying AuthUserDeleteRequest.underlying AuthUserDeleteRequest.underlying
+  get_state : ∀ (x : AuthUserDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthUserDeleteRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserDeleteRequest)))
+  get_Name : ∀ (x : AuthUserDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : AuthUserDeleteRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AuthUserDeleteRequest)))
+  get_unknownFields : ∀ (x : AuthUserDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthUserDeleteRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserDeleteRequest)))
+  get_sizeCache : ∀ (x : AuthUserDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthUserDeleteRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserDeleteRequest)))
 
 attribute [instance] AuthUserDeleteRequest.TypeAssumptions.type_repr
   AuthUserDeleteRequest.TypeAssumptions.underlying
-  AuthUserDeleteRequest.TypeAssumptions.isUnderlying
+  AuthUserDeleteRequest.TypeAssumptions.get_state
+  AuthUserDeleteRequest.TypeAssumptions.set_state
+  AuthUserDeleteRequest.TypeAssumptions.get_Name
+  AuthUserDeleteRequest.TypeAssumptions.set_Name
+  AuthUserDeleteRequest.TypeAssumptions.get_unknownFields
+  AuthUserDeleteRequest.TypeAssumptions.set_unknownFields
+  AuthUserDeleteRequest.TypeAssumptions.get_sizeCache
+  AuthUserDeleteRequest.TypeAssumptions.set_sizeCache
 
-axiom AuthUserChangePasswordRequest : Type
-axiom AuthUserChangePasswordRequest.zero_val : ZeroVal AuthUserChangePasswordRequest
-attribute [instance] AuthUserChangePasswordRequest.zero_val
+structure AuthUserChangePasswordRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  Password' : GoString
+  HashedPassword' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance AuthUserChangePasswordRequest.zero_val [FfiSyntax] : ZeroVal AuthUserChangePasswordRequest :=
+  ⟨AuthUserChangePasswordRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def AuthUserChangePasswordRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Password" go.string),
+(go.field_decl.FieldDecl go!"HashedPassword" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def AuthUserChangePasswordRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthUserChangePasswordRequest.fieldsUnsealed
+
+instance equals_unfold_AuthUserChangePasswordRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthUserChangePasswordRequest.fields AuthUserChangePasswordRequest.fieldsUnsealed :=
+  ⟨by unfold AuthUserChangePasswordRequest.fields; rfl⟩
+
+@[reducible] def AuthUserChangePasswordRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthUserChangePasswordRequest.fields)
 
 class AuthUserChangePasswordRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserChangePasswordRequest.underlying AuthUserChangePasswordRequest
   underlying : go.UnderlyingDirectedEq AuthUserChangePasswordRequest.ty AuthUserChangePasswordRequest.underlying
-  isUnderlying : go.IsUnderlying AuthUserChangePasswordRequest.underlying AuthUserChangePasswordRequest.underlying
+  get_state : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthUserChangePasswordRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserChangePasswordRequest)))
+  get_Name : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : AuthUserChangePasswordRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AuthUserChangePasswordRequest)))
+  get_Password : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"Password") #x (Val #(x.Password'))
+  set_Password : ∀ (x : AuthUserChangePasswordRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"Password") (PairV #x #y) (Val #(({ x with Password' := y } : AuthUserChangePasswordRequest)))
+  get_HashedPassword : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"HashedPassword") #x (Val #(x.HashedPassword'))
+  set_HashedPassword : ∀ (x : AuthUserChangePasswordRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"HashedPassword") (PairV #x #y) (Val #(({ x with HashedPassword' := y } : AuthUserChangePasswordRequest)))
+  get_unknownFields : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthUserChangePasswordRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserChangePasswordRequest)))
+  get_sizeCache : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthUserChangePasswordRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserChangePasswordRequest)))
 
 attribute [instance] AuthUserChangePasswordRequest.TypeAssumptions.type_repr
   AuthUserChangePasswordRequest.TypeAssumptions.underlying
-  AuthUserChangePasswordRequest.TypeAssumptions.isUnderlying
+  AuthUserChangePasswordRequest.TypeAssumptions.get_state
+  AuthUserChangePasswordRequest.TypeAssumptions.set_state
+  AuthUserChangePasswordRequest.TypeAssumptions.get_Name
+  AuthUserChangePasswordRequest.TypeAssumptions.set_Name
+  AuthUserChangePasswordRequest.TypeAssumptions.get_Password
+  AuthUserChangePasswordRequest.TypeAssumptions.set_Password
+  AuthUserChangePasswordRequest.TypeAssumptions.get_HashedPassword
+  AuthUserChangePasswordRequest.TypeAssumptions.set_HashedPassword
+  AuthUserChangePasswordRequest.TypeAssumptions.get_unknownFields
+  AuthUserChangePasswordRequest.TypeAssumptions.set_unknownFields
+  AuthUserChangePasswordRequest.TypeAssumptions.get_sizeCache
+  AuthUserChangePasswordRequest.TypeAssumptions.set_sizeCache
 
 axiom AuthUserGrantRoleRequest : Type
 axiom AuthUserGrantRoleRequest.zero_val : ZeroVal AuthUserGrantRoleRequest

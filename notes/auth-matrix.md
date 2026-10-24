@@ -149,3 +149,14 @@ resources, and the KV methods' posts state the row's class for it through the wh
 Not stated: `RoleGet`'s "or a role the user has" (`HasRole` has no model in `isAuthStore`),
 `LeaseRevoke`'s keys (the lessor's key model), the server-level statement over the decoded
 entry (`applyEntryNormal`: E).
+
+## What is proved of the table (S4, the store's admin side, 2026-10-24)
+
+The store's `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd` and
+`Recover` perform the model's step on the latest recorded state (`auth/Steps.lean`, `adminOut`): the
+state appended to the history, or the model's refusal. The admin rows' class at apply is unchanged:
+`apply.isAuthStore`'s admin clauses are still the `isAuthStoreAdmin` contract (stating them as steps
+needs the authority in the apply environment); `UserGrantRole`, `UserRevokeRole`, `RoleDelete`,
+`RoleGrantPermission`, `RoleRevokePermission`, `UserGet`, `RoleGet`, `UserList`, `RoleList` are
+translated, not proved.
+
