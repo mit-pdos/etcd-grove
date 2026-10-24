@@ -465,13 +465,14 @@ theorem node.run.wp_proof
       icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic $$ Hrn Hrnraft
         with ⟨%s, %Hin, Hphys, Hback⟩
       icases ownRaftPhys_tracker_same _ r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Htb⟩
-      icases ownTracker_progress_map _ _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+      icases ownTrackerC_progress_map _ _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
       wp_auto
       wp_apply wp_map_lookup2 $$ Hprs as -
       ihave Hphys := Htb $$ %tv Htrkf Htrk
       ihave Hrn := Hback $$ Hphys
       have Hb : (s.progress !! id).isSome = true := by
-        have := (GMap.elem_of_dom s.progress id).1 ((GMap.elem_of_subseteq _ _).1 Hdom _ Hin)
+        have := (GMap.elem_of_dom s.progress id).1
+          (by rw [Hdom]; exact (GMap.elem_of_subseteq _ _).1 (incoming_sub_ids _) _ Hin)
         obtain ⟨v, hv⟩ := this; rw [hv]; rfl
       rw [Hb]
       try wp_auto
@@ -484,13 +485,14 @@ theorem node.run.wp_proof
         with ⟨%s2, %Hin2, Hphys, Hback⟩
       try wp_auto
       icases ownRaftPhys_tracker_same _ r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Htb⟩
-      icases ownTracker_progress_map _ _ _ $$ Htrk with ⟨#Hprs2, %Hdom2, Htrk⟩
+      icases ownTrackerC_progress_map _ _ _ $$ Htrk with ⟨#Hprs2, %Hdom2, Htrk⟩
       wp_auto
       wp_apply wp_map_lookup2 $$ Hprs2 as -
       ihave Hphys := Htb $$ %tv2 Htrkf Htrk
       ihave Hrn := Hback $$ Hphys
       have Hb2 : (s2.progress !! id).isSome = true := by
-        have := (GMap.elem_of_dom s2.progress id).1 ((GMap.elem_of_subseteq _ _).1 Hdom2 _ Hin2)
+        have := (GMap.elem_of_dom s2.progress id).1
+          (by rw [Hdom2]; exact (GMap.elem_of_subseteq _ _).1 (incoming_sub_ids _) _ Hin2)
         obtain ⟨v, hv⟩ := this; rw [hv]; rfl
       rw [Hb2]
       wp_auto_lc 3
