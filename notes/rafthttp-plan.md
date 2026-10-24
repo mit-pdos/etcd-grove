@@ -744,6 +744,33 @@ trust-boundary spec.
    `netTransport`'s `Send` (persistent, token-free; `Net.lean`, shared with D22) does not carry:
    a decision for the user.
 
+   **6d, third part (2026-10-24).** The user chose the token through the raft loop: `netTransport`'s
+   `Send` borrows `T`, `RNEnv.S` is what `isRNTransport`'s `Send` borrows, `raftNode.start`'s loop
+   holds it, the server's build, start and run states carry it (`"Hsend"`); `True` for the server
+   until `Start`'s axiom goes. (On the way, `wp_apply` of the transport's `Send` inside a
+   `wp_join` case aborted silently, admitting the case: a `sorry` only the TCB check saw; worked
+   around with `wp_bind`/`iapply`, `notes/perennial-changes.md`.) The transport's state from
+   `Start` (`rafthttp/TransportState.lean`): `TrN` (its names), `netHttpOk`, `trState`, `trLive`,
+   `trFrozen`, `trTok`, `trLive_freeze`, and `Start_full` proved (`Start_core`, the ghost records,
+   the stop rights' invariant, the lock with its `2^30 - 1` reader tokens, the fixed fields).
+   `rafthttp/TransportFull.lean`: `AddPeer_full`, `AddRemote_full` (on `trLive`), `CutPeer_full`,
+   `MendPeer_full`, `Stop_full`, `Send_full`, `Handler_full` (on `trFrozen`, with a token), all
+   proved over the cores. Not yet done: restating the axioms' statements (`Transport.Start`,
+   `AddPeer`, `AddRemote`, `CutPeer`, `MendPeer`, `EtcdServer.RaftHandler`, `net/http.Serve`)
+   over these and the server's and examples' proofs (`NewServer`: `Start`'s new premises, eight
+   `R`s per `AddPeer`, the freeze with the coverage of the members, the raft loop's token through
+   a key exchanged for the transport's; `srvNetMember` and `CutPeer`'s callers with tokens).
+   **Blocked, for the user:** (a) `swMsgBound`. The stage-6 choice (3) was to let `Counter.Add`
+   of a negative value panic, which the writer's goroutine may; but Perennial's `wp_fork` requires
+   a forked goroutine not to panic (`v.isPanic = false`), so a writer that may panic is not
+   provable. Options: a physical assumption that no raft message's encoding reaches `2^50` bytes
+   (a petabyte; like `netProcSlots`), stated where the server's messages enter the transport; or
+   proving the bound from etcd's request-size limit and raft's per-message limits. (b) The
+   transport's `Send` takes `sendMsg` (marshalable, a `MsgApp` of raft's shape from its member,
+   `swMsgBound`), more than the network's `netBundle` carries; the server's messages have these
+   facts in raft's invariants (stage 3's `isRaftMsg`), to be carried into `netBundle` or a
+   per-sender bundle.
+
 ## Costs and risks
 
 - Several weeks, comparable to the watch client. Stage 5 carries most of the risk (a goroutine
