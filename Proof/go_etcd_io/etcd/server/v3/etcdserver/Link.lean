@@ -30,6 +30,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FirstCommit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsIDRemoved
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsLearner
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Lead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
@@ -106,6 +108,8 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Receive
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsIDRemoved
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsLocalMemberLearner
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsMemberExist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetCountOnly
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetKey
@@ -473,6 +477,22 @@ theorem membership.RaftCluster.wp_IsIDRemoved :
     membership.RaftCluster.IsIDRemoved.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.IsIDRemoved.wp_proof
 
+theorem types.ID.wp_String_ptr :
+    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
+  types.ID.String_ptr.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Debug.wp_proof
+
+theorem membership.RaftCluster.wp_IsLocalMemberLearner :
+    membership.RaftCluster.IsLocalMemberLearner.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.IsLocalMemberLearner.wp_proof types.ID.wp_String_ptr zap.wp_String zap.Logger.wp_Debug
+
+theorem membership.RaftCluster.wp_IsMemberExist :
+    membership.RaftCluster.IsMemberExist.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.IsMemberExist.wp_proof
+
 theorem types.ID.wp_String :
     types.ID.String.spec (GF := GF) (hG := hG) :=
   types.ID.String.wp_proof
@@ -556,10 +576,6 @@ theorem membership.RaftCluster.wp_ID :
 theorem semver.Version.wp_String :
     semver.Version.String.spec (GF := GF) (hG := hG) :=
   semver.Version.String.wp_proof
-
-theorem zap.Logger.wp_Debug :
-    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Debug.wp_proof
 
 theorem zap.wp_Stringer :
     zap.Stringer.spec (GF := GF) (hG := hG) :=
@@ -788,10 +804,6 @@ theorem v2stats.wp_NewServerStats :
 theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
   v2stats.NewLeaderStats.wp_proof zap.wp_NewNop
-
-theorem types.ID.wp_String_ptr :
-    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
-  types.ID.String_ptr.wp_proof
 
 theorem types.URLs.wp_StringSlice :
     types.URLs.StringSlice.spec (GF := GF) (hG := hG) :=
@@ -1135,6 +1147,14 @@ theorem EtcdServer.wp_GoAttach :
 theorem EtcdServer.wp_IsIDRemoved :
     EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG) :=
   EtcdServer.IsIDRemoved.wp_proof membership.RaftCluster.wp_IsIDRemoved
+
+theorem EtcdServer.wp_IsLearner :
+    EtcdServer.IsLearner.spec (GF := GF) (hG := hG) :=
+  EtcdServer.IsLearner.wp_proof membership.RaftCluster.wp_IsLocalMemberLearner
+
+theorem EtcdServer.wp_IsMemberExist :
+    EtcdServer.IsMemberExist.spec (GF := GF) (hG := hG) :=
+  EtcdServer.IsMemberExist.wp_proof membership.RaftCluster.wp_IsMemberExist
 
 theorem EtcdServer.wp_KV :
     EtcdServer.KV.spec (GF := GF) (hG := hG) :=

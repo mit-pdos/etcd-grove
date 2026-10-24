@@ -1,0 +1,26 @@
+=== RUN   TestIsLocalMemberLearner
+=== RUN   TestIsLocalMemberLearner/local_member_is_a_learner
+    logger.go:146: 2026-10-24T11:22:41.532-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "1", "added-peer-peer-urls": [], "added-peer-is-learner": true}
+=== RUN   TestIsLocalMemberLearner/local_member_is_a_voting_member
+    logger.go:146: 2026-10-24T11:22:41.532-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "1", "added-peer-peer-urls": [], "added-peer-is-learner": false}
+=== RUN   TestIsLocalMemberLearner/local_member_removed_from_the_cluster
+    logger.go:146: 2026-10-24T11:22:41.532-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "2", "added-peer-peer-urls": [], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T11:22:41.532-0400	DEBUG	failed to find local ID in cluster members; the member may have been removed	{"cluster-id": "0", "local-member-id": "1"}
+--- PASS: TestIsLocalMemberLearner (0.00s)
+    --- PASS: TestIsLocalMemberLearner/local_member_is_a_learner (0.00s)
+    --- PASS: TestIsLocalMemberLearner/local_member_is_a_voting_member (0.00s)
+    --- PASS: TestIsLocalMemberLearner/local_member_removed_from_the_cluster (0.00s)
+=== RUN   TestUnaryInterceptorLearnerCheckRemovedMember
+    logger.go:146: 2026-10-24T11:22:41.532-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "1", "added-peer-peer-urls": [], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T11:22:41.532-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "2", "added-peer-peer-urls": [], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T11:22:41.532-0400	INFO	removed member	{"cluster-id": "64", "local-member-id": "1", "removed-remote-peer-id": "1", "removed-remote-peer-urls": [], "removed-remote-peer-is-learner": false}
+    logger.go:146: 2026-10-24T11:22:41.533-0400	DEBUG	failed to find local ID in cluster members; the member may have been removed	{"cluster-id": "64", "local-member-id": "1"}
+--- PASS: TestUnaryInterceptorLearnerCheckRemovedMember (0.00s)
+=== RUN   TestProbeRemovedLearnerReportedAsNonLearnerDuringShutdownWindow
+    logger.go:146: 2026-10-24T11:22:41.533-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "1", "added-peer-peer-urls": [], "added-peer-is-learner": true}
+    logger.go:146: 2026-10-24T11:22:41.533-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "2", "added-peer-peer-urls": [], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T11:22:41.533-0400	INFO	removed member	{"cluster-id": "64", "local-member-id": "1", "removed-remote-peer-id": "1", "removed-remote-peer-urls": [], "removed-remote-peer-is-learner": true}
+    logger.go:146: 2026-10-24T11:22:41.533-0400	DEBUG	failed to find local ID in cluster members; the member may have been removed	{"cluster-id": "64", "local-member-id": "1"}
+--- PASS: TestProbeRemovedLearnerReportedAsNonLearnerDuringShutdownWindow (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/membership	0.013s

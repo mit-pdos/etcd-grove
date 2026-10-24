@@ -78,8 +78,8 @@ EtcdServer__MemberID: @
 EtcdServer__Leader: @
 metadata_FromIncomingContext:
 storage_NewBackendQuota:
-EtcdServer__IsMemberExist:
-EtcdServer__IsLearner:
+EtcdServer__IsMemberExist: @
+EtcdServer__IsLearner: @
 api_IsCapabilityEnabled:
 metadata_MD__Get:
 utf8_ValidString:

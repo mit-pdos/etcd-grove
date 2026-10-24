@@ -17,8 +17,6 @@
 # the watch path's trust boundary: `isClientCtxErr`, `math/rand.Int63n`, `(*time.Duration).Seconds`,
 # zap's `NewNop`/`Debug`/`Duration`, verify's `Assert`, time's ticker (see watch.txt).
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean$
-axiom EtcdServer.IsLearner.wp_proof
-axiom EtcdServer.IsMemberExist.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
@@ -102,6 +100,7 @@ axiom trace.WithAttributes.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom txn.RangeSecObserve.wp_proof
+axiom types.ID.String_ptr.wp_proof
 axiom utf8.ValidString.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto

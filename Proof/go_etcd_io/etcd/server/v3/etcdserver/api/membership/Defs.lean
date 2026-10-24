@@ -46,6 +46,8 @@ abbrev membership.mClientURLsAddr (m : Loc) : Loc :=
   structFieldRef membership.Attributes go!"ClientURLs" (membership.mAttrAddr m)
 
 abbrev membership.rcMutexAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"Mutex" c
+abbrev membership.rcLgAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"lg" c
+abbrev membership.rcCidAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"cid" c
 abbrev membership.rcMembersAddr (c : Loc) : Loc :=
   structFieldRef membership.RaftCluster go!"members" c
 abbrev membership.rcLocalIDAddr (c : Loc) : Loc :=
@@ -96,10 +98,17 @@ def membership.ownMember (m : Loc) : IProp GF :=
 def membership.membersAt (sl : GoSlice) (ms : List Loc) : IProp GF :=
   iprop(sl ↦* ms ∗ [∗list] m ∈ ms, membership.ownMember m)
 
-/-- The local member's entry (persistent): `c.localID` holds `lid`, read-only (`SetID` writes it
-at bootstrap, before the cluster is shared), and the members map `ms` has an entry for it. -/
-def membership.rcLocalIn (c : Loc) (ms : GMap w64 Loc) : IProp GF :=
-  iprop(∃ lid : w64, membership.rcLocalIDAddr c ↦□ lid ∗ ⌜ms !! lid ≠ none⌝)
+/-- The cluster `c`'s read-only metadata needed by `IsLocalMemberLearner` (persistent):
+`c.localID`, `c.cid` (`SetID` writes both at bootstrap, before the cluster is shared), and
+`c.lg` (non-nil, set at `NewCluster`). With PR #22188, `IsLocalMemberLearner` no longer
+requires `ms !! lid ≠ none`: when `c.members` has no entry for `c.localID` (e.g. after concurrent
+removal), it logs at `Debug` using `c.lg`, `c.cid.String()`, and `c.localID.String()`, and returns
+`false` instead of panicking. -/
+def membership.rcLocalIn (c : Loc) (_ms : GMap w64 Loc) : IProp GF :=
+  iprop(∃ (lid cid : w64) (lg : Loc),
+    membership.rcLocalIDAddr c ↦□ lid ∗
+    membership.rcCidAddr c ↦□ cid ∗
+    membership.rcLgAddr c ↦□ lg ∗ ⌜lg ≠ null⌝)
 
 instance membership.rcLocalIn_persistent (c : Loc) (ms : GMap w64 Loc) :
     Persistent (membership.rcLocalIn (GF := GF) c ms) := by
@@ -166,6 +175,25 @@ theorem membership.memberIs_id_acc (m : Loc) (id : w64) :
   iintro ⟨%Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
   iframe Hid
   iintro Hid
+  isplitr
+  · ipureintro; exact Hnn
+  iexists pu, cu, il, nm, pus, cus
+  iframe
+  ipureintro; exact Hpok
+
+/-- An owned member's `IsLearner` field, borrowed (with `m ≠ null`). -/
+theorem membership.ownMember_isLearner_acc (m : Loc) :
+    membership.ownMember (GF := GF) m ⊢
+      ⌜m ≠ null⌝ ∗ ∃ il : Bool, membership.mIsLearnerAddr m ↦ il ∗
+        (membership.mIsLearnerAddr m ↦ il -∗ membership.ownMember m) := by
+  unfold membership.ownMember membership.memberIs
+  iintro ⟨%id, %Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
+  isplitr
+  · ipureintro; exact Hnn
+  iexists il
+  iframe Hil
+  iintro Hil
+  iexists id
   isplitr
   · ipureintro; exact Hnn
   iexists pu, cu, il, nm, pus, cus

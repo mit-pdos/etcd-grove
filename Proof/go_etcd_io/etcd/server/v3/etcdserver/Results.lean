@@ -1167,3 +1167,10 @@ end Perennial
 #print axioms Perennial.EtcdGrove.start_gives_views
 #print axioms Perennial.EtcdGrove.scheduler_fifo
 #print axioms Perennial.EtcdGrove.server_raft_node_start
+#print axioms Perennial.EtcdGrove.membership.RaftCluster.wp_IsLocalMemberLearner
+#print axioms Perennial.EtcdGrove.membership.RaftCluster.IsLocalMemberLearner_absent.wp_proof
+#print axioms Perennial.EtcdGrove.membership.RaftCluster.IsLocalMemberLearner_present.wp_proof
+#print axioms Perennial.EtcdGrove.membership.RaftCluster.wp_IsMemberExist
+#print axioms Perennial.EtcdGrove.membership.RaftCluster.IsMemberExist_exact.wp_proof
+#print axioms Perennial.EtcdGrove.EtcdServer.wp_IsLearner
+#print axioms Perennial.EtcdGrove.EtcdServer.wp_IsMemberExist

@@ -10,8 +10,6 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin__isPermitted
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin__requireAuthInfo
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsLearner
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.FiltersFromRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressReportInterval
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.IsCreateEvent
@@ -357,14 +355,6 @@ theorem AuthAdmin.wp_isPermitted :
 theorem AuthAdmin.wp_requireAuthInfo :
     EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
-
-theorem EtcdServer.wp_IsLearner :
-    EtcdGrove.EtcdServer.IsLearner.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.EtcdServer.IsLearner.wp_proof
-
-theorem EtcdServer.wp_IsMemberExist :
-    EtcdGrove.EtcdServer.IsMemberExist.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.EtcdServer.IsMemberExist.wp_proof
 
 theorem wp_FiltersFromRequest :
     EtcdGrove.v3rpc.FiltersFromRequest.spec (GF := GF) (hG := hG) :=
