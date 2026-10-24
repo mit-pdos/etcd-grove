@@ -1865,6 +1865,35 @@ are live). `Fork` hands the forking thread a token (`wp_fork_tok`, `wp_fork_tok_
 
 In status-history.md: "Build performance (2026-10-12, branch `proof-perf`)", "Parallel elaboration and tactic state".
 
+## Build performance (2026-10-24, branch `perf/2026-10-23`)
+
+On the Perennial `ef0f3eef4` pin (native-compiled tactics). Profiling with `trace.profiler` must load
+`PerennialMeta`'s shared library as the build does (`lean --setup .lake/build/ir/<module>.setup.json`):
+a plain `lake env lean` interprets the tactics and overstates their cost. The fingerprint of every
+root statement, the definitions they reach and the axioms is the same; `etc/tcb-report.py --check`
+and every collection pass. Cold builds of the repository's 6393 modules: CPU 7.71h -> 7.69h (the
+untouched modules' noise is as large as the gains), wall 21m01s on the branch. Each change, the
+module alone, base vs branch:
+
+- **`iframe #` by name** (`watchGRPCStream.run`, `NewServer`, `EtcdServer.{start,Txn,run}`,
+  `unaryClientInterceptor`): `iframe #` runs a `Frame` search for every persistent hypothesis (about
+  130 in `NewServer`), 0.5-1s a call; each site now names those it framed (a throwaway probe framed
+  them one by one and kept a site only if the goals came out identical). `watchGRPCStream.run` (on
+  the critical path) 172s -> 145s, `NewServer` 141s -> 120s, the others 4-9%.
+- **`raftLog.append`**: three `repeat' split; all_goals omega` ran over the truncated log's
+  `toNat`-laden length facts; cleared there: 33s -> 19s.
+- **`btree node.iterate`**, **`moveVictims`**: `simp_all` over a large context replaced by a simp of
+  the one fact: 32s -> 22s, 24s -> 17s.
+- **`StepGhost`**: `iframe % # ∗` -> `iframe # ∗ <;> iframe %`: 21s -> 18s.
+
+Tried and dropped: `iframe #` by name in `EtcdServer.Range`, `serverWatchStream.{recvLoop,sendLoop}`,
+`VerdictLemmas`, `ReadLemmas`, `newApplierV3Backend`, `lessor.recvKeepAliveLoop` (within noise),
+client `Results` (the probe's names broke it); `simp only` for `rw [decide_eq_* _]` on a WP goal
+(`raft.restore`, 3%). Found, not changed: `wp_auto_lc` is the largest single cost everywhere
+(0.4-0.6s a call, Perennial); `iframe #` itself could skip hypotheses whose head symbol matches no
+conjunct (a proposal for iris-lean/Perennial); the 6197 modules under 5s are 44% of the CPU, mostly
+importing.
+
 ## Perennial pin `ef0f3eef4` (2026-10-24)
 
 The pin moved from `c25bef57e` to Perennial `lean` `ef0f3eef4`, which brings its own build-speed
