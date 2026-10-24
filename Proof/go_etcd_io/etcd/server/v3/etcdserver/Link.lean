@@ -155,6 +155,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__RoleAdd
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserChangePassword
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserDelete
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserRevokeRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
@@ -821,6 +822,10 @@ theorem auth.authStore.wp_UserChangePassword :
 theorem auth.authStore.wp_UserDelete :
     auth.authStore.UserDelete.spec (GF := GF) (hG := hG) :=
   auth.authStore.UserDelete.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error zap.Logger.wp_Info
+
+theorem auth.authStore.wp_UserRevokeRole :
+    auth.authStore.UserRevokeRole.spec (GF := GF) (hG := hG) :=
+  auth.authStore.UserRevokeRole.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error zap.Logger.wp_Info
 
 theorem auth.wp_isValidPermissionRange :
     auth.isValidPermissionRange.spec (GF := GF) (hG := hG) :=
