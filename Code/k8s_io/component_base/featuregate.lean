@@ -8,70 +8,69 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.component_base.featuregate : GoString := go!"k8s.io/component-base/featuregate"
+noncomputable def k8s_io.component_base.featuregate : GoString := go!"k8s.io/component-base/featuregate"
 end pkg_id
 
 namespace k8s_io.component_base.featuregate
 
-def Feature.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Feature.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.Feature" [])
 
 attribute [irreducible] Feature.ty
 
-def FeatureSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FeatureSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.FeatureSpec" [])
 
 attribute [irreducible] FeatureSpec.ty
 
-def VersionedSpecs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VersionedSpecs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.VersionedSpecs" [])
 
 attribute [irreducible] VersionedSpecs.ty
 
-def PromotionVersionMapping.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PromotionVersionMapping.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.PromotionVersionMapping" [])
 
 attribute [irreducible] PromotionVersionMapping.ty
 
-def prerelease.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def prerelease.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.prerelease" [])
 
 attribute [irreducible] prerelease.ty
 
-def FeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.FeatureGate" [])
 
 attribute [irreducible] FeatureGate.ty
 
-def MutableFeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutableFeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.MutableFeatureGate" [])
 
 attribute [irreducible] MutableFeatureGate.ty
 
-def MutableFeatureGateWithLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutableFeatureGateWithLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.MutableFeatureGateWithLogger" [])
 
 attribute [irreducible] MutableFeatureGateWithLogger.ty
 
-def MutableVersionedFeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutableVersionedFeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.MutableVersionedFeatureGate" [])
 
 attribute [irreducible] MutableVersionedFeatureGate.ty
 
-def MutableVersionedFeatureGateWithLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutableVersionedFeatureGateWithLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.MutableVersionedFeatureGateWithLogger" [])
 
 attribute [irreducible] MutableVersionedFeatureGateWithLogger.ty
 
-def featureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def featureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.featureGate" [])
 
 attribute [irreducible] featureGate.ty
@@ -143,7 +142,7 @@ noncomputable def featureEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def featureSpecAtEmulationAndMinCompatVersion [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.featureSpecAtEmulationAndMinCompatVersion"
 
-instance info' : PkgInfo pkg_id.k8s_io.component_base.featuregate where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.featuregate where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -172,7 +171,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Feature [FfiSyntax] : Type := GoString
 
-@[reducible] def Feature.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Feature.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class Feature.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -195,7 +194,7 @@ attribute [instance] FeatureSpec.TypeAssumptions.type_repr
 
 abbrev VersionedSpecs [FfiSyntax] : Type := GoSlice
 
-@[reducible] def VersionedSpecs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VersionedSpecs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType FeatureSpec.ty)
 
 class VersionedSpecs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -205,7 +204,7 @@ attribute [instance] VersionedSpecs.TypeAssumptions.underlying
 
 abbrev PromotionVersionMapping [FfiSyntax] : Type := GoMap
 
-@[reducible] def PromotionVersionMapping.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PromotionVersionMapping.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType prerelease.ty go.string)
 
 class PromotionVersionMapping.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -215,7 +214,7 @@ attribute [instance] PromotionVersionMapping.TypeAssumptions.underlying
 
 abbrev prerelease [FfiSyntax] : Type := GoString
 
-@[reducible] def prerelease.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def prerelease.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class prerelease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -225,7 +224,7 @@ attribute [instance] prerelease.TypeAssumptions.underlying
 
 abbrev FeatureGate [FfiSyntax] : Type := GoInterface
 
-@[reducible] def FeatureGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FeatureGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeepCopy" (go.signature.Signature [] false [MutableVersionedFeatureGate.ty])), (go.InterfaceElem.MethodElem go!"Dependencies" (go.signature.Signature [] false [(go.GoType.MapType Feature.ty (go.GoType.SliceType Feature.ty))])), (go.InterfaceElem.MethodElem go!"Enabled" (go.signature.Signature [Feature.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"KnownFeatures" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"Validate" (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))])
 
 class FeatureGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -10,9 +10,8 @@ public import Code.google_golang_org.protobuf.internal.impl
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -27,11 +26,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance Export_typed_pointsto :
+noncomputable instance Export_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.Export :=
   sorry -- axiomatized type
 
-instance Export_into_val_typed :
+noncomputable instance Export_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.Export google_golang_org.protobuf.internal.impl.Export.underlying :=
   sorry -- axiomatized type
 
@@ -46,11 +45,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance legacyMessageWrapper_typed_pointsto :
+noncomputable instance legacyMessageWrapper_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.legacyMessageWrapper :=
   sorry -- axiomatized type
 
-instance legacyMessageWrapper_into_val_typed :
+noncomputable instance legacyMessageWrapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.legacyMessageWrapper google_golang_org.protobuf.internal.impl.legacyMessageWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -65,11 +64,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance RaceDetectHookData_typed_pointsto :
+noncomputable instance RaceDetectHookData_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.RaceDetectHookData :=
   sorry -- axiomatized type
 
-instance RaceDetectHookData_into_val_typed :
+noncomputable instance RaceDetectHookData_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.RaceDetectHookData google_golang_org.protobuf.internal.impl.RaceDetectHookData.underlying :=
   sorry -- axiomatized type
 
@@ -84,11 +83,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance extensionFieldInfo_typed_pointsto :
+noncomputable instance extensionFieldInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.extensionFieldInfo :=
   sorry -- axiomatized type
 
-instance extensionFieldInfo_into_val_typed :
+noncomputable instance extensionFieldInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.extensionFieldInfo google_golang_org.protobuf.internal.impl.extensionFieldInfo.underlying :=
   sorry -- axiomatized type
 
@@ -103,11 +102,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance lazyExtensionValue_typed_pointsto :
+noncomputable instance lazyExtensionValue_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.lazyExtensionValue :=
   sorry -- axiomatized type
 
-instance lazyExtensionValue_into_val_typed :
+noncomputable instance lazyExtensionValue_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.lazyExtensionValue google_golang_org.protobuf.internal.impl.lazyExtensionValue.underlying :=
   sorry -- axiomatized type
 
@@ -122,11 +121,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance ExtensionField_typed_pointsto :
+noncomputable instance ExtensionField_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.ExtensionField :=
   sorry -- axiomatized type
 
-instance ExtensionField_into_val_typed :
+noncomputable instance ExtensionField_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.ExtensionField google_golang_org.protobuf.internal.impl.ExtensionField.underlying :=
   sorry -- axiomatized type
 
@@ -141,11 +140,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance errInvalidUTF8_typed_pointsto :
+noncomputable instance errInvalidUTF8_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.errInvalidUTF8 :=
   sorry -- axiomatized type
 
-instance errInvalidUTF8_into_val_typed :
+noncomputable instance errInvalidUTF8_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.errInvalidUTF8 google_golang_org.protobuf.internal.impl.errInvalidUTF8.underlying :=
   sorry -- axiomatized type
 
@@ -160,11 +159,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance mapInfo_typed_pointsto :
+noncomputable instance mapInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.mapInfo :=
   sorry -- axiomatized type
 
-instance mapInfo_into_val_typed :
+noncomputable instance mapInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.mapInfo google_golang_org.protobuf.internal.impl.mapInfo.underlying :=
   sorry -- axiomatized type
 
@@ -179,11 +178,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance coderMessageInfo_typed_pointsto :
+noncomputable instance coderMessageInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.coderMessageInfo :=
   sorry -- axiomatized type
 
-instance coderMessageInfo_into_val_typed :
+noncomputable instance coderMessageInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.coderMessageInfo google_golang_org.protobuf.internal.impl.coderMessageInfo.underlying :=
   sorry -- axiomatized type
 
@@ -198,11 +197,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance coderFieldInfo_typed_pointsto :
+noncomputable instance coderFieldInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.coderFieldInfo :=
   sorry -- axiomatized type
 
-instance coderFieldInfo_into_val_typed :
+noncomputable instance coderFieldInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.coderFieldInfo google_golang_org.protobuf.internal.impl.coderFieldInfo.underlying :=
   sorry -- axiomatized type
 
@@ -217,11 +216,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance pointerCoderFuncs_typed_pointsto :
+noncomputable instance pointerCoderFuncs_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.pointerCoderFuncs :=
   sorry -- axiomatized type
 
-instance pointerCoderFuncs_into_val_typed :
+noncomputable instance pointerCoderFuncs_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.pointerCoderFuncs google_golang_org.protobuf.internal.impl.pointerCoderFuncs.underlying :=
   sorry -- axiomatized type
 
@@ -236,11 +235,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance valueCoderFuncs_typed_pointsto :
+noncomputable instance valueCoderFuncs_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.valueCoderFuncs :=
   sorry -- axiomatized type
 
-instance valueCoderFuncs_into_val_typed :
+noncomputable instance valueCoderFuncs_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.valueCoderFuncs google_golang_org.protobuf.internal.impl.valueCoderFuncs.underlying :=
   sorry -- axiomatized type
 
@@ -255,11 +254,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance unwrapper_typed_pointsto :
+noncomputable instance unwrapper_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.unwrapper :=
   sorry -- axiomatized type
 
-instance unwrapper_into_val_typed :
+noncomputable instance unwrapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.unwrapper google_golang_org.protobuf.internal.impl.unwrapper.underlying :=
   sorry -- axiomatized type
 
@@ -274,11 +273,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance Converter_typed_pointsto :
+noncomputable instance Converter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.Converter :=
   sorry -- axiomatized type
 
-instance Converter_into_val_typed :
+noncomputable instance Converter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.Converter google_golang_org.protobuf.internal.impl.Converter.underlying :=
   sorry -- axiomatized type
 
@@ -293,11 +292,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance boolConverter_typed_pointsto :
+noncomputable instance boolConverter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.boolConverter :=
   sorry -- axiomatized type
 
-instance boolConverter_into_val_typed :
+noncomputable instance boolConverter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.boolConverter google_golang_org.protobuf.internal.impl.boolConverter.underlying :=
   sorry -- axiomatized type
 
@@ -312,11 +311,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance int32Converter_typed_pointsto :
+noncomputable instance int32Converter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.int32Converter :=
   sorry -- axiomatized type
 
-instance int32Converter_into_val_typed :
+noncomputable instance int32Converter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.int32Converter google_golang_org.protobuf.internal.impl.int32Converter.underlying :=
   sorry -- axiomatized type
 
@@ -331,11 +330,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance int64Converter_typed_pointsto :
+noncomputable instance int64Converter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.int64Converter :=
   sorry -- axiomatized type
 
-instance int64Converter_into_val_typed :
+noncomputable instance int64Converter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.int64Converter google_golang_org.protobuf.internal.impl.int64Converter.underlying :=
   sorry -- axiomatized type
 
@@ -350,11 +349,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance uint32Converter_typed_pointsto :
+noncomputable instance uint32Converter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.uint32Converter :=
   sorry -- axiomatized type
 
-instance uint32Converter_into_val_typed :
+noncomputable instance uint32Converter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.uint32Converter google_golang_org.protobuf.internal.impl.uint32Converter.underlying :=
   sorry -- axiomatized type
 
@@ -369,11 +368,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance uint64Converter_typed_pointsto :
+noncomputable instance uint64Converter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.uint64Converter :=
   sorry -- axiomatized type
 
-instance uint64Converter_into_val_typed :
+noncomputable instance uint64Converter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.uint64Converter google_golang_org.protobuf.internal.impl.uint64Converter.underlying :=
   sorry -- axiomatized type
 
@@ -388,11 +387,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance float32Converter_typed_pointsto :
+noncomputable instance float32Converter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.float32Converter :=
   sorry -- axiomatized type
 
-instance float32Converter_into_val_typed :
+noncomputable instance float32Converter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.float32Converter google_golang_org.protobuf.internal.impl.float32Converter.underlying :=
   sorry -- axiomatized type
 
@@ -407,11 +406,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance float64Converter_typed_pointsto :
+noncomputable instance float64Converter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.float64Converter :=
   sorry -- axiomatized type
 
-instance float64Converter_into_val_typed :
+noncomputable instance float64Converter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.float64Converter google_golang_org.protobuf.internal.impl.float64Converter.underlying :=
   sorry -- axiomatized type
 
@@ -426,11 +425,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance stringConverter_typed_pointsto :
+noncomputable instance stringConverter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.stringConverter :=
   sorry -- axiomatized type
 
-instance stringConverter_into_val_typed :
+noncomputable instance stringConverter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.stringConverter google_golang_org.protobuf.internal.impl.stringConverter.underlying :=
   sorry -- axiomatized type
 
@@ -445,11 +444,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance bytesConverter_typed_pointsto :
+noncomputable instance bytesConverter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.bytesConverter :=
   sorry -- axiomatized type
 
-instance bytesConverter_into_val_typed :
+noncomputable instance bytesConverter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.bytesConverter google_golang_org.protobuf.internal.impl.bytesConverter.underlying :=
   sorry -- axiomatized type
 
@@ -464,11 +463,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance enumConverter_typed_pointsto :
+noncomputable instance enumConverter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.enumConverter :=
   sorry -- axiomatized type
 
-instance enumConverter_into_val_typed :
+noncomputable instance enumConverter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.enumConverter google_golang_org.protobuf.internal.impl.enumConverter.underlying :=
   sorry -- axiomatized type
 
@@ -483,11 +482,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance messageConverter_typed_pointsto :
+noncomputable instance messageConverter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.messageConverter :=
   sorry -- axiomatized type
 
-instance messageConverter_into_val_typed :
+noncomputable instance messageConverter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.messageConverter google_golang_org.protobuf.internal.impl.messageConverter.underlying :=
   sorry -- axiomatized type
 
@@ -502,11 +501,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance listConverter_typed_pointsto :
+noncomputable instance listConverter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.listConverter :=
   sorry -- axiomatized type
 
-instance listConverter_into_val_typed :
+noncomputable instance listConverter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.listConverter google_golang_org.protobuf.internal.impl.listConverter.underlying :=
   sorry -- axiomatized type
 
@@ -521,11 +520,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance listPtrConverter_typed_pointsto :
+noncomputable instance listPtrConverter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.listPtrConverter :=
   sorry -- axiomatized type
 
-instance listPtrConverter_into_val_typed :
+noncomputable instance listPtrConverter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.listPtrConverter google_golang_org.protobuf.internal.impl.listPtrConverter.underlying :=
   sorry -- axiomatized type
 
@@ -540,11 +539,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance listReflect_typed_pointsto :
+noncomputable instance listReflect_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.listReflect :=
   sorry -- axiomatized type
 
-instance listReflect_into_val_typed :
+noncomputable instance listReflect_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.listReflect google_golang_org.protobuf.internal.impl.listReflect.underlying :=
   sorry -- axiomatized type
 
@@ -559,11 +558,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance mapConverter_typed_pointsto :
+noncomputable instance mapConverter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.mapConverter :=
   sorry -- axiomatized type
 
-instance mapConverter_into_val_typed :
+noncomputable instance mapConverter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.mapConverter google_golang_org.protobuf.internal.impl.mapConverter.underlying :=
   sorry -- axiomatized type
 
@@ -578,11 +577,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance mapReflect_typed_pointsto :
+noncomputable instance mapReflect_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.mapReflect :=
   sorry -- axiomatized type
 
-instance mapReflect_into_val_typed :
+noncomputable instance mapReflect_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.mapReflect google_golang_org.protobuf.internal.impl.mapReflect.underlying :=
   sorry -- axiomatized type
 
@@ -597,11 +596,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance unmarshalOptions_typed_pointsto :
+noncomputable instance unmarshalOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.unmarshalOptions :=
   sorry -- axiomatized type
 
-instance unmarshalOptions_into_val_typed :
+noncomputable instance unmarshalOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.unmarshalOptions google_golang_org.protobuf.internal.impl.unmarshalOptions.underlying :=
   sorry -- axiomatized type
 
@@ -616,11 +615,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance unmarshalOutput_typed_pointsto :
+noncomputable instance unmarshalOutput_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.unmarshalOutput :=
   sorry -- axiomatized type
 
-instance unmarshalOutput_into_val_typed :
+noncomputable instance unmarshalOutput_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.unmarshalOutput google_golang_org.protobuf.internal.impl.unmarshalOutput.underlying :=
   sorry -- axiomatized type
 
@@ -635,11 +634,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance marshalOptions_typed_pointsto :
+noncomputable instance marshalOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.marshalOptions :=
   sorry -- axiomatized type
 
-instance marshalOptions_into_val_typed :
+noncomputable instance marshalOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.marshalOptions google_golang_org.protobuf.internal.impl.marshalOptions.underlying :=
   sorry -- axiomatized type
 
@@ -654,11 +653,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance EnumInfo_typed_pointsto :
+noncomputable instance EnumInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.EnumInfo :=
   sorry -- axiomatized type
 
-instance EnumInfo_into_val_typed :
+noncomputable instance EnumInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.EnumInfo google_golang_org.protobuf.internal.impl.EnumInfo.underlying :=
   sorry -- axiomatized type
 
@@ -673,11 +672,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance ExtensionInfo_typed_pointsto :
+noncomputable instance ExtensionInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.ExtensionInfo :=
   sorry -- axiomatized type
 
-instance ExtensionInfo_into_val_typed :
+noncomputable instance ExtensionInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.ExtensionInfo google_golang_org.protobuf.internal.impl.ExtensionInfo.underlying :=
   sorry -- axiomatized type
 
@@ -692,11 +691,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance extensionTypeDescriptor_typed_pointsto :
+noncomputable instance extensionTypeDescriptor_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.extensionTypeDescriptor :=
   sorry -- axiomatized type
 
-instance extensionTypeDescriptor_into_val_typed :
+noncomputable instance extensionTypeDescriptor_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.extensionTypeDescriptor google_golang_org.protobuf.internal.impl.extensionTypeDescriptor.underlying :=
   sorry -- axiomatized type
 
@@ -711,11 +710,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance legacyEnumType_typed_pointsto :
+noncomputable instance legacyEnumType_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.legacyEnumType :=
   sorry -- axiomatized type
 
-instance legacyEnumType_into_val_typed :
+noncomputable instance legacyEnumType_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.legacyEnumType google_golang_org.protobuf.internal.impl.legacyEnumType.underlying :=
   sorry -- axiomatized type
 
@@ -730,11 +729,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance legacyEnumWrapper_typed_pointsto :
+noncomputable instance legacyEnumWrapper_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.legacyEnumWrapper :=
   sorry -- axiomatized type
 
-instance legacyEnumWrapper_into_val_typed :
+noncomputable instance legacyEnumWrapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.legacyEnumWrapper google_golang_org.protobuf.internal.impl.legacyEnumWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -749,11 +748,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance placeholderExtension_typed_pointsto :
+noncomputable instance placeholderExtension_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.placeholderExtension :=
   sorry -- axiomatized type
 
-instance placeholderExtension_into_val_typed :
+noncomputable instance placeholderExtension_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.placeholderExtension google_golang_org.protobuf.internal.impl.placeholderExtension.underlying :=
   sorry -- axiomatized type
 
@@ -768,11 +767,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance enumV1_typed_pointsto :
+noncomputable instance enumV1_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.enumV1 :=
   sorry -- axiomatized type
 
-instance enumV1_into_val_typed :
+noncomputable instance enumV1_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.enumV1 google_golang_org.protobuf.internal.impl.enumV1.underlying :=
   sorry -- axiomatized type
 
@@ -787,11 +786,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance messageV1_typed_pointsto :
+noncomputable instance messageV1_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.messageV1 :=
   sorry -- axiomatized type
 
-instance messageV1_into_val_typed :
+noncomputable instance messageV1_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.messageV1 google_golang_org.protobuf.internal.impl.messageV1.underlying :=
   sorry -- axiomatized type
 
@@ -806,11 +805,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance resolverOnly_typed_pointsto :
+noncomputable instance resolverOnly_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.resolverOnly :=
   sorry -- axiomatized type
 
-instance resolverOnly_into_val_typed :
+noncomputable instance resolverOnly_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.resolverOnly google_golang_org.protobuf.internal.impl.resolverOnly.underlying :=
   sorry -- axiomatized type
 
@@ -825,11 +824,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance placeholderEnumValues_typed_pointsto :
+noncomputable instance placeholderEnumValues_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.placeholderEnumValues :=
   sorry -- axiomatized type
 
-instance placeholderEnumValues_into_val_typed :
+noncomputable instance placeholderEnumValues_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.placeholderEnumValues google_golang_org.protobuf.internal.impl.placeholderEnumValues.underlying :=
   sorry -- axiomatized type
 
@@ -844,11 +843,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance legacyMarshaler_typed_pointsto :
+noncomputable instance legacyMarshaler_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.legacyMarshaler :=
   sorry -- axiomatized type
 
-instance legacyMarshaler_into_val_typed :
+noncomputable instance legacyMarshaler_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.legacyMarshaler google_golang_org.protobuf.internal.impl.legacyMarshaler.underlying :=
   sorry -- axiomatized type
 
@@ -863,11 +862,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance legacyUnmarshaler_typed_pointsto :
+noncomputable instance legacyUnmarshaler_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.legacyUnmarshaler :=
   sorry -- axiomatized type
 
-instance legacyUnmarshaler_into_val_typed :
+noncomputable instance legacyUnmarshaler_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.legacyUnmarshaler google_golang_org.protobuf.internal.impl.legacyUnmarshaler.underlying :=
   sorry -- axiomatized type
 
@@ -882,11 +881,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance legacyMerger_typed_pointsto :
+noncomputable instance legacyMerger_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.legacyMerger :=
   sorry -- axiomatized type
 
-instance legacyMerger_into_val_typed :
+noncomputable instance legacyMerger_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.legacyMerger google_golang_org.protobuf.internal.impl.legacyMerger.underlying :=
   sorry -- axiomatized type
 
@@ -901,11 +900,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance aberrantMessageType_typed_pointsto :
+noncomputable instance aberrantMessageType_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.aberrantMessageType :=
   sorry -- axiomatized type
 
-instance aberrantMessageType_into_val_typed :
+noncomputable instance aberrantMessageType_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.aberrantMessageType google_golang_org.protobuf.internal.impl.aberrantMessageType.underlying :=
   sorry -- axiomatized type
 
@@ -920,11 +919,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance aberrantMessage_typed_pointsto :
+noncomputable instance aberrantMessage_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.aberrantMessage :=
   sorry -- axiomatized type
 
-instance aberrantMessage_into_val_typed :
+noncomputable instance aberrantMessage_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.aberrantMessage google_golang_org.protobuf.internal.impl.aberrantMessage.underlying :=
   sorry -- axiomatized type
 
@@ -939,11 +938,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance mergeOptions_typed_pointsto :
+noncomputable instance mergeOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.mergeOptions :=
   sorry -- axiomatized type
 
-instance mergeOptions_into_val_typed :
+noncomputable instance mergeOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.mergeOptions google_golang_org.protobuf.internal.impl.mergeOptions.underlying :=
   sorry -- axiomatized type
 
@@ -958,11 +957,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance MessageInfo_typed_pointsto :
+noncomputable instance MessageInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.MessageInfo :=
   sorry -- axiomatized type
 
-instance MessageInfo_into_val_typed :
+noncomputable instance MessageInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.MessageInfo google_golang_org.protobuf.internal.impl.MessageInfo.underlying :=
   sorry -- axiomatized type
 
@@ -977,11 +976,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance exporter_typed_pointsto :
+noncomputable instance exporter_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.exporter :=
   sorry -- axiomatized type
 
-instance exporter_into_val_typed :
+noncomputable instance exporter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.exporter google_golang_org.protobuf.internal.impl.exporter.underlying :=
   sorry -- axiomatized type
 
@@ -996,11 +995,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance structInfo_typed_pointsto :
+noncomputable instance structInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.structInfo :=
   sorry -- axiomatized type
 
-instance structInfo_into_val_typed :
+noncomputable instance structInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.structInfo google_golang_org.protobuf.internal.impl.structInfo.underlying :=
   sorry -- axiomatized type
 
@@ -1015,11 +1014,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance mapEntryType_typed_pointsto :
+noncomputable instance mapEntryType_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.mapEntryType :=
   sorry -- axiomatized type
 
-instance mapEntryType_into_val_typed :
+noncomputable instance mapEntryType_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.mapEntryType google_golang_org.protobuf.internal.impl.mapEntryType.underlying :=
   sorry -- axiomatized type
 
@@ -1034,11 +1033,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance opaqueStructInfo_typed_pointsto :
+noncomputable instance opaqueStructInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.opaqueStructInfo :=
   sorry -- axiomatized type
 
-instance opaqueStructInfo_into_val_typed :
+noncomputable instance opaqueStructInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.opaqueStructInfo google_golang_org.protobuf.internal.impl.opaqueStructInfo.underlying :=
   sorry -- axiomatized type
 
@@ -1053,11 +1052,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance presenceList_typed_pointsto :
+noncomputable instance presenceList_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.presenceList :=
   sorry -- axiomatized type
 
-instance presenceList_into_val_typed :
+noncomputable instance presenceList_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.presenceList google_golang_org.protobuf.internal.impl.presenceList.underlying :=
   sorry -- axiomatized type
 
@@ -1072,11 +1071,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance pvalueList_typed_pointsto :
+noncomputable instance pvalueList_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.pvalueList :=
   sorry -- axiomatized type
 
-instance pvalueList_into_val_typed :
+noncomputable instance pvalueList_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.pvalueList google_golang_org.protobuf.internal.impl.pvalueList.underlying :=
   sorry -- axiomatized type
 
@@ -1091,11 +1090,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance reflectMessageInfo_typed_pointsto :
+noncomputable instance reflectMessageInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.reflectMessageInfo :=
   sorry -- axiomatized type
 
-instance reflectMessageInfo_into_val_typed :
+noncomputable instance reflectMessageInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.reflectMessageInfo google_golang_org.protobuf.internal.impl.reflectMessageInfo.underlying :=
   sorry -- axiomatized type
 
@@ -1110,11 +1109,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance extensionMap_typed_pointsto :
+noncomputable instance extensionMap_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.extensionMap :=
   sorry -- axiomatized type
 
-instance extensionMap_into_val_typed :
+noncomputable instance extensionMap_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.extensionMap google_golang_org.protobuf.internal.impl.extensionMap.underlying :=
   sorry -- axiomatized type
 
@@ -1129,7 +1128,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance MessageState_typed_pointsto :
+noncomputable instance MessageState_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.MessageState where
   typedPointstoDef l v dq := iprop(
     "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
@@ -1141,11 +1140,11 @@ instance MessageState_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance MessageState_into_val_typed :
+noncomputable instance MessageState_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.MessageState google_golang_org.protobuf.internal.impl.MessageState.underlying := by
   solve_into_val_typed_struct
 
-instance MessageState_access_load_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (dq : DFrac) :
+noncomputable instance MessageState_access_load_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
@@ -1153,7 +1152,7 @@ instance MessageState_access_load_NoUnkeyedLiterals (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance MessageState_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
@@ -1161,7 +1160,7 @@ instance MessageState_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golan
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_load_DoNotCompare (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (dq : DFrac) :
+noncomputable instance MessageState_access_load_DoNotCompare (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCompare" l) v.DoNotCompare' dq)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCompare" l) v.DoNotCompare' dq)
@@ -1169,7 +1168,7 @@ instance MessageState_access_load_DoNotCompare (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_store_DoNotCompare (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCompare' : google_golang_org.protobuf.internal.pragma.DoNotCompare) :
+noncomputable instance MessageState_access_store_DoNotCompare (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCompare' : google_golang_org.protobuf.internal.pragma.DoNotCompare) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCompare" l) v.DoNotCompare' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCompare" l) DoNotCompare' (DFrac.own 1))
@@ -1177,7 +1176,7 @@ instance MessageState_access_store_DoNotCompare (l : Loc) (v : google_golang_org
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_load_DoNotCopy (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (dq : DFrac) :
+noncomputable instance MessageState_access_load_DoNotCopy (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCopy" l) v.DoNotCopy' dq)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCopy" l) v.DoNotCopy' dq)
@@ -1185,7 +1184,7 @@ instance MessageState_access_load_DoNotCopy (l : Loc) (v : google_golang_org.pro
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_store_DoNotCopy (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCopy' : google_golang_org.protobuf.internal.pragma.DoNotCopy) :
+noncomputable instance MessageState_access_store_DoNotCopy (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCopy' : google_golang_org.protobuf.internal.pragma.DoNotCopy) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCopy" l) v.DoNotCopy' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCopy" l) DoNotCopy' (DFrac.own 1))
@@ -1193,7 +1192,7 @@ instance MessageState_access_store_DoNotCopy (l : Loc) (v : google_golang_org.pr
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_load_atomicMessageInfo (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (dq : DFrac) :
+noncomputable instance MessageState_access_load_atomicMessageInfo (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"atomicMessageInfo" l) v.atomicMessageInfo' dq)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"atomicMessageInfo" l) v.atomicMessageInfo' dq)
@@ -1201,7 +1200,7 @@ instance MessageState_access_load_atomicMessageInfo (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-instance MessageState_access_store_atomicMessageInfo (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (atomicMessageInfo' : Loc) :
+noncomputable instance MessageState_access_store_atomicMessageInfo (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (atomicMessageInfo' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"atomicMessageInfo" l) v.atomicMessageInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"atomicMessageInfo" l) atomicMessageInfo' (DFrac.own 1))
@@ -1220,11 +1219,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance messageState_typed_pointsto :
+noncomputable instance messageState_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.messageState :=
   sorry -- axiomatized type
 
-instance messageState_into_val_typed :
+noncomputable instance messageState_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.messageState google_golang_org.protobuf.internal.impl.messageState.underlying :=
   sorry -- axiomatized type
 
@@ -1239,11 +1238,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance messageDataType_typed_pointsto :
+noncomputable instance messageDataType_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.messageDataType :=
   sorry -- axiomatized type
 
-instance messageDataType_into_val_typed :
+noncomputable instance messageDataType_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.messageDataType google_golang_org.protobuf.internal.impl.messageDataType.underlying :=
   sorry -- axiomatized type
 
@@ -1258,11 +1257,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance messageReflectWrapper_typed_pointsto :
+noncomputable instance messageReflectWrapper_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.messageReflectWrapper :=
   sorry -- axiomatized type
 
-instance messageReflectWrapper_into_val_typed :
+noncomputable instance messageReflectWrapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.messageReflectWrapper google_golang_org.protobuf.internal.impl.messageReflectWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -1277,11 +1276,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance messageIfaceWrapper_typed_pointsto :
+noncomputable instance messageIfaceWrapper_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.messageIfaceWrapper :=
   sorry -- axiomatized type
 
-instance messageIfaceWrapper_into_val_typed :
+noncomputable instance messageIfaceWrapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.messageIfaceWrapper google_golang_org.protobuf.internal.impl.messageIfaceWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -1296,11 +1295,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance fieldInfo_typed_pointsto :
+noncomputable instance fieldInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.fieldInfo :=
   sorry -- axiomatized type
 
-instance fieldInfo_into_val_typed :
+noncomputable instance fieldInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.fieldInfo google_golang_org.protobuf.internal.impl.fieldInfo.underlying :=
   sorry -- axiomatized type
 
@@ -1315,11 +1314,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance oneofInfo_typed_pointsto :
+noncomputable instance oneofInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.oneofInfo :=
   sorry -- axiomatized type
 
-instance oneofInfo_into_val_typed :
+noncomputable instance oneofInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.oneofInfo google_golang_org.protobuf.internal.impl.oneofInfo.underlying :=
   sorry -- axiomatized type
 
@@ -1334,11 +1333,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance Pointer_typed_pointsto :
+noncomputable instance Pointer_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.Pointer :=
   sorry -- axiomatized type
 
-instance Pointer_into_val_typed :
+noncomputable instance Pointer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.Pointer google_golang_org.protobuf.internal.impl.Pointer.underlying :=
   sorry -- axiomatized type
 
@@ -1353,11 +1352,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance offset_typed_pointsto :
+noncomputable instance offset_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.offset :=
   sorry -- axiomatized type
 
-instance offset_into_val_typed :
+noncomputable instance offset_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.offset google_golang_org.protobuf.internal.impl.offset.underlying :=
   sorry -- axiomatized type
 
@@ -1372,11 +1371,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance pointer_typed_pointsto :
+noncomputable instance pointer_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.pointer :=
   sorry -- axiomatized type
 
-instance pointer_into_val_typed :
+noncomputable instance pointer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.pointer google_golang_org.protobuf.internal.impl.pointer.underlying :=
   sorry -- axiomatized type
 
@@ -1391,11 +1390,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance atomicNilMessage_typed_pointsto :
+noncomputable instance atomicNilMessage_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.atomicNilMessage :=
   sorry -- axiomatized type
 
-instance atomicNilMessage_into_val_typed :
+noncomputable instance atomicNilMessage_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.atomicNilMessage google_golang_org.protobuf.internal.impl.atomicNilMessage.underlying :=
   sorry -- axiomatized type
 
@@ -1410,11 +1409,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance atomicV1MessageInfo_typed_pointsto :
+noncomputable instance atomicV1MessageInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.atomicV1MessageInfo :=
   sorry -- axiomatized type
 
-instance atomicV1MessageInfo_into_val_typed :
+noncomputable instance atomicV1MessageInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.atomicV1MessageInfo google_golang_org.protobuf.internal.impl.atomicV1MessageInfo.underlying :=
   sorry -- axiomatized type
 
@@ -1429,11 +1428,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance presenceSize_typed_pointsto :
+noncomputable instance presenceSize_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.presenceSize :=
   sorry -- axiomatized type
 
-instance presenceSize_into_val_typed :
+noncomputable instance presenceSize_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.presenceSize google_golang_org.protobuf.internal.impl.presenceSize.underlying :=
   sorry -- axiomatized type
 
@@ -1448,11 +1447,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance presence_typed_pointsto :
+noncomputable instance presence_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.presence :=
   sorry -- axiomatized type
 
-instance presence_into_val_typed :
+noncomputable instance presence_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.presence google_golang_org.protobuf.internal.impl.presence.underlying :=
   sorry -- axiomatized type
 
@@ -1467,11 +1466,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance ValidationStatus_typed_pointsto :
+noncomputable instance ValidationStatus_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.ValidationStatus :=
   sorry -- axiomatized type
 
-instance ValidationStatus_into_val_typed :
+noncomputable instance ValidationStatus_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.ValidationStatus google_golang_org.protobuf.internal.impl.ValidationStatus.underlying :=
   sorry -- axiomatized type
 
@@ -1486,11 +1485,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance validationInfo_typed_pointsto :
+noncomputable instance validationInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.validationInfo :=
   sorry -- axiomatized type
 
-instance validationInfo_into_val_typed :
+noncomputable instance validationInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.validationInfo google_golang_org.protobuf.internal.impl.validationInfo.underlying :=
   sorry -- axiomatized type
 
@@ -1505,11 +1504,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
 
-instance validationType_typed_pointsto :
+noncomputable instance validationType_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.validationType :=
   sorry -- axiomatized type
 
-instance validationType_into_val_typed :
+noncomputable instance validationType_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.validationType google_golang_org.protobuf.internal.impl.validationType.underlying :=
   sorry -- axiomatized type
 

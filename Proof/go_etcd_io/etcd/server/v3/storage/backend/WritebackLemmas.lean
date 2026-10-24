@@ -123,11 +123,11 @@ theorem sessWf_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : s
 theorem bgOk_writeback {P : BParams} {st : BSess} {n w u : Nat}
     (h : bgOk P st false n w u) (hn : 1 ≤ n) :
     bgOk P (wbSt P st) true (n - 1) (w + 1) u := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10⟩ := h
   have hv : 0 ≤ uint.Z st.R.ver := by word
   have hk : st.cnt.k < 2 ^ 40 := by omega
   have hc : st.cnt.c ≤ st.cnt.k + 2 := by split at h3 <;> omega
-  refine ⟨?_, by omega, by simp [wbSt], by simp [wbSt], ⟨Or.inr rfl, Or.inl rfl⟩, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, by omega, by simp [wbSt], by simp [wbSt], ⟨Or.inr rfl, Or.inl rfl⟩, ?_, ?_, ?_, ?_, ?_⟩
   · show uint.Z (st.R.ver + W64 1) + ((n - 1 : Nat) : Int) + ((0 : Nat) : Int) < 2 ^ 40
     have : uint.Z (st.R.ver + W64 1) = uint.Z st.R.ver + 1 := by word
     omega
@@ -148,11 +148,14 @@ theorem bgOk_writeback {P : BParams} {st : BSess} {n w u : Nat}
     rw [bkOf_writebackW]; simp
   · intro _
     exact ⟨rfl, fun _ => by omega⟩
+  · show ((w + 1 : Nat) : Int) ≤ uint.Z (st.R.ver + W64 1)
+    have : uint.Z (st.R.ver + W64 1) = uint.Z st.R.ver + 1 := by word
+    omega
 
 theorem bgOk_unfree {P : BParams} {st : BSess} {n w u : Nat} (h : bgOk P st true n w u) :
     bgOk P st false n w u := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -⟩ := h
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, by simp⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10⟩ := h
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, by simp, h10⟩
 
 /-- After a write-back with nothing to commit, the lock's state is free. -/
 theorem freeOk_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : st.pend ≠ W64 0)
@@ -167,9 +170,10 @@ theorem freeOk_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : s
 theorem free_of_pend0 {P : BParams} {st : BSess} {n w u : Nat} (hP : P.Wf) (hst : sessWf P st)
     (h : bgOk P st false n w u) (hp : st.pend = W64 0) (hhw : st.cnt.hw = false) :
     freeOk P st ∧ bgOk P st true n w u := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10⟩ := h
   have hp' : sint.nat st.pend = 0 := by rw [hp]; rfl
-  refine ⟨⟨hst, ?_, ?_, ?_, hhw⟩, h1, h2, h3, h4, h5, h6, h7, h8, fun _ => ⟨by omega, fun h => absurd hp h⟩⟩
+  refine ⟨⟨hst, ?_, ?_, ?_, hhw⟩, h1, h2, h3, h4, h5, h6, h7, h8,
+    fun _ => ⟨by omega, fun h => absurd hp h⟩, h10⟩
   · rw [hp]; exact hP.2.1
   · have h1 := hst.2.2.2.2.2.2.1
     have h2 := hst.2.2.2.2.2.2.2.1

@@ -8,80 +8,79 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def encoding.json : GoString := go!"encoding/json"
+noncomputable def encoding.json : GoString := go!"encoding/json"
 end pkg_id
 
 namespace encoding.json
 
-def UnmarshalTypeError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnmarshalTypeError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnmarshalTypeError" [])
 
 attribute [irreducible] UnmarshalTypeError.ty
 
-def UnmarshalFieldError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnmarshalFieldError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnmarshalFieldError" [])
 
 attribute [irreducible] UnmarshalFieldError.ty
 
-def InvalidUnmarshalError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidUnmarshalError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.InvalidUnmarshalError" [])
 
 attribute [irreducible] InvalidUnmarshalError.ty
 
-def Number.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Number.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Number" [])
 
 attribute [irreducible] Number.ty
 
-def UnsupportedTypeError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsupportedTypeError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnsupportedTypeError" [])
 
 attribute [irreducible] UnsupportedTypeError.ty
 
-def UnsupportedValueError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsupportedValueError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnsupportedValueError" [])
 
 attribute [irreducible] UnsupportedValueError.ty
 
-def InvalidUTF8Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidUTF8Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.InvalidUTF8Error" [])
 
 attribute [irreducible] InvalidUTF8Error.ty
 
-def MarshalerError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MarshalerError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.MarshalerError" [])
 
 attribute [irreducible] MarshalerError.ty
 
-def SyntaxError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SyntaxError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.SyntaxError" [])
 
 attribute [irreducible] SyntaxError.ty
 
-def Decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Decoder" [])
 
 attribute [irreducible] Decoder.ty
 
-def Encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Encoder" [])
 
 attribute [irreducible] Encoder.ty
 
-def Token.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Token.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Token" [])
 
 attribute [irreducible] Token.ty
 
-def Delim.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Delim.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Delim" [])
 
 attribute [irreducible] Delim.ty
@@ -224,7 +223,7 @@ noncomputable def NewDecoder [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"encoding/json.NewEncoder"
 
-instance info' : PkgInfo pkg_id.encoding.json where
+noncomputable instance info' : PkgInfo pkg_id.encoding.json where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -289,7 +288,7 @@ attribute [instance] InvalidUnmarshalError.TypeAssumptions.type_repr
 
 abbrev Number [FfiSyntax] : Type := GoString
 
-@[reducible] def Number.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Number.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class Number.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -327,20 +326,20 @@ structure InvalidUTF8Error [FfiSyntax] where
   mk ::
   S' : GoString
 
-instance InvalidUTF8Error.zero_val [FfiSyntax] : ZeroVal InvalidUTF8Error :=
+noncomputable instance InvalidUTF8Error.zero_val [FfiSyntax] : ZeroVal InvalidUTF8Error :=
   ⟨InvalidUTF8Error.mk zeroValDef⟩
 
-@[reducible] def InvalidUTF8Error.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InvalidUTF8Error.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"S" go.string)]
 
-@[irreducible] def InvalidUTF8Error.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InvalidUTF8Error.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   InvalidUTF8Error.fieldsUnsealed
 
-instance equals_unfold_InvalidUTF8Error [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InvalidUTF8Error [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold InvalidUTF8Error.fields InvalidUTF8Error.fieldsUnsealed :=
   ⟨by unfold InvalidUTF8Error.fields; rfl⟩
 
-@[reducible] def InvalidUTF8Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidUTF8Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InvalidUTF8Error.fields)
 
 class InvalidUTF8Error.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -372,21 +371,21 @@ structure SyntaxError [FfiSyntax] where
   msg' : GoString
   Offset' : w64
 
-instance SyntaxError.zero_val [FfiSyntax] : ZeroVal SyntaxError :=
+noncomputable instance SyntaxError.zero_val [FfiSyntax] : ZeroVal SyntaxError :=
   ⟨SyntaxError.mk zeroValDef zeroValDef⟩
 
-@[reducible] def SyntaxError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SyntaxError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"msg" go.string),
 (go.field_decl.FieldDecl go!"Offset" go.int64)]
 
-@[irreducible] def SyntaxError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SyntaxError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   SyntaxError.fieldsUnsealed
 
-instance equals_unfold_SyntaxError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SyntaxError [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold SyntaxError.fields SyntaxError.fieldsUnsealed :=
   ⟨by unfold SyntaxError.fields; rfl⟩
 
-@[reducible] def SyntaxError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SyntaxError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SyntaxError.fields)
 
 class SyntaxError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -432,7 +431,7 @@ attribute [instance] Encoder.TypeAssumptions.type_repr
 
 abbrev Token [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Token.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Token.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.any
 
 class Token.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

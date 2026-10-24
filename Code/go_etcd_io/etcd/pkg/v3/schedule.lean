@@ -12,35 +12,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.schedule : GoString := go!"go.etcd.io/etcd/pkg/v3/schedule"
+noncomputable def go_etcd_io.etcd.pkg.v3.schedule : GoString := go!"go.etcd.io/etcd/pkg/v3/schedule"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.schedule
 
-def Job.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Job.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/schedule.Job" [])
 
 attribute [irreducible] Job.ty
 
-def job.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def job.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/schedule.job" [])
 
 attribute [irreducible] job.ty
 
-def Scheduler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Scheduler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/schedule.Scheduler" [])
 
 attribute [irreducible] Scheduler.ty
 
-def fifo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fifo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/schedule.fifo" [])
 
 attribute [irreducible] fifo.ty
@@ -373,7 +372,7 @@ noncomputable def fifo.executeJob.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.schedule where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.schedule where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -396,7 +395,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Job [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Job.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Job.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Do" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])), (go.InterfaceElem.MethodElem go!"Name" (go.signature.Signature [] false [go.string]))])
 
 class Job.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -409,21 +408,21 @@ structure job [FfiSyntax] where
   name' : GoString
   do' : GoFunc
 
-instance job.zero_val [FfiSyntax] : ZeroVal job :=
+noncomputable instance job.zero_val [FfiSyntax] : ZeroVal job :=
   ⟨job.mk zeroValDef zeroValDef⟩
 
-@[reducible] def job.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def job.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"name" go.string),
 (go.field_decl.FieldDecl go!"do" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])))]
 
-@[irreducible] def job.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def job.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   job.fieldsUnsealed
 
-instance equals_unfold_job [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_job [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold job.fields job.fieldsUnsealed :=
   ⟨by unfold job.fields; rfl⟩
 
-@[reducible] def job.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def job.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType job.fields)
 
 class job.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -453,7 +452,7 @@ attribute [instance] job.TypeAssumptions.type_repr
 
 abbrev Scheduler [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Scheduler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Scheduler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Finished" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Pending" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Schedule" (go.signature.Signature [Job.ty] false [])), (go.InterfaceElem.MethodElem go!"Scheduled" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"WaitFinish" (go.signature.Signature [go.int] false []))])
 
 class Scheduler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -474,10 +473,10 @@ structure fifo [FfiSyntax] where
   donec' : GoChan
   lg' : Loc
 
-instance fifo.zero_val [FfiSyntax] : ZeroVal fifo :=
+noncomputable instance fifo.zero_val [FfiSyntax] : ZeroVal fifo :=
   ⟨fifo.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def fifo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def fifo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"resume" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"scheduled" go.int),
@@ -489,14 +488,14 @@ instance fifo.zero_val [FfiSyntax] : ZeroVal fifo :=
 (go.field_decl.FieldDecl go!"donec" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
 
-@[irreducible] def fifo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def fifo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   fifo.fieldsUnsealed
 
-instance equals_unfold_fifo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_fifo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold fifo.fields fifo.fieldsUnsealed :=
   ⟨by unfold fifo.fields; rfl⟩
 
-@[reducible] def fifo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def fifo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType fifo.fields)
 
 class fifo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

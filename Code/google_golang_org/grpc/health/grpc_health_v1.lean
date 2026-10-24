@@ -10,65 +10,64 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.grpc.health.grpc_health_v1 : GoString := go!"google.golang.org/grpc/health/grpc_health_v1"
+noncomputable def google_golang_org.grpc.health.grpc_health_v1 : GoString := go!"google.golang.org/grpc/health/grpc_health_v1"
 end pkg_id
 
 namespace google_golang_org.grpc.health.grpc_health_v1
 
-def HealthCheckResponse_ServingStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HealthCheckResponse_ServingStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus" [])
 
 attribute [irreducible] HealthCheckResponse_ServingStatus.ty
 
-def HealthCheckRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HealthCheckRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckRequest" [])
 
 attribute [irreducible] HealthCheckRequest.ty
 
-def HealthCheckResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HealthCheckResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse" [])
 
 attribute [irreducible] HealthCheckResponse.ty
 
-def HealthListRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HealthListRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthListRequest" [])
 
 attribute [irreducible] HealthListRequest.ty
 
-def HealthListResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HealthListResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthListResponse" [])
 
 attribute [irreducible] HealthListResponse.ty
 
-def HealthClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HealthClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthClient" [])
 
 attribute [irreducible] HealthClient.ty
 
-def healthClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def healthClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.healthClient" [])
 
 attribute [irreducible] healthClient.ty
 
-def HealthServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HealthServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthServer" [])
 
 attribute [irreducible] HealthServer.ty
 
-def UnimplementedHealthServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnimplementedHealthServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.UnimplementedHealthServer" [])
 
 attribute [irreducible] UnimplementedHealthServer.ty
 
-def UnsafeHealthServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsafeHealthServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.UnsafeHealthServer" [])
 
 attribute [irreducible] UnsafeHealthServer.ty
@@ -81,10 +80,10 @@ axiom HealthListRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom HealthListResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-@[reducible] def Health_WatchClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Health_WatchClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty HealthCheckResponse.ty)
 
-@[reducible] def Health_WatchServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Health_WatchServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty HealthCheckResponse.ty)
 
 axiom HealthCheckResponse_UNKNOWN [FfiSyntax] [GoGlobalContext] : val
@@ -172,7 +171,7 @@ noncomputable def _Health_List_Handler [FfiSyntax] [GoGlobalContext] : GoString 
 noncomputable def _Health_Watch_Handler [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1._Health_Watch_Handler"
 
-instance info' : PkgInfo pkg_id.google_golang_org.grpc.health.grpc_health_v1 where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health.grpc_health_v1 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -213,7 +212,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev HealthCheckResponse_ServingStatus [FfiSyntax] : Type := w32
 
-@[reducible] def HealthCheckResponse_ServingStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HealthCheckResponse_ServingStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
 class HealthCheckResponse_ServingStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -275,7 +274,7 @@ attribute [instance] HealthListResponse.TypeAssumptions.type_repr
 
 abbrev HealthClient [FfiSyntax] : Type := GoInterface
 
-@[reducible] def HealthClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HealthClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Check" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HealthCheckResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HealthListResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Watch" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty HealthCheckResponse.ty), go.error]))])
 
 class HealthClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -287,20 +286,20 @@ structure healthClient [FfiSyntax] where
   mk ::
   cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface
 
-instance healthClient.zero_val [FfiSyntax] : ZeroVal healthClient :=
+noncomputable instance healthClient.zero_val [FfiSyntax] : ZeroVal healthClient :=
   ⟨healthClient.mk zeroValDef⟩
 
-@[reducible] def healthClient.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def healthClient.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"cc" _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty)]
 
-@[irreducible] def healthClient.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def healthClient.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   healthClient.fieldsUnsealed
 
-instance equals_unfold_healthClient [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_healthClient [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold healthClient.fields healthClient.fieldsUnsealed :=
   ⟨by unfold healthClient.fields; rfl⟩
 
-@[reducible] def healthClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def healthClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType healthClient.fields)
 
 class healthClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -316,7 +315,7 @@ attribute [instance] healthClient.TypeAssumptions.type_repr
 
 abbrev HealthServer [FfiSyntax] : Type := GoInterface
 
-@[reducible] def HealthServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HealthServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Check" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty)] false [(go.GoType.PointerType HealthCheckResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty)] false [(go.GoType.PointerType HealthListResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Watch" (go.signature.Signature [(go.GoType.PointerType HealthCheckRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty HealthCheckResponse.ty)] false [go.error]))])
 
 class HealthServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -327,20 +326,20 @@ attribute [instance] HealthServer.TypeAssumptions.underlying
 structure UnimplementedHealthServer [FfiSyntax] where
   mk ::
 
-instance UnimplementedHealthServer.zero_val [FfiSyntax] : ZeroVal UnimplementedHealthServer :=
+noncomputable instance UnimplementedHealthServer.zero_val [FfiSyntax] : ZeroVal UnimplementedHealthServer :=
   ⟨UnimplementedHealthServer.mk⟩
 
-@[reducible] def UnimplementedHealthServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def UnimplementedHealthServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def UnimplementedHealthServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def UnimplementedHealthServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   UnimplementedHealthServer.fieldsUnsealed
 
-instance equals_unfold_UnimplementedHealthServer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_UnimplementedHealthServer [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold UnimplementedHealthServer.fields UnimplementedHealthServer.fieldsUnsealed :=
   ⟨by unfold UnimplementedHealthServer.fields; rfl⟩
 
-@[reducible] def UnimplementedHealthServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnimplementedHealthServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType UnimplementedHealthServer.fields)
 
 class UnimplementedHealthServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -352,7 +351,7 @@ attribute [instance] UnimplementedHealthServer.TypeAssumptions.type_repr
 
 abbrev UnsafeHealthServer [FfiSyntax] : Type := GoInterface
 
-@[reducible] def UnsafeHealthServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnsafeHealthServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedHealthServer" (go.signature.Signature [] false []))])
 
 class UnsafeHealthServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

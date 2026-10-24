@@ -10,25 +10,24 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.api.snap : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.api.snap : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
-def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.Message" [])
 
 attribute [irreducible] Message.ty
 
-def Snapshotter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Snapshotter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.Snapshotter" [])
 
 attribute [irreducible] Snapshotter.ty
@@ -77,7 +76,7 @@ noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.New"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap where
   pkgImportedPkgs := [pkg_id.io, pkg_id.go_etcd_io.raft.v3.raftpb]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -120,23 +119,23 @@ structure Message [FfiSyntax] where
   TotalSize' : w64
   closeC' : GoChan
 
-instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
+noncomputable instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
   ⟨Message.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Message.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Message.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Message" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)),
 (go.field_decl.FieldDecl go!"ReadCloser" _root_.Perennial.io.ReadCloser.ty),
 (go.field_decl.FieldDecl go!"TotalSize" go.int64),
 (go.field_decl.FieldDecl go!"closeC" (go.GoType.ChannelType go.ChanDir.sendrecv go.bool))]
 
-@[irreducible] def Message.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Message.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Message.fieldsUnsealed
 
-instance equals_unfold_Message [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Message [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Message.fields Message.fieldsUnsealed :=
   ⟨by unfold Message.fields; rfl⟩
 
-@[reducible] def Message.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Message.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Message.fields)
 
 class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

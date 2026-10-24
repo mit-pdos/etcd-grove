@@ -8,85 +8,84 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.labels : GoString := go!"k8s.io/apimachinery/pkg/labels"
+noncomputable def k8s_io.apimachinery.pkg.labels : GoString := go!"k8s.io/apimachinery/pkg/labels"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.labels
 
-def Labels.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Labels.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Labels" [])
 
 attribute [irreducible] Labels.ty
 
-def Set'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Set'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Set" [])
 
 attribute [irreducible] Set'.ty
 
-def Requirements.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Requirements.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Requirements" [])
 
 attribute [irreducible] Requirements.ty
 
-def Selector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Selector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Selector" [])
 
 attribute [irreducible] Selector.ty
 
-def nothingSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nothingSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.nothingSelector" [])
 
 attribute [irreducible] nothingSelector.ty
 
-def internalSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def internalSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.internalSelector" [])
 
 attribute [irreducible] internalSelector.ty
 
-def ByKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ByKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.ByKey" [])
 
 attribute [irreducible] ByKey.ty
 
-def Requirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Requirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Requirement" [])
 
 attribute [irreducible] Requirement.ty
 
-def Token.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Token.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Token" [])
 
 attribute [irreducible] Token.ty
 
-def ScannedItem.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ScannedItem.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.ScannedItem" [])
 
 attribute [irreducible] ScannedItem.ty
 
-def Lexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Lexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Lexer" [])
 
 attribute [irreducible] Lexer.ty
 
-def Parser.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Parser.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Parser" [])
 
 attribute [irreducible] Parser.ty
 
-def ParserContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ParserContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.ParserContext" [])
 
 attribute [irreducible] ParserContext.ty
 
-def ValidatedSetSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ValidatedSetSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.ValidatedSetSelector" [])
 
 attribute [irreducible] ValidatedSetSelector.ty
@@ -220,7 +219,7 @@ noncomputable def SelectorFromValidatedSet [FfiSyntax] [GoGlobalContext] : GoStr
 noncomputable def ParseToRequirements [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/labels.ParseToRequirements"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.labels where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.labels where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -252,7 +251,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Labels [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Labels.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Labels.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.string] false [go.string])), (go.InterfaceElem.MethodElem go!"Has" (go.signature.Signature [go.string] false [go.bool])), (go.InterfaceElem.MethodElem go!"Lookup" (go.signature.Signature [go.string] false [go.string, go.bool]))])
 
 class Labels.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -262,7 +261,7 @@ attribute [instance] Labels.TypeAssumptions.underlying
 
 abbrev Set' [FfiSyntax] : Type := GoMap
 
-@[reducible] def Set'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Set'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string go.string)
 
 class Set.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -272,7 +271,7 @@ attribute [instance] Set.TypeAssumptions.underlying
 
 abbrev Requirements [FfiSyntax] : Type := GoSlice
 
-@[reducible] def Requirements.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Requirements.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType Requirement.ty)
 
 class Requirements.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -282,7 +281,7 @@ attribute [instance] Requirements.TypeAssumptions.underlying
 
 abbrev Selector [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Selector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Selector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [(go.GoType.SliceType Requirement.ty)] true [Selector.ty])), (go.InterfaceElem.MethodElem go!"DeepCopySelector" (go.signature.Signature [] false [Selector.ty])), (go.InterfaceElem.MethodElem go!"Empty" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Matches" (go.signature.Signature [Labels.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Requirements" (go.signature.Signature [] false [Requirements.ty, go.bool])), (go.InterfaceElem.MethodElem go!"RequiresExactMatch" (go.signature.Signature [go.string] false [go.string, go.bool])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string]))])
 
 class Selector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -293,20 +292,20 @@ attribute [instance] Selector.TypeAssumptions.underlying
 structure nothingSelector [FfiSyntax] where
   mk ::
 
-instance nothingSelector.zero_val [FfiSyntax] : ZeroVal nothingSelector :=
+noncomputable instance nothingSelector.zero_val [FfiSyntax] : ZeroVal nothingSelector :=
   ⟨nothingSelector.mk⟩
 
-@[reducible] def nothingSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def nothingSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def nothingSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def nothingSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   nothingSelector.fieldsUnsealed
 
-instance equals_unfold_nothingSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_nothingSelector [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold nothingSelector.fields nothingSelector.fieldsUnsealed :=
   ⟨by unfold nothingSelector.fields; rfl⟩
 
-@[reducible] def nothingSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def nothingSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType nothingSelector.fields)
 
 class nothingSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -318,7 +317,7 @@ attribute [instance] nothingSelector.TypeAssumptions.type_repr
 
 abbrev internalSelector [FfiSyntax] : Type := GoSlice
 
-@[reducible] def internalSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def internalSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType Requirement.ty)
 
 class internalSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -328,7 +327,7 @@ attribute [instance] internalSelector.TypeAssumptions.underlying
 
 abbrev ByKey [FfiSyntax] : Type := GoSlice
 
-@[reducible] def ByKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ByKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType Requirement.ty)
 
 class ByKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -351,7 +350,7 @@ attribute [instance] Requirement.TypeAssumptions.type_repr
 
 abbrev Token [FfiSyntax] : Type := w64
 
-@[reducible] def Token.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Token.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class Token.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -364,21 +363,21 @@ structure ScannedItem [FfiSyntax] where
   tok' : Token
   literal' : GoString
 
-instance ScannedItem.zero_val [FfiSyntax] : ZeroVal ScannedItem :=
+noncomputable instance ScannedItem.zero_val [FfiSyntax] : ZeroVal ScannedItem :=
   ⟨ScannedItem.mk zeroValDef zeroValDef⟩
 
-@[reducible] def ScannedItem.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ScannedItem.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"tok" Token.ty),
 (go.field_decl.FieldDecl go!"literal" go.string)]
 
-@[irreducible] def ScannedItem.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ScannedItem.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ScannedItem.fieldsUnsealed
 
-instance equals_unfold_ScannedItem [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ScannedItem [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ScannedItem.fields ScannedItem.fieldsUnsealed :=
   ⟨by unfold ScannedItem.fields; rfl⟩
 
-@[reducible] def ScannedItem.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ScannedItem.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ScannedItem.fields)
 
 class ScannedItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -401,21 +400,21 @@ structure Lexer [FfiSyntax] where
   s' : GoString
   pos' : w64
 
-instance Lexer.zero_val [FfiSyntax] : ZeroVal Lexer :=
+noncomputable instance Lexer.zero_val [FfiSyntax] : ZeroVal Lexer :=
   ⟨Lexer.mk zeroValDef zeroValDef⟩
 
-@[reducible] def Lexer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Lexer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"s" go.string),
 (go.field_decl.FieldDecl go!"pos" go.int)]
 
-@[irreducible] def Lexer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Lexer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Lexer.fieldsUnsealed
 
-instance equals_unfold_Lexer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Lexer [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Lexer.fields Lexer.fieldsUnsealed :=
   ⟨by unfold Lexer.fields; rfl⟩
 
-@[reducible] def Lexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Lexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Lexer.fields)
 
 class Lexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -448,7 +447,7 @@ attribute [instance] Parser.TypeAssumptions.type_repr
 
 abbrev ParserContext [FfiSyntax] : Type := w64
 
-@[reducible] def ParserContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ParserContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class ParserContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -458,7 +457,7 @@ attribute [instance] ParserContext.TypeAssumptions.underlying
 
 abbrev ValidatedSetSelector [FfiSyntax] : Type := Set'
 
-@[reducible] def ValidatedSetSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ValidatedSetSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   Set'.ty
 
 class ValidatedSetSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

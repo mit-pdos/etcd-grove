@@ -9,45 +9,44 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.api.v3.membershippb : GoString := go!"go.etcd.io/etcd/api/v3/membershippb"
+noncomputable def go_etcd_io.etcd.api.v3.membershippb : GoString := go!"go.etcd.io/etcd/api/v3/membershippb"
 end pkg_id
 
 namespace go_etcd_io.etcd.api.v3.membershippb
 
-def RaftAttributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaftAttributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.RaftAttributes" [])
 
 attribute [irreducible] RaftAttributes.ty
 
-def Attributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Attributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.Attributes" [])
 
 attribute [irreducible] Attributes.ty
 
-def Member.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Member.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.Member" [])
 
 attribute [irreducible] Member.ty
 
-def ClusterVersionSetRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterVersionSetRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.ClusterVersionSetRequest" [])
 
 attribute [irreducible] ClusterVersionSetRequest.ty
 
-def ClusterMemberAttrSetRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterMemberAttrSetRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.ClusterMemberAttrSetRequest" [])
 
 attribute [irreducible] ClusterMemberAttrSetRequest.ty
 
-def DowngradeInfoSetRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DowngradeInfoSetRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/membershippb.DowngradeInfoSetRequest" [])
 
 attribute [irreducible] DowngradeInfoSetRequest.ty
@@ -87,7 +86,7 @@ noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def file_membership_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/membershippb.file_membership_proto_init"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.membershippb where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.membershippb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -119,24 +118,24 @@ structure RaftAttributes [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance RaftAttributes.zero_val [FfiSyntax] : ZeroVal RaftAttributes :=
+noncomputable instance RaftAttributes.zero_val [FfiSyntax] : ZeroVal RaftAttributes :=
   ⟨RaftAttributes.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def RaftAttributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RaftAttributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"PeerUrls" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"IsLearner" go.bool),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def RaftAttributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RaftAttributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   RaftAttributes.fieldsUnsealed
 
-instance equals_unfold_RaftAttributes [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RaftAttributes [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold RaftAttributes.fields RaftAttributes.fieldsUnsealed :=
   ⟨by unfold RaftAttributes.fields; rfl⟩
 
-@[reducible] def RaftAttributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RaftAttributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RaftAttributes.fields)
 
 class RaftAttributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -174,24 +173,24 @@ structure Attributes [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance Attributes.zero_val [FfiSyntax] : ZeroVal Attributes :=
+noncomputable instance Attributes.zero_val [FfiSyntax] : ZeroVal Attributes :=
   ⟨Attributes.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Attributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Attributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"ClientUrls" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def Attributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Attributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Attributes.fieldsUnsealed
 
-instance equals_unfold_Attributes [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Attributes [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Attributes.fields Attributes.fieldsUnsealed :=
   ⟨by unfold Attributes.fields; rfl⟩
 
-@[reducible] def Attributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Attributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Attributes.fields)
 
 class Attributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -230,10 +229,10 @@ structure Member [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance Member.zero_val [FfiSyntax] : ZeroVal Member :=
+noncomputable instance Member.zero_val [FfiSyntax] : ZeroVal Member :=
   ⟨Member.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Member.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Member.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"ID" go.uint64),
 (go.field_decl.FieldDecl go!"RaftAttributes" (go.GoType.PointerType RaftAttributes.ty)),
@@ -241,14 +240,14 @@ instance Member.zero_val [FfiSyntax] : ZeroVal Member :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def Member.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Member.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Member.fieldsUnsealed
 
-instance equals_unfold_Member [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Member [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Member.fields Member.fieldsUnsealed :=
   ⟨by unfold Member.fields; rfl⟩
 
-@[reducible] def Member.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Member.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Member.fields)
 
 class Member.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -289,23 +288,23 @@ structure ClusterVersionSetRequest [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance ClusterVersionSetRequest.zero_val [FfiSyntax] : ZeroVal ClusterVersionSetRequest :=
+noncomputable instance ClusterVersionSetRequest.zero_val [FfiSyntax] : ZeroVal ClusterVersionSetRequest :=
   ⟨ClusterVersionSetRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ClusterVersionSetRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ClusterVersionSetRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Ver" go.string),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def ClusterVersionSetRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ClusterVersionSetRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ClusterVersionSetRequest.fieldsUnsealed
 
-instance equals_unfold_ClusterVersionSetRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ClusterVersionSetRequest [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ClusterVersionSetRequest.fields ClusterVersionSetRequest.fieldsUnsealed :=
   ⟨by unfold ClusterVersionSetRequest.fields; rfl⟩
 
-@[reducible] def ClusterVersionSetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClusterVersionSetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClusterVersionSetRequest.fields)
 
 class ClusterVersionSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -339,24 +338,24 @@ structure ClusterMemberAttrSetRequest [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance ClusterMemberAttrSetRequest.zero_val [FfiSyntax] : ZeroVal ClusterMemberAttrSetRequest :=
+noncomputable instance ClusterMemberAttrSetRequest.zero_val [FfiSyntax] : ZeroVal ClusterMemberAttrSetRequest :=
   ⟨ClusterMemberAttrSetRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ClusterMemberAttrSetRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ClusterMemberAttrSetRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Member_ID" go.uint64),
 (go.field_decl.FieldDecl go!"MemberAttributes" (go.GoType.PointerType Attributes.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def ClusterMemberAttrSetRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ClusterMemberAttrSetRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ClusterMemberAttrSetRequest.fieldsUnsealed
 
-instance equals_unfold_ClusterMemberAttrSetRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ClusterMemberAttrSetRequest [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ClusterMemberAttrSetRequest.fields ClusterMemberAttrSetRequest.fieldsUnsealed :=
   ⟨by unfold ClusterMemberAttrSetRequest.fields; rfl⟩
 
-@[reducible] def ClusterMemberAttrSetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClusterMemberAttrSetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClusterMemberAttrSetRequest.fields)
 
 class ClusterMemberAttrSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -394,24 +393,24 @@ structure DowngradeInfoSetRequest [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance DowngradeInfoSetRequest.zero_val [FfiSyntax] : ZeroVal DowngradeInfoSetRequest :=
+noncomputable instance DowngradeInfoSetRequest.zero_val [FfiSyntax] : ZeroVal DowngradeInfoSetRequest :=
   ⟨DowngradeInfoSetRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def DowngradeInfoSetRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DowngradeInfoSetRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Enabled" go.bool),
 (go.field_decl.FieldDecl go!"Ver" go.string),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def DowngradeInfoSetRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DowngradeInfoSetRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   DowngradeInfoSetRequest.fieldsUnsealed
 
-instance equals_unfold_DowngradeInfoSetRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DowngradeInfoSetRequest [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold DowngradeInfoSetRequest.fields DowngradeInfoSetRequest.fieldsUnsealed :=
   ⟨by unfold DowngradeInfoSetRequest.fields; rfl⟩
 
-@[reducible] def DowngradeInfoSetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DowngradeInfoSetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DowngradeInfoSetRequest.fields)
 
 class DowngradeInfoSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -8,9 +8,8 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver.version
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
 
-instance DowngradeInfo_typed_pointsto :
+noncomputable instance DowngradeInfo_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo where
   typedPointstoDef l v dq := iprop(
     "TargetVersion" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) v.TargetVersion' dq ∗
@@ -35,11 +34,11 @@ instance DowngradeInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance DowngradeInfo_into_val_typed :
+noncomputable instance DowngradeInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.underlying := by
   solve_into_val_typed_struct
 
-instance DowngradeInfo_access_load_TargetVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (dq : DFrac) :
+noncomputable instance DowngradeInfo_access_load_TargetVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) v.TargetVersion' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) v.TargetVersion' dq)
@@ -47,7 +46,7 @@ instance DowngradeInfo_access_load_TargetVersion (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-instance DowngradeInfo_access_store_TargetVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (TargetVersion' : GoString) :
+noncomputable instance DowngradeInfo_access_store_TargetVersion (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (TargetVersion' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) v.TargetVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"TargetVersion" l) TargetVersion' (DFrac.own 1))
@@ -55,7 +54,7 @@ instance DowngradeInfo_access_store_TargetVersion (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-instance DowngradeInfo_access_load_Enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (dq : DFrac) :
+noncomputable instance DowngradeInfo_access_load_Enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"Enabled" l) v.Enabled' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"Enabled" l) v.Enabled' dq)
@@ -63,7 +62,7 @@ instance DowngradeInfo_access_load_Enabled (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
-instance DowngradeInfo_access_store_Enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (Enabled' : Bool) :
+noncomputable instance DowngradeInfo_access_store_Enabled (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo) (Enabled' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"Enabled" l) v.Enabled' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo go!"Enabled" l) Enabled' (DFrac.own 1))
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
 
-instance Monitor_typed_pointsto :
+noncomputable instance Monitor_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Monitor :=
   sorry -- axiomatized type
 
-instance Monitor_into_val_typed :
+noncomputable instance Monitor_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Monitor go_etcd_io.etcd.server.v3.etcdserver.version.Monitor.underlying :=
   sorry -- axiomatized type
 
@@ -101,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
 
-instance Server_typed_pointsto :
+noncomputable instance Server_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Server :=
   sorry -- axiomatized type
 
-instance Server_into_val_typed :
+noncomputable instance Server_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Server go_etcd_io.etcd.server.v3.etcdserver.version.Server.underlying :=
   sorry -- axiomatized type
 
@@ -120,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions]
 
-instance Manager_typed_pointsto :
+noncomputable instance Manager_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Manager :=
   sorry -- axiomatized type
 
-instance Manager_into_val_typed :
+noncomputable instance Manager_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.version.Manager go_etcd_io.etcd.server.v3.etcdserver.version.Manager.underlying :=
   sorry -- axiomatized type
 

@@ -11,30 +11,29 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apiserver.pkg.storage.feature : GoString := go!"k8s.io/apiserver/pkg/storage/feature"
+noncomputable def k8s_io.apiserver.pkg.storage.feature : GoString := go!"k8s.io/apiserver/pkg/storage/feature"
 end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.feature
 
-def FeatureSupportChecker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FeatureSupportChecker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/feature.FeatureSupportChecker" [])
 
 attribute [irreducible] FeatureSupportChecker.ty
 
-def defaultFeatureSupportChecker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def defaultFeatureSupportChecker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/feature.defaultFeatureSupportChecker" [])
 
 attribute [irreducible] defaultFeatureSupportChecker.ty
 
-def client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/feature.client" [])
 
 attribute [irreducible] client.ty
@@ -74,7 +73,7 @@ noncomputable def NewDefaultFeatureSupportChecker [FfiSyntax] [GoGlobalContext] 
 noncomputable def endpointSupportsRequestWatchProgress [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.endpointSupportsRequestWatchProgress"
 
-instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.feature where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.feature where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.k8s_io.apiserver.pkg.storage]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -132,7 +131,7 @@ attribute [instance] defaultFeatureSupportChecker.TypeAssumptions.type_repr
 
 abbrev client [FfiSyntax] : Type := GoInterface
 
-@[reducible] def client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Endpoints" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"Status" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.StatusResponse.ty), go.error]))])
 
 class client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

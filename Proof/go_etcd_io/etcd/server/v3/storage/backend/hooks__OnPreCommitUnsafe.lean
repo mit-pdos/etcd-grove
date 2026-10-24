@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 theorem backend.hooks.OnPreCommitUnsafe.wp_proof :
     backend.hooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) := by
-  intro γ P Pk b t h st
+  intro γ P Pk b t h st stop m u
   wp_start as ⟨#Hf, Hl, HWR⟩
   wp_auto
   unfold hookFnSpec
-  wp_apply Hf $$ %st [$Hl $HWR] as ⟨%st', Hl, HWR, %Hs⟩
+  wp_apply Hf $$ %st %stop %m %u [$Hl $HWR] as ⟨%st', Hl, HWR, Hpay, %Hs⟩
   iapply HΦ
   iexists st'
   iframe

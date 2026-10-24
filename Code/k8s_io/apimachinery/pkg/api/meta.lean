@@ -8,165 +8,164 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.api.«meta» : GoString := go!"k8s.io/apimachinery/pkg/api/meta"
+noncomputable def k8s_io.apimachinery.pkg.api.«meta» : GoString := go!"k8s.io/apimachinery/pkg/api/meta"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.api.«meta»
 
-def AmbiguousResourceError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AmbiguousResourceError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.AmbiguousResourceError" [])
 
 attribute [irreducible] AmbiguousResourceError.ty
 
-def AmbiguousKindError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AmbiguousKindError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.AmbiguousKindError" [])
 
 attribute [irreducible] AmbiguousKindError.ty
 
-def NoResourceMatchError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NoResourceMatchError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.NoResourceMatchError" [])
 
 attribute [irreducible] NoResourceMatchError.ty
 
-def NoKindMatchError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NoKindMatchError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.NoKindMatchError" [])
 
 attribute [irreducible] NoKindMatchError.ty
 
-def FirstHitRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FirstHitRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.FirstHitRESTMapper" [])
 
 attribute [irreducible] FirstHitRESTMapper.ty
 
-def ListMetaAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListMetaAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.ListMetaAccessor" [])
 
 attribute [irreducible] ListMetaAccessor.ty
 
-def List'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def List'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.List" [])
 
 attribute [irreducible] List'.ty
 
-def Type'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Type'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.Type" [])
 
 attribute [irreducible] Type'.ty
 
-def MetadataAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MetadataAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.MetadataAccessor" [])
 
 attribute [irreducible] MetadataAccessor.ty
 
-def RESTScopeName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RESTScopeName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.RESTScopeName" [])
 
 attribute [irreducible] RESTScopeName.ty
 
-def RESTScope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RESTScope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.RESTScope" [])
 
 attribute [irreducible] RESTScope.ty
 
-def RESTMapping.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RESTMapping.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.RESTMapping" [])
 
 attribute [irreducible] RESTMapping.ty
 
-def RESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.RESTMapper" [])
 
 attribute [irreducible] RESTMapper.ty
 
-def RESTMapperWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RESTMapperWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.RESTMapperWithContext" [])
 
 attribute [irreducible] RESTMapperWithContext.ty
 
-def restMapperWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def restMapperWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.restMapperWrapper" [])
 
 attribute [irreducible] restMapperWrapper.ty
 
-def ResettableRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResettableRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.ResettableRESTMapper" [])
 
 attribute [irreducible] ResettableRESTMapper.ty
 
-def ResettableRESTMapperWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResettableRESTMapperWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.ResettableRESTMapperWithContext" [])
 
 attribute [irreducible] ResettableRESTMapperWithContext.ty
 
-def resettableRESTMapperWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resettableRESTMapperWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.resettableRESTMapperWrapper" [])
 
 attribute [irreducible] resettableRESTMapperWrapper.ty
 
-def lazyObject.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazyObject.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.lazyObject" [])
 
 attribute [irreducible] lazyObject.ty
 
-def objectAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def objectAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.objectAccessor" [])
 
 attribute [irreducible] objectAccessor.ty
 
-def resourceAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resourceAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.resourceAccessor" [])
 
 attribute [irreducible] resourceAccessor.ty
 
-def genericAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def genericAccessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.genericAccessor" [])
 
 attribute [irreducible] genericAccessor.ty
 
-def MultiRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MultiRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.MultiRESTMapper" [])
 
 attribute [irreducible] MultiRESTMapper.ty
 
-def MultiRESTMapperWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MultiRESTMapperWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.MultiRESTMapperWithContext" [])
 
 attribute [irreducible] MultiRESTMapperWithContext.ty
 
-def PriorityRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PriorityRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.PriorityRESTMapper" [])
 
 attribute [irreducible] PriorityRESTMapper.ty
 
-def PriorityRESTMapperWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PriorityRESTMapperWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.PriorityRESTMapperWithContext" [])
 
 attribute [irreducible] PriorityRESTMapperWithContext.ty
 
-def restScope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def restScope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.restScope" [])
 
 attribute [irreducible] restScope.ty
 
-def DefaultRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DefaultRESTMapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.DefaultRESTMapper" [])
 
 attribute [irreducible] DefaultRESTMapper.ty
 
-def kindByPreferredGroupVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kindByPreferredGroupVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.kindByPreferredGroupVersion" [])
 
 attribute [irreducible] kindByPreferredGroupVersion.ty
 
-def resourceByPreferredGroupVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resourceByPreferredGroupVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/meta.resourceByPreferredGroupVersion" [])
 
 attribute [irreducible] resourceByPreferredGroupVersion.ty
@@ -410,7 +409,7 @@ noncomputable def MaybeResetRESTMapperWithContext [FfiSyntax] [GoGlobalContext] 
 noncomputable def maybeReset [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.maybeReset"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.«meta» where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.«meta» where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -545,7 +544,7 @@ attribute [instance] NoKindMatchError.TypeAssumptions.type_repr
 
 abbrev MultiRESTMapper [FfiSyntax] : Type := GoSlice
 
-@[reducible] def MultiRESTMapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MultiRESTMapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType RESTMapper.ty)
 
 class MultiRESTMapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -557,20 +556,20 @@ structure FirstHitRESTMapper [FfiSyntax] where
   mk ::
   MultiRESTMapper' : MultiRESTMapper
 
-instance FirstHitRESTMapper.zero_val [FfiSyntax] : ZeroVal FirstHitRESTMapper :=
+noncomputable instance FirstHitRESTMapper.zero_val [FfiSyntax] : ZeroVal FirstHitRESTMapper :=
   ⟨FirstHitRESTMapper.mk zeroValDef⟩
 
-@[reducible] def FirstHitRESTMapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FirstHitRESTMapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"MultiRESTMapper" MultiRESTMapper.ty)]
 
-@[irreducible] def FirstHitRESTMapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FirstHitRESTMapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   FirstHitRESTMapper.fieldsUnsealed
 
-instance equals_unfold_FirstHitRESTMapper [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FirstHitRESTMapper [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold FirstHitRESTMapper.fields FirstHitRESTMapper.fieldsUnsealed :=
   ⟨by unfold FirstHitRESTMapper.fields; rfl⟩
 
-@[reducible] def FirstHitRESTMapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FirstHitRESTMapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FirstHitRESTMapper.fields)
 
 class FirstHitRESTMapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -586,7 +585,7 @@ attribute [instance] FirstHitRESTMapper.TypeAssumptions.type_repr
 
 abbrev ListMetaAccessor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ListMetaAccessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ListMetaAccessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetListMeta" (go.signature.Signature [] false [List'.ty]))])
 
 class ListMetaAccessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -635,7 +634,7 @@ attribute [instance] MetadataAccessor.TypeAssumptions.type_repr
 
 abbrev RESTScopeName [FfiSyntax] : Type := GoString
 
-@[reducible] def RESTScopeName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RESTScopeName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class RESTScopeName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -645,7 +644,7 @@ attribute [instance] RESTScopeName.TypeAssumptions.underlying
 
 abbrev RESTScope [FfiSyntax] : Type := GoInterface
 
-@[reducible] def RESTScope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RESTScope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Name" (go.signature.Signature [] false [RESTScopeName.ty]))])
 
 class RESTScope.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -696,20 +695,20 @@ structure restMapperWrapper [FfiSyntax] where
   mk ::
   delegate' : RESTMapper
 
-instance restMapperWrapper.zero_val [FfiSyntax] : ZeroVal restMapperWrapper :=
+noncomputable instance restMapperWrapper.zero_val [FfiSyntax] : ZeroVal restMapperWrapper :=
   ⟨restMapperWrapper.mk zeroValDef⟩
 
-@[reducible] def restMapperWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def restMapperWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"delegate" RESTMapper.ty)]
 
-@[irreducible] def restMapperWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def restMapperWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   restMapperWrapper.fieldsUnsealed
 
-instance equals_unfold_restMapperWrapper [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_restMapperWrapper [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold restMapperWrapper.fields restMapperWrapper.fieldsUnsealed :=
   ⟨by unfold restMapperWrapper.fields; rfl⟩
 
-@[reducible] def restMapperWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def restMapperWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType restMapperWrapper.fields)
 
 class restMapperWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -725,7 +724,7 @@ attribute [instance] restMapperWrapper.TypeAssumptions.type_repr
 
 abbrev ResettableRESTMapper [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ResettableRESTMapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResettableRESTMapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Reset" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm RESTMapper.ty)])])
 
 class ResettableRESTMapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -751,21 +750,21 @@ structure resettableRESTMapperWrapper [FfiSyntax] where
   RESTMapperWithContext' : RESTMapperWithContext
   delegate' : ResettableRESTMapper
 
-instance resettableRESTMapperWrapper.zero_val [FfiSyntax] : ZeroVal resettableRESTMapperWrapper :=
+noncomputable instance resettableRESTMapperWrapper.zero_val [FfiSyntax] : ZeroVal resettableRESTMapperWrapper :=
   ⟨resettableRESTMapperWrapper.mk zeroValDef zeroValDef⟩
 
-@[reducible] def resettableRESTMapperWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def resettableRESTMapperWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"RESTMapperWithContext" RESTMapperWithContext.ty),
 (go.field_decl.FieldDecl go!"delegate" ResettableRESTMapper.ty)]
 
-@[irreducible] def resettableRESTMapperWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def resettableRESTMapperWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   resettableRESTMapperWrapper.fieldsUnsealed
 
-instance equals_unfold_resettableRESTMapperWrapper [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_resettableRESTMapperWrapper [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold resettableRESTMapperWrapper.fields resettableRESTMapperWrapper.fieldsUnsealed :=
   ⟨by unfold resettableRESTMapperWrapper.fields; rfl⟩
 
-@[reducible] def resettableRESTMapperWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def resettableRESTMapperWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType resettableRESTMapperWrapper.fields)
 
 class resettableRESTMapperWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -812,20 +811,20 @@ attribute [instance] objectAccessor.TypeAssumptions.type_repr
 structure resourceAccessor [FfiSyntax] where
   mk ::
 
-instance resourceAccessor.zero_val [FfiSyntax] : ZeroVal resourceAccessor :=
+noncomputable instance resourceAccessor.zero_val [FfiSyntax] : ZeroVal resourceAccessor :=
   ⟨resourceAccessor.mk⟩
 
-@[reducible] def resourceAccessor.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def resourceAccessor.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def resourceAccessor.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def resourceAccessor.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   resourceAccessor.fieldsUnsealed
 
-instance equals_unfold_resourceAccessor [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_resourceAccessor [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold resourceAccessor.fields resourceAccessor.fieldsUnsealed :=
   ⟨by unfold resourceAccessor.fields; rfl⟩
 
-@[reducible] def resourceAccessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def resourceAccessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType resourceAccessor.fields)
 
 class resourceAccessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -850,7 +849,7 @@ attribute [instance] genericAccessor.TypeAssumptions.type_repr
 
 abbrev MultiRESTMapperWithContext [FfiSyntax] : Type := GoSlice
 
-@[reducible] def MultiRESTMapperWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MultiRESTMapperWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType RESTMapperWithContext.ty)
 
 class MultiRESTMapperWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -888,20 +887,20 @@ structure restScope [FfiSyntax] where
   mk ::
   name' : RESTScopeName
 
-instance restScope.zero_val [FfiSyntax] : ZeroVal restScope :=
+noncomputable instance restScope.zero_val [FfiSyntax] : ZeroVal restScope :=
   ⟨restScope.mk zeroValDef⟩
 
-@[reducible] def restScope.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def restScope.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"name" RESTScopeName.ty)]
 
-@[irreducible] def restScope.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def restScope.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   restScope.fieldsUnsealed
 
-instance equals_unfold_restScope [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_restScope [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold restScope.fields restScope.fieldsUnsealed :=
   ⟨by unfold restScope.fields; rfl⟩
 
-@[reducible] def restScope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def restScope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType restScope.fields)
 
 class restScope.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

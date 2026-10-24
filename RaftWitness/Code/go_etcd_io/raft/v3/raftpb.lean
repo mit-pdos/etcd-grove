@@ -16,90 +16,89 @@ public import RaftWitness.TrustedCode.go_etcd_io.raft.v3.raftpb
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.raft.v3.raftpb : GoString := go!"go.etcd.io/raft/v3/raftpb"
+noncomputable def go_etcd_io.raft.v3.raftpb : GoString := go!"go.etcd.io/raft/v3/raftpb"
 end pkg_id
 
 namespace go_etcd_io.raft.v3.raftpb
 
-def ConfChangeI.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeI.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeI" [])
 
 attribute [irreducible] ConfChangeI.ty
 
-def EntryType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EntryType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.EntryType" [])
 
 attribute [irreducible] EntryType.ty
 
-def MessageType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.MessageType" [])
 
 attribute [irreducible] MessageType.ty
 
-def ConfChangeTransition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeTransition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeTransition" [])
 
 attribute [irreducible] ConfChangeTransition.ty
 
-def ConfChangeType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeType" [])
 
 attribute [irreducible] ConfChangeType.ty
 
-def Entry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Entry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Entry" [])
 
 attribute [irreducible] Entry.ty
 
-def SnapshotMetadata.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SnapshotMetadata.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.SnapshotMetadata" [])
 
 attribute [irreducible] SnapshotMetadata.ty
 
-def Snapshot.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Snapshot.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Snapshot" [])
 
 attribute [irreducible] Snapshot.ty
 
-def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Message" [])
 
 attribute [irreducible] Message.ty
 
-def HardState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HardState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.HardState" [])
 
 attribute [irreducible] HardState.ty
 
-def WitnessHardState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WitnessHardState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.WitnessHardState" [])
 
 attribute [irreducible] WitnessHardState.ty
 
-def ConfState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfState" [])
 
 attribute [irreducible] ConfState.ty
 
-def ConfChange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChange" [])
 
 attribute [irreducible] ConfChange.ty
 
-def ConfChangeSingle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeSingle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeSingle" [])
 
 attribute [irreducible] ConfChangeSingle.ty
 
-def ConfChangeV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeV2" [])
 
 attribute [irreducible] ConfChangeV2.ty
@@ -1854,7 +1853,7 @@ noncomputable def EnsureSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.raftpb where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.raftpb where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.strconv, pkg_id.strings, pkg_id.google_golang_org.protobuf.proto, pkg_id.slices, pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -2134,7 +2133,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev ConfChangeI [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ConfChangeI.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeI.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AsV1" (go.signature.Signature [] false [(go.GoType.PointerType ConfChange.ty), go.bool])), (go.InterfaceElem.MethodElem go!"AsV2" (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeV2.ty)]))])
 
 class ConfChangeI.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2144,7 +2143,7 @@ attribute [instance] ConfChangeI.TypeAssumptions.underlying
 
 abbrev EntryType [FfiSyntax] : Type := w32
 
-@[reducible] def EntryType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EntryType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
 class EntryType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2159,7 +2158,7 @@ attribute [instance] EntryType.TypeAssumptions.underlying
 
 abbrev MessageType [FfiSyntax] : Type := w32
 
-@[reducible] def MessageType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
 class MessageType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2174,7 +2173,7 @@ attribute [instance] MessageType.TypeAssumptions.underlying
 
 abbrev ConfChangeTransition [FfiSyntax] : Type := w32
 
-@[reducible] def ConfChangeTransition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeTransition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
 class ConfChangeTransition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2189,7 +2188,7 @@ attribute [instance] ConfChangeTransition.TypeAssumptions.underlying
 
 abbrev ConfChangeType [FfiSyntax] : Type := w32
 
-@[reducible] def ConfChangeType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
 class ConfChangeType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2213,10 +2212,10 @@ structure Entry [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance Entry.zero_val [FfiSyntax] : ZeroVal Entry :=
+noncomputable instance Entry.zero_val [FfiSyntax] : ZeroVal Entry :=
   ⟨Entry.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Entry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Entry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Term" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"Index" (go.GoType.PointerType go.uint64)),
@@ -2226,14 +2225,14 @@ instance Entry.zero_val [FfiSyntax] : ZeroVal Entry :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def Entry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Entry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Entry.fieldsUnsealed
 
-instance equals_unfold_Entry [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Entry [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Entry.fields Entry.fieldsUnsealed :=
   ⟨by unfold Entry.fields; rfl⟩
 
-@[reducible] def Entry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Entry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Entry.fields)
 
 class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2296,10 +2295,10 @@ structure SnapshotMetadata [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance SnapshotMetadata.zero_val [FfiSyntax] : ZeroVal SnapshotMetadata :=
+noncomputable instance SnapshotMetadata.zero_val [FfiSyntax] : ZeroVal SnapshotMetadata :=
   ⟨SnapshotMetadata.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def SnapshotMetadata.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SnapshotMetadata.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"ConfState" (go.GoType.PointerType ConfState.ty)),
 (go.field_decl.FieldDecl go!"Index" (go.GoType.PointerType go.uint64)),
@@ -2307,14 +2306,14 @@ instance SnapshotMetadata.zero_val [FfiSyntax] : ZeroVal SnapshotMetadata :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def SnapshotMetadata.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SnapshotMetadata.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   SnapshotMetadata.fieldsUnsealed
 
-instance equals_unfold_SnapshotMetadata [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SnapshotMetadata [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold SnapshotMetadata.fields SnapshotMetadata.fieldsUnsealed :=
   ⟨by unfold SnapshotMetadata.fields; rfl⟩
 
-@[reducible] def SnapshotMetadata.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SnapshotMetadata.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SnapshotMetadata.fields)
 
 class SnapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2364,24 +2363,24 @@ structure Snapshot [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance Snapshot.zero_val [FfiSyntax] : ZeroVal Snapshot :=
+noncomputable instance Snapshot.zero_val [FfiSyntax] : ZeroVal Snapshot :=
   ⟨Snapshot.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Snapshot.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Snapshot.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Data" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Metadata" (go.GoType.PointerType SnapshotMetadata.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def Snapshot.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Snapshot.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Snapshot.fieldsUnsealed
 
-instance equals_unfold_Snapshot [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Snapshot [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Snapshot.fields Snapshot.fieldsUnsealed :=
   ⟨by unfold Snapshot.fields; rfl⟩
 
-@[reducible] def Snapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Snapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Snapshot.fields)
 
 class Snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2437,10 +2436,10 @@ structure Message [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
+noncomputable instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
   ⟨Message.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Message.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Message.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Type" (go.GoType.PointerType MessageType.ty)),
 (go.field_decl.FieldDecl go!"To" (go.GoType.PointerType go.uint64)),
@@ -2459,14 +2458,14 @@ instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def Message.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Message.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Message.fieldsUnsealed
 
-instance equals_unfold_Message [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Message [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Message.fields Message.fieldsUnsealed :=
   ⟨by unfold Message.fields; rfl⟩
 
-@[reducible] def Message.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Message.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Message.fields)
 
 class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2583,10 +2582,10 @@ structure HardState [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance HardState.zero_val [FfiSyntax] : ZeroVal HardState :=
+noncomputable instance HardState.zero_val [FfiSyntax] : ZeroVal HardState :=
   ⟨HardState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def HardState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def HardState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Term" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"Vote" (go.GoType.PointerType go.uint64)),
@@ -2594,14 +2593,14 @@ instance HardState.zero_val [FfiSyntax] : ZeroVal HardState :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def HardState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def HardState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   HardState.fieldsUnsealed
 
-instance equals_unfold_HardState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_HardState [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold HardState.fields HardState.fieldsUnsealed :=
   ⟨by unfold HardState.fields; rfl⟩
 
-@[reducible] def HardState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HardState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType HardState.fields)
 
 class HardState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2656,10 +2655,10 @@ structure WitnessHardState [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance WitnessHardState.zero_val [FfiSyntax] : ZeroVal WitnessHardState :=
+noncomputable instance WitnessHardState.zero_val [FfiSyntax] : ZeroVal WitnessHardState :=
   ⟨WitnessHardState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def WitnessHardState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def WitnessHardState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"State" (go.GoType.PointerType HardState.ty)),
 (go.field_decl.FieldDecl go!"LastLogIndex" (go.GoType.PointerType go.uint64)),
@@ -2671,14 +2670,14 @@ instance WitnessHardState.zero_val [FfiSyntax] : ZeroVal WitnessHardState :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def WitnessHardState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def WitnessHardState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   WitnessHardState.fieldsUnsealed
 
-instance equals_unfold_WitnessHardState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_WitnessHardState [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold WitnessHardState.fields WitnessHardState.fieldsUnsealed :=
   ⟨by unfold WitnessHardState.fields; rfl⟩
 
-@[reducible] def WitnessHardState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WitnessHardState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType WitnessHardState.fields)
 
 class WitnessHardState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2757,10 +2756,10 @@ structure ConfState [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance ConfState.zero_val [FfiSyntax] : ZeroVal ConfState :=
+noncomputable instance ConfState.zero_val [FfiSyntax] : ZeroVal ConfState :=
   ⟨ConfState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ConfState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Voters" (go.GoType.SliceType go.uint64)),
 (go.field_decl.FieldDecl go!"Learners" (go.GoType.SliceType go.uint64)),
@@ -2772,14 +2771,14 @@ instance ConfState.zero_val [FfiSyntax] : ZeroVal ConfState :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def ConfState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ConfState.fieldsUnsealed
 
-instance equals_unfold_ConfState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfState [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ConfState.fields ConfState.fieldsUnsealed :=
   ⟨by unfold ConfState.fields; rfl⟩
 
-@[reducible] def ConfState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfState.fields)
 
 class ConfState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2857,10 +2856,10 @@ structure ConfChange [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance ConfChange.zero_val [FfiSyntax] : ZeroVal ConfChange :=
+noncomputable instance ConfChange.zero_val [FfiSyntax] : ZeroVal ConfChange :=
   ⟨ConfChange.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ConfChange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfChange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Type" (go.GoType.PointerType ConfChangeType.ty)),
 (go.field_decl.FieldDecl go!"NodeId" (go.GoType.PointerType go.uint64)),
@@ -2869,14 +2868,14 @@ instance ConfChange.zero_val [FfiSyntax] : ZeroVal ConfChange :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def ConfChange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfChange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ConfChange.fieldsUnsealed
 
-instance equals_unfold_ConfChange [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfChange [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ConfChange.fields ConfChange.fieldsUnsealed :=
   ⟨by unfold ConfChange.fields; rfl⟩
 
-@[reducible] def ConfChange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfChange.fields)
 
 class ConfChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2936,24 +2935,24 @@ structure ConfChangeSingle [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance ConfChangeSingle.zero_val [FfiSyntax] : ZeroVal ConfChangeSingle :=
+noncomputable instance ConfChangeSingle.zero_val [FfiSyntax] : ZeroVal ConfChangeSingle :=
   ⟨ConfChangeSingle.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ConfChangeSingle.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfChangeSingle.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Type" (go.GoType.PointerType ConfChangeType.ty)),
 (go.field_decl.FieldDecl go!"NodeId" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def ConfChangeSingle.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfChangeSingle.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ConfChangeSingle.fieldsUnsealed
 
-instance equals_unfold_ConfChangeSingle [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfChangeSingle [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ConfChangeSingle.fields ConfChangeSingle.fieldsUnsealed :=
   ⟨by unfold ConfChangeSingle.fields; rfl⟩
 
-@[reducible] def ConfChangeSingle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeSingle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfChangeSingle.fields)
 
 class ConfChangeSingle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2998,10 +2997,10 @@ structure ConfChangeV2 [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance ConfChangeV2.zero_val [FfiSyntax] : ZeroVal ConfChangeV2 :=
+noncomputable instance ConfChangeV2.zero_val [FfiSyntax] : ZeroVal ConfChangeV2 :=
   ⟨ConfChangeV2.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ConfChangeV2.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfChangeV2.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Transition" (go.GoType.PointerType ConfChangeTransition.ty)),
 (go.field_decl.FieldDecl go!"Changes" (go.GoType.SliceType (go.GoType.PointerType ConfChangeSingle.ty))),
@@ -3009,14 +3008,14 @@ instance ConfChangeV2.zero_val [FfiSyntax] : ZeroVal ConfChangeV2 :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def ConfChangeV2.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfChangeV2.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ConfChangeV2.fieldsUnsealed
 
-instance equals_unfold_ConfChangeV2 [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfChangeV2 [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ConfChangeV2.fields ConfChangeV2.fieldsUnsealed :=
   ⟨by unfold ConfChangeV2.fields; rfl⟩
 
-@[reducible] def ConfChangeV2.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeV2.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfChangeV2.fields)
 
 class ConfChangeV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

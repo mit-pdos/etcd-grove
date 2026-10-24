@@ -9,35 +9,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 
-def DiscoveryConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DiscoveryConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.DiscoveryConfig" [])
 
 attribute [irreducible] DiscoveryConfig.ty
 
-def memberInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def memberInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.memberInfo" [])
 
 attribute [irreducible] memberInfo.ty
 
-def clusterInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clusterInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.clusterInfo" [])
 
 attribute [irreducible] clusterInfo.ty
 
-def discovery.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def discovery.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.discovery" [])
 
 attribute [irreducible] discovery.ty
@@ -102,7 +101,7 @@ noncomputable def JoinCluster [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newDiscovery [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.newDiscovery"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery where
   pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.client.v3]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -140,21 +139,21 @@ structure DiscoveryConfig [FfiSyntax] where
   ConfigSpec' : _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec
   Token' : GoString
 
-instance DiscoveryConfig.zero_val [FfiSyntax] : ZeroVal DiscoveryConfig :=
+noncomputable instance DiscoveryConfig.zero_val [FfiSyntax] : ZeroVal DiscoveryConfig :=
   ⟨DiscoveryConfig.mk zeroValDef zeroValDef⟩
 
-@[reducible] def DiscoveryConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DiscoveryConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ConfigSpec" _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec.ty),
 (go.field_decl.FieldDecl go!"Token" go.string)]
 
-@[irreducible] def DiscoveryConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DiscoveryConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   DiscoveryConfig.fieldsUnsealed
 
-instance equals_unfold_DiscoveryConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DiscoveryConfig [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold DiscoveryConfig.fields DiscoveryConfig.fieldsUnsealed :=
   ⟨by unfold DiscoveryConfig.fields; rfl⟩
 
-@[reducible] def DiscoveryConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DiscoveryConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DiscoveryConfig.fields)
 
 class DiscoveryConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -178,22 +177,22 @@ structure memberInfo [FfiSyntax] where
   peerURLsMap' : GoString
   createRev' : w64
 
-instance memberInfo.zero_val [FfiSyntax] : ZeroVal memberInfo :=
+noncomputable instance memberInfo.zero_val [FfiSyntax] : ZeroVal memberInfo :=
   ⟨memberInfo.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def memberInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def memberInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"peerRegKey" go.string),
 (go.field_decl.FieldDecl go!"peerURLsMap" go.string),
 (go.field_decl.FieldDecl go!"createRev" go.int64)]
 
-@[irreducible] def memberInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def memberInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   memberInfo.fieldsUnsealed
 
-instance equals_unfold_memberInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_memberInfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold memberInfo.fields memberInfo.fieldsUnsealed :=
   ⟨by unfold memberInfo.fields; rfl⟩
 
-@[reducible] def memberInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def memberInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType memberInfo.fields)
 
 class memberInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -220,21 +219,21 @@ structure clusterInfo [FfiSyntax] where
   clusterToken' : GoString
   members' : GoSlice
 
-instance clusterInfo.zero_val [FfiSyntax] : ZeroVal clusterInfo :=
+noncomputable instance clusterInfo.zero_val [FfiSyntax] : ZeroVal clusterInfo :=
   ⟨clusterInfo.mk zeroValDef zeroValDef⟩
 
-@[reducible] def clusterInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def clusterInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"clusterToken" go.string),
 (go.field_decl.FieldDecl go!"members" (go.GoType.SliceType memberInfo.ty))]
 
-@[irreducible] def clusterInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def clusterInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   clusterInfo.fieldsUnsealed
 
-instance equals_unfold_clusterInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_clusterInfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold clusterInfo.fields clusterInfo.fieldsUnsealed :=
   ⟨by unfold clusterInfo.fields; rfl⟩
 
-@[reducible] def clusterInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def clusterInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType clusterInfo.fields)
 
 class clusterInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

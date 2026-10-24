@@ -14,9 +14,8 @@ public import Code.go_etcd_io.raft.v3.confchange
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -31,7 +30,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.confchange.Assumptions]
 
-instance Changer_typed_pointsto :
+noncomputable instance Changer_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.confchange.Changer where
   typedPointstoDef l v dq := iprop(
     "Tracker" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) v.Tracker' dq ∗
@@ -41,11 +40,11 @@ instance Changer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Changer_into_val_typed :
+noncomputable instance Changer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.confchange.Changer go_etcd_io.raft.v3.confchange.Changer.underlying := by
   solve_into_val_typed_struct
 
-instance Changer_access_load_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (dq : DFrac) :
+noncomputable instance Changer_access_load_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) v.Tracker' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) v.Tracker' dq)
@@ -53,7 +52,7 @@ instance Changer_access_load_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchang
  by
   solve_pointsto_access_struct
 
-instance Changer_access_store_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (Tracker' : go_etcd_io.raft.v3.tracker.ProgressTracker) :
+noncomputable instance Changer_access_store_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (Tracker' : go_etcd_io.raft.v3.tracker.ProgressTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) v.Tracker' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) Tracker' (DFrac.own 1))
@@ -61,7 +60,7 @@ instance Changer_access_store_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchan
  by
   solve_pointsto_access_struct
 
-instance Changer_access_load_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (dq : DFrac) :
+noncomputable instance Changer_access_load_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"LastIndex" l) v.LastIndex' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"LastIndex" l) v.LastIndex' dq)
@@ -69,7 +68,7 @@ instance Changer_access_load_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confcha
  by
   solve_pointsto_access_struct
 
-instance Changer_access_store_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (LastIndex' : w64) :
+noncomputable instance Changer_access_store_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (LastIndex' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"LastIndex" l) v.LastIndex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"LastIndex" l) LastIndex' (DFrac.own 1))

@@ -8,9 +8,8 @@ public import Code.k8s_io.apiserver.pkg.audit
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
 
-instance AuditContext_typed_pointsto :
+noncomputable instance AuditContext_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.AuditContext :=
   sorry -- axiomatized type
 
-instance AuditContext_into_val_typed :
+noncomputable instance AuditContext_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.AuditContext k8s_io.apiserver.pkg.audit.AuditContext.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
 
-instance RequestAuditConfig_typed_pointsto :
+noncomputable instance RequestAuditConfig_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.RequestAuditConfig :=
   sorry -- axiomatized type
 
-instance RequestAuditConfig_into_val_typed :
+noncomputable instance RequestAuditConfig_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.RequestAuditConfig k8s_io.apiserver.pkg.audit.RequestAuditConfig.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
 
-instance PolicyRuleEvaluator_typed_pointsto :
+noncomputable instance PolicyRuleEvaluator_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.PolicyRuleEvaluator :=
   sorry -- axiomatized type
 
-instance PolicyRuleEvaluator_into_val_typed :
+noncomputable instance PolicyRuleEvaluator_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.PolicyRuleEvaluator k8s_io.apiserver.pkg.audit.PolicyRuleEvaluator.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
 
-instance Sink_typed_pointsto :
+noncomputable instance Sink_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.Sink :=
   sorry -- axiomatized type
 
-instance Sink_into_val_typed :
+noncomputable instance Sink_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.Sink k8s_io.apiserver.pkg.audit.Sink.underlying :=
   sorry -- axiomatized type
 
@@ -101,7 +100,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
 
-instance union_typed_pointsto :
+noncomputable instance union_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.union where
   typedPointstoDef l v dq := iprop(
     "backends" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' dq ∗
@@ -110,11 +109,11 @@ instance union_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance union_into_val_typed :
+noncomputable instance union_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.union k8s_io.apiserver.pkg.audit.union.underlying := by
   solve_into_val_typed_struct
 
-instance union_access_load_backends (l : Loc) (v : k8s_io.apiserver.pkg.audit.union) (dq : DFrac) :
+noncomputable instance union_access_load_backends (l : Loc) (v : k8s_io.apiserver.pkg.audit.union) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' dq)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' dq)
@@ -122,7 +121,7 @@ instance union_access_load_backends (l : Loc) (v : k8s_io.apiserver.pkg.audit.un
  by
   solve_pointsto_access_struct
 
-instance union_access_store_backends (l : Loc) (v : k8s_io.apiserver.pkg.audit.union) (backends' : GoSlice) :
+noncomputable instance union_access_store_backends (l : Loc) (v : k8s_io.apiserver.pkg.audit.union) (backends' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) backends' (DFrac.own 1))

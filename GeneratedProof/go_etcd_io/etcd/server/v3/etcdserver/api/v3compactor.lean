@@ -8,9 +8,8 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions]
 
-instance Compactable_typed_pointsto :
+noncomputable instance Compactable_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactable :=
   sorry -- axiomatized type
 
-instance Compactable_into_val_typed :
+noncomputable instance Compactable_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactable go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Compactable.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions]
 
-instance Periodic_typed_pointsto :
+noncomputable instance Periodic_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic :=
   sorry -- axiomatized type
 
-instance Periodic_into_val_typed :
+noncomputable instance Periodic_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions]
 
-instance Revision_typed_pointsto :
+noncomputable instance Revision_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision :=
   sorry -- axiomatized type
 
-instance Revision_into_val_typed :
+noncomputable instance Revision_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision.underlying :=
   sorry -- axiomatized type
 

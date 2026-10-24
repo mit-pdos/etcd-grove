@@ -8,80 +8,79 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apiserver.pkg.endpoints.request : GoString := go!"k8s.io/apiserver/pkg/endpoints/request"
+noncomputable def k8s_io.apiserver.pkg.endpoints.request : GoString := go!"k8s.io/apiserver/pkg/endpoints/request"
 end pkg_id
 
 namespace k8s_io.apiserver.pkg.endpoints.request
 
-def key.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def key.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.key" [])
 
 attribute [irreducible] key.ty
 
-def requestReceivedTimestampKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def requestReceivedTimestampKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.requestReceivedTimestampKeyType" [])
 
 attribute [irreducible] requestReceivedTimestampKeyType.ty
 
-def LongRunningRequestCheck.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LongRunningRequestCheck.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.LongRunningRequestCheck" [])
 
 attribute [irreducible] LongRunningRequestCheck.ty
 
-def RequestInfoResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestInfoResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfoResolver" [])
 
 attribute [irreducible] RequestInfoResolver.ty
 
-def RequestInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" [])
 
 attribute [irreducible] RequestInfo.ty
 
-def RequestInfoFactory.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestInfoFactory.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfoFactory" [])
 
 attribute [irreducible] RequestInfoFactory.ty
 
-def requestInfoKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def requestInfoKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.requestInfoKeyType" [])
 
 attribute [irreducible] requestInfoKeyType.ty
 
-def serverShutdownSignalKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverShutdownSignalKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.serverShutdownSignalKeyType" [])
 
 attribute [irreducible] serverShutdownSignalKeyType.ty
 
-def ServerShutdownSignal.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerShutdownSignal.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.ServerShutdownSignal" [])
 
 attribute [irreducible] ServerShutdownSignal.ty
 
-def DurationTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DurationTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.DurationTracker" [])
 
 attribute [irreducible] DurationTracker.ty
 
-def durationTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def durationTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.durationTracker" [])
 
 attribute [irreducible] durationTracker.ty
 
-def LatencyTrackers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LatencyTrackers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.LatencyTrackers" [])
 
 attribute [irreducible] LatencyTrackers.ty
 
-def latencyTrackersKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def latencyTrackersKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.latencyTrackersKeyType" [])
 
 attribute [irreducible] latencyTrackersKeyType.ty
@@ -259,7 +258,7 @@ noncomputable def TrackImpersonationLatency [FfiSyntax] [GoGlobalContext] : GoSt
 noncomputable def AuditAnnotationsFromLatencyTrackers [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.AuditAnnotationsFromLatencyTrackers"
 
-instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.endpoints.request where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.endpoints.request where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -285,7 +284,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev key [FfiSyntax] : Type := w64
 
-@[reducible] def key.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def key.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class key.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -295,7 +294,7 @@ attribute [instance] key.TypeAssumptions.underlying
 
 abbrev requestReceivedTimestampKeyType [FfiSyntax] : Type := w64
 
-@[reducible] def requestReceivedTimestampKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def requestReceivedTimestampKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class requestReceivedTimestampKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -345,10 +344,10 @@ structure RequestInfo [FfiSyntax] where
   FieldSelector' : GoString
   LabelSelector' : GoString
 
-instance RequestInfo.zero_val [FfiSyntax] : ZeroVal RequestInfo :=
+noncomputable instance RequestInfo.zero_val [FfiSyntax] : ZeroVal RequestInfo :=
   ⟨RequestInfo.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def RequestInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RequestInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"IsResourceRequest" go.bool),
 (go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"Verb" go.string),
@@ -363,14 +362,14 @@ instance RequestInfo.zero_val [FfiSyntax] : ZeroVal RequestInfo :=
 (go.field_decl.FieldDecl go!"FieldSelector" go.string),
 (go.field_decl.FieldDecl go!"LabelSelector" go.string)]
 
-@[irreducible] def RequestInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RequestInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   RequestInfo.fieldsUnsealed
 
-instance equals_unfold_RequestInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RequestInfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold RequestInfo.fields RequestInfo.fieldsUnsealed :=
   ⟨by unfold RequestInfo.fields; rfl⟩
 
-@[reducible] def RequestInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RequestInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RequestInfo.fields)
 
 class RequestInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -447,7 +446,7 @@ attribute [instance] RequestInfoFactory.TypeAssumptions.type_repr
 
 abbrev requestInfoKeyType [FfiSyntax] : Type := w64
 
-@[reducible] def requestInfoKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def requestInfoKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class requestInfoKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -457,7 +456,7 @@ attribute [instance] requestInfoKeyType.TypeAssumptions.underlying
 
 abbrev serverShutdownSignalKeyType [FfiSyntax] : Type := w64
 
-@[reducible] def serverShutdownSignalKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serverShutdownSignalKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class serverShutdownSignalKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -467,7 +466,7 @@ attribute [instance] serverShutdownSignalKeyType.TypeAssumptions.underlying
 
 abbrev ServerShutdownSignal [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ServerShutdownSignal.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerShutdownSignal.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ShuttingDown" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))])
 
 class ServerShutdownSignal.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -515,10 +514,10 @@ structure LatencyTrackers [FfiSyntax] where
   DecodeTracker' : DurationTracker
   ImpersonationTracker' : DurationTracker
 
-instance LatencyTrackers.zero_val [FfiSyntax] : ZeroVal LatencyTrackers :=
+noncomputable instance LatencyTrackers.zero_val [FfiSyntax] : ZeroVal LatencyTrackers :=
   ⟨LatencyTrackers.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def LatencyTrackers.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LatencyTrackers.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MutatingWebhookTracker" DurationTracker.ty),
 (go.field_decl.FieldDecl go!"ValidatingWebhookTracker" DurationTracker.ty),
 (go.field_decl.FieldDecl go!"AuthenticationTracker" DurationTracker.ty),
@@ -531,14 +530,14 @@ instance LatencyTrackers.zero_val [FfiSyntax] : ZeroVal LatencyTrackers :=
 (go.field_decl.FieldDecl go!"DecodeTracker" DurationTracker.ty),
 (go.field_decl.FieldDecl go!"ImpersonationTracker" DurationTracker.ty)]
 
-@[irreducible] def LatencyTrackers.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LatencyTrackers.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   LatencyTrackers.fieldsUnsealed
 
-instance equals_unfold_LatencyTrackers [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LatencyTrackers [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold LatencyTrackers.fields LatencyTrackers.fieldsUnsealed :=
   ⟨by unfold LatencyTrackers.fields; rfl⟩
 
-@[reducible] def LatencyTrackers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LatencyTrackers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LatencyTrackers.fields)
 
 class LatencyTrackers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -594,7 +593,7 @@ attribute [instance] LatencyTrackers.TypeAssumptions.type_repr
 
 abbrev latencyTrackersKeyType [FfiSyntax] : Type := w64
 
-@[reducible] def latencyTrackersKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def latencyTrackersKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class latencyTrackersKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

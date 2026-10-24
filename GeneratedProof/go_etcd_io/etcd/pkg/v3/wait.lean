@@ -10,9 +10,8 @@ public import Code.go_etcd_io.etcd.pkg.v3.wait
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -27,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.wait.Assumptions]
 
-instance list'_typed_pointsto :
+noncomputable instance list'_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.wait.list' where
   typedPointstoDef l v dq := iprop(
     "e" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.list' go!"e" l) v.e' dq ∗
@@ -36,11 +35,11 @@ instance list'_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance list'_into_val_typed :
+noncomputable instance list'_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.wait.list' go_etcd_io.etcd.pkg.v3.wait.list'.underlying := by
   solve_into_val_typed_struct
 
-instance list'_access_load_e (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.list') (dq : DFrac) :
+noncomputable instance list'_access_load_e (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.list') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.list' go!"e" l) v.e' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.list' go!"e" l) v.e' dq)
@@ -48,7 +47,7 @@ instance list'_access_load_e (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.list') (
  by
   solve_pointsto_access_struct
 
-instance list'_access_store_e (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.list') (e' : GoSlice) :
+noncomputable instance list'_access_store_e (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.list') (e' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.list' go!"e" l) v.e' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.list' go!"e" l) e' (DFrac.own 1))
@@ -67,7 +66,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.wait.Assumptions]
 
-instance listElement_typed_pointsto :
+noncomputable instance listElement_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.wait.listElement where
   typedPointstoDef l v dq := iprop(
     "l" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"l" l) v.l' dq ∗
@@ -77,11 +76,11 @@ instance listElement_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance listElement_into_val_typed :
+noncomputable instance listElement_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.wait.listElement go_etcd_io.etcd.pkg.v3.wait.listElement.underlying := by
   solve_into_val_typed_struct
 
-instance listElement_access_load_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (dq : DFrac) :
+noncomputable instance listElement_access_load_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"l" l) v.l' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"l" l) v.l' dq)
@@ -89,7 +88,7 @@ instance listElement_access_load_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.li
  by
   solve_pointsto_access_struct
 
-instance listElement_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (l' : sync.RWMutex) :
+noncomputable instance listElement_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (l' : sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"l" l) v.l' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"l" l) l' (DFrac.own 1))
@@ -97,7 +96,7 @@ instance listElement_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.l
  by
   solve_pointsto_access_struct
 
-instance listElement_access_load_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (dq : DFrac) :
+noncomputable instance listElement_access_load_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"m" l) v.m' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"m" l) v.m' dq)
@@ -105,7 +104,7 @@ instance listElement_access_load_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.li
  by
   solve_pointsto_access_struct
 
-instance listElement_access_store_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (m' : GoMap) :
+noncomputable instance listElement_access_store_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (m' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"m" l) v.m' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"m" l) m' (DFrac.own 1))
@@ -124,7 +123,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.wait.Assumptions]
 
-instance waitWithResponse_typed_pointsto :
+noncomputable instance waitWithResponse_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.wait.waitWithResponse where
   typedPointstoDef l v dq := iprop(
     "ch" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.waitWithResponse go!"ch" l) v.ch' dq ∗
@@ -133,11 +132,11 @@ instance waitWithResponse_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance waitWithResponse_into_val_typed :
+noncomputable instance waitWithResponse_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.wait.waitWithResponse go_etcd_io.etcd.pkg.v3.wait.waitWithResponse.underlying := by
   solve_into_val_typed_struct
 
-instance waitWithResponse_access_load_ch (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.waitWithResponse) (dq : DFrac) :
+noncomputable instance waitWithResponse_access_load_ch (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.waitWithResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.waitWithResponse go!"ch" l) v.ch' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.waitWithResponse go!"ch" l) v.ch' dq)
@@ -145,7 +144,7 @@ instance waitWithResponse_access_load_ch (l : Loc) (v : go_etcd_io.etcd.pkg.v3.w
  by
   solve_pointsto_access_struct
 
-instance waitWithResponse_access_store_ch (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.waitWithResponse) (ch' : GoChan) :
+noncomputable instance waitWithResponse_access_store_ch (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.waitWithResponse) (ch' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.waitWithResponse go!"ch" l) v.ch' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.waitWithResponse go!"ch" l) ch' (DFrac.own 1))
@@ -164,7 +163,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.wait.Assumptions]
 
-instance timeList_typed_pointsto :
+noncomputable instance timeList_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.wait.timeList where
   typedPointstoDef l v dq := iprop(
     "l" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"l" l) v.l' dq ∗
@@ -175,11 +174,11 @@ instance timeList_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance timeList_into_val_typed :
+noncomputable instance timeList_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.wait.timeList go_etcd_io.etcd.pkg.v3.wait.timeList.underlying := by
   solve_into_val_typed_struct
 
-instance timeList_access_load_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (dq : DFrac) :
+noncomputable instance timeList_access_load_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"l" l) v.l' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"l" l) v.l' dq)
@@ -187,7 +186,7 @@ instance timeList_access_load_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeL
  by
   solve_pointsto_access_struct
 
-instance timeList_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (l' : sync.Mutex) :
+noncomputable instance timeList_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (l' : sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"l" l) v.l' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"l" l) l' (DFrac.own 1))
@@ -195,7 +194,7 @@ instance timeList_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.time
  by
   solve_pointsto_access_struct
 
-instance timeList_access_load_lastTriggerDeadline (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (dq : DFrac) :
+noncomputable instance timeList_access_load_lastTriggerDeadline (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"lastTriggerDeadline" l) v.lastTriggerDeadline' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"lastTriggerDeadline" l) v.lastTriggerDeadline' dq)
@@ -203,7 +202,7 @@ instance timeList_access_load_lastTriggerDeadline (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-instance timeList_access_store_lastTriggerDeadline (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (lastTriggerDeadline' : w64) :
+noncomputable instance timeList_access_store_lastTriggerDeadline (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (lastTriggerDeadline' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"lastTriggerDeadline" l) v.lastTriggerDeadline' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"lastTriggerDeadline" l) lastTriggerDeadline' (DFrac.own 1))
@@ -211,7 +210,7 @@ instance timeList_access_store_lastTriggerDeadline (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-instance timeList_access_load_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (dq : DFrac) :
+noncomputable instance timeList_access_load_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"m" l) v.m' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"m" l) v.m' dq)
@@ -219,7 +218,7 @@ instance timeList_access_load_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeL
  by
   solve_pointsto_access_struct
 
-instance timeList_access_store_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (m' : GoMap) :
+noncomputable instance timeList_access_store_m (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (m' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"m" l) v.m' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"m" l) m' (DFrac.own 1))

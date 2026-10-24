@@ -17149,3 +17149,97 @@ before and the bytes-affine ones as instances.
   empty tree is converted by `ownIvtB_of_empty` as before). `Find`/`Delete`/`Union`/`Stab` have
   generic results but no bytes-affine instance (nothing needs one; a bytes-affine `Find`/`Delete`
   is the wrapper `Insert_bytes` is). No Perennial change was needed.
+
+## D22 receiver epochs, S8 carried out: no hook on the new backend before `SetBackend`; the future status (2026-10-24, `notes/snapshot-s8-plan.md`)
+
+Stage S8 of the receiver epochs (`applySnapshot`), on branch `worktree-agent-a9a2649236a655331`.
+The plan, with the resolution of S7f's open issue, is `notes/snapshot-s8-plan.md`; each sub-stage a
+commit with a full build.
+
+**The open issue and its resolution.** `OpenSnapshotBackend`'s open asks, in `backend.New`'s ghost
+step, for the new backend's batch-lock resource (`batchLockInv` at the new names, with their
+registration), but the names are registered only at `ci.SetBackend`'s store of 0. A hook in
+between would save the old `ci` into the new backend (Go: `verify` fails under `ETCD_VERIFY`, and
+without it the stored index goes back: a reload re-applies). Go relies on no commit of the new
+backend before `SetBackend` (`backend.go:273-275` sets the hooks after the creation's empty commit;
+`run` commits only with `pending ≠ 0`). The two options S7f named are one mechanism: a future
+status in the protocol is refutable in the hook only with something the hook sees, so the backend's
+contract had to show it. It already has it: every commit is paid (`payIn`: a write-back token, the
+`run` goroutine's write-back witness, `Unlock`'s write-back, or the clients' half of the open token
+at a stop), and the creator holds all of these (`newPost`'s `ownToks γ.wb wbInit`, `bOpen γ 1`).
+Chosen because it keeps every trusted statement true with the least change: no backend client spec
+changes, `bootOk`'s text and meaning of `newPost` stay, `OpenBackend`'s axiom is generalized exactly
+as `backend.New`'s proved spec, which it wraps. Rejected: an axiom that the new backend commits
+nothing (provable, hence not a boundary fact); a "used" flag threaded through every client
+operation (every client spec changes); depositing the rights after `Open` returns (the hook could
+not refute in the window between).
+
+**S8a: the backend, commits pay the hooks.**
+- `payIn` moved to `InvBackend.lean` and framed into the hooks' triples (`hooksSpec`, `hookFnSpec`,
+  `hooksReq`: `∀ st stop m u`, `payIn γ st stop m u` in the precondition and given back), the
+  storage layer's (`saveSpec`, `saveReq`, `BackendHooks.OnPreCommitUnsafe.spec`) and the backend's
+  own `hooks.OnPreCommitUnsafe.spec`; `unsafeCommit` passes its payment to the hook.
+- `payIn`'s `m ≥ 2` case (`Unlock`'s commit) carries the write-back's lower bound
+  (`monoNatLbOwn γ.wbc 1`); `bgOk` gains `w ≤ ver` (the write-backs at most the read buffer's
+  version: both increment at a write-back, `RBuf.reset` keeps the version).
+- `backend.bFresh γ := ownToks γ.wb wbInit ∗ bOpen γ 1` and `hook_fresh_false` (a payment under the
+  batch lock refutes it: a token is one too many for `ver + n + k < 2^40 = wbInit + 1`; a
+  write-back since creation raised `ver` past 0; a stop's clients' half of `γ.opn` is one half too
+  many), `hook_bFresh_false` (any backend names with the same `wb`/`opn`).
+- The creator's batch-lock step receives `bFresh γ` and gives `K γ` back: `openPre cfg h P D W Pk K`,
+  `backend.New.spec`, `newBackend.spec` (`backend_init`), `OpenBackend.spec` (axiom, restated:
+  the same argument, `New`'s), `OpenSnapshotBackend.spec` give `newPostK γ P W Pk K b D`;
+  `newPost_of_K` (`K := bFresh` is `newPost`), `openPre_keep`. `newPost` and `bootOk` unchanged.
+- No axiom added or removed; the hooks' implementers frame the payment (`ci_hookFnSpec`,
+  `ci_saveSpec`, `ci_saveFreeze`, `NewHooks`, `isBackend_backendHooks`, `hooksReq_backendHooks`).
+  Statements changed: the trusted `storage.OpenBackend.spec` (generalized, `K`); intermediate:
+  `backend.New`, `newBackend`, `OpenSnapshotBackend`, `hooks.OnPreCommitUnsafe`,
+  `BackendHooks.OnPreCommitUnsafe`; definitions: `bgOk`, `payIn`, `hooksSpec`, `hookFnSpec`,
+  `hooksReq`, `saveSpec`, `saveReq`, `openPre`. No closed theorem's or exported result's text
+  changed.
+
+**S8b: the apply protocol's future status** (`InvApply.lean`, `InvServer.lean`, `CindexBackend.lean`,
+`BuildLemmas.lean`, `HooksBackend.lean`).
+- `ApplyPhys` gains `bwb`, `bopn`: the backend's write-back and open names (read only by a future
+  backend's hook, to find the rights deposited for *its* backend: the batch lock's resource
+  `batchLockInv γ TM` sees only `γ`, so the link must be in the names; the family of a new
+  backend's resources is `fun γB => batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P)`,
+  `futPhys π0 γB := {π0 with bwb := γB.wb, bopn := γB.opn}`).
+- `ApplyNames.fut` (logical): a monotone list of announced backends with claim tokens;
+  `consRest` holds `futInv` against the registry's list (each entry registered, its claim token
+  deposited, or still future, its deposited `bFresh`: `futStash`).
+- `batchLockInv` and `hookDone` hold `applyRegdF` (`applyRegd ∨ applyFut`); `commit_save_au` keeps
+  `applyRegd`, which a hook gets from `batchLockInv_resolve` (with `regdOrLink γA γB`: registered,
+  or `γB`'s names; for a future entry `fut_resolve` finds it registered since or refutes the commit,
+  `backend.hook_bFresh_false`).
+- `ci_announce` (in the open's batch-lock step: the deposit, the entry, the lock's resource and the
+  claim), `ci_swap_au` restated (from the claim; the deposit back, the entry registered, the
+  invariant's half of the mirror and the read view from the caller), `applyRegd_of_thread`,
+  `consInv_alloc` (with the boot backend's `bwb`/`bopn`, the empty future list).
+- The hooks' contracts: `ci_hook_backend_run`, `ci_hook_backend` take `applyRegd γA`;
+  `ci_hookFnSpec`, `ci_saveSpec`, `backend_server_hooks_of` take `regdOrLink γA γ`;
+  `hooksOk_backendHooks` (storage: the hooks' contract for every backend of a family) and
+  `hooksOk_server_fut` (the server's hooks for the new backend's family, what
+  `OpenSnapshotBackend`'s `openPre` takes).
+- Statements changed: exported results `cindex_hook_backend` (+ `applyRegd γA`),
+  `cindex_hookFnSpec`, `backend_server_hooks`, `server_kv_backend_hooks` (+ `regdOrLink`); the
+  definitions `ApplyPhys`, `ApplyNames`, `consRest`, `batchLockInv`, `hookDone`; `ci_swap_au`
+  (no caller yet). No closed theorem's text changed; `bootOk`'s text unchanged (its
+  `batchLockInv γA` and `consInv γA` hold more: the announced list, empty at boot). No axiom.
+
+**Where S8 stops: S8c/S8d not started.** Going through `applySnapshot`'s callees
+(`notes/snapshot-s8-plan.md`, "S8c/S8d, callee by callee") found four questions whose answers
+decide what the remaining axioms can truthfully say, two in trusted statements other tracks own:
+W1 the snapshot directory's removal fact `Rm` (`snapDirInv`; the `.snap.db` file `OpenSnapshotBackend`
+takes, and `storage.Release`'s removals; with S-j1); W2 `NewAuthStore`'s reader resource `RD`
+(it lends an open share of the construction's backend, while after `authStore.Recover` the
+permission checks read the new one, and `isReqAuth st RD` is persistent: a true `Recover` needs
+`RD` to be a reader of whichever backend is current; the auth track's statement); W3 `AddPeer`
+panics on a stopped transport, and the started transport's contract lets `raftNode.onStop`'s `Stop`
+race with it in the model, which Go excludes by order (`run`'s deferred `sched.Stop()` before
+`s.r.stop()`): an exclusive peers right that `Stop` consumes, threaded from the apply thread to the
+raft node's stop, restating `Transport.Start` and `isRNTransport`; W4 the KV model at the image's
+prefix (`kvApplied` at `A'`, S-j2's item 6). Writing the axioms before these are settled would
+risk false trusted statements or a second restatement; S8a and S8b do not depend on them.
+`applyAll` still calls the empty case (its proof unchanged); the general spec and its wiring wait
+for S8d.

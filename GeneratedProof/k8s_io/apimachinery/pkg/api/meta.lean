@@ -8,9 +8,8 @@ public import Code.k8s_io.apimachinery.pkg.api.«meta»
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance AmbiguousResourceError_typed_pointsto :
+noncomputable instance AmbiguousResourceError_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».AmbiguousResourceError :=
   sorry -- axiomatized type
 
-instance AmbiguousResourceError_into_val_typed :
+noncomputable instance AmbiguousResourceError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».AmbiguousResourceError k8s_io.apimachinery.pkg.api.«meta».AmbiguousResourceError.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance AmbiguousKindError_typed_pointsto :
+noncomputable instance AmbiguousKindError_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».AmbiguousKindError :=
   sorry -- axiomatized type
 
-instance AmbiguousKindError_into_val_typed :
+noncomputable instance AmbiguousKindError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».AmbiguousKindError k8s_io.apimachinery.pkg.api.«meta».AmbiguousKindError.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance NoResourceMatchError_typed_pointsto :
+noncomputable instance NoResourceMatchError_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».NoResourceMatchError :=
   sorry -- axiomatized type
 
-instance NoResourceMatchError_into_val_typed :
+noncomputable instance NoResourceMatchError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».NoResourceMatchError k8s_io.apimachinery.pkg.api.«meta».NoResourceMatchError.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance NoKindMatchError_typed_pointsto :
+noncomputable instance NoKindMatchError_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».NoKindMatchError :=
   sorry -- axiomatized type
 
-instance NoKindMatchError_into_val_typed :
+noncomputable instance NoKindMatchError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».NoKindMatchError k8s_io.apimachinery.pkg.api.«meta».NoKindMatchError.underlying :=
   sorry -- axiomatized type
 
@@ -101,7 +100,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance FirstHitRESTMapper_typed_pointsto :
+noncomputable instance FirstHitRESTMapper_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper where
   typedPointstoDef l v dq := iprop(
     "MultiRESTMapper" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' dq ∗
@@ -110,11 +109,11 @@ instance FirstHitRESTMapper_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance FirstHitRESTMapper_into_val_typed :
+noncomputable instance FirstHitRESTMapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper.underlying := by
   solve_into_val_typed_struct
 
-instance FirstHitRESTMapper_access_load_MultiRESTMapper (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (dq : DFrac) :
+noncomputable instance FirstHitRESTMapper_access_load_MultiRESTMapper (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' dq)
@@ -122,7 +121,7 @@ instance FirstHitRESTMapper_access_load_MultiRESTMapper (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-instance FirstHitRESTMapper_access_store_MultiRESTMapper (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (MultiRESTMapper' : k8s_io.apimachinery.pkg.api.«meta».MultiRESTMapper) :
+noncomputable instance FirstHitRESTMapper_access_store_MultiRESTMapper (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (MultiRESTMapper' : k8s_io.apimachinery.pkg.api.«meta».MultiRESTMapper) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) MultiRESTMapper' (DFrac.own 1))
@@ -141,11 +140,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance List'_typed_pointsto :
+noncomputable instance List'_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».List' :=
   sorry -- axiomatized type
 
-instance List'_into_val_typed :
+noncomputable instance List'_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».List' k8s_io.apimachinery.pkg.api.«meta».List'.underlying :=
   sorry -- axiomatized type
 
@@ -160,11 +159,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance Type'_typed_pointsto :
+noncomputable instance Type'_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».Type' :=
   sorry -- axiomatized type
 
-instance Type'_into_val_typed :
+noncomputable instance Type'_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».Type' k8s_io.apimachinery.pkg.api.«meta».Type'.underlying :=
   sorry -- axiomatized type
 
@@ -179,11 +178,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance MetadataAccessor_typed_pointsto :
+noncomputable instance MetadataAccessor_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».MetadataAccessor :=
   sorry -- axiomatized type
 
-instance MetadataAccessor_into_val_typed :
+noncomputable instance MetadataAccessor_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».MetadataAccessor k8s_io.apimachinery.pkg.api.«meta».MetadataAccessor.underlying :=
   sorry -- axiomatized type
 
@@ -198,11 +197,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance RESTMapping_typed_pointsto :
+noncomputable instance RESTMapping_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapping :=
   sorry -- axiomatized type
 
-instance RESTMapping_into_val_typed :
+noncomputable instance RESTMapping_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapping k8s_io.apimachinery.pkg.api.«meta».RESTMapping.underlying :=
   sorry -- axiomatized type
 
@@ -217,11 +216,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance RESTMapper_typed_pointsto :
+noncomputable instance RESTMapper_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapper :=
   sorry -- axiomatized type
 
-instance RESTMapper_into_val_typed :
+noncomputable instance RESTMapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapper k8s_io.apimachinery.pkg.api.«meta».RESTMapper.underlying :=
   sorry -- axiomatized type
 
@@ -236,11 +235,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance RESTMapperWithContext_typed_pointsto :
+noncomputable instance RESTMapperWithContext_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext :=
   sorry -- axiomatized type
 
-instance RESTMapperWithContext_into_val_typed :
+noncomputable instance RESTMapperWithContext_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -255,7 +254,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance restMapperWrapper_typed_pointsto :
+noncomputable instance restMapperWrapper_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper where
   typedPointstoDef l v dq := iprop(
     "delegate" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' dq ∗
@@ -264,11 +263,11 @@ instance restMapperWrapper_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance restMapperWrapper_into_val_typed :
+noncomputable instance restMapperWrapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper.underlying := by
   solve_into_val_typed_struct
 
-instance restMapperWrapper_access_load_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (dq : DFrac) :
+noncomputable instance restMapperWrapper_access_load_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' dq)
@@ -276,7 +275,7 @@ instance restMapperWrapper_access_load_delegate (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance restMapperWrapper_access_store_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (delegate' : k8s_io.apimachinery.pkg.api.«meta».RESTMapper) :
+noncomputable instance restMapperWrapper_access_store_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (delegate' : k8s_io.apimachinery.pkg.api.«meta».RESTMapper) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) delegate' (DFrac.own 1))
@@ -295,11 +294,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance ResettableRESTMapperWithContext_typed_pointsto :
+noncomputable instance ResettableRESTMapperWithContext_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapperWithContext :=
   sorry -- axiomatized type
 
-instance ResettableRESTMapperWithContext_into_val_typed :
+noncomputable instance ResettableRESTMapperWithContext_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapperWithContext k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapperWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -314,7 +313,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance resettableRESTMapperWrapper_typed_pointsto :
+noncomputable instance resettableRESTMapperWrapper_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper where
   typedPointstoDef l v dq := iprop(
     "RESTMapperWithContext" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' dq ∗
@@ -324,11 +323,11 @@ instance resettableRESTMapperWrapper_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance resettableRESTMapperWrapper_into_val_typed :
+noncomputable instance resettableRESTMapperWrapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper.underlying := by
   solve_into_val_typed_struct
 
-instance resettableRESTMapperWrapper_access_load_RESTMapperWithContext (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (dq : DFrac) :
+noncomputable instance resettableRESTMapperWrapper_access_load_RESTMapperWithContext (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' dq)
@@ -336,7 +335,7 @@ instance resettableRESTMapperWrapper_access_load_RESTMapperWithContext (l : Loc)
  by
   solve_pointsto_access_struct
 
-instance resettableRESTMapperWrapper_access_store_RESTMapperWithContext (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (RESTMapperWithContext' : k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext) :
+noncomputable instance resettableRESTMapperWrapper_access_store_RESTMapperWithContext (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (RESTMapperWithContext' : k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) RESTMapperWithContext' (DFrac.own 1))
@@ -344,7 +343,7 @@ instance resettableRESTMapperWrapper_access_store_RESTMapperWithContext (l : Loc
  by
   solve_pointsto_access_struct
 
-instance resettableRESTMapperWrapper_access_load_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (dq : DFrac) :
+noncomputable instance resettableRESTMapperWrapper_access_load_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' dq)
@@ -352,7 +351,7 @@ instance resettableRESTMapperWrapper_access_load_delegate (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-instance resettableRESTMapperWrapper_access_store_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (delegate' : k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapper) :
+noncomputable instance resettableRESTMapperWrapper_access_store_delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (delegate' : k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapper) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) delegate' (DFrac.own 1))
@@ -371,11 +370,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance lazyObject_typed_pointsto :
+noncomputable instance lazyObject_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».lazyObject :=
   sorry -- axiomatized type
 
-instance lazyObject_into_val_typed :
+noncomputable instance lazyObject_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».lazyObject k8s_io.apimachinery.pkg.api.«meta».lazyObject.underlying :=
   sorry -- axiomatized type
 
@@ -390,11 +389,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance objectAccessor_typed_pointsto :
+noncomputable instance objectAccessor_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».objectAccessor :=
   sorry -- axiomatized type
 
-instance objectAccessor_into_val_typed :
+noncomputable instance objectAccessor_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».objectAccessor k8s_io.apimachinery.pkg.api.«meta».objectAccessor.underlying :=
   sorry -- axiomatized type
 
@@ -409,7 +408,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance resourceAccessor_typed_pointsto :
+noncomputable instance resourceAccessor_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resourceAccessor where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -417,7 +416,7 @@ instance resourceAccessor_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance resourceAccessor_into_val_typed :
+noncomputable instance resourceAccessor_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resourceAccessor k8s_io.apimachinery.pkg.api.«meta».resourceAccessor.underlying := by
   solve_into_val_typed_struct
 
@@ -432,11 +431,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance genericAccessor_typed_pointsto :
+noncomputable instance genericAccessor_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».genericAccessor :=
   sorry -- axiomatized type
 
-instance genericAccessor_into_val_typed :
+noncomputable instance genericAccessor_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».genericAccessor k8s_io.apimachinery.pkg.api.«meta».genericAccessor.underlying :=
   sorry -- axiomatized type
 
@@ -451,11 +450,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance PriorityRESTMapper_typed_pointsto :
+noncomputable instance PriorityRESTMapper_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapper :=
   sorry -- axiomatized type
 
-instance PriorityRESTMapper_into_val_typed :
+noncomputable instance PriorityRESTMapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapper k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapper.underlying :=
   sorry -- axiomatized type
 
@@ -470,11 +469,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance PriorityRESTMapperWithContext_typed_pointsto :
+noncomputable instance PriorityRESTMapperWithContext_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapperWithContext :=
   sorry -- axiomatized type
 
-instance PriorityRESTMapperWithContext_into_val_typed :
+noncomputable instance PriorityRESTMapperWithContext_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapperWithContext k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapperWithContext.underlying :=
   sorry -- axiomatized type
 
@@ -489,7 +488,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance restScope_typed_pointsto :
+noncomputable instance restScope_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».restScope where
   typedPointstoDef l v dq := iprop(
     "name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' dq ∗
@@ -498,11 +497,11 @@ instance restScope_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance restScope_into_val_typed :
+noncomputable instance restScope_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».restScope k8s_io.apimachinery.pkg.api.«meta».restScope.underlying := by
   solve_into_val_typed_struct
 
-instance restScope_access_load_name (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restScope) (dq : DFrac) :
+noncomputable instance restScope_access_load_name (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restScope) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' dq)
@@ -510,7 +509,7 @@ instance restScope_access_load_name (l : Loc) (v : k8s_io.apimachinery.pkg.api.�
  by
   solve_pointsto_access_struct
 
-instance restScope_access_store_name (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restScope) (name' : k8s_io.apimachinery.pkg.api.«meta».RESTScopeName) :
+noncomputable instance restScope_access_store_name (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restScope) (name' : k8s_io.apimachinery.pkg.api.«meta».RESTScopeName) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) name' (DFrac.own 1))
@@ -529,11 +528,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance DefaultRESTMapper_typed_pointsto :
+noncomputable instance DefaultRESTMapper_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».DefaultRESTMapper :=
   sorry -- axiomatized type
 
-instance DefaultRESTMapper_into_val_typed :
+noncomputable instance DefaultRESTMapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».DefaultRESTMapper k8s_io.apimachinery.pkg.api.«meta».DefaultRESTMapper.underlying :=
   sorry -- axiomatized type
 
@@ -548,11 +547,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance kindByPreferredGroupVersion_typed_pointsto :
+noncomputable instance kindByPreferredGroupVersion_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».kindByPreferredGroupVersion :=
   sorry -- axiomatized type
 
-instance kindByPreferredGroupVersion_into_val_typed :
+noncomputable instance kindByPreferredGroupVersion_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».kindByPreferredGroupVersion k8s_io.apimachinery.pkg.api.«meta».kindByPreferredGroupVersion.underlying :=
   sorry -- axiomatized type
 
@@ -567,11 +566,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
-instance resourceByPreferredGroupVersion_typed_pointsto :
+noncomputable instance resourceByPreferredGroupVersion_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resourceByPreferredGroupVersion :=
   sorry -- axiomatized type
 
-instance resourceByPreferredGroupVersion_into_val_typed :
+noncomputable instance resourceByPreferredGroupVersion_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resourceByPreferredGroupVersion k8s_io.apimachinery.pkg.api.«meta».resourceByPreferredGroupVersion.underlying :=
   sorry -- axiomatized type
 

@@ -8,9 +8,8 @@ public import Code.go_opentelemetry_io.contrib.instrumentation.google_golang_org
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
-instance Filter_typed_pointsto :
+noncomputable instance Filter_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Filter :=
   sorry -- axiomatized type
 
-instance Filter_into_val_typed :
+noncomputable instance Filter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Filter go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Filter.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
-instance config_typed_pointsto :
+noncomputable instance config_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.config :=
   sorry -- axiomatized type
 
-instance config_into_val_typed :
+noncomputable instance config_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.config go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.config.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
-instance InterceptorInfo_typed_pointsto :
+noncomputable instance InterceptorInfo_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.InterceptorInfo :=
   sorry -- axiomatized type
 
-instance InterceptorInfo_into_val_typed :
+noncomputable instance InterceptorInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.InterceptorInfo go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.InterceptorInfo.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
-instance metadataSupplier_typed_pointsto :
+noncomputable instance metadataSupplier_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier :=
   sorry -- axiomatized type
 
-instance metadataSupplier_into_val_typed :
+noncomputable instance metadataSupplier_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier.underlying :=
   sorry -- axiomatized type
 
@@ -101,7 +100,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
-instance gRPCContextKey_typed_pointsto :
+noncomputable instance gRPCContextKey_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.gRPCContextKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -109,7 +108,7 @@ instance gRPCContextKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance gRPCContextKey_into_val_typed :
+noncomputable instance gRPCContextKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.gRPCContextKey go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.gRPCContextKey.underlying := by
   solve_into_val_typed_struct
 
@@ -124,7 +123,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
-instance dialTargetContextKey_typed_pointsto :
+noncomputable instance dialTargetContextKey_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.dialTargetContextKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -132,7 +131,7 @@ instance dialTargetContextKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance dialTargetContextKey_into_val_typed :
+noncomputable instance dialTargetContextKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.dialTargetContextKey go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.dialTargetContextKey.underlying := by
   solve_into_val_typed_struct
 
@@ -147,11 +146,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
-instance gRPCContext_typed_pointsto :
+noncomputable instance gRPCContext_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.gRPCContext :=
   sorry -- axiomatized type
 
-instance gRPCContext_into_val_typed :
+noncomputable instance gRPCContext_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.gRPCContext go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.gRPCContext.underlying :=
   sorry -- axiomatized type
 
@@ -166,11 +165,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
-instance serverHandler_typed_pointsto :
+noncomputable instance serverHandler_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.serverHandler :=
   sorry -- axiomatized type
 
-instance serverHandler_into_val_typed :
+noncomputable instance serverHandler_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.serverHandler go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.serverHandler.underlying :=
   sorry -- axiomatized type
 
@@ -185,11 +184,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Assumptions]
 
-instance clientHandler_typed_pointsto :
+noncomputable instance clientHandler_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.clientHandler :=
   sorry -- axiomatized type
 
-instance clientHandler_into_val_typed :
+noncomputable instance clientHandler_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.clientHandler go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.clientHandler.underlying :=
   sorry -- axiomatized type
 

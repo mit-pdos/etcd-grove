@@ -8,9 +8,8 @@ public import Code.unicode.utf8
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : unicode.utf8.Assumptions]
 
-instance acceptRange_typed_pointsto :
+noncomputable instance acceptRange_typed_pointsto :
     TypedPointsto (GF := GF) unicode.utf8.acceptRange where
   typedPointstoDef l v dq := iprop(
     "lo" ∷ typedPointsto (structFieldRef unicode.utf8.acceptRange go!"lo" l) v.lo' dq ∗
@@ -35,11 +34,11 @@ instance acceptRange_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance acceptRange_into_val_typed :
+noncomputable instance acceptRange_into_val_typed :
     IntoValTypedUnderlying (GF := GF) unicode.utf8.acceptRange unicode.utf8.acceptRange.underlying := by
   solve_into_val_typed_struct
 
-instance acceptRange_access_load_lo (l : Loc) (v : unicode.utf8.acceptRange) (dq : DFrac) :
+noncomputable instance acceptRange_access_load_lo (l : Loc) (v : unicode.utf8.acceptRange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef unicode.utf8.acceptRange go!"lo" l) v.lo' dq)
       (typedPointsto (structFieldRef unicode.utf8.acceptRange go!"lo" l) v.lo' dq)
@@ -47,7 +46,7 @@ instance acceptRange_access_load_lo (l : Loc) (v : unicode.utf8.acceptRange) (dq
  by
   solve_pointsto_access_struct
 
-instance acceptRange_access_store_lo (l : Loc) (v : unicode.utf8.acceptRange) (lo' : w8) :
+noncomputable instance acceptRange_access_store_lo (l : Loc) (v : unicode.utf8.acceptRange) (lo' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef unicode.utf8.acceptRange go!"lo" l) v.lo' (DFrac.own 1))
       (typedPointsto (structFieldRef unicode.utf8.acceptRange go!"lo" l) lo' (DFrac.own 1))
@@ -55,7 +54,7 @@ instance acceptRange_access_store_lo (l : Loc) (v : unicode.utf8.acceptRange) (l
  by
   solve_pointsto_access_struct
 
-instance acceptRange_access_load_hi (l : Loc) (v : unicode.utf8.acceptRange) (dq : DFrac) :
+noncomputable instance acceptRange_access_load_hi (l : Loc) (v : unicode.utf8.acceptRange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef unicode.utf8.acceptRange go!"hi" l) v.hi' dq)
       (typedPointsto (structFieldRef unicode.utf8.acceptRange go!"hi" l) v.hi' dq)
@@ -63,7 +62,7 @@ instance acceptRange_access_load_hi (l : Loc) (v : unicode.utf8.acceptRange) (dq
  by
   solve_pointsto_access_struct
 
-instance acceptRange_access_store_hi (l : Loc) (v : unicode.utf8.acceptRange) (hi' : w8) :
+noncomputable instance acceptRange_access_store_hi (l : Loc) (v : unicode.utf8.acceptRange) (hi' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef unicode.utf8.acceptRange go!"hi" l) v.hi' (DFrac.own 1))
       (typedPointsto (structFieldRef unicode.utf8.acceptRange go!"hi" l) hi' (DFrac.own 1))

@@ -29,8 +29,10 @@ goroutine that sends `newBackend(cfg, hooks)` on an unbuffered channel and waits
 `newBackend` (storage's) builds `backend.DefaultBackendConfig(cfg.Logger)` with the path, the
 batch limit (`openLimit`) and interval, the mmap size (from `QuotaBackendBytes`), the free-list
 type, `UnsafeNoFsync`, `Mlock`, the feature gate's `NonBlockingDefrag` and the hooks, and calls
-`backend.New`, whose spec (proved, `Spec/.../storage/backend/New.lean`) gives `newPost` or a panic
-(bbolt's `Open` failed); under `dbOpensOk` it does not panic. Why an axiom and not a proof: the
+`backend.New`, whose spec (proved, `Spec/.../storage/backend/New.lean`) gives `newPostK` or a panic
+(bbolt's `Open` failed); under `dbOpensOk` it does not panic. (D22 receiver epochs, S8a, 2026-10-24:
+the statement generalized with `New`'s, the creator's `K` for the fresh backend's payment rights;
+the same argument, `New`'s proof allocates them in the batch lock's ghost step.) Why an axiom and not a proof: the
 goroutine's panic cannot be excluded from `New`'s spec, and a goroutine must not panic
 (`wp_fork`); the rest (the timer's `select`, `time.After` has a spec) is provable. What would
 discharge it: `OpenBackend` and `newBackend` translated with their bodies, over a `New` whose

@@ -8,70 +8,69 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.util.validation.field : GoString := go!"k8s.io/apimachinery/pkg/util/validation/field"
+noncomputable def k8s_io.apimachinery.pkg.util.validation.field : GoString := go!"k8s.io/apimachinery/pkg/util/validation/field"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.validation.field
 
-def NormalizationRule.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NormalizationRule.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.NormalizationRule" [])
 
 attribute [irreducible] NormalizationRule.ty
 
-def ErrorMatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ErrorMatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorMatcher" [])
 
 attribute [irreducible] ErrorMatcher.ty
 
-def TestIntf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TestIntf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.TestIntf" [])
 
 attribute [irreducible] TestIntf.ty
 
-def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.Error" [])
 
 attribute [irreducible] Error.ty
 
-def ValidationStabilityLevel.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ValidationStabilityLevel.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ValidationStabilityLevel" [])
 
 attribute [irreducible] ValidationStabilityLevel.ty
 
-def OmitValueType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OmitValueType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.OmitValueType" [])
 
 attribute [irreducible] OmitValueType.ty
 
-def ErrorType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ErrorType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorType" [])
 
 attribute [irreducible] ErrorType.ty
 
-def ErrorList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ErrorList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])
 
 attribute [irreducible] ErrorList.ty
 
-def pathOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pathOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.pathOptions" [])
 
 attribute [irreducible] pathOptions.ty
 
-def PathOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PathOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.PathOption" [])
 
 attribute [irreducible] PathOption.ty
 
-def Path.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Path.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.Path" [])
 
 attribute [irreducible] Path.ty
@@ -173,7 +172,7 @@ noncomputable def ToPath [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewPath [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation/field.NewPath"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.validation.field where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.validation.field where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -216,10 +215,10 @@ structure ErrorMatcher [FfiSyntax] where
   matchCoveredByDeclarative' : Bool
   normalizationRules' : GoSlice
 
-instance ErrorMatcher.zero_val [FfiSyntax] : ZeroVal ErrorMatcher :=
+noncomputable instance ErrorMatcher.zero_val [FfiSyntax] : ZeroVal ErrorMatcher :=
   ⟨ErrorMatcher.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ErrorMatcher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ErrorMatcher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"matchType" go.bool),
 (go.field_decl.FieldDecl go!"matchField" go.bool),
 (go.field_decl.FieldDecl go!"matchValue" go.bool),
@@ -233,14 +232,14 @@ instance ErrorMatcher.zero_val [FfiSyntax] : ZeroVal ErrorMatcher :=
 (go.field_decl.FieldDecl go!"matchCoveredByDeclarative" go.bool),
 (go.field_decl.FieldDecl go!"normalizationRules" (go.GoType.SliceType NormalizationRule.ty))]
 
-@[irreducible] def ErrorMatcher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ErrorMatcher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ErrorMatcher.fieldsUnsealed
 
-instance equals_unfold_ErrorMatcher [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ErrorMatcher [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ErrorMatcher.fields ErrorMatcher.fieldsUnsealed :=
   ⟨by unfold ErrorMatcher.fields; rfl⟩
 
-@[reducible] def ErrorMatcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ErrorMatcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ErrorMatcher.fields)
 
 class ErrorMatcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -300,7 +299,7 @@ attribute [instance] ErrorMatcher.TypeAssumptions.type_repr
 
 abbrev TestIntf [FfiSyntax] : Type := GoInterface
 
-@[reducible] def TestIntf.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TestIntf.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Errorf" (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true [])), (go.InterfaceElem.MethodElem go!"Helper" (go.signature.Signature [] false []))])
 
 class TestIntf.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -310,7 +309,7 @@ attribute [instance] TestIntf.TypeAssumptions.underlying
 
 abbrev ErrorType [FfiSyntax] : Type := GoString
 
-@[reducible] def ErrorType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ErrorType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class ErrorType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -320,7 +319,7 @@ attribute [instance] ErrorType.TypeAssumptions.underlying
 
 abbrev ValidationStabilityLevel [FfiSyntax] : Type := w64
 
-@[reducible] def ValidationStabilityLevel.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ValidationStabilityLevel.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class ValidationStabilityLevel.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -341,10 +340,10 @@ structure Error [FfiSyntax] where
   ShortCircuitedInDeclarative' : Bool
   ValidationStabilityLevel' : ValidationStabilityLevel
 
-instance Error.zero_val [FfiSyntax] : ZeroVal Error :=
+noncomputable instance Error.zero_val [FfiSyntax] : ZeroVal Error :=
   ⟨Error.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Error.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Error.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" ErrorType.ty),
 (go.field_decl.FieldDecl go!"Field" go.string),
 (go.field_decl.FieldDecl go!"BadValue" (go.GoType.InterfaceType [])),
@@ -356,14 +355,14 @@ instance Error.zero_val [FfiSyntax] : ZeroVal Error :=
 (go.field_decl.FieldDecl go!"ShortCircuitedInDeclarative" go.bool),
 (go.field_decl.FieldDecl go!"ValidationStabilityLevel" ValidationStabilityLevel.ty)]
 
-@[irreducible] def Error.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Error.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Error.fieldsUnsealed
 
-instance equals_unfold_Error [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Error [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Error.fields Error.fieldsUnsealed :=
   ⟨by unfold Error.fields; rfl⟩
 
-@[reducible] def Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Error.fields)
 
 class Error.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -416,20 +415,20 @@ attribute [instance] Error.TypeAssumptions.type_repr
 structure OmitValueType [FfiSyntax] where
   mk ::
 
-instance OmitValueType.zero_val [FfiSyntax] : ZeroVal OmitValueType :=
+noncomputable instance OmitValueType.zero_val [FfiSyntax] : ZeroVal OmitValueType :=
   ⟨OmitValueType.mk⟩
 
-@[reducible] def OmitValueType.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def OmitValueType.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def OmitValueType.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def OmitValueType.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   OmitValueType.fieldsUnsealed
 
-instance equals_unfold_OmitValueType [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_OmitValueType [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold OmitValueType.fields OmitValueType.fieldsUnsealed :=
   ⟨by unfold OmitValueType.fields; rfl⟩
 
-@[reducible] def OmitValueType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def OmitValueType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType OmitValueType.fields)
 
 class OmitValueType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -441,7 +440,7 @@ attribute [instance] OmitValueType.TypeAssumptions.type_repr
 
 abbrev ErrorList [FfiSyntax] : Type := GoSlice
 
-@[reducible] def ErrorList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ErrorList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType Error.ty))
 
 class ErrorList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -453,20 +452,20 @@ structure pathOptions [FfiSyntax] where
   mk ::
   path' : Loc
 
-instance pathOptions.zero_val [FfiSyntax] : ZeroVal pathOptions :=
+noncomputable instance pathOptions.zero_val [FfiSyntax] : ZeroVal pathOptions :=
   ⟨pathOptions.mk zeroValDef⟩
 
-@[reducible] def pathOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def pathOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"path" (go.GoType.PointerType Path.ty))]
 
-@[irreducible] def pathOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def pathOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   pathOptions.fieldsUnsealed
 
-instance equals_unfold_pathOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_pathOptions [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold pathOptions.fields pathOptions.fieldsUnsealed :=
   ⟨by unfold pathOptions.fields; rfl⟩
 
-@[reducible] def pathOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def pathOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType pathOptions.fields)
 
 class pathOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -482,7 +481,7 @@ attribute [instance] pathOptions.TypeAssumptions.type_repr
 
 abbrev PathOption [FfiSyntax] : Type := GoFunc
 
-@[reducible] def PathOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PathOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType pathOptions.ty)] false []))
 
 class PathOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -496,22 +495,22 @@ structure Path [FfiSyntax] where
   index' : GoString
   parent' : Loc
 
-instance Path.zero_val [FfiSyntax] : ZeroVal Path :=
+noncomputable instance Path.zero_val [FfiSyntax] : ZeroVal Path :=
   ⟨Path.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Path.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Path.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"name" go.string),
 (go.field_decl.FieldDecl go!"index" go.string),
 (go.field_decl.FieldDecl go!"parent" (go.GoType.PointerType Path.ty))]
 
-@[irreducible] def Path.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Path.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Path.fieldsUnsealed
 
-instance equals_unfold_Path [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Path [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Path.fields Path.fieldsUnsealed :=
   ⟨by unfold Path.fields; rfl⟩
 
-@[reducible] def Path.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Path.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Path.fields)
 
 class Path.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -194,13 +194,15 @@ removed, ..., adequacy coverage" below.
 ### Open work, by track
 
 - **Snapshots (track T-S, D22).** Done: S-0..S-d4, S-f..S-i, S-g/S-h, S-r (snapshots in
-  `examples/kv`), the fork fixes, the receiver epochs' S1-S6. Open:
-  - **S7-S8 of the receiver epochs** (S1-S6 done; S6: `store.Restore` a true axiom, proved since
-    restore R5f, 2026-10-24; `watchableStore.Restore` proved): the server's names (S7: the storage-version monitor's
-    retired token, the per-object current backend), `applySnapshot` (S8, calling `kv.Restore`;
-    what it must supply: `etcdserver.restorePre_of_apply`'s docstring). Plan:
-    `notes/snapshot-receiver-epochs.md`; `notes/decisions.md`, "D22m revisited", "D22 receiver
-    epochs, S6 carried out"; sections "D22 receiver epochs, S1-S5" and "S6" below.
+  `examples/kv`), the fork fixes, the receiver epochs' S1-S7f and S8a-S8b (S6's `store.Restore`
+  axiom proved since restore R5f, 2026-10-24). Open:
+  - **S8c-S8d of the receiver epochs** (`applySnapshot` past the empty case; S8a-S8b done: no hook
+    runs on the new backend before `SetBackend`, the protocol's future status, section "D22
+    receiver epochs, S8" below): the callees' axioms and the proof, blocked on four questions
+    (`notes/snapshot-s8-plan.md`, "S8c/S8d, callee by callee"): W1 the snapshot directory's
+    removal fact `Rm` (with S-j1), W2 the auth store's reader resource across `Recover`
+    (`NewAuthStore`'s `RD`, the auth track's), W3 a peers right for `AddPeer` after `Start` that
+    the transport's `Stop` consumes, W4 the KV model at the image's prefix (S-j2's item 6).
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.
@@ -954,6 +956,25 @@ the synced watchers moved to the unsynced group with `restore` set, delivered up
 `syncWatchers` moves them to the synced group, `rangeEvents` allows `minRev > maxRev`. No caller
 yet: `etcdserver.restorePre_of_apply` (`etcdserver/RestorePre.lean`) assembles the store half of the
 precondition from `apply.kvOwn` and `srvKVCloser`, its docstring what S7/S8 must supply.
+
+## D22 receiver epochs, S8: no hook on the new backend before `SetBackend`; the future status (2026-10-24, branch `worktree-agent-a9a2649236a655331`)
+
+`notes/decisions.md`, "D22 receiver epochs, S8 carried out"; plan `notes/snapshot-s8-plan.md` (two
+commits, each a full build). S7f's open issue resolved: the new backend's batch-lock resource is
+made at its open, before `ci.SetBackend` registers its names, and a hook in between would save the
+old `ci`; Go relies on no commit then. **S8a** (backend): every commit is paid (`payIn`, now framed
+into the hooks' triples, and `bgOk`'s `w ≤ ver`), the creator holds all payments (`bFresh`:
+`wbInit` write-back tokens, `bOpen 1`), `hook_fresh_false` refutes a payment beside them, and the
+open's batch-lock step receives them and gives `K` back (`newPostK`; `openPre`, `backend.New`,
+`newBackend`, `OpenBackend` (axiom, generalized), `OpenSnapshotBackend`). **S8b** (apply protocol):
+`ApplyPhys` with the backend's `wb`/`opn` names, `ApplyNames.fut` (announced backends, their
+deposited `bFresh`), `batchLockInv`'s registration `applyRegd ∨ applyFut`; `ci_announce` (at the
+open), `fut_resolve` (in a hook: registered since, or refuted), `ci_swap_au` restated (from the
+announcement, the deposit back), `hooksOk_server_fut` (the server's hooks for the new backend).
+No axiom added (615 axioms, 4 sorries); no closed theorem's text; exported results with one more
+premise: `cindex_hook_backend`, `cindex_hookFnSpec`, `backend_server_hooks`,
+`server_kv_backend_hooks`. **Left** (S8c/S8d): the callees' axioms and `applySnapshot`'s proof,
+blocked on W1-W4 (the open-work item above).
 
 ## D22 receiver epochs, S7f: the apply protocol per backend (2026-10-23, branch `worktree-agent-a5fae76133d772e18`)
 
@@ -1848,6 +1869,18 @@ are live). `Fork` hands the forking thread a token (`wp_fork_tok`, `wp_fork_tok_
 # Build
 
 In status-history.md: "Build performance (2026-10-12, branch `proof-perf`)", "Parallel elaboration and tactic state".
+
+## Perennial pin `ef0f3eef4` (2026-10-24)
+
+The pin moved from `c25bef57e` to Perennial `lean` `ef0f3eef4`, which brings its own build-speed
+changes: the proof automation compiled to native code (the `PerennialMeta` library), the
+`needsGooseSimp`/`PureWp` caches kept for a whole declaration, `solve_typed_pointsto_agree` building
+a direct proof term, and in the translator, every generated definition `noncomputable` with no
+linters in generated files and a large package's translation split into chunk modules
+(`Code/go_etcd_io/etcd/api/v3/etcdserverpb/chunk*.lean`). The translations are regenerated
+(`etc/goose.py`, 362 files); no proof needed a change. Trust base unchanged (615 axioms, 4
+`sorry`s; every collection passes). A cold full build (`LAKE_ARTIFACT_CACHE=false`, 32 cores,
+Perennial's included): wall 23m38s, CPU 8h25m, the longest import chain 12m28s.
 
 ## Build performance (2026-10-22, branch `perf/2026-10-22`, merged into `lean`)
 

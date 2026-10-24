@@ -9,30 +9,29 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.lease.leasepb : GoString := go!"go.etcd.io/etcd/server/v3/lease/leasepb"
+noncomputable def go_etcd_io.etcd.server.v3.lease.leasepb : GoString := go!"go.etcd.io/etcd/server/v3/lease/leasepb"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.lease.leasepb
 
-def Lease.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Lease.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/lease/leasepb.Lease" [])
 
 attribute [irreducible] Lease.ty
 
-def LeaseInternalRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaseInternalRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/lease/leasepb.LeaseInternalRequest" [])
 
 attribute [irreducible] LeaseInternalRequest.ty
 
-def LeaseInternalResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaseInternalResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/lease/leasepb.LeaseInternalResponse" [])
 
 attribute [irreducible] LeaseInternalResponse.ty
@@ -76,7 +75,7 @@ noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def file_lease_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_init"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -109,10 +108,10 @@ structure Lease [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance Lease.zero_val [FfiSyntax] : ZeroVal Lease :=
+noncomputable instance Lease.zero_val [FfiSyntax] : ZeroVal Lease :=
   ⟨Lease.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Lease.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Lease.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"ID" go.int64),
 (go.field_decl.FieldDecl go!"TTL" go.int64),
@@ -120,14 +119,14 @@ instance Lease.zero_val [FfiSyntax] : ZeroVal Lease :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def Lease.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Lease.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Lease.fieldsUnsealed
 
-instance equals_unfold_Lease [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Lease [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Lease.fields Lease.fieldsUnsealed :=
   ⟨by unfold Lease.fields; rfl⟩
 
-@[reducible] def Lease.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Lease.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Lease.fields)
 
 class Lease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -8,9 +8,8 @@ public import Code.k8s_io.apimachinery.pkg.types
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.types.Assumptions]
 
-instance NamespacedName_typed_pointsto :
+noncomputable instance NamespacedName_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.types.NamespacedName where
   typedPointstoDef l v dq := iprop(
     "Namespace" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' dq ∗
@@ -35,11 +34,11 @@ instance NamespacedName_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance NamespacedName_into_val_typed :
+noncomputable instance NamespacedName_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.types.NamespacedName k8s_io.apimachinery.pkg.types.NamespacedName.underlying := by
   solve_into_val_typed_struct
 
-instance NamespacedName_access_load_Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (dq : DFrac) :
+noncomputable instance NamespacedName_access_load_Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' dq)
@@ -47,7 +46,7 @@ instance NamespacedName_access_load_Namespace (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance NamespacedName_access_store_Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (Namespace' : GoString) :
+noncomputable instance NamespacedName_access_store_Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (Namespace' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) Namespace' (DFrac.own 1))
@@ -55,7 +54,7 @@ instance NamespacedName_access_store_Namespace (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-instance NamespacedName_access_load_Name (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (dq : DFrac) :
+noncomputable instance NamespacedName_access_load_Name (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' dq)
@@ -63,7 +62,7 @@ instance NamespacedName_access_load_Name (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance NamespacedName_access_store_Name (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (Name' : GoString) :
+noncomputable instance NamespacedName_access_store_Name (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (Name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) Name' (DFrac.own 1))

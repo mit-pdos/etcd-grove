@@ -13,9 +13,8 @@ public import Code.k8s_io.apimachinery.pkg.runtime
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -30,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance Allocator_typed_pointsto :
+noncomputable instance Allocator_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.Allocator where
   typedPointstoDef l v dq := iprop(
     "buf" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Allocator go!"buf" l) v.buf' dq ∗
@@ -39,11 +38,11 @@ instance Allocator_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Allocator_into_val_typed :
+noncomputable instance Allocator_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.Allocator k8s_io.apimachinery.pkg.runtime.Allocator.underlying := by
   solve_into_val_typed_struct
 
-instance Allocator_access_load_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Allocator) (dq : DFrac) :
+noncomputable instance Allocator_access_load_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Allocator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Allocator go!"buf" l) v.buf' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Allocator go!"buf" l) v.buf' dq)
@@ -51,7 +50,7 @@ instance Allocator_access_load_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtim
  by
   solve_pointsto_access_struct
 
-instance Allocator_access_store_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Allocator) (buf' : GoSlice) :
+noncomputable instance Allocator_access_store_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Allocator) (buf' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Allocator go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Allocator go!"buf" l) buf' (DFrac.own 1))
@@ -70,7 +69,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance SimpleAllocator_typed_pointsto :
+noncomputable instance SimpleAllocator_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.SimpleAllocator where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -78,7 +77,7 @@ instance SimpleAllocator_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance SimpleAllocator_into_val_typed :
+noncomputable instance SimpleAllocator_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.SimpleAllocator k8s_io.apimachinery.pkg.runtime.SimpleAllocator.underlying := by
   solve_into_val_typed_struct
 
@@ -93,7 +92,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance codec_typed_pointsto :
+noncomputable instance codec_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.codec where
   typedPointstoDef l v dq := iprop(
     "Encoder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.codec go!"Encoder" l) v.Encoder' dq ∗
@@ -103,11 +102,11 @@ instance codec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance codec_into_val_typed :
+noncomputable instance codec_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.codec k8s_io.apimachinery.pkg.runtime.codec.underlying := by
   solve_into_val_typed_struct
 
-instance codec_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.codec) (dq : DFrac) :
+noncomputable instance codec_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.codec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.codec go!"Encoder" l) v.Encoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.codec go!"Encoder" l) v.Encoder' dq)
@@ -115,7 +114,7 @@ instance codec_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtim
  by
   solve_pointsto_access_struct
 
-instance codec_access_store_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.codec) (Encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
+noncomputable instance codec_access_store_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.codec) (Encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.codec go!"Encoder" l) v.Encoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.codec go!"Encoder" l) Encoder' (DFrac.own 1))
@@ -123,7 +122,7 @@ instance codec_access_store_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runti
  by
   solve_pointsto_access_struct
 
-instance codec_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.codec) (dq : DFrac) :
+noncomputable instance codec_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.codec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.codec go!"Decoder" l) v.Decoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.codec go!"Decoder" l) v.Decoder' dq)
@@ -131,7 +130,7 @@ instance codec_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtim
  by
   solve_pointsto_access_struct
 
-instance codec_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.codec) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
+noncomputable instance codec_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.codec) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.codec go!"Decoder" l) v.Decoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.codec go!"Decoder" l) Decoder' (DFrac.own 1))
@@ -150,7 +149,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance NoopEncoder_typed_pointsto :
+noncomputable instance NoopEncoder_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.NoopEncoder where
   typedPointstoDef l v dq := iprop(
     "Decoder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopEncoder go!"Decoder" l) v.Decoder' dq ∗
@@ -159,11 +158,11 @@ instance NoopEncoder_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance NoopEncoder_into_val_typed :
+noncomputable instance NoopEncoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.NoopEncoder k8s_io.apimachinery.pkg.runtime.NoopEncoder.underlying := by
   solve_into_val_typed_struct
 
-instance NoopEncoder_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NoopEncoder) (dq : DFrac) :
+noncomputable instance NoopEncoder_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NoopEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopEncoder go!"Decoder" l) v.Decoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopEncoder go!"Decoder" l) v.Decoder' dq)
@@ -171,7 +170,7 @@ instance NoopEncoder_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance NoopEncoder_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NoopEncoder) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
+noncomputable instance NoopEncoder_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NoopEncoder) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopEncoder go!"Decoder" l) v.Decoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopEncoder go!"Decoder" l) Decoder' (DFrac.own 1))
@@ -190,7 +189,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance NoopDecoder_typed_pointsto :
+noncomputable instance NoopDecoder_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.NoopDecoder where
   typedPointstoDef l v dq := iprop(
     "Encoder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopDecoder go!"Encoder" l) v.Encoder' dq ∗
@@ -199,11 +198,11 @@ instance NoopDecoder_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance NoopDecoder_into_val_typed :
+noncomputable instance NoopDecoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.NoopDecoder k8s_io.apimachinery.pkg.runtime.NoopDecoder.underlying := by
   solve_into_val_typed_struct
 
-instance NoopDecoder_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NoopDecoder) (dq : DFrac) :
+noncomputable instance NoopDecoder_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NoopDecoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopDecoder go!"Encoder" l) v.Encoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopDecoder go!"Encoder" l) v.Encoder' dq)
@@ -211,7 +210,7 @@ instance NoopDecoder_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance NoopDecoder_access_store_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NoopDecoder) (Encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
+noncomputable instance NoopDecoder_access_store_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NoopDecoder) (Encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopDecoder go!"Encoder" l) v.Encoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NoopDecoder go!"Encoder" l) Encoder' (DFrac.own 1))
@@ -230,7 +229,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance parameterCodec_typed_pointsto :
+noncomputable instance parameterCodec_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.parameterCodec where
   typedPointstoDef l v dq := iprop(
     "typer" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"typer" l) v.typer' dq ∗
@@ -242,11 +241,11 @@ instance parameterCodec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance parameterCodec_into_val_typed :
+noncomputable instance parameterCodec_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.parameterCodec k8s_io.apimachinery.pkg.runtime.parameterCodec.underlying := by
   solve_into_val_typed_struct
 
-instance parameterCodec_access_load_typer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (dq : DFrac) :
+noncomputable instance parameterCodec_access_load_typer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"typer" l) v.typer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"typer" l) v.typer' dq)
@@ -254,7 +253,7 @@ instance parameterCodec_access_load_typer (l : Loc) (v : k8s_io.apimachinery.pkg
  by
   solve_pointsto_access_struct
 
-instance parameterCodec_access_store_typer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (typer' : k8s_io.apimachinery.pkg.runtime.ObjectTyper) :
+noncomputable instance parameterCodec_access_store_typer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (typer' : k8s_io.apimachinery.pkg.runtime.ObjectTyper) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"typer" l) v.typer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"typer" l) typer' (DFrac.own 1))
@@ -262,7 +261,7 @@ instance parameterCodec_access_store_typer (l : Loc) (v : k8s_io.apimachinery.pk
  by
   solve_pointsto_access_struct
 
-instance parameterCodec_access_load_convertor (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (dq : DFrac) :
+noncomputable instance parameterCodec_access_load_convertor (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"convertor" l) v.convertor' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"convertor" l) v.convertor' dq)
@@ -270,7 +269,7 @@ instance parameterCodec_access_load_convertor (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance parameterCodec_access_store_convertor (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (convertor' : k8s_io.apimachinery.pkg.runtime.ObjectConvertor) :
+noncomputable instance parameterCodec_access_store_convertor (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (convertor' : k8s_io.apimachinery.pkg.runtime.ObjectConvertor) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"convertor" l) v.convertor' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"convertor" l) convertor' (DFrac.own 1))
@@ -278,7 +277,7 @@ instance parameterCodec_access_store_convertor (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-instance parameterCodec_access_load_creator (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (dq : DFrac) :
+noncomputable instance parameterCodec_access_load_creator (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"creator" l) v.creator' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"creator" l) v.creator' dq)
@@ -286,7 +285,7 @@ instance parameterCodec_access_load_creator (l : Loc) (v : k8s_io.apimachinery.p
  by
   solve_pointsto_access_struct
 
-instance parameterCodec_access_store_creator (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (creator' : k8s_io.apimachinery.pkg.runtime.ObjectCreater) :
+noncomputable instance parameterCodec_access_store_creator (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (creator' : k8s_io.apimachinery.pkg.runtime.ObjectCreater) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"creator" l) v.creator' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"creator" l) creator' (DFrac.own 1))
@@ -294,7 +293,7 @@ instance parameterCodec_access_store_creator (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-instance parameterCodec_access_load_defaulter (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (dq : DFrac) :
+noncomputable instance parameterCodec_access_load_defaulter (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"defaulter" l) v.defaulter' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"defaulter" l) v.defaulter' dq)
@@ -302,7 +301,7 @@ instance parameterCodec_access_load_defaulter (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance parameterCodec_access_store_defaulter (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (defaulter' : k8s_io.apimachinery.pkg.runtime.ObjectDefaulter) :
+noncomputable instance parameterCodec_access_store_defaulter (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.parameterCodec) (defaulter' : k8s_io.apimachinery.pkg.runtime.ObjectDefaulter) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"defaulter" l) v.defaulter' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.parameterCodec go!"defaulter" l) defaulter' (DFrac.own 1))
@@ -321,7 +320,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance base64Serializer_typed_pointsto :
+noncomputable instance base64Serializer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.base64Serializer where
   typedPointstoDef l v dq := iprop(
     "Encoder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"Encoder" l) v.Encoder' dq ∗
@@ -332,11 +331,11 @@ instance base64Serializer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance base64Serializer_into_val_typed :
+noncomputable instance base64Serializer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.base64Serializer k8s_io.apimachinery.pkg.runtime.base64Serializer.underlying := by
   solve_into_val_typed_struct
 
-instance base64Serializer_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (dq : DFrac) :
+noncomputable instance base64Serializer_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"Encoder" l) v.Encoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"Encoder" l) v.Encoder' dq)
@@ -344,7 +343,7 @@ instance base64Serializer_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance base64Serializer_access_store_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (Encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
+noncomputable instance base64Serializer_access_store_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (Encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"Encoder" l) v.Encoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"Encoder" l) Encoder' (DFrac.own 1))
@@ -352,7 +351,7 @@ instance base64Serializer_access_store_Encoder (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-instance base64Serializer_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (dq : DFrac) :
+noncomputable instance base64Serializer_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"Decoder" l) v.Decoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"Decoder" l) v.Decoder' dq)
@@ -360,7 +359,7 @@ instance base64Serializer_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance base64Serializer_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
+noncomputable instance base64Serializer_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"Decoder" l) v.Decoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"Decoder" l) Decoder' (DFrac.own 1))
@@ -368,7 +367,7 @@ instance base64Serializer_access_store_Decoder (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-instance base64Serializer_access_load_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (dq : DFrac) :
+noncomputable instance base64Serializer_access_load_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"identifier" l) v.identifier' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"identifier" l) v.identifier' dq)
@@ -376,7 +375,7 @@ instance base64Serializer_access_load_identifier (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-instance base64Serializer_access_store_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (identifier' : k8s_io.apimachinery.pkg.runtime.Identifier) :
+noncomputable instance base64Serializer_access_store_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.base64Serializer) (identifier' : k8s_io.apimachinery.pkg.runtime.Identifier) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"identifier" l) v.identifier' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.base64Serializer go!"identifier" l) identifier' (DFrac.own 1))
@@ -395,7 +394,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance internalGroupVersioner_typed_pointsto :
+noncomputable instance internalGroupVersioner_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.internalGroupVersioner where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -403,7 +402,7 @@ instance internalGroupVersioner_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance internalGroupVersioner_into_val_typed :
+noncomputable instance internalGroupVersioner_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.internalGroupVersioner k8s_io.apimachinery.pkg.runtime.internalGroupVersioner.underlying := by
   solve_into_val_typed_struct
 
@@ -418,7 +417,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance disabledGroupVersioner_typed_pointsto :
+noncomputable instance disabledGroupVersioner_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.disabledGroupVersioner where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -426,7 +425,7 @@ instance disabledGroupVersioner_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance disabledGroupVersioner_into_val_typed :
+noncomputable instance disabledGroupVersioner_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.disabledGroupVersioner k8s_io.apimachinery.pkg.runtime.disabledGroupVersioner.underlying := by
   solve_into_val_typed_struct
 
@@ -441,7 +440,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance multiGroupVersioner_typed_pointsto :
+noncomputable instance multiGroupVersioner_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.multiGroupVersioner where
   typedPointstoDef l v dq := iprop(
     "target" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"target" l) v.target' dq ∗
@@ -452,11 +451,11 @@ instance multiGroupVersioner_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance multiGroupVersioner_into_val_typed :
+noncomputable instance multiGroupVersioner_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.multiGroupVersioner k8s_io.apimachinery.pkg.runtime.multiGroupVersioner.underlying := by
   solve_into_val_typed_struct
 
-instance multiGroupVersioner_access_load_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (dq : DFrac) :
+noncomputable instance multiGroupVersioner_access_load_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"target" l) v.target' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"target" l) v.target' dq)
@@ -464,7 +463,7 @@ instance multiGroupVersioner_access_load_target (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance multiGroupVersioner_access_store_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (target' : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) :
+noncomputable instance multiGroupVersioner_access_store_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (target' : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"target" l) v.target' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"target" l) target' (DFrac.own 1))
@@ -472,7 +471,7 @@ instance multiGroupVersioner_access_store_target (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-instance multiGroupVersioner_access_load_acceptedGroupKinds (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (dq : DFrac) :
+noncomputable instance multiGroupVersioner_access_load_acceptedGroupKinds (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"acceptedGroupKinds" l) v.acceptedGroupKinds' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"acceptedGroupKinds" l) v.acceptedGroupKinds' dq)
@@ -480,7 +479,7 @@ instance multiGroupVersioner_access_load_acceptedGroupKinds (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-instance multiGroupVersioner_access_store_acceptedGroupKinds (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (acceptedGroupKinds' : GoSlice) :
+noncomputable instance multiGroupVersioner_access_store_acceptedGroupKinds (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (acceptedGroupKinds' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"acceptedGroupKinds" l) v.acceptedGroupKinds' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"acceptedGroupKinds" l) acceptedGroupKinds' (DFrac.own 1))
@@ -488,7 +487,7 @@ instance multiGroupVersioner_access_store_acceptedGroupKinds (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-instance multiGroupVersioner_access_load_coerce (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (dq : DFrac) :
+noncomputable instance multiGroupVersioner_access_load_coerce (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"coerce" l) v.coerce' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"coerce" l) v.coerce' dq)
@@ -496,7 +495,7 @@ instance multiGroupVersioner_access_load_coerce (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance multiGroupVersioner_access_store_coerce (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (coerce' : Bool) :
+noncomputable instance multiGroupVersioner_access_store_coerce (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (coerce' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"coerce" l) v.coerce' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"coerce" l) coerce' (DFrac.own 1))
@@ -515,7 +514,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance structField_typed_pointsto :
+noncomputable instance structField_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.structField where
   typedPointstoDef l v dq := iprop(
     "structType" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) v.structType' dq ∗
@@ -525,11 +524,11 @@ instance structField_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance structField_into_val_typed :
+noncomputable instance structField_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.structField k8s_io.apimachinery.pkg.runtime.structField.underlying := by
   solve_into_val_typed_struct
 
-instance structField_access_load_structType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (dq : DFrac) :
+noncomputable instance structField_access_load_structType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) v.structType' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) v.structType' dq)
@@ -537,7 +536,7 @@ instance structField_access_load_structType (l : Loc) (v : k8s_io.apimachinery.p
  by
   solve_pointsto_access_struct
 
-instance structField_access_store_structType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (structType' : reflect.Type') :
+noncomputable instance structField_access_store_structType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (structType' : reflect.Type') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) v.structType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) structType' (DFrac.own 1))
@@ -545,7 +544,7 @@ instance structField_access_store_structType (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-instance structField_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (dq : DFrac) :
+noncomputable instance structField_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"field" l) v.field' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"field" l) v.field' dq)
@@ -553,7 +552,7 @@ instance structField_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.ru
  by
   solve_pointsto_access_struct
 
-instance structField_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (field' : w64) :
+noncomputable instance structField_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (field' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"field" l) v.field' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"field" l) field' (DFrac.own 1))
@@ -572,7 +571,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance fieldInfo_typed_pointsto :
+noncomputable instance fieldInfo_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.fieldInfo where
   typedPointstoDef l v dq := iprop(
     "name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) v.name' dq ∗
@@ -584,11 +583,11 @@ instance fieldInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance fieldInfo_into_val_typed :
+noncomputable instance fieldInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.fieldInfo k8s_io.apimachinery.pkg.runtime.fieldInfo.underlying := by
   solve_into_val_typed_struct
 
-instance fieldInfo_access_load_name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
+noncomputable instance fieldInfo_access_load_name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) v.name' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) v.name' dq)
@@ -596,7 +595,7 @@ instance fieldInfo_access_load_name (l : Loc) (v : k8s_io.apimachinery.pkg.runti
  by
   solve_pointsto_access_struct
 
-instance fieldInfo_access_store_name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (name' : GoString) :
+noncomputable instance fieldInfo_access_store_name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) v.name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) name' (DFrac.own 1))
@@ -604,7 +603,7 @@ instance fieldInfo_access_store_name (l : Loc) (v : k8s_io.apimachinery.pkg.runt
  by
   solve_pointsto_access_struct
 
-instance fieldInfo_access_load_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
+noncomputable instance fieldInfo_access_load_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) v.nameValue' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) v.nameValue' dq)
@@ -612,7 +611,7 @@ instance fieldInfo_access_load_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance fieldInfo_access_store_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (nameValue' : reflect.Value) :
+noncomputable instance fieldInfo_access_store_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (nameValue' : reflect.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) v.nameValue' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) nameValue' (DFrac.own 1))
@@ -620,7 +619,7 @@ instance fieldInfo_access_store_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg
  by
   solve_pointsto_access_struct
 
-instance fieldInfo_access_load_omitempty (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
+noncomputable instance fieldInfo_access_load_omitempty (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitempty" l) v.omitempty' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitempty" l) v.omitempty' dq)
@@ -628,7 +627,7 @@ instance fieldInfo_access_load_omitempty (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance fieldInfo_access_store_omitempty (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (omitempty' : Bool) :
+noncomputable instance fieldInfo_access_store_omitempty (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (omitempty' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitempty" l) v.omitempty' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitempty" l) omitempty' (DFrac.own 1))
@@ -636,7 +635,7 @@ instance fieldInfo_access_store_omitempty (l : Loc) (v : k8s_io.apimachinery.pkg
  by
   solve_pointsto_access_struct
 
-instance fieldInfo_access_load_omitzero (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
+noncomputable instance fieldInfo_access_load_omitzero (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitzero" l) v.omitzero' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitzero" l) v.omitzero' dq)
@@ -644,7 +643,7 @@ instance fieldInfo_access_load_omitzero (l : Loc) (v : k8s_io.apimachinery.pkg.r
  by
   solve_pointsto_access_struct
 
-instance fieldInfo_access_store_omitzero (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (omitzero' : GoFunc) :
+noncomputable instance fieldInfo_access_store_omitzero (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (omitzero' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitzero" l) v.omitzero' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitzero" l) omitzero' (DFrac.own 1))
@@ -663,11 +662,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance fieldsCache_typed_pointsto :
+noncomputable instance fieldsCache_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.fieldsCache :=
   sorry -- axiomatized type
 
-instance fieldsCache_into_val_typed :
+noncomputable instance fieldsCache_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.fieldsCache k8s_io.apimachinery.pkg.runtime.fieldsCache.underlying :=
   sorry -- axiomatized type
 
@@ -682,7 +681,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance unstructuredConverter_typed_pointsto :
+noncomputable instance unstructuredConverter_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.unstructuredConverter where
   typedPointstoDef l v dq := iprop(
     "mismatchDetection" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) v.mismatchDetection' dq ∗
@@ -692,11 +691,11 @@ instance unstructuredConverter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance unstructuredConverter_into_val_typed :
+noncomputable instance unstructuredConverter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.unstructuredConverter k8s_io.apimachinery.pkg.runtime.unstructuredConverter.underlying := by
   solve_into_val_typed_struct
 
-instance unstructuredConverter_access_load_mismatchDetection (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (dq : DFrac) :
+noncomputable instance unstructuredConverter_access_load_mismatchDetection (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) v.mismatchDetection' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) v.mismatchDetection' dq)
@@ -704,7 +703,7 @@ instance unstructuredConverter_access_load_mismatchDetection (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-instance unstructuredConverter_access_store_mismatchDetection (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (mismatchDetection' : Bool) :
+noncomputable instance unstructuredConverter_access_store_mismatchDetection (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (mismatchDetection' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) v.mismatchDetection' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) mismatchDetection' (DFrac.own 1))
@@ -712,7 +711,7 @@ instance unstructuredConverter_access_store_mismatchDetection (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-instance unstructuredConverter_access_load_comparison (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (dq : DFrac) :
+noncomputable instance unstructuredConverter_access_load_comparison (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) v.comparison' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) v.comparison' dq)
@@ -720,7 +719,7 @@ instance unstructuredConverter_access_load_comparison (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-instance unstructuredConverter_access_store_comparison (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (comparison' : k8s_io.apimachinery.pkg.conversion.Equalities) :
+noncomputable instance unstructuredConverter_access_store_comparison (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (comparison' : k8s_io.apimachinery.pkg.conversion.Equalities) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) v.comparison' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) comparison' (DFrac.own 1))
@@ -739,7 +738,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance fromUnstructuredContext_typed_pointsto :
+noncomputable instance fromUnstructuredContext_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext where
   typedPointstoDef l v dq := iprop(
     "isInlined" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"isInlined" l) v.isInlined' dq ∗
@@ -752,11 +751,11 @@ instance fromUnstructuredContext_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance fromUnstructuredContext_into_val_typed :
+noncomputable instance fromUnstructuredContext_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext.underlying := by
   solve_into_val_typed_struct
 
-instance fromUnstructuredContext_access_load_isInlined (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
+noncomputable instance fromUnstructuredContext_access_load_isInlined (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"isInlined" l) v.isInlined' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"isInlined" l) v.isInlined' dq)
@@ -764,7 +763,7 @@ instance fromUnstructuredContext_access_load_isInlined (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-instance fromUnstructuredContext_access_store_isInlined (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (isInlined' : Bool) :
+noncomputable instance fromUnstructuredContext_access_store_isInlined (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (isInlined' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"isInlined" l) v.isInlined' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"isInlined" l) isInlined' (DFrac.own 1))
@@ -772,7 +771,7 @@ instance fromUnstructuredContext_access_store_isInlined (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-instance fromUnstructuredContext_access_load_matchedKeys (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
+noncomputable instance fromUnstructuredContext_access_load_matchedKeys (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"matchedKeys" l) v.matchedKeys' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"matchedKeys" l) v.matchedKeys' dq)
@@ -780,7 +779,7 @@ instance fromUnstructuredContext_access_load_matchedKeys (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-instance fromUnstructuredContext_access_store_matchedKeys (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (matchedKeys' : GoSlice) :
+noncomputable instance fromUnstructuredContext_access_store_matchedKeys (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (matchedKeys' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"matchedKeys" l) v.matchedKeys' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"matchedKeys" l) matchedKeys' (DFrac.own 1))
@@ -788,7 +787,7 @@ instance fromUnstructuredContext_access_store_matchedKeys (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-instance fromUnstructuredContext_access_load_parentPath (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
+noncomputable instance fromUnstructuredContext_access_load_parentPath (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"parentPath" l) v.parentPath' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"parentPath" l) v.parentPath' dq)
@@ -796,7 +795,7 @@ instance fromUnstructuredContext_access_load_parentPath (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-instance fromUnstructuredContext_access_store_parentPath (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (parentPath' : GoSlice) :
+noncomputable instance fromUnstructuredContext_access_store_parentPath (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (parentPath' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"parentPath" l) v.parentPath' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"parentPath" l) parentPath' (DFrac.own 1))
@@ -804,7 +803,7 @@ instance fromUnstructuredContext_access_store_parentPath (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-instance fromUnstructuredContext_access_load_returnUnknownFields (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
+noncomputable instance fromUnstructuredContext_access_load_returnUnknownFields (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"returnUnknownFields" l) v.returnUnknownFields' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"returnUnknownFields" l) v.returnUnknownFields' dq)
@@ -812,7 +811,7 @@ instance fromUnstructuredContext_access_load_returnUnknownFields (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-instance fromUnstructuredContext_access_store_returnUnknownFields (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (returnUnknownFields' : Bool) :
+noncomputable instance fromUnstructuredContext_access_store_returnUnknownFields (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (returnUnknownFields' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"returnUnknownFields" l) v.returnUnknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"returnUnknownFields" l) returnUnknownFields' (DFrac.own 1))
@@ -820,7 +819,7 @@ instance fromUnstructuredContext_access_store_returnUnknownFields (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-instance fromUnstructuredContext_access_load_unknownFieldErrors (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
+noncomputable instance fromUnstructuredContext_access_load_unknownFieldErrors (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"unknownFieldErrors" l) v.unknownFieldErrors' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"unknownFieldErrors" l) v.unknownFieldErrors' dq)
@@ -828,7 +827,7 @@ instance fromUnstructuredContext_access_load_unknownFieldErrors (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-instance fromUnstructuredContext_access_store_unknownFieldErrors (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (unknownFieldErrors' : GoSlice) :
+noncomputable instance fromUnstructuredContext_access_store_unknownFieldErrors (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext) (unknownFieldErrors' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"unknownFieldErrors" l) v.unknownFieldErrors' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fromUnstructuredContext go!"unknownFieldErrors" l) unknownFieldErrors' (DFrac.own 1))
@@ -847,7 +846,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance encodable_typed_pointsto :
+noncomputable instance encodable_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.encodable where
   typedPointstoDef l v dq := iprop(
     "E" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"E" l) v.E' dq ∗
@@ -858,11 +857,11 @@ instance encodable_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance encodable_into_val_typed :
+noncomputable instance encodable_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.encodable k8s_io.apimachinery.pkg.runtime.encodable.underlying := by
   solve_into_val_typed_struct
 
-instance encodable_access_load_E (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (dq : DFrac) :
+noncomputable instance encodable_access_load_E (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"E" l) v.E' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"E" l) v.E' dq)
@@ -870,7 +869,7 @@ instance encodable_access_load_E (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.
  by
   solve_pointsto_access_struct
 
-instance encodable_access_store_E (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (E' : k8s_io.apimachinery.pkg.runtime.Encoder) :
+noncomputable instance encodable_access_store_E (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (E' : k8s_io.apimachinery.pkg.runtime.Encoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"E" l) v.E' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"E" l) E' (DFrac.own 1))
@@ -878,7 +877,7 @@ instance encodable_access_store_E (l : Loc) (v : k8s_io.apimachinery.pkg.runtime
  by
   solve_pointsto_access_struct
 
-instance encodable_access_load_obj (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (dq : DFrac) :
+noncomputable instance encodable_access_load_obj (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"obj" l) v.obj' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"obj" l) v.obj' dq)
@@ -886,7 +885,7 @@ instance encodable_access_load_obj (l : Loc) (v : k8s_io.apimachinery.pkg.runtim
  by
   solve_pointsto_access_struct
 
-instance encodable_access_store_obj (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (obj' : k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance encodable_access_store_obj (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (obj' : k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"obj" l) v.obj' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"obj" l) obj' (DFrac.own 1))
@@ -894,7 +893,7 @@ instance encodable_access_store_obj (l : Loc) (v : k8s_io.apimachinery.pkg.runti
  by
   solve_pointsto_access_struct
 
-instance encodable_access_load_versions (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (dq : DFrac) :
+noncomputable instance encodable_access_load_versions (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"versions" l) v.versions' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"versions" l) v.versions' dq)
@@ -902,7 +901,7 @@ instance encodable_access_load_versions (l : Loc) (v : k8s_io.apimachinery.pkg.r
  by
   solve_pointsto_access_struct
 
-instance encodable_access_store_versions (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (versions' : GoSlice) :
+noncomputable instance encodable_access_store_versions (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encodable) (versions' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"versions" l) v.versions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encodable go!"versions" l) versions' (DFrac.own 1))
@@ -921,7 +920,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance notRegisteredErr_typed_pointsto :
+noncomputable instance notRegisteredErr_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.notRegisteredErr where
   typedPointstoDef l v dq := iprop(
     "schemeName" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) v.schemeName' dq ∗
@@ -933,11 +932,11 @@ instance notRegisteredErr_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance notRegisteredErr_into_val_typed :
+noncomputable instance notRegisteredErr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.notRegisteredErr k8s_io.apimachinery.pkg.runtime.notRegisteredErr.underlying := by
   solve_into_val_typed_struct
 
-instance notRegisteredErr_access_load_schemeName (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
+noncomputable instance notRegisteredErr_access_load_schemeName (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) v.schemeName' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) v.schemeName' dq)
@@ -945,7 +944,7 @@ instance notRegisteredErr_access_load_schemeName (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-instance notRegisteredErr_access_store_schemeName (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (schemeName' : GoString) :
+noncomputable instance notRegisteredErr_access_store_schemeName (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (schemeName' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) v.schemeName' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) schemeName' (DFrac.own 1))
@@ -953,7 +952,7 @@ instance notRegisteredErr_access_store_schemeName (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-instance notRegisteredErr_access_load_gvk (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
+noncomputable instance notRegisteredErr_access_load_gvk (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) v.gvk' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) v.gvk' dq)
@@ -961,7 +960,7 @@ instance notRegisteredErr_access_load_gvk (l : Loc) (v : k8s_io.apimachinery.pkg
  by
   solve_pointsto_access_struct
 
-instance notRegisteredErr_access_store_gvk (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (gvk' : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
+noncomputable instance notRegisteredErr_access_store_gvk (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (gvk' : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) v.gvk' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) gvk' (DFrac.own 1))
@@ -969,7 +968,7 @@ instance notRegisteredErr_access_store_gvk (l : Loc) (v : k8s_io.apimachinery.pk
  by
   solve_pointsto_access_struct
 
-instance notRegisteredErr_access_load_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
+noncomputable instance notRegisteredErr_access_load_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"target" l) v.target' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"target" l) v.target' dq)
@@ -977,7 +976,7 @@ instance notRegisteredErr_access_load_target (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-instance notRegisteredErr_access_store_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (target' : k8s_io.apimachinery.pkg.runtime.GroupVersioner) :
+noncomputable instance notRegisteredErr_access_store_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (target' : k8s_io.apimachinery.pkg.runtime.GroupVersioner) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"target" l) v.target' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"target" l) target' (DFrac.own 1))
@@ -985,7 +984,7 @@ instance notRegisteredErr_access_store_target (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance notRegisteredErr_access_load_t (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
+noncomputable instance notRegisteredErr_access_load_t (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) v.t' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) v.t' dq)
@@ -993,7 +992,7 @@ instance notRegisteredErr_access_load_t (l : Loc) (v : k8s_io.apimachinery.pkg.r
  by
   solve_pointsto_access_struct
 
-instance notRegisteredErr_access_store_t (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (t' : reflect.Type') :
+noncomputable instance notRegisteredErr_access_store_t (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (t' : reflect.Type') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) v.t' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) t' (DFrac.own 1))
@@ -1012,7 +1011,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance missingKindErr_typed_pointsto :
+noncomputable instance missingKindErr_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.missingKindErr where
   typedPointstoDef l v dq := iprop(
     "data" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingKindErr go!"data" l) v.data' dq ∗
@@ -1021,11 +1020,11 @@ instance missingKindErr_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance missingKindErr_into_val_typed :
+noncomputable instance missingKindErr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.missingKindErr k8s_io.apimachinery.pkg.runtime.missingKindErr.underlying := by
   solve_into_val_typed_struct
 
-instance missingKindErr_access_load_data (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.missingKindErr) (dq : DFrac) :
+noncomputable instance missingKindErr_access_load_data (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.missingKindErr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingKindErr go!"data" l) v.data' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingKindErr go!"data" l) v.data' dq)
@@ -1033,7 +1032,7 @@ instance missingKindErr_access_load_data (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance missingKindErr_access_store_data (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.missingKindErr) (data' : GoString) :
+noncomputable instance missingKindErr_access_store_data (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.missingKindErr) (data' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingKindErr go!"data" l) v.data' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingKindErr go!"data" l) data' (DFrac.own 1))
@@ -1052,7 +1051,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance missingVersionErr_typed_pointsto :
+noncomputable instance missingVersionErr_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.missingVersionErr where
   typedPointstoDef l v dq := iprop(
     "data" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingVersionErr go!"data" l) v.data' dq ∗
@@ -1061,11 +1060,11 @@ instance missingVersionErr_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance missingVersionErr_into_val_typed :
+noncomputable instance missingVersionErr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.missingVersionErr k8s_io.apimachinery.pkg.runtime.missingVersionErr.underlying := by
   solve_into_val_typed_struct
 
-instance missingVersionErr_access_load_data (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.missingVersionErr) (dq : DFrac) :
+noncomputable instance missingVersionErr_access_load_data (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.missingVersionErr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingVersionErr go!"data" l) v.data' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingVersionErr go!"data" l) v.data' dq)
@@ -1073,7 +1072,7 @@ instance missingVersionErr_access_load_data (l : Loc) (v : k8s_io.apimachinery.p
  by
   solve_pointsto_access_struct
 
-instance missingVersionErr_access_store_data (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.missingVersionErr) (data' : GoString) :
+noncomputable instance missingVersionErr_access_store_data (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.missingVersionErr) (data' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingVersionErr go!"data" l) v.data' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.missingVersionErr go!"data" l) data' (DFrac.own 1))
@@ -1092,7 +1091,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance strictDecodingError_typed_pointsto :
+noncomputable instance strictDecodingError_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.strictDecodingError where
   typedPointstoDef l v dq := iprop(
     "errors" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.strictDecodingError go!"errors" l) v.errors' dq ∗
@@ -1101,11 +1100,11 @@ instance strictDecodingError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance strictDecodingError_into_val_typed :
+noncomputable instance strictDecodingError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.strictDecodingError k8s_io.apimachinery.pkg.runtime.strictDecodingError.underlying := by
   solve_into_val_typed_struct
 
-instance strictDecodingError_access_load_errors (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.strictDecodingError) (dq : DFrac) :
+noncomputable instance strictDecodingError_access_load_errors (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.strictDecodingError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.strictDecodingError go!"errors" l) v.errors' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.strictDecodingError go!"errors" l) v.errors' dq)
@@ -1113,7 +1112,7 @@ instance strictDecodingError_access_load_errors (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance strictDecodingError_access_store_errors (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.strictDecodingError) (errors' : GoSlice) :
+noncomputable instance strictDecodingError_access_store_errors (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.strictDecodingError) (errors' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.strictDecodingError go!"errors" l) v.errors' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.strictDecodingError go!"errors" l) errors' (DFrac.own 1))
@@ -1132,7 +1131,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance unsafeObjectConvertor_typed_pointsto :
+noncomputable instance unsafeObjectConvertor_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor where
   typedPointstoDef l v dq := iprop(
     "Scheme" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor go!"Scheme" l) v.Scheme' dq ∗
@@ -1141,11 +1140,11 @@ instance unsafeObjectConvertor_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance unsafeObjectConvertor_into_val_typed :
+noncomputable instance unsafeObjectConvertor_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor.underlying := by
   solve_into_val_typed_struct
 
-instance unsafeObjectConvertor_access_load_Scheme (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor) (dq : DFrac) :
+noncomputable instance unsafeObjectConvertor_access_load_Scheme (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor go!"Scheme" l) v.Scheme' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor go!"Scheme" l) v.Scheme' dq)
@@ -1153,7 +1152,7 @@ instance unsafeObjectConvertor_access_load_Scheme (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-instance unsafeObjectConvertor_access_store_Scheme (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor) (Scheme' : Loc) :
+noncomputable instance unsafeObjectConvertor_access_store_Scheme (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor) (Scheme' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor go!"Scheme" l) v.Scheme' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unsafeObjectConvertor go!"Scheme" l) Scheme' (DFrac.own 1))
@@ -1172,7 +1171,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance defaultFramer_typed_pointsto :
+noncomputable instance defaultFramer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.defaultFramer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -1180,7 +1179,7 @@ instance defaultFramer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance defaultFramer_into_val_typed :
+noncomputable instance defaultFramer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.defaultFramer k8s_io.apimachinery.pkg.runtime.defaultFramer.underlying := by
   solve_into_val_typed_struct
 
@@ -1195,7 +1194,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance WithVersionEncoder_typed_pointsto :
+noncomputable instance WithVersionEncoder_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.WithVersionEncoder where
   typedPointstoDef l v dq := iprop(
     "Version" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"Version" l) v.Version' dq ∗
@@ -1206,11 +1205,11 @@ instance WithVersionEncoder_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance WithVersionEncoder_into_val_typed :
+noncomputable instance WithVersionEncoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.WithVersionEncoder k8s_io.apimachinery.pkg.runtime.WithVersionEncoder.underlying := by
   solve_into_val_typed_struct
 
-instance WithVersionEncoder_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (dq : DFrac) :
+noncomputable instance WithVersionEncoder_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"Version" l) v.Version' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"Version" l) v.Version' dq)
@@ -1218,7 +1217,7 @@ instance WithVersionEncoder_access_load_Version (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance WithVersionEncoder_access_store_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (Version' : k8s_io.apimachinery.pkg.runtime.GroupVersioner) :
+noncomputable instance WithVersionEncoder_access_store_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (Version' : k8s_io.apimachinery.pkg.runtime.GroupVersioner) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"Version" l) v.Version' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"Version" l) Version' (DFrac.own 1))
@@ -1226,7 +1225,7 @@ instance WithVersionEncoder_access_store_Version (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-instance WithVersionEncoder_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (dq : DFrac) :
+noncomputable instance WithVersionEncoder_access_load_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"Encoder" l) v.Encoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"Encoder" l) v.Encoder' dq)
@@ -1234,7 +1233,7 @@ instance WithVersionEncoder_access_load_Encoder (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance WithVersionEncoder_access_store_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (Encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
+noncomputable instance WithVersionEncoder_access_store_Encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (Encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"Encoder" l) v.Encoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"Encoder" l) Encoder' (DFrac.own 1))
@@ -1242,7 +1241,7 @@ instance WithVersionEncoder_access_store_Encoder (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-instance WithVersionEncoder_access_load_ObjectTyper (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (dq : DFrac) :
+noncomputable instance WithVersionEncoder_access_load_ObjectTyper (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"ObjectTyper" l) v.ObjectTyper' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"ObjectTyper" l) v.ObjectTyper' dq)
@@ -1250,7 +1249,7 @@ instance WithVersionEncoder_access_load_ObjectTyper (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-instance WithVersionEncoder_access_store_ObjectTyper (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (ObjectTyper' : k8s_io.apimachinery.pkg.runtime.ObjectTyper) :
+noncomputable instance WithVersionEncoder_access_store_ObjectTyper (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithVersionEncoder) (ObjectTyper' : k8s_io.apimachinery.pkg.runtime.ObjectTyper) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"ObjectTyper" l) v.ObjectTyper' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithVersionEncoder go!"ObjectTyper" l) ObjectTyper' (DFrac.own 1))
@@ -1269,7 +1268,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance WithoutVersionDecoder_typed_pointsto :
+noncomputable instance WithoutVersionDecoder_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder where
   typedPointstoDef l v dq := iprop(
     "Decoder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder go!"Decoder" l) v.Decoder' dq ∗
@@ -1278,11 +1277,11 @@ instance WithoutVersionDecoder_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance WithoutVersionDecoder_into_val_typed :
+noncomputable instance WithoutVersionDecoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder.underlying := by
   solve_into_val_typed_struct
 
-instance WithoutVersionDecoder_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder) (dq : DFrac) :
+noncomputable instance WithoutVersionDecoder_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder go!"Decoder" l) v.Decoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder go!"Decoder" l) v.Decoder' dq)
@@ -1290,7 +1289,7 @@ instance WithoutVersionDecoder_access_load_Decoder (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-instance WithoutVersionDecoder_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
+noncomputable instance WithoutVersionDecoder_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder go!"Decoder" l) v.Decoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.WithoutVersionDecoder go!"Decoder" l) Decoder' (DFrac.own 1))
@@ -1309,7 +1308,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance encoderWithAllocator_typed_pointsto :
+noncomputable instance encoderWithAllocator_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.encoderWithAllocator where
   typedPointstoDef l v dq := iprop(
     "encoder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encoderWithAllocator go!"encoder" l) v.encoder' dq ∗
@@ -1319,11 +1318,11 @@ instance encoderWithAllocator_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance encoderWithAllocator_into_val_typed :
+noncomputable instance encoderWithAllocator_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.encoderWithAllocator k8s_io.apimachinery.pkg.runtime.encoderWithAllocator.underlying := by
   solve_into_val_typed_struct
 
-instance encoderWithAllocator_access_load_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encoderWithAllocator) (dq : DFrac) :
+noncomputable instance encoderWithAllocator_access_load_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encoderWithAllocator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encoderWithAllocator go!"encoder" l) v.encoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encoderWithAllocator go!"encoder" l) v.encoder' dq)
@@ -1331,7 +1330,7 @@ instance encoderWithAllocator_access_load_encoder (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-instance encoderWithAllocator_access_store_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encoderWithAllocator) (encoder' : k8s_io.apimachinery.pkg.runtime.EncoderWithAllocator) :
+noncomputable instance encoderWithAllocator_access_store_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encoderWithAllocator) (encoder' : k8s_io.apimachinery.pkg.runtime.EncoderWithAllocator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encoderWithAllocator go!"encoder" l) v.encoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encoderWithAllocator go!"encoder" l) encoder' (DFrac.own 1))
@@ -1339,7 +1338,7 @@ instance encoderWithAllocator_access_store_encoder (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-instance encoderWithAllocator_access_load_memAllocator (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encoderWithAllocator) (dq : DFrac) :
+noncomputable instance encoderWithAllocator_access_load_memAllocator (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encoderWithAllocator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encoderWithAllocator go!"memAllocator" l) v.memAllocator' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encoderWithAllocator go!"memAllocator" l) v.memAllocator' dq)
@@ -1347,7 +1346,7 @@ instance encoderWithAllocator_access_load_memAllocator (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-instance encoderWithAllocator_access_store_memAllocator (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encoderWithAllocator) (memAllocator' : k8s_io.apimachinery.pkg.runtime.MemoryAllocator) :
+noncomputable instance encoderWithAllocator_access_store_memAllocator (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.encoderWithAllocator) (memAllocator' : k8s_io.apimachinery.pkg.runtime.MemoryAllocator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encoderWithAllocator go!"memAllocator" l) v.memAllocator' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.encoderWithAllocator go!"memAllocator" l) memAllocator' (DFrac.own 1))
@@ -1366,7 +1365,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance nondeterministicEncoderToEncoderAdapter_typed_pointsto :
+noncomputable instance nondeterministicEncoderToEncoderAdapter_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter where
   typedPointstoDef l v dq := iprop(
     "NondeterministicEncoder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter go!"NondeterministicEncoder" l) v.NondeterministicEncoder' dq ∗
@@ -1376,11 +1375,11 @@ instance nondeterministicEncoderToEncoderAdapter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance nondeterministicEncoderToEncoderAdapter_into_val_typed :
+noncomputable instance nondeterministicEncoderToEncoderAdapter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter.underlying := by
   solve_into_val_typed_struct
 
-instance nondeterministicEncoderToEncoderAdapter_access_load_NondeterministicEncoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter) (dq : DFrac) :
+noncomputable instance nondeterministicEncoderToEncoderAdapter_access_load_NondeterministicEncoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter go!"NondeterministicEncoder" l) v.NondeterministicEncoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter go!"NondeterministicEncoder" l) v.NondeterministicEncoder' dq)
@@ -1388,7 +1387,7 @@ instance nondeterministicEncoderToEncoderAdapter_access_load_NondeterministicEnc
  by
   solve_pointsto_access_struct
 
-instance nondeterministicEncoderToEncoderAdapter_access_store_NondeterministicEncoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter) (NondeterministicEncoder' : k8s_io.apimachinery.pkg.runtime.NondeterministicEncoder) :
+noncomputable instance nondeterministicEncoderToEncoderAdapter_access_store_NondeterministicEncoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter) (NondeterministicEncoder' : k8s_io.apimachinery.pkg.runtime.NondeterministicEncoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter go!"NondeterministicEncoder" l) v.NondeterministicEncoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter go!"NondeterministicEncoder" l) NondeterministicEncoder' (DFrac.own 1))
@@ -1396,7 +1395,7 @@ instance nondeterministicEncoderToEncoderAdapter_access_store_NondeterministicEn
  by
   solve_pointsto_access_struct
 
-instance nondeterministicEncoderToEncoderAdapter_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter) (dq : DFrac) :
+noncomputable instance nondeterministicEncoderToEncoderAdapter_access_load_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter go!"Decoder" l) v.Decoder' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter go!"Decoder" l) v.Decoder' dq)
@@ -1404,7 +1403,7 @@ instance nondeterministicEncoderToEncoderAdapter_access_load_Decoder (l : Loc) (
  by
   solve_pointsto_access_struct
 
-instance nondeterministicEncoderToEncoderAdapter_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
+noncomputable instance nondeterministicEncoderToEncoderAdapter_access_store_Decoder (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter) (Decoder' : k8s_io.apimachinery.pkg.runtime.Decoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter go!"Decoder" l) v.Decoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.nondeterministicEncoderToEncoderAdapter go!"Decoder" l) Decoder' (DFrac.own 1))
@@ -1423,11 +1422,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance ParameterCodec_typed_pointsto :
+noncomputable instance ParameterCodec_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.ParameterCodec :=
   sorry -- axiomatized type
 
-instance ParameterCodec_into_val_typed :
+noncomputable instance ParameterCodec_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.ParameterCodec k8s_io.apimachinery.pkg.runtime.ParameterCodec.underlying :=
   sorry -- axiomatized type
 
@@ -1442,7 +1441,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance SerializerInfo_typed_pointsto :
+noncomputable instance SerializerInfo_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.SerializerInfo where
   typedPointstoDef l v dq := iprop(
     "MediaType" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaType" l) v.MediaType' dq ∗
@@ -1458,11 +1457,11 @@ instance SerializerInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance SerializerInfo_into_val_typed :
+noncomputable instance SerializerInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.SerializerInfo k8s_io.apimachinery.pkg.runtime.SerializerInfo.underlying := by
   solve_into_val_typed_struct
 
-instance SerializerInfo_access_load_MediaType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
+noncomputable instance SerializerInfo_access_load_MediaType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaType" l) v.MediaType' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaType" l) v.MediaType' dq)
@@ -1470,7 +1469,7 @@ instance SerializerInfo_access_load_MediaType (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_store_MediaType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (MediaType' : GoString) :
+noncomputable instance SerializerInfo_access_store_MediaType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (MediaType' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaType" l) v.MediaType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaType" l) MediaType' (DFrac.own 1))
@@ -1478,7 +1477,7 @@ instance SerializerInfo_access_store_MediaType (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_load_MediaTypeType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
+noncomputable instance SerializerInfo_access_load_MediaTypeType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaTypeType" l) v.MediaTypeType' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaTypeType" l) v.MediaTypeType' dq)
@@ -1486,7 +1485,7 @@ instance SerializerInfo_access_load_MediaTypeType (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_store_MediaTypeType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (MediaTypeType' : GoString) :
+noncomputable instance SerializerInfo_access_store_MediaTypeType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (MediaTypeType' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaTypeType" l) v.MediaTypeType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaTypeType" l) MediaTypeType' (DFrac.own 1))
@@ -1494,7 +1493,7 @@ instance SerializerInfo_access_store_MediaTypeType (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_load_MediaTypeSubType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
+noncomputable instance SerializerInfo_access_load_MediaTypeSubType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaTypeSubType" l) v.MediaTypeSubType' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaTypeSubType" l) v.MediaTypeSubType' dq)
@@ -1502,7 +1501,7 @@ instance SerializerInfo_access_load_MediaTypeSubType (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_store_MediaTypeSubType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (MediaTypeSubType' : GoString) :
+noncomputable instance SerializerInfo_access_store_MediaTypeSubType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (MediaTypeSubType' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaTypeSubType" l) v.MediaTypeSubType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"MediaTypeSubType" l) MediaTypeSubType' (DFrac.own 1))
@@ -1510,7 +1509,7 @@ instance SerializerInfo_access_store_MediaTypeSubType (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_load_EncodesAsText (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
+noncomputable instance SerializerInfo_access_load_EncodesAsText (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"EncodesAsText" l) v.EncodesAsText' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"EncodesAsText" l) v.EncodesAsText' dq)
@@ -1518,7 +1517,7 @@ instance SerializerInfo_access_load_EncodesAsText (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_store_EncodesAsText (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (EncodesAsText' : Bool) :
+noncomputable instance SerializerInfo_access_store_EncodesAsText (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (EncodesAsText' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"EncodesAsText" l) v.EncodesAsText' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"EncodesAsText" l) EncodesAsText' (DFrac.own 1))
@@ -1526,7 +1525,7 @@ instance SerializerInfo_access_store_EncodesAsText (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_load_Serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
+noncomputable instance SerializerInfo_access_load_Serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"Serializer" l) v.Serializer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"Serializer" l) v.Serializer' dq)
@@ -1534,7 +1533,7 @@ instance SerializerInfo_access_load_Serializer (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_store_Serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (Serializer' : k8s_io.apimachinery.pkg.runtime.Serializer) :
+noncomputable instance SerializerInfo_access_store_Serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (Serializer' : k8s_io.apimachinery.pkg.runtime.Serializer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"Serializer" l) v.Serializer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"Serializer" l) Serializer' (DFrac.own 1))
@@ -1542,7 +1541,7 @@ instance SerializerInfo_access_store_Serializer (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_load_PrettySerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
+noncomputable instance SerializerInfo_access_load_PrettySerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"PrettySerializer" l) v.PrettySerializer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"PrettySerializer" l) v.PrettySerializer' dq)
@@ -1550,7 +1549,7 @@ instance SerializerInfo_access_load_PrettySerializer (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_store_PrettySerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (PrettySerializer' : k8s_io.apimachinery.pkg.runtime.Serializer) :
+noncomputable instance SerializerInfo_access_store_PrettySerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (PrettySerializer' : k8s_io.apimachinery.pkg.runtime.Serializer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"PrettySerializer" l) v.PrettySerializer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"PrettySerializer" l) PrettySerializer' (DFrac.own 1))
@@ -1558,7 +1557,7 @@ instance SerializerInfo_access_store_PrettySerializer (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_load_StrictSerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
+noncomputable instance SerializerInfo_access_load_StrictSerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"StrictSerializer" l) v.StrictSerializer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"StrictSerializer" l) v.StrictSerializer' dq)
@@ -1566,7 +1565,7 @@ instance SerializerInfo_access_load_StrictSerializer (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_store_StrictSerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (StrictSerializer' : k8s_io.apimachinery.pkg.runtime.Serializer) :
+noncomputable instance SerializerInfo_access_store_StrictSerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (StrictSerializer' : k8s_io.apimachinery.pkg.runtime.Serializer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"StrictSerializer" l) v.StrictSerializer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"StrictSerializer" l) StrictSerializer' (DFrac.own 1))
@@ -1574,7 +1573,7 @@ instance SerializerInfo_access_store_StrictSerializer (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_load_StreamSerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
+noncomputable instance SerializerInfo_access_load_StreamSerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"StreamSerializer" l) v.StreamSerializer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"StreamSerializer" l) v.StreamSerializer' dq)
@@ -1582,7 +1581,7 @@ instance SerializerInfo_access_load_StreamSerializer (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-instance SerializerInfo_access_store_StreamSerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (StreamSerializer' : Loc) :
+noncomputable instance SerializerInfo_access_store_StreamSerializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.SerializerInfo) (StreamSerializer' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"StreamSerializer" l) v.StreamSerializer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.SerializerInfo go!"StreamSerializer" l) StreamSerializer' (DFrac.own 1))
@@ -1601,7 +1600,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance StreamSerializerInfo_typed_pointsto :
+noncomputable instance StreamSerializerInfo_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo where
   typedPointstoDef l v dq := iprop(
     "EncodesAsText" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"EncodesAsText" l) v.EncodesAsText' dq ∗
@@ -1612,11 +1611,11 @@ instance StreamSerializerInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance StreamSerializerInfo_into_val_typed :
+noncomputable instance StreamSerializerInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo.underlying := by
   solve_into_val_typed_struct
 
-instance StreamSerializerInfo_access_load_EncodesAsText (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (dq : DFrac) :
+noncomputable instance StreamSerializerInfo_access_load_EncodesAsText (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"EncodesAsText" l) v.EncodesAsText' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"EncodesAsText" l) v.EncodesAsText' dq)
@@ -1624,7 +1623,7 @@ instance StreamSerializerInfo_access_load_EncodesAsText (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-instance StreamSerializerInfo_access_store_EncodesAsText (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (EncodesAsText' : Bool) :
+noncomputable instance StreamSerializerInfo_access_store_EncodesAsText (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (EncodesAsText' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"EncodesAsText" l) v.EncodesAsText' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"EncodesAsText" l) EncodesAsText' (DFrac.own 1))
@@ -1632,7 +1631,7 @@ instance StreamSerializerInfo_access_store_EncodesAsText (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-instance StreamSerializerInfo_access_load_Serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (dq : DFrac) :
+noncomputable instance StreamSerializerInfo_access_load_Serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"Serializer" l) v.Serializer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"Serializer" l) v.Serializer' dq)
@@ -1640,7 +1639,7 @@ instance StreamSerializerInfo_access_load_Serializer (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-instance StreamSerializerInfo_access_store_Serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (Serializer' : k8s_io.apimachinery.pkg.runtime.Serializer) :
+noncomputable instance StreamSerializerInfo_access_store_Serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (Serializer' : k8s_io.apimachinery.pkg.runtime.Serializer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"Serializer" l) v.Serializer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"Serializer" l) Serializer' (DFrac.own 1))
@@ -1648,7 +1647,7 @@ instance StreamSerializerInfo_access_store_Serializer (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-instance StreamSerializerInfo_access_load_Framer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (dq : DFrac) :
+noncomputable instance StreamSerializerInfo_access_load_Framer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"Framer" l) v.Framer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"Framer" l) v.Framer' dq)
@@ -1656,7 +1655,7 @@ instance StreamSerializerInfo_access_load_Framer (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-instance StreamSerializerInfo_access_store_Framer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (Framer' : k8s_io.apimachinery.pkg.runtime.Framer) :
+noncomputable instance StreamSerializerInfo_access_store_Framer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo) (Framer' : k8s_io.apimachinery.pkg.runtime.Framer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"Framer" l) v.Framer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.StreamSerializerInfo go!"Framer" l) Framer' (DFrac.own 1))
@@ -1675,11 +1674,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance equivalentResourceRegistry_typed_pointsto :
+noncomputable instance equivalentResourceRegistry_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.equivalentResourceRegistry :=
   sorry -- axiomatized type
 
-instance equivalentResourceRegistry_into_val_typed :
+noncomputable instance equivalentResourceRegistry_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.equivalentResourceRegistry k8s_io.apimachinery.pkg.runtime.equivalentResourceRegistry.underlying :=
   sorry -- axiomatized type
 
@@ -1694,7 +1693,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance NegotiateError_typed_pointsto :
+noncomputable instance NegotiateError_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.NegotiateError where
   typedPointstoDef l v dq := iprop(
     "ContentType" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NegotiateError go!"ContentType" l) v.ContentType' dq ∗
@@ -1704,11 +1703,11 @@ instance NegotiateError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance NegotiateError_into_val_typed :
+noncomputable instance NegotiateError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.NegotiateError k8s_io.apimachinery.pkg.runtime.NegotiateError.underlying := by
   solve_into_val_typed_struct
 
-instance NegotiateError_access_load_ContentType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NegotiateError) (dq : DFrac) :
+noncomputable instance NegotiateError_access_load_ContentType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NegotiateError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NegotiateError go!"ContentType" l) v.ContentType' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NegotiateError go!"ContentType" l) v.ContentType' dq)
@@ -1716,7 +1715,7 @@ instance NegotiateError_access_load_ContentType (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance NegotiateError_access_store_ContentType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NegotiateError) (ContentType' : GoString) :
+noncomputable instance NegotiateError_access_store_ContentType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NegotiateError) (ContentType' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NegotiateError go!"ContentType" l) v.ContentType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NegotiateError go!"ContentType" l) ContentType' (DFrac.own 1))
@@ -1724,7 +1723,7 @@ instance NegotiateError_access_store_ContentType (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-instance NegotiateError_access_load_Stream (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NegotiateError) (dq : DFrac) :
+noncomputable instance NegotiateError_access_load_Stream (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NegotiateError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NegotiateError go!"Stream" l) v.Stream' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NegotiateError go!"Stream" l) v.Stream' dq)
@@ -1732,7 +1731,7 @@ instance NegotiateError_access_load_Stream (l : Loc) (v : k8s_io.apimachinery.pk
  by
   solve_pointsto_access_struct
 
-instance NegotiateError_access_store_Stream (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NegotiateError) (Stream' : Bool) :
+noncomputable instance NegotiateError_access_store_Stream (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.NegotiateError) (Stream' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NegotiateError go!"Stream" l) v.Stream' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.NegotiateError go!"Stream" l) Stream' (DFrac.own 1))
@@ -1751,7 +1750,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance clientNegotiator_typed_pointsto :
+noncomputable instance clientNegotiator_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.clientNegotiator where
   typedPointstoDef l v dq := iprop(
     "serializer" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"serializer" l) v.serializer' dq ∗
@@ -1762,11 +1761,11 @@ instance clientNegotiator_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance clientNegotiator_into_val_typed :
+noncomputable instance clientNegotiator_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.clientNegotiator k8s_io.apimachinery.pkg.runtime.clientNegotiator.underlying := by
   solve_into_val_typed_struct
 
-instance clientNegotiator_access_load_serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (dq : DFrac) :
+noncomputable instance clientNegotiator_access_load_serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"serializer" l) v.serializer' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"serializer" l) v.serializer' dq)
@@ -1774,7 +1773,7 @@ instance clientNegotiator_access_load_serializer (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-instance clientNegotiator_access_store_serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (serializer' : k8s_io.apimachinery.pkg.runtime.NegotiatedSerializer) :
+noncomputable instance clientNegotiator_access_store_serializer (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (serializer' : k8s_io.apimachinery.pkg.runtime.NegotiatedSerializer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"serializer" l) v.serializer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"serializer" l) serializer' (DFrac.own 1))
@@ -1782,7 +1781,7 @@ instance clientNegotiator_access_store_serializer (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-instance clientNegotiator_access_load_encode (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (dq : DFrac) :
+noncomputable instance clientNegotiator_access_load_encode (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"encode" l) v.encode' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"encode" l) v.encode' dq)
@@ -1790,7 +1789,7 @@ instance clientNegotiator_access_load_encode (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-instance clientNegotiator_access_store_encode (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (encode' : k8s_io.apimachinery.pkg.runtime.GroupVersioner) :
+noncomputable instance clientNegotiator_access_store_encode (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (encode' : k8s_io.apimachinery.pkg.runtime.GroupVersioner) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"encode" l) v.encode' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"encode" l) encode' (DFrac.own 1))
@@ -1798,7 +1797,7 @@ instance clientNegotiator_access_store_encode (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance clientNegotiator_access_load_decode (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (dq : DFrac) :
+noncomputable instance clientNegotiator_access_load_decode (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"decode" l) v.decode' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"decode" l) v.decode' dq)
@@ -1806,7 +1805,7 @@ instance clientNegotiator_access_load_decode (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-instance clientNegotiator_access_store_decode (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (decode' : k8s_io.apimachinery.pkg.runtime.GroupVersioner) :
+noncomputable instance clientNegotiator_access_store_decode (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.clientNegotiator) (decode' : k8s_io.apimachinery.pkg.runtime.GroupVersioner) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"decode" l) v.decode' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.clientNegotiator go!"decode" l) decode' (DFrac.own 1))
@@ -1825,7 +1824,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance simpleNegotiatedSerializer_typed_pointsto :
+noncomputable instance simpleNegotiatedSerializer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer where
   typedPointstoDef l v dq := iprop(
     "info" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer go!"info" l) v.info' dq ∗
@@ -1834,11 +1833,11 @@ instance simpleNegotiatedSerializer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance simpleNegotiatedSerializer_into_val_typed :
+noncomputable instance simpleNegotiatedSerializer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer.underlying := by
   solve_into_val_typed_struct
 
-instance simpleNegotiatedSerializer_access_load_info (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer) (dq : DFrac) :
+noncomputable instance simpleNegotiatedSerializer_access_load_info (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer go!"info" l) v.info' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer go!"info" l) v.info' dq)
@@ -1846,7 +1845,7 @@ instance simpleNegotiatedSerializer_access_load_info (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-instance simpleNegotiatedSerializer_access_store_info (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer) (info' : k8s_io.apimachinery.pkg.runtime.SerializerInfo) :
+noncomputable instance simpleNegotiatedSerializer_access_store_info (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer) (info' : k8s_io.apimachinery.pkg.runtime.SerializerInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer go!"info" l) v.info' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.simpleNegotiatedSerializer go!"info" l) info' (DFrac.own 1))
@@ -1865,11 +1864,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance Scheme_typed_pointsto :
+noncomputable instance Scheme_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.Scheme :=
   sorry -- axiomatized type
 
-instance Scheme_into_val_typed :
+noncomputable instance Scheme_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.Scheme k8s_io.apimachinery.pkg.runtime.Scheme.underlying :=
   sorry -- axiomatized type
 
@@ -1884,7 +1883,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance spliceBuffer_typed_pointsto :
+noncomputable instance spliceBuffer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.spliceBuffer where
   typedPointstoDef l v dq := iprop(
     "raw" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) v.raw' dq ∗
@@ -1894,11 +1893,11 @@ instance spliceBuffer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance spliceBuffer_into_val_typed :
+noncomputable instance spliceBuffer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.spliceBuffer k8s_io.apimachinery.pkg.runtime.spliceBuffer.underlying := by
   solve_into_val_typed_struct
 
-instance spliceBuffer_access_load_raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (dq : DFrac) :
+noncomputable instance spliceBuffer_access_load_raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) v.raw' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) v.raw' dq)
@@ -1906,7 +1905,7 @@ instance spliceBuffer_access_load_raw (l : Loc) (v : k8s_io.apimachinery.pkg.run
  by
   solve_pointsto_access_struct
 
-instance spliceBuffer_access_store_raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (raw' : GoSlice) :
+noncomputable instance spliceBuffer_access_store_raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (raw' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) v.raw' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) raw' (DFrac.own 1))
@@ -1914,7 +1913,7 @@ instance spliceBuffer_access_store_raw (l : Loc) (v : k8s_io.apimachinery.pkg.ru
  by
   solve_pointsto_access_struct
 
-instance spliceBuffer_access_load_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (dq : DFrac) :
+noncomputable instance spliceBuffer_access_load_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"buf" l) v.buf' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"buf" l) v.buf' dq)
@@ -1922,7 +1921,7 @@ instance spliceBuffer_access_load_buf (l : Loc) (v : k8s_io.apimachinery.pkg.run
  by
   solve_pointsto_access_struct
 
-instance spliceBuffer_access_store_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (buf' : Loc) :
+noncomputable instance spliceBuffer_access_store_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (buf' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"buf" l) buf' (DFrac.own 1))
@@ -1941,7 +1940,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance Pair'_typed_pointsto :
+noncomputable instance Pair'_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.Pair' where
   typedPointstoDef l v dq := iprop(
     "Name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Pair' go!"Name" l) v.Name' dq ∗
@@ -1951,11 +1950,11 @@ instance Pair'_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Pair'_into_val_typed :
+noncomputable instance Pair'_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.Pair' k8s_io.apimachinery.pkg.runtime.Pair'.underlying := by
   solve_into_val_typed_struct
 
-instance Pair'_access_load_Name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Pair') (dq : DFrac) :
+noncomputable instance Pair'_access_load_Name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Pair') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Pair' go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Pair' go!"Name" l) v.Name' dq)
@@ -1963,7 +1962,7 @@ instance Pair'_access_load_Name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.P
  by
   solve_pointsto_access_struct
 
-instance Pair'_access_store_Name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Pair') (Name' : GoString) :
+noncomputable instance Pair'_access_store_Name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Pair') (Name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Pair' go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Pair' go!"Name" l) Name' (DFrac.own 1))
@@ -1971,7 +1970,7 @@ instance Pair'_access_store_Name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.
  by
   solve_pointsto_access_struct
 
-instance Pair'_access_load_Doc (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Pair') (dq : DFrac) :
+noncomputable instance Pair'_access_load_Doc (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Pair') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Pair' go!"Doc" l) v.Doc' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Pair' go!"Doc" l) v.Doc' dq)
@@ -1979,7 +1978,7 @@ instance Pair'_access_load_Doc (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Pa
  by
   solve_pointsto_access_struct
 
-instance Pair'_access_store_Doc (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Pair') (Doc' : GoString) :
+noncomputable instance Pair'_access_store_Doc (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Pair') (Doc' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Pair' go!"Doc" l) v.Doc' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Pair' go!"Doc" l) Doc' (DFrac.own 1))
@@ -1998,7 +1997,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance bufferedLine_typed_pointsto :
+noncomputable instance bufferedLine_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.bufferedLine where
   typedPointstoDef l v dq := iprop(
     "line" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.bufferedLine go!"line" l) v.line' dq ∗
@@ -2008,11 +2007,11 @@ instance bufferedLine_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance bufferedLine_into_val_typed :
+noncomputable instance bufferedLine_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.bufferedLine k8s_io.apimachinery.pkg.runtime.bufferedLine.underlying := by
   solve_into_val_typed_struct
 
-instance bufferedLine_access_load_line (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.bufferedLine) (dq : DFrac) :
+noncomputable instance bufferedLine_access_load_line (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.bufferedLine) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.bufferedLine go!"line" l) v.line' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.bufferedLine go!"line" l) v.line' dq)
@@ -2020,7 +2019,7 @@ instance bufferedLine_access_load_line (l : Loc) (v : k8s_io.apimachinery.pkg.ru
  by
   solve_pointsto_access_struct
 
-instance bufferedLine_access_store_line (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.bufferedLine) (line' : GoString) :
+noncomputable instance bufferedLine_access_store_line (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.bufferedLine) (line' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.bufferedLine go!"line" l) v.line' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.bufferedLine go!"line" l) line' (DFrac.own 1))
@@ -2028,7 +2027,7 @@ instance bufferedLine_access_store_line (l : Loc) (v : k8s_io.apimachinery.pkg.r
  by
   solve_pointsto_access_struct
 
-instance bufferedLine_access_load_indentation (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.bufferedLine) (dq : DFrac) :
+noncomputable instance bufferedLine_access_load_indentation (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.bufferedLine) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.bufferedLine go!"indentation" l) v.indentation' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.bufferedLine go!"indentation" l) v.indentation' dq)
@@ -2036,7 +2035,7 @@ instance bufferedLine_access_load_indentation (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance bufferedLine_access_store_indentation (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.bufferedLine) (indentation' : w64) :
+noncomputable instance bufferedLine_access_store_indentation (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.bufferedLine) (indentation' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.bufferedLine go!"indentation" l) v.indentation' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.bufferedLine go!"indentation" l) indentation' (DFrac.own 1))
@@ -2055,7 +2054,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance buffer_typed_pointsto :
+noncomputable instance buffer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.buffer where
   typedPointstoDef l v dq := iprop(
     "lines" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.buffer go!"lines" l) v.lines' dq ∗
@@ -2064,11 +2063,11 @@ instance buffer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance buffer_into_val_typed :
+noncomputable instance buffer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.buffer k8s_io.apimachinery.pkg.runtime.buffer.underlying := by
   solve_into_val_typed_struct
 
-instance buffer_access_load_lines (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.buffer) (dq : DFrac) :
+noncomputable instance buffer_access_load_lines (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.buffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.buffer go!"lines" l) v.lines' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.buffer go!"lines" l) v.lines' dq)
@@ -2076,7 +2075,7 @@ instance buffer_access_load_lines (l : Loc) (v : k8s_io.apimachinery.pkg.runtime
  by
   solve_pointsto_access_struct
 
-instance buffer_access_store_lines (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.buffer) (lines' : GoSlice) :
+noncomputable instance buffer_access_store_lines (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.buffer) (lines' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.buffer go!"lines" l) v.lines' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.buffer go!"lines" l) lines' (DFrac.own 1))
@@ -2095,7 +2094,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance TypeMeta_typed_pointsto :
+noncomputable instance TypeMeta_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.TypeMeta where
   typedPointstoDef l v dq := iprop(
     "APIVersion" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.TypeMeta go!"APIVersion" l) v.APIVersion' dq ∗
@@ -2105,11 +2104,11 @@ instance TypeMeta_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance TypeMeta_into_val_typed :
+noncomputable instance TypeMeta_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.TypeMeta k8s_io.apimachinery.pkg.runtime.TypeMeta.underlying := by
   solve_into_val_typed_struct
 
-instance TypeMeta_access_load_APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.TypeMeta) (dq : DFrac) :
+noncomputable instance TypeMeta_access_load_APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.TypeMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.TypeMeta go!"APIVersion" l) v.APIVersion' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.TypeMeta go!"APIVersion" l) v.APIVersion' dq)
@@ -2117,7 +2116,7 @@ instance TypeMeta_access_load_APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance TypeMeta_access_store_APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.TypeMeta) (APIVersion' : GoString) :
+noncomputable instance TypeMeta_access_store_APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.TypeMeta) (APIVersion' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.TypeMeta go!"APIVersion" l) v.APIVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.TypeMeta go!"APIVersion" l) APIVersion' (DFrac.own 1))
@@ -2125,7 +2124,7 @@ instance TypeMeta_access_store_APIVersion (l : Loc) (v : k8s_io.apimachinery.pkg
  by
   solve_pointsto_access_struct
 
-instance TypeMeta_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.TypeMeta) (dq : DFrac) :
+noncomputable instance TypeMeta_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.TypeMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.TypeMeta go!"Kind" l) v.Kind' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.TypeMeta go!"Kind" l) v.Kind' dq)
@@ -2133,7 +2132,7 @@ instance TypeMeta_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtim
  by
   solve_pointsto_access_struct
 
-instance TypeMeta_access_store_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.TypeMeta) (Kind' : GoString) :
+noncomputable instance TypeMeta_access_store_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.TypeMeta) (Kind' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.TypeMeta go!"Kind" l) v.Kind' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.TypeMeta go!"Kind" l) Kind' (DFrac.own 1))
@@ -2152,7 +2151,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance RawExtension_typed_pointsto :
+noncomputable instance RawExtension_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.RawExtension where
   typedPointstoDef l v dq := iprop(
     "Raw" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.RawExtension go!"Raw" l) v.Raw' dq ∗
@@ -2162,11 +2161,11 @@ instance RawExtension_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance RawExtension_into_val_typed :
+noncomputable instance RawExtension_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.RawExtension k8s_io.apimachinery.pkg.runtime.RawExtension.underlying := by
   solve_into_val_typed_struct
 
-instance RawExtension_access_load_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.RawExtension) (dq : DFrac) :
+noncomputable instance RawExtension_access_load_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.RawExtension) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.RawExtension go!"Raw" l) v.Raw' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.RawExtension go!"Raw" l) v.Raw' dq)
@@ -2174,7 +2173,7 @@ instance RawExtension_access_load_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.run
  by
   solve_pointsto_access_struct
 
-instance RawExtension_access_store_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.RawExtension) (Raw' : GoSlice) :
+noncomputable instance RawExtension_access_store_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.RawExtension) (Raw' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.RawExtension go!"Raw" l) v.Raw' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.RawExtension go!"Raw" l) Raw' (DFrac.own 1))
@@ -2182,7 +2181,7 @@ instance RawExtension_access_store_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.ru
  by
   solve_pointsto_access_struct
 
-instance RawExtension_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.RawExtension) (dq : DFrac) :
+noncomputable instance RawExtension_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.RawExtension) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.RawExtension go!"Object" l) v.Object' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.RawExtension go!"Object" l) v.Object' dq)
@@ -2190,7 +2189,7 @@ instance RawExtension_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance RawExtension_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.RawExtension) (Object' : k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance RawExtension_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.RawExtension) (Object' : k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.RawExtension go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.RawExtension go!"Object" l) Object' (DFrac.own 1))
@@ -2209,7 +2208,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
-instance Unknown_typed_pointsto :
+noncomputable instance Unknown_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.Unknown where
   typedPointstoDef l v dq := iprop(
     "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"TypeMeta" l) v.TypeMeta' dq ∗
@@ -2221,11 +2220,11 @@ instance Unknown_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Unknown_into_val_typed :
+noncomputable instance Unknown_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.Unknown k8s_io.apimachinery.pkg.runtime.Unknown.underlying := by
   solve_into_val_typed_struct
 
-instance Unknown_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (dq : DFrac) :
+noncomputable instance Unknown_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"TypeMeta" l) v.TypeMeta' dq)
@@ -2233,7 +2232,7 @@ instance Unknown_access_load_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.run
  by
   solve_pointsto_access_struct
 
-instance Unknown_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (TypeMeta' : k8s_io.apimachinery.pkg.runtime.TypeMeta) :
+noncomputable instance Unknown_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (TypeMeta' : k8s_io.apimachinery.pkg.runtime.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -2241,7 +2240,7 @@ instance Unknown_access_store_TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.ru
  by
   solve_pointsto_access_struct
 
-instance Unknown_access_load_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (dq : DFrac) :
+noncomputable instance Unknown_access_load_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"Raw" l) v.Raw' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"Raw" l) v.Raw' dq)
@@ -2249,7 +2248,7 @@ instance Unknown_access_load_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.
  by
   solve_pointsto_access_struct
 
-instance Unknown_access_store_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (Raw' : GoSlice) :
+noncomputable instance Unknown_access_store_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (Raw' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"Raw" l) v.Raw' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"Raw" l) Raw' (DFrac.own 1))
@@ -2257,7 +2256,7 @@ instance Unknown_access_store_Raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime
  by
   solve_pointsto_access_struct
 
-instance Unknown_access_load_ContentEncoding (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (dq : DFrac) :
+noncomputable instance Unknown_access_load_ContentEncoding (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"ContentEncoding" l) v.ContentEncoding' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"ContentEncoding" l) v.ContentEncoding' dq)
@@ -2265,7 +2264,7 @@ instance Unknown_access_load_ContentEncoding (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-instance Unknown_access_store_ContentEncoding (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (ContentEncoding' : GoString) :
+noncomputable instance Unknown_access_store_ContentEncoding (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (ContentEncoding' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"ContentEncoding" l) v.ContentEncoding' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"ContentEncoding" l) ContentEncoding' (DFrac.own 1))
@@ -2273,7 +2272,7 @@ instance Unknown_access_store_ContentEncoding (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance Unknown_access_load_ContentType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (dq : DFrac) :
+noncomputable instance Unknown_access_load_ContentType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"ContentType" l) v.ContentType' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"ContentType" l) v.ContentType' dq)
@@ -2281,7 +2280,7 @@ instance Unknown_access_load_ContentType (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance Unknown_access_store_ContentType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (ContentType' : GoString) :
+noncomputable instance Unknown_access_store_ContentType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.Unknown) (ContentType' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"ContentType" l) v.ContentType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.Unknown go!"ContentType" l) ContentType' (DFrac.own 1))

@@ -24,16 +24,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- `New(bcfg)`: the backend `newBackend` makes, as a `Backend`, or a panic. -/
+/-- `New(bcfg)`: the backend `newBackend` makes, as a `Backend`, or a panic. (D22 receiver epochs,
+S8a, 2026-10-24) The creator's batch-lock step takes the fresh backend's payment rights (`bFresh`)
+and gives `K` in their place (`newPostK`). -/
 abbrev backend.New.spec : Prop :=
-  ∀ (cfg : BackendConfig) (P : BParams) (D : Data) (W Pk : BNames → IProp GF),
+  ∀ (cfg : BackendConfig) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
-      hooksOk P W Pk cfg.Hooks' ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ) }}
+      hooksOk P W Pk cfg.Hooks' ∗
+      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) }}
     (App (Val (@! New)) (Val #cfg))
   {{ (r : val), RET r;
       (∃ (b : Loc) (γ : BNames),
-        ⌜r = #(interface.mkOk (go.GoType.PointerType backend.ty) #b)⌝ ∗ newPost γ P W Pk b D) ∨
+        ⌜r = #(interface.mkOk (go.GoType.PointerType backend.ty) #b)⌝ ∗ newPostK γ P W Pk K b D) ∨
       ⌜∃ p : val, r = PanicV p⌝ }}
 
 end spec

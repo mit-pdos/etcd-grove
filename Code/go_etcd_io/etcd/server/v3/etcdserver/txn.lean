@@ -25,45 +25,44 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.txn : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/txn"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.txn : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/txn"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.txn
 
-def kvSort.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSort.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSort" [])
 
 attribute [irreducible] kvSort.ty
 
-def kvSortByKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByKey" [])
 
 attribute [irreducible] kvSortByKey.ty
 
-def kvSortByVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByVersion" [])
 
 attribute [irreducible] kvSortByVersion.ty
 
-def kvSortByCreate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByCreate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByCreate" [])
 
 attribute [irreducible] kvSortByCreate.ty
 
-def kvSortByMod.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByMod.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByMod" [])
 
 attribute [irreducible] kvSortByMod.ty
 
-def kvSortByValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByValue" [])
 
 attribute [irreducible] kvSortByValue.ty
@@ -2751,7 +2750,7 @@ noncomputable def isNil.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "msg")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Val UntypedNil)))) (Val #true) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Value.ty go!"IsNil"))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.google_golang_org.protobuf.proto.Message.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "msg")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.reflect.ValueOf []))) (Val #())) (Var "$a0")))) (Val #())))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.time, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.bytes, pkg_id.math, pkg_id.sort, pkg_id.fmt, pkg_id.reflect, pkg_id.strings]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -2827,20 +2826,20 @@ structure kvSort [FfiSyntax] where
   mk ::
   kvs' : GoSlice
 
-instance kvSort.zero_val [FfiSyntax] : ZeroVal kvSort :=
+noncomputable instance kvSort.zero_val [FfiSyntax] : ZeroVal kvSort :=
   ⟨kvSort.mk zeroValDef⟩
 
-@[reducible] def kvSort.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSort.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"kvs" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))]
 
-@[irreducible] def kvSort.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSort.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   kvSort.fieldsUnsealed
 
-instance equals_unfold_kvSort [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSort [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold kvSort.fields kvSort.fieldsUnsealed :=
   ⟨by unfold kvSort.fields; rfl⟩
 
-@[reducible] def kvSort.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSort.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSort.fields)
 
 class kvSort.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2862,20 +2861,20 @@ structure kvSortByKey [FfiSyntax] where
   mk ::
   kvSort' : Loc
 
-instance kvSortByKey.zero_val [FfiSyntax] : ZeroVal kvSortByKey :=
+noncomputable instance kvSortByKey.zero_val [FfiSyntax] : ZeroVal kvSortByKey :=
   ⟨kvSortByKey.mk zeroValDef⟩
 
-@[reducible] def kvSortByKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] def kvSortByKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   kvSortByKey.fieldsUnsealed
 
-instance equals_unfold_kvSortByKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByKey [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold kvSortByKey.fields kvSortByKey.fieldsUnsealed :=
   ⟨by unfold kvSortByKey.fields; rfl⟩
 
-@[reducible] def kvSortByKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByKey.fields)
 
 class kvSortByKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2907,20 +2906,20 @@ structure kvSortByVersion [FfiSyntax] where
   mk ::
   kvSort' : Loc
 
-instance kvSortByVersion.zero_val [FfiSyntax] : ZeroVal kvSortByVersion :=
+noncomputable instance kvSortByVersion.zero_val [FfiSyntax] : ZeroVal kvSortByVersion :=
   ⟨kvSortByVersion.mk zeroValDef⟩
 
-@[reducible] def kvSortByVersion.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByVersion.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] def kvSortByVersion.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByVersion.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   kvSortByVersion.fieldsUnsealed
 
-instance equals_unfold_kvSortByVersion [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByVersion [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold kvSortByVersion.fields kvSortByVersion.fieldsUnsealed :=
   ⟨by unfold kvSortByVersion.fields; rfl⟩
 
-@[reducible] def kvSortByVersion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByVersion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByVersion.fields)
 
 class kvSortByVersion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2952,20 +2951,20 @@ structure kvSortByCreate [FfiSyntax] where
   mk ::
   kvSort' : Loc
 
-instance kvSortByCreate.zero_val [FfiSyntax] : ZeroVal kvSortByCreate :=
+noncomputable instance kvSortByCreate.zero_val [FfiSyntax] : ZeroVal kvSortByCreate :=
   ⟨kvSortByCreate.mk zeroValDef⟩
 
-@[reducible] def kvSortByCreate.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByCreate.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] def kvSortByCreate.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByCreate.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   kvSortByCreate.fieldsUnsealed
 
-instance equals_unfold_kvSortByCreate [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByCreate [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold kvSortByCreate.fields kvSortByCreate.fieldsUnsealed :=
   ⟨by unfold kvSortByCreate.fields; rfl⟩
 
-@[reducible] def kvSortByCreate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByCreate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByCreate.fields)
 
 class kvSortByCreate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2997,20 +2996,20 @@ structure kvSortByMod [FfiSyntax] where
   mk ::
   kvSort' : Loc
 
-instance kvSortByMod.zero_val [FfiSyntax] : ZeroVal kvSortByMod :=
+noncomputable instance kvSortByMod.zero_val [FfiSyntax] : ZeroVal kvSortByMod :=
   ⟨kvSortByMod.mk zeroValDef⟩
 
-@[reducible] def kvSortByMod.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByMod.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] def kvSortByMod.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByMod.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   kvSortByMod.fieldsUnsealed
 
-instance equals_unfold_kvSortByMod [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByMod [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold kvSortByMod.fields kvSortByMod.fieldsUnsealed :=
   ⟨by unfold kvSortByMod.fields; rfl⟩
 
-@[reducible] def kvSortByMod.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByMod.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByMod.fields)
 
 class kvSortByMod.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3042,20 +3041,20 @@ structure kvSortByValue [FfiSyntax] where
   mk ::
   kvSort' : Loc
 
-instance kvSortByValue.zero_val [FfiSyntax] : ZeroVal kvSortByValue :=
+noncomputable instance kvSortByValue.zero_val [FfiSyntax] : ZeroVal kvSortByValue :=
   ⟨kvSortByValue.mk zeroValDef⟩
 
-@[reducible] def kvSortByValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] def kvSortByValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   kvSortByValue.fieldsUnsealed
 
-instance equals_unfold_kvSortByValue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByValue [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold kvSortByValue.fields kvSortByValue.fieldsUnsealed :=
   ⟨by unfold kvSortByValue.fields; rfl⟩
 
-@[reducible] def kvSortByValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByValue.fields)
 
 class kvSortByValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

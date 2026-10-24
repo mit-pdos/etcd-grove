@@ -8,35 +8,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.grpc.grpclog : GoString := go!"google.golang.org/grpc/grpclog"
+noncomputable def google_golang_org.grpc.grpclog : GoString := go!"google.golang.org/grpc/grpclog"
 end pkg_id
 
 namespace google_golang_org.grpc.grpclog
 
-def componentData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def componentData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/grpclog.componentData" [])
 
 attribute [irreducible] componentData.ty
 
-def Logger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Logger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/grpclog.Logger" [])
 
 attribute [irreducible] Logger.ty
 
-def LoggerV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LoggerV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/grpclog.LoggerV2" [])
 
 attribute [irreducible] LoggerV2.ty
 
-def DepthLoggerV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DepthLoggerV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/grpclog.DepthLoggerV2" [])
 
 attribute [irreducible] DepthLoggerV2.ty
@@ -133,7 +132,7 @@ noncomputable def NewLoggerV2WithVerbosity [FfiSyntax] [GoGlobalContext] : GoStr
 noncomputable def newLoggerV2 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.newLoggerV2"
 
-instance info' : PkgInfo pkg_id.google_golang_org.grpc.grpclog where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.grpclog where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -152,20 +151,20 @@ structure componentData [FfiSyntax] where
   mk ::
   name' : GoString
 
-instance componentData.zero_val [FfiSyntax] : ZeroVal componentData :=
+noncomputable instance componentData.zero_val [FfiSyntax] : ZeroVal componentData :=
   ⟨componentData.mk zeroValDef⟩
 
-@[reducible] def componentData.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def componentData.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"name" go.string)]
 
-@[irreducible] def componentData.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def componentData.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   componentData.fieldsUnsealed
 
-instance equals_unfold_componentData [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_componentData [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold componentData.fields componentData.fieldsUnsealed :=
   ⟨by unfold componentData.fields; rfl⟩
 
-@[reducible] def componentData.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def componentData.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType componentData.fields)
 
 class componentData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -12,60 +12,59 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.api.v2stats : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.api.v2stats : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
-def LeaderStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaderStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.LeaderStats" [])
 
 attribute [irreducible] LeaderStats.ty
 
-def leaderStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def leaderStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.leaderStats" [])
 
 attribute [irreducible] leaderStats.ty
 
-def FollowerStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FollowerStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.FollowerStats" [])
 
 attribute [irreducible] FollowerStats.ty
 
-def LatencyStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LatencyStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.LatencyStats" [])
 
 attribute [irreducible] LatencyStats.ty
 
-def CountsStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CountsStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.CountsStats" [])
 
 attribute [irreducible] CountsStats.ty
 
-def RequestStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.RequestStats" [])
 
 attribute [irreducible] RequestStats.ty
 
-def statsQueue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def statsQueue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.statsQueue" [])
 
 attribute [irreducible] statsQueue.ty
 
-def ServerStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.ServerStats" [])
 
 attribute [irreducible] ServerStats.ty
 
-def serverStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverStats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.serverStats" [])
 
 attribute [irreducible] serverStats.ty
@@ -103,7 +102,7 @@ noncomputable def NewLeaderStats.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.raft.v3]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -129,21 +128,21 @@ structure leaderStats [FfiSyntax] where
   Leader' : GoString
   Followers' : GoMap
 
-instance leaderStats.zero_val [FfiSyntax] : ZeroVal leaderStats :=
+noncomputable instance leaderStats.zero_val [FfiSyntax] : ZeroVal leaderStats :=
   ⟨leaderStats.mk zeroValDef zeroValDef⟩
 
-@[reducible] def leaderStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def leaderStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Leader" go.string),
 (go.field_decl.FieldDecl go!"Followers" (go.GoType.MapType go.string (go.GoType.PointerType FollowerStats.ty)))]
 
-@[irreducible] def leaderStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def leaderStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   leaderStats.fieldsUnsealed
 
-instance equals_unfold_leaderStats [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_leaderStats [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold leaderStats.fields leaderStats.fieldsUnsealed :=
   ⟨by unfold leaderStats.fields; rfl⟩
 
-@[reducible] def leaderStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def leaderStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType leaderStats.fields)
 
 class leaderStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -167,22 +166,22 @@ structure LeaderStats [FfiSyntax] where
   leaderStats' : leaderStats
   Mutex' : _root_.Perennial.sync.Mutex
 
-instance LeaderStats.zero_val [FfiSyntax] : ZeroVal LeaderStats :=
+noncomputable instance LeaderStats.zero_val [FfiSyntax] : ZeroVal LeaderStats :=
   ⟨LeaderStats.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def LeaderStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LeaderStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.EmbeddedField go!"leaderStats" leaderStats.ty),
 (go.field_decl.EmbeddedField go!"Mutex" _root_.Perennial.sync.Mutex.ty)]
 
-@[irreducible] def LeaderStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LeaderStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   LeaderStats.fieldsUnsealed
 
-instance equals_unfold_LeaderStats [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LeaderStats [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold LeaderStats.fields LeaderStats.fieldsUnsealed :=
   ⟨by unfold LeaderStats.fields; rfl⟩
 
-@[reducible] def LeaderStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LeaderStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LeaderStats.fields)
 
 class LeaderStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -213,10 +212,10 @@ structure LatencyStats [FfiSyntax] where
   Minimum' : w64
   Maximum' : w64
 
-instance LatencyStats.zero_val [FfiSyntax] : ZeroVal LatencyStats :=
+noncomputable instance LatencyStats.zero_val [FfiSyntax] : ZeroVal LatencyStats :=
   ⟨LatencyStats.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def LatencyStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LatencyStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Current" go.float64),
 (go.field_decl.FieldDecl go!"Average" go.float64),
 (go.field_decl.FieldDecl go!"averageSquare" go.float64),
@@ -224,14 +223,14 @@ instance LatencyStats.zero_val [FfiSyntax] : ZeroVal LatencyStats :=
 (go.field_decl.FieldDecl go!"Minimum" go.float64),
 (go.field_decl.FieldDecl go!"Maximum" go.float64)]
 
-@[irreducible] def LatencyStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LatencyStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   LatencyStats.fieldsUnsealed
 
-instance equals_unfold_LatencyStats [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LatencyStats [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold LatencyStats.fields LatencyStats.fieldsUnsealed :=
   ⟨by unfold LatencyStats.fields; rfl⟩
 
-@[reducible] def LatencyStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LatencyStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LatencyStats.fields)
 
 class LatencyStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -270,21 +269,21 @@ structure CountsStats [FfiSyntax] where
   Fail' : w64
   Success' : w64
 
-instance CountsStats.zero_val [FfiSyntax] : ZeroVal CountsStats :=
+noncomputable instance CountsStats.zero_val [FfiSyntax] : ZeroVal CountsStats :=
   ⟨CountsStats.mk zeroValDef zeroValDef⟩
 
-@[reducible] def CountsStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CountsStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Fail" go.uint64),
 (go.field_decl.FieldDecl go!"Success" go.uint64)]
 
-@[irreducible] def CountsStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CountsStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   CountsStats.fieldsUnsealed
 
-instance equals_unfold_CountsStats [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CountsStats [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold CountsStats.fields CountsStats.fieldsUnsealed :=
   ⟨by unfold CountsStats.fields; rfl⟩
 
-@[reducible] def CountsStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CountsStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CountsStats.fields)
 
 class CountsStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -308,22 +307,22 @@ structure FollowerStats [FfiSyntax] where
   Counts' : CountsStats
   Mutex' : _root_.Perennial.sync.Mutex
 
-instance FollowerStats.zero_val [FfiSyntax] : ZeroVal FollowerStats :=
+noncomputable instance FollowerStats.zero_val [FfiSyntax] : ZeroVal FollowerStats :=
   ⟨FollowerStats.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def FollowerStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FollowerStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Latency" LatencyStats.ty),
 (go.field_decl.FieldDecl go!"Counts" CountsStats.ty),
 (go.field_decl.EmbeddedField go!"Mutex" _root_.Perennial.sync.Mutex.ty)]
 
-@[irreducible] def FollowerStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FollowerStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   FollowerStats.fieldsUnsealed
 
-instance equals_unfold_FollowerStats [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FollowerStats [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold FollowerStats.fields FollowerStats.fieldsUnsealed :=
   ⟨by unfold FollowerStats.fields; rfl⟩
 
-@[reducible] def FollowerStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FollowerStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FollowerStats.fields)
 
 class FollowerStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -350,21 +349,21 @@ structure RequestStats [FfiSyntax] where
   SendingTime' : _root_.Perennial.time.Time
   Size' : w64
 
-instance RequestStats.zero_val [FfiSyntax] : ZeroVal RequestStats :=
+noncomputable instance RequestStats.zero_val [FfiSyntax] : ZeroVal RequestStats :=
   ⟨RequestStats.mk zeroValDef zeroValDef⟩
 
-@[reducible] def RequestStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RequestStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"SendingTime" _root_.Perennial.time.Time.ty),
 (go.field_decl.FieldDecl go!"Size" go.int)]
 
-@[irreducible] def RequestStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RequestStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   RequestStats.fieldsUnsealed
 
-instance equals_unfold_RequestStats [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RequestStats [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold RequestStats.fields RequestStats.fieldsUnsealed :=
   ⟨by unfold RequestStats.fields; rfl⟩
 
-@[reducible] def RequestStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RequestStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RequestStats.fields)
 
 class RequestStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -391,10 +390,10 @@ structure statsQueue [FfiSyntax] where
   totalReqSize' : w64
   rwl' : _root_.Perennial.sync.RWMutex
 
-instance statsQueue.zero_val [FfiSyntax] : ZeroVal statsQueue :=
+noncomputable instance statsQueue.zero_val [FfiSyntax] : ZeroVal statsQueue :=
   ⟨statsQueue.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def statsQueue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def statsQueue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"items" (go.GoType.ArrayType 200 (go.GoType.PointerType RequestStats.ty))),
 (go.field_decl.FieldDecl go!"size" go.int),
 (go.field_decl.FieldDecl go!"front" go.int),
@@ -402,14 +401,14 @@ instance statsQueue.zero_val [FfiSyntax] : ZeroVal statsQueue :=
 (go.field_decl.FieldDecl go!"totalReqSize" go.int),
 (go.field_decl.FieldDecl go!"rwl" _root_.Perennial.sync.RWMutex.ty)]
 
-@[irreducible] def statsQueue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def statsQueue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   statsQueue.fieldsUnsealed
 
-instance equals_unfold_statsQueue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_statsQueue [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold statsQueue.fields statsQueue.fieldsUnsealed :=
   ⟨by unfold statsQueue.fields; rfl⟩
 
-@[reducible] def statsQueue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def statsQueue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType statsQueue.fields)
 
 class statsQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -461,21 +460,21 @@ structure ServerStats [FfiSyntax] where
   serverStats' : serverStats
   Mutex' : _root_.Perennial.sync.Mutex
 
-instance ServerStats.zero_val [FfiSyntax] : ZeroVal ServerStats :=
+noncomputable instance ServerStats.zero_val [FfiSyntax] : ZeroVal ServerStats :=
   ⟨ServerStats.mk zeroValDef zeroValDef⟩
 
-@[reducible] def ServerStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServerStats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"serverStats" serverStats.ty),
 (go.field_decl.EmbeddedField go!"Mutex" _root_.Perennial.sync.Mutex.ty)]
 
-@[irreducible] def ServerStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServerStats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ServerStats.fieldsUnsealed
 
-instance equals_unfold_ServerStats [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServerStats [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ServerStats.fields ServerStats.fieldsUnsealed :=
   ⟨by unfold ServerStats.fields; rfl⟩
 
-@[reducible] def ServerStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerStats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServerStats.fields)
 
 class ServerStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

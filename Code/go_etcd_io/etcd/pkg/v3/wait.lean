@@ -10,45 +10,44 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.wait : GoString := go!"go.etcd.io/etcd/pkg/v3/wait"
+noncomputable def go_etcd_io.etcd.pkg.v3.wait : GoString := go!"go.etcd.io/etcd/pkg/v3/wait"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.wait
 
-def Wait.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Wait.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/wait.Wait" [])
 
 attribute [irreducible] Wait.ty
 
-def list'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def list'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/wait.list" [])
 
 attribute [irreducible] list'.ty
 
-def listElement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listElement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/wait.listElement" [])
 
 attribute [irreducible] listElement.ty
 
-def waitWithResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def waitWithResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/wait.waitWithResponse" [])
 
 attribute [irreducible] waitWithResponse.ty
 
-def WaitTime.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WaitTime.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/wait.WaitTime" [])
 
 attribute [irreducible] WaitTime.ty
 
-def timeList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timeList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/wait.timeList" [])
 
 attribute [irreducible] timeList.ty
@@ -394,7 +393,7 @@ noncomputable def timeList.Trigger.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef timeList.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType timeList.ty)))) (Var "tl")))) (Val #())))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.wait where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.wait where
   pkgImportedPkgs := [pkg_id.log, pkg_id.sync]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -417,7 +416,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Wait [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Wait.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Wait.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"IsRegistered" (go.signature.Signature [go.uint64] false [go.bool])), (go.InterfaceElem.MethodElem go!"Register" (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly go.any)])), (go.InterfaceElem.MethodElem go!"Trigger" (go.signature.Signature [go.uint64, go.any] false []))])
 
 class Wait.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -429,20 +428,20 @@ structure list' [FfiSyntax] where
   mk ::
   e' : GoSlice
 
-instance list'.zero_val [FfiSyntax] : ZeroVal list' :=
+noncomputable instance list'.zero_val [FfiSyntax] : ZeroVal list' :=
   ⟨list'.mk zeroValDef⟩
 
-@[reducible] def list.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def list.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"e" (go.GoType.SliceType listElement.ty))]
 
-@[irreducible] def list.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def list.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   list.fieldsUnsealed
 
-instance equals_unfold_list [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_list [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold list.fields list.fieldsUnsealed :=
   ⟨by unfold list.fields; rfl⟩
 
-@[reducible] def list'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def list'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType list.fields)
 
 class list.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -467,21 +466,21 @@ structure listElement [FfiSyntax] where
   l' : _root_.Perennial.sync.RWMutex
   m' : GoMap
 
-instance listElement.zero_val [FfiSyntax] : ZeroVal listElement :=
+noncomputable instance listElement.zero_val [FfiSyntax] : ZeroVal listElement :=
   ⟨listElement.mk zeroValDef zeroValDef⟩
 
-@[reducible] def listElement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def listElement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"l" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"m" (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.any)))]
 
-@[irreducible] def listElement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def listElement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   listElement.fieldsUnsealed
 
-instance equals_unfold_listElement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_listElement [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold listElement.fields listElement.fieldsUnsealed :=
   ⟨by unfold listElement.fields; rfl⟩
 
-@[reducible] def listElement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def listElement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType listElement.fields)
 
 class listElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -503,20 +502,20 @@ structure waitWithResponse [FfiSyntax] where
   mk ::
   ch' : GoChan
 
-instance waitWithResponse.zero_val [FfiSyntax] : ZeroVal waitWithResponse :=
+noncomputable instance waitWithResponse.zero_val [FfiSyntax] : ZeroVal waitWithResponse :=
   ⟨waitWithResponse.mk zeroValDef⟩
 
-@[reducible] def waitWithResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def waitWithResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ch" (go.GoType.ChannelType go.ChanDir.recvonly go.any))]
 
-@[irreducible] def waitWithResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def waitWithResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   waitWithResponse.fieldsUnsealed
 
-instance equals_unfold_waitWithResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_waitWithResponse [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold waitWithResponse.fields waitWithResponse.fieldsUnsealed :=
   ⟨by unfold waitWithResponse.fields; rfl⟩
 
-@[reducible] def waitWithResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def waitWithResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType waitWithResponse.fields)
 
 class waitWithResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -538,7 +537,7 @@ attribute [instance] waitWithResponse.TypeAssumptions.type_repr
 
 abbrev WaitTime [FfiSyntax] : Type := GoInterface
 
-@[reducible] def WaitTime.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WaitTime.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Trigger" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"Wait" (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))])
 
 class WaitTime.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -552,22 +551,22 @@ structure timeList [FfiSyntax] where
   lastTriggerDeadline' : w64
   m' : GoMap
 
-instance timeList.zero_val [FfiSyntax] : ZeroVal timeList :=
+noncomputable instance timeList.zero_val [FfiSyntax] : ZeroVal timeList :=
   ⟨timeList.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def timeList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def timeList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"l" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"lastTriggerDeadline" go.uint64),
 (go.field_decl.FieldDecl go!"m" (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))]
 
-@[irreducible] def timeList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def timeList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   timeList.fieldsUnsealed
 
-instance equals_unfold_timeList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_timeList [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold timeList.fields timeList.fieldsUnsealed :=
   ⟨by unfold timeList.fields; rfl⟩
 
-@[reducible] def timeList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def timeList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType timeList.fields)
 
 class timeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

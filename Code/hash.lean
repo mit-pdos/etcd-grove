@@ -9,45 +9,44 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def hash : GoString := go!"hash"
+noncomputable def hash : GoString := go!"hash"
 end pkg_id
 
 namespace hash
 
-def Hash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Hash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.Hash" [])
 
 attribute [irreducible] Hash.ty
 
-def Hash32.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Hash32.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.Hash32" [])
 
 attribute [irreducible] Hash32.ty
 
-def Hash64.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Hash64.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.Hash64" [])
 
 attribute [irreducible] Hash64.ty
 
-def Cloner.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Cloner.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.Cloner" [])
 
 attribute [irreducible] Cloner.ty
 
-def XOF.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def XOF.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.XOF" [])
 
 attribute [irreducible] XOF.ty
 
-instance info' : PkgInfo pkg_id.hash where
+noncomputable instance info' : PkgInfo pkg_id.hash where
   pkgImportedPkgs := [pkg_id.io]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -61,7 +60,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Hash [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Hash.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Hash.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"BlockSize" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Reset" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Size" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Sum" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.io.Writer.ty)])])
 
 class Hash.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -71,7 +70,7 @@ attribute [instance] Hash.TypeAssumptions.underlying
 
 abbrev Hash32 [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Hash32.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Hash32.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Sum32" (go.signature.Signature [] false [go.uint32])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Hash.ty)])])
 
 class Hash32.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -81,7 +80,7 @@ attribute [instance] Hash32.TypeAssumptions.underlying
 
 abbrev Hash64 [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Hash64.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Hash64.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Sum64" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Hash.ty)])])
 
 class Hash64.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -91,7 +90,7 @@ attribute [instance] Hash64.TypeAssumptions.underlying
 
 abbrev Cloner [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Cloner.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Cloner.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Clone" (go.signature.Signature [] false [Cloner.ty, go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Hash.ty)])])
 
 class Cloner.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -101,7 +100,7 @@ attribute [instance] Cloner.TypeAssumptions.underlying
 
 abbrev XOF [FfiSyntax] : Type := GoInterface
 
-@[reducible] def XOF.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def XOF.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"BlockSize" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Reset" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.io.Writer.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.io.Reader.ty)])])
 
 class XOF.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -20,45 +20,44 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.storage : GoString := go!"go.etcd.io/etcd/server/v3/storage"
+noncomputable def go_etcd_io.etcd.server.v3.storage : GoString := go!"go.etcd.io/etcd/server/v3/storage"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.storage
 
-def BackendHooks.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BackendHooks.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage.BackendHooks" [])
 
 attribute [irreducible] BackendHooks.ty
 
-def Quota.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Quota.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage.Quota" [])
 
 attribute [irreducible] Quota.ty
 
-def passthroughQuota.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def passthroughQuota.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage.passthroughQuota" [])
 
 attribute [irreducible] passthroughQuota.ty
 
-def BackendQuota.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BackendQuota.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage.BackendQuota" [])
 
 attribute [irreducible] BackendQuota.ty
 
-def Storage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Storage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage.Storage" [])
 
 attribute [irreducible] Storage.ty
 
-def storage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def storage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage.storage" [])
 
 attribute [irreducible] storage.ty
@@ -267,7 +266,7 @@ noncomputable def BackendHooks.SetConfState.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef BackendHooks.ty go!"confStateLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendHooks.ty)))) (Var "bh")))) (Val #())))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.github_com.Masterminds.semver.v3]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -332,24 +331,24 @@ structure BackendHooks [FfiSyntax] where
   confStateDirty' : Bool
   confStateLock' : _root_.Perennial.sync.Mutex
 
-instance BackendHooks.zero_val [FfiSyntax] : ZeroVal BackendHooks :=
+noncomputable instance BackendHooks.zero_val [FfiSyntax] : ZeroVal BackendHooks :=
   ⟨BackendHooks.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def BackendHooks.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def BackendHooks.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"indexer" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty),
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"confState" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)),
 (go.field_decl.FieldDecl go!"confStateDirty" go.bool),
 (go.field_decl.FieldDecl go!"confStateLock" _root_.Perennial.sync.Mutex.ty)]
 
-@[irreducible] def BackendHooks.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def BackendHooks.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   BackendHooks.fieldsUnsealed
 
-instance equals_unfold_BackendHooks [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_BackendHooks [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold BackendHooks.fields BackendHooks.fieldsUnsealed :=
   ⟨by unfold BackendHooks.fields; rfl⟩
 
-@[reducible] def BackendHooks.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BackendHooks.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType BackendHooks.fields)
 
 class BackendHooks.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -385,7 +384,7 @@ attribute [instance] BackendHooks.TypeAssumptions.type_repr
 
 abbrev Quota [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Quota.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Quota.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Available" (go.signature.Signature [go.any] false [go.bool])), (go.InterfaceElem.MethodElem go!"Cost" (go.signature.Signature [go.any] false [go.int])), (go.InterfaceElem.MethodElem go!"Remaining" (go.signature.Signature [] false [go.int64]))])
 
 class Quota.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -396,20 +395,20 @@ attribute [instance] Quota.TypeAssumptions.underlying
 structure passthroughQuota [FfiSyntax] where
   mk ::
 
-instance passthroughQuota.zero_val [FfiSyntax] : ZeroVal passthroughQuota :=
+noncomputable instance passthroughQuota.zero_val [FfiSyntax] : ZeroVal passthroughQuota :=
   ⟨passthroughQuota.mk⟩
 
-@[reducible] def passthroughQuota.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def passthroughQuota.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def passthroughQuota.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def passthroughQuota.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   passthroughQuota.fieldsUnsealed
 
-instance equals_unfold_passthroughQuota [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_passthroughQuota [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold passthroughQuota.fields passthroughQuota.fieldsUnsealed :=
   ⟨by unfold passthroughQuota.fields; rfl⟩
 
-@[reducible] def passthroughQuota.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def passthroughQuota.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType passthroughQuota.fields)
 
 class passthroughQuota.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -424,21 +423,21 @@ structure BackendQuota [FfiSyntax] where
   be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend
   maxBackendBytes' : w64
 
-instance BackendQuota.zero_val [FfiSyntax] : ZeroVal BackendQuota :=
+noncomputable instance BackendQuota.zero_val [FfiSyntax] : ZeroVal BackendQuota :=
   ⟨BackendQuota.mk zeroValDef zeroValDef⟩
 
-@[reducible] def BackendQuota.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def BackendQuota.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"be" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty),
 (go.field_decl.FieldDecl go!"maxBackendBytes" go.int64)]
 
-@[irreducible] def BackendQuota.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def BackendQuota.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   BackendQuota.fieldsUnsealed
 
-instance equals_unfold_BackendQuota [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_BackendQuota [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold BackendQuota.fields BackendQuota.fieldsUnsealed :=
   ⟨by unfold BackendQuota.fields; rfl⟩
 
-@[reducible] def BackendQuota.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BackendQuota.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType BackendQuota.fields)
 
 class BackendQuota.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -458,7 +457,7 @@ attribute [instance] BackendQuota.TypeAssumptions.type_repr
 
 abbrev Storage [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Storage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Storage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"MinimalEtcdVersion" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])), (go.InterfaceElem.MethodElem go!"Release" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"Save" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error])), (go.InterfaceElem.MethodElem go!"SaveSnap" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error]))])
 
 class Storage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

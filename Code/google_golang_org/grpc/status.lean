@@ -9,20 +9,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.grpc.status : GoString := go!"google.golang.org/grpc/status"
+noncomputable def google_golang_org.grpc.status : GoString := go!"google.golang.org/grpc/status"
 end pkg_id
 
 namespace google_golang_org.grpc.status
 
-@[reducible] def Status.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Status.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.grpc.internal.status.Status.ty
 
 noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
@@ -55,7 +54,7 @@ noncomputable def Code [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def FromContextError [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.FromContextError"
 
-instance info' : PkgInfo pkg_id.google_golang_org.grpc.status where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.status where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.internal.status]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

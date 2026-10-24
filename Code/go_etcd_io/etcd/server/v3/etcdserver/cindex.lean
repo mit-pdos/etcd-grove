@@ -12,35 +12,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.cindex : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/cindex"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.cindex : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/cindex"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.cindex
 
-def Backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/cindex.Backend" [])
 
 attribute [irreducible] Backend.ty
 
-def ConsistentIndexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConsistentIndexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/cindex.ConsistentIndexer" [])
 
 attribute [irreducible] ConsistentIndexer.ty
 
-def consistentIndex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def consistentIndex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/cindex.consistentIndex" [])
 
 attribute [irreducible] consistentIndex.ty
 
-def fakeConsistentIndex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fakeConsistentIndex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/cindex.fakeConsistentIndex" [])
 
 attribute [irreducible] fakeConsistentIndex.ty
@@ -401,7 +400,7 @@ noncomputable def UpdateConsistentIndexForce.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"LockOutsideApply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Val #())))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -422,7 +421,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Backend [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ReadTx" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty]))])
 
 class Backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -432,7 +431,7 @@ attribute [instance] Backend.TypeAssumptions.underlying
 
 abbrev ConsistentIndexer [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ConsistentIndexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConsistentIndexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ConsistentApplyingIndex" (go.signature.Signature [] false [go.uint64, go.uint64])), (go.InterfaceElem.MethodElem go!"ConsistentIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"SetBackend" (go.signature.Signature [Backend.ty] false [])), (go.InterfaceElem.MethodElem go!"SetConsistentApplyingIndex" (go.signature.Signature [go.uint64, go.uint64] false [])), (go.InterfaceElem.MethodElem go!"SetConsistentIndex" (go.signature.Signature [go.uint64, go.uint64] false [])), (go.InterfaceElem.MethodElem go!"UnsafeConsistentIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"UnsafeSave" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false []))])
 
 class ConsistentIndexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -449,10 +448,10 @@ structure consistentIndex [FfiSyntax] where
   be' : Backend
   mutex' : _root_.Perennial.sync.Mutex
 
-instance consistentIndex.zero_val [FfiSyntax] : ZeroVal consistentIndex :=
+noncomputable instance consistentIndex.zero_val [FfiSyntax] : ZeroVal consistentIndex :=
   ⟨consistentIndex.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def consistentIndex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def consistentIndex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"consistentIndex" go.uint64),
 (go.field_decl.FieldDecl go!"term" go.uint64),
 (go.field_decl.FieldDecl go!"applyingIndex" go.uint64),
@@ -460,14 +459,14 @@ instance consistentIndex.zero_val [FfiSyntax] : ZeroVal consistentIndex :=
 (go.field_decl.FieldDecl go!"be" Backend.ty),
 (go.field_decl.FieldDecl go!"mutex" _root_.Perennial.sync.Mutex.ty)]
 
-@[irreducible] def consistentIndex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def consistentIndex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   consistentIndex.fieldsUnsealed
 
-instance equals_unfold_consistentIndex [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_consistentIndex [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold consistentIndex.fields consistentIndex.fieldsUnsealed :=
   ⟨by unfold consistentIndex.fields; rfl⟩
 
-@[reducible] def consistentIndex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def consistentIndex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType consistentIndex.fields)
 
 class consistentIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -520,21 +519,21 @@ structure fakeConsistentIndex [FfiSyntax] where
   index' : w64
   term' : w64
 
-instance fakeConsistentIndex.zero_val [FfiSyntax] : ZeroVal fakeConsistentIndex :=
+noncomputable instance fakeConsistentIndex.zero_val [FfiSyntax] : ZeroVal fakeConsistentIndex :=
   ⟨fakeConsistentIndex.mk zeroValDef zeroValDef⟩
 
-@[reducible] def fakeConsistentIndex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def fakeConsistentIndex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"index" go.uint64),
 (go.field_decl.FieldDecl go!"term" go.uint64)]
 
-@[irreducible] def fakeConsistentIndex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def fakeConsistentIndex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   fakeConsistentIndex.fieldsUnsealed
 
-instance equals_unfold_fakeConsistentIndex [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_fakeConsistentIndex [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold fakeConsistentIndex.fields fakeConsistentIndex.fieldsUnsealed :=
   ⟨by unfold fakeConsistentIndex.fields; rfl⟩
 
-@[reducible] def fakeConsistentIndex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def fakeConsistentIndex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType fakeConsistentIndex.fields)
 
 class fakeConsistentIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
