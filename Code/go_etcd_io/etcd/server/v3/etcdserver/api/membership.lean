@@ -15,85 +15,84 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.api.membership : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.api.membership : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
-def RaftCluster.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaftCluster.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.RaftCluster" [])
 
 attribute [irreducible] RaftCluster.ty
 
-def ConfigChangeContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfigChangeContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ConfigChangeContext" [])
 
 attribute [irreducible] ConfigChangeContext.ty
 
-def ShouldApplyV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ShouldApplyV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ShouldApplyV3" [])
 
 attribute [irreducible] ShouldApplyV3.ty
 
-def ClusterOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ClusterOptions" [])
 
 attribute [irreducible] ClusterOptions.ty
 
-def ClusterOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ClusterOption" [])
 
 attribute [irreducible] ClusterOption.ty
 
-def RaftAttributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaftAttributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.RaftAttributes" [])
 
 attribute [irreducible] RaftAttributes.ty
 
-def Attributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Attributes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Attributes" [])
 
 attribute [irreducible] Attributes.ty
 
-def Member.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Member.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" [])
 
 attribute [irreducible] Member.ty
 
-def MembersByID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MembersByID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.MembersByID" [])
 
 attribute [irreducible] MembersByID.ty
 
-def MembersByPeerURLs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MembersByPeerURLs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.MembersByPeerURLs" [])
 
 attribute [irreducible] MembersByPeerURLs.ty
 
-def MembershipBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MembershipBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.MembershipBackend" [])
 
 attribute [irreducible] MembershipBackend.ty
 
-def ClusterVersionBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClusterVersionBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ClusterVersionBackend" [])
 
 attribute [irreducible] ClusterVersionBackend.ty
 
-def MemberBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MemberBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.MemberBackend" [])
 
 attribute [irreducible] MemberBackend.ty
 
-def DowngradeInfoBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DowngradeInfoBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.DowngradeInfoBackend" [])
 
 attribute [irreducible] DowngradeInfoBackend.ty
@@ -416,7 +415,7 @@ noncomputable def MembersByID.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership where
   pkgImportedPkgs := [pkg_id.sort, pkg_id.sync, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -484,7 +483,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev MembershipBackend [FfiSyntax] : Type := GoInterface
 
-@[reducible] def MembershipBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MembershipBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MustCreateBackendBuckets" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ClusterVersionBackend.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm MemberBackend.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm DowngradeInfoBackend.ty)])])
 
 class MembershipBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -506,10 +505,10 @@ structure RaftCluster [FfiSyntax] where
   maxLearners' : w64
   versionChanged' : Loc
 
-instance RaftCluster.zero_val [FfiSyntax] : ZeroVal RaftCluster :=
+noncomputable instance RaftCluster.zero_val [FfiSyntax] : ZeroVal RaftCluster :=
   ⟨RaftCluster.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def RaftCluster.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RaftCluster.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"cid" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
@@ -522,14 +521,14 @@ instance RaftCluster.zero_val [FfiSyntax] : ZeroVal RaftCluster :=
 (go.field_decl.FieldDecl go!"maxLearners" go.int),
 (go.field_decl.FieldDecl go!"versionChanged" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty))]
 
-@[irreducible] def RaftCluster.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RaftCluster.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   RaftCluster.fieldsUnsealed
 
-instance equals_unfold_RaftCluster [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RaftCluster [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold RaftCluster.fields RaftCluster.fieldsUnsealed :=
   ⟨by unfold RaftCluster.fields; rfl⟩
 
-@[reducible] def RaftCluster.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RaftCluster.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RaftCluster.fields)
 
 class RaftCluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -600,21 +599,21 @@ structure RaftAttributes [FfiSyntax] where
   PeerURLs' : GoSlice
   IsLearner' : Bool
 
-instance RaftAttributes.zero_val [FfiSyntax] : ZeroVal RaftAttributes :=
+noncomputable instance RaftAttributes.zero_val [FfiSyntax] : ZeroVal RaftAttributes :=
   ⟨RaftAttributes.mk zeroValDef zeroValDef⟩
 
-@[reducible] def RaftAttributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RaftAttributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"PeerURLs" (go.GoType.SliceType go.string)),
 (go.field_decl.FieldDecl go!"IsLearner" go.bool)]
 
-@[irreducible] def RaftAttributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RaftAttributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   RaftAttributes.fieldsUnsealed
 
-instance equals_unfold_RaftAttributes [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RaftAttributes [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold RaftAttributes.fields RaftAttributes.fieldsUnsealed :=
   ⟨by unfold RaftAttributes.fields; rfl⟩
 
-@[reducible] def RaftAttributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RaftAttributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RaftAttributes.fields)
 
 class RaftAttributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -637,21 +636,21 @@ structure Attributes [FfiSyntax] where
   Name' : GoString
   ClientURLs' : GoSlice
 
-instance Attributes.zero_val [FfiSyntax] : ZeroVal Attributes :=
+noncomputable instance Attributes.zero_val [FfiSyntax] : ZeroVal Attributes :=
   ⟨Attributes.mk zeroValDef zeroValDef⟩
 
-@[reducible] def Attributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Attributes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"ClientURLs" (go.GoType.SliceType go.string))]
 
-@[irreducible] def Attributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Attributes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Attributes.fieldsUnsealed
 
-instance equals_unfold_Attributes [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Attributes [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Attributes.fields Attributes.fieldsUnsealed :=
   ⟨by unfold Attributes.fields; rfl⟩
 
-@[reducible] def Attributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Attributes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Attributes.fields)
 
 class Attributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -675,22 +674,22 @@ structure Member [FfiSyntax] where
   RaftAttributes' : RaftAttributes
   Attributes' : Attributes
 
-instance Member.zero_val [FfiSyntax] : ZeroVal Member :=
+noncomputable instance Member.zero_val [FfiSyntax] : ZeroVal Member :=
   ⟨Member.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Member.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Member.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.EmbeddedField go!"RaftAttributes" RaftAttributes.ty),
 (go.field_decl.EmbeddedField go!"Attributes" Attributes.ty)]
 
-@[irreducible] def Member.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Member.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Member.fieldsUnsealed
 
-instance equals_unfold_Member [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Member [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Member.fields Member.fieldsUnsealed :=
   ⟨by unfold Member.fields; rfl⟩
 
-@[reducible] def Member.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Member.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Member.fields)
 
 class Member.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -719,21 +718,21 @@ structure ConfigChangeContext [FfiSyntax] where
   Member' : Member
   IsPromote' : Bool
 
-instance ConfigChangeContext.zero_val [FfiSyntax] : ZeroVal ConfigChangeContext :=
+noncomputable instance ConfigChangeContext.zero_val [FfiSyntax] : ZeroVal ConfigChangeContext :=
   ⟨ConfigChangeContext.mk zeroValDef zeroValDef⟩
 
-@[reducible] def ConfigChangeContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfigChangeContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Member" Member.ty),
 (go.field_decl.FieldDecl go!"IsPromote" go.bool)]
 
-@[irreducible] def ConfigChangeContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfigChangeContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ConfigChangeContext.fieldsUnsealed
 
-instance equals_unfold_ConfigChangeContext [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfigChangeContext [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ConfigChangeContext.fields ConfigChangeContext.fieldsUnsealed :=
   ⟨by unfold ConfigChangeContext.fields; rfl⟩
 
-@[reducible] def ConfigChangeContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfigChangeContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfigChangeContext.fields)
 
 class ConfigChangeContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -753,7 +752,7 @@ attribute [instance] ConfigChangeContext.TypeAssumptions.type_repr
 
 abbrev ShouldApplyV3 [FfiSyntax] : Type := Bool
 
-@[reducible] def ShouldApplyV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ShouldApplyV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.bool
 
 class ShouldApplyV3.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -765,20 +764,20 @@ structure ClusterOptions [FfiSyntax] where
   mk ::
   maxLearners' : w64
 
-instance ClusterOptions.zero_val [FfiSyntax] : ZeroVal ClusterOptions :=
+noncomputable instance ClusterOptions.zero_val [FfiSyntax] : ZeroVal ClusterOptions :=
   ⟨ClusterOptions.mk zeroValDef⟩
 
-@[reducible] def ClusterOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ClusterOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"maxLearners" go.int)]
 
-@[irreducible] def ClusterOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ClusterOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ClusterOptions.fieldsUnsealed
 
-instance equals_unfold_ClusterOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ClusterOptions [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ClusterOptions.fields ClusterOptions.fieldsUnsealed :=
   ⟨by unfold ClusterOptions.fields; rfl⟩
 
-@[reducible] def ClusterOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClusterOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClusterOptions.fields)
 
 class ClusterOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -794,7 +793,7 @@ attribute [instance] ClusterOptions.TypeAssumptions.type_repr
 
 abbrev ClusterOption [FfiSyntax] : Type := GoFunc
 
-@[reducible] def ClusterOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClusterOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType ClusterOptions.ty)] false []))
 
 class ClusterOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -804,7 +803,7 @@ attribute [instance] ClusterOption.TypeAssumptions.underlying
 
 abbrev MembersByID [FfiSyntax] : Type := GoSlice
 
-@[reducible] def MembersByID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MembersByID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType Member.ty))
 
 class MembersByID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -829,7 +828,7 @@ attribute [instance] MembersByID.TypeAssumptions.underlying
 
 abbrev MembersByPeerURLs [FfiSyntax] : Type := GoSlice
 
-@[reducible] def MembersByPeerURLs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MembersByPeerURLs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType Member.ty))
 
 class MembersByPeerURLs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -839,7 +838,7 @@ attribute [instance] MembersByPeerURLs.TypeAssumptions.underlying
 
 abbrev ClusterVersionBackend [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ClusterVersionBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClusterVersionBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ClusterVersionFromBackend" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])), (go.InterfaceElem.MethodElem go!"MustSaveClusterVersionToBackend" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)] false []))])
 
 class ClusterVersionBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -849,7 +848,7 @@ attribute [instance] ClusterVersionBackend.TypeAssumptions.underlying
 
 abbrev MemberBackend [FfiSyntax] : Type := GoInterface
 
-@[reducible] def MemberBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MemberBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MustDeleteMemberFromBackend" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [])), (go.InterfaceElem.MethodElem go!"MustReadMembersFromBackend" (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty)), (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)])), (go.InterfaceElem.MethodElem go!"MustSaveMemberToBackend" (go.signature.Signature [(go.GoType.PointerType Member.ty)] false [])), (go.InterfaceElem.MethodElem go!"TrimMembershipFromBackend" (go.signature.Signature [] false [go.error]))])
 
 class MemberBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -859,7 +858,7 @@ attribute [instance] MemberBackend.TypeAssumptions.underlying
 
 abbrev DowngradeInfoBackend [FfiSyntax] : Type := GoInterface
 
-@[reducible] def DowngradeInfoBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DowngradeInfoBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DowngradeInfoFromBackend" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)])), (go.InterfaceElem.MethodElem go!"MustSaveDowngradeToBackend" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty)] false []))])
 
 class DowngradeInfoBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

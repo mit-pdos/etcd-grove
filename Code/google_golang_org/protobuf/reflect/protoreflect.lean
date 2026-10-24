@@ -9,322 +9,321 @@ public import TrustedCode.google_golang_org.protobuf.reflect.protoreflect
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.protobuf.reflect.protoreflect : GoString := go!"google.golang.org/protobuf/reflect/protoreflect"
+noncomputable def google_golang_org.protobuf.reflect.protoreflect : GoString := go!"google.golang.org/protobuf/reflect/protoreflect"
 end pkg_id
 
 namespace google_golang_org.protobuf.reflect.protoreflect
 
-def doNotImplement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def doNotImplement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.doNotImplement" [])
 
 attribute [irreducible] doNotImplement.ty
 
-def ProtoMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProtoMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" [])
 
 attribute [irreducible] ProtoMessage.ty
 
-def Syntax.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Syntax.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Syntax" [])
 
 attribute [irreducible] Syntax.ty
 
-def «syntax».ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def «syntax».ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.syntax" [])
 
 attribute [irreducible] «syntax».ty
 
-def Cardinality.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Cardinality.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Cardinality" [])
 
 attribute [irreducible] Cardinality.ty
 
-def cardinality.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cardinality.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.cardinality" [])
 
 attribute [irreducible] cardinality.ty
 
-def Kind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Kind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Kind" [])
 
 attribute [irreducible] Kind.ty
 
-def kind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.kind" [])
 
 attribute [irreducible] kind.ty
 
-def FieldNumbers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FieldNumbers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FieldNumbers" [])
 
 attribute [irreducible] FieldNumbers.ty
 
-def FieldRanges.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FieldRanges.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FieldRanges" [])
 
 attribute [irreducible] FieldRanges.ty
 
-def EnumNumber.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnumNumber.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])
 
 attribute [irreducible] EnumNumber.ty
 
-def EnumRanges.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnumRanges.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumRanges" [])
 
 attribute [irreducible] EnumRanges.ty
 
-def Name.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Name.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Name" [])
 
 attribute [irreducible] Name.ty
 
-def Names.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Names.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Names" [])
 
 attribute [irreducible] Names.ty
 
-def FullName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FullName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FullName" [])
 
 attribute [irreducible] FullName.ty
 
-def SourceLocations.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SourceLocations.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.SourceLocations" [])
 
 attribute [irreducible] SourceLocations.ty
 
-def SourceLocation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SourceLocation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.SourceLocation" [])
 
 attribute [irreducible] SourceLocation.ty
 
-def SourcePath.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SourcePath.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.SourcePath" [])
 
 attribute [irreducible] SourcePath.ty
 
-def appendFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def appendFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.appendFunc" [])
 
 attribute [irreducible] appendFunc.ty
 
-def Descriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Descriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Descriptor" [])
 
 attribute [irreducible] Descriptor.ty
 
-def FileDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FileDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FileDescriptor" [])
 
 attribute [irreducible] FileDescriptor.ty
 
-def isFileDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def isFileDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.isFileDescriptor" [])
 
 attribute [irreducible] isFileDescriptor.ty
 
-def FileImports.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FileImports.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FileImports" [])
 
 attribute [irreducible] FileImports.ty
 
-def FileImport.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FileImport.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FileImport" [])
 
 attribute [irreducible] FileImport.ty
 
-def MessageDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.MessageDescriptor" [])
 
 attribute [irreducible] MessageDescriptor.ty
 
-def isMessageDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def isMessageDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.isMessageDescriptor" [])
 
 attribute [irreducible] isMessageDescriptor.ty
 
-def MessageType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.MessageType" [])
 
 attribute [irreducible] MessageType.ty
 
-def MessageFieldTypes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageFieldTypes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.MessageFieldTypes" [])
 
 attribute [irreducible] MessageFieldTypes.ty
 
-def MessageDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.MessageDescriptors" [])
 
 attribute [irreducible] MessageDescriptors.ty
 
-def FieldDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FieldDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FieldDescriptor" [])
 
 attribute [irreducible] FieldDescriptor.ty
 
-def isFieldDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def isFieldDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.isFieldDescriptor" [])
 
 attribute [irreducible] isFieldDescriptor.ty
 
-def FieldDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FieldDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FieldDescriptors" [])
 
 attribute [irreducible] FieldDescriptors.ty
 
-def OneofDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OneofDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.OneofDescriptor" [])
 
 attribute [irreducible] OneofDescriptor.ty
 
-def isOneofDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def isOneofDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.isOneofDescriptor" [])
 
 attribute [irreducible] isOneofDescriptor.ty
 
-def OneofDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OneofDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.OneofDescriptors" [])
 
 attribute [irreducible] OneofDescriptors.ty
 
-def ExtensionTypeDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionTypeDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ExtensionTypeDescriptor" [])
 
 attribute [irreducible] ExtensionTypeDescriptor.ty
 
-def ExtensionDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ExtensionDescriptors" [])
 
 attribute [irreducible] ExtensionDescriptors.ty
 
-def ExtensionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ExtensionType" [])
 
 attribute [irreducible] ExtensionType.ty
 
-def EnumDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnumDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])
 
 attribute [irreducible] EnumDescriptor.ty
 
-def isEnumDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def isEnumDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.isEnumDescriptor" [])
 
 attribute [irreducible] isEnumDescriptor.ty
 
-def EnumType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnumType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])
 
 attribute [irreducible] EnumType.ty
 
-def EnumDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnumDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptors" [])
 
 attribute [irreducible] EnumDescriptors.ty
 
-def EnumValueDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnumValueDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumValueDescriptor" [])
 
 attribute [irreducible] EnumValueDescriptor.ty
 
-def isEnumValueDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def isEnumValueDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.isEnumValueDescriptor" [])
 
 attribute [irreducible] isEnumValueDescriptor.ty
 
-def EnumValueDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnumValueDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumValueDescriptors" [])
 
 attribute [irreducible] EnumValueDescriptors.ty
 
-def ServiceDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ServiceDescriptor" [])
 
 attribute [irreducible] ServiceDescriptor.ty
 
-def isServiceDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def isServiceDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.isServiceDescriptor" [])
 
 attribute [irreducible] isServiceDescriptor.ty
 
-def ServiceDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ServiceDescriptors" [])
 
 attribute [irreducible] ServiceDescriptors.ty
 
-def MethodDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MethodDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.MethodDescriptor" [])
 
 attribute [irreducible] MethodDescriptor.ty
 
-def isMethodDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def isMethodDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.isMethodDescriptor" [])
 
 attribute [irreducible] isMethodDescriptor.ty
 
-def MethodDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MethodDescriptors.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.MethodDescriptors" [])
 
 attribute [irreducible] MethodDescriptors.ty
 
-def Enum.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Enum.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Enum" [])
 
 attribute [irreducible] Enum.ty
 
-def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])
 
 attribute [irreducible] Message.ty
 
-def RawFields.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RawFields.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.RawFields" [])
 
 attribute [irreducible] RawFields.ty
 
-def List'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def List'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.List" [])
 
 attribute [irreducible] List'.ty
 
-def Map.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Map.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Map" [])
 
 attribute [irreducible] Map.ty
 
-def Value.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Value.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Value" [])
 
 attribute [irreducible] Value.ty
 
-def MapKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MapKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.MapKey" [])
 
 attribute [irreducible] MapKey.ty
 
-def ifaceHeader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ifaceHeader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ifaceHeader" [])
 
 attribute [irreducible] ifaceHeader.ty
 
-def value.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def value.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.value" [])
 
 attribute [irreducible] value.ty
 
 axiom methods [FfiSyntax] [GoGlobalContext] : go.GoType
 
-@[reducible] def supportFlags.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def supportFlags.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint64
 
 axiom sizeInput [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -363,7 +362,7 @@ axiom FieldDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom FieldDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-@[reducible] def ExtensionDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ExtensionDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   FieldDescriptor.ty
 
 axiom Message.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -532,7 +531,7 @@ noncomputable def valueOfBytes [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def valueOfIface [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.valueOfIface"
 
-instance info' : PkgInfo pkg_id.google_golang_org.protobuf.reflect.protoreflect where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.reflect.protoreflect where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -589,7 +588,7 @@ attribute [instance] doNotImplement.TypeAssumptions.type_repr
 
 abbrev ProtoMessage [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ProtoMessage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ProtoMessage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoReflect" (go.signature.Signature [] false [Message.ty]))])
 
 class ProtoMessage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -599,7 +598,7 @@ attribute [instance] ProtoMessage.TypeAssumptions.underlying
 
 abbrev «syntax» [FfiSyntax] : Type := w8
 
-@[reducible] def «syntax».underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def «syntax».underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int8
 
 class «syntax».TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -609,7 +608,7 @@ attribute [instance] «syntax».TypeAssumptions.underlying
 
 abbrev Syntax [FfiSyntax] : Type := «syntax»
 
-@[reducible] def Syntax.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Syntax.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   «syntax».ty
 
 class Syntax.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -619,7 +618,7 @@ attribute [instance] Syntax.TypeAssumptions.underlying
 
 abbrev cardinality [FfiSyntax] : Type := w8
 
-@[reducible] def cardinality.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def cardinality.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int8
 
 class cardinality.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -629,7 +628,7 @@ attribute [instance] cardinality.TypeAssumptions.underlying
 
 abbrev Cardinality [FfiSyntax] : Type := cardinality
 
-@[reducible] def Cardinality.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Cardinality.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   cardinality.ty
 
 class Cardinality.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -639,7 +638,7 @@ attribute [instance] Cardinality.TypeAssumptions.underlying
 
 abbrev kind [FfiSyntax] : Type := w8
 
-@[reducible] def kind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int8
 
 class kind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -649,7 +648,7 @@ attribute [instance] kind.TypeAssumptions.underlying
 
 abbrev Kind [FfiSyntax] : Type := kind
 
-@[reducible] def Kind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Kind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   kind.ty
 
 class Kind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -685,7 +684,7 @@ attribute [instance] FieldRanges.TypeAssumptions.type_repr
 
 abbrev EnumNumber [FfiSyntax] : Type := w32
 
-@[reducible] def EnumNumber.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnumNumber.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
 class EnumNumber.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -695,7 +694,7 @@ attribute [instance] EnumNumber.TypeAssumptions.underlying
 
 abbrev EnumRanges [FfiSyntax] : Type := GoInterface
 
-@[reducible] def EnumRanges.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnumRanges.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [(go.GoType.ArrayType 2 EnumNumber.ty)])), (go.InterfaceElem.MethodElem go!"Has" (go.signature.Signature [EnumNumber.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class EnumRanges.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -705,7 +704,7 @@ attribute [instance] EnumRanges.TypeAssumptions.underlying
 
 abbrev Name [FfiSyntax] : Type := GoString
 
-@[reducible] def Name.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Name.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class Name.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -715,7 +714,7 @@ attribute [instance] Name.TypeAssumptions.underlying
 
 abbrev Names [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Names.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Names.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [Name.ty])), (go.InterfaceElem.MethodElem go!"Has" (go.signature.Signature [Name.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class Names.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -725,7 +724,7 @@ attribute [instance] Names.TypeAssumptions.underlying
 
 abbrev FullName [FfiSyntax] : Type := GoString
 
-@[reducible] def FullName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FullName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class FullName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -735,7 +734,7 @@ attribute [instance] FullName.TypeAssumptions.underlying
 
 abbrev SourceLocations [FfiSyntax] : Type := GoInterface
 
-@[reducible] def SourceLocations.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SourceLocations.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ByDescriptor" (go.signature.Signature [Descriptor.ty] false [SourceLocation.ty])), (go.InterfaceElem.MethodElem go!"ByPath" (go.signature.Signature [SourcePath.ty] false [SourceLocation.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [SourceLocation.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class SourceLocations.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -745,7 +744,7 @@ attribute [instance] SourceLocations.TypeAssumptions.underlying
 
 abbrev SourcePath [FfiSyntax] : Type := GoSlice
 
-@[reducible] def SourcePath.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SourcePath.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.int32)
 
 class SourcePath.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -765,10 +764,10 @@ structure SourceLocation [FfiSyntax] where
   TrailingComments' : GoString
   Next' : w64
 
-instance SourceLocation.zero_val [FfiSyntax] : ZeroVal SourceLocation :=
+noncomputable instance SourceLocation.zero_val [FfiSyntax] : ZeroVal SourceLocation :=
   ⟨SourceLocation.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def SourceLocation.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SourceLocation.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Path" SourcePath.ty),
 (go.field_decl.FieldDecl go!"StartLine" go.int),
 (go.field_decl.FieldDecl go!"StartColumn" go.int),
@@ -779,14 +778,14 @@ instance SourceLocation.zero_val [FfiSyntax] : ZeroVal SourceLocation :=
 (go.field_decl.FieldDecl go!"TrailingComments" go.string),
 (go.field_decl.FieldDecl go!"Next" go.int)]
 
-@[irreducible] def SourceLocation.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SourceLocation.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   SourceLocation.fieldsUnsealed
 
-instance equals_unfold_SourceLocation [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SourceLocation [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold SourceLocation.fields SourceLocation.fieldsUnsealed :=
   ⟨by unfold SourceLocation.fields; rfl⟩
 
-@[reducible] def SourceLocation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SourceLocation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SourceLocation.fields)
 
 class SourceLocation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -834,7 +833,7 @@ attribute [instance] SourceLocation.TypeAssumptions.type_repr
 
 abbrev appendFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def appendFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def appendFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType SourcePath.ty), (go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))
 
 class appendFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -844,7 +843,7 @@ attribute [instance] appendFunc.TypeAssumptions.underlying
 
 abbrev Descriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Descriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Descriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"FullName" (go.signature.Signature [] false [FullName.ty])), (go.InterfaceElem.MethodElem go!"Index" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"IsPlaceholder" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Name" (go.signature.Signature [] false [Name.ty])), (go.InterfaceElem.MethodElem go!"Options" (go.signature.Signature [] false [ProtoMessage.ty])), (go.InterfaceElem.MethodElem go!"Parent" (go.signature.Signature [] false [Descriptor.ty])), (go.InterfaceElem.MethodElem go!"ParentFile" (go.signature.Signature [] false [FileDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Syntax" (go.signature.Signature [] false [Syntax.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class Descriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -854,7 +853,7 @@ attribute [instance] Descriptor.TypeAssumptions.underlying
 
 abbrev FileDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def FileDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FileDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Enums" (go.signature.Signature [] false [EnumDescriptors.ty])), (go.InterfaceElem.MethodElem go!"Extensions" (go.signature.Signature [] false [ExtensionDescriptors.ty])), (go.InterfaceElem.MethodElem go!"Imports" (go.signature.Signature [] false [FileImports.ty])), (go.InterfaceElem.MethodElem go!"Messages" (go.signature.Signature [] false [MessageDescriptors.ty])), (go.InterfaceElem.MethodElem go!"Package" (go.signature.Signature [] false [FullName.ty])), (go.InterfaceElem.MethodElem go!"Path" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"Services" (go.signature.Signature [] false [ServiceDescriptors.ty])), (go.InterfaceElem.MethodElem go!"SourceLocations" (go.signature.Signature [] false [SourceLocations.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Descriptor.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm isFileDescriptor.ty)])])
 
 class FileDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -864,7 +863,7 @@ attribute [instance] FileDescriptor.TypeAssumptions.underlying
 
 abbrev isFileDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def isFileDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def isFileDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [FileDescriptor.ty] false []))])
 
 class isFileDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -874,7 +873,7 @@ attribute [instance] isFileDescriptor.TypeAssumptions.underlying
 
 abbrev FileImports [FfiSyntax] : Type := GoInterface
 
-@[reducible] def FileImports.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FileImports.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [FileImport.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class FileImports.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -888,22 +887,22 @@ structure FileImport [FfiSyntax] where
   IsPublic' : Bool
   IsWeak' : Bool
 
-instance FileImport.zero_val [FfiSyntax] : ZeroVal FileImport :=
+noncomputable instance FileImport.zero_val [FfiSyntax] : ZeroVal FileImport :=
   ⟨FileImport.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def FileImport.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FileImport.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"FileDescriptor" FileDescriptor.ty),
 (go.field_decl.FieldDecl go!"IsPublic" go.bool),
 (go.field_decl.FieldDecl go!"IsWeak" go.bool)]
 
-@[irreducible] def FileImport.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FileImport.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   FileImport.fieldsUnsealed
 
-instance equals_unfold_FileImport [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FileImport [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold FileImport.fields FileImport.fieldsUnsealed :=
   ⟨by unfold FileImport.fields; rfl⟩
 
-@[reducible] def FileImport.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FileImport.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FileImport.fields)
 
 class FileImport.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -927,7 +926,7 @@ attribute [instance] FileImport.TypeAssumptions.type_repr
 
 abbrev MessageDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def MessageDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Enums" (go.signature.Signature [] false [EnumDescriptors.ty])), (go.InterfaceElem.MethodElem go!"ExtensionRangeOptions" (go.signature.Signature [go.int] false [ProtoMessage.ty])), (go.InterfaceElem.MethodElem go!"ExtensionRanges" (go.signature.Signature [] false [FieldRanges.ty])), (go.InterfaceElem.MethodElem go!"Extensions" (go.signature.Signature [] false [ExtensionDescriptors.ty])), (go.InterfaceElem.MethodElem go!"Fields" (go.signature.Signature [] false [FieldDescriptors.ty])), (go.InterfaceElem.MethodElem go!"IsMapEntry" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Messages" (go.signature.Signature [] false [MessageDescriptors.ty])), (go.InterfaceElem.MethodElem go!"Oneofs" (go.signature.Signature [] false [OneofDescriptors.ty])), (go.InterfaceElem.MethodElem go!"RequiredNumbers" (go.signature.Signature [] false [FieldNumbers.ty])), (go.InterfaceElem.MethodElem go!"ReservedNames" (go.signature.Signature [] false [Names.ty])), (go.InterfaceElem.MethodElem go!"ReservedRanges" (go.signature.Signature [] false [FieldRanges.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Descriptor.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm isMessageDescriptor.ty)])])
 
 class MessageDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -937,7 +936,7 @@ attribute [instance] MessageDescriptor.TypeAssumptions.underlying
 
 abbrev isMessageDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def isMessageDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def isMessageDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [MessageDescriptor.ty] false []))])
 
 class isMessageDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -947,7 +946,7 @@ attribute [instance] isMessageDescriptor.TypeAssumptions.underlying
 
 abbrev MessageType [FfiSyntax] : Type := GoInterface
 
-@[reducible] def MessageType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Descriptor" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"New" (go.signature.Signature [] false [Message.ty])), (go.InterfaceElem.MethodElem go!"Zero" (go.signature.Signature [] false [Message.ty]))])
 
 class MessageType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -957,7 +956,7 @@ attribute [instance] MessageType.TypeAssumptions.underlying
 
 abbrev MessageFieldTypes [FfiSyntax] : Type := GoInterface
 
-@[reducible] def MessageFieldTypes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageFieldTypes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Enum" (go.signature.Signature [go.int] false [EnumType.ty])), (go.InterfaceElem.MethodElem go!"Message" (go.signature.Signature [go.int] false [MessageType.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm MessageType.ty)])])
 
 class MessageFieldTypes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -967,7 +966,7 @@ attribute [instance] MessageFieldTypes.TypeAssumptions.underlying
 
 abbrev MessageDescriptors [FfiSyntax] : Type := GoInterface
 
-@[reducible] def MessageDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ByName" (go.signature.Signature [Name.ty] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class MessageDescriptors.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -990,7 +989,7 @@ attribute [instance] FieldDescriptor.TypeAssumptions.type_repr
 
 abbrev isFieldDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def isFieldDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def isFieldDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [FieldDescriptor.ty] false []))])
 
 class isFieldDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1013,7 +1012,7 @@ attribute [instance] FieldDescriptors.TypeAssumptions.type_repr
 
 abbrev OneofDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def OneofDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def OneofDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Fields" (go.signature.Signature [] false [FieldDescriptors.ty])), (go.InterfaceElem.MethodElem go!"IsSynthetic" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Descriptor.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm isOneofDescriptor.ty)])])
 
 class OneofDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1023,7 +1022,7 @@ attribute [instance] OneofDescriptor.TypeAssumptions.underlying
 
 abbrev isOneofDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def isOneofDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def isOneofDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [OneofDescriptor.ty] false []))])
 
 class isOneofDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1033,7 +1032,7 @@ attribute [instance] isOneofDescriptor.TypeAssumptions.underlying
 
 abbrev OneofDescriptors [FfiSyntax] : Type := GoInterface
 
-@[reducible] def OneofDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def OneofDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ByName" (go.signature.Signature [Name.ty] false [OneofDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [OneofDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class OneofDescriptors.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1043,7 +1042,7 @@ attribute [instance] OneofDescriptors.TypeAssumptions.underlying
 
 abbrev ExtensionTypeDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ExtensionTypeDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ExtensionTypeDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Descriptor" (go.signature.Signature [] false [ExtensionDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Type" (go.signature.Signature [] false [ExtensionType.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ExtensionDescriptor.ty)])])
 
 class ExtensionTypeDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1053,7 +1052,7 @@ attribute [instance] ExtensionTypeDescriptor.TypeAssumptions.underlying
 
 abbrev ExtensionDescriptors [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ExtensionDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ExtensionDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ByName" (go.signature.Signature [Name.ty] false [ExtensionDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [ExtensionDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class ExtensionDescriptors.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1063,7 +1062,7 @@ attribute [instance] ExtensionDescriptors.TypeAssumptions.underlying
 
 abbrev ExtensionType [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ExtensionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ExtensionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"InterfaceOf" (go.signature.Signature [Value.ty] false [go.any])), (go.InterfaceElem.MethodElem go!"IsValidInterface" (go.signature.Signature [go.any] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsValidValue" (go.signature.Signature [Value.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"New" (go.signature.Signature [] false [Value.ty])), (go.InterfaceElem.MethodElem go!"TypeDescriptor" (go.signature.Signature [] false [ExtensionTypeDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ValueOf" (go.signature.Signature [go.any] false [Value.ty])), (go.InterfaceElem.MethodElem go!"Zero" (go.signature.Signature [] false [Value.ty]))])
 
 class ExtensionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1073,7 +1072,7 @@ attribute [instance] ExtensionType.TypeAssumptions.underlying
 
 abbrev EnumDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def EnumDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnumDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"IsClosed" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"ReservedNames" (go.signature.Signature [] false [Names.ty])), (go.InterfaceElem.MethodElem go!"ReservedRanges" (go.signature.Signature [] false [EnumRanges.ty])), (go.InterfaceElem.MethodElem go!"Values" (go.signature.Signature [] false [EnumValueDescriptors.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Descriptor.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm isEnumDescriptor.ty)])])
 
 class EnumDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1083,7 +1082,7 @@ attribute [instance] EnumDescriptor.TypeAssumptions.underlying
 
 abbrev isEnumDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def isEnumDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def isEnumDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [EnumDescriptor.ty] false []))])
 
 class isEnumDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1093,7 +1092,7 @@ attribute [instance] isEnumDescriptor.TypeAssumptions.underlying
 
 abbrev EnumType [FfiSyntax] : Type := GoInterface
 
-@[reducible] def EnumType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnumType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Descriptor" (go.signature.Signature [] false [EnumDescriptor.ty])), (go.InterfaceElem.MethodElem go!"New" (go.signature.Signature [EnumNumber.ty] false [Enum.ty]))])
 
 class EnumType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1103,7 +1102,7 @@ attribute [instance] EnumType.TypeAssumptions.underlying
 
 abbrev EnumDescriptors [FfiSyntax] : Type := GoInterface
 
-@[reducible] def EnumDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnumDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ByName" (go.signature.Signature [Name.ty] false [EnumDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [EnumDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class EnumDescriptors.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1113,7 +1112,7 @@ attribute [instance] EnumDescriptors.TypeAssumptions.underlying
 
 abbrev EnumValueDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def EnumValueDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnumValueDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Number" (go.signature.Signature [] false [EnumNumber.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Descriptor.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm isEnumValueDescriptor.ty)])])
 
 class EnumValueDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1123,7 +1122,7 @@ attribute [instance] EnumValueDescriptor.TypeAssumptions.underlying
 
 abbrev isEnumValueDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def isEnumValueDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def isEnumValueDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [EnumValueDescriptor.ty] false []))])
 
 class isEnumValueDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1133,7 +1132,7 @@ attribute [instance] isEnumValueDescriptor.TypeAssumptions.underlying
 
 abbrev EnumValueDescriptors [FfiSyntax] : Type := GoInterface
 
-@[reducible] def EnumValueDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnumValueDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ByName" (go.signature.Signature [Name.ty] false [EnumValueDescriptor.ty])), (go.InterfaceElem.MethodElem go!"ByNumber" (go.signature.Signature [EnumNumber.ty] false [EnumValueDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [EnumValueDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class EnumValueDescriptors.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1143,7 +1142,7 @@ attribute [instance] EnumValueDescriptors.TypeAssumptions.underlying
 
 abbrev ServiceDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ServiceDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Methods" (go.signature.Signature [] false [MethodDescriptors.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Descriptor.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm isServiceDescriptor.ty)])])
 
 class ServiceDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1153,7 +1152,7 @@ attribute [instance] ServiceDescriptor.TypeAssumptions.underlying
 
 abbrev isServiceDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def isServiceDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def isServiceDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [ServiceDescriptor.ty] false []))])
 
 class isServiceDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1163,7 +1162,7 @@ attribute [instance] isServiceDescriptor.TypeAssumptions.underlying
 
 abbrev ServiceDescriptors [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ServiceDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ByName" (go.signature.Signature [Name.ty] false [ServiceDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [ServiceDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class ServiceDescriptors.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1173,7 +1172,7 @@ attribute [instance] ServiceDescriptors.TypeAssumptions.underlying
 
 abbrev MethodDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def MethodDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MethodDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Input" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.MethodElem go!"IsStreamingClient" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsStreamingServer" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Output" (go.signature.Signature [] false [MessageDescriptor.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Descriptor.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm isMethodDescriptor.ty)])])
 
 class MethodDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1183,7 +1182,7 @@ attribute [instance] MethodDescriptor.TypeAssumptions.underlying
 
 abbrev isMethodDescriptor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def isMethodDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def isMethodDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoType" (go.signature.Signature [MethodDescriptor.ty] false []))])
 
 class isMethodDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1193,7 +1192,7 @@ attribute [instance] isMethodDescriptor.TypeAssumptions.underlying
 
 abbrev MethodDescriptors [FfiSyntax] : Type := GoInterface
 
-@[reducible] def MethodDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MethodDescriptors.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ByName" (go.signature.Signature [Name.ty] false [MethodDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [MethodDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm doNotImplement.ty)])])
 
 class MethodDescriptors.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1203,7 +1202,7 @@ attribute [instance] MethodDescriptors.TypeAssumptions.underlying
 
 abbrev Enum [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Enum.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Enum.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Descriptor" (go.signature.Signature [] false [EnumDescriptor.ty])), (go.InterfaceElem.MethodElem go!"Number" (go.signature.Signature [] false [EnumNumber.ty])), (go.InterfaceElem.MethodElem go!"Type" (go.signature.Signature [] false [EnumType.ty]))])
 
 class Enum.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1226,7 +1225,7 @@ attribute [instance] Message.TypeAssumptions.type_repr
 
 abbrev RawFields [FfiSyntax] : Type := GoSlice
 
-@[reducible] def RawFields.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RawFields.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.byte)
 
 class RawFields.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1236,7 +1235,7 @@ attribute [instance] RawFields.TypeAssumptions.underlying
 
 abbrev List' [FfiSyntax] : Type := GoInterface
 
-@[reducible] def List'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def List'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Append" (go.signature.Signature [Value.ty] false [])), (go.InterfaceElem.MethodElem go!"AppendMutable" (go.signature.Signature [] false [Value.ty])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.int] false [Value.ty])), (go.InterfaceElem.MethodElem go!"IsValid" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"NewElement" (go.signature.Signature [] false [Value.ty])), (go.InterfaceElem.MethodElem go!"Set" (go.signature.Signature [go.int, Value.ty] false [])), (go.InterfaceElem.MethodElem go!"Truncate" (go.signature.Signature [go.int] false []))])
 
 class List.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1246,7 +1245,7 @@ attribute [instance] List.TypeAssumptions.underlying
 
 abbrev Map [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Map.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Map.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Clear" (go.signature.Signature [MapKey.ty] false [])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [MapKey.ty] false [Value.ty])), (go.InterfaceElem.MethodElem go!"Has" (go.signature.Signature [MapKey.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"IsValid" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Mutable" (go.signature.Signature [MapKey.ty] false [Value.ty])), (go.InterfaceElem.MethodElem go!"NewValue" (go.signature.Signature [] false [Value.ty])), (go.InterfaceElem.MethodElem go!"Range" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [MapKey.ty, Value.ty] false [go.bool]))] false [])), (go.InterfaceElem.MethodElem go!"Set" (go.signature.Signature [MapKey.ty, Value.ty] false []))])
 
 class Map.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1269,7 +1268,7 @@ attribute [instance] value.TypeAssumptions.type_repr
 
 abbrev Value [FfiSyntax] : Type := value
 
-@[reducible] def Value.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Value.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   value.ty
 
 class Value.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1279,7 +1278,7 @@ attribute [instance] Value.TypeAssumptions.underlying
 
 abbrev MapKey [FfiSyntax] : Type := value
 
-@[reducible] def MapKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MapKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   value.ty
 
 class MapKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1293,22 +1292,22 @@ structure ifaceHeader [FfiSyntax] where
   Type' : Loc
   Data' : Loc
 
-instance ifaceHeader.zero_val [FfiSyntax] : ZeroVal ifaceHeader :=
+noncomputable instance ifaceHeader.zero_val [FfiSyntax] : ZeroVal ifaceHeader :=
   ⟨ifaceHeader.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ifaceHeader.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ifaceHeader.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"_0" (go.GoType.ArrayType 0 go.any)),
 (go.field_decl.FieldDecl go!"Type" «unsafe».Pointer),
 (go.field_decl.FieldDecl go!"Data" «unsafe».Pointer)]
 
-@[irreducible] def ifaceHeader.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ifaceHeader.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ifaceHeader.fieldsUnsealed
 
-instance equals_unfold_ifaceHeader [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ifaceHeader [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ifaceHeader.fields ifaceHeader.fieldsUnsealed :=
   ⟨by unfold ifaceHeader.fields; rfl⟩
 
-@[reducible] def ifaceHeader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ifaceHeader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ifaceHeader.fields)
 
 class ifaceHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -8,9 +8,8 @@ public import Code.crypto.tls
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance weakCertCache_typed_pointsto :
+noncomputable instance weakCertCache_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.weakCertCache :=
   sorry -- axiomatized type
 
-instance weakCertCache_into_val_typed :
+noncomputable instance weakCertCache_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.weakCertCache crypto.tls.weakCertCache.underlying :=
   sorry -- axiomatized type
 
@@ -44,7 +43,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance CipherSuite_typed_pointsto :
+noncomputable instance CipherSuite_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.CipherSuite where
   typedPointstoDef l v dq := iprop(
     "ID" ∷ typedPointsto (structFieldRef crypto.tls.CipherSuite go!"ID" l) v.ID' dq ∗
@@ -56,11 +55,11 @@ instance CipherSuite_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance CipherSuite_into_val_typed :
+noncomputable instance CipherSuite_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.CipherSuite crypto.tls.CipherSuite.underlying := by
   solve_into_val_typed_struct
 
-instance CipherSuite_access_load_ID (l : Loc) (v : crypto.tls.CipherSuite) (dq : DFrac) :
+noncomputable instance CipherSuite_access_load_ID (l : Loc) (v : crypto.tls.CipherSuite) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"ID" l) v.ID' dq)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"ID" l) v.ID' dq)
@@ -68,7 +67,7 @@ instance CipherSuite_access_load_ID (l : Loc) (v : crypto.tls.CipherSuite) (dq :
  by
   solve_pointsto_access_struct
 
-instance CipherSuite_access_store_ID (l : Loc) (v : crypto.tls.CipherSuite) (ID' : w16) :
+noncomputable instance CipherSuite_access_store_ID (l : Loc) (v : crypto.tls.CipherSuite) (ID' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"ID" l) v.ID' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"ID" l) ID' (DFrac.own 1))
@@ -76,7 +75,7 @@ instance CipherSuite_access_store_ID (l : Loc) (v : crypto.tls.CipherSuite) (ID'
  by
   solve_pointsto_access_struct
 
-instance CipherSuite_access_load_Name (l : Loc) (v : crypto.tls.CipherSuite) (dq : DFrac) :
+noncomputable instance CipherSuite_access_load_Name (l : Loc) (v : crypto.tls.CipherSuite) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"Name" l) v.Name' dq)
@@ -84,7 +83,7 @@ instance CipherSuite_access_load_Name (l : Loc) (v : crypto.tls.CipherSuite) (dq
  by
   solve_pointsto_access_struct
 
-instance CipherSuite_access_store_Name (l : Loc) (v : crypto.tls.CipherSuite) (Name' : GoString) :
+noncomputable instance CipherSuite_access_store_Name (l : Loc) (v : crypto.tls.CipherSuite) (Name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"Name" l) Name' (DFrac.own 1))
@@ -92,7 +91,7 @@ instance CipherSuite_access_store_Name (l : Loc) (v : crypto.tls.CipherSuite) (N
  by
   solve_pointsto_access_struct
 
-instance CipherSuite_access_load_SupportedVersions (l : Loc) (v : crypto.tls.CipherSuite) (dq : DFrac) :
+noncomputable instance CipherSuite_access_load_SupportedVersions (l : Loc) (v : crypto.tls.CipherSuite) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"SupportedVersions" l) v.SupportedVersions' dq)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"SupportedVersions" l) v.SupportedVersions' dq)
@@ -100,7 +99,7 @@ instance CipherSuite_access_load_SupportedVersions (l : Loc) (v : crypto.tls.Cip
  by
   solve_pointsto_access_struct
 
-instance CipherSuite_access_store_SupportedVersions (l : Loc) (v : crypto.tls.CipherSuite) (SupportedVersions' : GoSlice) :
+noncomputable instance CipherSuite_access_store_SupportedVersions (l : Loc) (v : crypto.tls.CipherSuite) (SupportedVersions' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"SupportedVersions" l) v.SupportedVersions' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"SupportedVersions" l) SupportedVersions' (DFrac.own 1))
@@ -108,7 +107,7 @@ instance CipherSuite_access_store_SupportedVersions (l : Loc) (v : crypto.tls.Ci
  by
   solve_pointsto_access_struct
 
-instance CipherSuite_access_load_Insecure (l : Loc) (v : crypto.tls.CipherSuite) (dq : DFrac) :
+noncomputable instance CipherSuite_access_load_Insecure (l : Loc) (v : crypto.tls.CipherSuite) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"Insecure" l) v.Insecure' dq)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"Insecure" l) v.Insecure' dq)
@@ -116,7 +115,7 @@ instance CipherSuite_access_load_Insecure (l : Loc) (v : crypto.tls.CipherSuite)
  by
   solve_pointsto_access_struct
 
-instance CipherSuite_access_store_Insecure (l : Loc) (v : crypto.tls.CipherSuite) (Insecure' : Bool) :
+noncomputable instance CipherSuite_access_store_Insecure (l : Loc) (v : crypto.tls.CipherSuite) (Insecure' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"Insecure" l) v.Insecure' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.CipherSuite go!"Insecure" l) Insecure' (DFrac.own 1))
@@ -135,11 +134,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance cipherSuite_typed_pointsto :
+noncomputable instance cipherSuite_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.cipherSuite :=
   sorry -- axiomatized type
 
-instance cipherSuite_into_val_typed :
+noncomputable instance cipherSuite_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.cipherSuite crypto.tls.cipherSuite.underlying :=
   sorry -- axiomatized type
 
@@ -154,11 +153,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance cipherSuiteTLS13_typed_pointsto :
+noncomputable instance cipherSuiteTLS13_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.cipherSuiteTLS13 :=
   sorry -- axiomatized type
 
-instance cipherSuiteTLS13_into_val_typed :
+noncomputable instance cipherSuiteTLS13_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.cipherSuiteTLS13 crypto.tls.cipherSuiteTLS13.underlying :=
   sorry -- axiomatized type
 
@@ -173,11 +172,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance aead_typed_pointsto :
+noncomputable instance aead_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.aead :=
   sorry -- axiomatized type
 
-instance aead_into_val_typed :
+noncomputable instance aead_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.aead crypto.tls.aead.underlying :=
   sorry -- axiomatized type
 
@@ -192,11 +191,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance prefixNonceAEAD_typed_pointsto :
+noncomputable instance prefixNonceAEAD_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.prefixNonceAEAD :=
   sorry -- axiomatized type
 
-instance prefixNonceAEAD_into_val_typed :
+noncomputable instance prefixNonceAEAD_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.prefixNonceAEAD crypto.tls.prefixNonceAEAD.underlying :=
   sorry -- axiomatized type
 
@@ -211,11 +210,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance xorNonceAEAD_typed_pointsto :
+noncomputable instance xorNonceAEAD_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.xorNonceAEAD :=
   sorry -- axiomatized type
 
-instance xorNonceAEAD_into_val_typed :
+noncomputable instance xorNonceAEAD_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.xorNonceAEAD crypto.tls.xorNonceAEAD.underlying :=
   sorry -- axiomatized type
 
@@ -230,11 +229,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance constantTimeHash_typed_pointsto :
+noncomputable instance constantTimeHash_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.constantTimeHash :=
   sorry -- axiomatized type
 
-instance constantTimeHash_into_val_typed :
+noncomputable instance constantTimeHash_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.constantTimeHash crypto.tls.constantTimeHash.underlying :=
   sorry -- axiomatized type
 
@@ -249,7 +248,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance pskIdentity_typed_pointsto :
+noncomputable instance pskIdentity_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.pskIdentity where
   typedPointstoDef l v dq := iprop(
     "label" ∷ typedPointsto (structFieldRef crypto.tls.pskIdentity go!"label" l) v.label' dq ∗
@@ -259,11 +258,11 @@ instance pskIdentity_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance pskIdentity_into_val_typed :
+noncomputable instance pskIdentity_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.pskIdentity crypto.tls.pskIdentity.underlying := by
   solve_into_val_typed_struct
 
-instance pskIdentity_access_load_label (l : Loc) (v : crypto.tls.pskIdentity) (dq : DFrac) :
+noncomputable instance pskIdentity_access_load_label (l : Loc) (v : crypto.tls.pskIdentity) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.pskIdentity go!"label" l) v.label' dq)
       (typedPointsto (structFieldRef crypto.tls.pskIdentity go!"label" l) v.label' dq)
@@ -271,7 +270,7 @@ instance pskIdentity_access_load_label (l : Loc) (v : crypto.tls.pskIdentity) (d
  by
   solve_pointsto_access_struct
 
-instance pskIdentity_access_store_label (l : Loc) (v : crypto.tls.pskIdentity) (label' : GoSlice) :
+noncomputable instance pskIdentity_access_store_label (l : Loc) (v : crypto.tls.pskIdentity) (label' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.pskIdentity go!"label" l) v.label' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.pskIdentity go!"label" l) label' (DFrac.own 1))
@@ -279,7 +278,7 @@ instance pskIdentity_access_store_label (l : Loc) (v : crypto.tls.pskIdentity) (
  by
   solve_pointsto_access_struct
 
-instance pskIdentity_access_load_obfuscatedTicketAge (l : Loc) (v : crypto.tls.pskIdentity) (dq : DFrac) :
+noncomputable instance pskIdentity_access_load_obfuscatedTicketAge (l : Loc) (v : crypto.tls.pskIdentity) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.pskIdentity go!"obfuscatedTicketAge" l) v.obfuscatedTicketAge' dq)
       (typedPointsto (structFieldRef crypto.tls.pskIdentity go!"obfuscatedTicketAge" l) v.obfuscatedTicketAge' dq)
@@ -287,7 +286,7 @@ instance pskIdentity_access_load_obfuscatedTicketAge (l : Loc) (v : crypto.tls.p
  by
   solve_pointsto_access_struct
 
-instance pskIdentity_access_store_obfuscatedTicketAge (l : Loc) (v : crypto.tls.pskIdentity) (obfuscatedTicketAge' : w32) :
+noncomputable instance pskIdentity_access_store_obfuscatedTicketAge (l : Loc) (v : crypto.tls.pskIdentity) (obfuscatedTicketAge' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.pskIdentity go!"obfuscatedTicketAge" l) v.obfuscatedTicketAge' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.pskIdentity go!"obfuscatedTicketAge" l) obfuscatedTicketAge' (DFrac.own 1))
@@ -306,11 +305,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance ConnectionState_typed_pointsto :
+noncomputable instance ConnectionState_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.ConnectionState :=
   sorry -- axiomatized type
 
-instance ConnectionState_into_val_typed :
+noncomputable instance ConnectionState_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.ConnectionState crypto.tls.ConnectionState.underlying :=
   sorry -- axiomatized type
 
@@ -325,11 +324,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance ClientHelloInfo_typed_pointsto :
+noncomputable instance ClientHelloInfo_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.ClientHelloInfo :=
   sorry -- axiomatized type
 
-instance ClientHelloInfo_into_val_typed :
+noncomputable instance ClientHelloInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.ClientHelloInfo crypto.tls.ClientHelloInfo.underlying :=
   sorry -- axiomatized type
 
@@ -344,11 +343,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance CertificateRequestInfo_typed_pointsto :
+noncomputable instance CertificateRequestInfo_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.CertificateRequestInfo :=
   sorry -- axiomatized type
 
-instance CertificateRequestInfo_into_val_typed :
+noncomputable instance CertificateRequestInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.CertificateRequestInfo crypto.tls.CertificateRequestInfo.underlying :=
   sorry -- axiomatized type
 
@@ -363,11 +362,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance Config_typed_pointsto :
+noncomputable instance Config_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.Config :=
   sorry -- axiomatized type
 
-instance Config_into_val_typed :
+noncomputable instance Config_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.Config crypto.tls.Config.underlying :=
   sorry -- axiomatized type
 
@@ -382,7 +381,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance EncryptedClientHelloKey_typed_pointsto :
+noncomputable instance EncryptedClientHelloKey_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.EncryptedClientHelloKey where
   typedPointstoDef l v dq := iprop(
     "Config" ∷ typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"Config" l) v.Config' dq ∗
@@ -393,11 +392,11 @@ instance EncryptedClientHelloKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance EncryptedClientHelloKey_into_val_typed :
+noncomputable instance EncryptedClientHelloKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.EncryptedClientHelloKey crypto.tls.EncryptedClientHelloKey.underlying := by
   solve_into_val_typed_struct
 
-instance EncryptedClientHelloKey_access_load_Config (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (dq : DFrac) :
+noncomputable instance EncryptedClientHelloKey_access_load_Config (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"Config" l) v.Config' dq)
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"Config" l) v.Config' dq)
@@ -405,7 +404,7 @@ instance EncryptedClientHelloKey_access_load_Config (l : Loc) (v : crypto.tls.En
  by
   solve_pointsto_access_struct
 
-instance EncryptedClientHelloKey_access_store_Config (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (Config' : GoSlice) :
+noncomputable instance EncryptedClientHelloKey_access_store_Config (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (Config' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"Config" l) v.Config' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"Config" l) Config' (DFrac.own 1))
@@ -413,7 +412,7 @@ instance EncryptedClientHelloKey_access_store_Config (l : Loc) (v : crypto.tls.E
  by
   solve_pointsto_access_struct
 
-instance EncryptedClientHelloKey_access_load_PrivateKey (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (dq : DFrac) :
+noncomputable instance EncryptedClientHelloKey_access_load_PrivateKey (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"PrivateKey" l) v.PrivateKey' dq)
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"PrivateKey" l) v.PrivateKey' dq)
@@ -421,7 +420,7 @@ instance EncryptedClientHelloKey_access_load_PrivateKey (l : Loc) (v : crypto.tl
  by
   solve_pointsto_access_struct
 
-instance EncryptedClientHelloKey_access_store_PrivateKey (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (PrivateKey' : GoSlice) :
+noncomputable instance EncryptedClientHelloKey_access_store_PrivateKey (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (PrivateKey' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"PrivateKey" l) v.PrivateKey' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"PrivateKey" l) PrivateKey' (DFrac.own 1))
@@ -429,7 +428,7 @@ instance EncryptedClientHelloKey_access_store_PrivateKey (l : Loc) (v : crypto.t
  by
   solve_pointsto_access_struct
 
-instance EncryptedClientHelloKey_access_load_SendAsRetry (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (dq : DFrac) :
+noncomputable instance EncryptedClientHelloKey_access_load_SendAsRetry (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"SendAsRetry" l) v.SendAsRetry' dq)
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"SendAsRetry" l) v.SendAsRetry' dq)
@@ -437,7 +436,7 @@ instance EncryptedClientHelloKey_access_load_SendAsRetry (l : Loc) (v : crypto.t
  by
   solve_pointsto_access_struct
 
-instance EncryptedClientHelloKey_access_store_SendAsRetry (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (SendAsRetry' : Bool) :
+noncomputable instance EncryptedClientHelloKey_access_store_SendAsRetry (l : Loc) (v : crypto.tls.EncryptedClientHelloKey) (SendAsRetry' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"SendAsRetry" l) v.SendAsRetry' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.EncryptedClientHelloKey go!"SendAsRetry" l) SendAsRetry' (DFrac.own 1))
@@ -456,11 +455,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance ticketKey_typed_pointsto :
+noncomputable instance ticketKey_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.ticketKey :=
   sorry -- axiomatized type
 
-instance ticketKey_into_val_typed :
+noncomputable instance ticketKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.ticketKey crypto.tls.ticketKey.underlying :=
   sorry -- axiomatized type
 
@@ -475,11 +474,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance Certificate_typed_pointsto :
+noncomputable instance Certificate_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.Certificate :=
   sorry -- axiomatized type
 
-instance Certificate_into_val_typed :
+noncomputable instance Certificate_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.Certificate crypto.tls.Certificate.underlying :=
   sorry -- axiomatized type
 
@@ -494,11 +493,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance lruSessionCache_typed_pointsto :
+noncomputable instance lruSessionCache_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.lruSessionCache :=
   sorry -- axiomatized type
 
-instance lruSessionCache_into_val_typed :
+noncomputable instance lruSessionCache_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.lruSessionCache crypto.tls.lruSessionCache.underlying :=
   sorry -- axiomatized type
 
@@ -513,7 +512,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance lruSessionCacheEntry_typed_pointsto :
+noncomputable instance lruSessionCacheEntry_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.lruSessionCacheEntry where
   typedPointstoDef l v dq := iprop(
     "sessionKey" ∷ typedPointsto (structFieldRef crypto.tls.lruSessionCacheEntry go!"sessionKey" l) v.sessionKey' dq ∗
@@ -523,11 +522,11 @@ instance lruSessionCacheEntry_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance lruSessionCacheEntry_into_val_typed :
+noncomputable instance lruSessionCacheEntry_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.lruSessionCacheEntry crypto.tls.lruSessionCacheEntry.underlying := by
   solve_into_val_typed_struct
 
-instance lruSessionCacheEntry_access_load_sessionKey (l : Loc) (v : crypto.tls.lruSessionCacheEntry) (dq : DFrac) :
+noncomputable instance lruSessionCacheEntry_access_load_sessionKey (l : Loc) (v : crypto.tls.lruSessionCacheEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.lruSessionCacheEntry go!"sessionKey" l) v.sessionKey' dq)
       (typedPointsto (structFieldRef crypto.tls.lruSessionCacheEntry go!"sessionKey" l) v.sessionKey' dq)
@@ -535,7 +534,7 @@ instance lruSessionCacheEntry_access_load_sessionKey (l : Loc) (v : crypto.tls.l
  by
   solve_pointsto_access_struct
 
-instance lruSessionCacheEntry_access_store_sessionKey (l : Loc) (v : crypto.tls.lruSessionCacheEntry) (sessionKey' : GoString) :
+noncomputable instance lruSessionCacheEntry_access_store_sessionKey (l : Loc) (v : crypto.tls.lruSessionCacheEntry) (sessionKey' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.lruSessionCacheEntry go!"sessionKey" l) v.sessionKey' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.lruSessionCacheEntry go!"sessionKey" l) sessionKey' (DFrac.own 1))
@@ -543,7 +542,7 @@ instance lruSessionCacheEntry_access_store_sessionKey (l : Loc) (v : crypto.tls.
  by
   solve_pointsto_access_struct
 
-instance lruSessionCacheEntry_access_load_state (l : Loc) (v : crypto.tls.lruSessionCacheEntry) (dq : DFrac) :
+noncomputable instance lruSessionCacheEntry_access_load_state (l : Loc) (v : crypto.tls.lruSessionCacheEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.lruSessionCacheEntry go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef crypto.tls.lruSessionCacheEntry go!"state" l) v.state' dq)
@@ -551,7 +550,7 @@ instance lruSessionCacheEntry_access_load_state (l : Loc) (v : crypto.tls.lruSes
  by
   solve_pointsto_access_struct
 
-instance lruSessionCacheEntry_access_store_state (l : Loc) (v : crypto.tls.lruSessionCacheEntry) (state' : Loc) :
+noncomputable instance lruSessionCacheEntry_access_store_state (l : Loc) (v : crypto.tls.lruSessionCacheEntry) (state' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.lruSessionCacheEntry go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.lruSessionCacheEntry go!"state" l) state' (DFrac.own 1))
@@ -570,11 +569,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance CertificateVerificationError_typed_pointsto :
+noncomputable instance CertificateVerificationError_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.CertificateVerificationError :=
   sorry -- axiomatized type
 
-instance CertificateVerificationError_into_val_typed :
+noncomputable instance CertificateVerificationError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.CertificateVerificationError crypto.tls.CertificateVerificationError.underlying :=
   sorry -- axiomatized type
 
@@ -589,11 +588,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance Conn_typed_pointsto :
+noncomputable instance Conn_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.Conn :=
   sorry -- axiomatized type
 
-instance Conn_into_val_typed :
+noncomputable instance Conn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.Conn crypto.tls.Conn.underlying :=
   sorry -- axiomatized type
 
@@ -608,11 +607,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance halfConn_typed_pointsto :
+noncomputable instance halfConn_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.halfConn :=
   sorry -- axiomatized type
 
-instance halfConn_into_val_typed :
+noncomputable instance halfConn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.halfConn crypto.tls.halfConn.underlying :=
   sorry -- axiomatized type
 
@@ -627,11 +626,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance permanentError_typed_pointsto :
+noncomputable instance permanentError_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.permanentError :=
   sorry -- axiomatized type
 
-instance permanentError_into_val_typed :
+noncomputable instance permanentError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.permanentError crypto.tls.permanentError.underlying :=
   sorry -- axiomatized type
 
@@ -646,11 +645,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance cbcMode_typed_pointsto :
+noncomputable instance cbcMode_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.cbcMode :=
   sorry -- axiomatized type
 
-instance cbcMode_into_val_typed :
+noncomputable instance cbcMode_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.cbcMode crypto.tls.cbcMode.underlying :=
   sorry -- axiomatized type
 
@@ -665,11 +664,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance RecordHeaderError_typed_pointsto :
+noncomputable instance RecordHeaderError_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.RecordHeaderError :=
   sorry -- axiomatized type
 
-instance RecordHeaderError_into_val_typed :
+noncomputable instance RecordHeaderError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.RecordHeaderError crypto.tls.RecordHeaderError.underlying :=
   sorry -- axiomatized type
 
@@ -684,7 +683,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance echCipher_typed_pointsto :
+noncomputable instance echCipher_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.echCipher where
   typedPointstoDef l v dq := iprop(
     "KDFID" ∷ typedPointsto (structFieldRef crypto.tls.echCipher go!"KDFID" l) v.KDFID' dq ∗
@@ -694,11 +693,11 @@ instance echCipher_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance echCipher_into_val_typed :
+noncomputable instance echCipher_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.echCipher crypto.tls.echCipher.underlying := by
   solve_into_val_typed_struct
 
-instance echCipher_access_load_KDFID (l : Loc) (v : crypto.tls.echCipher) (dq : DFrac) :
+noncomputable instance echCipher_access_load_KDFID (l : Loc) (v : crypto.tls.echCipher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echCipher go!"KDFID" l) v.KDFID' dq)
       (typedPointsto (structFieldRef crypto.tls.echCipher go!"KDFID" l) v.KDFID' dq)
@@ -706,7 +705,7 @@ instance echCipher_access_load_KDFID (l : Loc) (v : crypto.tls.echCipher) (dq : 
  by
   solve_pointsto_access_struct
 
-instance echCipher_access_store_KDFID (l : Loc) (v : crypto.tls.echCipher) (KDFID' : w16) :
+noncomputable instance echCipher_access_store_KDFID (l : Loc) (v : crypto.tls.echCipher) (KDFID' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echCipher go!"KDFID" l) v.KDFID' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echCipher go!"KDFID" l) KDFID' (DFrac.own 1))
@@ -714,7 +713,7 @@ instance echCipher_access_store_KDFID (l : Loc) (v : crypto.tls.echCipher) (KDFI
  by
   solve_pointsto_access_struct
 
-instance echCipher_access_load_AEADID (l : Loc) (v : crypto.tls.echCipher) (dq : DFrac) :
+noncomputable instance echCipher_access_load_AEADID (l : Loc) (v : crypto.tls.echCipher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echCipher go!"AEADID" l) v.AEADID' dq)
       (typedPointsto (structFieldRef crypto.tls.echCipher go!"AEADID" l) v.AEADID' dq)
@@ -722,7 +721,7 @@ instance echCipher_access_load_AEADID (l : Loc) (v : crypto.tls.echCipher) (dq :
  by
   solve_pointsto_access_struct
 
-instance echCipher_access_store_AEADID (l : Loc) (v : crypto.tls.echCipher) (AEADID' : w16) :
+noncomputable instance echCipher_access_store_AEADID (l : Loc) (v : crypto.tls.echCipher) (AEADID' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echCipher go!"AEADID" l) v.AEADID' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echCipher go!"AEADID" l) AEADID' (DFrac.own 1))
@@ -741,7 +740,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance echExtension_typed_pointsto :
+noncomputable instance echExtension_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.echExtension where
   typedPointstoDef l v dq := iprop(
     "Type'" ∷ typedPointsto (structFieldRef crypto.tls.echExtension go!"Type" l) v.Type' dq ∗
@@ -751,11 +750,11 @@ instance echExtension_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance echExtension_into_val_typed :
+noncomputable instance echExtension_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.echExtension crypto.tls.echExtension.underlying := by
   solve_into_val_typed_struct
 
-instance echExtension_access_load_Type (l : Loc) (v : crypto.tls.echExtension) (dq : DFrac) :
+noncomputable instance echExtension_access_load_Type (l : Loc) (v : crypto.tls.echExtension) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echExtension go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef crypto.tls.echExtension go!"Type" l) v.Type' dq)
@@ -763,7 +762,7 @@ instance echExtension_access_load_Type (l : Loc) (v : crypto.tls.echExtension) (
  by
   solve_pointsto_access_struct
 
-instance echExtension_access_store_Type (l : Loc) (v : crypto.tls.echExtension) (Type' : w16) :
+noncomputable instance echExtension_access_store_Type (l : Loc) (v : crypto.tls.echExtension) (Type' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echExtension go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echExtension go!"Type" l) Type' (DFrac.own 1))
@@ -771,7 +770,7 @@ instance echExtension_access_store_Type (l : Loc) (v : crypto.tls.echExtension) 
  by
   solve_pointsto_access_struct
 
-instance echExtension_access_load_Data (l : Loc) (v : crypto.tls.echExtension) (dq : DFrac) :
+noncomputable instance echExtension_access_load_Data (l : Loc) (v : crypto.tls.echExtension) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echExtension go!"Data" l) v.Data' dq)
       (typedPointsto (structFieldRef crypto.tls.echExtension go!"Data" l) v.Data' dq)
@@ -779,7 +778,7 @@ instance echExtension_access_load_Data (l : Loc) (v : crypto.tls.echExtension) (
  by
   solve_pointsto_access_struct
 
-instance echExtension_access_store_Data (l : Loc) (v : crypto.tls.echExtension) (Data' : GoSlice) :
+noncomputable instance echExtension_access_store_Data (l : Loc) (v : crypto.tls.echExtension) (Data' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echExtension go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echExtension go!"Data" l) Data' (DFrac.own 1))
@@ -798,7 +797,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance echConfig_typed_pointsto :
+noncomputable instance echConfig_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.echConfig where
   typedPointstoDef l v dq := iprop(
     "raw" ∷ typedPointsto (structFieldRef crypto.tls.echConfig go!"raw" l) v.raw' dq ∗
@@ -816,11 +815,11 @@ instance echConfig_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance echConfig_into_val_typed :
+noncomputable instance echConfig_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.echConfig crypto.tls.echConfig.underlying := by
   solve_into_val_typed_struct
 
-instance echConfig_access_load_raw (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_raw (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"raw" l) v.raw' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"raw" l) v.raw' dq)
@@ -828,7 +827,7 @@ instance echConfig_access_load_raw (l : Loc) (v : crypto.tls.echConfig) (dq : DF
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_raw (l : Loc) (v : crypto.tls.echConfig) (raw' : GoSlice) :
+noncomputable instance echConfig_access_store_raw (l : Loc) (v : crypto.tls.echConfig) (raw' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"raw" l) v.raw' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"raw" l) raw' (DFrac.own 1))
@@ -836,7 +835,7 @@ instance echConfig_access_store_raw (l : Loc) (v : crypto.tls.echConfig) (raw' :
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_load_Version (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_Version (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Version" l) v.Version' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Version" l) v.Version' dq)
@@ -844,7 +843,7 @@ instance echConfig_access_load_Version (l : Loc) (v : crypto.tls.echConfig) (dq 
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_Version (l : Loc) (v : crypto.tls.echConfig) (Version' : w16) :
+noncomputable instance echConfig_access_store_Version (l : Loc) (v : crypto.tls.echConfig) (Version' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Version" l) v.Version' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Version" l) Version' (DFrac.own 1))
@@ -852,7 +851,7 @@ instance echConfig_access_store_Version (l : Loc) (v : crypto.tls.echConfig) (Ve
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_load_Length (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_Length (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Length" l) v.Length' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Length" l) v.Length' dq)
@@ -860,7 +859,7 @@ instance echConfig_access_load_Length (l : Loc) (v : crypto.tls.echConfig) (dq :
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_Length (l : Loc) (v : crypto.tls.echConfig) (Length' : w16) :
+noncomputable instance echConfig_access_store_Length (l : Loc) (v : crypto.tls.echConfig) (Length' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Length" l) v.Length' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Length" l) Length' (DFrac.own 1))
@@ -868,7 +867,7 @@ instance echConfig_access_store_Length (l : Loc) (v : crypto.tls.echConfig) (Len
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_load_ConfigID (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_ConfigID (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"ConfigID" l) v.ConfigID' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"ConfigID" l) v.ConfigID' dq)
@@ -876,7 +875,7 @@ instance echConfig_access_load_ConfigID (l : Loc) (v : crypto.tls.echConfig) (dq
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_ConfigID (l : Loc) (v : crypto.tls.echConfig) (ConfigID' : w8) :
+noncomputable instance echConfig_access_store_ConfigID (l : Loc) (v : crypto.tls.echConfig) (ConfigID' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"ConfigID" l) v.ConfigID' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"ConfigID" l) ConfigID' (DFrac.own 1))
@@ -884,7 +883,7 @@ instance echConfig_access_store_ConfigID (l : Loc) (v : crypto.tls.echConfig) (C
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_load_KemID (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_KemID (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"KemID" l) v.KemID' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"KemID" l) v.KemID' dq)
@@ -892,7 +891,7 @@ instance echConfig_access_load_KemID (l : Loc) (v : crypto.tls.echConfig) (dq : 
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_KemID (l : Loc) (v : crypto.tls.echConfig) (KemID' : w16) :
+noncomputable instance echConfig_access_store_KemID (l : Loc) (v : crypto.tls.echConfig) (KemID' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"KemID" l) v.KemID' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"KemID" l) KemID' (DFrac.own 1))
@@ -900,7 +899,7 @@ instance echConfig_access_store_KemID (l : Loc) (v : crypto.tls.echConfig) (KemI
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_load_PublicKey (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_PublicKey (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"PublicKey" l) v.PublicKey' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"PublicKey" l) v.PublicKey' dq)
@@ -908,7 +907,7 @@ instance echConfig_access_load_PublicKey (l : Loc) (v : crypto.tls.echConfig) (d
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_PublicKey (l : Loc) (v : crypto.tls.echConfig) (PublicKey' : GoSlice) :
+noncomputable instance echConfig_access_store_PublicKey (l : Loc) (v : crypto.tls.echConfig) (PublicKey' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"PublicKey" l) v.PublicKey' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"PublicKey" l) PublicKey' (DFrac.own 1))
@@ -916,7 +915,7 @@ instance echConfig_access_store_PublicKey (l : Loc) (v : crypto.tls.echConfig) (
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_load_SymmetricCipherSuite (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_SymmetricCipherSuite (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"SymmetricCipherSuite" l) v.SymmetricCipherSuite' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"SymmetricCipherSuite" l) v.SymmetricCipherSuite' dq)
@@ -924,7 +923,7 @@ instance echConfig_access_load_SymmetricCipherSuite (l : Loc) (v : crypto.tls.ec
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_SymmetricCipherSuite (l : Loc) (v : crypto.tls.echConfig) (SymmetricCipherSuite' : GoSlice) :
+noncomputable instance echConfig_access_store_SymmetricCipherSuite (l : Loc) (v : crypto.tls.echConfig) (SymmetricCipherSuite' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"SymmetricCipherSuite" l) v.SymmetricCipherSuite' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"SymmetricCipherSuite" l) SymmetricCipherSuite' (DFrac.own 1))
@@ -932,7 +931,7 @@ instance echConfig_access_store_SymmetricCipherSuite (l : Loc) (v : crypto.tls.e
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_load_MaxNameLength (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_MaxNameLength (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"MaxNameLength" l) v.MaxNameLength' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"MaxNameLength" l) v.MaxNameLength' dq)
@@ -940,7 +939,7 @@ instance echConfig_access_load_MaxNameLength (l : Loc) (v : crypto.tls.echConfig
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_MaxNameLength (l : Loc) (v : crypto.tls.echConfig) (MaxNameLength' : w8) :
+noncomputable instance echConfig_access_store_MaxNameLength (l : Loc) (v : crypto.tls.echConfig) (MaxNameLength' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"MaxNameLength" l) v.MaxNameLength' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"MaxNameLength" l) MaxNameLength' (DFrac.own 1))
@@ -948,7 +947,7 @@ instance echConfig_access_store_MaxNameLength (l : Loc) (v : crypto.tls.echConfi
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_load_PublicName (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_PublicName (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"PublicName" l) v.PublicName' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"PublicName" l) v.PublicName' dq)
@@ -956,7 +955,7 @@ instance echConfig_access_load_PublicName (l : Loc) (v : crypto.tls.echConfig) (
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_PublicName (l : Loc) (v : crypto.tls.echConfig) (PublicName' : GoSlice) :
+noncomputable instance echConfig_access_store_PublicName (l : Loc) (v : crypto.tls.echConfig) (PublicName' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"PublicName" l) v.PublicName' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"PublicName" l) PublicName' (DFrac.own 1))
@@ -964,7 +963,7 @@ instance echConfig_access_store_PublicName (l : Loc) (v : crypto.tls.echConfig) 
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_load_Extensions (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
+noncomputable instance echConfig_access_load_Extensions (l : Loc) (v : crypto.tls.echConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Extensions" l) v.Extensions' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Extensions" l) v.Extensions' dq)
@@ -972,7 +971,7 @@ instance echConfig_access_load_Extensions (l : Loc) (v : crypto.tls.echConfig) (
  by
   solve_pointsto_access_struct
 
-instance echConfig_access_store_Extensions (l : Loc) (v : crypto.tls.echConfig) (Extensions' : GoSlice) :
+noncomputable instance echConfig_access_store_Extensions (l : Loc) (v : crypto.tls.echConfig) (Extensions' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Extensions" l) v.Extensions' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfig go!"Extensions" l) Extensions' (DFrac.own 1))
@@ -991,7 +990,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance echConfigErr_typed_pointsto :
+noncomputable instance echConfigErr_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.echConfigErr where
   typedPointstoDef l v dq := iprop(
     "field" ∷ typedPointsto (structFieldRef crypto.tls.echConfigErr go!"field" l) v.field' dq ∗
@@ -1000,11 +999,11 @@ instance echConfigErr_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance echConfigErr_into_val_typed :
+noncomputable instance echConfigErr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.echConfigErr crypto.tls.echConfigErr.underlying := by
   solve_into_val_typed_struct
 
-instance echConfigErr_access_load_field (l : Loc) (v : crypto.tls.echConfigErr) (dq : DFrac) :
+noncomputable instance echConfigErr_access_load_field (l : Loc) (v : crypto.tls.echConfigErr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfigErr go!"field" l) v.field' dq)
       (typedPointsto (structFieldRef crypto.tls.echConfigErr go!"field" l) v.field' dq)
@@ -1012,7 +1011,7 @@ instance echConfigErr_access_load_field (l : Loc) (v : crypto.tls.echConfigErr) 
  by
   solve_pointsto_access_struct
 
-instance echConfigErr_access_store_field (l : Loc) (v : crypto.tls.echConfigErr) (field' : GoString) :
+noncomputable instance echConfigErr_access_store_field (l : Loc) (v : crypto.tls.echConfigErr) (field' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.echConfigErr go!"field" l) v.field' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.echConfigErr go!"field" l) field' (DFrac.own 1))
@@ -1031,7 +1030,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance rawExtension_typed_pointsto :
+noncomputable instance rawExtension_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.rawExtension where
   typedPointstoDef l v dq := iprop(
     "extType" ∷ typedPointsto (structFieldRef crypto.tls.rawExtension go!"extType" l) v.extType' dq ∗
@@ -1041,11 +1040,11 @@ instance rawExtension_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance rawExtension_into_val_typed :
+noncomputable instance rawExtension_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.rawExtension crypto.tls.rawExtension.underlying := by
   solve_into_val_typed_struct
 
-instance rawExtension_access_load_extType (l : Loc) (v : crypto.tls.rawExtension) (dq : DFrac) :
+noncomputable instance rawExtension_access_load_extType (l : Loc) (v : crypto.tls.rawExtension) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.rawExtension go!"extType" l) v.extType' dq)
       (typedPointsto (structFieldRef crypto.tls.rawExtension go!"extType" l) v.extType' dq)
@@ -1053,7 +1052,7 @@ instance rawExtension_access_load_extType (l : Loc) (v : crypto.tls.rawExtension
  by
   solve_pointsto_access_struct
 
-instance rawExtension_access_store_extType (l : Loc) (v : crypto.tls.rawExtension) (extType' : w16) :
+noncomputable instance rawExtension_access_store_extType (l : Loc) (v : crypto.tls.rawExtension) (extType' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.rawExtension go!"extType" l) v.extType' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.rawExtension go!"extType" l) extType' (DFrac.own 1))
@@ -1061,7 +1060,7 @@ instance rawExtension_access_store_extType (l : Loc) (v : crypto.tls.rawExtensio
  by
   solve_pointsto_access_struct
 
-instance rawExtension_access_load_data (l : Loc) (v : crypto.tls.rawExtension) (dq : DFrac) :
+noncomputable instance rawExtension_access_load_data (l : Loc) (v : crypto.tls.rawExtension) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.rawExtension go!"data" l) v.data' dq)
       (typedPointsto (structFieldRef crypto.tls.rawExtension go!"data" l) v.data' dq)
@@ -1069,7 +1068,7 @@ instance rawExtension_access_load_data (l : Loc) (v : crypto.tls.rawExtension) (
  by
   solve_pointsto_access_struct
 
-instance rawExtension_access_store_data (l : Loc) (v : crypto.tls.rawExtension) (data' : GoSlice) :
+noncomputable instance rawExtension_access_store_data (l : Loc) (v : crypto.tls.rawExtension) (data' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.rawExtension go!"data" l) v.data' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.rawExtension go!"data" l) data' (DFrac.own 1))
@@ -1088,7 +1087,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance ECHRejectionError_typed_pointsto :
+noncomputable instance ECHRejectionError_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.ECHRejectionError where
   typedPointstoDef l v dq := iprop(
     "RetryConfigList" ∷ typedPointsto (structFieldRef crypto.tls.ECHRejectionError go!"RetryConfigList" l) v.RetryConfigList' dq ∗
@@ -1097,11 +1096,11 @@ instance ECHRejectionError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance ECHRejectionError_into_val_typed :
+noncomputable instance ECHRejectionError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.ECHRejectionError crypto.tls.ECHRejectionError.underlying := by
   solve_into_val_typed_struct
 
-instance ECHRejectionError_access_load_RetryConfigList (l : Loc) (v : crypto.tls.ECHRejectionError) (dq : DFrac) :
+noncomputable instance ECHRejectionError_access_load_RetryConfigList (l : Loc) (v : crypto.tls.ECHRejectionError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.ECHRejectionError go!"RetryConfigList" l) v.RetryConfigList' dq)
       (typedPointsto (structFieldRef crypto.tls.ECHRejectionError go!"RetryConfigList" l) v.RetryConfigList' dq)
@@ -1109,7 +1108,7 @@ instance ECHRejectionError_access_load_RetryConfigList (l : Loc) (v : crypto.tls
  by
   solve_pointsto_access_struct
 
-instance ECHRejectionError_access_store_RetryConfigList (l : Loc) (v : crypto.tls.ECHRejectionError) (RetryConfigList' : GoSlice) :
+noncomputable instance ECHRejectionError_access_store_RetryConfigList (l : Loc) (v : crypto.tls.ECHRejectionError) (RetryConfigList' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.ECHRejectionError go!"RetryConfigList" l) v.RetryConfigList' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.ECHRejectionError go!"RetryConfigList" l) RetryConfigList' (DFrac.own 1))
@@ -1128,11 +1127,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance clientHandshakeState_typed_pointsto :
+noncomputable instance clientHandshakeState_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.clientHandshakeState :=
   sorry -- axiomatized type
 
-instance clientHandshakeState_into_val_typed :
+noncomputable instance clientHandshakeState_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.clientHandshakeState crypto.tls.clientHandshakeState.underlying :=
   sorry -- axiomatized type
 
@@ -1147,11 +1146,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance echClientContext_typed_pointsto :
+noncomputable instance echClientContext_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.echClientContext :=
   sorry -- axiomatized type
 
-instance echClientContext_into_val_typed :
+noncomputable instance echClientContext_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.echClientContext crypto.tls.echClientContext.underlying :=
   sorry -- axiomatized type
 
@@ -1166,11 +1165,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance clientHandshakeStateTLS13_typed_pointsto :
+noncomputable instance clientHandshakeStateTLS13_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.clientHandshakeStateTLS13 :=
   sorry -- axiomatized type
 
-instance clientHandshakeStateTLS13_into_val_typed :
+noncomputable instance clientHandshakeStateTLS13_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.clientHandshakeStateTLS13 crypto.tls.clientHandshakeStateTLS13.underlying :=
   sorry -- axiomatized type
 
@@ -1185,11 +1184,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance marshalingFunction_typed_pointsto :
+noncomputable instance marshalingFunction_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.marshalingFunction :=
   sorry -- axiomatized type
 
-instance marshalingFunction_into_val_typed :
+noncomputable instance marshalingFunction_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.marshalingFunction crypto.tls.marshalingFunction.underlying :=
   sorry -- axiomatized type
 
@@ -1204,7 +1203,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : crypto.tls.Assumptions]
 
-instance clientHelloMsg_typed_pointsto :
+noncomputable instance clientHelloMsg_typed_pointsto :
     TypedPointsto (GF := GF) crypto.tls.clientHelloMsg where
   typedPointstoDef l v dq := iprop(
     "original" ∷ typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"original" l) v.original' dq ∗
@@ -1241,11 +1240,11 @@ instance clientHelloMsg_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance clientHelloMsg_into_val_typed :
+noncomputable instance clientHelloMsg_into_val_typed :
     IntoValTypedUnderlying (GF := GF) crypto.tls.clientHelloMsg crypto.tls.clientHelloMsg.underlying := by
   solve_into_val_typed_struct
 
-instance clientHelloMsg_access_load_original (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_original (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"original" l) v.original' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"original" l) v.original' dq)
@@ -1253,7 +1252,7 @@ instance clientHelloMsg_access_load_original (l : Loc) (v : crypto.tls.clientHel
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_original (l : Loc) (v : crypto.tls.clientHelloMsg) (original' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_original (l : Loc) (v : crypto.tls.clientHelloMsg) (original' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"original" l) v.original' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"original" l) original' (DFrac.own 1))
@@ -1261,7 +1260,7 @@ instance clientHelloMsg_access_store_original (l : Loc) (v : crypto.tls.clientHe
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_vers (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_vers (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"vers" l) v.vers' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"vers" l) v.vers' dq)
@@ -1269,7 +1268,7 @@ instance clientHelloMsg_access_load_vers (l : Loc) (v : crypto.tls.clientHelloMs
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_vers (l : Loc) (v : crypto.tls.clientHelloMsg) (vers' : w16) :
+noncomputable instance clientHelloMsg_access_store_vers (l : Loc) (v : crypto.tls.clientHelloMsg) (vers' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"vers" l) v.vers' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"vers" l) vers' (DFrac.own 1))
@@ -1277,7 +1276,7 @@ instance clientHelloMsg_access_store_vers (l : Loc) (v : crypto.tls.clientHelloM
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_random (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_random (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"random" l) v.random' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"random" l) v.random' dq)
@@ -1285,7 +1284,7 @@ instance clientHelloMsg_access_load_random (l : Loc) (v : crypto.tls.clientHello
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_random (l : Loc) (v : crypto.tls.clientHelloMsg) (random' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_random (l : Loc) (v : crypto.tls.clientHelloMsg) (random' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"random" l) v.random' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"random" l) random' (DFrac.own 1))
@@ -1293,7 +1292,7 @@ instance clientHelloMsg_access_store_random (l : Loc) (v : crypto.tls.clientHell
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_sessionId (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_sessionId (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"sessionId" l) v.sessionId' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"sessionId" l) v.sessionId' dq)
@@ -1301,7 +1300,7 @@ instance clientHelloMsg_access_load_sessionId (l : Loc) (v : crypto.tls.clientHe
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_sessionId (l : Loc) (v : crypto.tls.clientHelloMsg) (sessionId' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_sessionId (l : Loc) (v : crypto.tls.clientHelloMsg) (sessionId' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"sessionId" l) v.sessionId' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"sessionId" l) sessionId' (DFrac.own 1))
@@ -1309,7 +1308,7 @@ instance clientHelloMsg_access_store_sessionId (l : Loc) (v : crypto.tls.clientH
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_cipherSuites (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_cipherSuites (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"cipherSuites" l) v.cipherSuites' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"cipherSuites" l) v.cipherSuites' dq)
@@ -1317,7 +1316,7 @@ instance clientHelloMsg_access_load_cipherSuites (l : Loc) (v : crypto.tls.clien
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_cipherSuites (l : Loc) (v : crypto.tls.clientHelloMsg) (cipherSuites' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_cipherSuites (l : Loc) (v : crypto.tls.clientHelloMsg) (cipherSuites' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"cipherSuites" l) v.cipherSuites' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"cipherSuites" l) cipherSuites' (DFrac.own 1))
@@ -1325,7 +1324,7 @@ instance clientHelloMsg_access_store_cipherSuites (l : Loc) (v : crypto.tls.clie
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_compressionMethods (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_compressionMethods (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"compressionMethods" l) v.compressionMethods' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"compressionMethods" l) v.compressionMethods' dq)
@@ -1333,7 +1332,7 @@ instance clientHelloMsg_access_load_compressionMethods (l : Loc) (v : crypto.tls
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_compressionMethods (l : Loc) (v : crypto.tls.clientHelloMsg) (compressionMethods' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_compressionMethods (l : Loc) (v : crypto.tls.clientHelloMsg) (compressionMethods' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"compressionMethods" l) v.compressionMethods' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"compressionMethods" l) compressionMethods' (DFrac.own 1))
@@ -1341,7 +1340,7 @@ instance clientHelloMsg_access_store_compressionMethods (l : Loc) (v : crypto.tl
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_serverName (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_serverName (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"serverName" l) v.serverName' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"serverName" l) v.serverName' dq)
@@ -1349,7 +1348,7 @@ instance clientHelloMsg_access_load_serverName (l : Loc) (v : crypto.tls.clientH
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_serverName (l : Loc) (v : crypto.tls.clientHelloMsg) (serverName' : GoString) :
+noncomputable instance clientHelloMsg_access_store_serverName (l : Loc) (v : crypto.tls.clientHelloMsg) (serverName' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"serverName" l) v.serverName' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"serverName" l) serverName' (DFrac.own 1))
@@ -1357,7 +1356,7 @@ instance clientHelloMsg_access_store_serverName (l : Loc) (v : crypto.tls.client
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_ocspStapling (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_ocspStapling (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"ocspStapling" l) v.ocspStapling' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"ocspStapling" l) v.ocspStapling' dq)
@@ -1365,7 +1364,7 @@ instance clientHelloMsg_access_load_ocspStapling (l : Loc) (v : crypto.tls.clien
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_ocspStapling (l : Loc) (v : crypto.tls.clientHelloMsg) (ocspStapling' : Bool) :
+noncomputable instance clientHelloMsg_access_store_ocspStapling (l : Loc) (v : crypto.tls.clientHelloMsg) (ocspStapling' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"ocspStapling" l) v.ocspStapling' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"ocspStapling" l) ocspStapling' (DFrac.own 1))
@@ -1373,7 +1372,7 @@ instance clientHelloMsg_access_store_ocspStapling (l : Loc) (v : crypto.tls.clie
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_supportedCurves (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_supportedCurves (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedCurves" l) v.supportedCurves' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedCurves" l) v.supportedCurves' dq)
@@ -1381,7 +1380,7 @@ instance clientHelloMsg_access_load_supportedCurves (l : Loc) (v : crypto.tls.cl
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_supportedCurves (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedCurves' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_supportedCurves (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedCurves' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedCurves" l) v.supportedCurves' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedCurves" l) supportedCurves' (DFrac.own 1))
@@ -1389,7 +1388,7 @@ instance clientHelloMsg_access_store_supportedCurves (l : Loc) (v : crypto.tls.c
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_supportedPoints (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_supportedPoints (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedPoints" l) v.supportedPoints' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedPoints" l) v.supportedPoints' dq)
@@ -1397,7 +1396,7 @@ instance clientHelloMsg_access_load_supportedPoints (l : Loc) (v : crypto.tls.cl
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_supportedPoints (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedPoints' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_supportedPoints (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedPoints' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedPoints" l) v.supportedPoints' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedPoints" l) supportedPoints' (DFrac.own 1))
@@ -1405,7 +1404,7 @@ instance clientHelloMsg_access_store_supportedPoints (l : Loc) (v : crypto.tls.c
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_ticketSupported (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_ticketSupported (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"ticketSupported" l) v.ticketSupported' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"ticketSupported" l) v.ticketSupported' dq)
@@ -1413,7 +1412,7 @@ instance clientHelloMsg_access_load_ticketSupported (l : Loc) (v : crypto.tls.cl
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_ticketSupported (l : Loc) (v : crypto.tls.clientHelloMsg) (ticketSupported' : Bool) :
+noncomputable instance clientHelloMsg_access_store_ticketSupported (l : Loc) (v : crypto.tls.clientHelloMsg) (ticketSupported' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"ticketSupported" l) v.ticketSupported' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"ticketSupported" l) ticketSupported' (DFrac.own 1))
@@ -1421,7 +1420,7 @@ instance clientHelloMsg_access_store_ticketSupported (l : Loc) (v : crypto.tls.c
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_sessionTicket (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_sessionTicket (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"sessionTicket" l) v.sessionTicket' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"sessionTicket" l) v.sessionTicket' dq)
@@ -1429,7 +1428,7 @@ instance clientHelloMsg_access_load_sessionTicket (l : Loc) (v : crypto.tls.clie
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_sessionTicket (l : Loc) (v : crypto.tls.clientHelloMsg) (sessionTicket' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_sessionTicket (l : Loc) (v : crypto.tls.clientHelloMsg) (sessionTicket' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"sessionTicket" l) v.sessionTicket' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"sessionTicket" l) sessionTicket' (DFrac.own 1))
@@ -1437,7 +1436,7 @@ instance clientHelloMsg_access_store_sessionTicket (l : Loc) (v : crypto.tls.cli
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_supportedSignatureAlgorithms (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_supportedSignatureAlgorithms (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedSignatureAlgorithms" l) v.supportedSignatureAlgorithms' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedSignatureAlgorithms" l) v.supportedSignatureAlgorithms' dq)
@@ -1445,7 +1444,7 @@ instance clientHelloMsg_access_load_supportedSignatureAlgorithms (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_supportedSignatureAlgorithms (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedSignatureAlgorithms' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_supportedSignatureAlgorithms (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedSignatureAlgorithms' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedSignatureAlgorithms" l) v.supportedSignatureAlgorithms' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedSignatureAlgorithms" l) supportedSignatureAlgorithms' (DFrac.own 1))
@@ -1453,7 +1452,7 @@ instance clientHelloMsg_access_store_supportedSignatureAlgorithms (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_supportedSignatureAlgorithmsCert (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_supportedSignatureAlgorithmsCert (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedSignatureAlgorithmsCert" l) v.supportedSignatureAlgorithmsCert' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedSignatureAlgorithmsCert" l) v.supportedSignatureAlgorithmsCert' dq)
@@ -1461,7 +1460,7 @@ instance clientHelloMsg_access_load_supportedSignatureAlgorithmsCert (l : Loc) (
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_supportedSignatureAlgorithmsCert (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedSignatureAlgorithmsCert' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_supportedSignatureAlgorithmsCert (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedSignatureAlgorithmsCert' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedSignatureAlgorithmsCert" l) v.supportedSignatureAlgorithmsCert' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedSignatureAlgorithmsCert" l) supportedSignatureAlgorithmsCert' (DFrac.own 1))
@@ -1469,7 +1468,7 @@ instance clientHelloMsg_access_store_supportedSignatureAlgorithmsCert (l : Loc) 
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_secureRenegotiationSupported (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_secureRenegotiationSupported (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' dq)
@@ -1477,7 +1476,7 @@ instance clientHelloMsg_access_load_secureRenegotiationSupported (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_secureRenegotiationSupported (l : Loc) (v : crypto.tls.clientHelloMsg) (secureRenegotiationSupported' : Bool) :
+noncomputable instance clientHelloMsg_access_store_secureRenegotiationSupported (l : Loc) (v : crypto.tls.clientHelloMsg) (secureRenegotiationSupported' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"secureRenegotiationSupported" l) secureRenegotiationSupported' (DFrac.own 1))
@@ -1485,7 +1484,7 @@ instance clientHelloMsg_access_store_secureRenegotiationSupported (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_secureRenegotiation (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_secureRenegotiation (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' dq)
@@ -1493,7 +1492,7 @@ instance clientHelloMsg_access_load_secureRenegotiation (l : Loc) (v : crypto.tl
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_secureRenegotiation (l : Loc) (v : crypto.tls.clientHelloMsg) (secureRenegotiation' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_secureRenegotiation (l : Loc) (v : crypto.tls.clientHelloMsg) (secureRenegotiation' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"secureRenegotiation" l) secureRenegotiation' (DFrac.own 1))
@@ -1501,7 +1500,7 @@ instance clientHelloMsg_access_store_secureRenegotiation (l : Loc) (v : crypto.t
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_extendedMasterSecret (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_extendedMasterSecret (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' dq)
@@ -1509,7 +1508,7 @@ instance clientHelloMsg_access_load_extendedMasterSecret (l : Loc) (v : crypto.t
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_extendedMasterSecret (l : Loc) (v : crypto.tls.clientHelloMsg) (extendedMasterSecret' : Bool) :
+noncomputable instance clientHelloMsg_access_store_extendedMasterSecret (l : Loc) (v : crypto.tls.clientHelloMsg) (extendedMasterSecret' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"extendedMasterSecret" l) extendedMasterSecret' (DFrac.own 1))
@@ -1517,7 +1516,7 @@ instance clientHelloMsg_access_store_extendedMasterSecret (l : Loc) (v : crypto.
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_alpnProtocols (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_alpnProtocols (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"alpnProtocols" l) v.alpnProtocols' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"alpnProtocols" l) v.alpnProtocols' dq)
@@ -1525,7 +1524,7 @@ instance clientHelloMsg_access_load_alpnProtocols (l : Loc) (v : crypto.tls.clie
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_alpnProtocols (l : Loc) (v : crypto.tls.clientHelloMsg) (alpnProtocols' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_alpnProtocols (l : Loc) (v : crypto.tls.clientHelloMsg) (alpnProtocols' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"alpnProtocols" l) v.alpnProtocols' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"alpnProtocols" l) alpnProtocols' (DFrac.own 1))
@@ -1533,7 +1532,7 @@ instance clientHelloMsg_access_store_alpnProtocols (l : Loc) (v : crypto.tls.cli
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_scts (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_scts (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"scts" l) v.scts' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"scts" l) v.scts' dq)
@@ -1541,7 +1540,7 @@ instance clientHelloMsg_access_load_scts (l : Loc) (v : crypto.tls.clientHelloMs
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_scts (l : Loc) (v : crypto.tls.clientHelloMsg) (scts' : Bool) :
+noncomputable instance clientHelloMsg_access_store_scts (l : Loc) (v : crypto.tls.clientHelloMsg) (scts' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"scts" l) v.scts' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"scts" l) scts' (DFrac.own 1))
@@ -1549,7 +1548,7 @@ instance clientHelloMsg_access_store_scts (l : Loc) (v : crypto.tls.clientHelloM
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_supportedVersions (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_supportedVersions (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedVersions" l) v.supportedVersions' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedVersions" l) v.supportedVersions' dq)
@@ -1557,7 +1556,7 @@ instance clientHelloMsg_access_load_supportedVersions (l : Loc) (v : crypto.tls.
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_supportedVersions (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedVersions' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_supportedVersions (l : Loc) (v : crypto.tls.clientHelloMsg) (supportedVersions' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedVersions" l) v.supportedVersions' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"supportedVersions" l) supportedVersions' (DFrac.own 1))
@@ -1565,7 +1564,7 @@ instance clientHelloMsg_access_store_supportedVersions (l : Loc) (v : crypto.tls
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_cookie (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_cookie (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"cookie" l) v.cookie' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"cookie" l) v.cookie' dq)
@@ -1573,7 +1572,7 @@ instance clientHelloMsg_access_load_cookie (l : Loc) (v : crypto.tls.clientHello
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_cookie (l : Loc) (v : crypto.tls.clientHelloMsg) (cookie' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_cookie (l : Loc) (v : crypto.tls.clientHelloMsg) (cookie' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"cookie" l) v.cookie' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"cookie" l) cookie' (DFrac.own 1))
@@ -1581,7 +1580,7 @@ instance clientHelloMsg_access_store_cookie (l : Loc) (v : crypto.tls.clientHell
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_keyShares (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_keyShares (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"keyShares" l) v.keyShares' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"keyShares" l) v.keyShares' dq)
@@ -1589,7 +1588,7 @@ instance clientHelloMsg_access_load_keyShares (l : Loc) (v : crypto.tls.clientHe
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_keyShares (l : Loc) (v : crypto.tls.clientHelloMsg) (keyShares' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_keyShares (l : Loc) (v : crypto.tls.clientHelloMsg) (keyShares' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"keyShares" l) v.keyShares' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"keyShares" l) keyShares' (DFrac.own 1))
@@ -1597,7 +1596,7 @@ instance clientHelloMsg_access_store_keyShares (l : Loc) (v : crypto.tls.clientH
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_earlyData (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_earlyData (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"earlyData" l) v.earlyData' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"earlyData" l) v.earlyData' dq)
@@ -1605,7 +1604,7 @@ instance clientHelloMsg_access_load_earlyData (l : Loc) (v : crypto.tls.clientHe
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_earlyData (l : Loc) (v : crypto.tls.clientHelloMsg) (earlyData' : Bool) :
+noncomputable instance clientHelloMsg_access_store_earlyData (l : Loc) (v : crypto.tls.clientHelloMsg) (earlyData' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"earlyData" l) v.earlyData' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"earlyData" l) earlyData' (DFrac.own 1))
@@ -1613,7 +1612,7 @@ instance clientHelloMsg_access_store_earlyData (l : Loc) (v : crypto.tls.clientH
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_pskModes (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_pskModes (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskModes" l) v.pskModes' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskModes" l) v.pskModes' dq)
@@ -1621,7 +1620,7 @@ instance clientHelloMsg_access_load_pskModes (l : Loc) (v : crypto.tls.clientHel
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_pskModes (l : Loc) (v : crypto.tls.clientHelloMsg) (pskModes' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_pskModes (l : Loc) (v : crypto.tls.clientHelloMsg) (pskModes' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskModes" l) v.pskModes' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskModes" l) pskModes' (DFrac.own 1))
@@ -1629,7 +1628,7 @@ instance clientHelloMsg_access_store_pskModes (l : Loc) (v : crypto.tls.clientHe
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_pskIdentities (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_pskIdentities (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskIdentities" l) v.pskIdentities' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskIdentities" l) v.pskIdentities' dq)
@@ -1637,7 +1636,7 @@ instance clientHelloMsg_access_load_pskIdentities (l : Loc) (v : crypto.tls.clie
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_pskIdentities (l : Loc) (v : crypto.tls.clientHelloMsg) (pskIdentities' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_pskIdentities (l : Loc) (v : crypto.tls.clientHelloMsg) (pskIdentities' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskIdentities" l) v.pskIdentities' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskIdentities" l) pskIdentities' (DFrac.own 1))
@@ -1645,7 +1644,7 @@ instance clientHelloMsg_access_store_pskIdentities (l : Loc) (v : crypto.tls.cli
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_pskBinders (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_pskBinders (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskBinders" l) v.pskBinders' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskBinders" l) v.pskBinders' dq)
@@ -1653,7 +1652,7 @@ instance clientHelloMsg_access_load_pskBinders (l : Loc) (v : crypto.tls.clientH
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_pskBinders (l : Loc) (v : crypto.tls.clientHelloMsg) (pskBinders' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_pskBinders (l : Loc) (v : crypto.tls.clientHelloMsg) (pskBinders' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskBinders" l) v.pskBinders' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"pskBinders" l) pskBinders' (DFrac.own 1))
@@ -1661,7 +1660,7 @@ instance clientHelloMsg_access_store_pskBinders (l : Loc) (v : crypto.tls.client
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_quicTransportParameters (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_quicTransportParameters (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"quicTransportParameters" l) v.quicTransportParameters' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"quicTransportParameters" l) v.quicTransportParameters' dq)
@@ -1669,7 +1668,7 @@ instance clientHelloMsg_access_load_quicTransportParameters (l : Loc) (v : crypt
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_quicTransportParameters (l : Loc) (v : crypto.tls.clientHelloMsg) (quicTransportParameters' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_quicTransportParameters (l : Loc) (v : crypto.tls.clientHelloMsg) (quicTransportParameters' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"quicTransportParameters" l) v.quicTransportParameters' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"quicTransportParameters" l) quicTransportParameters' (DFrac.own 1))
@@ -1677,7 +1676,7 @@ instance clientHelloMsg_access_store_quicTransportParameters (l : Loc) (v : cryp
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_encryptedClientHello (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_encryptedClientHello (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' dq)
@@ -1685,7 +1684,7 @@ instance clientHelloMsg_access_load_encryptedClientHello (l : Loc) (v : crypto.t
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_encryptedClientHello (l : Loc) (v : crypto.tls.clientHelloMsg) (encryptedClientHello' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_encryptedClientHello (l : Loc) (v : crypto.tls.clientHelloMsg) (encryptedClientHello' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"encryptedClientHello" l) encryptedClientHello' (DFrac.own 1))
@@ -1693,7 +1692,7 @@ instance clientHelloMsg_access_store_encryptedClientHello (l : Loc) (v : crypto.
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_load_extensions (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
+noncomputable instance clientHelloMsg_access_load_extensions (l : Loc) (v : crypto.tls.clientHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"extensions" l) v.extensions' dq)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"extensions" l) v.extensions' dq)
@@ -1701,7 +1700,7 @@ instance clientHelloMsg_access_load_extensions (l : Loc) (v : crypto.tls.clientH
  by
   solve_pointsto_access_struct
 
-instance clientHelloMsg_access_store_extensions (l : Loc) (v : crypto.tls.clientHelloMsg) (extensions' : GoSlice) :
+noncomputable instance clientHelloMsg_access_store_extensions (l : Loc) (v : crypto.tls.clientHelloMsg) (extensions' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"extensions" l) v.extensions' (DFrac.own 1))
       (typedPointsto (structFieldRef crypto.tls.clientHelloMsg go!"extensions" l) extensions' (DFrac.own 1))

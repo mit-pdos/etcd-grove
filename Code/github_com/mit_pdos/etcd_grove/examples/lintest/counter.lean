@@ -12,20 +12,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def github_com.mit_pdos.etcd_grove.examples.lintest.counter : GoString := go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter"
+noncomputable def github_com.mit_pdos.etcd_grove.examples.lintest.counter : GoString := go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter"
 end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.lintest.counter
 
-def Counter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Counter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter.Counter" [])
 
 attribute [irreducible] Counter.ty
@@ -187,7 +186,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "r") (Var "$r0"))))))))))
 
-instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter where
+noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -211,21 +210,21 @@ structure Counter [FfiSyntax] where
   mu' : _root_.Perennial.sync.Mutex
   n' : w64
 
-instance Counter.zero_val [FfiSyntax] : ZeroVal Counter :=
+noncomputable instance Counter.zero_val [FfiSyntax] : ZeroVal Counter :=
   ⟨Counter.mk zeroValDef zeroValDef⟩
 
-@[reducible] def Counter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Counter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"n" go.int64)]
 
-@[irreducible] def Counter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Counter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Counter.fieldsUnsealed
 
-instance equals_unfold_Counter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Counter [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Counter.fields Counter.fieldsUnsealed :=
   ⟨by unfold Counter.fields; rfl⟩
 
-@[reducible] def Counter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Counter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Counter.fields)
 
 class Counter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

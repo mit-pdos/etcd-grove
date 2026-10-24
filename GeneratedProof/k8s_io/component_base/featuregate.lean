@@ -8,9 +8,8 @@ public import Code.k8s_io.component_base.featuregate
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
 
-instance FeatureSpec_typed_pointsto :
+noncomputable instance FeatureSpec_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.component_base.featuregate.FeatureSpec :=
   sorry -- axiomatized type
 
-instance FeatureSpec_into_val_typed :
+noncomputable instance FeatureSpec_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.FeatureSpec k8s_io.component_base.featuregate.FeatureSpec.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
 
-instance MutableFeatureGate_typed_pointsto :
+noncomputable instance MutableFeatureGate_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.component_base.featuregate.MutableFeatureGate :=
   sorry -- axiomatized type
 
-instance MutableFeatureGate_into_val_typed :
+noncomputable instance MutableFeatureGate_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.MutableFeatureGate k8s_io.component_base.featuregate.MutableFeatureGate.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
 
-instance MutableFeatureGateWithLogger_typed_pointsto :
+noncomputable instance MutableFeatureGateWithLogger_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.component_base.featuregate.MutableFeatureGateWithLogger :=
   sorry -- axiomatized type
 
-instance MutableFeatureGateWithLogger_into_val_typed :
+noncomputable instance MutableFeatureGateWithLogger_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.MutableFeatureGateWithLogger k8s_io.component_base.featuregate.MutableFeatureGateWithLogger.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
 
-instance MutableVersionedFeatureGate_typed_pointsto :
+noncomputable instance MutableVersionedFeatureGate_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.component_base.featuregate.MutableVersionedFeatureGate :=
   sorry -- axiomatized type
 
-instance MutableVersionedFeatureGate_into_val_typed :
+noncomputable instance MutableVersionedFeatureGate_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.MutableVersionedFeatureGate k8s_io.component_base.featuregate.MutableVersionedFeatureGate.underlying :=
   sorry -- axiomatized type
 
@@ -101,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
 
-instance MutableVersionedFeatureGateWithLogger_typed_pointsto :
+noncomputable instance MutableVersionedFeatureGateWithLogger_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.component_base.featuregate.MutableVersionedFeatureGateWithLogger :=
   sorry -- axiomatized type
 
-instance MutableVersionedFeatureGateWithLogger_into_val_typed :
+noncomputable instance MutableVersionedFeatureGateWithLogger_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.MutableVersionedFeatureGateWithLogger k8s_io.component_base.featuregate.MutableVersionedFeatureGateWithLogger.underlying :=
   sorry -- axiomatized type
 
@@ -120,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
 
-instance featureGate_typed_pointsto :
+noncomputable instance featureGate_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.component_base.featuregate.featureGate :=
   sorry -- axiomatized type
 
-instance featureGate_into_val_typed :
+noncomputable instance featureGate_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.featureGate k8s_io.component_base.featuregate.featureGate.underlying :=
   sorry -- axiomatized type
 

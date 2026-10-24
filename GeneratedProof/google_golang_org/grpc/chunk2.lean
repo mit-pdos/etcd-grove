@@ -10,9 +10,8 @@ public import Code.google_golang_org.grpc
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -27,11 +26,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance payloadInfo_typed_pointsto :
+noncomputable instance payloadInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.payloadInfo :=
   sorry -- axiomatized type
 
-instance payloadInfo_into_val_typed :
+noncomputable instance payloadInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.payloadInfo google_golang_org.grpc.payloadInfo.underlying :=
   sorry -- axiomatized type
 
@@ -46,11 +45,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance compressorInfo_typed_pointsto :
+noncomputable instance compressorInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.compressorInfo :=
   sorry -- axiomatized type
 
-instance compressorInfo_into_val_typed :
+noncomputable instance compressorInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.compressorInfo google_golang_org.grpc.compressorInfo.underlying :=
   sorry -- axiomatized type
 
@@ -65,7 +64,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance rpcInfoContextKey_typed_pointsto :
+noncomputable instance rpcInfoContextKey_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.rpcInfoContextKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -73,7 +72,7 @@ instance rpcInfoContextKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance rpcInfoContextKey_into_val_typed :
+noncomputable instance rpcInfoContextKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.rpcInfoContextKey google_golang_org.grpc.rpcInfoContextKey.underlying := by
   solve_into_val_typed_struct
 
@@ -88,7 +87,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance ServiceDesc_typed_pointsto :
+noncomputable instance ServiceDesc_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.ServiceDesc where
   typedPointstoDef l v dq := iprop(
     "ServiceName" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' dq ∗
@@ -101,11 +100,11 @@ instance ServiceDesc_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance ServiceDesc_into_val_typed :
+noncomputable instance ServiceDesc_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ServiceDesc google_golang_org.grpc.ServiceDesc.underlying := by
   solve_into_val_typed_struct
 
-instance ServiceDesc_access_load_ServiceName (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance ServiceDesc_access_load_ServiceName (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' dq)
@@ -113,7 +112,7 @@ instance ServiceDesc_access_load_ServiceName (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
-instance ServiceDesc_access_store_ServiceName (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (ServiceName' : GoString) :
+noncomputable instance ServiceDesc_access_store_ServiceName (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (ServiceName' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) ServiceName' (DFrac.own 1))
@@ -121,7 +120,7 @@ instance ServiceDesc_access_store_ServiceName (l : Loc) (v : google_golang_org.g
  by
   solve_pointsto_access_struct
 
-instance ServiceDesc_access_load_HandlerType (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance ServiceDesc_access_load_HandlerType (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' dq)
@@ -129,7 +128,7 @@ instance ServiceDesc_access_load_HandlerType (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
-instance ServiceDesc_access_store_HandlerType (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (HandlerType' : GoInterface) :
+noncomputable instance ServiceDesc_access_store_HandlerType (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (HandlerType' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) HandlerType' (DFrac.own 1))
@@ -137,7 +136,7 @@ instance ServiceDesc_access_store_HandlerType (l : Loc) (v : google_golang_org.g
  by
   solve_pointsto_access_struct
 
-instance ServiceDesc_access_load_Methods (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance ServiceDesc_access_load_Methods (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' dq)
@@ -145,7 +144,7 @@ instance ServiceDesc_access_load_Methods (l : Loc) (v : google_golang_org.grpc.S
  by
   solve_pointsto_access_struct
 
-instance ServiceDesc_access_store_Methods (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Methods' : GoSlice) :
+noncomputable instance ServiceDesc_access_store_Methods (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Methods' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) Methods' (DFrac.own 1))
@@ -153,7 +152,7 @@ instance ServiceDesc_access_store_Methods (l : Loc) (v : google_golang_org.grpc.
  by
   solve_pointsto_access_struct
 
-instance ServiceDesc_access_load_Streams (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance ServiceDesc_access_load_Streams (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' dq)
@@ -161,7 +160,7 @@ instance ServiceDesc_access_load_Streams (l : Loc) (v : google_golang_org.grpc.S
  by
   solve_pointsto_access_struct
 
-instance ServiceDesc_access_store_Streams (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Streams' : GoSlice) :
+noncomputable instance ServiceDesc_access_store_Streams (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Streams' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) Streams' (DFrac.own 1))
@@ -169,7 +168,7 @@ instance ServiceDesc_access_store_Streams (l : Loc) (v : google_golang_org.grpc.
  by
   solve_pointsto_access_struct
 
-instance ServiceDesc_access_load_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance ServiceDesc_access_load_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' dq)
@@ -177,7 +176,7 @@ instance ServiceDesc_access_load_Metadata (l : Loc) (v : google_golang_org.grpc.
  by
   solve_pointsto_access_struct
 
-instance ServiceDesc_access_store_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Metadata' : GoInterface) :
+noncomputable instance ServiceDesc_access_store_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Metadata' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) Metadata' (DFrac.own 1))
@@ -196,7 +195,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance serviceInfo_typed_pointsto :
+noncomputable instance serviceInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.serviceInfo where
   typedPointstoDef l v dq := iprop(
     "serviceImpl" ∷ typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' dq ∗
@@ -207,11 +206,11 @@ instance serviceInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance serviceInfo_into_val_typed :
+noncomputable instance serviceInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.serviceInfo google_golang_org.grpc.serviceInfo.underlying := by
   solve_into_val_typed_struct
 
-instance serviceInfo_access_load_serviceImpl (l : Loc) (v : google_golang_org.grpc.serviceInfo) (dq : DFrac) :
+noncomputable instance serviceInfo_access_load_serviceImpl (l : Loc) (v : google_golang_org.grpc.serviceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' dq)
@@ -219,7 +218,7 @@ instance serviceInfo_access_load_serviceImpl (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
-instance serviceInfo_access_store_serviceImpl (l : Loc) (v : google_golang_org.grpc.serviceInfo) (serviceImpl' : GoInterface) :
+noncomputable instance serviceInfo_access_store_serviceImpl (l : Loc) (v : google_golang_org.grpc.serviceInfo) (serviceImpl' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) serviceImpl' (DFrac.own 1))
@@ -227,7 +226,7 @@ instance serviceInfo_access_store_serviceImpl (l : Loc) (v : google_golang_org.g
  by
   solve_pointsto_access_struct
 
-instance serviceInfo_access_load_streams (l : Loc) (v : google_golang_org.grpc.serviceInfo) (dq : DFrac) :
+noncomputable instance serviceInfo_access_load_streams (l : Loc) (v : google_golang_org.grpc.serviceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' dq)
@@ -235,7 +234,7 @@ instance serviceInfo_access_load_streams (l : Loc) (v : google_golang_org.grpc.s
  by
   solve_pointsto_access_struct
 
-instance serviceInfo_access_store_streams (l : Loc) (v : google_golang_org.grpc.serviceInfo) (streams' : GoMap) :
+noncomputable instance serviceInfo_access_store_streams (l : Loc) (v : google_golang_org.grpc.serviceInfo) (streams' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) streams' (DFrac.own 1))
@@ -243,7 +242,7 @@ instance serviceInfo_access_store_streams (l : Loc) (v : google_golang_org.grpc.
  by
   solve_pointsto_access_struct
 
-instance serviceInfo_access_load_mdata (l : Loc) (v : google_golang_org.grpc.serviceInfo) (dq : DFrac) :
+noncomputable instance serviceInfo_access_load_mdata (l : Loc) (v : google_golang_org.grpc.serviceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' dq)
@@ -251,7 +250,7 @@ instance serviceInfo_access_load_mdata (l : Loc) (v : google_golang_org.grpc.ser
  by
   solve_pointsto_access_struct
 
-instance serviceInfo_access_store_mdata (l : Loc) (v : google_golang_org.grpc.serviceInfo) (mdata' : GoInterface) :
+noncomputable instance serviceInfo_access_store_mdata (l : Loc) (v : google_golang_org.grpc.serviceInfo) (mdata' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) mdata' (DFrac.own 1))
@@ -270,11 +269,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance Server_typed_pointsto :
+noncomputable instance Server_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.Server :=
   sorry -- axiomatized type
 
-instance Server_into_val_typed :
+noncomputable instance Server_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.Server google_golang_org.grpc.Server.underlying :=
   sorry -- axiomatized type
 
@@ -289,11 +288,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance serverOptions_typed_pointsto :
+noncomputable instance serverOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.serverOptions :=
   sorry -- axiomatized type
 
-instance serverOptions_into_val_typed :
+noncomputable instance serverOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.serverOptions google_golang_org.grpc.serverOptions.underlying :=
   sorry -- axiomatized type
 
@@ -308,7 +307,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance EmptyServerOption_typed_pointsto :
+noncomputable instance EmptyServerOption_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.EmptyServerOption where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -316,7 +315,7 @@ instance EmptyServerOption_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance EmptyServerOption_into_val_typed :
+noncomputable instance EmptyServerOption_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.EmptyServerOption google_golang_org.grpc.EmptyServerOption.underlying := by
   solve_into_val_typed_struct
 
@@ -331,7 +330,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance funcServerOption_typed_pointsto :
+noncomputable instance funcServerOption_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.funcServerOption where
   typedPointstoDef l v dq := iprop(
     "f" ∷ typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) v.f' dq ∗
@@ -340,11 +339,11 @@ instance funcServerOption_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance funcServerOption_into_val_typed :
+noncomputable instance funcServerOption_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.funcServerOption google_golang_org.grpc.funcServerOption.underlying := by
   solve_into_val_typed_struct
 
-instance funcServerOption_access_load_f (l : Loc) (v : google_golang_org.grpc.funcServerOption) (dq : DFrac) :
+noncomputable instance funcServerOption_access_load_f (l : Loc) (v : google_golang_org.grpc.funcServerOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) v.f' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) v.f' dq)
@@ -352,7 +351,7 @@ instance funcServerOption_access_load_f (l : Loc) (v : google_golang_org.grpc.fu
  by
   solve_pointsto_access_struct
 
-instance funcServerOption_access_store_f (l : Loc) (v : google_golang_org.grpc.funcServerOption) (f' : GoFunc) :
+noncomputable instance funcServerOption_access_store_f (l : Loc) (v : google_golang_org.grpc.funcServerOption) (f' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) v.f' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) f' (DFrac.own 1))
@@ -371,7 +370,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance joinServerOption_typed_pointsto :
+noncomputable instance joinServerOption_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.joinServerOption where
   typedPointstoDef l v dq := iprop(
     "opts" ∷ typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq ∗
@@ -380,11 +379,11 @@ instance joinServerOption_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance joinServerOption_into_val_typed :
+noncomputable instance joinServerOption_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.joinServerOption google_golang_org.grpc.joinServerOption.underlying := by
   solve_into_val_typed_struct
 
-instance joinServerOption_access_load_opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (dq : DFrac) :
+noncomputable instance joinServerOption_access_load_opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq)
@@ -392,7 +391,7 @@ instance joinServerOption_access_load_opts (l : Loc) (v : google_golang_org.grpc
  by
   solve_pointsto_access_struct
 
-instance joinServerOption_access_store_opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (opts' : GoSlice) :
+noncomputable instance joinServerOption_access_store_opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (opts' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) opts' (DFrac.own 1))
@@ -411,7 +410,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance MaxHeaderListSizeServerOption_typed_pointsto :
+noncomputable instance MaxHeaderListSizeServerOption_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.MaxHeaderListSizeServerOption where
   typedPointstoDef l v dq := iprop(
     "MaxHeaderListSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq ∗
@@ -420,11 +419,11 @@ instance MaxHeaderListSizeServerOption_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance MaxHeaderListSizeServerOption_into_val_typed :
+noncomputable instance MaxHeaderListSizeServerOption_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MaxHeaderListSizeServerOption google_golang_org.grpc.MaxHeaderListSizeServerOption.underlying := by
   solve_into_val_typed_struct
 
-instance MaxHeaderListSizeServerOption_access_load_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (dq : DFrac) :
+noncomputable instance MaxHeaderListSizeServerOption_access_load_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq)
@@ -432,7 +431,7 @@ instance MaxHeaderListSizeServerOption_access_load_MaxHeaderListSize (l : Loc) (
  by
   solve_pointsto_access_struct
 
-instance MaxHeaderListSizeServerOption_access_store_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (MaxHeaderListSize' : w32) :
+noncomputable instance MaxHeaderListSizeServerOption_access_store_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (MaxHeaderListSize' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) MaxHeaderListSize' (DFrac.own 1))
@@ -451,7 +450,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance MethodInfo_typed_pointsto :
+noncomputable instance MethodInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.MethodInfo where
   typedPointstoDef l v dq := iprop(
     "Name" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq ∗
@@ -462,11 +461,11 @@ instance MethodInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance MethodInfo_into_val_typed :
+noncomputable instance MethodInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MethodInfo google_golang_org.grpc.MethodInfo.underlying := by
   solve_into_val_typed_struct
 
-instance MethodInfo_access_load_Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
+noncomputable instance MethodInfo_access_load_Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq)
@@ -474,7 +473,7 @@ instance MethodInfo_access_load_Name (l : Loc) (v : google_golang_org.grpc.Metho
  by
   solve_pointsto_access_struct
 
-instance MethodInfo_access_store_Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (Name' : GoString) :
+noncomputable instance MethodInfo_access_store_Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (Name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) Name' (DFrac.own 1))
@@ -482,7 +481,7 @@ instance MethodInfo_access_store_Name (l : Loc) (v : google_golang_org.grpc.Meth
  by
   solve_pointsto_access_struct
 
-instance MethodInfo_access_load_IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
+noncomputable instance MethodInfo_access_load_IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq)
@@ -490,7 +489,7 @@ instance MethodInfo_access_load_IsClientStream (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-instance MethodInfo_access_store_IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsClientStream' : Bool) :
+noncomputable instance MethodInfo_access_store_IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsClientStream' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) IsClientStream' (DFrac.own 1))
@@ -498,7 +497,7 @@ instance MethodInfo_access_store_IsClientStream (l : Loc) (v : google_golang_org
  by
   solve_pointsto_access_struct
 
-instance MethodInfo_access_load_IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
+noncomputable instance MethodInfo_access_load_IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq)
@@ -506,7 +505,7 @@ instance MethodInfo_access_load_IsServerStream (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-instance MethodInfo_access_store_IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsServerStream' : Bool) :
+noncomputable instance MethodInfo_access_store_IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsServerStream' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) IsServerStream' (DFrac.own 1))
@@ -525,7 +524,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance ServiceInfo_typed_pointsto :
+noncomputable instance ServiceInfo_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.ServiceInfo where
   typedPointstoDef l v dq := iprop(
     "Methods" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' dq ∗
@@ -535,11 +534,11 @@ instance ServiceInfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance ServiceInfo_into_val_typed :
+noncomputable instance ServiceInfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ServiceInfo google_golang_org.grpc.ServiceInfo.underlying := by
   solve_into_val_typed_struct
 
-instance ServiceInfo_access_load_Methods (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (dq : DFrac) :
+noncomputable instance ServiceInfo_access_load_Methods (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' dq)
@@ -547,7 +546,7 @@ instance ServiceInfo_access_load_Methods (l : Loc) (v : google_golang_org.grpc.S
  by
   solve_pointsto_access_struct
 
-instance ServiceInfo_access_store_Methods (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (Methods' : GoSlice) :
+noncomputable instance ServiceInfo_access_store_Methods (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (Methods' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) Methods' (DFrac.own 1))
@@ -555,7 +554,7 @@ instance ServiceInfo_access_store_Methods (l : Loc) (v : google_golang_org.grpc.
  by
   solve_pointsto_access_struct
 
-instance ServiceInfo_access_load_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (dq : DFrac) :
+noncomputable instance ServiceInfo_access_load_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' dq)
@@ -563,7 +562,7 @@ instance ServiceInfo_access_load_Metadata (l : Loc) (v : google_golang_org.grpc.
  by
   solve_pointsto_access_struct
 
-instance ServiceInfo_access_store_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (Metadata' : GoInterface) :
+noncomputable instance ServiceInfo_access_store_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (Metadata' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) Metadata' (DFrac.own 1))
@@ -582,11 +581,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance listenSocket_typed_pointsto :
+noncomputable instance listenSocket_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.listenSocket :=
   sorry -- axiomatized type
 
-instance listenSocket_into_val_typed :
+noncomputable instance listenSocket_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.listenSocket google_golang_org.grpc.listenSocket.underlying :=
   sorry -- axiomatized type
 
@@ -601,7 +600,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance streamKey_typed_pointsto :
+noncomputable instance streamKey_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.streamKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -609,7 +608,7 @@ instance streamKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance streamKey_into_val_typed :
+noncomputable instance streamKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.streamKey google_golang_org.grpc.streamKey.underlying := by
   solve_into_val_typed_struct
 
@@ -624,7 +623,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance serverKey_typed_pointsto :
+noncomputable instance serverKey_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.serverKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -632,7 +631,7 @@ instance serverKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance serverKey_into_val_typed :
+noncomputable instance serverKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.serverKey google_golang_org.grpc.serverKey.underlying := by
   solve_into_val_typed_struct
 
@@ -647,11 +646,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance atomicSemaphore_typed_pointsto :
+noncomputable instance atomicSemaphore_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.atomicSemaphore :=
   sorry -- axiomatized type
 
-instance atomicSemaphore_into_val_typed :
+noncomputable instance atomicSemaphore_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.atomicSemaphore google_golang_org.grpc.atomicSemaphore.underlying :=
   sorry -- axiomatized type
 
@@ -666,11 +665,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance ServiceConfig_typed_pointsto :
+noncomputable instance ServiceConfig_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.ServiceConfig :=
   sorry -- axiomatized type
 
-instance ServiceConfig_into_val_typed :
+noncomputable instance ServiceConfig_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ServiceConfig google_golang_org.grpc.ServiceConfig.underlying :=
   sorry -- axiomatized type
 
@@ -685,7 +684,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance healthCheckConfig_typed_pointsto :
+noncomputable instance healthCheckConfig_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.healthCheckConfig where
   typedPointstoDef l v dq := iprop(
     "ServiceName" ∷ typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' dq ∗
@@ -694,11 +693,11 @@ instance healthCheckConfig_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance healthCheckConfig_into_val_typed :
+noncomputable instance healthCheckConfig_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.healthCheckConfig google_golang_org.grpc.healthCheckConfig.underlying := by
   solve_into_val_typed_struct
 
-instance healthCheckConfig_access_load_ServiceName (l : Loc) (v : google_golang_org.grpc.healthCheckConfig) (dq : DFrac) :
+noncomputable instance healthCheckConfig_access_load_ServiceName (l : Loc) (v : google_golang_org.grpc.healthCheckConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' dq)
@@ -706,7 +705,7 @@ instance healthCheckConfig_access_load_ServiceName (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-instance healthCheckConfig_access_store_ServiceName (l : Loc) (v : google_golang_org.grpc.healthCheckConfig) (ServiceName' : GoString) :
+noncomputable instance healthCheckConfig_access_store_ServiceName (l : Loc) (v : google_golang_org.grpc.healthCheckConfig) (ServiceName' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) ServiceName' (DFrac.own 1))
@@ -725,11 +724,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance jsonRetryPolicy_typed_pointsto :
+noncomputable instance jsonRetryPolicy_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.jsonRetryPolicy :=
   sorry -- axiomatized type
 
-instance jsonRetryPolicy_into_val_typed :
+noncomputable instance jsonRetryPolicy_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.jsonRetryPolicy google_golang_org.grpc.jsonRetryPolicy.underlying :=
   sorry -- axiomatized type
 
@@ -744,7 +743,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance retryThrottlingPolicy_typed_pointsto :
+noncomputable instance retryThrottlingPolicy_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.retryThrottlingPolicy where
   typedPointstoDef l v dq := iprop(
     "MaxTokens" ∷ typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' dq ∗
@@ -754,11 +753,11 @@ instance retryThrottlingPolicy_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance retryThrottlingPolicy_into_val_typed :
+noncomputable instance retryThrottlingPolicy_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.retryThrottlingPolicy google_golang_org.grpc.retryThrottlingPolicy.underlying := by
   solve_into_val_typed_struct
 
-instance retryThrottlingPolicy_access_load_MaxTokens (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (dq : DFrac) :
+noncomputable instance retryThrottlingPolicy_access_load_MaxTokens (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' dq)
@@ -766,7 +765,7 @@ instance retryThrottlingPolicy_access_load_MaxTokens (l : Loc) (v : google_golan
  by
   solve_pointsto_access_struct
 
-instance retryThrottlingPolicy_access_store_MaxTokens (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (MaxTokens' : w64) :
+noncomputable instance retryThrottlingPolicy_access_store_MaxTokens (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (MaxTokens' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) MaxTokens' (DFrac.own 1))
@@ -774,7 +773,7 @@ instance retryThrottlingPolicy_access_store_MaxTokens (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-instance retryThrottlingPolicy_access_load_TokenRatio (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (dq : DFrac) :
+noncomputable instance retryThrottlingPolicy_access_load_TokenRatio (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' dq)
@@ -782,7 +781,7 @@ instance retryThrottlingPolicy_access_load_TokenRatio (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-instance retryThrottlingPolicy_access_store_TokenRatio (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (TokenRatio' : w64) :
+noncomputable instance retryThrottlingPolicy_access_store_TokenRatio (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (TokenRatio' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) TokenRatio' (DFrac.own 1))
@@ -801,7 +800,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance jsonName_typed_pointsto :
+noncomputable instance jsonName_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.jsonName where
   typedPointstoDef l v dq := iprop(
     "Service" ∷ typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Service" l) v.Service' dq ∗
@@ -811,11 +810,11 @@ instance jsonName_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance jsonName_into_val_typed :
+noncomputable instance jsonName_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.jsonName google_golang_org.grpc.jsonName.underlying := by
   solve_into_val_typed_struct
 
-instance jsonName_access_load_Service (l : Loc) (v : google_golang_org.grpc.jsonName) (dq : DFrac) :
+noncomputable instance jsonName_access_load_Service (l : Loc) (v : google_golang_org.grpc.jsonName) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Service" l) v.Service' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Service" l) v.Service' dq)
@@ -823,7 +822,7 @@ instance jsonName_access_load_Service (l : Loc) (v : google_golang_org.grpc.json
  by
   solve_pointsto_access_struct
 
-instance jsonName_access_store_Service (l : Loc) (v : google_golang_org.grpc.jsonName) (Service' : GoString) :
+noncomputable instance jsonName_access_store_Service (l : Loc) (v : google_golang_org.grpc.jsonName) (Service' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Service" l) v.Service' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Service" l) Service' (DFrac.own 1))
@@ -831,7 +830,7 @@ instance jsonName_access_store_Service (l : Loc) (v : google_golang_org.grpc.jso
  by
   solve_pointsto_access_struct
 
-instance jsonName_access_load_Method (l : Loc) (v : google_golang_org.grpc.jsonName) (dq : DFrac) :
+noncomputable instance jsonName_access_load_Method (l : Loc) (v : google_golang_org.grpc.jsonName) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Method" l) v.Method' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Method" l) v.Method' dq)
@@ -839,7 +838,7 @@ instance jsonName_access_load_Method (l : Loc) (v : google_golang_org.grpc.jsonN
  by
   solve_pointsto_access_struct
 
-instance jsonName_access_store_Method (l : Loc) (v : google_golang_org.grpc.jsonName) (Method' : GoString) :
+noncomputable instance jsonName_access_store_Method (l : Loc) (v : google_golang_org.grpc.jsonName) (Method' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Method" l) v.Method' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Method" l) Method' (DFrac.own 1))
@@ -858,11 +857,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance jsonMC_typed_pointsto :
+noncomputable instance jsonMC_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.jsonMC :=
   sorry -- axiomatized type
 
-instance jsonMC_into_val_typed :
+noncomputable instance jsonMC_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.jsonMC google_golang_org.grpc.jsonMC.underlying :=
   sorry -- axiomatized type
 
@@ -877,11 +876,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance jsonSC_typed_pointsto :
+noncomputable instance jsonSC_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.jsonSC :=
   sorry -- axiomatized type
 
-instance jsonSC_into_val_typed :
+noncomputable instance jsonSC_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.jsonSC google_golang_org.grpc.jsonSC.underlying :=
   sorry -- axiomatized type
 
@@ -896,11 +895,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance clientStreamWrapper_typed_pointsto :
+noncomputable instance clientStreamWrapper_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.clientStreamWrapper :=
   sorry -- axiomatized type
 
-instance clientStreamWrapper_into_val_typed :
+noncomputable instance clientStreamWrapper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.clientStreamWrapper google_golang_org.grpc.clientStreamWrapper.underlying :=
   sorry -- axiomatized type
 
@@ -915,11 +914,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance clientInterceptor_typed_pointsto :
+noncomputable instance clientInterceptor_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.clientInterceptor :=
   sorry -- axiomatized type
 
-instance clientInterceptor_into_val_typed :
+noncomputable instance clientInterceptor_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.clientInterceptor google_golang_org.grpc.clientInterceptor.underlying :=
   sorry -- axiomatized type
 
@@ -934,11 +933,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance clientStream_typed_pointsto :
+noncomputable instance clientStream_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.clientStream :=
   sorry -- axiomatized type
 
-instance clientStream_into_val_typed :
+noncomputable instance clientStream_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.clientStream google_golang_org.grpc.clientStream.underlying :=
   sorry -- axiomatized type
 
@@ -953,7 +952,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance replayOp_typed_pointsto :
+noncomputable instance replayOp_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.replayOp where
   typedPointstoDef l v dq := iprop(
     "op" ∷ typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) v.op' dq ∗
@@ -963,11 +962,11 @@ instance replayOp_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance replayOp_into_val_typed :
+noncomputable instance replayOp_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.replayOp google_golang_org.grpc.replayOp.underlying := by
   solve_into_val_typed_struct
 
-instance replayOp_access_load_op (l : Loc) (v : google_golang_org.grpc.replayOp) (dq : DFrac) :
+noncomputable instance replayOp_access_load_op (l : Loc) (v : google_golang_org.grpc.replayOp) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) v.op' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) v.op' dq)
@@ -975,7 +974,7 @@ instance replayOp_access_load_op (l : Loc) (v : google_golang_org.grpc.replayOp)
  by
   solve_pointsto_access_struct
 
-instance replayOp_access_store_op (l : Loc) (v : google_golang_org.grpc.replayOp) (op' : GoFunc) :
+noncomputable instance replayOp_access_store_op (l : Loc) (v : google_golang_org.grpc.replayOp) (op' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) v.op' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) op' (DFrac.own 1))
@@ -983,7 +982,7 @@ instance replayOp_access_store_op (l : Loc) (v : google_golang_org.grpc.replayOp
  by
   solve_pointsto_access_struct
 
-instance replayOp_access_load_cleanup (l : Loc) (v : google_golang_org.grpc.replayOp) (dq : DFrac) :
+noncomputable instance replayOp_access_load_cleanup (l : Loc) (v : google_golang_org.grpc.replayOp) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' dq)
@@ -991,7 +990,7 @@ instance replayOp_access_load_cleanup (l : Loc) (v : google_golang_org.grpc.repl
  by
   solve_pointsto_access_struct
 
-instance replayOp_access_store_cleanup (l : Loc) (v : google_golang_org.grpc.replayOp) (cleanup' : GoFunc) :
+noncomputable instance replayOp_access_store_cleanup (l : Loc) (v : google_golang_org.grpc.replayOp) (cleanup' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) cleanup' (DFrac.own 1))
@@ -1010,11 +1009,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance csAttempt_typed_pointsto :
+noncomputable instance csAttempt_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.csAttempt :=
   sorry -- axiomatized type
 
-instance csAttempt_into_val_typed :
+noncomputable instance csAttempt_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.csAttempt google_golang_org.grpc.csAttempt.underlying :=
   sorry -- axiomatized type
 
@@ -1029,11 +1028,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance addrConnStream_typed_pointsto :
+noncomputable instance addrConnStream_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.addrConnStream :=
   sorry -- axiomatized type
 
-instance addrConnStream_into_val_typed :
+noncomputable instance addrConnStream_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.addrConnStream google_golang_org.grpc.addrConnStream.underlying :=
   sorry -- axiomatized type
 
@@ -1048,11 +1047,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance serverStream_typed_pointsto :
+noncomputable instance serverStream_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.serverStream :=
   sorry -- axiomatized type
 
-instance serverStream_into_val_typed :
+noncomputable instance serverStream_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.serverStream google_golang_org.grpc.serverStream.underlying :=
   sorry -- axiomatized type
 
@@ -1067,11 +1066,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance traceLog_typed_pointsto :
+noncomputable instance traceLog_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.traceLog :=
   sorry -- axiomatized type
 
-instance traceLog_into_val_typed :
+noncomputable instance traceLog_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.traceLog google_golang_org.grpc.traceLog.underlying :=
   sorry -- axiomatized type
 
@@ -1086,11 +1085,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance firstLine_typed_pointsto :
+noncomputable instance firstLine_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.firstLine :=
   sorry -- axiomatized type
 
-instance firstLine_into_val_typed :
+noncomputable instance firstLine_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.firstLine google_golang_org.grpc.firstLine.underlying :=
   sorry -- axiomatized type
 
@@ -1105,7 +1104,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance payload_typed_pointsto :
+noncomputable instance payload_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.payload where
   typedPointstoDef l v dq := iprop(
     "sent" ∷ typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) v.sent' dq ∗
@@ -1115,11 +1114,11 @@ instance payload_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance payload_into_val_typed :
+noncomputable instance payload_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.payload google_golang_org.grpc.payload.underlying := by
   solve_into_val_typed_struct
 
-instance payload_access_load_sent (l : Loc) (v : google_golang_org.grpc.payload) (dq : DFrac) :
+noncomputable instance payload_access_load_sent (l : Loc) (v : google_golang_org.grpc.payload) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) v.sent' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) v.sent' dq)
@@ -1127,7 +1126,7 @@ instance payload_access_load_sent (l : Loc) (v : google_golang_org.grpc.payload)
  by
   solve_pointsto_access_struct
 
-instance payload_access_store_sent (l : Loc) (v : google_golang_org.grpc.payload) (sent' : Bool) :
+noncomputable instance payload_access_store_sent (l : Loc) (v : google_golang_org.grpc.payload) (sent' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) v.sent' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) sent' (DFrac.own 1))
@@ -1135,7 +1134,7 @@ instance payload_access_store_sent (l : Loc) (v : google_golang_org.grpc.payload
  by
   solve_pointsto_access_struct
 
-instance payload_access_load_msg (l : Loc) (v : google_golang_org.grpc.payload) (dq : DFrac) :
+noncomputable instance payload_access_load_msg (l : Loc) (v : google_golang_org.grpc.payload) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"msg" l) v.msg' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"msg" l) v.msg' dq)
@@ -1143,7 +1142,7 @@ instance payload_access_load_msg (l : Loc) (v : google_golang_org.grpc.payload) 
  by
   solve_pointsto_access_struct
 
-instance payload_access_store_msg (l : Loc) (v : google_golang_org.grpc.payload) (msg' : GoInterface) :
+noncomputable instance payload_access_store_msg (l : Loc) (v : google_golang_org.grpc.payload) (msg' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"msg" l) v.msg' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"msg" l) msg' (DFrac.own 1))
@@ -1162,7 +1161,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-instance fmtStringer_typed_pointsto :
+noncomputable instance fmtStringer_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.fmtStringer where
   typedPointstoDef l v dq := iprop(
     "format" ∷ typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) v.format' dq ∗
@@ -1172,11 +1171,11 @@ instance fmtStringer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance fmtStringer_into_val_typed :
+noncomputable instance fmtStringer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.fmtStringer google_golang_org.grpc.fmtStringer.underlying := by
   solve_into_val_typed_struct
 
-instance fmtStringer_access_load_format (l : Loc) (v : google_golang_org.grpc.fmtStringer) (dq : DFrac) :
+noncomputable instance fmtStringer_access_load_format (l : Loc) (v : google_golang_org.grpc.fmtStringer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) v.format' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) v.format' dq)
@@ -1184,7 +1183,7 @@ instance fmtStringer_access_load_format (l : Loc) (v : google_golang_org.grpc.fm
  by
   solve_pointsto_access_struct
 
-instance fmtStringer_access_store_format (l : Loc) (v : google_golang_org.grpc.fmtStringer) (format' : GoString) :
+noncomputable instance fmtStringer_access_store_format (l : Loc) (v : google_golang_org.grpc.fmtStringer) (format' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) v.format' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) format' (DFrac.own 1))
@@ -1192,7 +1191,7 @@ instance fmtStringer_access_store_format (l : Loc) (v : google_golang_org.grpc.f
  by
   solve_pointsto_access_struct
 
-instance fmtStringer_access_load_a (l : Loc) (v : google_golang_org.grpc.fmtStringer) (dq : DFrac) :
+noncomputable instance fmtStringer_access_load_a (l : Loc) (v : google_golang_org.grpc.fmtStringer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"a" l) v.a' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"a" l) v.a' dq)
@@ -1200,7 +1199,7 @@ instance fmtStringer_access_load_a (l : Loc) (v : google_golang_org.grpc.fmtStri
  by
   solve_pointsto_access_struct
 
-instance fmtStringer_access_store_a (l : Loc) (v : google_golang_org.grpc.fmtStringer) (a' : GoSlice) :
+noncomputable instance fmtStringer_access_store_a (l : Loc) (v : google_golang_org.grpc.fmtStringer) (a' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"a" l) v.a' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"a" l) a' (DFrac.own 1))

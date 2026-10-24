@@ -10,25 +10,24 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.api.v3.v3rpc.rpctypes : GoString := go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+noncomputable def go_etcd_io.etcd.api.v3.v3rpc.rpctypes : GoString := go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 end pkg_id
 
 namespace go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 
-def EtcdError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EtcdError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.EtcdError" [])
 
 attribute [irreducible] EtcdError.ty
 
-def TokenFieldNameGRPCKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TokenFieldNameGRPCKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameGRPCKey" [])
 
 attribute [irreducible] TokenFieldNameGRPCKey.ty
@@ -786,7 +785,7 @@ noncomputable def ErrorDesc.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -1190,21 +1189,21 @@ structure EtcdError [FfiSyntax] where
   code' : _root_.Perennial.google_golang_org.grpc.codes.Code
   desc' : GoString
 
-instance EtcdError.zero_val [FfiSyntax] : ZeroVal EtcdError :=
+noncomputable instance EtcdError.zero_val [FfiSyntax] : ZeroVal EtcdError :=
   ⟨EtcdError.mk zeroValDef zeroValDef⟩
 
-@[reducible] def EtcdError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EtcdError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"code" _root_.Perennial.google_golang_org.grpc.codes.Code.ty),
 (go.field_decl.FieldDecl go!"desc" go.string)]
 
-@[irreducible] def EtcdError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EtcdError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   EtcdError.fieldsUnsealed
 
-instance equals_unfold_EtcdError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EtcdError [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold EtcdError.fields EtcdError.fieldsUnsealed :=
   ⟨by unfold EtcdError.fields; rfl⟩
 
-@[reducible] def EtcdError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EtcdError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EtcdError.fields)
 
 class EtcdError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1235,20 +1234,20 @@ attribute [instance] EtcdError.TypeAssumptions.type_repr
 structure TokenFieldNameGRPCKey [FfiSyntax] where
   mk ::
 
-instance TokenFieldNameGRPCKey.zero_val [FfiSyntax] : ZeroVal TokenFieldNameGRPCKey :=
+noncomputable instance TokenFieldNameGRPCKey.zero_val [FfiSyntax] : ZeroVal TokenFieldNameGRPCKey :=
   ⟨TokenFieldNameGRPCKey.mk⟩
 
-@[reducible] def TokenFieldNameGRPCKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TokenFieldNameGRPCKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def TokenFieldNameGRPCKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TokenFieldNameGRPCKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   TokenFieldNameGRPCKey.fieldsUnsealed
 
-instance equals_unfold_TokenFieldNameGRPCKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TokenFieldNameGRPCKey [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold TokenFieldNameGRPCKey.fields TokenFieldNameGRPCKey.fieldsUnsealed :=
   ⟨by unfold TokenFieldNameGRPCKey.fields; rfl⟩
 
-@[reducible] def TokenFieldNameGRPCKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TokenFieldNameGRPCKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TokenFieldNameGRPCKey.fields)
 
 class TokenFieldNameGRPCKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

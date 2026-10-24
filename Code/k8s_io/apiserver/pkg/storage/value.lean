@@ -8,60 +8,59 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apiserver.pkg.storage.value : GoString := go!"k8s.io/apiserver/pkg/storage/value"
+noncomputable def k8s_io.apiserver.pkg.storage.value : GoString := go!"k8s.io/apiserver/pkg/storage/value"
 end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.value
 
-def gRPCError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def gRPCError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.gRPCError" [])
 
 attribute [irreducible] gRPCError.ty
 
-def Context.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Context.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.Context" [])
 
 attribute [irreducible] Context.ty
 
-def Read.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Read.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.Read" [])
 
 attribute [irreducible] Read.ty
 
-def Write.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Write.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.Write" [])
 
 attribute [irreducible] Write.ty
 
-def Transformer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Transformer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.Transformer" [])
 
 attribute [irreducible] Transformer.ty
 
-def ResourceTransformers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceTransformers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.ResourceTransformers" [])
 
 attribute [irreducible] ResourceTransformers.ty
 
-def DefaultContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DefaultContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.DefaultContext" [])
 
 attribute [irreducible] DefaultContext.ty
 
-def PrefixTransformer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PrefixTransformer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.PrefixTransformer" [])
 
 attribute [irreducible] PrefixTransformer.ty
 
-def prefixTransformers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def prefixTransformers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.prefixTransformers" [])
 
 attribute [irreducible] prefixTransformers.ty
@@ -139,7 +138,7 @@ noncomputable def getRequestInfoFromContext [FfiSyntax] [GoGlobalContext] : GoSt
 noncomputable def getResourceFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.getResourceFromContext"
 
-instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.value where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.value where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -184,7 +183,7 @@ attribute [instance] gRPCError.TypeAssumptions.type_repr
 
 abbrev Context [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Context.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Context.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AuthenticatedData" (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))])
 
 class Context.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -220,7 +219,7 @@ attribute [instance] Write.TypeAssumptions.type_repr
 
 abbrev Transformer [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Transformer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Transformer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Read.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Write.ty)])])
 
 class Transformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -243,7 +242,7 @@ attribute [instance] ResourceTransformers.TypeAssumptions.type_repr
 
 abbrev DefaultContext [FfiSyntax] : Type := GoSlice
 
-@[reducible] def DefaultContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DefaultContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.byte)
 
 class DefaultContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -256,21 +255,21 @@ structure PrefixTransformer [FfiSyntax] where
   Prefix' : GoSlice
   Transformer' : Transformer
 
-instance PrefixTransformer.zero_val [FfiSyntax] : ZeroVal PrefixTransformer :=
+noncomputable instance PrefixTransformer.zero_val [FfiSyntax] : ZeroVal PrefixTransformer :=
   ⟨PrefixTransformer.mk zeroValDef zeroValDef⟩
 
-@[reducible] def PrefixTransformer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PrefixTransformer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Prefix" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Transformer" Transformer.ty)]
 
-@[irreducible] def PrefixTransformer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PrefixTransformer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   PrefixTransformer.fieldsUnsealed
 
-instance equals_unfold_PrefixTransformer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PrefixTransformer [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold PrefixTransformer.fields PrefixTransformer.fieldsUnsealed :=
   ⟨by unfold PrefixTransformer.fields; rfl⟩
 
-@[reducible] def PrefixTransformer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PrefixTransformer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PrefixTransformer.fields)
 
 class PrefixTransformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -293,21 +292,21 @@ structure prefixTransformers [FfiSyntax] where
   transformers' : GoSlice
   err' : GoError
 
-instance prefixTransformers.zero_val [FfiSyntax] : ZeroVal prefixTransformers :=
+noncomputable instance prefixTransformers.zero_val [FfiSyntax] : ZeroVal prefixTransformers :=
   ⟨prefixTransformers.mk zeroValDef zeroValDef⟩
 
-@[reducible] def prefixTransformers.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def prefixTransformers.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"transformers" (go.GoType.SliceType PrefixTransformer.ty)),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] def prefixTransformers.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def prefixTransformers.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   prefixTransformers.fieldsUnsealed
 
-instance equals_unfold_prefixTransformers [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_prefixTransformers [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold prefixTransformers.fields prefixTransformers.fieldsUnsealed :=
   ⟨by unfold prefixTransformers.fields; rfl⟩
 
-@[reducible] def prefixTransformers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def prefixTransformers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType prefixTransformers.fields)
 
 class prefixTransformers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

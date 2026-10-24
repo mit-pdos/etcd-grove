@@ -8,20 +8,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_opentelemetry_io.otel.codes : GoString := go!"go.opentelemetry.io/otel/codes"
+noncomputable def go_opentelemetry_io.otel.codes : GoString := go!"go.opentelemetry.io/otel/codes"
 end pkg_id
 
 namespace go_opentelemetry_io.otel.codes
 
-def Code.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Code.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/codes.Code" [])
 
 attribute [irreducible] Code.ty
@@ -44,7 +43,7 @@ noncomputable def strToCode [FfiSyntax] [GoGlobalContext] : GoString :=
 
 axiom strToCode.init [FfiSyntax] [GoGlobalContext] : val
 
-instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.codes where
+noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.codes where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -61,7 +60,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Code [FfiSyntax] : Type := w32
 
-@[reducible] def Code.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Code.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint32
 
 class Code.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

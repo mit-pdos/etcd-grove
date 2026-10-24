@@ -1845,6 +1845,18 @@ are live). `Fork` hands the forking thread a token (`wp_fork_tok`, `wp_fork_tok_
 
 In status-history.md: "Build performance (2026-10-12, branch `proof-perf`)", "Parallel elaboration and tactic state".
 
+## Perennial pin `ef0f3eef4` (2026-10-24)
+
+The pin moved from `c25bef57e` to Perennial `lean` `ef0f3eef4`, which brings its own build-speed
+changes: the proof automation compiled to native code (the `PerennialMeta` library), the
+`needsGooseSimp`/`PureWp` caches kept for a whole declaration, `solve_typed_pointsto_agree` building
+a direct proof term, and in the translator, every generated definition `noncomputable` with no
+linters in generated files and a large package's translation split into chunk modules
+(`Code/go_etcd_io/etcd/api/v3/etcdserverpb/chunk*.lean`). The translations are regenerated
+(`etc/goose.py`, 362 files); no proof needed a change. Trust base unchanged (615 axioms, 4
+`sorry`s; every collection passes). A cold full build (`LAKE_ARTIFACT_CACHE=false`, 32 cores,
+Perennial's included): wall 23m38s, CPU 8h25m, the longest import chain 12m28s.
+
 ## Build performance (2026-10-22, branch `perf/2026-10-22`, merged into `lean`)
 
 Cold full builds (`LAKE_ARTIFACT_CACHE=false`, 24 cores shared with other jobs) of the base `c3dc7114e7`

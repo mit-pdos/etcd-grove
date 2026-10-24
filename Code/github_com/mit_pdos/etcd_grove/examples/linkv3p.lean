@@ -25,20 +25,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def github_com.mit_pdos.etcd_grove.examples.linkv3p : GoString := go!"github.com/mit-pdos/etcd-grove/examples/linkv3p"
+noncomputable def github_com.mit_pdos.etcd_grove.examples.linkv3p : GoString := go!"github.com/mit-pdos/etcd-grove/examples/linkv3p"
 end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.linkv3p
 
-def Step.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Step.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.Step" [])
 
 attribute [irreducible] Step.ty
@@ -1091,7 +1090,7 @@ noncomputable def MainWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.KV.ty)))) (Pair (Var "tried") (Var "$r0"))))))))))))))
 
-instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p where
+noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p where
   pkgImportedPkgs := [pkg_id.context, pkg_id.net, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.github_com.mit_pdos.etcd_grove.examples.common, pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -1156,23 +1155,23 @@ structure Step [FfiSyntax] where
   A' : w64
   B' : w64
 
-instance Step.zero_val [FfiSyntax] : ZeroVal Step :=
+noncomputable instance Step.zero_val [FfiSyntax] : ZeroVal Step :=
   ⟨Step.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Step.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Step.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Delay" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"Kind" go.int),
 (go.field_decl.FieldDecl go!"A" go.int),
 (go.field_decl.FieldDecl go!"B" go.int)]
 
-@[irreducible] def Step.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Step.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Step.fieldsUnsealed
 
-instance equals_unfold_Step [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Step [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Step.fields Step.fieldsUnsealed :=
   ⟨by unfold Step.fields; rfl⟩
 
-@[reducible] def Step.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Step.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Step.fields)
 
 class Step.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

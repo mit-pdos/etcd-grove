@@ -35,85 +35,84 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.apply : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/apply"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.apply : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/apply"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.apply
 
-def authApplierV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def authApplierV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.authApplierV3" [])
 
 attribute [irreducible] authApplierV3.ty
 
-def applierV3backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applierV3backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applierV3backend" [])
 
 attribute [irreducible] applierV3backend.ty
 
-def applierV3Capped.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applierV3Capped.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applierV3Capped" [])
 
 attribute [irreducible] applierV3Capped.ty
 
-def applierV3Corrupt.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applierV3Corrupt.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applierV3Corrupt" [])
 
 attribute [irreducible] applierV3Corrupt.ty
 
-def InternalRaftRequestWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InternalRaftRequestWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.InternalRaftRequestWrapper" [])
 
 attribute [irreducible] InternalRaftRequestWrapper.ty
 
-def applierV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applierV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applierV3" [])
 
 attribute [irreducible] applierV3.ty
 
-def ApplierOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ApplierOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.ApplierOptions" [])
 
 attribute [irreducible] ApplierOptions.ty
 
-def SnapshotServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SnapshotServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.SnapshotServer" [])
 
 attribute [irreducible] SnapshotServer.ty
 
-def RaftStatusGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaftStatusGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.RaftStatusGetter" [])
 
 attribute [irreducible] RaftStatusGetter.ty
 
-def Result.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Result.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.Result" [])
 
 attribute [irreducible] Result.ty
 
-def applyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applyFunc" [])
 
 attribute [irreducible] applyFunc.ty
 
-def quotaApplierV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def quotaApplierV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.quotaApplierV3" [])
 
 attribute [irreducible] quotaApplierV3.ty
 
-def UberApplier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UberApplier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.UberApplier" [])
 
 attribute [irreducible] UberApplier.ty
 
-def uberApplier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def uberApplier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.uberApplier" [])
 
 attribute [irreducible] uberApplier.ty
@@ -3017,7 +3016,7 @@ noncomputable def uberApplier.Alarm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply where
   pkgImportedPkgs := [pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.membershippb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.time, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.errors]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -3113,7 +3112,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev applierV3 [FfiSyntax] : Type := GoInterface
 
-@[reducible] def applierV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applierV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Alarm" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Apply" (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)])), (go.InterfaceElem.MethodElem go!"AuthDisable" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"AuthEnable" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"AuthStatus" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Authenticate" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"ClusterMemberAttrSet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [])), (go.InterfaceElem.MethodElem go!"ClusterVersionSet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [])), (go.InterfaceElem.MethodElem go!"Compaction" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"DeleteRange" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"DowngradeInfoSet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [])), (go.InterfaceElem.MethodElem go!"LeaseCheckpoint" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"LeaseGrant" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"LeaseRevoke" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Put" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"Range" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleAdd" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleDelete" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleGet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleGrantPermission" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleList" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleRevokePermission" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Txn" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserAdd" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserChangePassword" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserDelete" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserGet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserGrantRole" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserList" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserRevokeRole" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))])
 
 class applierV3.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3129,24 +3128,24 @@ structure authApplierV3 [FfiSyntax] where
   mu' : _root_.Perennial.sync.Mutex
   authInfo' : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo
 
-instance authApplierV3.zero_val [FfiSyntax] : ZeroVal authApplierV3 :=
+noncomputable instance authApplierV3.zero_val [FfiSyntax] : ZeroVal authApplierV3 :=
   ⟨authApplierV3.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def authApplierV3.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def authApplierV3.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"applierV3" applierV3.ty),
 (go.field_decl.FieldDecl go!"as" _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty),
 (go.field_decl.FieldDecl go!"lessor" _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"authInfo" _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)]
 
-@[irreducible] def authApplierV3.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def authApplierV3.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   authApplierV3.fieldsUnsealed
 
-instance equals_unfold_authApplierV3 [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_authApplierV3 [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold authApplierV3.fields authApplierV3.fieldsUnsealed :=
   ⟨by unfold authApplierV3.fields; rfl⟩
 
-@[reducible] def authApplierV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def authApplierV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType authApplierV3.fields)
 
 class authApplierV3.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3326,7 +3325,7 @@ attribute [instance] authApplierV3.TypeAssumptions.type_repr
 
 abbrev RaftStatusGetter [FfiSyntax] : Type := GoInterface
 
-@[reducible] def RaftStatusGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RaftStatusGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AppliedIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"CommittedIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"Leader" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty])), (go.InterfaceElem.MethodElem go!"MemberID" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty])), (go.InterfaceElem.MethodElem go!"Term" (go.signature.Signature [] false [go.uint64]))])
 
 class RaftStatusGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3336,7 +3335,7 @@ attribute [instance] RaftStatusGetter.TypeAssumptions.underlying
 
 abbrev SnapshotServer [FfiSyntax] : Type := GoInterface
 
-@[reducible] def SnapshotServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SnapshotServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ForceSnapshot" (go.signature.Signature [] false []))])
 
 class SnapshotServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3360,10 +3359,10 @@ structure ApplierOptions [FfiSyntax] where
   QuotaBackendBytesCfg' : w64
   WarningApplyDuration' : _root_.Perennial.time.Duration
 
-instance ApplierOptions.zero_val [FfiSyntax] : ZeroVal ApplierOptions :=
+noncomputable instance ApplierOptions.zero_val [FfiSyntax] : ZeroVal ApplierOptions :=
   ⟨ApplierOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ApplierOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ApplierOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Logger" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"KV" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty),
 (go.field_decl.FieldDecl go!"AlarmStore" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty)),
@@ -3378,14 +3377,14 @@ instance ApplierOptions.zero_val [FfiSyntax] : ZeroVal ApplierOptions :=
 (go.field_decl.FieldDecl go!"QuotaBackendBytesCfg" go.int64),
 (go.field_decl.FieldDecl go!"WarningApplyDuration" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] def ApplierOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ApplierOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ApplierOptions.fieldsUnsealed
 
-instance equals_unfold_ApplierOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ApplierOptions [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ApplierOptions.fields ApplierOptions.fieldsUnsealed :=
   ⟨by unfold ApplierOptions.fields; rfl⟩
 
-@[reducible] def ApplierOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ApplierOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ApplierOptions.fields)
 
 class ApplierOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3451,20 +3450,20 @@ structure applierV3backend [FfiSyntax] where
   mk ::
   options' : ApplierOptions
 
-instance applierV3backend.zero_val [FfiSyntax] : ZeroVal applierV3backend :=
+noncomputable instance applierV3backend.zero_val [FfiSyntax] : ZeroVal applierV3backend :=
   ⟨applierV3backend.mk zeroValDef⟩
 
-@[reducible] def applierV3backend.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def applierV3backend.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"options" ApplierOptions.ty)]
 
-@[irreducible] def applierV3backend.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def applierV3backend.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   applierV3backend.fieldsUnsealed
 
-instance equals_unfold_applierV3backend [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_applierV3backend [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold applierV3backend.fields applierV3backend.fieldsUnsealed :=
   ⟨by unfold applierV3backend.fields; rfl⟩
 
-@[reducible] def applierV3backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applierV3backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType applierV3backend.fields)
 
 class applierV3backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3545,21 +3544,21 @@ structure applierV3Capped [FfiSyntax] where
   applierV3' : applierV3
   q' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendQuota
 
-instance applierV3Capped.zero_val [FfiSyntax] : ZeroVal applierV3Capped :=
+noncomputable instance applierV3Capped.zero_val [FfiSyntax] : ZeroVal applierV3Capped :=
   ⟨applierV3Capped.mk zeroValDef zeroValDef⟩
 
-@[reducible] def applierV3Capped.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def applierV3Capped.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"applierV3" applierV3.ty),
 (go.field_decl.FieldDecl go!"q" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendQuota.ty)]
 
-@[irreducible] def applierV3Capped.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def applierV3Capped.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   applierV3Capped.fieldsUnsealed
 
-instance equals_unfold_applierV3Capped [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_applierV3Capped [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold applierV3Capped.fields applierV3Capped.fieldsUnsealed :=
   ⟨by unfold applierV3Capped.fields; rfl⟩
 
-@[reducible] def applierV3Capped.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applierV3Capped.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType applierV3Capped.fields)
 
 class applierV3Capped.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3749,20 +3748,20 @@ structure applierV3Corrupt [FfiSyntax] where
   mk ::
   applierV3' : applierV3
 
-instance applierV3Corrupt.zero_val [FfiSyntax] : ZeroVal applierV3Corrupt :=
+noncomputable instance applierV3Corrupt.zero_val [FfiSyntax] : ZeroVal applierV3Corrupt :=
   ⟨applierV3Corrupt.mk zeroValDef⟩
 
-@[reducible] def applierV3Corrupt.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def applierV3Corrupt.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"applierV3" applierV3.ty)]
 
-@[irreducible] def applierV3Corrupt.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def applierV3Corrupt.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   applierV3Corrupt.fieldsUnsealed
 
-instance equals_unfold_applierV3Corrupt [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_applierV3Corrupt [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold applierV3Corrupt.fields applierV3Corrupt.fieldsUnsealed :=
   ⟨by unfold applierV3Corrupt.fields; rfl⟩
 
-@[reducible] def applierV3Corrupt.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applierV3Corrupt.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType applierV3Corrupt.fields)
 
 class applierV3Corrupt.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3933,21 +3932,21 @@ structure InternalRaftRequestWrapper [FfiSyntax] where
   InternalRaftRequest' : Loc
   SkipRangeExecution' : Bool
 
-instance InternalRaftRequestWrapper.zero_val [FfiSyntax] : ZeroVal InternalRaftRequestWrapper :=
+noncomputable instance InternalRaftRequestWrapper.zero_val [FfiSyntax] : ZeroVal InternalRaftRequestWrapper :=
   ⟨InternalRaftRequestWrapper.mk zeroValDef zeroValDef⟩
 
-@[reducible] def InternalRaftRequestWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InternalRaftRequestWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"InternalRaftRequest" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)),
 (go.field_decl.FieldDecl go!"SkipRangeExecution" go.bool)]
 
-@[irreducible] def InternalRaftRequestWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InternalRaftRequestWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   InternalRaftRequestWrapper.fieldsUnsealed
 
-instance equals_unfold_InternalRaftRequestWrapper [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InternalRaftRequestWrapper [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold InternalRaftRequestWrapper.fields InternalRaftRequestWrapper.fieldsUnsealed :=
   ⟨by unfold InternalRaftRequestWrapper.fields; rfl⟩
 
-@[reducible] def InternalRaftRequestWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InternalRaftRequestWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InternalRaftRequestWrapper.fields)
 
 class InternalRaftRequestWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4194,23 +4193,23 @@ structure Result [FfiSyntax] where
   Physc' : GoChan
   Trace' : Loc
 
-instance Result.zero_val [FfiSyntax] : ZeroVal Result :=
+noncomputable instance Result.zero_val [FfiSyntax] : ZeroVal Result :=
   ⟨Result.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Result.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Result.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Resp" _root_.Perennial.google_golang_org.protobuf.proto.Message.ty),
 (go.field_decl.FieldDecl go!"Err" go.error),
 (go.field_decl.FieldDecl go!"Physc" (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"Trace" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))]
 
-@[irreducible] def Result.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Result.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Result.fieldsUnsealed
 
-instance equals_unfold_Result [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Result [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Result.fields Result.fieldsUnsealed :=
   ⟨by unfold Result.fields; rfl⟩
 
-@[reducible] def Result.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Result.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Result.fields)
 
 class Result.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4238,7 +4237,7 @@ attribute [instance] Result.TypeAssumptions.type_repr
 
 abbrev applyFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def applyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [(go.GoType.PointerType Result.ty)]))
 
 class applyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4251,21 +4250,21 @@ structure quotaApplierV3 [FfiSyntax] where
   applierV3' : applierV3
   q' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota
 
-instance quotaApplierV3.zero_val [FfiSyntax] : ZeroVal quotaApplierV3 :=
+noncomputable instance quotaApplierV3.zero_val [FfiSyntax] : ZeroVal quotaApplierV3 :=
   ⟨quotaApplierV3.mk zeroValDef zeroValDef⟩
 
-@[reducible] def quotaApplierV3.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def quotaApplierV3.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"applierV3" applierV3.ty),
 (go.field_decl.FieldDecl go!"q" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty)]
 
-@[irreducible] def quotaApplierV3.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def quotaApplierV3.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   quotaApplierV3.fieldsUnsealed
 
-instance equals_unfold_quotaApplierV3 [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_quotaApplierV3 [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold quotaApplierV3.fields quotaApplierV3.fieldsUnsealed :=
   ⟨by unfold quotaApplierV3.fields; rfl⟩
 
-@[reducible] def quotaApplierV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def quotaApplierV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType quotaApplierV3.fields)
 
 class quotaApplierV3.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4453,7 +4452,7 @@ attribute [instance] quotaApplierV3.TypeAssumptions.type_repr
 
 abbrev UberApplier [FfiSyntax] : Type := GoInterface
 
-@[reducible] def UberApplier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UberApplier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Apply" (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [(go.GoType.PointerType Result.ty)]))])
 
 class UberApplier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4469,24 +4468,24 @@ structure uberApplier [FfiSyntax] where
   applyV3' : applierV3
   applyV3base' : applierV3
 
-instance uberApplier.zero_val [FfiSyntax] : ZeroVal uberApplier :=
+noncomputable instance uberApplier.zero_val [FfiSyntax] : ZeroVal uberApplier :=
   ⟨uberApplier.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def uberApplier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def uberApplier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"alarmStore" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty)),
 (go.field_decl.FieldDecl go!"warningApplyDuration" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"applyV3" applierV3.ty),
 (go.field_decl.FieldDecl go!"applyV3base" applierV3.ty)]
 
-@[irreducible] def uberApplier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def uberApplier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   uberApplier.fieldsUnsealed
 
-instance equals_unfold_uberApplier [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_uberApplier [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold uberApplier.fields uberApplier.fieldsUnsealed :=
   ⟨by unfold uberApplier.fields; rfl⟩
 
-@[reducible] def uberApplier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def uberApplier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType uberApplier.fields)
 
 class uberApplier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

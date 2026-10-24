@@ -10,80 +10,79 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.bbolt.internal.common : GoString := go!"go.etcd.io/bbolt/internal/common"
+noncomputable def go_etcd_io.bbolt.internal.common : GoString := go!"go.etcd.io/bbolt/internal/common"
 end pkg_id
 
 namespace go_etcd_io.bbolt.internal.common
 
-def InBucket.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InBucket.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.InBucket" [])
 
 attribute [irreducible] InBucket.ty
 
-def Inode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Inode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Inode" [])
 
 attribute [irreducible] Inode.ty
 
-def Inodes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Inodes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Inodes" [])
 
 attribute [irreducible] Inodes.ty
 
-def Meta.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Meta.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Meta" [])
 
 attribute [irreducible] Meta.ty
 
-def Pgid.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pgid.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])
 
 attribute [irreducible] Pgid.ty
 
-def Page.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Page.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])
 
 attribute [irreducible] Page.ty
 
-def Pages.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pages.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pages" [])
 
 attribute [irreducible] Pages.ty
 
-def branchPageElement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def branchPageElement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.branchPageElement" [])
 
 attribute [irreducible] branchPageElement.ty
 
-def leafPageElement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def leafPageElement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.leafPageElement" [])
 
 attribute [irreducible] leafPageElement.ty
 
-def PageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.PageInfo" [])
 
 attribute [irreducible] PageInfo.ty
 
-def Pgids.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pgids.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgids" [])
 
 attribute [irreducible] Pgids.ty
 
-def Txid.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Txid.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Txid" [])
 
 attribute [irreducible] Txid.ty
 
-def VerificationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VerificationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.VerificationType" [])
 
 attribute [irreducible] VerificationType.ty
@@ -416,7 +415,7 @@ noncomputable def Mergepgids.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.bbolt.internal.common where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.bbolt.internal.common where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.sort]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -436,7 +435,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Pgid [FfiSyntax] : Type := w64
 
-@[reducible] def Pgid.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Pgid.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint64
 
 class Pgid.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -449,21 +448,21 @@ structure InBucket [FfiSyntax] where
   root' : Pgid
   sequence' : w64
 
-instance InBucket.zero_val [FfiSyntax] : ZeroVal InBucket :=
+noncomputable instance InBucket.zero_val [FfiSyntax] : ZeroVal InBucket :=
   ⟨InBucket.mk zeroValDef zeroValDef⟩
 
-@[reducible] def InBucket.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InBucket.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"root" Pgid.ty),
 (go.field_decl.FieldDecl go!"sequence" go.uint64)]
 
-@[irreducible] def InBucket.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InBucket.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   InBucket.fieldsUnsealed
 
-instance equals_unfold_InBucket [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InBucket [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold InBucket.fields InBucket.fieldsUnsealed :=
   ⟨by unfold InBucket.fields; rfl⟩
 
-@[reducible] def InBucket.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InBucket.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InBucket.fields)
 
 class InBucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -488,23 +487,23 @@ structure Inode [FfiSyntax] where
   key' : GoSlice
   value' : GoSlice
 
-instance Inode.zero_val [FfiSyntax] : ZeroVal Inode :=
+noncomputable instance Inode.zero_val [FfiSyntax] : ZeroVal Inode :=
   ⟨Inode.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Inode.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Inode.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"flags" go.uint32),
 (go.field_decl.FieldDecl go!"pgid" Pgid.ty),
 (go.field_decl.FieldDecl go!"key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"value" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def Inode.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Inode.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Inode.fieldsUnsealed
 
-instance equals_unfold_Inode [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Inode [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Inode.fields Inode.fieldsUnsealed :=
   ⟨by unfold Inode.fields; rfl⟩
 
-@[reducible] def Inode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Inode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Inode.fields)
 
 class Inode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -532,7 +531,7 @@ attribute [instance] Inode.TypeAssumptions.type_repr
 
 abbrev Inodes [FfiSyntax] : Type := GoSlice
 
-@[reducible] def Inodes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Inodes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType Inode.ty)
 
 class Inodes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -542,7 +541,7 @@ attribute [instance] Inodes.TypeAssumptions.underlying
 
 abbrev Txid [FfiSyntax] : Type := w64
 
-@[reducible] def Txid.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Txid.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint64
 
 class Txid.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -562,10 +561,10 @@ structure Meta [FfiSyntax] where
   txid' : Txid
   checksum' : w64
 
-instance Meta.zero_val [FfiSyntax] : ZeroVal Meta :=
+noncomputable instance Meta.zero_val [FfiSyntax] : ZeroVal Meta :=
   ⟨Meta.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Meta.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Meta.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"magic" go.uint32),
 (go.field_decl.FieldDecl go!"version" go.uint32),
 (go.field_decl.FieldDecl go!"pageSize" go.uint32),
@@ -576,14 +575,14 @@ instance Meta.zero_val [FfiSyntax] : ZeroVal Meta :=
 (go.field_decl.FieldDecl go!"txid" Txid.ty),
 (go.field_decl.FieldDecl go!"checksum" go.uint64)]
 
-@[irreducible] def Meta.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Meta.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Meta.fieldsUnsealed
 
-instance equals_unfold_Meta [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Meta [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Meta.fields Meta.fieldsUnsealed :=
   ⟨by unfold Meta.fields; rfl⟩
 
-@[reducible] def Meta.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Meta.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Meta.fields)
 
 class Meta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -636,23 +635,23 @@ structure Page [FfiSyntax] where
   count' : w16
   overflow' : w32
 
-instance Page.zero_val [FfiSyntax] : ZeroVal Page :=
+noncomputable instance Page.zero_val [FfiSyntax] : ZeroVal Page :=
   ⟨Page.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Page.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Page.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" Pgid.ty),
 (go.field_decl.FieldDecl go!"flags" go.uint16),
 (go.field_decl.FieldDecl go!"count" go.uint16),
 (go.field_decl.FieldDecl go!"overflow" go.uint32)]
 
-@[irreducible] def Page.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Page.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Page.fieldsUnsealed
 
-instance equals_unfold_Page [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Page [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Page.fields Page.fieldsUnsealed :=
   ⟨by unfold Page.fields; rfl⟩
 
-@[reducible] def Page.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Page.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Page.fields)
 
 class Page.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -680,7 +679,7 @@ attribute [instance] Page.TypeAssumptions.type_repr
 
 abbrev Pages [FfiSyntax] : Type := GoSlice
 
-@[reducible] def Pages.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Pages.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType Page.ty))
 
 class Pages.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -694,22 +693,22 @@ structure branchPageElement [FfiSyntax] where
   ksize' : w32
   pgid' : Pgid
 
-instance branchPageElement.zero_val [FfiSyntax] : ZeroVal branchPageElement :=
+noncomputable instance branchPageElement.zero_val [FfiSyntax] : ZeroVal branchPageElement :=
   ⟨branchPageElement.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def branchPageElement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def branchPageElement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"pos" go.uint32),
 (go.field_decl.FieldDecl go!"ksize" go.uint32),
 (go.field_decl.FieldDecl go!"pgid" Pgid.ty)]
 
-@[irreducible] def branchPageElement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def branchPageElement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   branchPageElement.fieldsUnsealed
 
-instance equals_unfold_branchPageElement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_branchPageElement [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold branchPageElement.fields branchPageElement.fieldsUnsealed :=
   ⟨by unfold branchPageElement.fields; rfl⟩
 
-@[reducible] def branchPageElement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def branchPageElement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType branchPageElement.fields)
 
 class branchPageElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -738,23 +737,23 @@ structure leafPageElement [FfiSyntax] where
   ksize' : w32
   vsize' : w32
 
-instance leafPageElement.zero_val [FfiSyntax] : ZeroVal leafPageElement :=
+noncomputable instance leafPageElement.zero_val [FfiSyntax] : ZeroVal leafPageElement :=
   ⟨leafPageElement.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def leafPageElement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def leafPageElement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"flags" go.uint32),
 (go.field_decl.FieldDecl go!"pos" go.uint32),
 (go.field_decl.FieldDecl go!"ksize" go.uint32),
 (go.field_decl.FieldDecl go!"vsize" go.uint32)]
 
-@[irreducible] def leafPageElement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def leafPageElement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   leafPageElement.fieldsUnsealed
 
-instance equals_unfold_leafPageElement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_leafPageElement [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold leafPageElement.fields leafPageElement.fieldsUnsealed :=
   ⟨by unfold leafPageElement.fields; rfl⟩
 
-@[reducible] def leafPageElement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def leafPageElement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType leafPageElement.fields)
 
 class leafPageElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -787,23 +786,23 @@ structure PageInfo [FfiSyntax] where
   Count' : w64
   OverflowCount' : w64
 
-instance PageInfo.zero_val [FfiSyntax] : ZeroVal PageInfo :=
+noncomputable instance PageInfo.zero_val [FfiSyntax] : ZeroVal PageInfo :=
   ⟨PageInfo.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def PageInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PageInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ID" go.int),
 (go.field_decl.FieldDecl go!"Type" go.string),
 (go.field_decl.FieldDecl go!"Count" go.int),
 (go.field_decl.FieldDecl go!"OverflowCount" go.int)]
 
-@[irreducible] def PageInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PageInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   PageInfo.fieldsUnsealed
 
-instance equals_unfold_PageInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PageInfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold PageInfo.fields PageInfo.fieldsUnsealed :=
   ⟨by unfold PageInfo.fields; rfl⟩
 
-@[reducible] def PageInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PageInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PageInfo.fields)
 
 class PageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -831,7 +830,7 @@ attribute [instance] PageInfo.TypeAssumptions.type_repr
 
 abbrev Pgids [FfiSyntax] : Type := GoSlice
 
-@[reducible] def Pgids.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Pgids.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType Pgid.ty)
 
 class Pgids.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -861,7 +860,7 @@ attribute [instance] Pgids.TypeAssumptions.underlying
 
 abbrev VerificationType [FfiSyntax] : Type := GoString
 
-@[reducible] def VerificationType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VerificationType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class VerificationType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

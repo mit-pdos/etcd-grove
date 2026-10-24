@@ -8,35 +8,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.version : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/version"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.version : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/version"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.version
 
-def DowngradeInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DowngradeInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" [])
 
 attribute [irreducible] DowngradeInfo.ty
 
-def Monitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Monitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Monitor" [])
 
 attribute [irreducible] Monitor.ty
 
-def Server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Server" [])
 
 attribute [irreducible] Server.ty
 
-def Manager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Manager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Manager" [])
 
 attribute [irreducible] Manager.ty
@@ -83,7 +82,7 @@ noncomputable def parseServerVersion [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewManager [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.NewManager"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -106,21 +105,21 @@ structure DowngradeInfo [FfiSyntax] where
   TargetVersion' : GoString
   Enabled' : Bool
 
-instance DowngradeInfo.zero_val [FfiSyntax] : ZeroVal DowngradeInfo :=
+noncomputable instance DowngradeInfo.zero_val [FfiSyntax] : ZeroVal DowngradeInfo :=
   ⟨DowngradeInfo.mk zeroValDef zeroValDef⟩
 
-@[reducible] def DowngradeInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DowngradeInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TargetVersion" go.string),
 (go.field_decl.FieldDecl go!"Enabled" go.bool)]
 
-@[irreducible] def DowngradeInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DowngradeInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   DowngradeInfo.fieldsUnsealed
 
-instance equals_unfold_DowngradeInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DowngradeInfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold DowngradeInfo.fields DowngradeInfo.fieldsUnsealed :=
   ⟨by unfold DowngradeInfo.fields; rfl⟩
 
-@[reducible] def DowngradeInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DowngradeInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DowngradeInfo.fields)
 
 class DowngradeInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -8,15 +8,14 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apiserver.pkg.features : GoString := go!"k8s.io/apiserver/pkg/features"
+noncomputable def k8s_io.apiserver.pkg.features : GoString := go!"k8s.io/apiserver/pkg/features"
 end pkg_id
 
 namespace k8s_io.apiserver.pkg.features
@@ -113,7 +112,7 @@ axiom defaultVersionedKubernetesFeatureGates.init [FfiSyntax] [GoGlobalContext] 
 noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/features.init.0"
 
-instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.features where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.features where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

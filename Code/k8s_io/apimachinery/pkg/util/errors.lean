@@ -8,35 +8,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.util.errors : GoString := go!"k8s.io/apimachinery/pkg/util/errors"
+noncomputable def k8s_io.apimachinery.pkg.util.errors : GoString := go!"k8s.io/apimachinery/pkg/util/errors"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.errors
 
-def MessageCountMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageCountMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.MessageCountMap" [])
 
 attribute [irreducible] MessageCountMap.ty
 
-def Aggregate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Aggregate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.Aggregate" [])
 
 attribute [irreducible] Aggregate.ty
 
-def aggregate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def aggregate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.aggregate" [])
 
 attribute [irreducible] aggregate.ty
 
-def Matcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Matcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.Matcher" [])
 
 attribute [irreducible] Matcher.ty
@@ -70,7 +69,7 @@ noncomputable def Reduce [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def AggregateGoroutines [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/errors.AggregateGoroutines"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.errors where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.errors where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -84,7 +83,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev MessageCountMap [FfiSyntax] : Type := GoMap
 
-@[reducible] def MessageCountMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageCountMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string go.int)
 
 class MessageCountMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -94,7 +93,7 @@ attribute [instance] MessageCountMap.TypeAssumptions.underlying
 
 abbrev Aggregate [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Aggregate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Aggregate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Errors" (go.signature.Signature [] false [(go.GoType.SliceType go.error)])), (go.InterfaceElem.MethodElem go!"Is" (go.signature.Signature [go.error] false [go.bool])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm go.error)])])
 
 class Aggregate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -104,7 +103,7 @@ attribute [instance] Aggregate.TypeAssumptions.underlying
 
 abbrev aggregate [FfiSyntax] : Type := GoSlice
 
-@[reducible] def aggregate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def aggregate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.error)
 
 class aggregate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -114,7 +113,7 @@ attribute [instance] aggregate.TypeAssumptions.underlying
 
 abbrev Matcher [FfiSyntax] : Type := GoFunc
 
-@[reducible] def Matcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Matcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.error] false [go.bool]))
 
 class Matcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

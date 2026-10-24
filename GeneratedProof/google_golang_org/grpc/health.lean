@@ -8,9 +8,8 @@ public import Code.google_golang_org.grpc.health
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.Assumptions]
 
-instance producerBuilder_typed_pointsto :
+noncomputable instance producerBuilder_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.health.producerBuilder :=
   sorry -- axiomatized type
 
-instance producerBuilder_into_val_typed :
+noncomputable instance producerBuilder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.producerBuilder google_golang_org.grpc.health.producerBuilder.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.Assumptions]
 
-instance healthServiceProducer_typed_pointsto :
+noncomputable instance healthServiceProducer_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.health.healthServiceProducer :=
   sorry -- axiomatized type
 
-instance healthServiceProducer_into_val_typed :
+noncomputable instance healthServiceProducer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.healthServiceProducer google_golang_org.grpc.health.healthServiceProducer.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.Assumptions]
 
-instance Server_typed_pointsto :
+noncomputable instance Server_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.health.Server :=
   sorry -- axiomatized type
 
-instance Server_into_val_typed :
+noncomputable instance Server_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.Server google_golang_org.grpc.health.Server.underlying :=
   sorry -- axiomatized type
 

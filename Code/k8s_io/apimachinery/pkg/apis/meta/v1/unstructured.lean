@@ -8,35 +8,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured : GoString := go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+noncomputable def k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured : GoString := go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured
 
-def unstructuredJSONScheme.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unstructuredJSONScheme.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.unstructuredJSONScheme" [])
 
 attribute [irreducible] unstructuredJSONScheme.ty
 
-def jsonFallbackEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jsonFallbackEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.jsonFallbackEncoder" [])
 
 attribute [irreducible] jsonFallbackEncoder.ty
 
-def Unstructured.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Unstructured.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured" [])
 
 attribute [irreducible] Unstructured.ty
 
-def UnstructuredList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnstructuredList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList" [])
 
 attribute [irreducible] UnstructuredList.ty
@@ -125,7 +124,7 @@ noncomputable def extractOwnerReference [FfiSyntax] [GoGlobalContext] : GoString
 noncomputable def NewJSONFallbackEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NewJSONFallbackEncoder"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -158,20 +157,20 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 structure unstructuredJSONScheme [FfiSyntax] where
   mk ::
 
-instance unstructuredJSONScheme.zero_val [FfiSyntax] : ZeroVal unstructuredJSONScheme :=
+noncomputable instance unstructuredJSONScheme.zero_val [FfiSyntax] : ZeroVal unstructuredJSONScheme :=
   ⟨unstructuredJSONScheme.mk⟩
 
-@[reducible] def unstructuredJSONScheme.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def unstructuredJSONScheme.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def unstructuredJSONScheme.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def unstructuredJSONScheme.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   unstructuredJSONScheme.fieldsUnsealed
 
-instance equals_unfold_unstructuredJSONScheme [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_unstructuredJSONScheme [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold unstructuredJSONScheme.fields unstructuredJSONScheme.fieldsUnsealed :=
   ⟨by unfold unstructuredJSONScheme.fields; rfl⟩
 
-@[reducible] def unstructuredJSONScheme.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def unstructuredJSONScheme.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType unstructuredJSONScheme.fields)
 
 class unstructuredJSONScheme.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -198,20 +197,20 @@ structure Unstructured [FfiSyntax] where
   mk ::
   Object' : GoMap
 
-instance Unstructured.zero_val [FfiSyntax] : ZeroVal Unstructured :=
+noncomputable instance Unstructured.zero_val [FfiSyntax] : ZeroVal Unstructured :=
   ⟨Unstructured.mk zeroValDef⟩
 
-@[reducible] def Unstructured.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Unstructured.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Object" (go.GoType.MapType go.string (go.GoType.InterfaceType [])))]
 
-@[irreducible] def Unstructured.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Unstructured.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Unstructured.fieldsUnsealed
 
-instance equals_unfold_Unstructured [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Unstructured [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Unstructured.fields Unstructured.fieldsUnsealed :=
   ⟨by unfold Unstructured.fields; rfl⟩
 
-@[reducible] def Unstructured.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Unstructured.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Unstructured.fields)
 
 class Unstructured.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -230,21 +229,21 @@ structure UnstructuredList [FfiSyntax] where
   Object' : GoMap
   Items' : GoSlice
 
-instance UnstructuredList.zero_val [FfiSyntax] : ZeroVal UnstructuredList :=
+noncomputable instance UnstructuredList.zero_val [FfiSyntax] : ZeroVal UnstructuredList :=
   ⟨UnstructuredList.mk zeroValDef zeroValDef⟩
 
-@[reducible] def UnstructuredList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def UnstructuredList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Object" (go.GoType.MapType go.string (go.GoType.InterfaceType []))),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Unstructured.ty))]
 
-@[irreducible] def UnstructuredList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def UnstructuredList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   UnstructuredList.fieldsUnsealed
 
-instance equals_unfold_UnstructuredList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_UnstructuredList [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold UnstructuredList.fields UnstructuredList.fieldsUnsealed :=
   ⟨by unfold UnstructuredList.fields; rfl⟩
 
-@[reducible] def UnstructuredList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnstructuredList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType UnstructuredList.fields)
 
 class UnstructuredList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

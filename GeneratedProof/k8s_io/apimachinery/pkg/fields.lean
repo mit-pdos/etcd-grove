@@ -8,9 +8,8 @@ public import Code.k8s_io.apimachinery.pkg.fields
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.fields.Assumptions]
 
-instance Requirement_typed_pointsto :
+noncomputable instance Requirement_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.fields.Requirement :=
   sorry -- axiomatized type
 
-instance Requirement_into_val_typed :
+noncomputable instance Requirement_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.fields.Requirement k8s_io.apimachinery.pkg.fields.Requirement.underlying :=
   sorry -- axiomatized type
 
@@ -44,7 +43,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.fields.Assumptions]
 
-instance nothingSelector_typed_pointsto :
+noncomputable instance nothingSelector_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.fields.nothingSelector where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -52,7 +51,7 @@ instance nothingSelector_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance nothingSelector_into_val_typed :
+noncomputable instance nothingSelector_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.fields.nothingSelector k8s_io.apimachinery.pkg.fields.nothingSelector.underlying := by
   solve_into_val_typed_struct
 
@@ -67,7 +66,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.fields.Assumptions]
 
-instance hasTerm_typed_pointsto :
+noncomputable instance hasTerm_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.fields.hasTerm where
   typedPointstoDef l v dq := iprop(
     "field" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"field" l) v.field' dq ∗
@@ -77,11 +76,11 @@ instance hasTerm_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance hasTerm_into_val_typed :
+noncomputable instance hasTerm_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.fields.hasTerm k8s_io.apimachinery.pkg.fields.hasTerm.underlying := by
   solve_into_val_typed_struct
 
-instance hasTerm_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (dq : DFrac) :
+noncomputable instance hasTerm_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"field" l) v.field' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"field" l) v.field' dq)
@@ -89,7 +88,7 @@ instance hasTerm_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields
  by
   solve_pointsto_access_struct
 
-instance hasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (field' : GoString) :
+noncomputable instance hasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (field' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"field" l) v.field' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"field" l) field' (DFrac.own 1))
@@ -97,7 +96,7 @@ instance hasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.field
  by
   solve_pointsto_access_struct
 
-instance hasTerm_access_load_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (dq : DFrac) :
+noncomputable instance hasTerm_access_load_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"value" l) v.value' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"value" l) v.value' dq)
@@ -105,7 +104,7 @@ instance hasTerm_access_load_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields
  by
   solve_pointsto_access_struct
 
-instance hasTerm_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (value' : GoString) :
+noncomputable instance hasTerm_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.hasTerm) (value' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"value" l) v.value' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.hasTerm go!"value" l) value' (DFrac.own 1))
@@ -124,7 +123,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.fields.Assumptions]
 
-instance notHasTerm_typed_pointsto :
+noncomputable instance notHasTerm_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.fields.notHasTerm where
   typedPointstoDef l v dq := iprop(
     "field" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"field" l) v.field' dq ∗
@@ -134,11 +133,11 @@ instance notHasTerm_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance notHasTerm_into_val_typed :
+noncomputable instance notHasTerm_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.fields.notHasTerm k8s_io.apimachinery.pkg.fields.notHasTerm.underlying := by
   solve_into_val_typed_struct
 
-instance notHasTerm_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (dq : DFrac) :
+noncomputable instance notHasTerm_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"field" l) v.field' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"field" l) v.field' dq)
@@ -146,7 +145,7 @@ instance notHasTerm_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.fie
  by
   solve_pointsto_access_struct
 
-instance notHasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (field' : GoString) :
+noncomputable instance notHasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (field' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"field" l) v.field' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"field" l) field' (DFrac.own 1))
@@ -154,7 +153,7 @@ instance notHasTerm_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.fi
  by
   solve_pointsto_access_struct
 
-instance notHasTerm_access_load_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (dq : DFrac) :
+noncomputable instance notHasTerm_access_load_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"value" l) v.value' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"value" l) v.value' dq)
@@ -162,7 +161,7 @@ instance notHasTerm_access_load_value (l : Loc) (v : k8s_io.apimachinery.pkg.fie
  by
   solve_pointsto_access_struct
 
-instance notHasTerm_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (value' : GoString) :
+noncomputable instance notHasTerm_access_store_value (l : Loc) (v : k8s_io.apimachinery.pkg.fields.notHasTerm) (value' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"value" l) v.value' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.notHasTerm go!"value" l) value' (DFrac.own 1))
@@ -181,7 +180,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.fields.Assumptions]
 
-instance InvalidEscapeSequence_typed_pointsto :
+noncomputable instance InvalidEscapeSequence_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence where
   typedPointstoDef l v dq := iprop(
     "sequence" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence go!"sequence" l) v.sequence' dq ∗
@@ -190,11 +189,11 @@ instance InvalidEscapeSequence_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance InvalidEscapeSequence_into_val_typed :
+noncomputable instance InvalidEscapeSequence_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence.underlying := by
   solve_into_val_typed_struct
 
-instance InvalidEscapeSequence_access_load_sequence (l : Loc) (v : k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence) (dq : DFrac) :
+noncomputable instance InvalidEscapeSequence_access_load_sequence (l : Loc) (v : k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence go!"sequence" l) v.sequence' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence go!"sequence" l) v.sequence' dq)
@@ -202,7 +201,7 @@ instance InvalidEscapeSequence_access_load_sequence (l : Loc) (v : k8s_io.apimac
  by
   solve_pointsto_access_struct
 
-instance InvalidEscapeSequence_access_store_sequence (l : Loc) (v : k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence) (sequence' : GoString) :
+noncomputable instance InvalidEscapeSequence_access_store_sequence (l : Loc) (v : k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence) (sequence' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence go!"sequence" l) v.sequence' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.fields.InvalidEscapeSequence go!"sequence" l) sequence' (DFrac.own 1))
@@ -221,11 +220,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.fields.Assumptions]
 
-instance UnescapedRune_typed_pointsto :
+noncomputable instance UnescapedRune_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.fields.UnescapedRune :=
   sorry -- axiomatized type
 
-instance UnescapedRune_into_val_typed :
+noncomputable instance UnescapedRune_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.fields.UnescapedRune k8s_io.apimachinery.pkg.fields.UnescapedRune.underlying :=
   sorry -- axiomatized type
 

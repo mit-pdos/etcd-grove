@@ -8,9 +8,8 @@ public import Code.k8s_io.apimachinery.pkg.util.wait
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance Backoff_typed_pointsto :
+noncomputable instance Backoff_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.Backoff :=
   sorry -- axiomatized type
 
-instance Backoff_into_val_typed :
+noncomputable instance Backoff_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.Backoff k8s_io.apimachinery.pkg.util.wait.Backoff.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance backoffManager_typed_pointsto :
+noncomputable instance backoffManager_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.backoffManager :=
   sorry -- axiomatized type
 
-instance backoffManager_into_val_typed :
+noncomputable instance backoffManager_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.backoffManager k8s_io.apimachinery.pkg.util.wait.backoffManager.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance BackoffManager_typed_pointsto :
+noncomputable instance BackoffManager_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.BackoffManager :=
   sorry -- axiomatized type
 
-instance BackoffManager_into_val_typed :
+noncomputable instance BackoffManager_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.BackoffManager k8s_io.apimachinery.pkg.util.wait.BackoffManager.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance exponentialBackoffManagerImpl_typed_pointsto :
+noncomputable instance exponentialBackoffManagerImpl_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl :=
   sorry -- axiomatized type
 
-instance exponentialBackoffManagerImpl_into_val_typed :
+noncomputable instance exponentialBackoffManagerImpl_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl.underlying :=
   sorry -- axiomatized type
 
@@ -101,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance jitteredBackoffManagerImpl_typed_pointsto :
+noncomputable instance jitteredBackoffManagerImpl_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl :=
   sorry -- axiomatized type
 
-instance jitteredBackoffManagerImpl_into_val_typed :
+noncomputable instance jitteredBackoffManagerImpl_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl.underlying :=
   sorry -- axiomatized type
 
@@ -120,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance DelayFunc_typed_pointsto :
+noncomputable instance DelayFunc_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.DelayFunc :=
   sorry -- axiomatized type
 
-instance DelayFunc_into_val_typed :
+noncomputable instance DelayFunc_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.DelayFunc k8s_io.apimachinery.pkg.util.wait.DelayFunc.underlying :=
   sorry -- axiomatized type
 
@@ -139,7 +138,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance errInterrupted_typed_pointsto :
+noncomputable instance errInterrupted_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.errInterrupted where
   typedPointstoDef l v dq := iprop(
     "cause" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) v.cause' dq ∗
@@ -148,11 +147,11 @@ instance errInterrupted_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance errInterrupted_into_val_typed :
+noncomputable instance errInterrupted_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.errInterrupted k8s_io.apimachinery.pkg.util.wait.errInterrupted.underlying := by
   solve_into_val_typed_struct
 
-instance errInterrupted_access_load_cause (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.errInterrupted) (dq : DFrac) :
+noncomputable instance errInterrupted_access_load_cause (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.errInterrupted) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) v.cause' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) v.cause' dq)
@@ -160,7 +159,7 @@ instance errInterrupted_access_load_cause (l : Loc) (v : k8s_io.apimachinery.pkg
  by
   solve_pointsto_access_struct
 
-instance errInterrupted_access_store_cause (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.errInterrupted) (cause' : GoError) :
+noncomputable instance errInterrupted_access_store_cause (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.errInterrupted) (cause' : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) v.cause' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.errInterrupted go!"cause" l) cause' (DFrac.own 1))
@@ -179,11 +178,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance Timer_typed_pointsto :
+noncomputable instance Timer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.Timer :=
   sorry -- axiomatized type
 
-instance Timer_into_val_typed :
+noncomputable instance Timer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.Timer k8s_io.apimachinery.pkg.util.wait.Timer.underlying :=
   sorry -- axiomatized type
 
@@ -198,11 +197,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance noopTimer_typed_pointsto :
+noncomputable instance noopTimer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.noopTimer :=
   sorry -- axiomatized type
 
-instance noopTimer_into_val_typed :
+noncomputable instance noopTimer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.noopTimer k8s_io.apimachinery.pkg.util.wait.noopTimer.underlying :=
   sorry -- axiomatized type
 
@@ -217,11 +216,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance variableTimer_typed_pointsto :
+noncomputable instance variableTimer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.variableTimer :=
   sorry -- axiomatized type
 
-instance variableTimer_into_val_typed :
+noncomputable instance variableTimer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.variableTimer k8s_io.apimachinery.pkg.util.wait.variableTimer.underlying :=
   sorry -- axiomatized type
 
@@ -236,11 +235,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance fixedTimer_typed_pointsto :
+noncomputable instance fixedTimer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.fixedTimer :=
   sorry -- axiomatized type
 
-instance fixedTimer_into_val_typed :
+noncomputable instance fixedTimer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.fixedTimer k8s_io.apimachinery.pkg.util.wait.fixedTimer.underlying :=
   sorry -- axiomatized type
 
@@ -255,11 +254,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance Group_typed_pointsto :
+noncomputable instance Group_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.Group :=
   sorry -- axiomatized type
 
-instance Group_into_val_typed :
+noncomputable instance Group_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.Group k8s_io.apimachinery.pkg.util.wait.Group.underlying :=
   sorry -- axiomatized type
 
@@ -274,11 +273,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance ConditionWithContextFunc_typed_pointsto :
+noncomputable instance ConditionWithContextFunc_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.ConditionWithContextFunc :=
   sorry -- axiomatized type
 
-instance ConditionWithContextFunc_into_val_typed :
+noncomputable instance ConditionWithContextFunc_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.ConditionWithContextFunc k8s_io.apimachinery.pkg.util.wait.ConditionWithContextFunc.underlying :=
   sorry -- axiomatized type
 
@@ -293,7 +292,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance channelContext_typed_pointsto :
+noncomputable instance channelContext_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.channelContext where
   typedPointstoDef l v dq := iprop(
     "stopCh" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) v.stopCh' dq ∗
@@ -302,11 +301,11 @@ instance channelContext_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance channelContext_into_val_typed :
+noncomputable instance channelContext_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.channelContext k8s_io.apimachinery.pkg.util.wait.channelContext.underlying := by
   solve_into_val_typed_struct
 
-instance channelContext_access_load_stopCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.channelContext) (dq : DFrac) :
+noncomputable instance channelContext_access_load_stopCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.channelContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) v.stopCh' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) v.stopCh' dq)
@@ -314,7 +313,7 @@ instance channelContext_access_load_stopCh (l : Loc) (v : k8s_io.apimachinery.pk
  by
   solve_pointsto_access_struct
 
-instance channelContext_access_store_stopCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.channelContext) (stopCh' : GoChan) :
+noncomputable instance channelContext_access_store_stopCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.channelContext) (stopCh' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) v.stopCh' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.channelContext go!"stopCh" l) stopCh' (DFrac.own 1))
@@ -333,11 +332,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
-instance waitWithContextFunc_typed_pointsto :
+noncomputable instance waitWithContextFunc_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.waitWithContextFunc :=
   sorry -- axiomatized type
 
-instance waitWithContextFunc_into_val_typed :
+noncomputable instance waitWithContextFunc_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.waitWithContextFunc k8s_io.apimachinery.pkg.util.wait.waitWithContextFunc.underlying :=
   sorry -- axiomatized type
 

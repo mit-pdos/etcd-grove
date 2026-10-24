@@ -12,210 +12,209 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_opentelemetry_io.otel.trace : GoString := go!"go.opentelemetry.io/otel/trace"
+noncomputable def go_opentelemetry_io.otel.trace : GoString := go!"go.opentelemetry.io/otel/trace"
 end pkg_id
 
 namespace go_opentelemetry_io.otel.trace
 
-def autoTracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def autoTracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.autoTracerProvider" [])
 
 attribute [irreducible] autoTracerProvider.ty
 
-def autoTracer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def autoTracer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.autoTracer" [])
 
 attribute [irreducible] autoTracer.ty
 
-def autoSpan.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def autoSpan.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.autoSpan" [])
 
 attribute [irreducible] autoSpan.ty
 
-def spanLimits.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def spanLimits.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.spanLimits" [])
 
 attribute [irreducible] spanLimits.ty
 
-def TracerConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TracerConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TracerConfig" [])
 
 attribute [irreducible] TracerConfig.ty
 
-def experimentalOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def experimentalOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.experimentalOption" [])
 
 attribute [irreducible] experimentalOption.ty
 
-def TracerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TracerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TracerOption" [])
 
 attribute [irreducible] TracerOption.ty
 
-def tracerOptionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tracerOptionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.tracerOptionFunc" [])
 
 attribute [irreducible] tracerOptionFunc.ty
 
-def SpanConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanConfig" [])
 
 attribute [irreducible] SpanConfig.ty
 
-def SpanStartOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanStartOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanStartOption" [])
 
 attribute [irreducible] SpanStartOption.ty
 
-def spanOptionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def spanOptionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.spanOptionFunc" [])
 
 attribute [irreducible] spanOptionFunc.ty
 
-def SpanEndOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanEndOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanEndOption" [])
 
 attribute [irreducible] SpanEndOption.ty
 
-def EventConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.EventConfig" [])
 
 attribute [irreducible] EventConfig.ty
 
-def EventOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.EventOption" [])
 
 attribute [irreducible] EventOption.ty
 
-def SpanOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanOption" [])
 
 attribute [irreducible] SpanOption.ty
 
-def SpanStartEventOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanStartEventOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanStartEventOption" [])
 
 attribute [irreducible] SpanStartEventOption.ty
 
-def SpanEndEventOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanEndEventOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanEndEventOption" [])
 
 attribute [irreducible] SpanEndEventOption.ty
 
-def attributeOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def attributeOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.attributeOption" [])
 
 attribute [irreducible] attributeOption.ty
 
-def SpanEventOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanEventOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanEventOption" [])
 
 attribute [irreducible] SpanEventOption.ty
 
-def timestampOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timestampOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.timestampOption" [])
 
 attribute [irreducible] timestampOption.ty
 
-def stackTraceOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stackTraceOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.stackTraceOption" [])
 
 attribute [irreducible] stackTraceOption.ty
 
-def traceContextKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def traceContextKeyType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.traceContextKeyType" [])
 
 attribute [irreducible] traceContextKeyType.ty
 
-def nonRecordingSpan.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nonRecordingSpan.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.nonRecordingSpan" [])
 
 attribute [irreducible] nonRecordingSpan.ty
 
-def noopTracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopTracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.noopTracerProvider" [])
 
 attribute [irreducible] noopTracerProvider.ty
 
-def noopTracer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopTracer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.noopTracer" [])
 
 attribute [irreducible] noopTracer.ty
 
-def noopSpan.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopSpan.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.noopSpan" [])
 
 attribute [irreducible] noopSpan.ty
 
-def TracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TracerProvider" [])
 
 attribute [irreducible] TracerProvider.ty
 
-def Span.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Span.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.Span" [])
 
 attribute [irreducible] Span.ty
 
-def Link.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Link.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.Link" [])
 
 attribute [irreducible] Link.ty
 
-def SpanKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanKind" [])
 
 attribute [irreducible] SpanKind.ty
 
-def errorConst.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def errorConst.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.errorConst" [])
 
 attribute [irreducible] errorConst.ty
 
-def TraceID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TraceID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TraceID" [])
 
 attribute [irreducible] TraceID.ty
 
-def SpanID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanID" [])
 
 attribute [irreducible] SpanID.ty
 
-def TraceFlags.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TraceFlags.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TraceFlags" [])
 
 attribute [irreducible] TraceFlags.ty
 
-def SpanContextConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanContextConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanContextConfig" [])
 
 attribute [irreducible] SpanContextConfig.ty
 
-def SpanContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SpanContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.SpanContext" [])
 
 attribute [irreducible] SpanContext.ty
 
-def Tracer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Tracer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.Tracer" [])
 
 attribute [irreducible] Tracer.ty
 
-def member.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def member.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.member" [])
 
 attribute [irreducible] member.ty
 
-def TraceState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TraceState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace.TraceState" [])
 
 attribute [irreducible] TraceState.ty
@@ -456,7 +455,7 @@ noncomputable def parseMember [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def ParseTraceState [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.ParseTraceState"
 
-instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.trace where
+noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.trace where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.codes, pkg_id.go_opentelemetry_io.otel.trace.embedded]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -529,20 +528,20 @@ structure autoTracerProvider [FfiSyntax] where
   mk ::
   TracerProvider' : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider
 
-instance autoTracerProvider.zero_val [FfiSyntax] : ZeroVal autoTracerProvider :=
+noncomputable instance autoTracerProvider.zero_val [FfiSyntax] : ZeroVal autoTracerProvider :=
   ⟨autoTracerProvider.mk zeroValDef⟩
 
-@[reducible] def autoTracerProvider.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def autoTracerProvider.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TracerProvider" _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider.ty)]
 
-@[irreducible] def autoTracerProvider.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def autoTracerProvider.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   autoTracerProvider.fieldsUnsealed
 
-instance equals_unfold_autoTracerProvider [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_autoTracerProvider [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold autoTracerProvider.fields autoTracerProvider.fieldsUnsealed :=
   ⟨by unfold autoTracerProvider.fields; rfl⟩
 
-@[reducible] def autoTracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def autoTracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType autoTracerProvider.fields)
 
 class autoTracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -563,23 +562,23 @@ structure autoTracer [FfiSyntax] where
   schemaURL' : GoString
   version' : GoString
 
-instance autoTracer.zero_val [FfiSyntax] : ZeroVal autoTracer :=
+noncomputable instance autoTracer.zero_val [FfiSyntax] : ZeroVal autoTracer :=
   ⟨autoTracer.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def autoTracer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def autoTracer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Tracer" _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer.ty),
 (go.field_decl.FieldDecl go!"name" go.string),
 (go.field_decl.FieldDecl go!"schemaURL" go.string),
 (go.field_decl.FieldDecl go!"version" go.string)]
 
-@[irreducible] def autoTracer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def autoTracer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   autoTracer.fieldsUnsealed
 
-instance equals_unfold_autoTracer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_autoTracer [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold autoTracer.fields autoTracer.fieldsUnsealed :=
   ⟨by unfold autoTracer.fields; rfl⟩
 
-@[reducible] def autoTracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def autoTracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType autoTracer.fields)
 
 class autoTracer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -627,10 +626,10 @@ structure spanLimits [FfiSyntax] where
   Links' : w64
   LinkAttrs' : w64
 
-instance spanLimits.zero_val [FfiSyntax] : ZeroVal spanLimits :=
+noncomputable instance spanLimits.zero_val [FfiSyntax] : ZeroVal spanLimits :=
   ⟨spanLimits.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def spanLimits.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def spanLimits.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Attrs" go.int),
 (go.field_decl.FieldDecl go!"AttrValueLen" go.int),
 (go.field_decl.FieldDecl go!"Events" go.int),
@@ -638,14 +637,14 @@ instance spanLimits.zero_val [FfiSyntax] : ZeroVal spanLimits :=
 (go.field_decl.FieldDecl go!"Links" go.int),
 (go.field_decl.FieldDecl go!"LinkAttrs" go.int)]
 
-@[irreducible] def spanLimits.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def spanLimits.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   spanLimits.fieldsUnsealed
 
-instance equals_unfold_spanLimits [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_spanLimits [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold spanLimits.fields spanLimits.fieldsUnsealed :=
   ⟨by unfold spanLimits.fields; rfl⟩
 
-@[reducible] def spanLimits.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def spanLimits.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType spanLimits.fields)
 
 class spanLimits.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -685,22 +684,22 @@ structure TracerConfig [FfiSyntax] where
   schemaURL' : GoString
   attrs' : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'
 
-instance TracerConfig.zero_val [FfiSyntax] : ZeroVal TracerConfig :=
+noncomputable instance TracerConfig.zero_val [FfiSyntax] : ZeroVal TracerConfig :=
   ⟨TracerConfig.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def TracerConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TracerConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"instrumentationVersion" go.string),
 (go.field_decl.FieldDecl go!"schemaURL" go.string),
 (go.field_decl.FieldDecl go!"attrs" _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'.ty)]
 
-@[irreducible] def TracerConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TracerConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   TracerConfig.fieldsUnsealed
 
-instance equals_unfold_TracerConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TracerConfig [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold TracerConfig.fields TracerConfig.fieldsUnsealed :=
   ⟨by unfold TracerConfig.fields; rfl⟩
 
-@[reducible] def TracerConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TracerConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TracerConfig.fields)
 
 class TracerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -724,7 +723,7 @@ attribute [instance] TracerConfig.TypeAssumptions.type_repr
 
 abbrev experimentalOption [FfiSyntax] : Type := GoInterface
 
-@[reducible] def experimentalOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def experimentalOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Experimental" (go.signature.Signature [] false []))])
 
 class experimentalOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -734,7 +733,7 @@ attribute [instance] experimentalOption.TypeAssumptions.underlying
 
 abbrev TracerOption [FfiSyntax] : Type := GoInterface
 
-@[reducible] def TracerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TracerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [TracerConfig.ty] false [TracerConfig.ty]))])
 
 class TracerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -744,7 +743,7 @@ attribute [instance] TracerOption.TypeAssumptions.underlying
 
 abbrev tracerOptionFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def tracerOptionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def tracerOptionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [TracerConfig.ty] false [TracerConfig.ty]))
 
 class tracerOptionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -767,7 +766,7 @@ attribute [instance] SpanConfig.TypeAssumptions.type_repr
 
 abbrev SpanStartOption [FfiSyntax] : Type := GoInterface
 
-@[reducible] def SpanStartOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanStartOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"applySpanStart" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
 
 class SpanStartOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -777,7 +776,7 @@ attribute [instance] SpanStartOption.TypeAssumptions.underlying
 
 abbrev spanOptionFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def spanOptionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def spanOptionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))
 
 class spanOptionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -787,7 +786,7 @@ attribute [instance] spanOptionFunc.TypeAssumptions.underlying
 
 abbrev SpanEndOption [FfiSyntax] : Type := GoInterface
 
-@[reducible] def SpanEndOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanEndOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"applySpanEnd" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
 
 class SpanEndOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -810,7 +809,7 @@ attribute [instance] EventConfig.TypeAssumptions.type_repr
 
 abbrev EventOption [FfiSyntax] : Type := GoInterface
 
-@[reducible] def EventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"applyEvent" (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))])
 
 class EventOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -820,7 +819,7 @@ attribute [instance] EventOption.TypeAssumptions.underlying
 
 abbrev SpanOption [FfiSyntax] : Type := GoInterface
 
-@[reducible] def SpanOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanStartOption.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanEndOption.ty)])])
 
 class SpanOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -830,7 +829,7 @@ attribute [instance] SpanOption.TypeAssumptions.underlying
 
 abbrev SpanStartEventOption [FfiSyntax] : Type := GoInterface
 
-@[reducible] def SpanStartEventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanStartEventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanStartOption.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm EventOption.ty)])])
 
 class SpanStartEventOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -840,7 +839,7 @@ attribute [instance] SpanStartEventOption.TypeAssumptions.underlying
 
 abbrev SpanEndEventOption [FfiSyntax] : Type := GoInterface
 
-@[reducible] def SpanEndEventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanEndEventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanEndOption.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm EventOption.ty)])])
 
 class SpanEndEventOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -850,7 +849,7 @@ attribute [instance] SpanEndEventOption.TypeAssumptions.underlying
 
 abbrev attributeOption [FfiSyntax] : Type := GoSlice
 
-@[reducible] def attributeOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def attributeOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)
 
 class attributeOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -860,7 +859,7 @@ attribute [instance] attributeOption.TypeAssumptions.underlying
 
 abbrev SpanEventOption [FfiSyntax] : Type := GoInterface
 
-@[reducible] def SpanEventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanEventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanOption.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm EventOption.ty)])])
 
 class SpanEventOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -883,7 +882,7 @@ attribute [instance] timestampOption.TypeAssumptions.type_repr
 
 abbrev stackTraceOption [FfiSyntax] : Type := Bool
 
-@[reducible] def stackTraceOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def stackTraceOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.bool
 
 class stackTraceOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -893,7 +892,7 @@ attribute [instance] stackTraceOption.TypeAssumptions.underlying
 
 abbrev traceContextKeyType [FfiSyntax] : Type := w64
 
-@[reducible] def traceContextKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def traceContextKeyType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class traceContextKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -905,20 +904,20 @@ structure noopSpan [FfiSyntax] where
   mk ::
   Span' : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span
 
-instance noopSpan.zero_val [FfiSyntax] : ZeroVal noopSpan :=
+noncomputable instance noopSpan.zero_val [FfiSyntax] : ZeroVal noopSpan :=
   ⟨noopSpan.mk zeroValDef⟩
 
-@[reducible] def noopSpan.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noopSpan.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Span" _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span.ty)]
 
-@[irreducible] def noopSpan.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noopSpan.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   noopSpan.fieldsUnsealed
 
-instance equals_unfold_noopSpan [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noopSpan [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold noopSpan.fields noopSpan.fieldsUnsealed :=
   ⟨by unfold noopSpan.fields; rfl⟩
 
-@[reducible] def noopSpan.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noopSpan.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noopSpan.fields)
 
 class noopSpan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -934,7 +933,7 @@ attribute [instance] noopSpan.TypeAssumptions.type_repr
 
 abbrev TraceID [FfiSyntax] : Type := (GoArray w8 16)
 
-@[reducible] def TraceID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TraceID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 16 go.byte)
 
 class TraceID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -944,7 +943,7 @@ attribute [instance] TraceID.TypeAssumptions.underlying
 
 abbrev SpanID [FfiSyntax] : Type := (GoArray w8 8)
 
-@[reducible] def SpanID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 8 go.byte)
 
 class SpanID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -954,7 +953,7 @@ attribute [instance] SpanID.TypeAssumptions.underlying
 
 abbrev TraceFlags [FfiSyntax] : Type := w8
 
-@[reducible] def TraceFlags.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TraceFlags.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.byte
 
 class TraceFlags.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -966,20 +965,20 @@ structure TraceState [FfiSyntax] where
   mk ::
   list' : GoSlice
 
-instance TraceState.zero_val [FfiSyntax] : ZeroVal TraceState :=
+noncomputable instance TraceState.zero_val [FfiSyntax] : ZeroVal TraceState :=
   ⟨TraceState.mk zeroValDef⟩
 
-@[reducible] def TraceState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TraceState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"list" (go.GoType.SliceType member.ty))]
 
-@[irreducible] def TraceState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TraceState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   TraceState.fieldsUnsealed
 
-instance equals_unfold_TraceState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TraceState [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold TraceState.fields TraceState.fieldsUnsealed :=
   ⟨by unfold TraceState.fields; rfl⟩
 
-@[reducible] def TraceState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TraceState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TraceState.fields)
 
 class TraceState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1001,24 +1000,24 @@ structure SpanContext [FfiSyntax] where
   traceState' : TraceState
   remote' : Bool
 
-instance SpanContext.zero_val [FfiSyntax] : ZeroVal SpanContext :=
+noncomputable instance SpanContext.zero_val [FfiSyntax] : ZeroVal SpanContext :=
   ⟨SpanContext.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def SpanContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SpanContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"traceID" TraceID.ty),
 (go.field_decl.FieldDecl go!"spanID" SpanID.ty),
 (go.field_decl.FieldDecl go!"traceFlags" TraceFlags.ty),
 (go.field_decl.FieldDecl go!"traceState" TraceState.ty),
 (go.field_decl.FieldDecl go!"remote" go.bool)]
 
-@[irreducible] def SpanContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SpanContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   SpanContext.fieldsUnsealed
 
-instance equals_unfold_SpanContext [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SpanContext [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold SpanContext.fields SpanContext.fieldsUnsealed :=
   ⟨by unfold SpanContext.fields; rfl⟩
 
-@[reducible] def SpanContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SpanContext.fields)
 
 class SpanContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1053,21 +1052,21 @@ structure nonRecordingSpan [FfiSyntax] where
   noopSpan' : noopSpan
   sc' : SpanContext
 
-instance nonRecordingSpan.zero_val [FfiSyntax] : ZeroVal nonRecordingSpan :=
+noncomputable instance nonRecordingSpan.zero_val [FfiSyntax] : ZeroVal nonRecordingSpan :=
   ⟨nonRecordingSpan.mk zeroValDef zeroValDef⟩
 
-@[reducible] def nonRecordingSpan.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def nonRecordingSpan.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"noopSpan" noopSpan.ty),
 (go.field_decl.FieldDecl go!"sc" SpanContext.ty)]
 
-@[irreducible] def nonRecordingSpan.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def nonRecordingSpan.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   nonRecordingSpan.fieldsUnsealed
 
-instance equals_unfold_nonRecordingSpan [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_nonRecordingSpan [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold nonRecordingSpan.fields nonRecordingSpan.fieldsUnsealed :=
   ⟨by unfold nonRecordingSpan.fields; rfl⟩
 
-@[reducible] def nonRecordingSpan.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def nonRecordingSpan.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType nonRecordingSpan.fields)
 
 class nonRecordingSpan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1089,20 +1088,20 @@ structure noopTracerProvider [FfiSyntax] where
   mk ::
   TracerProvider' : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider
 
-instance noopTracerProvider.zero_val [FfiSyntax] : ZeroVal noopTracerProvider :=
+noncomputable instance noopTracerProvider.zero_val [FfiSyntax] : ZeroVal noopTracerProvider :=
   ⟨noopTracerProvider.mk zeroValDef⟩
 
-@[reducible] def noopTracerProvider.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noopTracerProvider.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TracerProvider" _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider.ty)]
 
-@[irreducible] def noopTracerProvider.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noopTracerProvider.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   noopTracerProvider.fieldsUnsealed
 
-instance equals_unfold_noopTracerProvider [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noopTracerProvider [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold noopTracerProvider.fields noopTracerProvider.fieldsUnsealed :=
   ⟨by unfold noopTracerProvider.fields; rfl⟩
 
-@[reducible] def noopTracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noopTracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noopTracerProvider.fields)
 
 class noopTracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1120,20 +1119,20 @@ structure noopTracer [FfiSyntax] where
   mk ::
   Tracer' : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer
 
-instance noopTracer.zero_val [FfiSyntax] : ZeroVal noopTracer :=
+noncomputable instance noopTracer.zero_val [FfiSyntax] : ZeroVal noopTracer :=
   ⟨noopTracer.mk zeroValDef⟩
 
-@[reducible] def noopTracer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noopTracer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Tracer" _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer.ty)]
 
-@[irreducible] def noopTracer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noopTracer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   noopTracer.fieldsUnsealed
 
-instance equals_unfold_noopTracer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noopTracer [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold noopTracer.fields noopTracer.fieldsUnsealed :=
   ⟨by unfold noopTracer.fields; rfl⟩
 
-@[reducible] def noopTracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noopTracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noopTracer.fields)
 
 class noopTracer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1149,7 +1148,7 @@ attribute [instance] noopTracer.TypeAssumptions.type_repr
 
 abbrev TracerProvider [FfiSyntax] : Type := GoInterface
 
-@[reducible] def TracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Tracer" (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider.ty)])])
 
 class TracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1159,7 +1158,7 @@ attribute [instance] TracerProvider.TypeAssumptions.underlying
 
 abbrev Span [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Span.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Span.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddEvent" (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"AddLink" (go.signature.Signature [Link.ty] false [])), (go.InterfaceElem.MethodElem go!"End" (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"IsRecording" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"RecordError" (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"SetAttributes" (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true [])), (go.InterfaceElem.MethodElem go!"SetName" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetStatus" (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false [])), (go.InterfaceElem.MethodElem go!"SpanContext" (go.signature.Signature [] false [SpanContext.ty])), (go.InterfaceElem.MethodElem go!"TracerProvider" (go.signature.Signature [] false [TracerProvider.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span.ty)])])
 
 class Span.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1172,21 +1171,21 @@ structure Link [FfiSyntax] where
   SpanContext' : SpanContext
   Attributes' : GoSlice
 
-instance Link.zero_val [FfiSyntax] : ZeroVal Link :=
+noncomputable instance Link.zero_val [FfiSyntax] : ZeroVal Link :=
   ⟨Link.mk zeroValDef zeroValDef⟩
 
-@[reducible] def Link.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Link.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"SpanContext" SpanContext.ty),
 (go.field_decl.FieldDecl go!"Attributes" (go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty))]
 
-@[irreducible] def Link.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Link.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Link.fieldsUnsealed
 
-instance equals_unfold_Link [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Link [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Link.fields Link.fieldsUnsealed :=
   ⟨by unfold Link.fields; rfl⟩
 
-@[reducible] def Link.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Link.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Link.fields)
 
 class Link.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1206,7 +1205,7 @@ attribute [instance] Link.TypeAssumptions.type_repr
 
 abbrev SpanKind [FfiSyntax] : Type := w64
 
-@[reducible] def SpanKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class SpanKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1216,7 +1215,7 @@ attribute [instance] SpanKind.TypeAssumptions.underlying
 
 abbrev errorConst [FfiSyntax] : Type := GoString
 
-@[reducible] def errorConst.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def errorConst.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class errorConst.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1232,24 +1231,24 @@ structure SpanContextConfig [FfiSyntax] where
   TraceState' : TraceState
   Remote' : Bool
 
-instance SpanContextConfig.zero_val [FfiSyntax] : ZeroVal SpanContextConfig :=
+noncomputable instance SpanContextConfig.zero_val [FfiSyntax] : ZeroVal SpanContextConfig :=
   ⟨SpanContextConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def SpanContextConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SpanContextConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TraceID" TraceID.ty),
 (go.field_decl.FieldDecl go!"SpanID" SpanID.ty),
 (go.field_decl.FieldDecl go!"TraceFlags" TraceFlags.ty),
 (go.field_decl.FieldDecl go!"TraceState" TraceState.ty),
 (go.field_decl.FieldDecl go!"Remote" go.bool)]
 
-@[irreducible] def SpanContextConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SpanContextConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   SpanContextConfig.fieldsUnsealed
 
-instance equals_unfold_SpanContextConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SpanContextConfig [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold SpanContextConfig.fields SpanContextConfig.fieldsUnsealed :=
   ⟨by unfold SpanContextConfig.fields; rfl⟩
 
-@[reducible] def SpanContextConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SpanContextConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SpanContextConfig.fields)
 
 class SpanContextConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1281,7 +1280,7 @@ attribute [instance] SpanContextConfig.TypeAssumptions.type_repr
 
 abbrev Tracer [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Tracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Tracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Start" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer.ty)])])
 
 class Tracer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1294,21 +1293,21 @@ structure member [FfiSyntax] where
   Key' : GoString
   Value' : GoString
 
-instance member.zero_val [FfiSyntax] : ZeroVal member :=
+noncomputable instance member.zero_val [FfiSyntax] : ZeroVal member :=
   ⟨member.mk zeroValDef zeroValDef⟩
 
-@[reducible] def member.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def member.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Value" go.string)]
 
-@[irreducible] def member.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def member.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   member.fieldsUnsealed
 
-instance equals_unfold_member [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_member [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold member.fields member.fieldsUnsealed :=
   ⟨by unfold member.fields; rfl⟩
 
-@[reducible] def member.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def member.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType member.fields)
 
 class member.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

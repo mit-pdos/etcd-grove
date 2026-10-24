@@ -8,9 +8,8 @@ public import Code.k8s_io.utils.clock
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance PassiveClock_typed_pointsto :
+noncomputable instance PassiveClock_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.PassiveClock :=
   sorry -- axiomatized type
 
-instance PassiveClock_into_val_typed :
+noncomputable instance PassiveClock_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.PassiveClock k8s_io.utils.clock.PassiveClock.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance Clock_typed_pointsto :
+noncomputable instance Clock_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.Clock :=
   sorry -- axiomatized type
 
-instance Clock_into_val_typed :
+noncomputable instance Clock_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.Clock k8s_io.utils.clock.Clock.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance WithTicker_typed_pointsto :
+noncomputable instance WithTicker_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.WithTicker :=
   sorry -- axiomatized type
 
-instance WithTicker_into_val_typed :
+noncomputable instance WithTicker_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.WithTicker k8s_io.utils.clock.WithTicker.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance WithDelayedExecution_typed_pointsto :
+noncomputable instance WithDelayedExecution_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.WithDelayedExecution :=
   sorry -- axiomatized type
 
-instance WithDelayedExecution_into_val_typed :
+noncomputable instance WithDelayedExecution_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.WithDelayedExecution k8s_io.utils.clock.WithDelayedExecution.underlying :=
   sorry -- axiomatized type
 
@@ -101,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance WithTickerAndDelayedExecution_typed_pointsto :
+noncomputable instance WithTickerAndDelayedExecution_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.WithTickerAndDelayedExecution :=
   sorry -- axiomatized type
 
-instance WithTickerAndDelayedExecution_into_val_typed :
+noncomputable instance WithTickerAndDelayedExecution_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.WithTickerAndDelayedExecution k8s_io.utils.clock.WithTickerAndDelayedExecution.underlying :=
   sorry -- axiomatized type
 
@@ -120,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance Ticker_typed_pointsto :
+noncomputable instance Ticker_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.Ticker :=
   sorry -- axiomatized type
 
-instance Ticker_into_val_typed :
+noncomputable instance Ticker_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.Ticker k8s_io.utils.clock.Ticker.underlying :=
   sorry -- axiomatized type
 
@@ -139,7 +138,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance RealClock_typed_pointsto :
+noncomputable instance RealClock_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.RealClock where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -147,7 +146,7 @@ instance RealClock_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance RealClock_into_val_typed :
+noncomputable instance RealClock_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.RealClock k8s_io.utils.clock.RealClock.underlying := by
   solve_into_val_typed_struct
 
@@ -162,11 +161,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance Timer_typed_pointsto :
+noncomputable instance Timer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.Timer :=
   sorry -- axiomatized type
 
-instance Timer_into_val_typed :
+noncomputable instance Timer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.Timer k8s_io.utils.clock.Timer.underlying :=
   sorry -- axiomatized type
 
@@ -181,11 +180,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance realTimer_typed_pointsto :
+noncomputable instance realTimer_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.realTimer :=
   sorry -- axiomatized type
 
-instance realTimer_into_val_typed :
+noncomputable instance realTimer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTimer k8s_io.utils.clock.realTimer.underlying :=
   sorry -- axiomatized type
 
@@ -200,11 +199,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
-instance realTicker_typed_pointsto :
+noncomputable instance realTicker_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.utils.clock.realTicker :=
   sorry -- axiomatized type
 
-instance realTicker_into_val_typed :
+noncomputable instance realTicker_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTicker k8s_io.utils.clock.realTicker.underlying :=
   sorry -- axiomatized type
 

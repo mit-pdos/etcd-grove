@@ -8,9 +8,8 @@ public import Code.encoding.base64
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.base64.Assumptions]
 
-instance Encoding_typed_pointsto :
+noncomputable instance Encoding_typed_pointsto :
     TypedPointsto (GF := GF) encoding.base64.Encoding :=
   sorry -- axiomatized type
 
-instance Encoding_into_val_typed :
+noncomputable instance Encoding_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.base64.Encoding encoding.base64.Encoding.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.base64.Assumptions]
 
-instance encoder_typed_pointsto :
+noncomputable instance encoder_typed_pointsto :
     TypedPointsto (GF := GF) encoding.base64.encoder :=
   sorry -- axiomatized type
 
-instance encoder_into_val_typed :
+noncomputable instance encoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.base64.encoder encoding.base64.encoder.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.base64.Assumptions]
 
-instance decoder_typed_pointsto :
+noncomputable instance decoder_typed_pointsto :
     TypedPointsto (GF := GF) encoding.base64.decoder :=
   sorry -- axiomatized type
 
-instance decoder_into_val_typed :
+noncomputable instance decoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.base64.decoder encoding.base64.decoder.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.base64.Assumptions]
 
-instance newlineFilteringReader_typed_pointsto :
+noncomputable instance newlineFilteringReader_typed_pointsto :
     TypedPointsto (GF := GF) encoding.base64.newlineFilteringReader :=
   sorry -- axiomatized type
 
-instance newlineFilteringReader_into_val_typed :
+noncomputable instance newlineFilteringReader_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.base64.newlineFilteringReader encoding.base64.newlineFilteringReader.underlying :=
   sorry -- axiomatized type
 

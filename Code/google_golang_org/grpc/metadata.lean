@@ -8,35 +8,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.grpc.metadata : GoString := go!"google.golang.org/grpc/metadata"
+noncomputable def google_golang_org.grpc.metadata : GoString := go!"google.golang.org/grpc/metadata"
 end pkg_id
 
 namespace google_golang_org.grpc.metadata
 
-def MD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])
 
 attribute [irreducible] MD.ty
 
-def mdIncomingKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mdIncomingKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/metadata.mdIncomingKey" [])
 
 attribute [irreducible] mdIncomingKey.ty
 
-def mdOutgoingKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mdOutgoingKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/metadata.mdOutgoingKey" [])
 
 attribute [irreducible] mdOutgoingKey.ty
 
-def rawMD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rawMD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/metadata.rawMD" [])
 
 attribute [irreducible] rawMD.ty
@@ -85,7 +84,7 @@ noncomputable def fromOutgoingContextRaw [FfiSyntax] [GoGlobalContext] : GoStrin
 noncomputable def FromOutgoingContext [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/metadata.FromOutgoingContext"
 
-instance info' : PkgInfo pkg_id.google_golang_org.grpc.metadata where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.metadata where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -102,7 +101,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev MD [FfiSyntax] : Type := GoMap
 
-@[reducible] def MD.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MD.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string (go.GoType.SliceType go.string))
 
 class MD.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -113,20 +112,20 @@ attribute [instance] MD.TypeAssumptions.underlying
 structure mdIncomingKey [FfiSyntax] where
   mk ::
 
-instance mdIncomingKey.zero_val [FfiSyntax] : ZeroVal mdIncomingKey :=
+noncomputable instance mdIncomingKey.zero_val [FfiSyntax] : ZeroVal mdIncomingKey :=
   ⟨mdIncomingKey.mk⟩
 
-@[reducible] def mdIncomingKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def mdIncomingKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def mdIncomingKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def mdIncomingKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   mdIncomingKey.fieldsUnsealed
 
-instance equals_unfold_mdIncomingKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_mdIncomingKey [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold mdIncomingKey.fields mdIncomingKey.fieldsUnsealed :=
   ⟨by unfold mdIncomingKey.fields; rfl⟩
 
-@[reducible] def mdIncomingKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def mdIncomingKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType mdIncomingKey.fields)
 
 class mdIncomingKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -139,20 +138,20 @@ attribute [instance] mdIncomingKey.TypeAssumptions.type_repr
 structure mdOutgoingKey [FfiSyntax] where
   mk ::
 
-instance mdOutgoingKey.zero_val [FfiSyntax] : ZeroVal mdOutgoingKey :=
+noncomputable instance mdOutgoingKey.zero_val [FfiSyntax] : ZeroVal mdOutgoingKey :=
   ⟨mdOutgoingKey.mk⟩
 
-@[reducible] def mdOutgoingKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def mdOutgoingKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def mdOutgoingKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def mdOutgoingKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   mdOutgoingKey.fieldsUnsealed
 
-instance equals_unfold_mdOutgoingKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_mdOutgoingKey [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold mdOutgoingKey.fields mdOutgoingKey.fieldsUnsealed :=
   ⟨by unfold mdOutgoingKey.fields; rfl⟩
 
-@[reducible] def mdOutgoingKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def mdOutgoingKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType mdOutgoingKey.fields)
 
 class mdOutgoingKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -167,21 +166,21 @@ structure rawMD [FfiSyntax] where
   md' : MD
   added' : GoSlice
 
-instance rawMD.zero_val [FfiSyntax] : ZeroVal rawMD :=
+noncomputable instance rawMD.zero_val [FfiSyntax] : ZeroVal rawMD :=
   ⟨rawMD.mk zeroValDef zeroValDef⟩
 
-@[reducible] def rawMD.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def rawMD.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"md" MD.ty),
 (go.field_decl.FieldDecl go!"added" (go.GoType.SliceType (go.GoType.SliceType go.string)))]
 
-@[irreducible] def rawMD.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def rawMD.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   rawMD.fieldsUnsealed
 
-instance equals_unfold_rawMD [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_rawMD [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold rawMD.fields rawMD.fieldsUnsealed :=
   ⟨by unfold rawMD.fields; rfl⟩
 
-@[reducible] def rawMD.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def rawMD.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType rawMD.fields)
 
 class rawMD.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

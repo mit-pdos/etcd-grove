@@ -12,20 +12,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def github_com.mit_pdos.etcd_grove.examples.lintest : GoString := go!"github.com/mit-pdos/etcd-grove/examples/lintest"
+noncomputable def github_com.mit_pdos.etcd_grove.examples.lintest : GoString := go!"github.com/mit-pdos/etcd-grove/examples/lintest"
 end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.lintest
 
-def Clock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Clock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/lintest.Clock" [])
 
 attribute [irreducible] Clock.ty
@@ -249,7 +248,7 @@ noncomputable def Run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))))) (Pair (Var "histories") (Var "$r0"))))))))))))))))))))))
 
-instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest where
+noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.anishathalye.porcupine]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -270,7 +269,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Clock [FfiSyntax] : Type := GoFunc
 
-@[reducible] def Clock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Clock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false [go.int64]))
 
 class Clock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

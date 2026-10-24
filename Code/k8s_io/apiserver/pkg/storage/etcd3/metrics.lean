@@ -8,50 +8,49 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apiserver.pkg.storage.etcd3.metrics : GoString := go!"k8s.io/apiserver/pkg/storage/etcd3/metrics"
+noncomputable def k8s_io.apiserver.pkg.storage.etcd3.metrics : GoString := go!"k8s.io/apiserver/pkg/storage/etcd3/metrics"
 end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.etcd3.metrics
 
-def Monitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Monitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.Monitor" [])
 
 attribute [irreducible] Monitor.ty
 
-def StorageMetrics.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageMetrics.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.StorageMetrics" [])
 
 attribute [irreducible] StorageMetrics.ty
 
-def monitorCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def monitorCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.monitorCollector" [])
 
 attribute [irreducible] monitorCollector.ty
 
-def OperationLatencyTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OperationLatencyTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.OperationLatencyTracker" [])
 
 attribute [irreducible] OperationLatencyTracker.ty
 
-def EtcdMetricsTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EtcdMetricsTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.EtcdMetricsTracker" [])
 
 attribute [irreducible] EtcdMetricsTracker.ty
 
-def timestampedResourceGaugeCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timestampedResourceGaugeCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.timestampedResourceGaugeCollector" [])
 
 attribute [irreducible] timestampedResourceGaugeCollector.ty
 
-def timestampedSample.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timestampedSample.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.timestampedSample" [])
 
 attribute [irreducible] timestampedSample.ty
@@ -207,7 +206,7 @@ noncomputable def NewEtcdMetricsTracker [FfiSyntax] [GoGlobalContext] : GoString
 noncomputable def newTimestampedResourceGaugeCollector [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.newTimestampedResourceGaugeCollector"
 
-instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -290,20 +289,20 @@ structure StorageMetrics [FfiSyntax] where
   mk ::
   Size' : w64
 
-instance StorageMetrics.zero_val [FfiSyntax] : ZeroVal StorageMetrics :=
+noncomputable instance StorageMetrics.zero_val [FfiSyntax] : ZeroVal StorageMetrics :=
   ⟨StorageMetrics.mk zeroValDef⟩
 
-@[reducible] def StorageMetrics.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StorageMetrics.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Size" go.int64)]
 
-@[irreducible] def StorageMetrics.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StorageMetrics.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   StorageMetrics.fieldsUnsealed
 
-instance equals_unfold_StorageMetrics [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StorageMetrics [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold StorageMetrics.fields StorageMetrics.fieldsUnsealed :=
   ⟨by unfold StorageMetrics.fields; rfl⟩
 
-@[reducible] def StorageMetrics.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StorageMetrics.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StorageMetrics.fields)
 
 class StorageMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -347,20 +346,20 @@ structure EtcdMetricsTracker [FfiSyntax] where
   mk ::
   Get' : Loc
 
-instance EtcdMetricsTracker.zero_val [FfiSyntax] : ZeroVal EtcdMetricsTracker :=
+noncomputable instance EtcdMetricsTracker.zero_val [FfiSyntax] : ZeroVal EtcdMetricsTracker :=
   ⟨EtcdMetricsTracker.mk zeroValDef⟩
 
-@[reducible] def EtcdMetricsTracker.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EtcdMetricsTracker.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Get" (go.GoType.PointerType OperationLatencyTracker.ty))]
 
-@[irreducible] def EtcdMetricsTracker.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EtcdMetricsTracker.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   EtcdMetricsTracker.fieldsUnsealed
 
-instance equals_unfold_EtcdMetricsTracker [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EtcdMetricsTracker [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold EtcdMetricsTracker.fields EtcdMetricsTracker.fieldsUnsealed :=
   ⟨by unfold EtcdMetricsTracker.fields; rfl⟩
 
-@[reducible] def EtcdMetricsTracker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EtcdMetricsTracker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EtcdMetricsTracker.fields)
 
 class EtcdMetricsTracker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

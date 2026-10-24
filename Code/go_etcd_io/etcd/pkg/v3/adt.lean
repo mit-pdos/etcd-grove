@@ -12,85 +12,84 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.adt : GoString := go!"go.etcd.io/etcd/pkg/v3/adt"
+noncomputable def go_etcd_io.etcd.pkg.v3.adt : GoString := go!"go.etcd.io/etcd/pkg/v3/adt"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.adt
 
-def Comparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Comparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.Comparable" [])
 
 attribute [irreducible] Comparable.ty
 
-def rbcolor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rbcolor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.rbcolor" [])
 
 attribute [irreducible] rbcolor.ty
 
-def Interval.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interval.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.Interval" [])
 
 attribute [irreducible] Interval.ty
 
-def intervalNode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def intervalNode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.intervalNode" [])
 
 attribute [irreducible] intervalNode.ty
 
-def nodeVisitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nodeVisitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.nodeVisitor" [])
 
 attribute [irreducible] nodeVisitor.ty
 
-def IntervalValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IntervalValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.IntervalValue" [])
 
 attribute [irreducible] IntervalValue.ty
 
-def IntervalTree.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IntervalTree.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.IntervalTree" [])
 
 attribute [irreducible] IntervalTree.ty
 
-def intervalTree.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def intervalTree.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.intervalTree" [])
 
 attribute [irreducible] intervalTree.ty
 
-def IntervalVisitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IntervalVisitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.IntervalVisitor" [])
 
 attribute [irreducible] IntervalVisitor.ty
 
-def visitedInterval.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def visitedInterval.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.visitedInterval" [])
 
 attribute [irreducible] visitedInterval.ty
 
-def StringComparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StringComparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.StringComparable" [])
 
 attribute [irreducible] StringComparable.ty
 
-def StringAffineComparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StringAffineComparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.StringAffineComparable" [])
 
 attribute [irreducible] StringAffineComparable.ty
 
-def Int64Comparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Int64Comparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.Int64Comparable" [])
 
 attribute [irreducible] Int64Comparable.ty
 
-def BytesAffineComparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BytesAffineComparable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/adt.BytesAffineComparable" [])
 
 attribute [irreducible] BytesAffineComparable.ty
@@ -1773,7 +1772,7 @@ noncomputable def NewBytesAffinePoint.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "be") (Var "$r0"))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.adt where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.adt where
   pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.math, pkg_id.strings]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -1796,7 +1795,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Comparable [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Comparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Comparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Compare" (go.signature.Signature [Comparable.ty] false [go.int]))])
 
 class Comparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1806,7 +1805,7 @@ attribute [instance] Comparable.TypeAssumptions.underlying
 
 abbrev rbcolor [FfiSyntax] : Type := w64
 
-@[reducible] def rbcolor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def rbcolor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class rbcolor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1819,21 +1818,21 @@ structure Interval [FfiSyntax] where
   Begin' : Comparable
   End' : Comparable
 
-instance Interval.zero_val [FfiSyntax] : ZeroVal Interval :=
+noncomputable instance Interval.zero_val [FfiSyntax] : ZeroVal Interval :=
   ⟨Interval.mk zeroValDef zeroValDef⟩
 
-@[reducible] def Interval.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Interval.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Begin" Comparable.ty),
 (go.field_decl.FieldDecl go!"End" Comparable.ty)]
 
-@[irreducible] def Interval.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Interval.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Interval.fieldsUnsealed
 
-instance equals_unfold_Interval [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Interval [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Interval.fields Interval.fieldsUnsealed :=
   ⟨by unfold Interval.fields; rfl⟩
 
-@[reducible] def Interval.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Interval.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Interval.fields)
 
 class Interval.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1858,21 +1857,21 @@ structure IntervalValue [FfiSyntax] where
   Ivl' : Interval
   Val' : GoInterface
 
-instance IntervalValue.zero_val [FfiSyntax] : ZeroVal IntervalValue :=
+noncomputable instance IntervalValue.zero_val [FfiSyntax] : ZeroVal IntervalValue :=
   ⟨IntervalValue.mk zeroValDef zeroValDef⟩
 
-@[reducible] def IntervalValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def IntervalValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Ivl" Interval.ty),
 (go.field_decl.FieldDecl go!"Val" go.any)]
 
-@[irreducible] def IntervalValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def IntervalValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   IntervalValue.fieldsUnsealed
 
-instance equals_unfold_IntervalValue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_IntervalValue [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold IntervalValue.fields IntervalValue.fieldsUnsealed :=
   ⟨by unfold IntervalValue.fields; rfl⟩
 
-@[reducible] def IntervalValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IntervalValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType IntervalValue.fields)
 
 class IntervalValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1899,10 +1898,10 @@ structure intervalNode [FfiSyntax] where
   parent' : Loc
   c' : rbcolor
 
-instance intervalNode.zero_val [FfiSyntax] : ZeroVal intervalNode :=
+noncomputable instance intervalNode.zero_val [FfiSyntax] : ZeroVal intervalNode :=
   ⟨intervalNode.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def intervalNode.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def intervalNode.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"iv" IntervalValue.ty),
 (go.field_decl.FieldDecl go!"max" Comparable.ty),
 (go.field_decl.FieldDecl go!"left" (go.GoType.PointerType intervalNode.ty)),
@@ -1910,14 +1909,14 @@ instance intervalNode.zero_val [FfiSyntax] : ZeroVal intervalNode :=
 (go.field_decl.FieldDecl go!"parent" (go.GoType.PointerType intervalNode.ty)),
 (go.field_decl.FieldDecl go!"c" rbcolor.ty)]
 
-@[irreducible] def intervalNode.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def intervalNode.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   intervalNode.fieldsUnsealed
 
-instance equals_unfold_intervalNode [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_intervalNode [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold intervalNode.fields intervalNode.fieldsUnsealed :=
   ⟨by unfold intervalNode.fields; rfl⟩
 
-@[reducible] def intervalNode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def intervalNode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType intervalNode.fields)
 
 class intervalNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1965,7 +1964,7 @@ attribute [instance] intervalNode.TypeAssumptions.type_repr
 
 abbrev nodeVisitor [FfiSyntax] : Type := GoFunc
 
-@[reducible] def nodeVisitor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def nodeVisitor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false [go.bool]))
 
 class nodeVisitor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1975,7 +1974,7 @@ attribute [instance] nodeVisitor.TypeAssumptions.underlying
 
 abbrev IntervalTree [FfiSyntax] : Type := GoInterface
 
-@[reducible] def IntervalTree.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IntervalTree.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Contains" (go.signature.Signature [Interval.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Delete" (go.signature.Signature [Interval.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Find" (go.signature.Signature [Interval.ty] false [(go.GoType.PointerType IntervalValue.ty)])), (go.InterfaceElem.MethodElem go!"Height" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Insert" (go.signature.Signature [Interval.ty, go.any] false [])), (go.InterfaceElem.MethodElem go!"Intersects" (go.signature.Signature [Interval.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"MaxHeight" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Stab" (go.signature.Signature [Interval.ty] false [(go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))])), (go.InterfaceElem.MethodElem go!"Union" (go.signature.Signature [IntervalTree.ty, Interval.ty] false [])), (go.InterfaceElem.MethodElem go!"Visit" (go.signature.Signature [Interval.ty, IntervalVisitor.ty] false []))])
 
 class IntervalTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1989,22 +1988,22 @@ structure intervalTree [FfiSyntax] where
   count' : w64
   sentinel' : Loc
 
-instance intervalTree.zero_val [FfiSyntax] : ZeroVal intervalTree :=
+noncomputable instance intervalTree.zero_val [FfiSyntax] : ZeroVal intervalTree :=
   ⟨intervalTree.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def intervalTree.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def intervalTree.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"root" (go.GoType.PointerType intervalNode.ty)),
 (go.field_decl.FieldDecl go!"count" go.int),
 (go.field_decl.FieldDecl go!"sentinel" (go.GoType.PointerType intervalNode.ty))]
 
-@[irreducible] def intervalTree.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def intervalTree.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   intervalTree.fieldsUnsealed
 
-instance equals_unfold_intervalTree [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_intervalTree [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold intervalTree.fields intervalTree.fieldsUnsealed :=
   ⟨by unfold intervalTree.fields; rfl⟩
 
-@[reducible] def intervalTree.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def intervalTree.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType intervalTree.fields)
 
 class intervalTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2062,7 +2061,7 @@ attribute [instance] intervalTree.TypeAssumptions.type_repr
 
 abbrev IntervalVisitor [FfiSyntax] : Type := GoFunc
 
-@[reducible] def IntervalVisitor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IntervalVisitor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))
 
 class IntervalVisitor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2078,24 +2077,24 @@ structure visitedInterval [FfiSyntax] where
   color' : rbcolor
   depth' : w64
 
-instance visitedInterval.zero_val [FfiSyntax] : ZeroVal visitedInterval :=
+noncomputable instance visitedInterval.zero_val [FfiSyntax] : ZeroVal visitedInterval :=
   ⟨visitedInterval.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def visitedInterval.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def visitedInterval.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"root" Interval.ty),
 (go.field_decl.FieldDecl go!"left" Interval.ty),
 (go.field_decl.FieldDecl go!"right" Interval.ty),
 (go.field_decl.FieldDecl go!"color" rbcolor.ty),
 (go.field_decl.FieldDecl go!"depth" go.int)]
 
-@[irreducible] def visitedInterval.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def visitedInterval.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   visitedInterval.fieldsUnsealed
 
-instance equals_unfold_visitedInterval [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_visitedInterval [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold visitedInterval.fields visitedInterval.fieldsUnsealed :=
   ⟨by unfold visitedInterval.fields; rfl⟩
 
-@[reducible] def visitedInterval.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def visitedInterval.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType visitedInterval.fields)
 
 class visitedInterval.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2127,7 +2126,7 @@ attribute [instance] visitedInterval.TypeAssumptions.type_repr
 
 abbrev StringComparable [FfiSyntax] : Type := GoString
 
-@[reducible] def StringComparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StringComparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class StringComparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2142,7 +2141,7 @@ attribute [instance] StringComparable.TypeAssumptions.underlying
 
 abbrev StringAffineComparable [FfiSyntax] : Type := GoString
 
-@[reducible] def StringAffineComparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StringAffineComparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class StringAffineComparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2157,7 +2156,7 @@ attribute [instance] StringAffineComparable.TypeAssumptions.underlying
 
 abbrev Int64Comparable [FfiSyntax] : Type := w64
 
-@[reducible] def Int64Comparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Int64Comparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int64
 
 class Int64Comparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2172,7 +2171,7 @@ attribute [instance] Int64Comparable.TypeAssumptions.underlying
 
 abbrev BytesAffineComparable [FfiSyntax] : Type := GoSlice
 
-@[reducible] def BytesAffineComparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BytesAffineComparable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.byte)
 
 class BytesAffineComparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

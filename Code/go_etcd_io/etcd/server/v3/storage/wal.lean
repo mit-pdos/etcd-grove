@@ -8,55 +8,54 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.storage.wal : GoString := go!"go.etcd.io/etcd/server/v3/storage/wal"
+noncomputable def go_etcd_io.etcd.server.v3.storage.wal : GoString := go!"go.etcd.io/etcd/server/v3/storage/wal"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.storage.wal
 
-def Decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.Decoder" [])
 
 attribute [irreducible] Decoder.ty
 
-def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.decoder" [])
 
 attribute [irreducible] decoder.ty
 
-def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.encoder" [])
 
 attribute [irreducible] encoder.ty
 
-def filePipeline.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def filePipeline.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.filePipeline" [])
 
 attribute [irreducible] filePipeline.ty
 
-def Version.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Version.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.Version" [])
 
 attribute [irreducible] Version.ty
 
-def walVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def walVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.walVersion" [])
 
 attribute [irreducible] walVersion.ty
 
-def Visitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Visitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.Visitor" [])
 
 attribute [irreducible] Visitor.ty
 
-def WAL.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WAL.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.WAL" [])
 
 attribute [irreducible] WAL.ty
@@ -303,7 +302,7 @@ noncomputable def Verify [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def closeAll [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.closeAll"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.wal where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.wal where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

@@ -8,100 +8,99 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.util.wait : GoString := go!"k8s.io/apimachinery/pkg/util/wait"
+noncomputable def k8s_io.apimachinery.pkg.util.wait : GoString := go!"k8s.io/apimachinery/pkg/util/wait"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.wait
 
-def Backoff.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Backoff.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.Backoff" [])
 
 attribute [irreducible] Backoff.ty
 
-def backoffManager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def backoffManager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.backoffManager" [])
 
 attribute [irreducible] backoffManager.ty
 
-def BackoffManager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BackoffManager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.BackoffManager" [])
 
 attribute [irreducible] BackoffManager.ty
 
-def exponentialBackoffManagerImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def exponentialBackoffManagerImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.exponentialBackoffManagerImpl" [])
 
 attribute [irreducible] exponentialBackoffManagerImpl.ty
 
-def jitteredBackoffManagerImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jitteredBackoffManagerImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.jitteredBackoffManagerImpl" [])
 
 attribute [irreducible] jitteredBackoffManagerImpl.ty
 
-def DelayFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DelayFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.DelayFunc" [])
 
 attribute [irreducible] DelayFunc.ty
 
-def errInterrupted.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def errInterrupted.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.errInterrupted" [])
 
 attribute [irreducible] errInterrupted.ty
 
-def Timer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Timer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.Timer" [])
 
 attribute [irreducible] Timer.ty
 
-def noopTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.noopTimer" [])
 
 attribute [irreducible] noopTimer.ty
 
-def variableTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def variableTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.variableTimer" [])
 
 attribute [irreducible] variableTimer.ty
 
-def fixedTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fixedTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.fixedTimer" [])
 
 attribute [irreducible] fixedTimer.ty
 
-def Group.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Group.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.Group" [])
 
 attribute [irreducible] Group.ty
 
-def ConditionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConditionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.ConditionFunc" [])
 
 attribute [irreducible] ConditionFunc.ty
 
-def ConditionWithContextFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConditionWithContextFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.ConditionWithContextFunc" [])
 
 attribute [irreducible] ConditionWithContextFunc.ty
 
-def channelContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def channelContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.channelContext" [])
 
 attribute [irreducible] channelContext.ty
 
-def waitFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def waitFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.waitFunc" [])
 
 attribute [irreducible] waitFunc.ty
 
-def waitWithContextFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def waitWithContextFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.waitWithContextFunc" [])
 
 attribute [irreducible] waitWithContextFunc.ty
@@ -284,7 +283,7 @@ noncomputable def runConditionWithCrashProtectionWithContext [FfiSyntax] [GoGlob
 noncomputable def waitForWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.waitForWithContext"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.wait where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.wait where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -399,20 +398,20 @@ structure errInterrupted [FfiSyntax] where
   mk ::
   cause' : GoError
 
-instance errInterrupted.zero_val [FfiSyntax] : ZeroVal errInterrupted :=
+noncomputable instance errInterrupted.zero_val [FfiSyntax] : ZeroVal errInterrupted :=
   ⟨errInterrupted.mk zeroValDef⟩
 
-@[reducible] def errInterrupted.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def errInterrupted.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"cause" go.error)]
 
-@[irreducible] def errInterrupted.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def errInterrupted.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   errInterrupted.fieldsUnsealed
 
-instance equals_unfold_errInterrupted [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_errInterrupted [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold errInterrupted.fields errInterrupted.fieldsUnsealed :=
   ⟨by unfold errInterrupted.fields; rfl⟩
 
-@[reducible] def errInterrupted.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def errInterrupted.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType errInterrupted.fields)
 
 class errInterrupted.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -493,7 +492,7 @@ attribute [instance] Group.TypeAssumptions.type_repr
 
 abbrev ConditionFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def ConditionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConditionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false [go.bool, go.error]))
 
 class ConditionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -518,20 +517,20 @@ structure channelContext [FfiSyntax] where
   mk ::
   stopCh' : GoChan
 
-instance channelContext.zero_val [FfiSyntax] : ZeroVal channelContext :=
+noncomputable instance channelContext.zero_val [FfiSyntax] : ZeroVal channelContext :=
   ⟨channelContext.mk zeroValDef⟩
 
-@[reducible] def channelContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def channelContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"stopCh" (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])))]
 
-@[irreducible] def channelContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def channelContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   channelContext.fieldsUnsealed
 
-instance equals_unfold_channelContext [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_channelContext [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold channelContext.fields channelContext.fieldsUnsealed :=
   ⟨by unfold channelContext.fields; rfl⟩
 
-@[reducible] def channelContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def channelContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType channelContext.fields)
 
 class channelContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -547,7 +546,7 @@ attribute [instance] channelContext.TypeAssumptions.type_repr
 
 abbrev waitFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def waitFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def waitFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))
 
 class waitFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

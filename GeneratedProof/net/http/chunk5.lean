@@ -9,9 +9,8 @@ public import GeneratedProof.net.http.chunk4
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -26,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-instance fileTransport_typed_pointsto :
+noncomputable instance fileTransport_typed_pointsto :
     TypedPointsto (GF := GF) net.http.fileTransport where
   typedPointstoDef l v dq := iprop(
     "fh" ∷ typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' dq ∗
@@ -35,11 +34,11 @@ instance fileTransport_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance fileTransport_into_val_typed :
+noncomputable instance fileTransport_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.http.fileTransport net.http.fileTransport.underlying := by
   solve_into_val_typed_struct
 
-instance fileTransport_access_load_fh (l : Loc) (v : net.http.fileTransport) (dq : DFrac) :
+noncomputable instance fileTransport_access_load_fh (l : Loc) (v : net.http.fileTransport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' dq)
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' dq)
@@ -47,7 +46,7 @@ instance fileTransport_access_load_fh (l : Loc) (v : net.http.fileTransport) (dq
  by
   solve_pointsto_access_struct
 
-instance fileTransport_access_store_fh (l : Loc) (v : net.http.fileTransport) (fh' : net.http.fileHandler) :
+noncomputable instance fileTransport_access_store_fh (l : Loc) (v : net.http.fileTransport) (fh' : net.http.fileHandler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) fh' (DFrac.own 1))

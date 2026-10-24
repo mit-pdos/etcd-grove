@@ -8,90 +8,89 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc : GoString := go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+noncomputable def go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc : GoString := go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 end pkg_id
 
 namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
-def InterceptorFilter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InterceptorFilter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.InterceptorFilter" [])
 
 attribute [irreducible] InterceptorFilter.ty
 
-def Filter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Filter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.Filter" [])
 
 attribute [irreducible] Filter.ty
 
-def semconvMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def semconvMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.semconvMode" [])
 
 attribute [irreducible] semconvMode.ty
 
-def config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.config" [])
 
 attribute [irreducible] config.ty
 
-def Option.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Option.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.Option" [])
 
 attribute [irreducible] Option.ty
 
-def optionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def optionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.optionFunc" [])
 
 attribute [irreducible] optionFunc.ty
 
-def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.Event" [])
 
 attribute [irreducible] Event.ty
 
-def InterceptorType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InterceptorType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.InterceptorType" [])
 
 attribute [irreducible] InterceptorType.ty
 
-def InterceptorInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InterceptorInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.InterceptorInfo" [])
 
 attribute [irreducible] InterceptorInfo.ty
 
-def metadataSupplier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def metadataSupplier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.metadataSupplier" [])
 
 attribute [irreducible] metadataSupplier.ty
 
-def gRPCContextKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def gRPCContextKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.gRPCContextKey" [])
 
 attribute [irreducible] gRPCContextKey.ty
 
-def dialTargetContextKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dialTargetContextKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.dialTargetContextKey" [])
 
 attribute [irreducible] dialTargetContextKey.ty
 
-def gRPCContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def gRPCContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.gRPCContext" [])
 
 attribute [irreducible] gRPCContext.ty
 
-def serverHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.serverHandler" [])
 
 attribute [irreducible] serverHandler.ty
 
-def clientHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.clientHandler" [])
 
 attribute [irreducible] clientHandler.ty
@@ -200,7 +199,7 @@ noncomputable def NewClientHandler [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def canonicalString [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.canonicalString"
 
-instance info' : PkgInfo pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc where
+noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -214,7 +213,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev InterceptorFilter [FfiSyntax] : Type := GoFunc
 
-@[reducible] def InterceptorFilter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InterceptorFilter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType InterceptorInfo.ty)] false [go.bool]))
 
 class InterceptorFilter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -237,7 +236,7 @@ attribute [instance] Filter.TypeAssumptions.type_repr
 
 abbrev semconvMode [FfiSyntax] : Type := w64
 
-@[reducible] def semconvMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def semconvMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class semconvMode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -260,7 +259,7 @@ attribute [instance] config.TypeAssumptions.type_repr
 
 abbrev Option [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Option.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Option.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType config.ty)] false []))])
 
 class Option.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -270,7 +269,7 @@ attribute [instance] Option.TypeAssumptions.underlying
 
 abbrev optionFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def optionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def optionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType config.ty)] false []))
 
 class optionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -280,7 +279,7 @@ attribute [instance] optionFunc.TypeAssumptions.underlying
 
 abbrev Event [FfiSyntax] : Type := w64
 
-@[reducible] def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -290,7 +289,7 @@ attribute [instance] Event.TypeAssumptions.underlying
 
 abbrev InterceptorType [FfiSyntax] : Type := w8
 
-@[reducible] def InterceptorType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InterceptorType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint8
 
 class InterceptorType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -327,20 +326,20 @@ attribute [instance] metadataSupplier.TypeAssumptions.type_repr
 structure gRPCContextKey [FfiSyntax] where
   mk ::
 
-instance gRPCContextKey.zero_val [FfiSyntax] : ZeroVal gRPCContextKey :=
+noncomputable instance gRPCContextKey.zero_val [FfiSyntax] : ZeroVal gRPCContextKey :=
   ⟨gRPCContextKey.mk⟩
 
-@[reducible] def gRPCContextKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def gRPCContextKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def gRPCContextKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def gRPCContextKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   gRPCContextKey.fieldsUnsealed
 
-instance equals_unfold_gRPCContextKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_gRPCContextKey [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold gRPCContextKey.fields gRPCContextKey.fieldsUnsealed :=
   ⟨by unfold gRPCContextKey.fields; rfl⟩
 
-@[reducible] def gRPCContextKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def gRPCContextKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType gRPCContextKey.fields)
 
 class gRPCContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -353,20 +352,20 @@ attribute [instance] gRPCContextKey.TypeAssumptions.type_repr
 structure dialTargetContextKey [FfiSyntax] where
   mk ::
 
-instance dialTargetContextKey.zero_val [FfiSyntax] : ZeroVal dialTargetContextKey :=
+noncomputable instance dialTargetContextKey.zero_val [FfiSyntax] : ZeroVal dialTargetContextKey :=
   ⟨dialTargetContextKey.mk⟩
 
-@[reducible] def dialTargetContextKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def dialTargetContextKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def dialTargetContextKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def dialTargetContextKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   dialTargetContextKey.fieldsUnsealed
 
-instance equals_unfold_dialTargetContextKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_dialTargetContextKey [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold dialTargetContextKey.fields dialTargetContextKey.fieldsUnsealed :=
   ⟨by unfold dialTargetContextKey.fields; rfl⟩
 
-@[reducible] def dialTargetContextKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def dialTargetContextKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType dialTargetContextKey.fields)
 
 class dialTargetContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

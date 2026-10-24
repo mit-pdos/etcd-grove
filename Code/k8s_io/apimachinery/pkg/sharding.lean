@@ -9,35 +9,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.sharding : GoString := go!"k8s.io/apimachinery/pkg/sharding"
+noncomputable def k8s_io.apimachinery.pkg.sharding : GoString := go!"k8s.io/apimachinery/pkg/sharding"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.sharding
 
-def Selector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Selector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.Selector" [])
 
 attribute [irreducible] Selector.ty
 
-def everythingSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def everythingSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.everythingSelector" [])
 
 attribute [irreducible] everythingSelector.ty
 
-def shardSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def shardSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.shardSelector" [])
 
 attribute [irreducible] shardSelector.ty
 
-def ShardRangeRequirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ShardRangeRequirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.ShardRangeRequirement" [])
 
 attribute [irreducible] ShardRangeRequirement.ty
@@ -60,7 +59,7 @@ noncomputable def NewSelector [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewShardRangeSelector [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/sharding.NewShardRangeSelector"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.sharding where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.sharding where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.runtime]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -74,7 +73,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Selector [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Selector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Selector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeepCopySelector" (go.signature.Signature [] false [Selector.ty])), (go.InterfaceElem.MethodElem go!"Empty" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Matches" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error])), (go.InterfaceElem.MethodElem go!"Requirements" (go.signature.Signature [] false [(go.GoType.SliceType ShardRangeRequirement.ty)])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string]))])
 
 class Selector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -85,20 +84,20 @@ attribute [instance] Selector.TypeAssumptions.underlying
 structure everythingSelector [FfiSyntax] where
   mk ::
 
-instance everythingSelector.zero_val [FfiSyntax] : ZeroVal everythingSelector :=
+noncomputable instance everythingSelector.zero_val [FfiSyntax] : ZeroVal everythingSelector :=
   ⟨everythingSelector.mk⟩
 
-@[reducible] def everythingSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def everythingSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def everythingSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def everythingSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   everythingSelector.fieldsUnsealed
 
-instance equals_unfold_everythingSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_everythingSelector [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold everythingSelector.fields everythingSelector.fieldsUnsealed :=
   ⟨by unfold everythingSelector.fields; rfl⟩
 
-@[reducible] def everythingSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def everythingSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType everythingSelector.fields)
 
 class everythingSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -112,20 +111,20 @@ structure shardSelector [FfiSyntax] where
   mk ::
   requirements' : GoSlice
 
-instance shardSelector.zero_val [FfiSyntax] : ZeroVal shardSelector :=
+noncomputable instance shardSelector.zero_val [FfiSyntax] : ZeroVal shardSelector :=
   ⟨shardSelector.mk zeroValDef⟩
 
-@[reducible] def shardSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def shardSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"requirements" (go.GoType.SliceType ShardRangeRequirement.ty))]
 
-@[irreducible] def shardSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def shardSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   shardSelector.fieldsUnsealed
 
-instance equals_unfold_shardSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_shardSelector [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold shardSelector.fields shardSelector.fieldsUnsealed :=
   ⟨by unfold shardSelector.fields; rfl⟩
 
-@[reducible] def shardSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def shardSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType shardSelector.fields)
 
 class shardSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -145,22 +144,22 @@ structure ShardRangeRequirement [FfiSyntax] where
   Start' : GoString
   End' : GoString
 
-instance ShardRangeRequirement.zero_val [FfiSyntax] : ZeroVal ShardRangeRequirement :=
+noncomputable instance ShardRangeRequirement.zero_val [FfiSyntax] : ZeroVal ShardRangeRequirement :=
   ⟨ShardRangeRequirement.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ShardRangeRequirement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ShardRangeRequirement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Start" go.string),
 (go.field_decl.FieldDecl go!"End" go.string)]
 
-@[irreducible] def ShardRangeRequirement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ShardRangeRequirement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ShardRangeRequirement.fieldsUnsealed
 
-instance equals_unfold_ShardRangeRequirement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ShardRangeRequirement [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ShardRangeRequirement.fields ShardRangeRequirement.fieldsUnsealed :=
   ⟨by unfold ShardRangeRequirement.fields; rfl⟩
 
-@[reducible] def ShardRangeRequirement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ShardRangeRequirement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ShardRangeRequirement.fields)
 
 class ShardRangeRequirement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

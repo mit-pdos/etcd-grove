@@ -8,40 +8,39 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def encoding.base64 : GoString := go!"encoding/base64"
+noncomputable def encoding.base64 : GoString := go!"encoding/base64"
 end pkg_id
 
 namespace encoding.base64
 
-def Encoding.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Encoding.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.Encoding" [])
 
 attribute [irreducible] Encoding.ty
 
-def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.encoder" [])
 
 attribute [irreducible] encoder.ty
 
-def CorruptInputError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CorruptInputError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.CorruptInputError" [])
 
 attribute [irreducible] CorruptInputError.ty
 
-def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.decoder" [])
 
 attribute [irreducible] decoder.ty
 
-def newlineFilteringReader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def newlineFilteringReader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.newlineFilteringReader" [])
 
 attribute [irreducible] newlineFilteringReader.ty
@@ -100,7 +99,7 @@ noncomputable def NewDecoder [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def decodedLen [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"encoding/base64.decodedLen"
 
-instance info' : PkgInfo pkg_id.encoding.base64 where
+noncomputable instance info' : PkgInfo pkg_id.encoding.base64 where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -149,7 +148,7 @@ attribute [instance] encoder.TypeAssumptions.type_repr
 
 abbrev CorruptInputError [FfiSyntax] : Type := w64
 
-@[reducible] def CorruptInputError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CorruptInputError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int64
 
 class CorruptInputError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

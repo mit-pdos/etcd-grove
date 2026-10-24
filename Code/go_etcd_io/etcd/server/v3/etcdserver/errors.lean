@@ -8,20 +8,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.errors : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/errors"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.errors : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/errors"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.errors
 
-def DiscoveryError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DiscoveryError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/errors.DiscoveryError" [])
 
 attribute [irreducible] DiscoveryError.ty
@@ -136,7 +135,7 @@ noncomputable def ErrKeyNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
 
 axiom ErrKeyNotFound.init [FfiSyntax] [GoGlobalContext] : val
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -216,21 +215,21 @@ structure DiscoveryError [FfiSyntax] where
   Op' : GoString
   Err' : GoError
 
-instance DiscoveryError.zero_val [FfiSyntax] : ZeroVal DiscoveryError :=
+noncomputable instance DiscoveryError.zero_val [FfiSyntax] : ZeroVal DiscoveryError :=
   ⟨DiscoveryError.mk zeroValDef zeroValDef⟩
 
-@[reducible] def DiscoveryError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DiscoveryError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Op" go.string),
 (go.field_decl.FieldDecl go!"Err" go.error)]
 
-@[irreducible] def DiscoveryError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DiscoveryError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   DiscoveryError.fieldsUnsealed
 
-instance equals_unfold_DiscoveryError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DiscoveryError [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold DiscoveryError.fields DiscoveryError.fieldsUnsealed :=
   ⟨by unfold DiscoveryError.fields; rfl⟩
 
-@[reducible] def DiscoveryError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DiscoveryError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DiscoveryError.fields)
 
 class DiscoveryError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

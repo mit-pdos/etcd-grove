@@ -8,35 +8,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_opentelemetry_io.otel.trace.embedded : GoString := go!"go.opentelemetry.io/otel/trace/embedded"
+noncomputable def go_opentelemetry_io.otel.trace.embedded : GoString := go!"go.opentelemetry.io/otel/trace/embedded"
 end pkg_id
 
 namespace go_opentelemetry_io.otel.trace.embedded
 
-def TracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace/embedded.TracerProvider" [])
 
 attribute [irreducible] TracerProvider.ty
 
-def Tracer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Tracer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace/embedded.Tracer" [])
 
 attribute [irreducible] Tracer.ty
 
-def Span.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Span.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/trace/embedded.Span" [])
 
 attribute [irreducible] Span.ty
 
-instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.trace.embedded where
+noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.trace.embedded where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -50,7 +49,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev TracerProvider [FfiSyntax] : Type := GoInterface
 
-@[reducible] def TracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"tracerProvider" (go.signature.Signature [] false []))])
 
 class TracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -60,7 +59,7 @@ attribute [instance] TracerProvider.TypeAssumptions.underlying
 
 abbrev Tracer [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Tracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Tracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"tracer" (go.signature.Signature [] false []))])
 
 class Tracer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -70,7 +69,7 @@ attribute [instance] Tracer.TypeAssumptions.underlying
 
 abbrev Span [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Span.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Span.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"span" (go.signature.Signature [] false []))])
 
 class Span.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

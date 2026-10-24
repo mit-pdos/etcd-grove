@@ -8,9 +8,8 @@ public import Code.golang_org.x.time.rate
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.time.rate.Assumptions]
 
-instance Limiter_typed_pointsto :
+noncomputable instance Limiter_typed_pointsto :
     TypedPointsto (GF := GF) golang_org.x.time.rate.Limiter :=
   sorry -- axiomatized type
 
-instance Limiter_into_val_typed :
+noncomputable instance Limiter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) golang_org.x.time.rate.Limiter golang_org.x.time.rate.Limiter.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.time.rate.Assumptions]
 
-instance Reservation_typed_pointsto :
+noncomputable instance Reservation_typed_pointsto :
     TypedPointsto (GF := GF) golang_org.x.time.rate.Reservation :=
   sorry -- axiomatized type
 
-instance Reservation_into_val_typed :
+noncomputable instance Reservation_into_val_typed :
     IntoValTypedUnderlying (GF := GF) golang_org.x.time.rate.Reservation golang_org.x.time.rate.Reservation.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : golang_org.x.time.rate.Assumptions]
 
-instance Sometimes_typed_pointsto :
+noncomputable instance Sometimes_typed_pointsto :
     TypedPointsto (GF := GF) golang_org.x.time.rate.Sometimes :=
   sorry -- axiomatized type
 
-instance Sometimes_into_val_typed :
+noncomputable instance Sometimes_into_val_typed :
     IntoValTypedUnderlying (GF := GF) golang_org.x.time.rate.Sometimes golang_org.x.time.rate.Sometimes.underlying :=
   sorry -- axiomatized type
 

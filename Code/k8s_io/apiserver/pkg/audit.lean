@@ -8,50 +8,49 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apiserver.pkg.audit : GoString := go!"k8s.io/apiserver/pkg/audit"
+noncomputable def k8s_io.apiserver.pkg.audit : GoString := go!"k8s.io/apiserver/pkg/audit"
 end pkg_id
 
 namespace k8s_io.apiserver.pkg.audit
 
-def key.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def key.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.key" [])
 
 attribute [irreducible] key.ty
 
-def AuditContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AuditContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.AuditContext" [])
 
 attribute [irreducible] AuditContext.ty
 
-def RequestAuditConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestAuditConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.RequestAuditConfig" [])
 
 attribute [irreducible] RequestAuditConfig.ty
 
-def PolicyRuleEvaluator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PolicyRuleEvaluator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.PolicyRuleEvaluator" [])
 
 attribute [irreducible] PolicyRuleEvaluator.ty
 
-def Sink.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Sink.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.Sink" [])
 
 attribute [irreducible] Sink.ty
 
-def Backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.Backend" [])
 
 attribute [irreducible] Backend.ty
 
-def union.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def union.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.union" [])
 
 attribute [irreducible] union.ty
@@ -183,7 +182,7 @@ noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Union [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.Union"
 
-instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.audit where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.audit where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -218,7 +217,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev key [FfiSyntax] : Type := w64
 
-@[reducible] def key.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def key.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class key.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -280,7 +279,7 @@ attribute [instance] Sink.TypeAssumptions.type_repr
 
 abbrev Backend [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Run" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error])), (go.InterfaceElem.MethodElem go!"Shutdown" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Sink.ty)])])
 
 class Backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -292,20 +291,20 @@ structure union [FfiSyntax] where
   mk ::
   backends' : GoSlice
 
-instance union.zero_val [FfiSyntax] : ZeroVal union :=
+noncomputable instance union.zero_val [FfiSyntax] : ZeroVal union :=
   ⟨union.mk zeroValDef⟩
 
-@[reducible] def union.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def union.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"backends" (go.GoType.SliceType Backend.ty))]
 
-@[irreducible] def union.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def union.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   union.fieldsUnsealed
 
-instance equals_unfold_union [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_union [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold union.fields union.fieldsUnsealed :=
   ⟨by unfold union.fields; rfl⟩
 
-@[reducible] def union.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def union.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType union.fields)
 
 class union.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

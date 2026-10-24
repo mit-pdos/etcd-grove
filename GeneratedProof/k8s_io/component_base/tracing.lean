@@ -8,9 +8,8 @@ public import Code.k8s_io.component_base.tracing
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.tracing.Assumptions]
 
-instance Span_typed_pointsto :
+noncomputable instance Span_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.component_base.tracing.Span :=
   sorry -- axiomatized type
 
-instance Span_into_val_typed :
+noncomputable instance Span_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_base.tracing.Span k8s_io.component_base.tracing.Span.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.tracing.Assumptions]
 
-instance TracerProvider_typed_pointsto :
+noncomputable instance TracerProvider_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.component_base.tracing.TracerProvider :=
   sorry -- axiomatized type
 
-instance TracerProvider_into_val_typed :
+noncomputable instance TracerProvider_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_base.tracing.TracerProvider k8s_io.component_base.tracing.TracerProvider.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.component_base.tracing.Assumptions]
 
-instance noopTracerProvider_typed_pointsto :
+noncomputable instance noopTracerProvider_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.component_base.tracing.noopTracerProvider :=
   sorry -- axiomatized type
 
-instance noopTracerProvider_into_val_typed :
+noncomputable instance noopTracerProvider_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.component_base.tracing.noopTracerProvider k8s_io.component_base.tracing.noopTracerProvider.underlying :=
   sorry -- axiomatized type
 

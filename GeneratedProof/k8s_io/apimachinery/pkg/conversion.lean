@@ -8,9 +8,8 @@ public import Code.k8s_io.apimachinery.pkg.conversion
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.conversion.Assumptions]
 
-instance typePair_typed_pointsto :
+noncomputable instance typePair_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.typePair :=
   sorry -- axiomatized type
 
-instance typePair_into_val_typed :
+noncomputable instance typePair_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.typePair k8s_io.apimachinery.pkg.conversion.typePair.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.conversion.Assumptions]
 
-instance NameFunc_typed_pointsto :
+noncomputable instance NameFunc_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.NameFunc :=
   sorry -- axiomatized type
 
-instance NameFunc_into_val_typed :
+noncomputable instance NameFunc_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.NameFunc k8s_io.apimachinery.pkg.conversion.NameFunc.underlying :=
   sorry -- axiomatized type
 
@@ -63,7 +62,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.conversion.Assumptions]
 
-instance ConversionFuncs_typed_pointsto :
+noncomputable instance ConversionFuncs_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.ConversionFuncs where
   typedPointstoDef l v dq := iprop(
     "untyped" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.ConversionFuncs go!"untyped" l) v.untyped' dq ∗
@@ -72,11 +71,11 @@ instance ConversionFuncs_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance ConversionFuncs_into_val_typed :
+noncomputable instance ConversionFuncs_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.ConversionFuncs k8s_io.apimachinery.pkg.conversion.ConversionFuncs.underlying := by
   solve_into_val_typed_struct
 
-instance ConversionFuncs_access_load_untyped (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) (dq : DFrac) :
+noncomputable instance ConversionFuncs_access_load_untyped (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.ConversionFuncs go!"untyped" l) v.untyped' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.ConversionFuncs go!"untyped" l) v.untyped' dq)
@@ -84,7 +83,7 @@ instance ConversionFuncs_access_load_untyped (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-instance ConversionFuncs_access_store_untyped (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) (untyped' : GoMap) :
+noncomputable instance ConversionFuncs_access_store_untyped (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) (untyped' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.ConversionFuncs go!"untyped" l) v.untyped' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.ConversionFuncs go!"untyped" l) untyped' (DFrac.own 1))
@@ -103,7 +102,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.conversion.Assumptions]
 
-instance Converter_typed_pointsto :
+noncomputable instance Converter_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.Converter where
   typedPointstoDef l v dq := iprop(
     "conversionFuncs" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"conversionFuncs" l) v.conversionFuncs' dq ∗
@@ -114,11 +113,11 @@ instance Converter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Converter_into_val_typed :
+noncomputable instance Converter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.Converter k8s_io.apimachinery.pkg.conversion.Converter.underlying := by
   solve_into_val_typed_struct
 
-instance Converter_access_load_conversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (dq : DFrac) :
+noncomputable instance Converter_access_load_conversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"conversionFuncs" l) v.conversionFuncs' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"conversionFuncs" l) v.conversionFuncs' dq)
@@ -126,7 +125,7 @@ instance Converter_access_load_conversionFuncs (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-instance Converter_access_store_conversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (conversionFuncs' : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) :
+noncomputable instance Converter_access_store_conversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (conversionFuncs' : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"conversionFuncs" l) v.conversionFuncs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"conversionFuncs" l) conversionFuncs' (DFrac.own 1))
@@ -134,7 +133,7 @@ instance Converter_access_store_conversionFuncs (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance Converter_access_load_generatedConversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (dq : DFrac) :
+noncomputable instance Converter_access_load_generatedConversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"generatedConversionFuncs" l) v.generatedConversionFuncs' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"generatedConversionFuncs" l) v.generatedConversionFuncs' dq)
@@ -142,7 +141,7 @@ instance Converter_access_load_generatedConversionFuncs (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-instance Converter_access_store_generatedConversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (generatedConversionFuncs' : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) :
+noncomputable instance Converter_access_store_generatedConversionFuncs (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (generatedConversionFuncs' : k8s_io.apimachinery.pkg.conversion.ConversionFuncs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"generatedConversionFuncs" l) v.generatedConversionFuncs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"generatedConversionFuncs" l) generatedConversionFuncs' (DFrac.own 1))
@@ -150,7 +149,7 @@ instance Converter_access_store_generatedConversionFuncs (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-instance Converter_access_load_ignoredUntypedConversions (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (dq : DFrac) :
+noncomputable instance Converter_access_load_ignoredUntypedConversions (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"ignoredUntypedConversions" l) v.ignoredUntypedConversions' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"ignoredUntypedConversions" l) v.ignoredUntypedConversions' dq)
@@ -158,7 +157,7 @@ instance Converter_access_load_ignoredUntypedConversions (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-instance Converter_access_store_ignoredUntypedConversions (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (ignoredUntypedConversions' : GoMap) :
+noncomputable instance Converter_access_store_ignoredUntypedConversions (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Converter) (ignoredUntypedConversions' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"ignoredUntypedConversions" l) v.ignoredUntypedConversions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Converter go!"ignoredUntypedConversions" l) ignoredUntypedConversions' (DFrac.own 1))
@@ -177,7 +176,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.conversion.Assumptions]
 
-instance Meta_typed_pointsto :
+noncomputable instance Meta_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.Meta where
   typedPointstoDef l v dq := iprop(
     "Context" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Meta go!"Context" l) v.Context' dq ∗
@@ -186,11 +185,11 @@ instance Meta_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Meta_into_val_typed :
+noncomputable instance Meta_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.Meta k8s_io.apimachinery.pkg.conversion.Meta.underlying := by
   solve_into_val_typed_struct
 
-instance Meta_access_load_Context (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Meta) (dq : DFrac) :
+noncomputable instance Meta_access_load_Context (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Meta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Meta go!"Context" l) v.Context' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Meta go!"Context" l) v.Context' dq)
@@ -198,7 +197,7 @@ instance Meta_access_load_Context (l : Loc) (v : k8s_io.apimachinery.pkg.convers
  by
   solve_pointsto_access_struct
 
-instance Meta_access_store_Context (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Meta) (Context' : GoInterface) :
+noncomputable instance Meta_access_store_Context (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.Meta) (Context' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Meta go!"Context" l) v.Context' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.Meta go!"Context" l) Context' (DFrac.own 1))
@@ -217,7 +216,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.conversion.Assumptions]
 
-instance scope_typed_pointsto :
+noncomputable instance scope_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.scope where
   typedPointstoDef l v dq := iprop(
     "converter" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"converter" l) v.converter' dq ∗
@@ -227,11 +226,11 @@ instance scope_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance scope_into_val_typed :
+noncomputable instance scope_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.scope k8s_io.apimachinery.pkg.conversion.scope.underlying := by
   solve_into_val_typed_struct
 
-instance scope_access_load_converter (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (dq : DFrac) :
+noncomputable instance scope_access_load_converter (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"converter" l) v.converter' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"converter" l) v.converter' dq)
@@ -239,7 +238,7 @@ instance scope_access_load_converter (l : Loc) (v : k8s_io.apimachinery.pkg.conv
  by
   solve_pointsto_access_struct
 
-instance scope_access_store_converter (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (converter' : Loc) :
+noncomputable instance scope_access_store_converter (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (converter' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"converter" l) v.converter' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"converter" l) converter' (DFrac.own 1))
@@ -247,7 +246,7 @@ instance scope_access_store_converter (l : Loc) (v : k8s_io.apimachinery.pkg.con
  by
   solve_pointsto_access_struct
 
-instance scope_access_load_meta (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (dq : DFrac) :
+noncomputable instance scope_access_load_meta (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"meta" l) v.meta' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"meta" l) v.meta' dq)
@@ -255,7 +254,7 @@ instance scope_access_load_meta (l : Loc) (v : k8s_io.apimachinery.pkg.conversio
  by
   solve_pointsto_access_struct
 
-instance scope_access_store_meta (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (meta' : Loc) :
+noncomputable instance scope_access_store_meta (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.scope) (meta' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"meta" l) v.meta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.scope go!"meta" l) meta' (DFrac.own 1))
@@ -274,11 +273,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.conversion.Assumptions]
 
-instance Equalities_typed_pointsto :
+noncomputable instance Equalities_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.conversion.Equalities :=
   sorry -- axiomatized type
 
-instance Equalities_into_val_typed :
+noncomputable instance Equalities_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.conversion.Equalities k8s_io.apimachinery.pkg.conversion.Equalities.underlying :=
   sorry -- axiomatized type
 

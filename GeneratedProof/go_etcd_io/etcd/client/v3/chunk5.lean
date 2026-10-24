@@ -36,9 +36,8 @@ public import GeneratedProof.go_etcd_io.etcd.client.v3.chunk3
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -53,7 +52,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
 
-instance SortOption_typed_pointsto :
+noncomputable instance SortOption_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.SortOption where
   typedPointstoDef l v dq := iprop(
     "Target" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Target" l) v.Target' dq ∗
@@ -63,11 +62,11 @@ instance SortOption_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance SortOption_into_val_typed :
+noncomputable instance SortOption_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.SortOption go_etcd_io.etcd.client.v3.SortOption.underlying := by
   solve_into_val_typed_struct
 
-instance SortOption_access_load_Target (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (dq : DFrac) :
+noncomputable instance SortOption_access_load_Target (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Target" l) v.Target' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Target" l) v.Target' dq)
@@ -75,7 +74,7 @@ instance SortOption_access_load_Target (l : Loc) (v : go_etcd_io.etcd.client.v3.
  by
   solve_pointsto_access_struct
 
-instance SortOption_access_store_Target (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (Target' : go_etcd_io.etcd.client.v3.SortTarget) :
+noncomputable instance SortOption_access_store_Target (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (Target' : go_etcd_io.etcd.client.v3.SortTarget) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Target" l) v.Target' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Target" l) Target' (DFrac.own 1))
@@ -83,7 +82,7 @@ instance SortOption_access_store_Target (l : Loc) (v : go_etcd_io.etcd.client.v3
  by
   solve_pointsto_access_struct
 
-instance SortOption_access_load_Order (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (dq : DFrac) :
+noncomputable instance SortOption_access_load_Order (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Order" l) v.Order' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Order" l) v.Order' dq)
@@ -91,7 +90,7 @@ instance SortOption_access_load_Order (l : Loc) (v : go_etcd_io.etcd.client.v3.S
  by
   solve_pointsto_access_struct
 
-instance SortOption_access_store_Order (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (Order' : go_etcd_io.etcd.client.v3.SortOrder) :
+noncomputable instance SortOption_access_store_Order (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (Order' : go_etcd_io.etcd.client.v3.SortOrder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Order" l) v.Order' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Order" l) Order' (DFrac.own 1))
@@ -110,7 +109,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
 
-instance watcherStream_typed_pointsto :
+noncomputable instance watcherStream_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.watcherStream where
   typedPointstoDef l v dq := iprop(
     "initReq" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"initReq" l) v.initReq' dq ∗
@@ -127,11 +126,11 @@ instance watcherStream_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance watcherStream_into_val_typed :
+noncomputable instance watcherStream_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.watcherStream go_etcd_io.etcd.client.v3.watcherStream.underlying := by
   solve_into_val_typed_struct
 
-instance watcherStream_access_load_initReq (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+noncomputable instance watcherStream_access_load_initReq (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"initReq" l) v.initReq' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"initReq" l) v.initReq' dq)
@@ -139,7 +138,7 @@ instance watcherStream_access_load_initReq (l : Loc) (v : go_etcd_io.etcd.client
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_store_initReq (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (initReq' : go_etcd_io.etcd.client.v3.watchRequest) :
+noncomputable instance watcherStream_access_store_initReq (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (initReq' : go_etcd_io.etcd.client.v3.watchRequest) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"initReq" l) v.initReq' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"initReq" l) initReq' (DFrac.own 1))
@@ -147,7 +146,7 @@ instance watcherStream_access_store_initReq (l : Loc) (v : go_etcd_io.etcd.clien
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_load_outc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+noncomputable instance watcherStream_access_load_outc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"outc" l) v.outc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"outc" l) v.outc' dq)
@@ -155,7 +154,7 @@ instance watcherStream_access_load_outc (l : Loc) (v : go_etcd_io.etcd.client.v3
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_store_outc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (outc' : GoChan) :
+noncomputable instance watcherStream_access_store_outc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (outc' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"outc" l) v.outc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"outc" l) outc' (DFrac.own 1))
@@ -163,7 +162,7 @@ instance watcherStream_access_store_outc (l : Loc) (v : go_etcd_io.etcd.client.v
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_load_recvc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+noncomputable instance watcherStream_access_load_recvc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"recvc" l) v.recvc' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"recvc" l) v.recvc' dq)
@@ -171,7 +170,7 @@ instance watcherStream_access_load_recvc (l : Loc) (v : go_etcd_io.etcd.client.v
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_store_recvc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (recvc' : GoChan) :
+noncomputable instance watcherStream_access_store_recvc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (recvc' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"recvc" l) v.recvc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"recvc" l) recvc' (DFrac.own 1))
@@ -179,7 +178,7 @@ instance watcherStream_access_store_recvc (l : Loc) (v : go_etcd_io.etcd.client.
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_load_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+noncomputable instance watcherStream_access_load_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"donec" l) v.donec' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"donec" l) v.donec' dq)
@@ -187,7 +186,7 @@ instance watcherStream_access_load_donec (l : Loc) (v : go_etcd_io.etcd.client.v
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_store_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (donec' : GoChan) :
+noncomputable instance watcherStream_access_store_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (donec' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"donec" l) v.donec' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"donec" l) donec' (DFrac.own 1))
@@ -195,7 +194,7 @@ instance watcherStream_access_store_donec (l : Loc) (v : go_etcd_io.etcd.client.
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_load_closing (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+noncomputable instance watcherStream_access_load_closing (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"closing" l) v.closing' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"closing" l) v.closing' dq)
@@ -203,7 +202,7 @@ instance watcherStream_access_load_closing (l : Loc) (v : go_etcd_io.etcd.client
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_store_closing (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (closing' : Bool) :
+noncomputable instance watcherStream_access_store_closing (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (closing' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"closing" l) v.closing' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"closing" l) closing' (DFrac.own 1))
@@ -211,7 +210,7 @@ instance watcherStream_access_store_closing (l : Loc) (v : go_etcd_io.etcd.clien
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_load_id (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+noncomputable instance watcherStream_access_load_id (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"id" l) v.id' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"id" l) v.id' dq)
@@ -219,7 +218,7 @@ instance watcherStream_access_load_id (l : Loc) (v : go_etcd_io.etcd.client.v3.w
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_store_id (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (id' : w64) :
+noncomputable instance watcherStream_access_store_id (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (id' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"id" l) id' (DFrac.own 1))
@@ -227,7 +226,7 @@ instance watcherStream_access_store_id (l : Loc) (v : go_etcd_io.etcd.client.v3.
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_load_buf (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+noncomputable instance watcherStream_access_load_buf (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"buf" l) v.buf' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"buf" l) v.buf' dq)
@@ -235,7 +234,7 @@ instance watcherStream_access_load_buf (l : Loc) (v : go_etcd_io.etcd.client.v3.
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_store_buf (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (buf' : GoSlice) :
+noncomputable instance watcherStream_access_store_buf (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (buf' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"buf" l) buf' (DFrac.own 1))
@@ -243,7 +242,7 @@ instance watcherStream_access_store_buf (l : Loc) (v : go_etcd_io.etcd.client.v3
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_load_bufLogger (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+noncomputable instance watcherStream_access_load_bufLogger (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufLogger" l) v.bufLogger' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufLogger" l) v.bufLogger' dq)
@@ -251,7 +250,7 @@ instance watcherStream_access_load_bufLogger (l : Loc) (v : go_etcd_io.etcd.clie
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_store_bufLogger (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufLogger' : Loc) :
+noncomputable instance watcherStream_access_store_bufLogger (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufLogger' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufLogger" l) v.bufLogger' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufLogger" l) bufLogger' (DFrac.own 1))
@@ -259,7 +258,7 @@ instance watcherStream_access_store_bufLogger (l : Loc) (v : go_etcd_io.etcd.cli
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_load_bufWaitStartTime (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+noncomputable instance watcherStream_access_load_bufWaitStartTime (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) v.bufWaitStartTime' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) v.bufWaitStartTime' dq)
@@ -267,7 +266,7 @@ instance watcherStream_access_load_bufWaitStartTime (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-instance watcherStream_access_store_bufWaitStartTime (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufWaitStartTime' : time.Time) :
+noncomputable instance watcherStream_access_store_bufWaitStartTime (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufWaitStartTime' : time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) v.bufWaitStartTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) bufWaitStartTime' (DFrac.own 1))

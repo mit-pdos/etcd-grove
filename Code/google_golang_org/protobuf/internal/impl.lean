@@ -10,390 +10,389 @@ public import TrustedCode.google_golang_org.protobuf.internal.impl
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.protobuf.internal.impl : GoString := go!"google.golang.org/protobuf/internal/impl"
+noncomputable def google_golang_org.protobuf.internal.impl : GoString := go!"google.golang.org/protobuf/internal/impl"
 end pkg_id
 
 namespace google_golang_org.protobuf.internal.impl
 
-def Export.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Export.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.Export" [])
 
 attribute [irreducible] Export.ty
 
-def legacyMessageWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyMessageWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyMessageWrapper" [])
 
 attribute [irreducible] legacyMessageWrapper.ty
 
-def RaceDetectHookData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaceDetectHookData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.RaceDetectHookData" [])
 
 attribute [irreducible] RaceDetectHookData.ty
 
-def extensionFieldInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def extensionFieldInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.extensionFieldInfo" [])
 
 attribute [irreducible] extensionFieldInfo.ty
 
-def lazyExtensionValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazyExtensionValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.lazyExtensionValue" [])
 
 attribute [irreducible] lazyExtensionValue.ty
 
-def ExtensionField.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionField.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.ExtensionField" [])
 
 attribute [irreducible] ExtensionField.ty
 
-def errInvalidUTF8.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def errInvalidUTF8.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.errInvalidUTF8" [])
 
 attribute [irreducible] errInvalidUTF8.ty
 
-def mapInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mapInfo" [])
 
 attribute [irreducible] mapInfo.ty
 
-def coderMessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def coderMessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.coderMessageInfo" [])
 
 attribute [irreducible] coderMessageInfo.ty
 
-def coderFieldInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def coderFieldInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.coderFieldInfo" [])
 
 attribute [irreducible] coderFieldInfo.ty
 
-def pointerCoderFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pointerCoderFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.pointerCoderFuncs" [])
 
 attribute [irreducible] pointerCoderFuncs.ty
 
-def valueCoderFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def valueCoderFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.valueCoderFuncs" [])
 
 attribute [irreducible] valueCoderFuncs.ty
 
-def unwrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unwrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.unwrapper" [])
 
 attribute [irreducible] unwrapper.ty
 
-def Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.Converter" [])
 
 attribute [irreducible] Converter.ty
 
-def boolConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def boolConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.boolConverter" [])
 
 attribute [irreducible] boolConverter.ty
 
-def int32Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def int32Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.int32Converter" [])
 
 attribute [irreducible] int32Converter.ty
 
-def int64Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def int64Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.int64Converter" [])
 
 attribute [irreducible] int64Converter.ty
 
-def uint32Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def uint32Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.uint32Converter" [])
 
 attribute [irreducible] uint32Converter.ty
 
-def uint64Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def uint64Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.uint64Converter" [])
 
 attribute [irreducible] uint64Converter.ty
 
-def float32Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def float32Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.float32Converter" [])
 
 attribute [irreducible] float32Converter.ty
 
-def float64Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def float64Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.float64Converter" [])
 
 attribute [irreducible] float64Converter.ty
 
-def stringConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stringConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.stringConverter" [])
 
 attribute [irreducible] stringConverter.ty
 
-def bytesConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bytesConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.bytesConverter" [])
 
 attribute [irreducible] bytesConverter.ty
 
-def enumConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def enumConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.enumConverter" [])
 
 attribute [irreducible] enumConverter.ty
 
-def messageConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageConverter" [])
 
 attribute [irreducible] messageConverter.ty
 
-def listConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.listConverter" [])
 
 attribute [irreducible] listConverter.ty
 
-def listPtrConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listPtrConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.listPtrConverter" [])
 
 attribute [irreducible] listPtrConverter.ty
 
-def listReflect.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listReflect.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.listReflect" [])
 
 attribute [irreducible] listReflect.ty
 
-def mapConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mapConverter" [])
 
 attribute [irreducible] mapConverter.ty
 
-def mapReflect.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapReflect.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mapReflect" [])
 
 attribute [irreducible] mapReflect.ty
 
-def unmarshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unmarshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.unmarshalOptions" [])
 
 attribute [irreducible] unmarshalOptions.ty
 
-def unmarshalOutput.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unmarshalOutput.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.unmarshalOutput" [])
 
 attribute [irreducible] unmarshalOutput.ty
 
-def marshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def marshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.marshalOptions" [])
 
 attribute [irreducible] marshalOptions.ty
 
-def EnumInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnumInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.EnumInfo" [])
 
 attribute [irreducible] EnumInfo.ty
 
-def ExtensionInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.ExtensionInfo" [])
 
 attribute [irreducible] ExtensionInfo.ty
 
-def extensionTypeDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def extensionTypeDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.extensionTypeDescriptor" [])
 
 attribute [irreducible] extensionTypeDescriptor.ty
 
-def legacyEnumType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyEnumType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyEnumType" [])
 
 attribute [irreducible] legacyEnumType.ty
 
-def legacyEnumWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyEnumWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyEnumWrapper" [])
 
 attribute [irreducible] legacyEnumWrapper.ty
 
-def placeholderExtension.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def placeholderExtension.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.placeholderExtension" [])
 
 attribute [irreducible] placeholderExtension.ty
 
-def enumV1.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def enumV1.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.enumV1" [])
 
 attribute [irreducible] enumV1.ty
 
-def messageV1.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageV1.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageV1" [])
 
 attribute [irreducible] messageV1.ty
 
-def resolverOnly.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resolverOnly.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.resolverOnly" [])
 
 attribute [irreducible] resolverOnly.ty
 
-def placeholderEnumValues.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def placeholderEnumValues.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.placeholderEnumValues" [])
 
 attribute [irreducible] placeholderEnumValues.ty
 
-def legacyMarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyMarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyMarshaler" [])
 
 attribute [irreducible] legacyMarshaler.ty
 
-def legacyUnmarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyUnmarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyUnmarshaler" [])
 
 attribute [irreducible] legacyUnmarshaler.ty
 
-def legacyMerger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyMerger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyMerger" [])
 
 attribute [irreducible] legacyMerger.ty
 
-def aberrantMessageType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def aberrantMessageType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.aberrantMessageType" [])
 
 attribute [irreducible] aberrantMessageType.ty
 
-def aberrantMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def aberrantMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.aberrantMessage" [])
 
 attribute [irreducible] aberrantMessage.ty
 
-def mergeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mergeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mergeOptions" [])
 
 attribute [irreducible] mergeOptions.ty
 
-def MessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.MessageInfo" [])
 
 attribute [irreducible] MessageInfo.ty
 
-def exporter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def exporter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.exporter" [])
 
 attribute [irreducible] exporter.ty
 
-def structInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def structInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.structInfo" [])
 
 attribute [irreducible] structInfo.ty
 
-def mapEntryType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapEntryType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mapEntryType" [])
 
 attribute [irreducible] mapEntryType.ty
 
-def opaqueStructInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def opaqueStructInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.opaqueStructInfo" [])
 
 attribute [irreducible] opaqueStructInfo.ty
 
-def presenceList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def presenceList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.presenceList" [])
 
 attribute [irreducible] presenceList.ty
 
-def pvalueList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pvalueList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.pvalueList" [])
 
 attribute [irreducible] pvalueList.ty
 
-def reflectMessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def reflectMessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.reflectMessageInfo" [])
 
 attribute [irreducible] reflectMessageInfo.ty
 
-def extensionMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def extensionMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.extensionMap" [])
 
 attribute [irreducible] extensionMap.ty
 
-def MessageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.MessageState" [])
 
 attribute [irreducible] MessageState.ty
 
-def messageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageState" [])
 
 attribute [irreducible] messageState.ty
 
-def messageDataType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageDataType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageDataType" [])
 
 attribute [irreducible] messageDataType.ty
 
-def messageReflectWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageReflectWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageReflectWrapper" [])
 
 attribute [irreducible] messageReflectWrapper.ty
 
-def messageIfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageIfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageIfaceWrapper" [])
 
 attribute [irreducible] messageIfaceWrapper.ty
 
-def fieldInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fieldInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.fieldInfo" [])
 
 attribute [irreducible] fieldInfo.ty
 
-def oneofInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def oneofInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.oneofInfo" [])
 
 attribute [irreducible] oneofInfo.ty
 
-def Pointer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pointer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.Pointer" [])
 
 attribute [irreducible] Pointer.ty
 
-def offset.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def offset.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.offset" [])
 
 attribute [irreducible] offset.ty
 
-def pointer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pointer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.pointer" [])
 
 attribute [irreducible] pointer.ty
 
-def atomicNilMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def atomicNilMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.atomicNilMessage" [])
 
 attribute [irreducible] atomicNilMessage.ty
 
-def atomicV1MessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def atomicV1MessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.atomicV1MessageInfo" [])
 
 attribute [irreducible] atomicV1MessageInfo.ty
 
-def presenceSize.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def presenceSize.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.presenceSize" [])
 
 attribute [irreducible] presenceSize.ty
 
-def presence.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def presence.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.presence" [])
 
 attribute [irreducible] presence.ty
 
-def ValidationStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ValidationStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.ValidationStatus" [])
 
 attribute [irreducible] ValidationStatus.ty
 
-def validationInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def validationInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.validationInfo" [])
 
 attribute [irreducible] validationInfo.ty
 
-def validationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def validationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.validationType" [])
 
 attribute [irreducible] validationType.ty
@@ -2725,7 +2724,7 @@ noncomputable def newFieldValidationInfo [FfiSyntax] [GoGlobalContext] : GoStrin
 noncomputable def newValidationInfo [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.newValidationInfo"
 
-instance info' : PkgInfo pkg_id.google_golang_org.protobuf.internal.impl where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.internal.impl where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.internal.pragma]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -4027,23 +4026,23 @@ structure MessageState [FfiSyntax] where
   DoNotCopy' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCopy
   atomicMessageInfo' : Loc
 
-instance MessageState.zero_val [FfiSyntax] : ZeroVal MessageState :=
+noncomputable instance MessageState.zero_val [FfiSyntax] : ZeroVal MessageState :=
   ⟨MessageState.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def MessageState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MessageState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
 (go.field_decl.EmbeddedField go!"DoNotCompare" _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCompare.ty),
 (go.field_decl.EmbeddedField go!"DoNotCopy" _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCopy.ty),
 (go.field_decl.FieldDecl go!"atomicMessageInfo" (go.GoType.PointerType MessageInfo.ty))]
 
-@[irreducible] def MessageState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MessageState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   MessageState.fieldsUnsealed
 
-instance equals_unfold_MessageState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MessageState [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold MessageState.fields MessageState.fieldsUnsealed :=
   ⟨by unfold MessageState.fields; rfl⟩
 
-@[reducible] def MessageState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MessageState.fields)
 
 class MessageState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

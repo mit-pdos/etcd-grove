@@ -8,15 +8,14 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.client.pkg.v3.logutil : GoString := go!"go.etcd.io/etcd/client/pkg/v3/logutil"
+noncomputable def go_etcd_io.etcd.client.pkg.v3.logutil : GoString := go!"go.etcd.io/etcd/client/pkg/v3/logutil"
 end pkg_id
 
 namespace go_etcd_io.etcd.client.pkg.v3.logutil
@@ -57,7 +56,7 @@ noncomputable def MergeOutputPaths [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def mergePaths [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/logutil.mergePaths"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

@@ -8,495 +8,494 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def net : GoString := go!"net"
+noncomputable def net : GoString := go!"net"
 end pkg_id
 
 namespace net
 
-def ipAttr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ipAttr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.ipAttr" [])
 
 attribute [irreducible] ipAttr.ty
 
-def byRFC6724Info.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def byRFC6724Info.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.byRFC6724Info" [])
 
 attribute [irreducible] byRFC6724Info.ty
 
-def policyTableEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def policyTableEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.policyTableEntry" [])
 
 attribute [irreducible] policyTableEntry.ty
 
-def policyTable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def policyTable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.policyTable" [])
 
 attribute [irreducible] policyTable.ty
 
-def scope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def scope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.scope" [])
 
 attribute [irreducible] scope.ty
 
-def addrinfoErrno.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def addrinfoErrno.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.addrinfoErrno" [])
 
 attribute [irreducible] addrinfoErrno.ty
 
-def conf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def conf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.conf" [])
 
 attribute [irreducible] conf.ty
 
-def mdnsTest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mdnsTest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.mdnsTest" [])
 
 attribute [irreducible] mdnsTest.ty
 
-def mptcpStatusDial.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mptcpStatusDial.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.mptcpStatusDial" [])
 
 attribute [irreducible] mptcpStatusDial.ty
 
-def mptcpStatusListen.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mptcpStatusListen.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.mptcpStatusListen" [])
 
 attribute [irreducible] mptcpStatusListen.ty
 
-def Dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.Dialer" [])
 
 attribute [irreducible] Dialer.ty
 
-def sysDialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sysDialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.sysDialer" [])
 
 attribute [irreducible] sysDialer.ty
 
-def ListenConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListenConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.ListenConfig" [])
 
 attribute [irreducible] ListenConfig.ty
 
-def sysListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sysListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.sysListener" [])
 
 attribute [irreducible] sysListener.ty
 
-def SRV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SRV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.SRV" [])
 
 attribute [irreducible] SRV.ty
 
-def byPriorityWeight.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def byPriorityWeight.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.byPriorityWeight" [])
 
 attribute [irreducible] byPriorityWeight.ty
 
-def MX.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MX.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.MX" [])
 
 attribute [irreducible] MX.ty
 
-def byPref.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def byPref.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.byPref" [])
 
 attribute [irreducible] byPref.ty
 
-def NS.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NS.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.NS" [])
 
 attribute [irreducible] NS.ty
 
-def resolverConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resolverConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.resolverConfig" [])
 
 attribute [irreducible] resolverConfig.ty
 
-def hostLookupOrder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def hostLookupOrder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.hostLookupOrder" [])
 
 attribute [irreducible] hostLookupOrder.ty
 
-def dnsConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dnsConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.dnsConfig" [])
 
 attribute [irreducible] dnsConfig.ty
 
-def netFD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def netFD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.netFD" [])
 
 attribute [irreducible] netFD.ty
 
-def fileAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fileAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.fileAddr" [])
 
 attribute [irreducible] fileAddr.ty
 
-def byName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def byName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.byName" [])
 
 attribute [irreducible] byName.ty
 
-def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.Interface" [])
 
 attribute [irreducible] Interface.ty
 
-def Flags.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Flags.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.Flags" [])
 
 attribute [irreducible] Flags.ty
 
-def ipv6ZoneCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ipv6ZoneCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.ipv6ZoneCache" [])
 
 attribute [irreducible] ipv6ZoneCache.ty
 
-def IP.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IP.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.IP" [])
 
 attribute [irreducible] IP.ty
 
-def IPMask.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IPMask.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.IPMask" [])
 
 attribute [irreducible] IPMask.ty
 
-def IPNet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IPNet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.IPNet" [])
 
 attribute [irreducible] IPNet.ty
 
-def IPAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IPAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.IPAddr" [])
 
 attribute [irreducible] IPAddr.ty
 
-def IPConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IPConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.IPConn" [])
 
 attribute [irreducible] IPConn.ty
 
-def ipStackCapabilities.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ipStackCapabilities.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.ipStackCapabilities" [])
 
 attribute [irreducible] ipStackCapabilities.ty
 
-def addrList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def addrList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.addrList" [])
 
 attribute [irreducible] addrList.ty
 
-def Resolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Resolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.Resolver" [])
 
 attribute [irreducible] Resolver.ty
 
-def onlyValuesCtx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def onlyValuesCtx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.onlyValuesCtx" [])
 
 attribute [irreducible] onlyValuesCtx.ty
 
-def HardwareAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HardwareAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.HardwareAddr" [])
 
 attribute [irreducible] HardwareAddr.ty
 
-def Addr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Addr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.Addr" [])
 
 attribute [irreducible] Addr.ty
 
-def Conn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Conn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.Conn" [])
 
 attribute [irreducible] Conn.ty
 
-def conn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def conn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.conn" [])
 
 attribute [irreducible] conn.ty
 
-def PacketConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PacketConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.PacketConn" [])
 
 attribute [irreducible] PacketConn.ty
 
-def Listener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Listener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.Listener" [])
 
 attribute [irreducible] Listener.ty
 
-def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.Error" [])
 
 attribute [irreducible] Error.ty
 
-def canceledError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def canceledError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.canceledError" [])
 
 attribute [irreducible] canceledError.ty
 
-def OpError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OpError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.OpError" [])
 
 attribute [irreducible] OpError.ty
 
-def timeout.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timeout.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.timeout" [])
 
 attribute [irreducible] timeout.ty
 
-def temporary.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def temporary.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.temporary" [])
 
 attribute [irreducible] temporary.ty
 
-def ParseError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ParseError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.ParseError" [])
 
 attribute [irreducible] ParseError.ty
 
-def AddrError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AddrError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.AddrError" [])
 
 attribute [irreducible] AddrError.ty
 
-def UnknownNetworkError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnknownNetworkError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.UnknownNetworkError" [])
 
 attribute [irreducible] UnknownNetworkError.ty
 
-def InvalidAddrError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidAddrError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.InvalidAddrError" [])
 
 attribute [irreducible] InvalidAddrError.ty
 
-def timeoutError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timeoutError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.timeoutError" [])
 
 attribute [irreducible] timeoutError.ty
 
-def DNSConfigError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DNSConfigError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.DNSConfigError" [])
 
 attribute [irreducible] DNSConfigError.ty
 
-def notFoundError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def notFoundError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.notFoundError" [])
 
 attribute [irreducible] notFoundError.ty
 
-def temporaryError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def temporaryError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.temporaryError" [])
 
 attribute [irreducible] temporaryError.ty
 
-def DNSError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DNSError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.DNSError" [])
 
 attribute [irreducible] DNSError.ty
 
-def noReadFrom.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noReadFrom.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.noReadFrom" [])
 
 attribute [irreducible] noReadFrom.ty
 
-def tcpConnWithoutReadFrom.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tcpConnWithoutReadFrom.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.tcpConnWithoutReadFrom" [])
 
 attribute [irreducible] tcpConnWithoutReadFrom.ty
 
-def noWriteTo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noWriteTo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.noWriteTo" [])
 
 attribute [irreducible] noWriteTo.ty
 
-def tcpConnWithoutWriteTo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tcpConnWithoutWriteTo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.tcpConnWithoutWriteTo" [])
 
 attribute [irreducible] tcpConnWithoutWriteTo.ty
 
-def buffersWriter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def buffersWriter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.buffersWriter" [])
 
 attribute [irreducible] buffersWriter.ty
 
-def Buffers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Buffers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.Buffers" [])
 
 attribute [irreducible] Buffers.ty
 
-def nsswitchConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nsswitchConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.nsswitchConfig" [])
 
 attribute [irreducible] nsswitchConfig.ty
 
-def nssConf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nssConf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.nssConf" [])
 
 attribute [irreducible] nssConf.ty
 
-def nssSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nssSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.nssSource" [])
 
 attribute [irreducible] nssSource.ty
 
-def nssCriterion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nssCriterion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.nssCriterion" [])
 
 attribute [irreducible] nssCriterion.ty
 
-def file.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def file.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.file" [])
 
 attribute [irreducible] file.ty
 
-def pipeDeadline.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pipeDeadline.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.pipeDeadline" [])
 
 attribute [irreducible] pipeDeadline.ty
 
-def pipeAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pipeAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.pipeAddr" [])
 
 attribute [irreducible] pipeAddr.ty
 
-def pipe.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pipe.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.pipe" [])
 
 attribute [irreducible] pipe.ty
 
-def rawConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rawConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.rawConn" [])
 
 attribute [irreducible] rawConn.ty
 
-def rawListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rawListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.rawListener" [])
 
 attribute [irreducible] rawListener.ty
 
-def sockaddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sockaddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.sockaddr" [])
 
 attribute [irreducible] sockaddr.ty
 
-def TCPAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TCPAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.TCPAddr" [])
 
 attribute [irreducible] TCPAddr.ty
 
-def TCPConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TCPConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.TCPConn" [])
 
 attribute [irreducible] TCPConn.ty
 
-def KeepAliveConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeepAliveConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.KeepAliveConfig" [])
 
 attribute [irreducible] KeepAliveConfig.ty
 
-def TCPListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TCPListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.TCPListener" [])
 
 attribute [irreducible] TCPListener.ty
 
-def UDPAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UDPAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.UDPAddr" [])
 
 attribute [irreducible] UDPAddr.ty
 
-def addrPortUDPAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def addrPortUDPAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.addrPortUDPAddr" [])
 
 attribute [irreducible] addrPortUDPAddr.ty
 
-def UDPConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UDPConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.UDPConn" [])
 
 attribute [irreducible] UDPConn.ty
 
-def UnixAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnixAddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.UnixAddr" [])
 
 attribute [irreducible] UnixAddr.ty
 
-def UnixConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnixConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.UnixConn" [])
 
 attribute [irreducible] UnixConn.ty
 
-def UnixListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnixListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net.UnixListener" [])
 
 attribute [irreducible] UnixListener.ty
 
-def «_».ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def «_».ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._" [])
 
 attribute [irreducible] «_».ty
 
-def _Ctype__GoString_.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype__GoString_.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype__GoString_" [])
 
 attribute [irreducible] _Ctype__GoString_.ty
 
-def _Ctype_char.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_char.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_char" [])
 
 attribute [irreducible] _Ctype_char.ty
 
-def _Ctype_int.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_int.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_int" [])
 
 attribute [irreducible] _Ctype_int.ty
 
-def _Ctype_long.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_long.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_long" [])
 
 attribute [irreducible] _Ctype_long.ty
 
-def _Ctype_struct_addrinfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_struct_addrinfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_struct_addrinfo" [])
 
 attribute [irreducible] _Ctype_struct_addrinfo.ty
 
-def _Ctype_struct_sockaddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_struct_sockaddr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_struct_sockaddr" [])
 
 attribute [irreducible] _Ctype_struct_sockaddr.ty
 
-def _Ctype_uchar.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_uchar.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_uchar" [])
 
 attribute [irreducible] _Ctype_uchar.ty
 
-def _Ctype_uint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_uint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_uint" [])
 
 attribute [irreducible] _Ctype_uint.ty
 
-def _Ctype_ulong.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_ulong.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_ulong" [])
 
 attribute [irreducible] _Ctype_ulong.ty
 
-def _Ctype_ushort.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_ushort.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_ushort" [])
 
 attribute [irreducible] _Ctype_ushort.ty
 
-def _Ctype_void.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def _Ctype_void.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net._Ctype_void" [])
 
 attribute [irreducible] _Ctype_void.ty
@@ -2197,7 +2196,7 @@ noncomputable def _C_res_nclose [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def _C_res_nsearch [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"net._C_res_nsearch"
 
-instance info' : PkgInfo pkg_id.net where
+noncomputable instance info' : PkgInfo pkg_id.net where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -2936,7 +2935,7 @@ attribute [instance] HardwareAddr.TypeAssumptions.type_repr
 
 abbrev Addr [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Addr.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Addr.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Network" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string]))])
 
 class Addr.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2985,7 +2984,7 @@ attribute [instance] PacketConn.TypeAssumptions.type_repr
 
 abbrev Listener [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Listener.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Listener.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Accept" (go.signature.Signature [] false [Conn.ty, go.error])), (go.InterfaceElem.MethodElem go!"Addr" (go.signature.Signature [] false [Addr.ty])), (go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error]))])
 
 class Listener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

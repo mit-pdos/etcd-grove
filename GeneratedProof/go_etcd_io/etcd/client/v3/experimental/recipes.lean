@@ -16,9 +16,8 @@ public import Code.go_etcd_io.etcd.client.v3.experimental.recipes
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -33,7 +32,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-instance Barrier_typed_pointsto :
+noncomputable instance Barrier_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.Barrier where
   typedPointstoDef l v dq := iprop(
     "client" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"client" l) v.client' dq ∗
@@ -44,11 +43,11 @@ instance Barrier_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Barrier_into_val_typed :
+noncomputable instance Barrier_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go_etcd_io.etcd.client.v3.experimental.recipes.Barrier.underlying := by
   solve_into_val_typed_struct
 
-instance Barrier_access_load_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (dq : DFrac) :
+noncomputable instance Barrier_access_load_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"client" l) v.client' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"client" l) v.client' dq)
@@ -56,7 +55,7 @@ instance Barrier_access_load_client (l : Loc) (v : go_etcd_io.etcd.client.v3.exp
  by
   solve_pointsto_access_struct
 
-instance Barrier_access_store_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (client' : Loc) :
+noncomputable instance Barrier_access_store_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (client' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"client" l) v.client' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"client" l) client' (DFrac.own 1))
@@ -64,7 +63,7 @@ instance Barrier_access_store_client (l : Loc) (v : go_etcd_io.etcd.client.v3.ex
  by
   solve_pointsto_access_struct
 
-instance Barrier_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (dq : DFrac) :
+noncomputable instance Barrier_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"ctx" l) v.ctx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"ctx" l) v.ctx' dq)
@@ -72,7 +71,7 @@ instance Barrier_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experi
  by
   solve_pointsto_access_struct
 
-instance Barrier_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (ctx' : context.Context) :
+noncomputable instance Barrier_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (ctx' : context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"ctx" l) ctx' (DFrac.own 1))
@@ -80,7 +79,7 @@ instance Barrier_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.exper
  by
   solve_pointsto_access_struct
 
-instance Barrier_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (dq : DFrac) :
+noncomputable instance Barrier_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"key" l) v.key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"key" l) v.key' dq)
@@ -88,7 +87,7 @@ instance Barrier_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experi
  by
   solve_pointsto_access_struct
 
-instance Barrier_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (key' : GoString) :
+noncomputable instance Barrier_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Barrier) (key' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"key" l) v.key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Barrier go!"key" l) key' (DFrac.own 1))
@@ -107,7 +106,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-instance DoubleBarrier_typed_pointsto :
+noncomputable instance DoubleBarrier_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier where
   typedPointstoDef l v dq := iprop(
     "s" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"s" l) v.s' dq ∗
@@ -120,11 +119,11 @@ instance DoubleBarrier_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance DoubleBarrier_into_val_typed :
+noncomputable instance DoubleBarrier_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier.underlying := by
   solve_into_val_typed_struct
 
-instance DoubleBarrier_access_load_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
+noncomputable instance DoubleBarrier_access_load_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"s" l) v.s' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"s" l) v.s' dq)
@@ -132,7 +131,7 @@ instance DoubleBarrier_access_load_s (l : Loc) (v : go_etcd_io.etcd.client.v3.ex
  by
   solve_pointsto_access_struct
 
-instance DoubleBarrier_access_store_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (s' : Loc) :
+noncomputable instance DoubleBarrier_access_store_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (s' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"s" l) v.s' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"s" l) s' (DFrac.own 1))
@@ -140,7 +139,7 @@ instance DoubleBarrier_access_store_s (l : Loc) (v : go_etcd_io.etcd.client.v3.e
  by
   solve_pointsto_access_struct
 
-instance DoubleBarrier_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
+noncomputable instance DoubleBarrier_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"ctx" l) v.ctx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"ctx" l) v.ctx' dq)
@@ -148,7 +147,7 @@ instance DoubleBarrier_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.
  by
   solve_pointsto_access_struct
 
-instance DoubleBarrier_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (ctx' : context.Context) :
+noncomputable instance DoubleBarrier_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (ctx' : context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"ctx" l) ctx' (DFrac.own 1))
@@ -156,7 +155,7 @@ instance DoubleBarrier_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3
  by
   solve_pointsto_access_struct
 
-instance DoubleBarrier_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
+noncomputable instance DoubleBarrier_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"key" l) v.key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"key" l) v.key' dq)
@@ -164,7 +163,7 @@ instance DoubleBarrier_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.
  by
   solve_pointsto_access_struct
 
-instance DoubleBarrier_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (key' : GoString) :
+noncomputable instance DoubleBarrier_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (key' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"key" l) v.key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"key" l) key' (DFrac.own 1))
@@ -172,7 +171,7 @@ instance DoubleBarrier_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3
  by
   solve_pointsto_access_struct
 
-instance DoubleBarrier_access_load_count (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
+noncomputable instance DoubleBarrier_access_load_count (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"count" l) v.count' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"count" l) v.count' dq)
@@ -180,7 +179,7 @@ instance DoubleBarrier_access_load_count (l : Loc) (v : go_etcd_io.etcd.client.v
  by
   solve_pointsto_access_struct
 
-instance DoubleBarrier_access_store_count (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (count' : w64) :
+noncomputable instance DoubleBarrier_access_store_count (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (count' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"count" l) v.count' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"count" l) count' (DFrac.own 1))
@@ -188,7 +187,7 @@ instance DoubleBarrier_access_store_count (l : Loc) (v : go_etcd_io.etcd.client.
  by
   solve_pointsto_access_struct
 
-instance DoubleBarrier_access_load_myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
+noncomputable instance DoubleBarrier_access_load_myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"myKey" l) v.myKey' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"myKey" l) v.myKey' dq)
@@ -196,7 +195,7 @@ instance DoubleBarrier_access_load_myKey (l : Loc) (v : go_etcd_io.etcd.client.v
  by
   solve_pointsto_access_struct
 
-instance DoubleBarrier_access_store_myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (myKey' : Loc) :
+noncomputable instance DoubleBarrier_access_store_myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier) (myKey' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"myKey" l) v.myKey' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier go!"myKey" l) myKey' (DFrac.own 1))
@@ -215,7 +214,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-instance RemoteKV_typed_pointsto :
+noncomputable instance RemoteKV_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV where
   typedPointstoDef l v dq := iprop(
     "kv" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"kv" l) v.kv' dq ∗
@@ -227,11 +226,11 @@ instance RemoteKV_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance RemoteKV_into_val_typed :
+noncomputable instance RemoteKV_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV.underlying := by
   solve_into_val_typed_struct
 
-instance RemoteKV_access_load_kv (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (dq : DFrac) :
+noncomputable instance RemoteKV_access_load_kv (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"kv" l) v.kv' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"kv" l) v.kv' dq)
@@ -239,7 +238,7 @@ instance RemoteKV_access_load_kv (l : Loc) (v : go_etcd_io.etcd.client.v3.experi
  by
   solve_pointsto_access_struct
 
-instance RemoteKV_access_store_kv (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (kv' : go_etcd_io.etcd.client.v3.KV) :
+noncomputable instance RemoteKV_access_store_kv (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (kv' : go_etcd_io.etcd.client.v3.KV) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"kv" l) v.kv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"kv" l) kv' (DFrac.own 1))
@@ -247,7 +246,7 @@ instance RemoteKV_access_store_kv (l : Loc) (v : go_etcd_io.etcd.client.v3.exper
  by
   solve_pointsto_access_struct
 
-instance RemoteKV_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (dq : DFrac) :
+noncomputable instance RemoteKV_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"key" l) v.key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"key" l) v.key' dq)
@@ -255,7 +254,7 @@ instance RemoteKV_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.exper
  by
   solve_pointsto_access_struct
 
-instance RemoteKV_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (key' : GoString) :
+noncomputable instance RemoteKV_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (key' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"key" l) v.key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"key" l) key' (DFrac.own 1))
@@ -263,7 +262,7 @@ instance RemoteKV_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.expe
  by
   solve_pointsto_access_struct
 
-instance RemoteKV_access_load_rev (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (dq : DFrac) :
+noncomputable instance RemoteKV_access_load_rev (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"rev" l) v.rev' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"rev" l) v.rev' dq)
@@ -271,7 +270,7 @@ instance RemoteKV_access_load_rev (l : Loc) (v : go_etcd_io.etcd.client.v3.exper
  by
   solve_pointsto_access_struct
 
-instance RemoteKV_access_store_rev (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (rev' : w64) :
+noncomputable instance RemoteKV_access_store_rev (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (rev' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"rev" l) v.rev' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"rev" l) rev' (DFrac.own 1))
@@ -279,7 +278,7 @@ instance RemoteKV_access_store_rev (l : Loc) (v : go_etcd_io.etcd.client.v3.expe
  by
   solve_pointsto_access_struct
 
-instance RemoteKV_access_load_val (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (dq : DFrac) :
+noncomputable instance RemoteKV_access_load_val (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"val" l) v.val' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"val" l) v.val' dq)
@@ -287,7 +286,7 @@ instance RemoteKV_access_load_val (l : Loc) (v : go_etcd_io.etcd.client.v3.exper
  by
   solve_pointsto_access_struct
 
-instance RemoteKV_access_store_val (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (val' : GoString) :
+noncomputable instance RemoteKV_access_store_val (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) (val' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"val" l) v.val' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV go!"val" l) val' (DFrac.own 1))
@@ -306,7 +305,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-instance EphemeralKV_typed_pointsto :
+noncomputable instance EphemeralKV_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV where
   typedPointstoDef l v dq := iprop(
     "RemoteKV" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV go!"RemoteKV" l) v.RemoteKV' dq ∗
@@ -315,11 +314,11 @@ instance EphemeralKV_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance EphemeralKV_into_val_typed :
+noncomputable instance EphemeralKV_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV.underlying := by
   solve_into_val_typed_struct
 
-instance EphemeralKV_access_load_RemoteKV (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV) (dq : DFrac) :
+noncomputable instance EphemeralKV_access_load_RemoteKV (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV go!"RemoteKV" l) v.RemoteKV' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV go!"RemoteKV" l) v.RemoteKV' dq)
@@ -327,7 +326,7 @@ instance EphemeralKV_access_load_RemoteKV (l : Loc) (v : go_etcd_io.etcd.client.
  by
   solve_pointsto_access_struct
 
-instance EphemeralKV_access_store_RemoteKV (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV) (RemoteKV' : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) :
+noncomputable instance EphemeralKV_access_store_RemoteKV (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV) (RemoteKV' : go_etcd_io.etcd.client.v3.experimental.recipes.RemoteKV) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV go!"RemoteKV" l) v.RemoteKV' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.EphemeralKV go!"RemoteKV" l) RemoteKV' (DFrac.own 1))
@@ -346,7 +345,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-instance PriorityQueue_typed_pointsto :
+noncomputable instance PriorityQueue_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue where
   typedPointstoDef l v dq := iprop(
     "client" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"client" l) v.client' dq ∗
@@ -357,11 +356,11 @@ instance PriorityQueue_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance PriorityQueue_into_val_typed :
+noncomputable instance PriorityQueue_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue.underlying := by
   solve_into_val_typed_struct
 
-instance PriorityQueue_access_load_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (dq : DFrac) :
+noncomputable instance PriorityQueue_access_load_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"client" l) v.client' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"client" l) v.client' dq)
@@ -369,7 +368,7 @@ instance PriorityQueue_access_load_client (l : Loc) (v : go_etcd_io.etcd.client.
  by
   solve_pointsto_access_struct
 
-instance PriorityQueue_access_store_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (client' : Loc) :
+noncomputable instance PriorityQueue_access_store_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (client' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"client" l) v.client' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"client" l) client' (DFrac.own 1))
@@ -377,7 +376,7 @@ instance PriorityQueue_access_store_client (l : Loc) (v : go_etcd_io.etcd.client
  by
   solve_pointsto_access_struct
 
-instance PriorityQueue_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (dq : DFrac) :
+noncomputable instance PriorityQueue_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"ctx" l) v.ctx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"ctx" l) v.ctx' dq)
@@ -385,7 +384,7 @@ instance PriorityQueue_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.
  by
   solve_pointsto_access_struct
 
-instance PriorityQueue_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (ctx' : context.Context) :
+noncomputable instance PriorityQueue_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (ctx' : context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"ctx" l) ctx' (DFrac.own 1))
@@ -393,7 +392,7 @@ instance PriorityQueue_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3
  by
   solve_pointsto_access_struct
 
-instance PriorityQueue_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (dq : DFrac) :
+noncomputable instance PriorityQueue_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"key" l) v.key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"key" l) v.key' dq)
@@ -401,7 +400,7 @@ instance PriorityQueue_access_load_key (l : Loc) (v : go_etcd_io.etcd.client.v3.
  by
   solve_pointsto_access_struct
 
-instance PriorityQueue_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (key' : GoString) :
+noncomputable instance PriorityQueue_access_store_key (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue) (key' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"key" l) v.key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue go!"key" l) key' (DFrac.own 1))
@@ -420,7 +419,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-instance Queue_typed_pointsto :
+noncomputable instance Queue_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.Queue where
   typedPointstoDef l v dq := iprop(
     "client" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"client" l) v.client' dq ∗
@@ -431,11 +430,11 @@ instance Queue_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Queue_into_val_typed :
+noncomputable instance Queue_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.Queue go_etcd_io.etcd.client.v3.experimental.recipes.Queue.underlying := by
   solve_into_val_typed_struct
 
-instance Queue_access_load_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (dq : DFrac) :
+noncomputable instance Queue_access_load_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"client" l) v.client' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"client" l) v.client' dq)
@@ -443,7 +442,7 @@ instance Queue_access_load_client (l : Loc) (v : go_etcd_io.etcd.client.v3.exper
  by
   solve_pointsto_access_struct
 
-instance Queue_access_store_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (client' : Loc) :
+noncomputable instance Queue_access_store_client (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (client' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"client" l) v.client' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"client" l) client' (DFrac.own 1))
@@ -451,7 +450,7 @@ instance Queue_access_store_client (l : Loc) (v : go_etcd_io.etcd.client.v3.expe
  by
   solve_pointsto_access_struct
 
-instance Queue_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (dq : DFrac) :
+noncomputable instance Queue_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"ctx" l) v.ctx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"ctx" l) v.ctx' dq)
@@ -459,7 +458,7 @@ instance Queue_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experime
  by
   solve_pointsto_access_struct
 
-instance Queue_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (ctx' : context.Context) :
+noncomputable instance Queue_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (ctx' : context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"ctx" l) ctx' (DFrac.own 1))
@@ -467,7 +466,7 @@ instance Queue_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experim
  by
   solve_pointsto_access_struct
 
-instance Queue_access_load_keyPrefix (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (dq : DFrac) :
+noncomputable instance Queue_access_load_keyPrefix (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"keyPrefix" l) v.keyPrefix' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"keyPrefix" l) v.keyPrefix' dq)
@@ -475,7 +474,7 @@ instance Queue_access_load_keyPrefix (l : Loc) (v : go_etcd_io.etcd.client.v3.ex
  by
   solve_pointsto_access_struct
 
-instance Queue_access_store_keyPrefix (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (keyPrefix' : GoString) :
+noncomputable instance Queue_access_store_keyPrefix (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.Queue) (keyPrefix' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"keyPrefix" l) v.keyPrefix' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.Queue go!"keyPrefix" l) keyPrefix' (DFrac.own 1))
@@ -494,7 +493,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-instance RWMutex_typed_pointsto :
+noncomputable instance RWMutex_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex where
   typedPointstoDef l v dq := iprop(
     "s" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"s" l) v.s' dq ∗
@@ -506,11 +505,11 @@ instance RWMutex_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance RWMutex_into_val_typed :
+noncomputable instance RWMutex_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex.underlying := by
   solve_into_val_typed_struct
 
-instance RWMutex_access_load_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (dq : DFrac) :
+noncomputable instance RWMutex_access_load_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"s" l) v.s' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"s" l) v.s' dq)
@@ -518,7 +517,7 @@ instance RWMutex_access_load_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experime
  by
   solve_pointsto_access_struct
 
-instance RWMutex_access_store_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (s' : Loc) :
+noncomputable instance RWMutex_access_store_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (s' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"s" l) v.s' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"s" l) s' (DFrac.own 1))
@@ -526,7 +525,7 @@ instance RWMutex_access_store_s (l : Loc) (v : go_etcd_io.etcd.client.v3.experim
  by
   solve_pointsto_access_struct
 
-instance RWMutex_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (dq : DFrac) :
+noncomputable instance RWMutex_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"ctx" l) v.ctx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"ctx" l) v.ctx' dq)
@@ -534,7 +533,7 @@ instance RWMutex_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experi
  by
   solve_pointsto_access_struct
 
-instance RWMutex_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (ctx' : context.Context) :
+noncomputable instance RWMutex_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (ctx' : context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"ctx" l) ctx' (DFrac.own 1))
@@ -542,7 +541,7 @@ instance RWMutex_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.exper
  by
   solve_pointsto_access_struct
 
-instance RWMutex_access_load_pfx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (dq : DFrac) :
+noncomputable instance RWMutex_access_load_pfx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"pfx" l) v.pfx' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"pfx" l) v.pfx' dq)
@@ -550,7 +549,7 @@ instance RWMutex_access_load_pfx (l : Loc) (v : go_etcd_io.etcd.client.v3.experi
  by
   solve_pointsto_access_struct
 
-instance RWMutex_access_store_pfx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (pfx' : GoString) :
+noncomputable instance RWMutex_access_store_pfx (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (pfx' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"pfx" l) v.pfx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"pfx" l) pfx' (DFrac.own 1))
@@ -558,7 +557,7 @@ instance RWMutex_access_store_pfx (l : Loc) (v : go_etcd_io.etcd.client.v3.exper
  by
   solve_pointsto_access_struct
 
-instance RWMutex_access_load_myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (dq : DFrac) :
+noncomputable instance RWMutex_access_load_myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"myKey" l) v.myKey' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"myKey" l) v.myKey' dq)
@@ -566,7 +565,7 @@ instance RWMutex_access_load_myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.expe
  by
   solve_pointsto_access_struct
 
-instance RWMutex_access_store_myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (myKey' : Loc) :
+noncomputable instance RWMutex_access_store_myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex) (myKey' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"myKey" l) v.myKey' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex go!"myKey" l) myKey' (DFrac.own 1))

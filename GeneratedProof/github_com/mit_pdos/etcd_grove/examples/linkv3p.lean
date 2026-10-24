@@ -25,9 +25,8 @@ public import Code.github_com.mit_pdos.etcd_grove.examples.linkv3p
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -42,7 +41,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 
-instance Step_typed_pointsto :
+noncomputable instance Step_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.linkv3p.Step where
   typedPointstoDef l v dq := iprop(
     "Delay" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Delay" l) v.Delay' dq ∗
@@ -54,11 +53,11 @@ instance Step_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Step_into_val_typed :
+noncomputable instance Step_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.linkv3p.Step github_com.mit_pdos.etcd_grove.examples.linkv3p.Step.underlying := by
   solve_into_val_typed_struct
 
-instance Step_access_load_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
+noncomputable instance Step_access_load_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Delay" l) v.Delay' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Delay" l) v.Delay' dq)
@@ -66,7 +65,7 @@ instance Step_access_load_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance Step_access_store_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (Delay' : time.Duration) :
+noncomputable instance Step_access_store_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (Delay' : time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Delay" l) v.Delay' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Delay" l) Delay' (DFrac.own 1))
@@ -74,7 +73,7 @@ instance Step_access_store_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
-instance Step_access_load_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
+noncomputable instance Step_access_load_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Kind" l) v.Kind' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Kind" l) v.Kind' dq)
@@ -82,7 +81,7 @@ instance Step_access_load_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.exa
  by
   solve_pointsto_access_struct
 
-instance Step_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (Kind' : w64) :
+noncomputable instance Step_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (Kind' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Kind" l) v.Kind' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Kind" l) Kind' (DFrac.own 1))
@@ -90,7 +89,7 @@ instance Step_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance Step_access_load_A (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
+noncomputable instance Step_access_load_A (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"A" l) v.A' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"A" l) v.A' dq)
@@ -98,7 +97,7 @@ instance Step_access_load_A (l : Loc) (v : github_com.mit_pdos.etcd_grove.exampl
  by
   solve_pointsto_access_struct
 
-instance Step_access_store_A (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (A' : w64) :
+noncomputable instance Step_access_store_A (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (A' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"A" l) v.A' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"A" l) A' (DFrac.own 1))
@@ -106,7 +105,7 @@ instance Step_access_store_A (l : Loc) (v : github_com.mit_pdos.etcd_grove.examp
  by
   solve_pointsto_access_struct
 
-instance Step_access_load_B (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
+noncomputable instance Step_access_load_B (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"B" l) v.B' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"B" l) v.B' dq)
@@ -114,7 +113,7 @@ instance Step_access_load_B (l : Loc) (v : github_com.mit_pdos.etcd_grove.exampl
  by
   solve_pointsto_access_struct
 
-instance Step_access_store_B (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (B' : w64) :
+noncomputable instance Step_access_store_B (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (B' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"B" l) v.B' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"B" l) B' (DFrac.own 1))

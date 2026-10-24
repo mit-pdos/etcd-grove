@@ -8,20 +8,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.api.v3.version : GoString := go!"go.etcd.io/etcd/api/v3/version"
+noncomputable def go_etcd_io.etcd.api.v3.version : GoString := go!"go.etcd.io/etcd/api/v3/version"
 end pkg_id
 
 namespace go_etcd_io.etcd.api.v3.version
 
-def Versions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Versions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/version.Versions" [])
 
 attribute [irreducible] Versions.ty
@@ -121,7 +120,7 @@ noncomputable def LessThan [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Equal [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.Equal"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.version where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.version where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -187,22 +186,22 @@ structure Versions [FfiSyntax] where
   Cluster' : GoString
   Storage' : GoString
 
-instance Versions.zero_val [FfiSyntax] : ZeroVal Versions :=
+noncomputable instance Versions.zero_val [FfiSyntax] : ZeroVal Versions :=
   ⟨Versions.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Versions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Versions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Server" go.string),
 (go.field_decl.FieldDecl go!"Cluster" go.string),
 (go.field_decl.FieldDecl go!"Storage" go.string)]
 
-@[irreducible] def Versions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Versions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Versions.fieldsUnsealed
 
-instance equals_unfold_Versions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Versions [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Versions.fields Versions.fieldsUnsealed :=
   ⟨by unfold Versions.fields; rfl⟩
 
-@[reducible] def Versions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Versions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Versions.fields)
 
 class Versions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

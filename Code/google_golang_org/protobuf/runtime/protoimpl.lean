@@ -9,20 +9,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.protobuf.runtime.protoimpl : GoString := go!"google.golang.org/protobuf/runtime/protoimpl"
+noncomputable def google_golang_org.protobuf.runtime.protoimpl : GoString := go!"google.golang.org/protobuf/runtime/protoimpl"
 end pkg_id
 
 namespace google_golang_org.protobuf.runtime.protoimpl
 
-def EnforceVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnforceVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/runtime/protoimpl.EnforceVersion" [])
 
 attribute [irreducible] EnforceVersion.ty
@@ -37,15 +36,15 @@ axiom MessageInfo [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom ExtensionInfo [FfiSyntax] [GoGlobalContext] : go.GoType
 
-@[reducible] def MessageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState.ty
 
-@[reducible] def SizeCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SizeCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
 axiom WeakFields [FfiSyntax] [GoGlobalContext] : go.GoType
 
-@[reducible] def UnknownFields.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnknownFields.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.byte)
 
 axiom ExtensionFields [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -71,7 +70,7 @@ axiom MinVersion [FfiSyntax] [GoGlobalContext] : val
 noncomputable def X [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/runtime/protoimpl.X"
 
-instance info' : PkgInfo pkg_id.google_golang_org.protobuf.runtime.protoimpl where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.runtime.protoimpl where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.internal.impl]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
