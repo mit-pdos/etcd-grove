@@ -1999,14 +1999,20 @@ holding the batch lock and `s.mu` shared, has the state out). A writer finds the
 holds the key: `writerInv_checkout`); so does the holder of `s.mu` exclusively (`store.Restore`,
 which takes neither the batch lock nor a writer's state from it: all of the deposit ghost). (S5b) At
 the current objects and physical names, with an eighth of the fraction of them: a writer finds the
-state at its pin's (`writerInv_checkout`). (S6) Checked in with the backend's registration
+state at its pin's (`writerInv_checkout`). (The restore plan's R5e) Or, while `store.Restore`
+restores, all of `s.mu`'s deposit ghost, which it holds (no writer then: a writer's part would be
+too much), and the index's history's authority (a writer with the state out would have a second
+one, in its index writer's handle): the state is `Restore`'s, which moves it to the new backend and
+index. (S6) Checked in
+with the backend's registration
 (`writerReg`: pending after a restore), checked out with the store registered (`storeRegd`, until
 S6 in `physOk`: a restored backend is registered only at its first writer's lock). -/
 def writerInv (s : Loc) (γ : StoreNames) : IProp GF :=
   inv writerN iprop(∃ (p : PhysNames) (o : StoreObjs),
     curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
     (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-      writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p)))
+      writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p) ∨
+        ghostVar γ.wr 1 () ∗ ∃ h : List HistItem, monoListAuthOwn γ.idx.hist 1 h))
 
 instance writerInv_persistent (s : Loc) (γ : StoreNames) : Persistent (writerInv (GF := GF) s γ) := by
   unfold writerInv; infer_instance
@@ -4199,23 +4205,29 @@ theorem writerInv_checkout (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreOb
   imod inv_acc (E := ⊤) (N := writerN) (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
       curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
       (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))
+        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p) ∨
+        ghostVar γ.wr 1 () ∗ ∃ h : List HistItem, monoListAuthOwn γ.idx.hist 1 h)))
     (by exact CoPset.subseteq_top) $$ Hi with ⟨HP, Hclose⟩
   imod (lc_fupd_elim_later (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
       curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
       (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))) $$ Hlc HP with HP
+        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p) ∨
+        ghostVar γ.wr 1 () ∗ ∃ h : List HistItem, monoListAuthOwn γ.idx.hist 1 h)))) $$ Hlc HP with HP
   icases HP with ⟨%p, %o', Hc, HP⟩
   ihave %Hv := curAt_pin γ p _ _ o o' $$ [Hpin Hc]
   · iframe Hpin Hc
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
-  icases HP with (⟨HL, Hrg⟩ | ⟨Hk', -, #Hreg'⟩)
+  icases HP with (⟨HL, Hrg⟩ | ⟨Hk', -, #Hreg'⟩ | ⟨Hwr1, -⟩)
+  rotate_left 2
+  · iunfold wDep at Hd
+    ihave %Hv := ghostVar_valid_2 γ.wr () 1 () _ $$ Hwr1 Hd
+    exact absurd Hv.1 (Qp_one_add_not_le _)
   · imod writerReg_get s γ $$ [$HW $Hrg] with ⟨HWr, #Hreg⟩
     iunfold writerRes at HWr
     icases HWr with ⟨%L, Hwk, Hwv, Hbv, #Hcert, %Hne, Hcres⟩
     imod Hclose $$ [Hc Hwk Hd] with -
-    · inext; iexists γ.phys, o'; rw [StoreNames.withPhys_self]; iframe Hc; iright; iframe Hwk Hd Hreg
+    · inext; iexists γ.phys, o'; rw [StoreNames.withPhys_self]; iframe Hc; iright; ileft; iframe Hwk Hd Hreg
     imodintro
     iframe HL Hreg Hpin
     iexists L
@@ -4241,18 +4253,28 @@ theorem writerInv_checkin (s : Loc) (γ : StoreNames) (L : Log) (dq : DFrac) (o 
   imod inv_acc (E := ⊤) (N := writerN) (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
       curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
       (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))
+        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p) ∨
+        ghostVar γ.wr 1 () ∗ ∃ h : List HistItem, monoListAuthOwn γ.idx.hist 1 h)))
     (by exact CoPset.subseteq_top) $$ Hi with ⟨HP, Hclose⟩
   imod (lc_fupd_elim_later (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
       curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
       (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))) $$ Hlc HP with HP
+        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p) ∨
+        ghostVar γ.wr 1 () ∗ ∃ h : List HistItem, monoListAuthOwn γ.idx.hist 1 h)))) $$ Hlc HP with HP
   icases HP with ⟨%p, %o', Hc, HP⟩
   ihave %Hvv := curAt_pin γ p _ _ o o' $$ [Hpin Hc]
   · iframe Hpin Hc
   obtain ⟨rfl, rfl⟩ := Hvv
   rw [StoreNames.withPhys_self]
-  icases HP with (⟨HL', -⟩ | ⟨Hk, Hd, #Hreg⟩)
+  icases HP with (⟨HL', -⟩ | ⟨Hk, Hd, #Hreg⟩ | ⟨-, %h, Hh1⟩)
+  rotate_left 2
+  · iunfold writerL at HL
+    icases HL with ⟨%l1, %n1, HL⟩
+    iNamed HL
+    iunfold idxWriter at Hw
+    icases Hw with ⟨Hh2, -⟩
+    iexfalso
+    iapply monoListAuthOwn_exclusive $$ Hh1 Hh2
   · iunfold writerL at HL HL'
     icases HL with ⟨%l1, %n1, HL⟩
     icases HL' with ⟨%l2, %n2, HL'⟩

@@ -40,13 +40,14 @@ some).
   goroutine, which reads their keys (a share of the read transaction, `rdSplit`) and answers the
   last revision, then made a lock-protected index (`isTreeIndex`, with every reader's token:
   `idx_publish`) at `L'`, from the lock's ghost part (`idxLockG`) and the writer's handle there
-  (its handle without receipts, given back with a receipt per change: the goroutine's steps put
-  each entry, one per change, `logEnts_length`).
+  (its handle's lower bounds, `idxWriterLb`: the caller keeps the handle), with a receipt per change
+  (the goroutine's steps put each entry, one per change, `logEnts_length`).
 * **`currentRev`** is stored the last revision, `|L'| - 1` (what the goroutine answers: every
   revision of `R` has an entry), under `s.revMu`, which `restore` locks once: the caller gives the
   lock's protocol, `RevP` before, its part `q2` of `currentRev` (at `1`) with `RevK` once locked,
-  `RevQ` once unlocked with it at `|L'| - 1` and the view `restore` read through (idle after its
-  `RLock`); `restore` holds the other part `q1` and a part of
+  `RevQ` once unlocked with it at `|L'| - 1`, the view `restore` read through (idle after its
+  `RLock`) and the index's lock with every reader's token (made before: `store.Restore` refills its
+  readers' pool from them there); `restore` holds the other part `q1` and a part of
   `compactMainRev` (`-1`), which it reads outside the lock too (`NewStore`:
   private memory, `PlainRWMutex.lean`; `store.Restore`: the lock in restoring mode, the restore
   plan's R5e).
@@ -67,19 +68,19 @@ abbrev mvcc.store.restore.spec : Prop :=
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length ∗
-      mvcc.idxWriterNR γ.idx ([[], []] ++ R) [] ∗
+      mvcc.idxWriterLb γ.idx ([[], []] ++ R) ∗
       s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
       ⌜lg ≠ null⌝ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP ∗
       mvcc.revLockW s q2 RevP RevK ∗
-      mvcc.revUnlockW s q2 ([[], []] ++ R) RevK (mvcc.restoreViewOut γ q R) RevQ }}
+      mvcc.revUnlockW s q2 ([[], []] ++ R) RevK
+        iprop(mvcc.restoreViewOut γ q R ∗ mvcc.isTreeIndex ti γ.idx ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            mvcc.idxReader ti γ.idx)) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
   {{ RET #GoInterface.nil; RT ∗
-      mvcc.isTreeIndex ti γ.idx ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-        mvcc.idxReader ti γ.idx) ∗
-      mvcc.idxWriter γ.idx ([[], []] ++ R) [] ∗ RevQ ∗
+      ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
       s.[store, go!"b"] ↦{dqb} b ∗

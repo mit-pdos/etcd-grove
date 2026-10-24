@@ -398,10 +398,12 @@ theorem mvcc.NewStore.wp_proof
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
-        mvcc.restoreViewOut γ (1 : Qp).half [])
+        iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            mvcc.idxReader ti γ.idx)))
       (DFrac.own 1) (1 : Qp).half (1 : Qp).half mvcc.restoreLogOk_nil (Qp.half_add_half 1)
   simp only [List.append_nil] at hR
-  icases (mvcc.idxWriter_split γ.idx [[], []] []).1 $$ Hiw with ⟨Hiw, -⟩
+  icases mvcc.idxWriter_lb γ.idx [[], []] $$ Hiw with ⟨Hiw, #Hiwlb⟩
   rw [show (mvcc.evsOf ([[], []] ++ [[]])).length = 0 from rfl,
     show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl] at hR
   icases (mvcc.typedPointsto_parts _ _ (1 : Qp).half (1 : Qp).half (Qp.half_add_half 1)).1
@@ -416,10 +418,15 @@ theorem mvcc.NewStore.wp_proof
     wp_apply (plain.wp_Lock sync.atomic.Int32.wp_Add _) $$ [$HrevMu] as HrevMu
     iapply HΨ $$ %_ Hc HrevMu
   ihave HUl : mvcc.revUnlockW (GF := GF) «$r0_ptr» (1 : Qp).half ([[], []] : mvcc.Log)
-      iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW) (mvcc.restoreViewOut γ (1 : Qp).half [])
+      iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
+      iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            mvcc.idxReader ti γ.idx))
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
-        mvcc.restoreViewOut γ (1 : Qp).half []) $$ []
+        iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            mvcc.idxReader ti γ.idx))) $$ []
   · iunfold mvcc.revUnlockW
     rw [show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl]
     iintro %Ψ Hc HrevMu Hv HΨ
@@ -427,8 +434,8 @@ theorem mvcc.NewStore.wp_proof
     iapply HΨ
     iframe HrevMu Hc Hv
   wp_apply hR
-      $$ [$Hbv2 $Hrt1 $HcurA $compactMainRev $revMu $HcurB $HLk $HUl $Hncmp $b $kvindex $Hix $Hig $Hiw]
-      as ⟨Hrt1, #Hti, Hird, Hiw, ⟨revMu, HcurB, Hbv2⟩, HcurA, compactMainRev, b, kvindex⟩
+      $$ [$Hbv2 $Hrt1 $HcurA $compactMainRev $revMu $HcurB $HLk $HUl $Hncmp $b $kvindex $Hix $Hig $Hiwlb]
+      as ⟨Hrt1, -, ⟨revMu, HcurB, Hbv2, #Hti, Hird⟩, HcurA, compactMainRev, b, kvindex⟩
   · iframe #; ipureintro; exact Hlgnn
   ihave Hbv2 : mvcc.bucketView (GF := GF) γ (1 : Qp).half ∅ $$ [Hbv2]
   · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv2
@@ -450,7 +457,8 @@ theorem mvcc.NewStore.wp_proof
   imod (inv_alloc mvcc.writerN ⊤ iprop(∃ (p : mvcc.PhysNames) (o : mvcc.StoreObjs),
       mvcc.curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
       (mvcc.writerL «$r0_ptr» (γ.withPhys p) ∗ mvcc.writerReg «$r0_ptr» (γ.withPhys p) ∨
-        mvcc.writerKey (γ.withPhys p) ∗ mvcc.wDep γ ∗ mvcc.storeRegd «$r0_ptr» (γ.withPhys p))))
+        mvcc.writerKey (γ.withPhys p) ∗ mvcc.wDep γ ∗ mvcc.storeRegd «$r0_ptr» (γ.withPhys p) ∨
+        ghostVar γ.wr 1 () ∗ ∃ h : List mvcc.HistItem, monoListAuthOwn γ.idx.hist 1 h)))
     $$ [HL HcurWi] with #Hwi
   · inext; iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft; iframe HL
     iunfold mvcc.writerReg; ileft; iexact Hregd

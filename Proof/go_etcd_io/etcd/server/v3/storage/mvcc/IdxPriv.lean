@@ -76,17 +76,16 @@ part at the log's events. The index and every reader's token. -/
 theorem idx_publish (ti : Loc) (γ : IdxNames) (L : List IdxEntry) (log : Log)
     (hrep : IdxCRep (-1) (evsOf (log ++ [[]])) (idxOfEntries L)) :
     ⊢ ownIdxPriv (GF := GF) ti L -∗ idxLockG γ (evsOf (log ++ [[]])).length -∗
-      idxWriter γ log [] ={⊤}=∗
+      idxWriterLb γ log ={⊤}=∗
       isTreeIndex ti γ ∗ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-        idxReader ti γ) ∗ idxWriter γ log [] := by
-  iintro Hix Hg Hw
+        idxReader ti γ) := by
+  iintro Hix Hg #Hw
   iunfold ownIdxPriv at Hix
   icases Hix with ⟨%t, %lg, #Htree, #Hlg, %Hlgnn, Hmu, Htr⟩
   iunfold idxLockG at Hg
   icases Hg with ⟨Hnauth, #Hclb, ⟨%log₀, #Hllb⟩, Hcmp⟩
-  iunfold idxWriter at Hw
-  icases Hw with ⟨Hhauth, #Hnlb, %Hwf, Hlauth, Hrc⟩
-  ihave #Hhlb := monoListLbOwn_get γ.hist 1 _ $$ Hhauth
+  iunfold idxWriterLb at Hw
+  icases Hw with ⟨#Hhlb, #Hnlb, %Hwf⟩
   imod sync.init_RWMutex (idxLockInv (hG := hG) t γ) (idxMuAddr ti) $$ [Hnauth Htr Hcmp] Hmu
     with Htoks
   · inext
@@ -115,17 +114,13 @@ theorem idx_publish (ti : Loc) (γ : IdxNames) (L : List IdxEntry) (log : Log)
     simp only [named]
     iframe #
     ipureintro; exact Hlgnn
-  isplitl [Htok Htoks]
-  · rw [← List.replicate_succ]
-    iapply idxReaders_of_toks ti t γ (m + 1)
-    isplitl []
-    · iexact Htree
-    rw [List.replicate_succ]
-    iapply BigSepL.bigSepL_cons.2
-    iframe Htok Htoks
-  iunfold idxWriter
-  iframe Hhauth Hlauth Hrc Hnlb
-  ipureintro; exact Hwf
+  rw [← List.replicate_succ]
+  iapply idxReaders_of_toks ti t γ (m + 1)
+  isplitl []
+  · iexact Htree
+  rw [List.replicate_succ]
+  iapply BigSepL.bigSepL_cons.2
+  iframe Htok Htoks
 
 /-- **Fresh index names, split** for `newTreeIndex` (the event count's authority and the compactor's
 state, with the lower bounds it takes) and the rest the store keeps: the writer's handle for the

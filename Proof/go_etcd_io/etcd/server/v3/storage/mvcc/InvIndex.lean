@@ -971,6 +971,28 @@ theorem idxWriter_split (γ : IdxNames) (ilog : Log) (pend : List Change) :
   · iintro ⟨H1, H2, %H3, H4, H5⟩; iframe; ipureintro; exact H3
   · iintro ⟨⟨H1, H2, %H3, H4⟩, H5⟩; iframe; ipureintro; exact H3
 
+/-- **The writer's handle's lower bounds** (persistent; the restore plan's R5e): what making a
+rebuilt index's lock needs of it (`idx_publish`), so that `store.restore` takes only these and
+`store.Restore` keeps the handle itself. -/
+def idxWriterLb (γ : IdxNames) (ilog : Log) : IProp GF :=
+  iprop(monoListLbOwn γ.hist (histShape ilog []) ∗
+    monoNatLbOwn γ.nev (evsOf (ilog ++ [[]])).length ∗ ⌜IdxWf ilog []⌝)
+
+instance idxWriterLb_persistent (γ : IdxNames) (ilog : Log) :
+    Persistent (idxWriterLb (GF := GF) γ ilog) := by
+  unfold idxWriterLb; infer_instance
+
+theorem idxWriter_lb (γ : IdxNames) (ilog : Log) :
+    idxWriter (GF := GF) γ ilog [] ⊢ idxWriter γ ilog [] ∗ idxWriterLb γ ilog := by
+  unfold idxWriter idxWriterLb
+  iintro ⟨Hh, #Hn, %Hwf, Hl, Hr⟩
+  ihave #Hhlb := monoListLbOwn_get γ.hist 1 _ $$ Hh
+  iframe Hh Hl Hr
+  iframe #
+  isplitl []
+  · ipureintro; exact Hwf
+  ipureintro; exact Hwf
+
 theorem idxWriter_wf (γ : IdxNames) (ilog : Log) (pend : List Change) :
     idxWriter (GF := GF) γ ilog pend ⊢ ⌜IdxWf ilog pend⌝ := by
   unfold idxWriter; iintro ⟨-, -, %H, -⟩; ipureintro; exact H
