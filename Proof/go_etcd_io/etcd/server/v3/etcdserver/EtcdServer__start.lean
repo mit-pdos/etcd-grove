@@ -114,7 +114,7 @@ theorem EtcdServer.start.wp_proof
   icases Hpq with ⟨#Hcidq, -, -⟩
   wp_auto
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgn
+  · iframe Hlgf; iframe Hlr; ipureintro; exact Hlgn
   icases Hsc with ⟨%sc0, Hsc⟩
   icases Hscu with ⟨%scu0, Hscu, %Hscu0⟩
   wp_auto
@@ -161,7 +161,7 @@ theorem EtcdServer.start.wp_proof
     iunfold appliedAtLeast
     iapply monoNatLbOwn_le _ (by word) $$ H
   wp_apply hTL (appliedAtLeast γr) $$ [] as %tl #Htl
-  · iframe #
+  · iframe Hmono
     iunfold appliedAtLeast
     rw [show uint.nat (W64 0) = 0 by word]
     iexact H0
@@ -188,7 +188,7 @@ theorem EtcdServer.start.wp_proof
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [] as %cctx %γcx %cancel
     ⟨#Hcancel, #Hcctx, #Hccc⟩
-  · iframe #
+  · iframe Hcci
   icases Hctx with ⟨%ctx0, Hctx⟩
   icases Hcancel0 with ⟨%cn0, Hcancel0⟩
   wp_auto
@@ -202,7 +202,7 @@ theorem EtcdServer.start.wp_proof
   -- `s.read = read.NewRead(s, &s.r)`
   icases ownBroadcastChan_open _ _ _ _ $$ Hdc with ⟨%γdi, #Hdint, Hdtok⟩
   ihave #HdcU : ownBroadcastChan (GF := GF) dch γd iprop(True) .Unknown $$ []
-  · iapply ownBroadcastChan_close _ _ _ _ γdi; iframe #
+  · iapply ownBroadcastChan_close _ _ _ _ γdi; iframe Hdint
   ihave Hdc := ownBroadcastChan_close _ _ _ .Pending γdi $$ [$Hdint $Hdtok]
   ihave #Hdok : srvDoneOk (GF := GF) (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) $$ []
   · iunfold srvDoneOk
@@ -212,7 +212,7 @@ theorem EtcdServer.start.wp_proof
     iunfold srvChanOk
     iintro !> %Φ' !> - HΦ'
     wp_apply hDone s dch $$ []
-    · iframe #
+    · iframe Hdone
     iapply HΦ'
     iunfold bcastChan
     iexists γd
@@ -221,7 +221,7 @@ theorem EtcdServer.start.wp_proof
   ihave #Hprd : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read $$ []
   · iPkgInit
   wp_apply hNR _ _ γr x0 $$ [Hnot] as %rd ⟨#Hisrd, #Hrlp, Hrslots⟩
-  · iframe #; iframe Hnot
+  · iframe Hdok Hcci; iframe Hnot
   icases Hread with ⟨%rd0, Hread⟩
   wp_auto
   ipersist Hread
@@ -268,7 +268,7 @@ theorem EtcdServer.start.wp_proof
     wp_if_destruct
     · -- not known: the log line without the cluster's id and version
       wp_apply hMID s fv.memberID $$ []
-      · iframe #
+      · iframe Hmidf
       wp_apply hIDS as %ids1 -
       wp_apply hZS as %f0 -
       wp_apply hZS as %f1 -
@@ -279,14 +279,14 @@ theorem EtcdServer.start.wp_proof
     icases Hcvr with (%Hcv0 | ⟨-, #Hcvk⟩)
     · exact absurd Hcv0.1 Hif
     wp_apply hMID s fv.memberID $$ []
-    · iframe #
+    · iframe Hmidf
     wp_apply hIDS as %ids1 -
     wp_apply hZS as %f0 -
     wp_apply hZS as %f1 -
     wp_apply hCl s fv.cluster $$ []
-    · iframe #
+    · iframe Hclf
     wp_apply hRCID fv.cluster vq0.cid $$ []
-    · rw [Hcleq]; iframe #
+    · rw [Hcleq]; iframe Hcidq
     wp_apply hIDS as %ids2 -
     wp_apply hZS as %f2 -
     wp_bind (App (Val #(methods (go.GoType.PointerType EtcdServer.ty) go!"ClusterVersion" #s))
@@ -298,7 +298,7 @@ theorem EtcdServer.start.wp_proof
     icases Hcv1 with (%Hcv1 | ⟨%Hcv1, -⟩)
     · exact absurd Hcv1.2 (by decide)
     wp_apply hVS cv1 $$ [] as %vs1 -
-    · iframe #; ipureintro; exact Hcv1
+    · ipureintro; exact Hcv1
     wp_apply hVC as %cvs1 -
     wp_apply hZS as %f3 -
     start_info
@@ -311,12 +311,12 @@ theorem EtcdServer.start.wp_proof
     icases Hcv2 with (%Hcv2 | ⟨%Hcv2, -⟩)
     · exact absurd Hcv2.2 (by decide)
     wp_apply hVS cv2 $$ [] as %vs2 %Hvs2
-    · iframe #; ipureintro; exact Hcv2
+    · ipureintro; exact Hcv2
     wp_apply hVC as %cvs2 %Hcvs2
     wp_apply wp_map_make1 (K := GoString) (V := GoString) as %lm Hlm
     wp_apply wp_mapInsert go.string lm _ go!"cluster_version" cvs2 $$ [$Hlm] as Hlm
     wp_apply hGW cvm lm [go!"cluster_version"] _ _ $$ [Hlm] as %g ⟨%gi, %Hg, #Hgset, -⟩
-    · iframe #; iframe Hlm; ipureintro
+    · iframe Hlm; ipureintro
       exact ⟨Hcvml, prometheus.labelMapOk_one _ _ (utf8Valid_of_ascii _ (Hcvs2 Hvs2))⟩
     subst Hg
     wp_auto
@@ -345,7 +345,7 @@ theorem EtcdServer.start.wp_proof
       icases Hfv2 with ⟨#F1, %F2, %F5, %F5o, #F6, #F7, #F8, #F9, #F10, #F11, #F12, #F13,
         #F14, #F15, #F16, #F17, #F18, #F19, #F20⟩
       iunfold srvFieldsAt
-      iframe #
+      iframe F20 F19 F18 F17 F16 F15 F14 F13 F12 F11 F10 F9 F8 F7 F6 F1 Hw
       isplitr
       · ipureintro; exact F2
       isplitr
@@ -363,7 +363,7 @@ theorem EtcdServer.start.wp_proof
            ipureintro; exact F5o)
     isplitr
     · iunfold srvAtomics
-      iframe #
+      iframe Hti Hkvi Hai
     ihave #Hrb := Hreqb
     icases Hrb with ⟨%vq0, #Hvq0⟩
     iunfold srvReqBuilt at Hvq0
@@ -392,7 +392,7 @@ theorem EtcdServer.start.wp_proof
   icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩
   ihave #Hrf : srvRunFieldsAt s γr γg γcx ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ $$ []
   · iunfold srvRunFieldsAt
-    iframe #
+    iframe Hltg Hstf Hcpo Hcpf Herb Herf Hgok Hlc Hlcn Hcancel0 Hstop Hdone Hstb Hci'
     iunfold context.cancelSpec
     iexact Hcancel
   -- the apply thread's resources
@@ -431,7 +431,7 @@ theorem EtcdServer.start.wp_proof
       $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr]
     · iunfold isServerRun
       iframe
-      iframe #
+      iframe Hrf Hsa Hsrv Hrn
       isplitr
       · ipureintro; exact HEr
       iexists γp
@@ -447,7 +447,7 @@ theorem EtcdServer.start.wp_proof
   · iunfold isServerReq
     iexists { vq with w := w, done := dch }
     iunfold srvReqFieldsAt
-    iframe #
+    iframe Q18 Q16 Q15 Q14 Q13 Q12 Q11 Q10 Q9 Q8 Q7 Q6 Q5 Q4 Q3 Q2 Q1 Hdone Hw
     isplitr
     · iunfold waitInv
       isplitr
@@ -463,10 +463,10 @@ theorem EtcdServer.start.wp_proof
     isplitr
     · iunfold srvIndexInvs
       iexists γr
-      iframe #
+      iframe Hci' Hai
     have hmint : srvMintInv (GF := GF) { ρ with wait := γw } = srvMintInv ρ := rfl
     rw [hmint]
-    iframe #
+    iframe Q17
     ipureintro; exact Q19
   icases Hrdb with ⟨%vd, #Hvd⟩
   iunfold srvReadBuilt at Hvd
@@ -477,7 +477,7 @@ theorem EtcdServer.start.wp_proof
   · iunfold isServerRead
     iexists ({ vd with read := rd, aw := awi, lc := lcn, stopping := sgc } : ReadFields)
     iunfold srvReadFieldsAt
-    iframe #
+    iframe R15 R14 R13 R12 R11 R9 R8 R7 R6 R5 R4 R3 R2 R1 Hwt Hlc Hread Hisrd Hstopping Haw Hci' Hkvi Hai
     isplitr
     · ipureintro; exact R10
     iunfold stopChan
