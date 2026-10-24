@@ -50,6 +50,7 @@ stage R7c).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthSteps
@@ -1063,7 +1064,7 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
 `apply.isAuthSteps` with its write resource `auth.authWR st M P f T`, from S4's proofs of
 `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd`, and S4b's of
-`UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`. -/
+`UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`, and S4c's of `UserGrantRole`. -/
 theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val)
     (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
@@ -1071,7 +1072,7 @@ theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IPro
   EtcdGrove.apply.isAuthSteps_of_authInv auth.authStore.wp_AuthEnable auth.authStore.wp_AuthDisable
     auth.authStore.wp_UserAdd auth.authStore.wp_UserDelete auth.authStore.wp_UserChangePassword
     auth.authStore.wp_RoleAdd auth.authStore.wp_UserRevokeRole auth.authStore.wp_RoleRevokePermission
-    auth.authStore.wp_RoleDelete st R M P f T
+    auth.authStore.wp_RoleDelete auth.authStore.wp_UserGrantRole st R M P f T
 
 /-- **The apply layer's admin requests perform the model's step** (`apply/AuthSteps.lean`):
 `applierV3backend.X` from the backend's options' `isAuthSteps`, the admin side's authority and
@@ -1101,6 +1102,26 @@ theorem apply_RoleAdd_step :
     EtcdGrove.apply.applierV3backend.RoleAdd.stepSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleAdd.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
 
+/-- **The token binding at the server's guards** (the auth plan's E1, `AuthBound.lean`): the
+server's `AuthInfoFromCtx` returns an auth info bound to the request's token (or from the TLS
+fallback), and the member operations' admin guard checks such a principal, over a store with the
+bound request side (`srvAuthBound`, of the real store once `NewAuthStore` is proved). -/
+theorem server_AuthInfoFromCtx_bound :
+    EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG) :=
+  EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore
+
+theorem server_membership_guard_bound :
+    EtcdServer.checkMembershipOperationPermission.boundSpec (GF := GF) (hG := hG) :=
+  EtcdServer.checkMembershipOperationPermission_bound EtcdServer.wp_AuthStore
+
+theorem server_requireAuthInfo_bound :
+    EtcdServer.requireAuthInfo.boundSpec (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo_bound EtcdServer.wp_AuthStore
+
+theorem apply_UserGrantRole_step :
+    EtcdGrove.apply.applierV3backend.UserGrantRole.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserGrantRole.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
 theorem apply_UserRevokeRole_step :
     EtcdGrove.apply.applierV3backend.UserRevokeRole.stepSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserRevokeRole.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
@@ -1125,6 +1146,10 @@ end backend
 #print axioms Perennial.EtcdGrove.apply_UserDelete_step
 #print axioms Perennial.EtcdGrove.apply_UserChangePassword_step
 #print axioms Perennial.EtcdGrove.apply_RoleAdd_step
+#print axioms Perennial.EtcdGrove.server_AuthInfoFromCtx_bound
+#print axioms Perennial.EtcdGrove.server_membership_guard_bound
+#print axioms Perennial.EtcdGrove.server_requireAuthInfo_bound
+#print axioms Perennial.EtcdGrove.apply_UserGrantRole_step
 #print axioms Perennial.EtcdGrove.apply_UserRevokeRole_step
 #print axioms Perennial.EtcdGrove.apply_RoleRevokePermission_step
 #print axioms Perennial.EtcdGrove.apply_RoleDelete_step

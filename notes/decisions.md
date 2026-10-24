@@ -17616,6 +17616,113 @@ spec), `EtcdServer.Authenticate` (it needs the server's store contract to have `
 `GenTokenPrefix`, and the read-index wait), and threading `isReqAuthBound` into A2's guards and A4's
 watch registrations (their statements still name the info `isReqAuth` gives).
 
+## S4c of the auth plan: the decoded messages are the caller's; `UserGrantRole` and `HasRole` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4c`)
+
+**Problem.** S4b left the two grants: `UserGrantRole` appends to the `Roles` of the user message
+the batch transaction's `UnsafeGetUser` returned and sorts it in place (`sort.Strings`);
+`RoleGrantPermission` appends to the role message's `KeyPermission`, sorts it (`sort.Sort` of a
+`permSlice`) or writes an existing entry's `PermType`. S1's two `proto.Unmarshal` axioms gave the
+decoded message read-only (`ownUser`/`ownRole`: its slices `↦*□`, without capacity), which the
+writes cannot use. Go's decoder allocates a fresh message for the caller.
+
+**Decision.**
+- **The axioms' posts restated, no axiom added.** `proto.UnmarshalUser`/`UnmarshalRole` return
+  `auth.ownUserX`/`ownRoleX` (`auth/Buckets.lean`): the message the caller owns, as before, its
+  `Roles`/`KeyPermission` slice owned with its capacity (`↦*` and `ownSliceCap`, Perennial's idiom
+  for a freshly allocated slice), a role's permission messages owned (`ownPermX`). This is what Go
+  does (the decoder's allocation), so the restatement is more faithful, not stronger than the code.
+  `ownUserX_persist`/`ownRoleX_persist` (a basic update) give back the read-only forms.
+- **Where the read-only form is recovered.** Schema's `unsafeGetUser`/`unsafeGetRole` and the read
+  transaction's `UnsafeGetUser`/`UnsafeGetRole` return the owned forms (`schema.userOutDX`,
+  `roleOutDX`, `etcdserver/InvAuthBackend.lean`); `authBackend.GetUser`/`GetRole` persist them after
+  the read (the read transaction's are tail calls, whose post is the caller's: an update cannot be
+  taken there). `authReaderOk` (the read contract) keeps the read-only `userOut`/`roleOut`, so S2's
+  cache, S3's checks and S4's operations are unchanged.
+- **The batch transaction's write-side reads** (`auth.authBatchTxLk`, a contract): two clauses
+  appended, `UnsafeGetUser`/`UnsafeGetRole` with the owned message (`userOutX`/`roleOutX`), what
+  schema's read now gives (so the contract stays derivable from schema's real `authBatchTx`). The
+  ten destructurings of the contract take two more `-`.
+- **`UserGrantRole`** (`authStore__UserGrantRole.lean`) performs `Steps.lean`'s
+  `userGrantRoleR` or returns the model's error, in every mode: the user from the owned read; a
+  role other than `root` must exist (`ErrRoleNotFound`); the binary search over the sorted roles
+  (`sort.wp_SearchStrings`, `mem_iff_search`); a role the user has is "ignored" (`.same`); else the
+  append (`wp_slice_append` over the owned slice and its capacity) and `sort.Strings`, whose
+  sorted (`≤`) permutation of a list without duplicates is sorted strictly
+  (`pairwise_lt_of_sorted_perm`, `GrantLemmas.lean`), the message put back (`typedPointsto_combine`,
+  the roles slice persisted for the put contract's `ownUser`). Premises as S4's: the user name
+  within bbolt's key bound (the put), and the user's roles in the latest state fewer than `2^62`
+  (`sort.Strings`' bound after the append). The proof splits on the `root` comparison with the
+  literal turned into a variable first (`wp_if_destruct` substitutes `rn = "root"`, which would
+  make the two branches' goals differ; it keeps an equation between two variables), so both
+  branches share the tail (`all_goals`). At the apply layer, `apply.isAuthSteps` gains the
+  `UserGrantRole` clause (appended: the nine step proofs take one more `-`),
+  `isAuthSteps_of_authInv` its case, and `applierV3backend.UserGrantRole.wp_step`
+  (`apply_UserGrantRole_step` in `etcdserver/Results.lean`).
+- **`HasRole`** (`authStore__HasRole.lean`), with the admin side's authority (it takes the batch
+  transaction's lock): whether the latest state's user has the role, false for a user the state
+  lacks; the loop returns at the first equal role.
+
+**Not finished.**
+- `RoleGrantPermission`: the owned role message is in place, but the proof needs a sorter instance
+  of `permSlice` over owned permission messages (`isSorter` with `Less` by `bytes.Compare` of the
+  keys: a strict weak order pulled back along the key), `sort.Search` with a closure over the
+  role's permissions, and, for the in-place update of an existing entry, the correspondence
+  between the wire list's index and the model's (`RoleRec.toRole` drops entries of an unknown
+  type). It keeps its contract clause.
+- `UserGet`, `RoleGet` (its `root` case answers `rootPerm`, a package variable; the backend's
+  write contract has `GetUser` but no `GetRole`), `UserList`/`RoleList` (no backend `UnsafeForEach`
+  spec).
+
+
+## E1 of the auth plan: the token binding at the server's guards over the bound store contract; `NewAuthStore` not proved (2026-10-24 · `notes/auth-plan.md`, branch `auth-e1`)
+
+**Problem.** S5 stated the request side with the token binding (`isReqAuthBound`) and derived it
+of the real store (`isReqAuthBound_of_authInv`), but the server's store comes from `NewAuthStore`'s
+axiom, whose post names only the unbound `isReqAuth`: the binding could not reach A2's guards or
+A4's watch check (S5b's "Not finished"). E1 was to prove `NewAuthStore` (removing the axiom), then
+thread the binding and the admin side's authority to the server.
+
+**What was done: the guards' bound variants, over the bound contract as a premise.** A persistent
+`srvAuthBound s E` (the server's `authStore` field's store satisfies `isReqAuthBound` in the
+server's mode) is a premise of a bound variant of each guard, stated beside the guard's spec as a
+`boundSpec` and proved over the same callees (`etcdserver/AuthBound.lean`,
+`v3rpc/GuardBound.lean`, `v3rpc/WatchBound.lean`; restated in the two `Results.lean` with
+`#print axioms`, no `sorry`):
+- `EtcdServer.AuthInfoFromCtx`: the auth info is bound to the request's token or came from the
+  TLS fallback (`ctxBoundOrTLS`: `auth.ctxBound`, or `ClientCertAuthEnabled` is `true`). The server
+  falls back to `AuthInfoFromTLS` when the token path gives no auth info, and TLS identity is out of
+  the plan's scope (D-AU6), so the statement names that disjunct rather than binding it.
+- `checkMembershipOperationPermission`, `AuthAdmin.isPermitted` (the admin guards): `adminOutB`,
+  `adminOut` whose auth info is moreover a bound principal (`principalBound`: none, or a user to
+  whom some token was issued, `auth.tokOk`, or the TLS fallback); `adminOut_of_adminOutB` drops it.
+- `EtcdServer.requireAuthInfo`, `AuthAdmin.requireAuthInfo`, the maintenance server's
+  `requireAuthInfo` (the authenticated-user guards): `authedOutB`, likewise.
+- `isWatchPermitted` (A4's check): the principal checked is the anonymous one (the check's
+  `&auth.AuthInfo{}` when the context has none: the zero string user), or a bound one
+  (`principalBoundI`).
+Once `NewAuthStore` gives `isReqAuthBound` of the server's store, `srvAuthBound` is derivable and
+these become unconditional; the guarded entry points' specs (A2's twelve) can then take the bound
+variants mechanically.
+
+**Why not `NewAuthStore`.** Its axiom (`Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean`)
+covers more than the auth package: proving it needs (1) schema's auth write side over the backend:
+`authBackend.CreateAuthBuckets` (`LockOutsideApply`, three `UnsafeCreateBucket`s, `Unlock`),
+`BatchTx`, `ForceCommit`, `authBatchTx.Lock` (`LockInsideApply`, the post-lock hook) / `Unlock`
+(`Unlock` then `Commit`) / `UnsafeReadAuthEnabled` / `UnsafeReadAuthRevision`, with D22's tracked
+buckets (`rbOwn`), the write-back tokens and the hook, which is also the derivation of S4's write
+contract (`authWBackendOk`, `authBatchTxLk`) from the real code; that needs an abstraction from the
+auth buckets' tracked contents to `AuthState` (S1's encoding, `auth/Buckets.lean`) under the batch
+lock, in the backend's D22 machinery that another session is changing; (2) the allocation of
+`authInv` (the three locks `enabledMu`/`rangePermCacheMu`/`beMu` with the reader slots, the history
+and the latest-state halves, the token and issue-right ghosts); (3) the metrics reporter's package
+variables (`reportCurrentAuthRevMu`, `reportCurrentAuthRev`: package facts in `etc/gen-init.py`);
+(4) the post's `authApplyOk` (`InvBoot.lean`). Each is days; the run did not reach them. The admin
+side's authority to the server (S4's apply part's leftover) waits on the same: only `NewAuthStore`
+can hand the apply thread `authOwn`.
+
+**Trust base.** Unchanged (696 axioms, 4 sorries); no axiom or hypothesis added beyond the premise
+`srvAuthBound`.
+
 ## S4b of the auth plan: the pin at Perennial's sort specs, `hasRootRole`, the revocations and `RoleDelete` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4b`)
 
 **Problem.** S4 left five admin operations unproved (they sort or loop over records) and S3 left
@@ -17970,6 +18077,53 @@ its handler with `Serve_ok`; linkv3p's partitioner holds each member's reader to
 **Lean**: `(netRh γn).owner h` against `netOwner γn.dir h` exceeds the default recursion depth by
 `rfl` (the check unfolds `netOwner`'s classical `if` over the `go!` byte literal); `netRh_owner`,
 proved by `simp only [netRh]`, is the rewrite.
+
+## S5b of the auth plan, in part: the simple provider's `info` and `assign` keep the token binding (2026-10-24 · `notes/auth-plan.md`, branch `auth-s5b`)
+
+**Problem.** S5 stated the token binding over the provider's contract (`tokenProviderOk`) and proved
+only the no-op provider meets it; etcd's default is the simple provider (`simple_token.go`).
+
+**What is proved** (`Proof/go_etcd_io/etcd/server/v3/auth/TokenSimple.lean`, theorems with explicit
+hypotheses, not linked: the provider's other methods are not proved yet, so no `tokenProviderOk` of
+`tokenSimple` is concluded):
+
+- **The lock invariant** (`simpleLk p γt γf`, what `simpleTokensMu` guards): the map `simpleTokens`
+  with, for each entry `t ↦ u`, the persistent issued element `(t, u)` under `γt` and the right to
+  issue `t` under `γf` (exclusive; `[∗map]`); the issued tokens' authority (`tokAuth γt`); the
+  current keeper (nil, or one of the keepers created, whose maps it holds: an old keeper's goroutine
+  can still take the lock after `disable()`); a positive TTL (so `enable` never reads the package
+  default; etcd's default TTL is 300 s).
+- **`info`** (`tokenSimple_info`): a returned user was issued the token, in `on γa` with
+  `γa.tok = γt`; the keeper's reset keeps its map (`keeper_reset`).
+- **`assignSimpleTokenToUser`** (`tokenSimple_assignToUser`): given the right to issue `tok`, `tok` is
+  issued to the user (the ghost element always; the map entry when a keeper is set). The panic on a
+  token already in the map is unreachable: the map holds that token's right too
+  (`ghostMapElem_ne`).
+- **`assign`** (`tokenSimple_assign`): on an `Authenticate` context (`authnCtx`), the token
+  `pre ++ "." ++ decimal idx` (`sprintfOut_simpleTok`: `Sprintf("%s.%d")`'s output, an inversion
+  lemma in the style of Perennial's `SprintfOut.str_slash_v_int64`) is issued to the user.
+
+**The contract changed** (additively in spirit, one precondition): `tokenProviderOk`'s `assign` clause
+takes `authnCtx M ctx`: the context's `Value` returns the raft index and the token prefix for the
+two keys (other keys unconstrained), and the caller holds `freshOk M (simpleTok pre idx)` (in `on γa`,
+`tokFresh γa`, a new ghost name `AuthNames.fresh`; `authHist_alloc` takes it). `Authenticate`'s spec
+takes the premise and passes it on. Why a right to issue rather than a pure premise: the token is
+`<prefix>.<raft index>` and the index is unique per applied entry, but the provider cannot see that;
+whoever applies the entry (E's apply thread) mints the right once per index from the `γf` authority.
+
+**Hypotheses, and why:** `isValidSimpleToken` (`ValidSpec`) parses the index with `strconv.ParseUint`,
+which Perennial does not translate, and waits on the raft index or `ctx.Done()`; it is assumed to
+return. Stated for every context, which is stronger than the Go code gives for an arbitrary
+`GoInterface`: the contract's `info` clause has no context premise (`InvAuth` is generic over later
+credits, Perennial's contexts are not), and that is where the gap is. The keeper's `run` and `stop`
+(`time.Ticker`, `Time.After`, a channel protocol) are untranslated; they are needed for `enable` and
+`disable`, which are not proved yet.
+
+**Not finished:** `enable`, `disable`, `invalidateUser`, `newTokenProviderSimple` (so
+`tokenSimple_ok`, the provider meeting the whole contract); the mode `off`/`any` (the contract's
+`assign` premise carries no right to issue there, which the panic's refutation needs); the JWT
+provider; threading the binding into A2's guards and A4's watch (blocked on `NewAuthStore`: its axiom
+states the unbound `isReqAuth`, so the server's guards cannot get `isReqAuthBound` without proving it).
 
 ## D42: the snapshot stream proved over a streamed request body (2026-10-24 · rafthttp stage 7a; the user: "go with (A) for D42"; `notes/rafthttp-plan.md`, "Stage 7")
 

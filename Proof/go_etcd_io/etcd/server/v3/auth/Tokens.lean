@@ -20,6 +20,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Model
 public import Perennial.Ghost.GhostMap
+public import Perennial.Proof.fmt.Base
 
 @[expose] public section
 
@@ -91,6 +92,21 @@ theorem tokIssue (γa : AuthNames) (S : GMap (GoString × GoString) Unit) (token
         simpa [GMap.insert, hne] using hk
     · iexact Hnew
 
+/-- **The right to issue `token`** under the names `γa` (exclusive; the auth plan's S5b,
+2026-10-24): an element of the ghost map `γa.fresh`. Whoever chooses a token (the server's
+`Authenticate` path, `<prefix>.<raft index>`) holds it once; the simple provider's map holds the
+right of every token it holds, so a token held by the caller is not in the map (`tokFresh_ne`),
+which rules out `assignSimpleTokenToUser`'s panic on a token issued twice. -/
+def tokFresh (γa : AuthNames) (token : GoString) : IProp GF :=
+  ghostMapElem γa.fresh token (DFrac.own 1) ()
+
+/-- Two rights to issue tokens are for different tokens. -/
+theorem tokFresh_ne (γa : AuthNames) (t1 t2 : GoString) :
+    tokFresh (GF := GF) γa t1 ∗ tokFresh γa t2 ⊢ ⌜t1 ≠ t2⌝ := by
+  unfold tokFresh
+  iintro ⟨H1, H2⟩
+  iapply ghostMapElem_ne γa.fresh t1 t2 (DFrac.own 1) () () $$ H1 H2
+
 end ghost
 
 /-! ## The binding in a mode -/
@@ -108,6 +124,18 @@ def tokOk (M : AuthMode) (token user : GoString) : IProp GF :=
 instance tokOk_persistent (M : AuthMode) (token user : GoString) :
     Persistent (tokOk (GF := GF) M token user) := by
   unfold tokOk; cases M <;> infer_instance
+
+/-- **The right to issue `token`, in the mode `M`**: in `on γa`, `tokFresh`; in `off` and `any`,
+nothing (S5b). -/
+def freshOk (M : AuthMode) (token : GoString) : IProp GF :=
+  match M with
+  | .on γa => tokFresh γa token
+  | _ => iprop(True)
+
+/-- The token the simple provider makes of a prefix and a raft index (`fmt.Sprintf("%s.%d",
+prefix, index)`, `simple_token.go`'s `assign`). -/
+def simpleTok (pre : GoString) (idx : w64) : GoString :=
+  pre ++ go!"." ++ fmt.decimal (uint.Z idx)
 
 end mode
 

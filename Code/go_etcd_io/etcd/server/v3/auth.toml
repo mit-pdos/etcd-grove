@@ -45,8 +45,18 @@ translate = ["!*", "AuthInfo",
   # `CheckPassword` stays names only (bcrypt), as do the simple and JWT providers.
   "authStore.Authenticate", "ErrAuthFailed", "ErrAuthNotEnabled",
   "tokenNop.enable", "tokenNop.disable", "tokenNop.invalidateUser", "tokenNop.genTokenPrefix",
-  "tokenNop.info", "tokenNop.assign"]
-imports = ["!*", "bytes", "context", "errors", "sort", "strings", "sync", "sync/atomic",
+  "tokenNop.info", "tokenNop.assign",
+  # The simple token provider (the auth plan's S5b, 2026-10-24): its methods with bodies, the TTL
+  # keeper's map helpers and the TTL default `enable` reads; names only: `isValidSimpleToken`
+  # (`strconv.ParseUint`, which Perennial does not translate), the keeper's `run` and `stop` (a
+  # `time.Ticker`, `Time.After`, the channel protocol between them), `genTokenPrefix`
+  # (`crypto/rand`, `math/big`) and `redactToken` (`crypto/sha256`, the panic branch).
+  "newTokenProviderSimple", "tokenSimple.info", "tokenSimple.assign",
+  "tokenSimple.assignSimpleTokenToUser", "tokenSimple.invalidateUser", "tokenSimple.enable",
+  "tokenSimple.disable", "simpleTokenTTLKeeper.addSimpleToken",
+  "simpleTokenTTLKeeper.resetSimpleToken", "simpleTokenTTLKeeper.deleteSimpleToken",
+  "simpleTokenTTLDefault", "AuthenticateParamIndex", "AuthenticateParamSimpleTokenPrefix"]
+imports = ["!*", "bytes", "context", "errors", "fmt", "sort", "strings", "time", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
   "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt"]

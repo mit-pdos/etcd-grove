@@ -406,13 +406,33 @@ def ctxBound (M : AuthMode) (a : Loc) : IProp GF :=
 instance ctxBound_persistent (M : AuthMode) (a : Loc) : Persistent (ctxBound (GF := GF) M a) := by
   unfold ctxBound; infer_instance
 
+/-- **An `Authenticate` context** `ctx` in the mode `M` (the auth plan's S5b, 2026-10-24): what
+the token providers' `assign` reads of it. Its `Value` method returns, for the key
+`AuthenticateParamIndex{}`, a `uint64` raft index `idx`, and for the key
+`AuthenticateParamSimpleTokenPrefix{}` a string `pre` (`v3_server.go`'s `Authenticate` puts both
+in; other keys are unconstrained), and the caller holds the right to issue the token they make
+(`freshOk M (simpleTok pre idx)`: a token is `<prefix>.<raft index>`, issued once; the simple
+provider panics on a token issued twice, `assignSimpleTokenToUser`). -/
+def authnCtx (M : AuthMode) (ctx : GoInterface) : IProp GF :=
+  iprop(∃ (ci : GoInterfaceOk) (idx : w64) (pre : GoString), ⌜ctx = GoInterface.ok ci⌝ ∗
+    □ (∀ k : GoInterface,
+      {{ True }} (App (Val #(methods ci.ty go!"Value" ci.v)) (Val #k))
+      {{ (v : GoInterface), RET #v;
+          ⌜(∀ x : AuthenticateParamIndex,
+              k = interface.mkOk AuthenticateParamIndex.ty #x → v = interface.mkOk go.uint64 #idx) ∧
+           (∀ x : AuthenticateParamSimpleTokenPrefix,
+              k = interface.mkOk AuthenticateParamSimpleTokenPrefix.ty #x →
+                v = interface.mkOk go.string #pre)⌝ }}) ∗
+    freshOk M (simpleTok pre idx))
+
 /-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract) in the mode `M`:
 - `info(ctx, token, rev)` returns an auth info (`authInfoRO`) and a
   boolean; when the boolean is true, the info is bound to the token (`infoBound`: in `on γa`, its
   user is one the token was issued to; the auth plan's S5, 2026-10-24);
 - `enable()`, `disable()` and `invalidateUser(name)` return (the admin side, S4);
 - `assign(ctx, username, rev)` (appended, S5) returns a token and an error; with no error the
-  token was issued to `username` (`tokOk`).
+  token was issued to `username` (`tokOk`); on an `Authenticate` context (`authnCtx`: its index
+  and prefix, and the right to issue the token; S5b).
 No real provider is proved to meet it yet (`notes/decisions.md`, "S5 of the auth plan"): the
 simple provider's `info` waits on the raft index its token names and on the context's `Done()`,
 and its `assign` reads the index and the token's prefix from the context's values (it panics
@@ -432,7 +452,7 @@ def tokenProviderOk (tp : GoInterface) (M : AuthMode) : IProp GF :=
     □ (∀ name : GoString,
       {{ True }} (App (Val #(methods ti.ty go!"invalidateUser" ti.v)) (Val #name)) {{ RET #(); True }}) ∗
     □ (∀ (ctx : GoInterface) (user : GoString) (rev : w64),
-      {{ True }}
+      {{ authnCtx M ctx }}
         (App (App (App (Val #(methods ti.ty go!"assign" ti.v)) (Val #ctx))
           (Val #user)) (Val #rev))
       {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
@@ -540,7 +560,17 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val) (
     □ (∀ (st : AuthState) (X : IProp GF) (hs : List AuthState),
       {{ Lk st X ∗ authOwn M hs ∗ ⌜histLast M hs st⌝ }}
         (App (Val #(methods ti.ty go!"Unlock" ti.v)) (Val #()))
-      {{ RET #(); X ∗ T ∗ authOwn M hs }}))
+      {{ RET #(); X ∗ T ∗ authOwn M hs }}) ∗
+    -- the reads with the message as `proto.Unmarshal` returns it, the caller's (appended; the
+    -- auth plan's S4c): `UserGrantRole` appends to a user's `Roles`, `RoleGrantPermission` to a
+    -- role's `KeyPermission` and writes an entry (schema's `unsafeGetUser`/`unsafeGetRole` return
+    -- them so: `userOutDX`, `roleOutDX`)
+    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
+      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
+      {{ (u : Loc), RET #u; Lk st X ∗ userOutX u st name }}) ∗
+    □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
+      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeGetRole" ti.v)) (Val #name))
+      {{ (r : Loc), RET #r; Lk st X ∗ roleOutX r st name }}))
 
 instance authBatchTxLk_persistent (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val)
     (T : IProp GF) (Lk : AuthState → IProp GF → IProp GF) :

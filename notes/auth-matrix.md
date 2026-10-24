@@ -228,3 +228,28 @@ The store's `UserRevokeRole`, `RoleRevokePermission` and `RoleDelete` perform th
 root shortcut) is proved. Left: `UserGrantRole`, `RoleGrantPermission` (they write into the
 messages the read contract gives read-only: `notes/decisions.md`, "S4b of the auth plan").
 
+## What is proved of the table (S5b in part, the simple provider, 2026-10-24)
+
+The binding every row's principal rests on (S5's `ctxBound`) is now met by etcd's default provider
+for the tokens it accepts and issues: `tokenSimple`'s `info` returns a user only for a token the
+map holds, each issued to that user, and `assign` issues the token it stores
+(`auth/TokenSimple.lean`). Not yet: the provider's `enable`, `disable` and `invalidateUser`
+(so not yet `tokenProviderOk` of `tokenSimple` as a whole), and the guards' statements (A2, A4)
+naming the bound principal.
+
+## What is proved of the table (S4c, 2026-10-24)
+
+`UserGrantRole` performs the model's step at the store and at the apply layer
+(`apply_UserGrantRole_step`), from the user message the decoder gives the caller (the two
+`proto.Unmarshal` axioms' posts restated: `notes/decisions.md`, "S4c of the auth plan"). The
+store's `HasRole` answers the latest state's (with the admin side's authority). Left:
+`RoleGrantPermission` (its contract clause), `UserGet`, `RoleGet`, `UserList`, `RoleList`.
+
+## What is proved of the table (E1 in part, the binding at the guards, 2026-10-24)
+
+The admin rows' guards (`checkMembershipOperationPermission`, `AuthAdmin.isPermitted`), the
+authenticated rows' (`requireAuthInfo`, the server's, `AuthAdmin`'s and the maintenance
+server's) and the `Watch` row's check (`isWatchPermitted`) have bound variants: the principal they
+checked is one to whom some token was issued (or the anonymous one for the watch, or the TLS
+fallback's), over the store's bound contract as a premise (`srvAuthBound`; `notes/decisions.md`,
+"E1 of the auth plan"). The premise is the real store's once `NewAuthStore` is proved.

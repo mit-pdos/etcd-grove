@@ -146,6 +146,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthEnable
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Authenticate
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__HasRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsDeleteRangePermitted
@@ -159,6 +160,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__RoleRevokePermissi
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserChangePassword
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserDelete
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserGrantRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserRevokeRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
@@ -938,6 +940,10 @@ theorem auth.authStore.wp_Authenticate :
     auth.authStore.Authenticate.spec (GF := GF) (hG := hG) :=
   auth.authStore.Authenticate.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write
 
+theorem auth.authStore.wp_HasRole :
+    auth.authStore.HasRole.spec (GF := GF) (hG := hG) :=
+  auth.authStore.HasRole.wp_proof zap.wp_String zap.Logger.wp_Warn
+
 theorem auth.authStore.wp_lockedReadTx :
     auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG) :=
   auth.authStore.lockedReadTx.wp_proof
@@ -1017,6 +1023,10 @@ theorem auth.authStore.wp_UserChangePassword :
 theorem auth.authStore.wp_UserDelete :
     auth.authStore.UserDelete.spec (GF := GF) (hG := hG) :=
   auth.authStore.UserDelete.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error zap.Logger.wp_Info
+
+theorem auth.authStore.wp_UserGrantRole :
+    auth.authStore.UserGrantRole.spec (GF := GF) (hG := hG) :=
+  auth.authStore.UserGrantRole.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Warn zap.Logger.wp_Info
 
 theorem auth.authStore.wp_UserRevokeRole :
     auth.authStore.UserRevokeRole.spec (GF := GF) (hG := hG) :=
