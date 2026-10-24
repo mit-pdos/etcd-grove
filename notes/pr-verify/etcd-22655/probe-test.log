@@ -1,0 +1,13 @@
+=== RUN   TestBootstrapWALFromSnapshotBackendAheadOfWAL
+    logger.go:146: 2026-10-24T10:35:07.554-0400	INFO	backend consistent index is ahead of the WAL, filling the gap with empty entries	{"last-wal-entry-index": 31, "commit-index": 49, "number-of-filled-entries": 18}
+    logger.go:146: 2026-10-24T10:35:07.555-0400	INFO	forcing restart member	{"cluster-id": "1", "local-member-id": "1", "wal-commit-index": 28, "commit-index": 51}
+    bootstrap_pr22655_probe_test.go:112: in-memory bwal.st.GetCommit() = 51, on-disk st2.GetCommit() = 28, last WAL entry index = 51
+--- PASS: TestBootstrapWALFromSnapshotBackendAheadOfWAL (0.15s)
+=== RUN   TestProbePreFixMemoryStoragePanicsOnGap
+--- PASS: TestProbePreFixMemoryStoragePanicsOnGap (0.14s)
+=== RUN   TestProbeMembershipChangeInBackendAheadGap
+    logger.go:146: 2026-10-24T10:35:07.852-0400	INFO	backend consistent index is ahead of the WAL, filling the gap with empty entries	{"last-wal-entry-index": 31, "commit-index": 49, "number-of-filled-entries": 18}
+    logger.go:146: 2026-10-24T10:35:07.852-0400	INFO	forcing restart member	{"cluster-id": "1", "local-member-id": "1", "wal-commit-index": 28, "commit-index": 50}
+--- PASS: TestProbeMembershipChangeInBackendAheadGap (0.12s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	(cached)

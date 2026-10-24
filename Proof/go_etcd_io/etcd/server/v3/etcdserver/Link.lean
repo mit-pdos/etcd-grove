@@ -147,7 +147,13 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.isValidPermissionRange
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapWALFromSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__AppendAndCommitEntries
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__CommitedEntries
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__NewConfigChangeEntries
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__fillBackendAheadGap
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__PeerDialTimeout
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
@@ -757,6 +763,34 @@ theorem auth.wp_isValidPermissionRange :
     auth.isValidPermissionRange.spec (GF := GF) (hG := hG) :=
   auth.isValidPermissionRange.wp_proof auth.wp_isOpenEnded adt.BytesAffineComparable.wp_Compare
 
+theorem bootstrappedWAL.wp_CommitedEntries :
+    bootstrappedWAL.CommitedEntries.spec (GF := GF) (hG := hG) :=
+  bootstrappedWAL.CommitedEntries.wp_proof raftpb.Entry.wp_GetIndex zap.wp_Uint64 zap.wp_Int' zap.Logger.wp_Info
+
+theorem bootstrappedWAL.wp_AppendAndCommitEntries :
+    bootstrappedWAL.AppendAndCommitEntries.spec (GF := GF) (hG := hG) :=
+  bootstrappedWAL.AppendAndCommitEntries.wp_proof
+
+theorem bootstrappedWAL.wp_fillBackendAheadGap :
+    bootstrappedWAL.fillBackendAheadGap.spec (GF := GF) (hG := hG) :=
+  bootstrappedWAL.fillBackendAheadGap.wp_proof raftpb.Entry.wp_GetIndex raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex zap.wp_Uint64 zap.Logger.wp_Info raftpb.EntryType.wp_Enum bootstrappedWAL.wp_AppendAndCommitEntries
+
+theorem bootstrappedWAL.wp_NewConfigChangeEntries :
+    bootstrappedWAL.NewConfigChangeEntries.spec (GF := GF) (hG := hG) :=
+  bootstrappedWAL.NewConfigChangeEntries.wp_proof
+
+theorem types.ID.wp_String_ptr :
+    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
+  types.ID.String_ptr.wp_proof
+
+theorem wp_bootstrapWALFromSnapshot :
+    bootstrapWALFromSnapshot.spec (GF := GF) (hG := hG) :=
+  bootstrapWALFromSnapshot.wp_proof bootstrappedWAL.wp_CommitedEntries bootstrappedWAL.wp_fillBackendAheadGap bootstrappedWAL.wp_NewConfigChangeEntries bootstrappedWAL.wp_AppendAndCommitEntries types.ID.wp_String_ptr zap.wp_String zap.wp_Uint64 zap.Logger.wp_Info
+
+theorem bootstrappedWAL.wp_MemoryStorage [StorageModel GF] :
+    bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) :=
+  bootstrappedWAL.MemoryStorage.wp_proof wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_SetHardState MemoryStorage.wp_Append
+
 theorem config.ServerConfig.wp_BackendPath :
     config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.BackendPath.wp_proof
@@ -788,10 +822,6 @@ theorem v2stats.wp_NewServerStats :
 theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
   v2stats.NewLeaderStats.wp_proof zap.wp_NewNop
-
-theorem types.ID.wp_String_ptr :
-    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
-  types.ID.String_ptr.wp_proof
 
 theorem types.URLs.wp_StringSlice :
     types.URLs.StringSlice.spec (GF := GF) (hG := hG) :=

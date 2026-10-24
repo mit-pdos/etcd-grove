@@ -68,6 +68,9 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   "NewServer", "bootstrappedServer", "bootstrappedStorage", "bootstrappedBackend",
   "bootstrappedCluster", "bootstrappedWAL", "AccessController",
   "EtcdServer.restoreAlarms", "EtcdServer.NewUberApplier",
+  "bootstrapWALFromSnapshot", "bootstrappedWAL.MemoryStorage",
+  "bootstrappedWAL.CommitedEntries", "bootstrappedWAL.fillBackendAheadGap",
+  "bootstrappedWAL.NewConfigChangeEntries", "bootstrappedWAL.AppendAndCommitEntries",
   # the client lease (item 1, branch `lease-client`): v3_server.go's lease grant and revoke
   "EtcdServer.LeaseGrant", "EtcdServer.LeaseRevoke", "EtcdServer.requireAuthInfo",
   # the auth plan's A2 (2026-10-23): the membership operations' admin guard and the member

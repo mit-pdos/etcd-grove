@@ -1167,3 +1167,9 @@ end Perennial
 #print axioms Perennial.EtcdGrove.start_gives_views
 #print axioms Perennial.EtcdGrove.scheduler_fifo
 #print axioms Perennial.EtcdGrove.server_raft_node_start
+#print axioms Perennial.EtcdGrove.bootstrappedWAL.wp_AppendAndCommitEntries
+#print axioms Perennial.EtcdGrove.bootstrappedWAL.wp_NewConfigChangeEntries
+#print axioms Perennial.EtcdGrove.bootstrappedWAL.wp_CommitedEntries
+#print axioms Perennial.EtcdGrove.bootstrappedWAL.wp_fillBackendAheadGap
+#print axioms Perennial.EtcdGrove.wp_bootstrapWALFromSnapshot
+#print axioms Perennial.EtcdGrove.bootstrappedWAL.wp_MemoryStorage
