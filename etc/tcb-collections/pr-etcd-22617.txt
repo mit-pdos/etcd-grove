@@ -1,0 +1,18 @@
+# etcd-io/etcd#22617 (client/v3: fail Mutex.Lock when its key was recreated while waiting),
+# branch pr-verify/etcd-22617: the changed function `concurrency.Mutex.Lock`, its caller
+# `concurrency.lockerMutex.Lock`, the pure lemma `concurrency.lock_final`, and the exported
+# results (`concurrency.mutex_Lock`, `concurrency.locker_Lock`, `concurrency.mutex_exclusion`,
+# `concurrency.mutex_holder_unique`).
+# Report: notes/pr-verify/etcd-22617.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22617.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/client/v3/concurrency/(Mutex__Lock|lockerMutex__Lock|Mutex__TryLock|Mutex__Unlock|Mutex__tryAcquire)\.lean$
+roots \bconcurrency\.(mutex_Lock|locker_Lock|mutex_TryLock|mutex_Unlock|mutex_exclusion|mutex_holder_unique|lock_final)$
+axiom fmt.SprintfNamed.wp_proof
+axiom proto.Clone.wp_proof
+axiom rpctypes.errDesc_etcdError
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof

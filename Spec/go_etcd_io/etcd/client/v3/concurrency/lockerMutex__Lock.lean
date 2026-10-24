@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- **`lm.Lock()`** (`NewLocker`'s `sync.Locker`): `Mutex.Lock(client.Ctx())` on the wrapped
 mutex `m`, for a client whose context is cancelable (`Mutex.Lock` takes one), knowing etcd has
-reached `lo`: `Mutex.Lock`'s `nil` case (the lock held, or the key re-created); or, on any error
+reached `lo`: `Mutex.Lock`'s `nil` case (the lock held); or, on any error
 (which every client call allows), the panic `panic(err)` (`PanicV` of the error as an
 `interface{}`), with the mutex in some state. -/
 abbrev lockerMutex.Lock.spec : Prop :=
@@ -40,7 +40,7 @@ abbrev lockerMutex.Lock.spec : Prop :=
   {{ (r : val), RET r; structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗
       ((⌜r = #()⌝ ∗ ∃ (key : GoString) (rev R : w64) (hdr : Loc),
         mutexState m ⟨key, rev, hdr⟩ ∗ hdrRevAt hdr R ∗ etcdReached R ∗
-        (lockedAt pfx key rev R ∨ keyRecreated pfx key rev R) ∗
+        lockedAt pfx key rev R ∗
         ⌜pfx <+: key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
       (∃ err : GoInterface, ⌜err ≠ GoInterface.nil ∧ r = PanicV #err⌝ ∗
         ∃ st' : MutexSt, mutexState m st')) }}

@@ -27,12 +27,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 /-- **`m.Lock(ctx)`**, from any state, for a cancelable context (`waitDelete`'s `WithCancel`
 takes one: Perennial's `wp_WithCancel`), knowing etcd has reached `lo`:
 * `nil`: at a revision `R ≥ lo` (the header `hdr` the mutex keeps), the mutex's key `key` (under
-  the prefix), created at `rev`, holds the lock (`lockedAt pfx key rev R`) — **or** `key` was
-  deleted and re-created since `rev` (`keyRecreated`): `Lock`'s last check only asks that `key`
-  exist, so another `Mutex` of the same session on the same prefix (which shares the key)
-  unlocking and locking again in between makes `Lock` return `nil` without the lock (see
-  `notes/STATUS.md`, "Mutex: mutual exclusion");
-* `ErrSessionExpired`: the key is absent at some `R ≥ lo`;
+  the prefix), created at `rev`, holds the lock (`lockedAt pfx key rev R`);
+* `ErrSessionExpired`: at some `R ≥ lo`, the key is absent (`etcdAbsent`) or was deleted and
+  re-created since `rev` (`keyRecreated`);
 * any other error, in some state (the mutex may have deleted its key, `Unlock`). -/
 abbrev Mutex.Lock.spec : Prop :=
   ∀ (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
@@ -43,10 +40,11 @@ abbrev Mutex.Lock.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev R : w64) (hdr : Loc),
         mutexState m ⟨key, rev, hdr⟩ ∗ hdrRevAt hdr R ∗ etcdReached R ∗
-        (lockedAt pfx key rev R ∨ keyRecreated pfx key rev R) ∗
+        lockedAt pfx key rev R ∗
         ⌜pfx <+: key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
       (isPkgErr ErrSessionExpired err ∗ ∃ (st' : MutexSt) (R : w64), mutexState m st' ∗
-        etcdReached R ∗ etcdAbsent pfx st'.key R ∗ ⌜pfx <+: st'.key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
+        etcdReached R ∗ (etcdAbsent pfx st'.key R ∨ keyRecreated pfx st'.key st'.rev R) ∗
+        ⌜pfx <+: st'.key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : MutexSt, mutexState m st') }}
 
 end spec

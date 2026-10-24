@@ -6,8 +6,9 @@ counterpart).
 `myRev`, the mutex holds the lock at the transaction's revision. Otherwise the owner was created
 before `myRev` (and after `0`: `etcdState_revs`), so `waitDeletes(myRev - 1)` is called with a
 positive bound; its state at `R0` has no key created before `myRev`, and the final `Get(myKey)` at
-`R ≥ R0` either misses the key (`ErrSessionExpired`, `etcdAbsent`) or finds it (`lock_final`:
-locked, or re-created). On the error paths `Unlock(client.Ctx())`'s result is dropped.
+`R ≥ R0` either misses the key (`ErrSessionExpired`, `etcdAbsent`), finds it with a different
+create revision (`ErrSessionExpired`, `keyRecreated`), or finds it with `myRev` (`lock_final`:
+`lockedAt`). On the error paths `Unlock(client.Ctx())`'s result is dropped.
 -/
 module
 
@@ -120,8 +121,7 @@ theorem Mutex.Lock.wp_proof
     isplitl [HmyKey HmyRev Hmhdr]
     · unfold mutexState; iframe
     isplitr
-    · ileft
-      unfold lockedAt
+    · unfold lockedAt
       iexists s0
       iframe Hs0
       ipureintro
@@ -202,7 +202,7 @@ theorem Mutex.Lock.wp_proof
   icases Hgr with ⟨%s', %gsl, %gps, %gkvs, #Hs', %Hwf', #Hgsl, #Hgps, #Hgkvs, %Hgok⟩
   wp_auto
   iunfold kvPtrsAt at Hgkvs
-  icases Hgkvs with ⟨%Hgl, -⟩
+  icases Hgkvs with ⟨%Hgl, #Hgkv⟩
   ihave %Hgsl := ownSlice_len $$ Hgps
   obtain ⟨Hkabs, Hkpres⟩ := keyOp_kvs pfx key s' gkvs Hwf' Hgok
   have HlR : sint.Z lo ≤ sint.Z R := by have := Hw.1; omega
@@ -226,7 +226,8 @@ theorem Mutex.Lock.wp_proof
     · unfold mutexState; iframe
     iframe HRR
     isplitr
-    · unfold etcdAbsent
+    · ileft
+      unfold etcdAbsent
       iexists s'
       iframe Hs'
       ipureintro
@@ -235,7 +236,7 @@ theorem Mutex.Lock.wp_proof
       rw [Hnil] at this
       cases this
     ipureintro; exact ⟨Hp.1, HlR⟩
-  -- the key is present: locked, or re-created
+  -- the key is present: check its create revision against `myRev`
   have Hpres : ∃ v ∈ s', v.key = key := by
     rcases Classical.em (∃ v ∈ s', v.key = key) with h | h
     · exact h
@@ -244,26 +245,61 @@ theorem Mutex.Lock.wp_proof
       exfalso; apply Hif
       have : sint.nat gsl.len = 0 := by rw [← Hgsl.1, Hgl]; rfl
       word
-  ihave %Hfin := lock_final pfx key rev r R0 R sw s' Hp.2.2.1 Hp.2.2.2.1 Hw.1 HRle' Hw.2 Hpres
+  obtain ⟨v, hv, hvk⟩ := Hpres
+  have Hgkvs_eq : gkvs = [v] := Hkpres v hv hvk
+  subst Hgkvs_eq
+  obtain ⟨gkp, rfl⟩ : ∃ gkp, gps = [gkp] := by
+    match gps, Hgl with
+    | [gkp], _ => exact ⟨gkp, rfl⟩
+  rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z gsl.len by simp at Hgsl; word)]
+  icases ownSlice_elem_acc (sint.Z (W64 0)) gkp gsl DFrac.discard [gkp] (by word) (by simp)
+    $$ Hgps with ⟨#Hgkpe, -⟩
+  ihave #Hgv := Hgkv $$ %0 %gkp %v %rfl %rfl
+  iunfold kvValAt at Hgv
+  icases Hgv with ⟨%gkeySl, %gvalSl, -, -, #Hgcr, -⟩
+  ihave %Hfin := lock_final pfx key rev r R0 R sw s' Hp.2.2.1 Hp.2.2.2.1 Hw.1 HRle' Hw.2 v hv hvk
     $$ [$Hsw $Hs']
-  iunfold getRespRev at HgRev
-  icases HgRev with ⟨%ghdr, #Hgh, %Hghnn, #HghR⟩
   wp_auto
-  iapply HΦ
-  ileft
-  isplitr
-  · ipureintro; rfl
-  iexists key, rev, R, ghdr
-  isplitl [HmyKey HmyRev Hmhdr]
-  · unfold mutexState; iframe
-  isplitr
-  · unfold hdrRevAt; iframe HghR; ipureintro; exact Hghnn
-  iframe HRR
-  isplitr
-  · rcases Hfin with Hl | Hrc
-    · ileft; unfold lockedAt; iexists s'; iframe Hs'; ipureintro; exact Hl
-    · iright; unfold keyRecreated; iexists s'; iframe Hs'; ipureintro; exact Hrc
-  ipureintro; exact ⟨Hp.1, HlR⟩
+  wp_if_destruct
+  · -- the key is present with `CreateRevision = myRev`: locked
+    iunfold getRespRev at HgRev
+    icases HgRev with ⟨%ghdr, #Hgh, %Hghnn, #HghR⟩
+    wp_auto
+    iapply HΦ
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists key, _, R, ghdr
+    isplitl [HmyKey HmyRev Hmhdr]
+    · unfold mutexState; iframe
+    isplitr
+    · unfold hdrRevAt; iframe HghR; ipureintro; exact Hghnn
+    iframe HRR
+    isplitr
+    · unfold lockedAt; iexists s'; iframe Hs'; ipureintro; exact Hfin.1 rfl
+    ipureintro; exact ⟨Hp.1, HlR⟩
+  · -- the key was re-created with `CreateRevision ≠ myRev`: `ErrSessionExpired`
+    ihave Hci : (concurrencyInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hpkg
+    icases Hci with ⟨-, ⟨%eSE, #HeSE⟩, -⟩
+    wp_auto
+    iapply HΦ
+    iright; ileft
+    isplitr
+    · unfold isPkgErr
+      iframe HeSE
+      ipureintro; intro h; cases h
+    iexists ⟨key, rev, st.hdr⟩, R
+    isplitl [HmyKey HmyRev Hmhdr]
+    · unfold mutexState; iframe
+    iframe HRR
+    isplitr
+    · iright
+      unfold keyRecreated
+      iexists s'
+      iframe Hs'
+      ipureintro; exact Hfin.2 (by assumption)
+    ipureintro; exact ⟨Hp.1, HlR⟩
 
 end proof
 

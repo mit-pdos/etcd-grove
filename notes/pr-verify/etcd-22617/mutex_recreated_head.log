@@ -1,0 +1,90 @@
+2026/10/24 05:57:20 Running tests (examples) in dir(/tmp/etcd-integration3734603607): ...
+=== RUN   TestMutexLockKeyRecreated
+2026/10/24 05:57:20 LazyIniting ...
+2026/10/24 05:57:20 the function can be called only in the test context. Was integration.BeforeTest() called ?
+2026/10/24 05:57:20 Creating listener with addr: 127.0.0.1:210023335457
+2026/10/24 05:57:20 Creating listener with addr: 127.0.0.1:210033335457
+2026/10/24 05:57:20 2026-10-24T05:57:20.404-0400	INFO	m0	feature gates: {map[LeaseCheckpoint:false LeaseCheckpointPersist:false]}	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.404-0400	INFO	m0	LISTEN GRPC	{"member": "m0", "grpcAddr": "localhost:m0", "m.Name": "m0", "workdir": "/tmp/etcd-integration3734603607"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.404-0400	INFO	m0	LISTEN GRPC SUCCESS	{"member": "m0", "grpcAddr": "unix://localhost:m0", "m.Name": "m0", "workdir": "/tmp/etcd-integration3734603607", "port": "m0"}
+2026/10/24 05:57:20 Launching new cluster...
+2026/10/24 05:57:20 2026-10-24T05:57:20.404-0400	INFO	m0	launching a member	{"member": "m0", "name": "m0", "advertise-peer-urls": ["unix://127.0.0.1:210023335457"], "listen-client-urls": ["unix://127.0.0.1:210033335457"], "grpc-url": "unix://localhost:m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.405-0400	INFO	m0	cleaned up all legacy v2 snapshot files	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.405-0400	INFO	m0.bbolt	Opening db file (/tmp/lazy_cluster2055623959/etcd3678720630/member/snap/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x23c776c903d8, NoStatistics: false}	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.405-0400	INFO	m0.bbolt	Opening bbolt db (/tmp/lazy_cluster2055623959/etcd3678720630/member/snap/db) successfully	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.405-0400	INFO	m0	opened backend db	{"member": "m0", "path": "/tmp/lazy_cluster2055623959/etcd3678720630/member/snap/db", "took": "328.129µs"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.405-0400	INFO	m0	restore consistentIndex	{"member": "m0", "index": 0}
+2026/10/24 05:57:20 2026-10-24T05:57:20.405-0400	INFO	m0	bootstrapping cluster	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.405-0400	INFO	m0	bootstrapping storage	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.435-0400	INFO	m0	bootstrapping raft	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.436-0400	INFO	m0	starting local member	{"member": "m0", "local-member-id": "307d0dfc1b2f183c", "cluster-id": "5296d99ce195fbf"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.436-0400	INFO	m0	bootstrap successfully	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.436-0400	INFO	m0.raft	307d0dfc1b2f183c switched to configuration voters=()	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.436-0400	INFO	m0.raft	307d0dfc1b2f183c became follower at term 0	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.436-0400	INFO	m0.raft	newRaft 307d0dfc1b2f183c [peers: [], term: 0, commit: 0, applied: 0, lastindex: 0, lastterm: 0]	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.436-0400	INFO	m0.raft	307d0dfc1b2f183c became follower at term 1	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.436-0400	INFO	m0.raft	307d0dfc1b2f183c switched to configuration voters=(307d0dfc1b2f183c)	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.436-0400	WARN	m0	simple token is not cryptographically signed	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.438-0400	INFO	m0	kvstore restored	{"member": "m0", "current-rev": 1}
+2026/10/24 05:57:20 2026-10-24T05:57:20.438-0400	INFO	m0	enabled backend quota with default value	{"member": "m0", "quota-name": "v3-applier", "quota-size-bytes": 2147483648, "quota-size": "2.1 GB"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.438-0400	INFO	m0	starting etcd server	{"member": "m0", "local-member-id": "307d0dfc1b2f183c", "local-server-version": "3.8.0-alpha.0", "cluster-version": "to_be_decided"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.438-0400	INFO	m0	grpc service status changed	{"member": "m0", "service": "", "status": "SERVING"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.438-0400	INFO	m0	started as single-node; fast-forwarding election ticks	{"member": "m0", "local-member-id": "307d0dfc1b2f183c", "forward-ticks": 9, "forward-duration": "90ms", "election-ticks": 10, "election-timeout": "100ms"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.438-0400	INFO	m0	started to purge file	{"member": "m0", "dir": "/tmp/lazy_cluster2055623959/etcd3678720630/member/snap", "suffix": "snap.db", "max": 5, "interval": "30s"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.439-0400	INFO	m0.raft	307d0dfc1b2f183c switched to configuration voters=(307d0dfc1b2f183c)	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.439-0400	INFO	m0	added member	{"member": "m0", "cluster-id": "5296d99ce195fbf", "local-member-id": "307d0dfc1b2f183c", "added-peer-id": "307d0dfc1b2f183c", "added-peer-peer-urls": ["unix://127.0.0.1:210023335457"], "added-peer-is-learner": false}
+2026/10/24 05:57:20 2026-10-24T05:57:20.442-0400	INFO	m0	launched a member	{"member": "m0", "name": "m0", "advertise-peer-urls": ["unix://127.0.0.1:210023335457"], "listen-client-urls": ["unix://127.0.0.1:210033335457"], "grpc-url": "unix://localhost:m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.487-0400	INFO	m0.raft	307d0dfc1b2f183c is starting a new election at term 1	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.487-0400	INFO	m0.raft	307d0dfc1b2f183c became pre-candidate at term 1	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.487-0400	INFO	m0.raft	307d0dfc1b2f183c received MsgPreVoteResp from 307d0dfc1b2f183c at term 1	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.487-0400	INFO	m0.raft	307d0dfc1b2f183c has received 1 MsgPreVoteResp votes and 0 vote rejections	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.487-0400	INFO	m0.raft	307d0dfc1b2f183c became candidate at term 2	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.487-0400	INFO	m0.raft	307d0dfc1b2f183c received MsgVoteResp from 307d0dfc1b2f183c at term 2	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.487-0400	INFO	m0.raft	307d0dfc1b2f183c has received 1 MsgVoteResp votes and 0 vote rejections	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.487-0400	INFO	m0.raft	307d0dfc1b2f183c became leader at term 2	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.487-0400	INFO	m0.raft	raft.node: 307d0dfc1b2f183c elected leader 307d0dfc1b2f183c at term 2	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.488-0400	INFO	m0	setting up initial cluster version using v3 API	{"member": "m0", "cluster-version": "3.8"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.489-0400	INFO	m0	published local member to cluster through raft	{"member": "m0", "local-member-id": "307d0dfc1b2f183c", "local-member-attributes": "{Name:m0 ClientURLs:[unix://127.0.0.1:210033335457]}", "cluster-id": "5296d99ce195fbf", "publish-timeout": "5.2s"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.489-0400	INFO	m0	set initial cluster version	{"member": "m0", "cluster-id": "5296d99ce195fbf", "local-member-id": "307d0dfc1b2f183c", "cluster-version": "3.8"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.489-0400	INFO	m0	enabled capabilities for version	{"member": "m0", "cluster-version": "3.8"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.490-0400	INFO	m0	cluster version is updated	{"member": "m0", "cluster-version": "3.8"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.490-0400	WARN	m0	Failed to detect schema version	{"member": "m0", "error": "missing term information"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.490-0400	ERROR	m0	failed to update storage version	{"member": "m0", "cluster-version": "3.8.0", "error": "cannot detect storage schema version: missing term information"}
+2026/10/24 05:57:20  - m0 -> 307d0dfc1b2f183c (unix://localhost:m0)
+2026/10/24 05:57:20 LazyIniting [Done]
+    logger.go:146: 2026-10-24T05:57:20.491-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.Lease/LeaseGrant", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.495-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.Lease/LeaseGrant", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.496-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.Lease/LeaseGrant", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.497-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.499-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.500-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.501-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.501-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/DeleteRange", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.502-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.503-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.503-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.504-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.504-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/DeleteRange", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.538-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.538-0400	DEBUG	client	sending watch cancel request for closed watcher	{"watch-id": 1}
+    logger.go:146: 2026-10-24T05:57:20.538-0400	DEBUG	client	sending watch cancel request for closed watcher	{"watch-id": 2}
+    logger.go:146: 2026-10-24T05:57:20.538-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.539-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.539-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.540-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/DeleteRange", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.540-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.540-0400	DEBUG	client	sending watch cancel request for closed watcher	{"watch-id": 3}
+    logger.go:146: 2026-10-24T05:57:20.541-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.541-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.Lease/LeaseRevoke", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.542-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.Lease/LeaseRevoke", "attempt": 0}
+    logger.go:146: 2026-10-24T05:57:20.543-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x23c7775c8000/localhost:m0", "method": "/etcdserverpb.Lease/LeaseRevoke", "attempt": 0}
+--- PASS: TestMutexLockKeyRecreated (0.14s)
+PASS
+2026/10/24 05:57:20 Terminating...
+2026/10/24 05:57:20 2026-10-24T05:57:20.544-0400	INFO	m0	terminating a member	{"member": "m0", "name": "m0", "advertise-peer-urls": ["unix://127.0.0.1:210023335457"], "listen-client-urls": ["unix://127.0.0.1:210033335457"], "grpc-url": "unix://localhost:m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.544-0400	INFO	m0	server has stopped; stopping cluster version's monitor	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.544-0400	INFO	m0	server has stopped; stopping storage version's monitor	{"member": "m0"}
+2026/10/24 05:57:20 2026-10-24T05:57:20.569-0400	INFO	m0	terminated a member	{"member": "m0", "name": "m0", "advertise-peer-urls": ["unix://127.0.0.1:210023335457"], "listen-client-urls": ["unix://127.0.0.1:210033335457"], "grpc-url": "unix://localhost:m0"}
+2026/10/24 05:57:20 Closer...
+2026/10/24 05:57:20 Cleaning UP: /tmp/lazy_cluster2055623959
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.213s

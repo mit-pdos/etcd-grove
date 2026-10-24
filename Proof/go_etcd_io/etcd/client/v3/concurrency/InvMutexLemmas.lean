@@ -381,32 +381,30 @@ theorem deleteTxn_absent (pfx key : GoString) (r : w64) (s : List EtcdKv) :
     ipureintro; exact habs
 
 /-- **`Lock`'s last step.** `myKey` was created at `rev ≤ r ≤ R0`, `waitDeletes` saw no key
-created before `rev` at `R0`, and `myKey` is present at `R ≥ R0`: no key at `R` was created before
-`rev` (one would have been present at `R0`: `etcdState_create_persist`), so `myKey` holds the lock
-at `R` if it still has create revision `rev`, and was re-created otherwise. -/
+created before `rev` at `R0`, and `myKey` is present as `v` at `R ≥ R0`: no key at `R` was created
+before `rev` (one would have been present at `R0`: `etcdState_create_persist`), so `myKey` holds
+the lock at `R` if `v.createRev = rev`, and was re-created if `v.createRev ≠ rev`. -/
 theorem lock_final (pfx key : GoString) (rev r R0 R : w64) (s0 s : List EtcdKv)
     (hrev : 0 < sint.Z rev) (h1 : sint.Z rev ≤ sint.Z r) (h2 : sint.Z r ≤ sint.Z R0)
     (h3 : sint.Z R0 ≤ sint.Z R) (hn : ∀ v ∈ s0, sint.Z (rev - W64 1) < sint.Z v.createRev)
-    (hk : ∃ v ∈ s, v.key = key) :
+    (v : EtcdKv) (hv : v ∈ s) (hvk : v.key = key) :
     etcdState (GF := GF) R0 pfx s0 ∗ etcdState R pfx s ⊢
-      ⌜LockedState key rev s ∨ RecreatedState key rev s⌝ := by
+      ⌜(v.createRev = rev → LockedState key rev s) ∧
+       (v.createRev ≠ rev → RecreatedState key rev s)⌝ := by
   iintro ⟨Hs0, Hs⟩
   ihave %Hp := etcdState_create_persist R R0 pfx s s0 $$ [$Hs $Hs0]
   ipureintro
   have hr1 : sint.Z (rev - W64 1) = sint.Z rev - 1 := by word
-  have hmin : ∀ v ∈ s, sint.Z rev ≤ sint.Z v.createRev := by
-    intro v hv
+  have hmin : ∀ w ∈ s, sint.Z rev ≤ sint.Z w.createRev := by
+    intro w hw
     refine Int.not_lt.1 fun hlt => ?_
-    obtain ⟨v', hv', -, hc⟩ := Hp v hv (by omega) h3
+    obtain ⟨v', hv', -, hc⟩ := Hp w hw (by omega) h3
     have := hn v' hv'
     rw [hc] at this; omega
-  obtain ⟨v, hv, hvk⟩ := hk
-  by_cases hc : v.createRev = rev
-  · exact Or.inl ⟨⟨v, hv, hvk, hc⟩, hmin⟩
-  · refine Or.inr ⟨⟨v, hv, hvk, ?_⟩, hmin⟩
-    have := hmin v hv
-    have : sint.Z v.createRev ≠ sint.Z rev := fun e => hc (by word)
-    omega
+  refine ⟨fun hc => ⟨⟨v, hv, hvk, hc⟩, hmin⟩, fun hne => ⟨⟨v, hv, hvk, ?_⟩, hmin⟩⟩
+  have := hmin v hv
+  have : sint.Z v.createRev ≠ sint.Z rev := fun e => hne (by word)
+  omega
 
 end iprop
 

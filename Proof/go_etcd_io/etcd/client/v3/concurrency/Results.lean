@@ -7,8 +7,8 @@ base of each printed in the build log (`#print axioms`). Every function of `mute
   transaction's revision `r` (`lockedAt pfx key rev r`: present with create revision `rev`, no key
   under the prefix created earlier); `ErrLocked` means it deleted its key.
 * **`Lock`** (`mutex_Lock`): `nil` means `lockedAt pfx key rev R` at the revision `R` of its last
-  `Get` — or that the key was deleted and re-created since `rev` (`keyRecreated`), which `Lock`'s
-  last check (the key exists) cannot tell apart (see `Mutex__Lock`'s spec).
+  `Get` (`ErrSessionExpired` if the key is absent or was deleted and re-created since `rev`,
+  `keyRecreated`; see `Mutex__Lock`'s spec).
 * **`Unlock`** (`mutex_Unlock`): `nil` means the key is gone.
 * **`NewLocker`'s `Lock`/`Unlock`** (`locker_Lock`, `locker_Unlock`): `Mutex.Lock`/`Unlock` with
   the client's context; any error is a panic (`panic(err)`), the specs' panic outcome.

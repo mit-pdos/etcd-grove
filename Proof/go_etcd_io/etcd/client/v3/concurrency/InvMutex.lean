@@ -12,8 +12,8 @@ holds the lock; a waiter waits until every key created before its own is deleted
 
 **The ownership fact** `lockedAt pfx key c R` (persistent): at revision `R`, under `pfx`, `key` is
 present with create revision `c`, and every key present has a create revision at least `c`
-(`LockedState`). `TryLock` and `Lock` return it (`Lock` possibly the weaker `keyRecreated`, see its
-spec). **Mutual exclusion** (`lockedAt_exclusion`): two holders `(k1, c1)`, `(k2, c2)` with
+(`LockedState`). Both `TryLock` and `Lock` return it on `nil` (`Lock` returns `ErrSessionExpired`
+when `key` is absent or `keyRecreated`, see its spec). **Mutual exclusion** (`lockedAt_exclusion`): two holders `(k1, c1)`, `(k2, c2)` with
 `c1 ≠ c2` are never both present in a state at a revision at or after both `R`s. From the two
 history laws only (`etcdState_revs`, `etcdState_create_persist`): if both were present at `a`, the
 one created first (say `c1 < c2`) was present at `R2` (its creation `c1 < c2 ≤ R2 ≤ a`), with a
