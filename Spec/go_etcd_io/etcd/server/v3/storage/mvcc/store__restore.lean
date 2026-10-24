@@ -46,8 +46,9 @@ some).
   revision of `R` has an entry), under `s.revMu`, which `restore` locks once: the caller gives the
   lock's protocol, `RevP` before, its part `q2` of `currentRev` (at `1`) with `RevK` once locked,
   `RevQ` once unlocked with it at `|L'| - 1`, the view `restore` read through (idle after its
-  `RLock`) and the index's lock with every reader's token (made before: `store.Restore` refills its
-  readers' pool from them there); `restore` holds the other part `q1` and a part of
+  `RLock`), the index's lock with every reader's token (made before: `store.Restore` refills its
+  readers' pool from them there) and the restored log's changes below the time receipts' bound (the
+  rebuild's receipts: `store.Restore` certifies `L'` there); `restore` holds the other part `q1` and a part of
   `compactMainRev` (`-1`), which it reads outside the lock too (`NewStore`:
   private memory, `PlainRWMutex.lean`; `store.Restore`: the lock in restoring mode, the restore
   plan's R5e).
@@ -77,7 +78,8 @@ abbrev mvcc.store.restore.spec : Prop :=
       mvcc.revUnlockW s q2 ([[], []] ++ R) RevK
         iprop(mvcc.restoreViewOut γ q R ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx)) RevQ }}
+            mvcc.idxReader ti γ.idx) ∗
+          ⌜mvcc.logCh ([[], []] ++ R) < receiptBound GF⌝) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
   {{ RET #GoInterface.nil; RT ∗
       ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗

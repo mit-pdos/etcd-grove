@@ -30,10 +30,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- The initial log's bucket is empty. -/
-theorem mvcc.bucketMap_init : mvcc.bucketMap [[], []] = (∅ : mvcc.Bucket) := by
-  simp [mvcc.bucketMap, mvcc.bucketOf, mvcc.bucketOfRev]; rfl
-
 /-- One of the reader slots of a lock, and the rest back from it. -/
 theorem mvcc.slot_take (Q : IProp GF) :
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), Q) ⊢
@@ -85,23 +81,6 @@ theorem mvcc.ownToks_ones (γ : GName) : ∀ (n : Nat),
     iframe H1
     iapply mvcc.ownToks_ones γ n
     iexact Hn
-
-/-- The slots of the index's lock, with the backend's reader tokens, as the readers' pool's (D22
-receiver epochs, S4; S5a: with the tokens; S5b: of the objects `o`). -/
-theorem mvcc.idxSlots_of (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) : ∀ (n : Nat),
-    ([∗list] _x ∈ List.replicate n (), mvcc.idxReader (GF := GF) o.ti γ.idx) ∗
-      ([∗list] _x ∈ List.replicate n (), mvcc.storeRT γ) ⊢
-      [∗list] _x ∈ List.replicate n (), mvcc.idxSlot γ o
-  | 0 => by rw [List.replicate_zero]; iintro _; iapply BigSepL.bigSepL_nil_intro; iempintro
-  | n + 1 => by
-    rw [List.replicate_succ]
-    iintro ⟨Hi, Ht⟩
-    icases BigSepL.bigSepL_cons.1 $$ Hi with ⟨Hi1, Hi⟩
-    icases BigSepL.bigSepL_cons.1 $$ Ht with ⟨Ht1, Ht⟩
-    iapply BigSepL.bigSepL_cons.2
-    isplitl [Hi1 Ht1]
-    · iunfold mvcc.idxSlot; iframe Hi1 Ht1
-    · iapply mvcc.idxSlots_of γ o n; iframe Hi Ht
 
 theorem mvcc.NewStore.wp_proof
     (hNop : zap.NewNop.spec (GF := GF) (hG := hG))
@@ -220,19 +199,21 @@ theorem mvcc.NewStore.wp_proof
   -- (S5a) the watchable store's deposit ghost, and the tickets out under its lock
   imod ghostVar_alloc (GF := GF) () with ⟨%γwsd, Hwsd⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γtkw, Htkwa⟩
+  -- (the restore plan's R5e) the retired tickets: none
+  imod ownTokAuth_alloc (GF := GF) with ⟨%γtkr, Htkra⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw⟩ :
+      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
-      γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw :=
+      γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
-        γwsd, γtkw⟩,
+        γwsd, γtkw, γtkr⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl⟩
+      rfl, rfl, rfl, rfl⟩
   rw [← hγrst] at *
-  rw [← hγtk, ← hγtko, ← hγtkw]
+  rw [← hγtk, ← hγtko, ← hγtkw, ← hγtkr]
   ihave Hwsd : mvcc.wsDep γ $$ [Hwsd]
   · iunfold mvcc.wsDep; rw [hγwsd]; iexact Hwsd
   rw [← hγwr] at *
@@ -400,7 +381,7 @@ theorem mvcc.NewStore.wp_proof
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
         iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx)))
+            mvcc.idxReader ti γ.idx) ∗ ⌜mvcc.logCh ([[], []] : mvcc.Log) < receiptBound GF⌝))
       (DFrac.own 1) (1 : Qp).half (1 : Qp).half mvcc.restoreLogOk_nil (Qp.half_add_half 1)
   simp only [List.append_nil] at hR
   icases mvcc.idxWriter_lb γ.idx [[], []] $$ Hiw with ⟨Hiw, #Hiwlb⟩
@@ -421,12 +402,12 @@ theorem mvcc.NewStore.wp_proof
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ rwW)
       iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx))
+            mvcc.idxReader ti γ.idx) ∗ ⌜mvcc.logCh ([[], []] : mvcc.Log) < receiptBound GF⌝)
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
         iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-            mvcc.idxReader ti γ.idx))) $$ []
+            mvcc.idxReader ti γ.idx) ∗ ⌜mvcc.logCh ([[], []] : mvcc.Log) < receiptBound GF⌝)) $$ []
   · iunfold mvcc.revUnlockW
     rw [show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl]
     iintro %Ψ Hc HrevMu Hv HΨ
@@ -435,7 +416,7 @@ theorem mvcc.NewStore.wp_proof
     iframe HrevMu Hc Hv
   wp_apply hR
       $$ [$Hbv2 $Hrt1 $HcurA $compactMainRev $revMu $HcurB $HLk $HUl $Hncmp $b $kvindex $Hix $Hig $Hiwlb]
-      as ⟨Hrt1, -, ⟨revMu, HcurB, Hbv2, #Hti, Hird⟩, HcurA, compactMainRev, b, kvindex⟩
+      as ⟨Hrt1, -, ⟨revMu, HcurB, Hbv2, #Hti, Hird, -⟩, HcurA, compactMainRev, b, kvindex⟩
   · iframe #; ipureintro; exact Hlgnn
   ihave Hbv2 : mvcc.bucketView (GF := GF) γ (1 : Qp).half ∅ $$ [Hbv2]
   · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv2
@@ -454,13 +435,10 @@ theorem mvcc.NewStore.wp_proof
     ipureintro
     exact ⟨by simp, by simp⟩
   -- (S6) the writer's state with the store registered
-  imod (inv_alloc mvcc.writerN ⊤ iprop(∃ (p : mvcc.PhysNames) (o : mvcc.StoreObjs),
-      mvcc.curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (mvcc.writerL «$r0_ptr» (γ.withPhys p) ∗ mvcc.writerReg «$r0_ptr» (γ.withPhys p) ∨
-        mvcc.writerKey (γ.withPhys p) ∗ mvcc.wDep γ ∗ mvcc.storeRegd «$r0_ptr» (γ.withPhys p) ∨
-        ghostVar γ.wr 1 () ∗ ∃ h : List mvcc.HistItem, monoListAuthOwn γ.idx.hist 1 h)))
+  imod (inv_alloc mvcc.writerN ⊤ (mvcc.writerInvBody «$r0_ptr» γ))
     $$ [HL HcurWi] with #Hwi
-  · inext; iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft; iframe HL
+  · inext; iunfold mvcc.writerInvBody; ileft
+    iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft; iframe HL
     iunfold mvcc.writerReg; ileft; iexact Hregd
   ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
   · iunfold mvcc.writerInv; iexact Hwi
@@ -470,15 +448,15 @@ theorem mvcc.NewStore.wp_proof
   · iframe Hird Hrts
   imod (inv_alloc mvcc.poolN ⊤ iprop(∃ (p : mvcc.PhysNames) (o : mvcc.StoreObjs),
       mvcc.curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗ mvcc.poolBody (γ.withPhys p) o))
-    $$ [Htka Htkoa Htkwa Hslots HcurPool] with #Hpool
+    $$ [Htka Htkoa Htkwa Htkra Hslots HcurPool] with #Hpool
   · inext
     iexists γ.phys, _
     rw [mvcc.StoreNames.withPhys_self]
     iframe HcurPool
     iunfold mvcc.poolBody
-    iexists mvcc.nReaders, 0, 0
+    iexists mvcc.nReaders, 0, 0, 0
     rw [List.replicate_zero]
-    iframe Htka Htkoa Htkwa Hslots
+    iframe Htka Htkoa Htkwa Htkra Hslots
     isplitl []
     · iapply BigSepL.bigSepL_nil_intro; iempintro
     isplitl []

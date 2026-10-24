@@ -263,8 +263,9 @@ theorem mvcc.store.restore.wp_proof
       wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
         #(s.[store, go!"revMu"]))) (Val #()))
       icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
+      icases persistent_entails_left (receipt_lt _) $$ Hlc with ⟨Hlc, %Hrb⟩
       iapply HUl $$ Hcur2 HRevK [Hbv Hrd]
-      · iframe Hbv Hrd; iexact Hti
+      · iframe Hbv Hrd; iframe Hti; ipureintro; exact Hrb
       inext
       iintro HRevQ
       (try wp_auto)
@@ -419,8 +420,9 @@ theorem mvcc.store.restore.wp_proof
       wp_bind (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"Unlock"
         #(s.[store, go!"revMu"]))) (Val #()))
       icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
+      icases persistent_entails_left (receipt_lt _) $$ Hlc with ⟨Hlc, %Hrb⟩
       iapply HUl $$ Hcur2 HRevK [Hbv Hrd]
-      · iframe Hbv Hrd; iexact Hti
+      · iframe Hbv Hrd; iframe Hti; ipureintro; exact Hrb
       inext
       iintro HRevQ
       (try wp_auto)
@@ -718,8 +720,9 @@ theorem mvcc.store.restore.wp_proof
   icases (mvcc.typedPointsto_parts _ _ q1 q2 hq12).1 $$ Hcur with ⟨Hcur1, Hcur2⟩
   ihave Hview : mvcc.restoreViewOut (GF := GF) γ q [] $$ [Hbv]
   · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv
+  icases persistent_entails_left (receipt_lt _) $$ Hlc with ⟨Hlc, %Hrb⟩
   iapply HUl $$ Hcur2 HRevK [Hview Hrd]
-  · iframe Hview Hrd; iexact Hti
+  · iframe Hview Hrd; iframe Hti; ipureintro; exact Hrb
   inext
   iintro HRevQ
   (try wp_auto)
