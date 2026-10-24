@@ -28,10 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`a.Authenticate(r)`**: the auth store's `Authenticate` at a context carrying the consistent index and the simple token's prefix; the response's `Header` set if any. -/
 abbrev apply.applierV3backend.Authenticate.spec : Prop :=
-  ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
+  ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      (∃ am : AuthenticateModel, apply.authenticateIs r am) ∗
-      apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ ∗
+      ((∃ am : AuthenticateModel, apply.authenticateIs r am) ∗ E.RW) ∗
+      apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗
       apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Authenticate")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}

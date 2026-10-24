@@ -1,7 +1,10 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-10-23
 links:
+  - etcd-io/etcd#12196 pr merged: added cancellableContext (the window dates from it); not about the Err/Done order
+  - golang/go#75533 issue closed: the same Err-before-Done window in Go's own cancelCtx, fixed by golang/go@8ca209ec39
+candidate: issues/upstream/etcd-stream-interceptor-err-before-done/
 ---
 
 # The stream interceptor's cancellable context reports an error before it is done
@@ -125,6 +128,8 @@ func TestCancellableContextErrBeforeDone(t *testing.T) {
   reason is reported only once the context is done (the reason is stored before the cancel, so it
   is visible by then). Or use Go 1.20's `context.WithCancelCause(parent)` and
   `context.Cause(ctx)`, which store the cause and close `Done` atomically, and drop the wrapper's
-  lock.
+  lock. The upstream candidate (`issues/upstream/etcd-stream-interceptor-err-before-done/`) takes the
+  smallest: `Cancel` calls `c.cancel()` before releasing its lock, as Go's `cancelCtx` closes `Done` under its
+  mutex (Go fixed the same window in its own contexts: golang/go#75533).
 - **Found**: 2026-10-15, the watch slice's unit W-W (the stream interceptor), while specifying
   the require-leader branch against Perennial's `context.isContext`.

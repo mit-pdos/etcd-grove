@@ -85,7 +85,10 @@ transaction that has `abc` too, and `UnsafeRange` returns bolt's entries followe
   single-key `UnsafeRange` (the buffer's entry first, so a revision committed and still in the stale copy reads the
   same value), its writers hold `revMu` exclusively over the batch `Unlock` (so no reader caches between the
   write-back and the commit of an mvcc write), and the pre-commit hook writes only `Meta`. So no wrong mvcc or API
-  result is known; the stale copy can still return revisions that compaction deleted, but the index no longer
-  names them. The deterministic case does happen in a running server (a read after a write, then the periodic
+  result is known. The stale copy cannot hold revisions that compaction deleted: `updateCompactRev` writes the
+  scheduled-compact mark and force-commits under `revMu` held exclusively before any delete, so every revision at or
+  below the compaction revision is committed and out of the read buffer before a reader can cache it (checked
+  2026-10-23 by a 2000-trial mvcc test at `3aaab3479`: no compacted revision readable, no wrong result). The
+  deterministic case does happen in a running server (a read after a write, then the periodic
   commit); it is harmless there only because of the single-key reads.
 - Backports: not checked or run on release branches.

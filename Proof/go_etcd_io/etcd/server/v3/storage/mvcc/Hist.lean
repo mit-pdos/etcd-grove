@@ -852,7 +852,7 @@ def rangeEntries (L : List IdxEntry) (k e : GoString) : List IdxEntry :=
   L.filter fun z => inRange k e z.2.1
 
 /-- The keys of `idx` in `[k, e)` that have an answer at `atRev`, with it, in key order. -/
-def rangeAt (idx : IndexM) (k e : GoString) (atRev : w64) : List (GoString × Rev × Rev × w64) :=
+def rangeAt (idx : IndexM) (k e : GoString) (atRev : w64) : List (GoString × Rev × w64 × w64) :=
   (idx.filter fun z => inRange k e z.1).filterMap fun z => (kiGet z.2 atRev).map fun r => (z.1, r)
 
 /-- `limit`, if positive. -/
@@ -1222,7 +1222,7 @@ theorem takeWhile_getElem? {α : Type} (p : α → Bool) : ∀ (G : List α) (i 
 
 /-- The answers of a range read of the certified `log` (`end == nil`: the one key). -/
 def rangeAnswers (log : Log) (endNil : Bool) (k e : GoString) (atRev : w64) :
-    List (GoString × Rev × Rev × w64) :=
+    List (GoString × Rev × w64 × w64) :=
   if endNil then
     match kiGet (kiOfKey (evsOf log) k) atRev with
     | some r => [(k, r)]
@@ -1231,7 +1231,7 @@ def rangeAnswers (log : Log) (endNil : Bool) (k e : GoString) (atRev : w64) :
 
 /-- The answers `Revisions`/`Range` return (at most the limit), and the count. -/
 def rangeTaken (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64) :
-    List (GoString × Rev × Rev × w64) :=
+    List (GoString × Rev × w64 × w64) :=
   if endNil then rangeAnswers log endNil k e atRev
   else takeLimit (limitOf limit) (rangeAnswers log endNil k e atRev)
 
@@ -1244,7 +1244,7 @@ def rangeTotal (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64) 
 
 /-- The answers at `atRev` among entries, with their keys (what the visitors of `Revisions`,
 `CountRevisions` and `Range` accumulate). -/
-def entryAnswers (G : List IdxEntry) (atRev : w64) : List (GoString × Rev × Rev × w64) :=
+def entryAnswers (G : List IdxEntry) (atRev : w64) : List (GoString × Rev × w64 × w64) :=
   G.filterMap fun z => (kiGet z.2.2 atRev).map fun r => (z.2.1, r)
 
 theorem rangeAt_entries (L : List IdxEntry) (k e : GoString) (atRev : w64) :

@@ -152,7 +152,7 @@ theorem rafthttp.Transport.AddPeer_core
     | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
     | (wp_apply hProber $$ [Hus] as Hus; iframe Hus)
     | (wp_apply hZString as %_ -)
-    | (wp_apply hZStrings _ us dq ss $$ [Hus] as %_ Hus; iframe Hus)
+    | (wp_apply hZStrings _ us as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
     | (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
@@ -292,7 +292,7 @@ theorem rafthttp.Transport.AddRemote_core
     | (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
     | (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
     | (wp_apply hZString as %_ -)
-    | (wp_apply hZStrings _ us dq ss $$ [Hus] as %_ Hus; iframe Hus)
+    | (wp_apply hZStrings _ us as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
     | (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))

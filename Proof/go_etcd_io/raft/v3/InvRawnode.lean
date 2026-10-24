@@ -598,10 +598,10 @@ def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
   (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
   -- (2026-10-17) a pre-vote request from another node
   (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id) ∧
-  -- (2026-10-22, D33a) no responses (what raft forwards must have none, `raft.Step`'s `Hnors`)
+  -- (2026-10-22, D38a) no responses (what raft forwards must have none, `raft.Step`'s `Hnors`)
   st.resps = []
 
-/-- (2026-10-22, D33a) A network message has no responses. -/
+/-- (2026-10-22, D38a) A network message has no responses. -/
 theorem NetMsgOk.resps {id : w64} {st : MsgSt} (h : NetMsgOk id st) : st.resps = [] := by
   unfold NetMsgOk at h; exact h.2.2.2.2.2.2.2
 
@@ -1231,7 +1231,7 @@ S-c) in the no-transfer mode alone: its types exclude the transfer messages (adm
 (`NGhost.bt`, `XfOk`; until S-c the no-snapshot mode's). (2026-10-20, D22 S-b′3) Certified
 (`isMessageC`): a `MsgSnap` carries its snapshot's configuration certificate (`raftSnapCert`),
 which the `Ready` took from the storage's registry (`qSrc`, `certLink`). (2026-10-21, D22 S-r)
-And its snapshot's data certificate (`msgDat`), from the same registry. (2026-10-22, D33a) In every
+And its snapshot's data certificate (`msgDat`), from the same registry. (2026-10-22, D38a) In every
 mode, no responses, and a `MsgApp` from the node `id` that sent it (`AppFrom`; `XfOk`), so that a
 transport can marshal it (`MsgMarshals`) and the msgappv2 codec carry it. -/
 def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=

@@ -8,9 +8,8 @@ public import Code.go_etcd_io.etcd.api.v3.version
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.version.Assumptions]
 
-instance Versions_typed_pointsto :
+noncomputable instance Versions_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.version.Versions where
   typedPointstoDef l v dq := iprop(
     "Server" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Server" l) v.Server' dq ∗
@@ -36,11 +35,11 @@ instance Versions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Versions_into_val_typed :
+noncomputable instance Versions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.version.Versions go_etcd_io.etcd.api.v3.version.Versions.underlying := by
   solve_into_val_typed_struct
 
-instance Versions_access_load_Server (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (dq : DFrac) :
+noncomputable instance Versions_access_load_Server (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Server" l) v.Server' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Server" l) v.Server' dq)
@@ -48,7 +47,7 @@ instance Versions_access_load_Server (l : Loc) (v : go_etcd_io.etcd.api.v3.versi
  by
   solve_pointsto_access_struct
 
-instance Versions_access_store_Server (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (Server' : GoString) :
+noncomputable instance Versions_access_store_Server (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (Server' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Server" l) v.Server' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Server" l) Server' (DFrac.own 1))
@@ -56,7 +55,7 @@ instance Versions_access_store_Server (l : Loc) (v : go_etcd_io.etcd.api.v3.vers
  by
   solve_pointsto_access_struct
 
-instance Versions_access_load_Cluster (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (dq : DFrac) :
+noncomputable instance Versions_access_load_Cluster (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Cluster" l) v.Cluster' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Cluster" l) v.Cluster' dq)
@@ -64,7 +63,7 @@ instance Versions_access_load_Cluster (l : Loc) (v : go_etcd_io.etcd.api.v3.vers
  by
   solve_pointsto_access_struct
 
-instance Versions_access_store_Cluster (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (Cluster' : GoString) :
+noncomputable instance Versions_access_store_Cluster (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (Cluster' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Cluster" l) v.Cluster' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Cluster" l) Cluster' (DFrac.own 1))
@@ -72,7 +71,7 @@ instance Versions_access_store_Cluster (l : Loc) (v : go_etcd_io.etcd.api.v3.ver
  by
   solve_pointsto_access_struct
 
-instance Versions_access_load_Storage (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (dq : DFrac) :
+noncomputable instance Versions_access_load_Storage (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Storage" l) v.Storage' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Storage" l) v.Storage' dq)
@@ -80,7 +79,7 @@ instance Versions_access_load_Storage (l : Loc) (v : go_etcd_io.etcd.api.v3.vers
  by
   solve_pointsto_access_struct
 
-instance Versions_access_store_Storage (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (Storage' : GoString) :
+noncomputable instance Versions_access_store_Storage (l : Loc) (v : go_etcd_io.etcd.api.v3.version.Versions) (Storage' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Storage" l) v.Storage' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.version.Versions go!"Storage" l) Storage' (DFrac.own 1))

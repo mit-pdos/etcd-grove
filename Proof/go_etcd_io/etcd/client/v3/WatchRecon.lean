@@ -74,30 +74,6 @@ theorem ptsto_w64_half_whole (l : Loc) (v1 v2 : w64) :
   have : (1 / 2 : Rat) + 1 ≤ 1 := h
   grind
 
-/-- A `w64` field in two halves. -/
-theorem ptsto_w64_halves (l : Loc) (v : w64) :
-    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
-      typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
-        typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) := by
-  have h := typedPointsto_frac_add (GF := GF) l v (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at h
-  exact h.1
-
-/-- Two halves of a `Loc` field: the same value, the whole field. -/
-theorem ptsto_loc_combine (l v1 v2 : Loc) :
-    typedPointsto (GF := GF) l v1 (DFrac.own (1 : Qp).half) ∗
-      typedPointsto (GF := GF) l v2 (DFrac.own (1 : Qp).half) ⊢
-      ⌜v1 = v2⌝ ∗ typedPointsto (GF := GF) l v1 (DFrac.own 1) := by
-  iintro ⟨H1, H2⟩
-  icombine H1 H2 gives %Heq
-  subst Heq
-  isplitr
-  · ipureintro; rfl
-  have h := typedPointsto_frac_add (GF := GF) l v1 (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at h
-  iapply h.2
-  iframe
-
 /-- **A live substream across a reconnection** (its goroutine resumed: its state `wsRun`, its flag
 `γx` still `false`): `run`'s state of the new stream, queued (a queued substream's as it was; a
 registered one's from its resume revision, the registration's base the resume revision and the
@@ -164,7 +140,7 @@ theorem recon_alive (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.
     -- the next lifetime's start, at `recvc`'s position
     imod ghost_map_insert_persist sent.length true (HM sent.length (Nat.le_refl _)) $$ Hpa
       with ⟨Hpa, #Hls'⟩
-    icases ptsto_w64_halves _ _ $$ Hrev with ⟨Hrev1, Hrev2⟩
+    icases (typedPointsto_half_split _ _ 1).1 $$ Hrev with ⟨Hrev1, Hrev2⟩
     imodintro
     iexists sent.length, nr, sent
     iframe Hgx
@@ -246,14 +222,6 @@ theorem recon_alive (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.
       ileft; iframe Hrev; ipureintro; exact ⟨Hk0, rfl⟩
     ipureintro; exact Hk0
 
-/-- A `w64` field at any fraction, in two halves of it. -/
-theorem ptsto_w64_split (l : Loc) (v : w64) (q : Qp) :
-    typedPointsto (GF := GF) l v (DFrac.own q) ⊢
-      typedPointsto (GF := GF) l v (DFrac.own q.half) ∗ typedPointsto (GF := GF) l v (DFrac.own q.half) := by
-  have h := typedPointsto_frac_add (GF := GF) l v q.half q.half
-  rw [Qp.half_add_half] at h
-  exact h.1
-
 /-- **A substream stopped for good across a reconnection**: `run`'s state of the new stream, queued
 (a queued substream's as it was; a registered one's, stopped, from the resume revision its
 goroutine left, with part of the request's `rev` field), what its goroutine left kept. -/
@@ -280,7 +248,7 @@ theorem recon_dead (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.W
     ihave #Hrs' := Hrs
     iunfold resumeOk at Hrs'
     icases Hrs' with ⟨%Hrsp', #Hso'⟩
-    icases ptsto_w64_split _ _ _ $$ Hrev with ⟨Hrev1, Hrev2⟩
+    icases (typedPointsto_half_split _ _ _).1 $$ Hrev with ⟨Hrev1, Hrev2⟩
     isplitl [Hprod Hauth Hauth2 Hrev1]
     · iright
       iframe Hx

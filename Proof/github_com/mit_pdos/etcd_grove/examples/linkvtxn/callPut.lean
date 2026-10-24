@@ -7,6 +7,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.callPut
 public import Perennial.Proof.context.Link
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -31,22 +32,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
 
-theorem callPut.wp_proof : callPut.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V hAs key val Q
+theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
+    callPut.spec (GF := GF) (hG := hG) := by
+  intro _ CRE CEC cl ms V hAs key val Q
   wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
   wp_auto
   wp_apply context.wp_Background
-  imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+    as %cctx %ccd %ccancel ⟨#Hccancel, #Hcctx, #Hcce, -⟩
   imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
   ihave #Hrr := client.kvRegs_put ms $$ Hregs
   ihave #Hst' := client.srvStart_idx ms $$ Hst
-  wp_apply (client.client_Put_st cl ms V context.backgroundCtxVal cd key val slice.nil Q) $$ [Hau]
+  wp_apply (client.client_Put_st cl ms V cctx ccd key val slice.nil Q) $$ [Hau]
     as %resp %err Hout
   · iframe #
     iexact Hau
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | %Herr)
+  -- `cancel()`
+  (try wp_auto)
+  wp_apply Hccancel
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨hrev, hb⟩ := Hσ
     iunfold putRespMsg at Hm

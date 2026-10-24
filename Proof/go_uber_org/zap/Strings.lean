@@ -20,8 +20,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **Trust boundary** (rafthttp stage 6c): zap's `Strings` (`array.go`) wraps the slice in a
-field (`zapcore.ArrayMarshaler`), reading nothing; the logger reads the strings while logging. -/
 axiom zap.Strings.wp_proof : zap.Strings.spec (GF := GF) (hG := hG)
 
 end proof

@@ -138,7 +138,7 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     · rw [← Hst']; iapply msgPtsC_cap_any $$ Hm
     isplitr
     · ipureintro
-      -- (D33a) the copy is the message: it has no responses, nor had the message
+      -- (D38a) the copy is the message: it has no responses, nor had the message
       have Hn := NetMsgOk.of_sent Hsent Hto Hp
       have Hsr : st.resps = [] := by unfold SentMsgOk at Hsent; exact Hsent.2.2.2.2.2.2
       have Hcopy : ({ st with resps := st'.resps } : MsgSt) = st := by

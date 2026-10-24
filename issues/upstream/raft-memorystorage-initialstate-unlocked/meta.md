@@ -14,7 +14,8 @@ with a writer; no client request reaches it (raft calls `InitialState` once, in 
   two commits: ecb890e `raft: test InitialState concurrent with SetHardState` adds the test, which fails there
   under `-race`; 15190e3 `raft: take the lock in MemoryStorage.InitialState` is the fix (body: "Reading the initial
   state did not hold the mutex that guards the storage.").
-- **Base**: upstream `main` 1931ff5beacc1e2539003c0c70f096285f04c425 (2026-10-21, the merge of #536)
+- **Base**: upstream `main` 1931ff5beacc1e2539003c0c70f096285f04c425 (2026-10-21, the merge of #536; still
+  `main` on 2026-10-23, so the branch was not rebuilt; not pushed: `git ls-remote origin` has no such branch)
 - **State**: draft (not pushed, not filed).
 - **Changelog**: none. A race fix in a stable release's code, like etcd-io/raft#441 (the analogous
   `EnsureSnapshot` race, cherry-picked to release-3.7 as #442), which the maintainers will backport; per the
@@ -30,6 +31,11 @@ and PRs: `MemoryStorage InitialState` (#14533, protobuf cleanup, unrelated), `In
 No open raft PR touches `InitialState` (the list of open PRs, 2026-10-21). Related, not this bug:
 etcd-io/raft#441 (merged), after fuweid's review of etcd-io/etcd#21778 reported a race in `ApplySnapshot`'s
 `EnsureSnapshot` writing the caller's snapshot.
+
+Re-checked 2026-10-23: etcd-io/raft `InitialState` (only #423/#431/#432, closed protobuf migrations),
+`MemoryStorage race` (only #435), `MemoryStorage lock` open (none); etcd-io/etcd `InitialState race` (#21662,
+unrelated). The open raft PRs (list of 2026-10-23: dependency bumps, TLA+ work, #96 memory deallocation of stable
+entries, ...) do not touch `InitialState`.
 
 ## Why the fix works
 
@@ -95,8 +101,13 @@ test_amd64.yaml` runs target `linux-amd64-unit-4-cpu-race`, which `test_template
   detector; raft's CI runs it with `-race`, above).
 - Fix commit 15190e3: `go test -race -count=20 -run TestStorageInitialStateConcurrent .` ok; `go test -race -count=1 ./...` ok (raft, confchange, quorum,
   raftpb, rafttest, tracker); `gofmt -l .` empty; `go vet ./...` clean.
+- Rerun 2026-10-23 (same toolchain, same commits): at ecb890e `go test -race -count=1 -run
+  TestStorageInitialStateConcurrent .` reports the same race (write storage.go:140 in `SetHardState`, read
+  storage.go:133 in `InitialState`), and the `-race` binary fails 20/20; at 15190e3 the test passes (`-count=20`),
+  `go test -race -count=1 ./...` ok in all six packages, `gofmt -l .` empty, `go vet ./...` clean.
 - `check.py`: one WARN, the issue names `InitialState`; kept, as it is the exported `Storage` method the
-  application calls and the symptom is about.
+  application calls and the symptom is about. Since the issue's free-form rewrite with the cause (2026-10-23
+  review), no WARN: a raft issue names the code it explains.
 
 ## Review
 

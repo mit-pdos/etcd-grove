@@ -16,50 +16,49 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.client.v3.experimental.recipes : GoString := go!"go.etcd.io/etcd/client/v3/experimental/recipes"
+noncomputable def go_etcd_io.etcd.client.v3.experimental.recipes : GoString := go!"go.etcd.io/etcd/client/v3/experimental/recipes"
 end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.experimental.recipes
 
-def Barrier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Barrier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/experimental/recipes.Barrier" [])
 
 attribute [irreducible] Barrier.ty
 
-def DoubleBarrier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DoubleBarrier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/experimental/recipes.DoubleBarrier" [])
 
 attribute [irreducible] DoubleBarrier.ty
 
-def RemoteKV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RemoteKV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/experimental/recipes.RemoteKV" [])
 
 attribute [irreducible] RemoteKV.ty
 
-def EphemeralKV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EphemeralKV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/experimental/recipes.EphemeralKV" [])
 
 attribute [irreducible] EphemeralKV.ty
 
-def PriorityQueue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PriorityQueue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/experimental/recipes.PriorityQueue" [])
 
 attribute [irreducible] PriorityQueue.ty
 
-def Queue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Queue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/experimental/recipes.Queue" [])
 
 attribute [irreducible] Queue.ty
 
-def RWMutex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RWMutex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/experimental/recipes.RWMutex" [])
 
 attribute [irreducible] RWMutex.ty
@@ -1996,7 +1995,7 @@ noncomputable def waitEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.errors, pkg_id.go_etcd_io.etcd.client.v3.concurrency, pkg_id.fmt, pkg_id.strings, pkg_id.time]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -2073,22 +2072,22 @@ structure Barrier [FfiSyntax] where
   ctx' : _root_.Perennial.context.Context
   key' : GoString
 
-instance Barrier.zero_val [FfiSyntax] : ZeroVal Barrier :=
+noncomputable instance Barrier.zero_val [FfiSyntax] : ZeroVal Barrier :=
   ⟨Barrier.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Barrier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Barrier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"client" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)),
 (go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
 (go.field_decl.FieldDecl go!"key" go.string)]
 
-@[irreducible] def Barrier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Barrier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Barrier.fieldsUnsealed
 
-instance equals_unfold_Barrier [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Barrier [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Barrier.fields Barrier.fieldsUnsealed :=
   ⟨by unfold Barrier.fields; rfl⟩
 
-@[reducible] def Barrier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Barrier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Barrier.fields)
 
 class Barrier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2124,24 +2123,24 @@ structure DoubleBarrier [FfiSyntax] where
   count' : w64
   myKey' : Loc
 
-instance DoubleBarrier.zero_val [FfiSyntax] : ZeroVal DoubleBarrier :=
+noncomputable instance DoubleBarrier.zero_val [FfiSyntax] : ZeroVal DoubleBarrier :=
   ⟨DoubleBarrier.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def DoubleBarrier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DoubleBarrier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"s" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session.ty)),
 (go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
 (go.field_decl.FieldDecl go!"key" go.string),
 (go.field_decl.FieldDecl go!"count" go.int),
 (go.field_decl.FieldDecl go!"myKey" (go.GoType.PointerType EphemeralKV.ty))]
 
-@[irreducible] def DoubleBarrier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DoubleBarrier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   DoubleBarrier.fieldsUnsealed
 
-instance equals_unfold_DoubleBarrier [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DoubleBarrier [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold DoubleBarrier.fields DoubleBarrier.fieldsUnsealed :=
   ⟨by unfold DoubleBarrier.fields; rfl⟩
 
-@[reducible] def DoubleBarrier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DoubleBarrier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DoubleBarrier.fields)
 
 class DoubleBarrier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2184,23 +2183,23 @@ structure RemoteKV [FfiSyntax] where
   rev' : w64
   val' : GoString
 
-instance RemoteKV.zero_val [FfiSyntax] : ZeroVal RemoteKV :=
+noncomputable instance RemoteKV.zero_val [FfiSyntax] : ZeroVal RemoteKV :=
   ⟨RemoteKV.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def RemoteKV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RemoteKV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"kv" _root_.Perennial.go_etcd_io.etcd.client.v3.KV.ty),
 (go.field_decl.FieldDecl go!"key" go.string),
 (go.field_decl.FieldDecl go!"rev" go.int64),
 (go.field_decl.FieldDecl go!"val" go.string)]
 
-@[irreducible] def RemoteKV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RemoteKV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   RemoteKV.fieldsUnsealed
 
-instance equals_unfold_RemoteKV [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RemoteKV [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold RemoteKV.fields RemoteKV.fieldsUnsealed :=
   ⟨by unfold RemoteKV.fields; rfl⟩
 
-@[reducible] def RemoteKV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RemoteKV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RemoteKV.fields)
 
 class RemoteKV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2240,20 +2239,20 @@ structure EphemeralKV [FfiSyntax] where
   mk ::
   RemoteKV' : RemoteKV
 
-instance EphemeralKV.zero_val [FfiSyntax] : ZeroVal EphemeralKV :=
+noncomputable instance EphemeralKV.zero_val [FfiSyntax] : ZeroVal EphemeralKV :=
   ⟨EphemeralKV.mk zeroValDef⟩
 
-@[reducible] def EphemeralKV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EphemeralKV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"RemoteKV" RemoteKV.ty)]
 
-@[irreducible] def EphemeralKV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EphemeralKV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   EphemeralKV.fieldsUnsealed
 
-instance equals_unfold_EphemeralKV [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EphemeralKV [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold EphemeralKV.fields EphemeralKV.fieldsUnsealed :=
   ⟨by unfold EphemeralKV.fields; rfl⟩
 
-@[reducible] def EphemeralKV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EphemeralKV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EphemeralKV.fields)
 
 class EphemeralKV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2288,22 +2287,22 @@ structure PriorityQueue [FfiSyntax] where
   ctx' : _root_.Perennial.context.Context
   key' : GoString
 
-instance PriorityQueue.zero_val [FfiSyntax] : ZeroVal PriorityQueue :=
+noncomputable instance PriorityQueue.zero_val [FfiSyntax] : ZeroVal PriorityQueue :=
   ⟨PriorityQueue.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def PriorityQueue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PriorityQueue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"client" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)),
 (go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
 (go.field_decl.FieldDecl go!"key" go.string)]
 
-@[irreducible] def PriorityQueue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PriorityQueue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   PriorityQueue.fieldsUnsealed
 
-instance equals_unfold_PriorityQueue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PriorityQueue [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold PriorityQueue.fields PriorityQueue.fieldsUnsealed :=
   ⟨by unfold PriorityQueue.fields; rfl⟩
 
-@[reducible] def PriorityQueue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PriorityQueue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PriorityQueue.fields)
 
 class PriorityQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2335,22 +2334,22 @@ structure Queue [FfiSyntax] where
   ctx' : _root_.Perennial.context.Context
   keyPrefix' : GoString
 
-instance Queue.zero_val [FfiSyntax] : ZeroVal Queue :=
+noncomputable instance Queue.zero_val [FfiSyntax] : ZeroVal Queue :=
   ⟨Queue.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Queue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Queue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"client" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)),
 (go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
 (go.field_decl.FieldDecl go!"keyPrefix" go.string)]
 
-@[irreducible] def Queue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Queue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Queue.fieldsUnsealed
 
-instance equals_unfold_Queue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Queue [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Queue.fields Queue.fieldsUnsealed :=
   ⟨by unfold Queue.fields; rfl⟩
 
-@[reducible] def Queue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Queue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Queue.fields)
 
 class Queue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2383,23 +2382,23 @@ structure RWMutex [FfiSyntax] where
   pfx' : GoString
   myKey' : Loc
 
-instance RWMutex.zero_val [FfiSyntax] : ZeroVal RWMutex :=
+noncomputable instance RWMutex.zero_val [FfiSyntax] : ZeroVal RWMutex :=
   ⟨RWMutex.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def RWMutex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RWMutex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"s" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session.ty)),
 (go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
 (go.field_decl.FieldDecl go!"pfx" go.string),
 (go.field_decl.FieldDecl go!"myKey" (go.GoType.PointerType EphemeralKV.ty))]
 
-@[irreducible] def RWMutex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RWMutex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   RWMutex.fieldsUnsealed
 
-instance equals_unfold_RWMutex [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RWMutex [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold RWMutex.fields RWMutex.fieldsUnsealed :=
   ⟨by unfold RWMutex.fields; rfl⟩
 
-@[reducible] def RWMutex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RWMutex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RWMutex.fields)
 
 class RWMutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -1,5 +1,5 @@
 /-
-`(*pipelineHandler).ServeHTTP(w, r)` (`http.go`; rafthttp stage 4, D33b): the receiving end of the
+`(*pipelineHandler).ServeHTTP(w, r)` (`http.go`; rafthttp stage 4, D38b): the receiving end of the
 pipeline. Lean-first.
 -/
 module

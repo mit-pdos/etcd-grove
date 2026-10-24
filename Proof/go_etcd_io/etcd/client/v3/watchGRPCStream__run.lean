@@ -115,7 +115,7 @@ theorem watchGRPCStream.run.wp_proof
       client.RunSt.init ∅ $$ [Hsub Hm0 Hres Hs0 Hrc Hrcb Hgen Hprod0 Hep0 Hwsa Had Htt]
       as %wcv %err ⟨%m1, %s1, %rc1, %γrc1, %l1, Hsub, Hm1, Hres, Hs1, Hrc, Hrcb, Hgen, %HgOk0, Hwsa,
         Hels0, Had, Htt, Hcase⟩
-    · iframe #; iframe
+    · iframe HG0; iframe
       isplitr
       · ipureintro; exact client.gOk_init
       iapply BigSepM.bigSepM_empty.2; itrivial
@@ -170,7 +170,7 @@ theorem watchGRPCStream.run.wp_proof
     · iexists mi, _, γs, 0, 1, _, Dn, cd', rc1, γrc1, csm
       simp only [named]
       iframe
-      iframe #
+      iframe Hspec Hcws HGmi
       unfold client.runCore
       iexists client.RunSt.init.reconnect l1, ∅, [], m1, s1, GoInterface.nil
       simp only [client.RunSt.init, client.RunSt.reconnect]
@@ -278,7 +278,7 @@ theorem watchGRPCStream.run.wp_proof
           have r7 : (S.sentProgress L').CS = S.CS := rfl
           rw [r0, r1, r2, r3, r4, r5, r6, r7]
           iframe
-          iframe #
+          iframe Hinfo HDlb He
           ipureintro; exact ⟨Hrcv, Hg2⟩
         -- `if err != nil`: only logged; joined (`wp_join`), the next iteration verified once
         wp_join at (if: _ then _ else _) with [err]
@@ -295,7 +295,7 @@ theorem watchGRPCStream.run.wp_proof
             iintro %fsl ⟨-, -⟩
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
-            · iframe #; ipureintro; exact Hlg
+            · ipureintro; exact Hlg
             (try wp_auto)
             wp_join_done
         wp_for_post
@@ -318,7 +318,7 @@ theorem watchGRPCStream.run.wp_proof
         icases Hro with ⟨#Rctx, #Rkey, #Rend, #Rcn, #Rpn, #Rfrag, #Rwbl, #Rflt, -, #RprevKV⟩
         iapply typedPointsto_combine _ _ _ Hwrn
         simp only [TypedPointsto.typedPointstoDef]
-        iframe #
+        iframe RprevKV Rflt Rwbl Rfrag Rpn Rcn Rend Rkey Rctx Hrretc Hrrev
       wp_auto
       wp_apply (chan.wp_make1 (V := Loc)) as %recvc %γrc2 ⟨#Hrecvc, %Hγrc2, Hrecvo⟩
       ihave %Hwsn := typedPointsto_not_null _ _ _ $$ «$r0»
@@ -327,7 +327,7 @@ theorem watchGRPCStream.run.wp_proof
       ipersist ctx; ipersist key; ipersist end'; ipersist createdNotify; ipersist progressNotify
       ipersist fragment; ipersist watchBufLogEnabled; ipersist filters; ipersist prevKV
       ipersist recvc
-      icases client.ptsto_split_half _ _ $$ rev with ⟨Hrev1, Hrev2⟩
+      icases (typedPointsto_half_split _ _ 1).1 $$ rev with ⟨Hrev1, Hrev2⟩
       wp_bind (If _ _ _)
       iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ ws_ptr ↦ «$r0_ptr» ∗ ∃ bl : Loc,
           wsF «$r0_ptr» go!"bufLogger" ↦ bl ∗ bufLogOk «$r0_ptr» bl)))
@@ -345,7 +345,7 @@ theorem watchGRPCStream.run.wp_proof
             wp_apply time.wp_Now as %t1 -
             iapply HΦ'
           wp_apply wp_bufLogger G.wgs «$r0_ptr» V.lg P0.key P0.ed _ $$ [] as %bl #Hbl
-          · iframe #; ipureintro; exact Hlg
+          · iframe Hnf end' key Flg; ipureintro; exact Hlg
           isplitr
           · ipureintro; rfl
           iframe
@@ -354,7 +354,7 @@ theorem watchGRPCStream.run.wp_proof
       subst Hv
       wp_auto
       wp_apply (chan.wp_make1 (V := Unit)) as %dnc %γdn ⟨#Hdnc, %-, Hdno⟩
-      icases client.ptsto_split_half_loc _ _ $$ donec with ⟨Hdnf1, Hdnf2⟩
+      icases (typedPointsto_half_split _ _ 1).1 $$ donec with ⟨Hdnf1, Hdnf2⟩
       imod dghostVar_alloc false with ⟨%γx, Hx⟩
       -- (D25) the goroutine's first lifetime: its deposit's flag, `run`'s token
       imod dghostVar_alloc false with ⟨%γt, Hγt⟩
@@ -404,7 +404,7 @@ theorem watchGRPCStream.run.wp_proof
         unfold wsIs
         isplitr
         · unfold wrRO
-          iframe #
+          iframe Rflts prevKV filters watchBufLogEnabled fragment progressNotify createdNotify end' key ctx
         isplitr
         · iexact recvc
         isplitr
@@ -477,13 +477,13 @@ theorem watchGRPCStream.run.wp_proof
         unfold retcRes
         (try rw [show P.γ.cur2 = γcur2 from rfl])
         iframe
-        iframe #
+        iframe Hcur20 Hcur0
       wp_apply wp_fork_tok_self $$ [closing HbL outc Hdnf1 Hdnb Hγt1 Hst0 Hx Hwd Hwsel1] as Htt
       · wp_apply wp_serveSub V G callSl P L 0 P.rev [] bl rc γrc
           $$ [closing HbL outc Hdnf1 Hdnb Hγt1 Hst0 Hx Hwd Hwsel1]
           as Htok
         · unfold wgDone
-          iframe #
+          iframe Hli Hls0 HP HbLok Hrcu HG closing
           iframe
           ipureintro; rfl
         first | iexact Htok | (iframe Htok; ipureintro; simp) | (iframe Htok; ipureintro; decide)
@@ -506,7 +506,7 @@ theorem watchGRPCStream.run.wp_proof
         wp_take_receipt as Hrc
         wp_apply wp_toPB (wsF «$r0_ptr» go!"initReq") P0.key P0.ed P0.rev P0.pn P0.flt
           (DFrac.own (1 : Qp).half) P0.sr $$ [Hrev2] as %preq ⟨Hrev2, Hpsend⟩
-        · iframe #; iframe
+        · iframe Rflts prevKV filters fragment progressNotify end' key; iframe
         imod mvcc.watchTokPool_take V.R.γ $$ Htoks Hrc with Hwt
         wp_apply HSend $$ %S.L %preq %(.create (createOf P0.key P0.ed P0.rev P0.pn P0.sr)) [Hstok Hpsend Hwt]
           as %err ⟨-, Hres⟩
@@ -564,7 +564,7 @@ theorem watchGRPCStream.run.wp_proof
             iintro %fsl ⟨-, -⟩
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
-            · iframe #; ipureintro; exact Hlg
+            · ipureintro; exact Hlg
             (try wp_auto)
             wp_join_done
         wp_for_post
@@ -604,7 +604,7 @@ theorem watchGRPCStream.run.wp_proof
             (try rw [show P.rev = P0.rev from rfl])
             (try rw [show P.ws = «$r0_ptr» from rfl])
             iframe
-            iframe #
+            iframe Hsrd0
             try itrivial
           simp only [client.noCancelOk]
           iframe
@@ -621,7 +621,7 @@ theorem watchGRPCStream.run.wp_proof
         have e8 : (S.addWs «$r0_ptr» L' si).l = S.l ++ [«$r0_ptr»] := rfl
         rw [e1, e2, e3, e4, e5, e6, e7, e8]
         iframe
-        iframe #
+        iframe Hinfo HDlb He
         isplitl [Hs Hscap]
         · unfold sliceOwn; iframe
         ipureintro; exact ⟨Hrcv, Hg2⟩
@@ -664,7 +664,7 @@ theorem watchGRPCStream.run.wp_proof
             (try rw [show P.rev = P0.rev from rfl])
             (try rw [show P.ws = «$r0_ptr» from rfl])
             iframe
-            iframe #
+            iframe Hsrd0
             unfold client.upAtOpt; itrivial
           simp only [client.noCancelOk]
           iframe
@@ -681,7 +681,7 @@ theorem watchGRPCStream.run.wp_proof
         have e8 : (S.addWs «$r0_ptr» S.L S.pend).l = S.l ++ [«$r0_ptr»] := rfl
         rw [e1, e2, e3, e4, e5, e6, e7, e8]
         iframe
-        iframe #
+        iframe Hinfo HDlb He
         isplitl [Hs Hscap]
         · unfold sliceOwn; iframe
         ipureintro; exact ⟨Hrcv, Hg2⟩
@@ -718,7 +718,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Hel with ⟨%m, %Lm, Hm1, HDn, #HLlb, %HLlen⟩
       iunfold v3rpc.downLbW at HDlb HLlb
       ihave %Hcmp := mono_list_lb_valid _ _ _ $$ HDlb HLlb
-      have HLm : Lm = S.Dm := client.prefix_snoc_eq Hcmp (by simp at HLlen; omega)
+      have HLm : Lm = S.Dm := Perennial.prefix_snoc_eq Hcmp (by simp at HLlen; omega)
       subst HLm
       clear HLlen Hcmp
       irevert HDn
@@ -743,12 +743,12 @@ theorem watchGRPCStream.run.wp_proof
                  (c.watchId ≠ W64 0 → m.watchId = c.watchId))) := by
             simp only [v3rpc.ctrlAnswers] at Hcans; exact Hcans
           icases client.sendTok_lookup γs S.L i (.create c) $$ [Hstok Hup] with ⟨Hstok, %HLi⟩
-          · iframe; iframe #
+          · iframe; iframe Hup
           ihave Hfr' : iprop(⌜i ∉ S.ansd⌝ ∗ ([∗list] j ∈ S.ansd, client.ansH γs j) ∗ v3rpc.ansTok γa i)
             $$ [Hans Hat]
           · iapply client.ans_fresh
             iframe
-            iframe #
+            iframe Haux
           icases Hfr' with ⟨%Hia, Hans, Hat⟩
           have hpend : S.pend = some i := (HgOk.2.2.2.2.2.2.2.1 i c HLi).resolve_left Hia
           have hlne : S.l ≠ [] := (HgOk.2.2.2.2.2.2.2.2.2.1 i hpend).2.2
@@ -763,7 +763,7 @@ theorem watchGRPCStream.run.wp_proof
           ihave #Hha : iprop(hdrAt h m.hdr.revision) $$ []
           · unfold hdrAt; iright; iframe Hhrev; ipureintro; exact Hhn
           ihave ⟨%kvs, %Hkvl, #Hea, -⟩ := client.evs_eventsAt sl ps m.evs Hpslen $$ [Hps Hevs]
-          · iframe #
+          · iframe Hevs Hps
           ihave #Hea0 : iprop(eventsAt sl ([] : List EvModel)) $$ []
           · have : List.zipWith client.evModelOf m.evs kvs = [] := by rw [hev0]; simp
             rw [← this]; iexact Hea
@@ -782,7 +782,7 @@ theorem watchGRPCStream.run.wp_proof
               simp only [v3rpc.ctrlWatcher, hcan, Bool.false_eq_true, ↓reduceIte]
               iintro ⟨%w, %rg, %fcs, %lo, %Hcrg, #Hwi, #Hfcs, #Hws, #Hias, Hidt, -⟩
               ihave ⟨%HXr, Hids, Hidt⟩ := client.id_fresh γs S.regs m.watchId γo γa $$ [Hids Hidt]
-              · iframe; iframe #
+              · iframe; iframe Haux
               isplitr
               · ipureintro; intro _; exact HXr
               iframe Hids
@@ -790,11 +790,11 @@ theorem watchGRPCStream.run.wp_proof
               · iapply BigSepL.bigSepL_singleton.2
                 unfold client.idH
                 iexists γo, γa
-                iframe; iframe #
+                iframe; iframe Haux
               imodintro
               iintro %-
               iexists w, rg, fcs, lo
-              iframe #
+              iframe Hias Hws Hfcs Hwi Haux
               ipureintro; exact Hcrg
             · iframe Hids
               isplitr
@@ -864,12 +864,12 @@ theorem watchGRPCStream.run.wp_proof
               isplitr
               · ipureintro; exact ⟨Hg1, rfl, rfl, rfl, rfl, rfl⟩
               iframe
-              iframe #
+              iframe He
               isplitl [Hat]
               · iapply BigSepL.bigSepL_singleton.2
                 unfold client.ansH
                 iexists γo, γa
-                iframe; iframe #
+                iframe; iframe Haux
               isplitl [Hids Hidn]
               · iapply client.regs_join; iframe
               ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
@@ -923,11 +923,11 @@ theorem watchGRPCStream.run.wp_proof
               · wp_apply wp_addSub V G.wgs p P.ws m.watchId m.canceled m.cancelReason (DFrac.own 1)
                   (DFrac.own 1) (W64 (-1)) mref S.M e $$ [Hwid Hca Hcrs Hid Hsub Hm HcF Hprod]
                   as ⟨Hwid, Hca, Hcrs, Hsub, Hpost⟩
-                · iframe; iframe #
+                · iframe; iframe Hcf
                   iintro %-
                   unfold recvcCloser
                   iexists P, sent
-                  iframe; iframe #
+                  iframe; iframe HP
                   ipureintro; rfl
                 irevert Hpost
                 rw [show decide (addFails m.watchId m.canceled m.cancelReason) = true from
@@ -953,7 +953,7 @@ theorem watchGRPCStream.run.wp_proof
                   (fun _ => client.dummyDn G) G.γend n
                   $$ [Hrf Hsub Hm Hgen] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
                 · iframe
-                  iframe #
+                  iframe Hea0 Hha
                   isplitr
                   · ipureintro; simp [hev0]
                   isplitr
@@ -978,12 +978,12 @@ theorem watchGRPCStream.run.wp_proof
                 isplitr
                 · ipureintro; exact ⟨Hg1, rfl, rfl, rfl, rfl, rfl⟩
                 iframe
-                iframe #
+                iframe He'
                 isplitl [Hat]
                 · iapply BigSepL.bigSepL_singleton.2
                   unfold client.ansH
                   iexists γo, γa
-                  iframe; iframe #
+                  iframe; iframe Haux
                 isplitl [Hids Hidn]
                 · iapply client.regs_join; iframe
                 ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
@@ -1025,7 +1025,7 @@ theorem watchGRPCStream.run.wp_proof
                 wp_apply wp_addSub V G.wgs p P.ws m.watchId m.canceled m.cancelReason (DFrac.own 1)
                   (DFrac.own 1) (W64 (-1)) mref S.M e $$ [Hwid Hca Hcrs Hid Hsub Hm HcF]
                   as ⟨Hwid, Hca, Hcrs, Hsub, Hpost⟩
-                · iframe; iframe #
+                · iframe; iframe Hcf
                   iintro %h'; exact absurd h' hfail
                 irevert Hpost
                 rw [show decide (addFails m.watchId m.canceled m.cancelReason) = false from
@@ -1039,7 +1039,7 @@ theorem watchGRPCStream.run.wp_proof
                 icases Hwi' with ⟨%γw0, %C0, -, #Hwfix, -⟩
                 ihave %Hfresh := client.evsSoFar_fresh m.watchId w rg fcs HgOk hXr hXn Hcrg.2.2.1
                   $$ [Hinfo Hwfix]
-                · iframe #
+                · iframe Hwfix Hinfo
                 ihave Hrf : iprop(respFields p (DFrac.own 1) m h sl) $$ [Hhdr Hwid Hcr Hca Hcomp Hcrs Hfr Hev]
                 · unfold respFields
                   rw [hcr0]
@@ -1053,7 +1053,7 @@ theorem watchGRPCStream.run.wp_proof
                   (DFrac.own 1) (DFrac.own 1) (fun _ => P) (fun _ => sent) (fun _ => d) G.γend n
                   $$ [Hrf Hsub Hm Hgen Hprod Hdc] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
                 · iframe
-                  iframe #
+                  iframe Hea0 Hha
                   isplitr
                   · ipureintro; simp [hev0]
                   isplitr
@@ -1063,7 +1063,7 @@ theorem watchGRPCStream.run.wp_proof
                   · ipureintro; rfl
                   unfold sendCap
                   iframe
-                  iframe #
+                  iframe HP
                   iintro %wr -
                   unfold client.recvElem
                   iright; iexact HxD
@@ -1115,7 +1115,7 @@ theorem watchGRPCStream.run.wp_proof
                   iframe Hax' Hias
                 icases client.reg_post_dead V γs P B HB S.Dm m m.watchId w rg fcs lo sent C C2 b wr
                   d G.γend n $$ [HxD Hrg HsoB Hauth Hauth2 Hpost] with ⟨Hrest, Hdc⟩
-                · iframe; iframe #
+                · iframe; iframe Hrg HsoB HxD
                 rw [ite_eq_left Hbnd]
                 wp_apply wp_store_slice_index s (sint.Z (W64 0)) S.l null $$ [Hs] as Hs
                 · iframe; ipureintro; exact ⟨by simp, by have := Hsll.1; word⟩
@@ -1134,12 +1134,12 @@ theorem watchGRPCStream.run.wp_proof
                 isplitr
                 · ipureintro; exact ⟨Hg1, rfl, rfl, rfl, rfl, rfl⟩
                 iframe
-                iframe #
+                iframe He
                 isplitl [Hat]
                 · iapply BigSepL.bigSepL_singleton.2
                   unfold client.ansH
                   iexists γo, γa
-                  iframe; iframe #
+                  iframe; iframe Haux
                 isplitl [Hids Hidn]
                 · iapply client.regs_join; iframe
                 ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
@@ -1186,11 +1186,11 @@ theorem watchGRPCStream.run.wp_proof
             · wp_apply wp_addSub V G.wgs p P.ws m.watchId m.canceled m.cancelReason (DFrac.own 1)
                 (DFrac.own 1) (W64 (-1)) mref S.M e $$ [Hwid Hca Hcrs Hid Hsub Hm HcF Hprod]
                 as ⟨Hwid, Hca, Hcrs, Hsub, Hpost⟩
-              · iframe; iframe #
+              · iframe; iframe Hcf
                 iintro %-
                 unfold recvcCloser
                 iexists P, sent
-                iframe; iframe #
+                iframe; iframe HP
                 ipureintro; rfl
               irevert Hpost
               rw [show decide (addFails m.watchId m.canceled m.cancelReason) = true from
@@ -1216,7 +1216,7 @@ theorem watchGRPCStream.run.wp_proof
                 (fun _ => client.dummyDn G) G.γend n
                 $$ [Hrf Hsub Hm Hgen] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
               · iframe
-                iframe #
+                iframe Hea0 Hha
                 isplitr
                 · ipureintro; simp [hev0]
                 isplitr
@@ -1241,12 +1241,12 @@ theorem watchGRPCStream.run.wp_proof
               isplitr
               · ipureintro; exact ⟨Hg1, rfl, rfl, rfl, rfl, rfl⟩
               iframe
-              iframe #
+              iframe He'
               isplitl [Hat]
               · iapply BigSepL.bigSepL_singleton.2
                 unfold client.ansH
                 iexists γo, γa
-                iframe; iframe #
+                iframe; iframe Haux
               isplitl [Hids Hidn]
               · iapply client.regs_join; iframe
               ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
@@ -1288,7 +1288,7 @@ theorem watchGRPCStream.run.wp_proof
               wp_apply wp_addSub V G.wgs p P.ws m.watchId m.canceled m.cancelReason (DFrac.own 1)
                 (DFrac.own 1) (W64 (-1)) mref S.M e $$ [Hwid Hca Hcrs Hid Hsub Hm HcF]
                 as ⟨Hwid, Hca, Hcrs, Hsub, Hpost⟩
-              · iframe; iframe #
+              · iframe; iframe Hcf
                 iintro %h'; exact absurd h' hfail
               irevert Hpost
               rw [show decide (addFails m.watchId m.canceled m.cancelReason) = false from
@@ -1302,7 +1302,7 @@ theorem watchGRPCStream.run.wp_proof
               icases Hwi' with ⟨%γw0, %C0, -, #Hwfix, -⟩
               ihave %Hfresh := client.evsSoFar_fresh m.watchId w rg fcs HgOk hXr hXn Hcrg.2.2.1
                 $$ [Hinfo Hwfix]
-              · iframe #
+              · iframe Hwfix Hinfo
               -- the cursors: one more, the same
               obtain ⟨HCl, HCh, HC2⟩ := HCs
               imod monoListAuthOwn_update_app (γ := P.γhi) (l := C) [B.hb]
@@ -1346,7 +1346,7 @@ theorem watchGRPCStream.run.wp_proof
                 (DFrac.own 1) (DFrac.own 1) (fun _ => P) (fun _ => sent) (fun _ => d) G.γend n
                 $$ [Hrf Hsub Hm Hgen Hprod Hrv Hdc] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
               · iframe
-                iframe #
+                iframe Hea0 Hha
                 isplitr
                 · ipureintro; simp [hev0]
                 isplitr
@@ -1356,11 +1356,11 @@ theorem watchGRPCStream.run.wp_proof
                 · ipureintro; rfl
                 unfold sendCap
                 iframe
-                iframe #
+                iframe HP
                 iintro %wr #Hwr
                 iapply client.recvElem_created V P m h sl sent.length B.hb B.rr wr ⟨hcomp0, hca, hcr0⟩ Hhn
                 iframe
-                iframe #
+                iframe Hwr Hcm0 Hi1 Hi0 Hea0 Hha
               irevert Hpost
               rw [if_neg (show ¬ (decide (client.isBroadcast m) = true) by
                 simp only [decide_eq_true_eq]; exact hnb)]
@@ -1433,7 +1433,7 @@ theorem watchGRPCStream.run.wp_proof
                 (C ++ [B.hb]) (C2 ++ [B.rr - W64 1]) b wr
                 d G.γend n $$ [Hauth Hpost Hpend Hpsq] with ⟨Hrest, Hdc⟩
               · iframe Hauth Hpost Hpend
-                iframe #
+                iframe Hrg HsoB
                 iright
                 isplitr
                 · ipureintro; simp [HCl]
@@ -1465,12 +1465,12 @@ theorem watchGRPCStream.run.wp_proof
               isplitr
               · ipureintro; exact ⟨Hg1, rfl, rfl, rfl, rfl, rfl⟩
               iframe
-              iframe #
+              iframe He
               isplitl [Hat]
               · iapply BigSepL.bigSepL_singleton.2
                 unfold client.ansH
                 iexists γo, γa
-                iframe; iframe #
+                iframe; iframe Haux
               isplitl [Hids Hidn]
               · iapply client.regs_join; iframe
               ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
@@ -1511,7 +1511,7 @@ theorem watchGRPCStream.run.wp_proof
           subst Hv
           wp_auto
           wp_apply wp_nextResume G.wgs s S1.l $$ [Hres Hs Hscap] as %ws2 ⟨%s2, Hres, Hs, %Hws2⟩
-          · iframe #; unfold sliceOwn; iframe
+          · unfold sliceOwn; iframe
           by_cases hn2 : ws2 = null
           · simp only [hn2, _root_.decide_true, Bool.not_true]
             have hhd : (S1.l.dropWhile (fun x => decide (x = null))).head? = none := by
@@ -1549,7 +1549,7 @@ theorem watchGRPCStream.run.wp_proof
             rw [r1, r2, r3, r4, r5, r6, r7, r8]
             rw [HL1]
             iframe
-            iframe #
+            iframe He1 Hinfo
             isplitr
             · ipureintro; simp only [List.length_append, List.length_singleton]; omega
             isplitl []
@@ -1587,7 +1587,7 @@ theorem watchGRPCStream.run.wp_proof
           wp_take_receipt as Hrc
           wp_apply wp_toPB (wsF P2.ws go!"initReq") P2.key P2.ed B2.rr P2.pn P2.flt
             (DFrac.own q2) B2.srr $$ [Hrv2] as %preq ⟨Hrv2, Hpsend⟩
-          · iframe #; iframe
+          · iframe Rprev Rflts Rflt Rfrag Rpn Rend Rkey; iframe
           imod mvcc.watchTokPool_take V.R.γ $$ Htoks Hrc with Hwt
           wp_apply HSend $$ %S.L %preq %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr)) [Hstok Hpsend Hwt]
             as %err ⟨-, Hres'⟩
@@ -1680,7 +1680,7 @@ theorem watchGRPCStream.run.wp_proof
               iintro %fsl ⟨-, -⟩
               wp_auto
               wp_apply wp_Debug V.lg _ _ $$ []
-              · iframe #; ipureintro; exact Hlg
+              · ipureintro; exact Hlg
               (try wp_auto)
               wp_join_done
           wp_for_post
@@ -1700,7 +1700,7 @@ theorem watchGRPCStream.run.wp_proof
           have r8 : (S1.resume L' si).regs = S1.regs := rfl
           rw [r1, r2, r3, r4, r5, r6, r7, r8]
           iframe
-          iframe #
+          iframe He1 Hinfo
           isplitr
           · ipureintro; simp only [List.length_append, List.length_singleton]; omega
           isplitl []
@@ -1722,12 +1722,12 @@ theorem watchGRPCStream.run.wp_proof
           wp_apply wp_mapDelete $$ Hcsm as Hcsm
           wp_apply wp_map_lookup2 $$ Hm as Hm
           icases client.sendTok_lookup γs S.L i (.cancel X) $$ [Hstok Hup] with ⟨Hstok, %HLi⟩
-          · iframe; iframe #
+          · iframe; iframe Hup
           ihave Hfr : iprop(⌜i ∉ S.ansd⌝ ∗ ([∗list] j ∈ S.ansd, client.ansH γs j) ∗ v3rpc.ansTok γa i)
             $$ [Hans Hat]
           · iapply client.ans_fresh
             iframe
-            iframe #
+            iframe Haux
           icases Hfr with ⟨%Hia, Hans, Hat⟩
           obtain ⟨Hg2, Hold, Hnew⟩ := client.cancelAns_ok (U := U) (fw := S.M !! X) HgOk HLi Hia
             hs0 hcr0 hid0 rfl
@@ -1761,7 +1761,7 @@ theorem watchGRPCStream.run.wp_proof
             have e8 : (S.cancelAns m i X none).l = S.l := rfl
             rw [e1, e2, e3, e4, e5, e6, e7, e8]
             iframe
-            iframe #
+            iframe Hinfo He
             isplitr
             · ipureintro; simp only [List.length_append, List.length_singleton]; omega
             isplitl []
@@ -1772,7 +1772,7 @@ theorem watchGRPCStream.run.wp_proof
             · iapply BigSepL.bigSepL_singleton.2
               unfold client.ansH
               iexists γo, γa
-              iframe #; iframe
+              iframe Haux; iframe
             imodintro
             iapply BigSepL.bigSepL_singleton.2
             unfold client.respInfo; rw [hs0]; itrivial
@@ -1853,7 +1853,7 @@ theorem watchGRPCStream.run.wp_proof
             have e8 : (S.cancelAns m i X (some P.ws)).l = S.l := rfl
             rw [e1, e2, e3, e4, e5, e6, e7, e8]
             iframe
-            iframe #
+            iframe Hinfo He
             isplitr
             · ipureintro; simp only [List.length_append, List.length_singleton]; omega
             isplitl []
@@ -1864,7 +1864,7 @@ theorem watchGRPCStream.run.wp_proof
             · iapply BigSepL.bigSepL_singleton.2
               unfold client.ansH
               iexists γo, γa
-              iframe #; iframe
+              iframe Haux; iframe
             imodintro
             iapply BigSepL.bigSepL_singleton.2
             unfold client.respInfo; rw [hs0]; itrivial
@@ -1902,7 +1902,7 @@ theorem watchGRPCStream.run.wp_proof
         iapply Hrs $$ %ρ %(List.mem_of_getLast? Hlast)
       ihave ⟨%kvs, %Hkvl, #Hea, #Hkv⟩ := client.evs_eventsAt sl ps ρ.evs (by rw [← hev0]; exact Hpslen)
         $$ [Hps Hevs]
-      · iframe #; rw [← hev0]; iframe #
+      · iframe Hps; rw [← hev0]; iframe Hevs
       iunfold v3rpc.hdrOwn at Hho
       icases Hho with ⟨%Hhn, Hh1, Hh2, Hhrev, Hh4, Hh5⟩
       ihave Hrf : iprop(respFields p (DFrac.own 1) m h sl) $$ [Hhdr Hwid Hcr Hca Hcomp Hcrs Hfr Hev]
@@ -1938,7 +1938,7 @@ theorem watchGRPCStream.run.wp_proof
         -- (K2e-7d) the broadcast covers every registered substream's watcher, unless it stopped
         imod client.bcast_covAll V G n γs ρ γc pre γo γa hinj Hγ.1 Hγ.2.1 Hγ.2.2.1 Hfr2.1 hid
           $$ [Hax Hsl0 Hra Hcmp0 Hcq Hlc3 Hstok HelM] with ⟨Hstok, HelM, #Hcall⟩
-        · iframe Hlc3 Hstok HelM; iframe #
+        · iframe Hlc3 Hstok HelM; iframe Hcmp0 Hcq Hra Hsl0 Hax
         ihave #HDw : v3rpc.downLbW γs S.Dm $$ []
         · unfold v3rpc.downLbW; iexact HDlb
         ihave HelR := BigSepM.bigSepM_impl
@@ -1951,7 +1951,7 @@ theorem watchGRPCStream.run.wp_proof
           iapply (client.wsElem_recv_other V G n γs (S := S) (S' := S.recvMvcc m) ws' m ρ hsrc rfl
             (fun X h e => by rw [hid] at e; exact h.2.2.2.2.1 e.symm)
             (fun ph h => Hph1 ws' ph h) rfl) $$ [Hw']
-          iframe; iframe #
+          iframe; iframe Hrok
         ihave HelM := BigSepM.bigSepM_impl
             (Ψ := fun (_X : w64) ws => iprop(|={⊤}=> ∃ a : client.WsPrm GF × List Loc × DnInfo GF,
               ⌜a.1.ws = ws⌝ ∗
@@ -1993,7 +1993,7 @@ theorem watchGRPCStream.run.wp_proof
           $$ [Hrf Hhw Hsub Hm Hgen HcapM] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
         · rw [if_pos (decide_eq_true hb)]
           iframe
-          iframe #
+          iframe Hea
           ipureintro; rw [hev0, hevn]; rfl
         irevert Hpost
         rw [if_pos (decide_eq_true hb)]
@@ -2027,7 +2027,7 @@ theorem watchGRPCStream.run.wp_proof
         have r7 : (S.recvMvcc m).CS = S.CS := rfl
         rw [r0, r1, r2, r3, r4, r5, r6, r7]
         iframe
-        iframe #
+        iframe Hinfo He
         isplitr
         · ipureintro; simp only [List.length_append, List.length_singleton]; omega
         isplitl []
@@ -2057,7 +2057,7 @@ theorem watchGRPCStream.run.wp_proof
           (fun _ => client.dummyDn G) G.γend n
           $$ [Hrf Hhw Hsub Hm Hgen] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
         · iframe
-          iframe #
+          iframe Hea
           isplitr
           · ipureintro; simp [Hkvl, hev0]
           rw [if_neg (by simpa using hnb), hid0, hMX]
@@ -2082,7 +2082,7 @@ theorem watchGRPCStream.run.wp_proof
           iapply (client.wsElem_recv_other V G n γs (S := S) (S' := S.recvMvcc m) ws' m ρ hsrc rfl
             (fun X h e => by subst e; have h1 := h.1; rw [hMX] at h1; cases h1)
             (fun ph h => Hph1 ws' ph h) rfl) $$ [Hw']
-          iframe; iframe #
+          iframe; iframe Hrok
         cases hCS : S.CS !! ρ.id with
         | some u =>
           simp only [Option.isSome_some, _root_.decide_true]
@@ -2104,7 +2104,7 @@ theorem watchGRPCStream.run.wp_proof
           have r7 : (S.recvMvcc m).CS = S.CS := rfl
           rw [r0, r1, r2, r3, r4, r5, r6, r7]
           iframe
-          iframe #
+          iframe Hinfo He
           isplitr
           · ipureintro; simp only [List.length_append, List.length_singleton]; omega
           isplitl []
@@ -2130,7 +2130,7 @@ theorem watchGRPCStream.run.wp_proof
           iintro %fsl ⟨-, -⟩
           wp_auto
           wp_apply wp_Debug V.lg _ _ $$ []
-          · iframe #; ipureintro; exact Hlg
+          · ipureintro; exact Hlg
           wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) [Hstok Hsend] as %err ⟨-, Hres'⟩
           · iframe
             unfold v3rpc.watchUp v3rpc.watchReqOk
@@ -2157,7 +2157,7 @@ theorem watchGRPCStream.run.wp_proof
               iintro %fsl ⟨-, -⟩
               wp_auto
               wp_apply wp_Debug V.lg _ _ $$ []
-              · iframe #; ipureintro; exact Hlg
+              · ipureintro; exact Hlg
               (try wp_auto)
               wp_join_done
           wp_for_post
@@ -2192,7 +2192,7 @@ theorem watchGRPCStream.run.wp_proof
           have r7 : ((S.recvMvcc m).sentCancel ρ.id L').CS = GMap.insert ρ.id () S.CS := rfl
           rw [r0, r1, r2, r3, r4, r5, r6, r7]
           iframe
-          iframe #
+          iframe Hinfo He
           isplitr
           · ipureintro; simp only [List.length_append, List.length_singleton]; omega
           isplitl []
@@ -2235,7 +2235,7 @@ theorem watchGRPCStream.run.wp_proof
         ihave Hpre := client.reg_pre V γs P B HB S.Dm S.Dm.length m ρ rs w rg fcs lo sent C h sl ps kvs
             hsrc hev0 ⟨hcomp0, hca0, hcr0⟩ Hfilt (by rw [← hev0]; exact Hpslen) Hkvl HPpure.2.1 Hpre.2
             Hpre.1 Hhn rfl HPpure.2.2 hlive hid $$ [Hauth Hst Hhrev Hc2]
-        · iframe; iframe #
+        · iframe; iframe Hevs' HDw Hrg HsoB Hea Hrecv Hmvcc Hps HS3 Hlaws HnoDup Hsmall
         imod Hpre with ⟨%es, %C', %C2, #Hes, %Hesl, Hhw, Hauth, Hcap, Hst, Hpend⟩
         simp only [WPh.isOrphan]
         icases client.wsLife_cap V G n P $$ Hlife with ⟨%d, Hdc, Hback⟩
@@ -2243,7 +2243,7 @@ theorem watchGRPCStream.run.wp_proof
           (fun _ => P) (fun _ => sent) (fun _ => d) G.γend n
           $$ [Hrf Hhw Hsub Hm Hgen Hprod Hcap Hdc] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
         · iframe
-          iframe #
+          iframe Hes
           isplitr
           · ipureintro; exact Hesl
           rw [if_neg (by simpa using hnb), hid0, hMX]
@@ -2251,14 +2251,14 @@ theorem watchGRPCStream.run.wp_proof
           · ipureintro; rfl
           unfold sendCap
           iframe
-          iframe #
+          iframe HP
         irevert Hpost
         rw [if_neg (by simpa using hnb), hid0, hMX]
         iintro ⟨%wr, Hpost⟩
         icases client.post_gx V P sent wr b d G.γend n $$ Hpost with ⟨Hpost, #Hxb⟩
         icases client.reg_post V γs P B HB S.Dm m ρ.id w rg fcs lo sent C' C2 b wr d G.γend n
           $$ [Hauth Hst Hpend Hpost] with ⟨Hrest, Hdc⟩
-        · iframe; iframe #
+        · iframe; iframe Hrg HsoB
         ihave HlifeR : iprop(client.wsLife V G n P false) $$ [Hdc Hback]
         · iunfold dnCap at Hdc
           icases Hdc with ⟨Hdc, -⟩
@@ -2275,7 +2275,7 @@ theorem watchGRPCStream.run.wp_proof
               subst e; have h1 : S.M !! ρ.id = some ws' := h.1; rw [hMX] at h1
               exact hne (Option.some.inj h1).symm)
             (fun ph h => Hph1 ws' ph h) rfl) $$ [Hw']
-          iframe; iframe #
+          iframe; iframe Hrok
         iunfold respFields at Hrf
         icases Hrf with ⟨%Hhn', Hhdr, Hwid, Hcr, Hca, Hcomp, Hcrs, Hfr, Hev⟩
         cases b with
@@ -2308,7 +2308,7 @@ theorem watchGRPCStream.run.wp_proof
           have r7 : (S.recvMvcc m).CS = S.CS := rfl
           rw [r0, r1, r2, r3, r4, r5, r6, r7]
           iframe
-          iframe #
+          iframe Hinfo He
           isplitr
           · ipureintro; simp only [List.length_append, List.length_singleton]; omega
           isplitl []
@@ -2358,7 +2358,7 @@ theorem watchGRPCStream.run.wp_proof
             have r7 : (S.recvMvcc m).CS = S.CS := rfl
             rw [r0, r1, r2, r3, r4, r5, r6, r7]
             iframe
-            iframe #
+            iframe Hinfo He
             isplitr
             · ipureintro; simp only [List.length_append, List.length_singleton]; omega
             isplitl []
@@ -2384,7 +2384,7 @@ theorem watchGRPCStream.run.wp_proof
             iintro %fsl ⟨-, -⟩
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
-            · iframe #; ipureintro; exact Hlg
+            · ipureintro; exact Hlg
             wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) [Hstok Hsend] as %err ⟨-, Hres'⟩
             · iframe
               unfold v3rpc.watchUp v3rpc.watchReqOk
@@ -2411,7 +2411,7 @@ theorem watchGRPCStream.run.wp_proof
                 iintro %fsl ⟨-, -⟩
                 wp_auto
                 wp_apply wp_Debug V.lg _ _ $$ []
-                · iframe #; ipureintro; exact Hlg
+                · ipureintro; exact Hlg
                 (try wp_auto)
                 wp_join_done
             wp_for_post
@@ -2460,7 +2460,7 @@ theorem watchGRPCStream.run.wp_proof
             have r7 : ((S.recvMvcc m).sentCancel ρ.id L').CS = GMap.insert ρ.id () S.CS := rfl
             rw [r0, r1, r2, r3, r4, r5, r6, r7]
             iframe
-            iframe #
+            iframe Hinfo He
             isplitr
             · ipureintro; simp only [List.length_append, List.length_singleton]; omega
             isplitl []
@@ -2487,7 +2487,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Herr with ⟨%Hen, #Herrk, #Hse, Hpback⟩
       wp_auto
       wp_apply +noauto wp_isHaltErr G.ctx G.cd err $$ [] as %bh %Hbh
-      · iframe #
+      · iframe Hse HGctx
       cases bh
       · -- (D25) not a halting error: no leader, or a reconnection
         wp_auto_lc 1
@@ -2502,8 +2502,8 @@ theorem watchGRPCStream.run.wp_proof
           · iunfold eofOk at Heof
             ihave ⟨%Hc, -⟩ := Heof $$ %err Heo
             ipureintro; exact fun _ => Hc.2
-        wp_apply wp_ctxErr G.ctx G.cd err $$ [] as %err' ⟨%Herr', #Hse'⟩
-        · iframe #; ipureintro; exact Hce
+        wp_apply wp_ctxErr G.ctx G.cd err $$ [] as %err' ⟨%Herr', #Hse', -⟩
+        · iframe Hcec Hse; ipureintro; exact Hce
         (try wp_auto)
         ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
         · iPkgInit
@@ -2512,7 +2512,7 @@ theorem watchGRPCStream.run.wp_proof
         · iPkgInit
         (try wp_auto)
         wp_apply (wp_isStatus err' _ (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
-        · iframe #
+        · iframe Hse'
         cases bnl
         rotate_left
         · -- no leader: `run` stops
@@ -2526,10 +2526,10 @@ theorem watchGRPCStream.run.wp_proof
           · iexact HG
           iapply client.runExit_of_core V G γs b n mi clm csm closeErr_ptr err
           iframe
-          iframe #
+          iframe Hse
         (try wp_auto)
         wp_apply wp_backoff G.wgs G.ctx G.cd bo err $$ [] as %bo' -
-        · iframe #
+        · iframe Hse Hvars HGctx Fctx
         (try wp_auto)
         -- the reconnection (D25): the old stream's epoch ends at `respc`'s position
         iunfold client.runCore at Hcore
@@ -2541,12 +2541,12 @@ theorem watchGRPCStream.run.wp_proof
         subst Hsr
         ihave ⟨%eps, Hep, Hend⟩ := client.epochSt_close G γs b mi e0 b0 γs0 γc0 i0 sent.length (by omega)
           $$ [Hepst Hi0 Hcnt]
-        · iframe; iframe #
+        · iframe; iframe Hi0
         wp_apply wp_newWC V G callSl mref s rc γrc n sent eps γs S U
           $$ [Hsub Hm Hres Hs Hrc Hrcb Hgen Hprod Hep Hwsa Hels Had Htt]
           as %wcv' %err2 ⟨%m', %s', %rc', %γrc', %l', Hsub, Hm', Hres, Hs', Hrc, Hrcb, Hgen,
             %HgOk', Hwsa, Hels', Had, Htt, Hcase⟩
-        · iframe #; iframe
+        · iframe HG; iframe
           ipureintro; exact HgOk
         icases Hcase with (⟨%Herr2, %mi2, %γs', %Dn', %cd2, %γc', %Hmi2, #Hcws2r, Hstok2, #Hspec2r,
           Hep⟩ | ⟨⟨%Hwcn, %Herr2⟩, #Hse2, -, -⟩)
@@ -2571,7 +2571,7 @@ theorem watchGRPCStream.run.wp_proof
           irevert Hels'; rw [hVmi]; iintro Hels'
           simp only [client.RunSt.reconnect]
           iframe
-          iframe #
+          iframe Hse2 He
           ipureintro; exact HgOk'
         subst Herr2
         wp_auto
@@ -2613,7 +2613,7 @@ theorem watchGRPCStream.run.wp_proof
         imod monoListLbOwn_nil (GF := GF) (A := v3rpc.WatchRespM) γs'.down with #Hlb'
         have hp0 : (S.reconnect l').pend = none := rfl
         wp_apply wp_nextResume G.wgs s' (S.reconnect l').l $$ [Hres Hs'] as %ws2 ⟨%s2, Hres, Hs, %Hws2⟩
-        · iframe #; iframe
+        · iframe
         by_cases hn2 : ws2 = null
         · simp only [hn2, _root_.decide_true, Bool.not_true]
           have hhd : ((S.reconnect l').l.dropWhile (fun x => decide (x = null))).head? = none := by
@@ -2646,7 +2646,7 @@ theorem watchGRPCStream.run.wp_proof
           iexists (S.reconnect l').resume (S.reconnect l').L none, U, sent, m', s2, e
           simp only [client.RunSt.resume, client.RunSt.reconnect]
           iframe
-          iframe #
+          iframe He
           isplitr
           · ipureintro; simp
           isplitr
@@ -2686,7 +2686,7 @@ theorem watchGRPCStream.run.wp_proof
         wp_take_receipt as Hrc0
         wp_apply wp_toPB (wsF P2.ws go!"initReq") P2.key P2.ed B2.rr P2.pn P2.flt
           (DFrac.own q2) B2.srr $$ [Hrv2] as %preq ⟨Hrv2, Hpsend⟩
-        · iframe #; iframe
+        · iframe Rprev Rflts Rflt Rfrag Rpn Rend Rkey; iframe
         imod mvcc.watchTokPool_take V.R.γ $$ Htoks Hrc0 with Hwt
         wp_apply HSend2 $$ %([] : List v3rpc.WatchReqM) %preq
           %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr)) [Hstok2 Hpsend Hwt]
@@ -2777,7 +2777,7 @@ theorem watchGRPCStream.run.wp_proof
           rw [r1]
           simp only [client.RunSt.resume, client.RunSt.reconnect]
           iframe
-          iframe #
+          iframe He
           isplitr
           · ipureintro; simp
           isplitr
@@ -2804,7 +2804,7 @@ theorem watchGRPCStream.run.wp_proof
             iintro %fsl ⟨-, -⟩
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
-            · iframe #; ipureintro; exact Hlg
+            · ipureintro; exact Hlg
             (try wp_auto)
             wp_join_done
         wp_apply (wp_map_make1 (K := w64) (V := Unit) go.int64 (go.GoType.StructType [])) as %csm' Hcsm'
@@ -2826,7 +2826,7 @@ theorem watchGRPCStream.run.wp_proof
       · iexact HG
       iapply client.runExit_of_core V G γs b n mi clm csm closeErr_ptr err
       iframe
-      iframe #
+      iframe Hse
     -- ctx.Done
     iapply BigAndL.bigAndL_cons.2
     isplit
@@ -2849,7 +2849,7 @@ theorem watchGRPCStream.run.wp_proof
       · iexact HG
       iapply client.runExit_of_core V G γs b n mi clm csm closeErr_ptr GoInterface.nil
       iframe
-      iframe #
+      iframe Hnil
     -- closingc
     iapply BigAndL.bigAndL_cons.2
     isplit
@@ -2876,7 +2876,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Hlife with ⟨%L, -, #Hli, Htk, -⟩
       iapply fupd_wp
       imod client.take_stop V G n P L wsr HPws $$ [Hlc3 Htk Hel Hgen] with ⟨Hsb, Hel, Hgen⟩
-      · iframe; iframe #
+      · iframe; iframe Hli
       ihave Hbody : iprop(closingBody V wsr) $$ [Hsb]
       · unfold closingBody; iexists P; iframe HP Hsb; ipureintro; exact HPws
       imod ghost_map_delete $$ Hwsa Hel with Hwsa
@@ -2898,7 +2898,7 @@ theorem watchGRPCStream.run.wp_proof
       wp_auto
       wp_apply wp_closeSub V G.wgs P.ws ph.id e (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) mref S.M s S.l
         $$ [Hbody Hid HcF Hsub Hm Hres Hs] as ⟨Hid, HcF, Hsub, Hres, Hrest2⟩
-      · iframe; iframe #
+      · iframe; iframe He
       ihave ⟨Hm, Hs⟩ : iprop(ownMap mref (DFrac.own 1) (S.closeWs P.ws ph).M ∗
           s ↦* (S.closeWs P.ws ph).l) $$ [Hrest2]
       · unfold client.RunSt.closeWs
@@ -2933,7 +2933,7 @@ theorem watchGRPCStream.run.wp_proof
         have h5 : (S.closeWs P.ws ph).CS = S.CS := rfl
         rw [h1, h2, h3, h4, h5]
         iframe
-        iframe #
+        iframe Hinfo HDlb He
         isplitr
         · ipureintro; exact Hrcv
         ipureintro; exact Hg'
@@ -2954,7 +2954,7 @@ theorem watchGRPCStream.run.wp_proof
         have h5 : (S.closeWs P.ws ph).CS = S.CS := rfl
         rw [h1, h2, h3, h4, h5]
         iframe
-        iframe #
+        iframe Hinfo HDlb He
         ipureintro; exact ⟨Hrcv, Hg'⟩
       simp only [show decide (ph.id = W64 (-1)) = false by simp [hid], Bool.not_false]
       wp_auto
@@ -2971,7 +2971,7 @@ theorem watchGRPCStream.run.wp_proof
       iintro %fsl ⟨-, -⟩
       wp_auto
       wp_apply wp_Debug V.lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlg
+      · ipureintro; exact Hlg
       wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ph.id) [Hstok Hsend] as %err ⟨-, Hres⟩
       · iframe
         unfold v3rpc.watchUp v3rpc.watchReqOk
@@ -2998,7 +2998,7 @@ theorem watchGRPCStream.run.wp_proof
           iintro %fsl ⟨-, -⟩
           wp_auto
           wp_apply wp_Debug V.lg _ _ $$ []
-          · iframe #; ipureintro; exact Hlg
+          · ipureintro; exact Hlg
           (try wp_auto)
           wp_join_done
       wp_for_post
@@ -3047,7 +3047,7 @@ theorem watchGRPCStream.run.wp_proof
       have e8 : ((S.closeWs P.ws ph).sentCancel ph.id L').CS = GMap.insert ph.id () S.CS := rfl
       rw [e1, e2, e3, e4, e5, e6, e7, e8]
       iframe
-      iframe #
+      iframe Hinfo HDlb He
       ipureintro; exact ⟨Hrcv, Hg2⟩
     iapply BigAndL.bigAndL_nil.2
     itrivial
@@ -3291,7 +3291,7 @@ theorem watchGRPCStream.run.wp_proof
     iapply fupd_wp
     imod client.take_stop V G ng (f wsr).1 (f wsr).2 wsr Hfw $$ [Hlc1 Htk Hel Hgen]
       with ⟨Hsb, Hel, Hgen⟩
-    · iframe; iframe #
+    · iframe; iframe Hli
     ihave Hbody : iprop(closingBody V wsr) $$ [Hsb]
     · unfold closingBody
       iexists (f wsr).1
@@ -3301,7 +3301,7 @@ theorem watchGRPCStream.run.wp_proof
     imodintro
     wp_apply wp_closeSub V G.wgs wsr idv ce DFrac.discard (DFrac.own 1) (DFrac.own 1) mref M' s l'
       $$ [Hbody Hid Hsub Hm Hres Hs] as ⟨Hid, -, Hsub, Hres, Hrest⟩
-    · iframe; iframe #
+    · iframe; iframe HcF Hce
     unfold forMapPostcondition
     iright; ileft
     isplitr
@@ -3326,11 +3326,11 @@ theorem watchGRPCStream.run.wp_proof
   · iframe
   -- (W3b) at the watcher's environment: its lock's invariant is there
   wp_apply wp_closeStream V0 G callSl $$ [Hdn]
-  · iframe #
+  · iframe HG0 HW0
     iframe
     unfold closeErrPub
     iexists ce
-    iframe #
+    iframe HcF Hce
   iapply HΦ
   iexact Htt
 

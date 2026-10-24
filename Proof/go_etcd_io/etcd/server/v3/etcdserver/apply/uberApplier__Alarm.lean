@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.uberApplier.Alarm.wp_proof
     (hR : apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Alarm.spec (GF := GF) (hG := hG) := by
-  intro E p opts c a r am log Pre Q Post
-  wp_start as ⟨#Hu, Ha, #Hs, #Hr, Hpre, Hwt, #Hsp⟩
+  intro E p opts c a r am log Pre Q Post info
+  wp_start as ⟨#Hu, Ha, #Hs, #Hr, Hpre, Hwt, #Hsp, HRW⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨-, #Hok, #Hlgf, #Hasf, #Hwadf, %base, #Hbsf, #Hbase⟩
@@ -49,10 +49,10 @@ theorem apply.uberApplier.Alarm.wp_proof
   iunfold apply.alarmRequestIs at Hr'
   icases Hr' with ⟨%Hrnn, #Hact, -, -⟩
   wp_auto
-  wp_apply HResp $$ %go!"Alarm" %r %log %Pre %Q %Post [] [Hpre Hwt] as %resp %err ⟨Hpost, #HeI⟩
+  wp_apply HResp $$ %go!"Alarm" %r %log %Pre %Q %Post %info [] [Hpre Hwt HRW] as %resp %err ⟨Hpost, #HeI⟩
   · ipureintro; simp [apply.respMethods]
   · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-    iframe Hpre Hwt Hsp
+    iframe Hpre Hwt Hsp HRW
     iexists am
     iexact Hr
   wp_if_destruct

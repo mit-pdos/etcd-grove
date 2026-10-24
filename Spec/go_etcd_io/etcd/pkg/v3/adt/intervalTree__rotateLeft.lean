@@ -29,38 +29,35 @@ which ends as it was). The two nodes' fields are explicit (the callers know thei
 their other subtrees owned whole; the context's frames' locations `ls` are kept, and `x`'s
 fields are given back as such (`deleteFixup` goes on below `x`). -/
 abbrev adt.intervalTree.rotateLeft.spec : Prop :=
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
   ∀ (t s : Loc) (dq : DFrac) (C : adt.RbCtx adt.Entry) (ls : List (Loc × Loc))
     (x p y ap bp dp : Loc)
     (cx cy : adt.RbColor) (a b d : adt.RbT adt.Entry) (xe ye : adt.Entry),
   x ≠ s ∧ x ≠ null → y ≠ s ∧ y ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
       t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
-      adt.ownCtxAt t s C ls x p (some (adt.nodeMax a xe (.node cy b ye d))) ∗
-      x.[intervalNode, go!"iv"] ↦
-        ({ Ivl' := adt.affIvl xe.1.1 xe.1.2, Val' := xe.2 } : IntervalValue) ∗
-      x.[intervalNode, go!"max"] ↦ adt.maxW (adt.nodeMax a xe (.node cy b ye d)) ∗
+      adt.ownCtxAt K t s C ls x p (some (adt.nodeMax a xe (.node cy b ye d))) ∗
+      K.ivAt x.[intervalNode, go!"iv"] (DFrac.own 1) xe ∗
+      K.maxAt x.[intervalNode, go!"max"] (DFrac.own 1) (adt.nodeMax a xe (.node cy b ye d)) ∗
       x.[intervalNode, go!"left"] ↦ ap ∗ x.[intervalNode, go!"right"] ↦ y ∗
       x.[intervalNode, go!"parent"] ↦ p ∗ x.[intervalNode, go!"c"] ↦ adt.colorW cx ∗
-      y.[intervalNode, go!"iv"] ↦
-        ({ Ivl' := adt.affIvl ye.1.1 ye.1.2, Val' := ye.2 } : IntervalValue) ∗
-      y.[intervalNode, go!"max"] ↦ adt.maxW (adt.nodeMax b ye d) ∗
+      K.ivAt y.[intervalNode, go!"iv"] (DFrac.own 1) ye ∗
+      K.maxAt y.[intervalNode, go!"max"] (DFrac.own 1) (adt.nodeMax b ye d) ∗
       y.[intervalNode, go!"left"] ↦ bp ∗ y.[intervalNode, go!"right"] ↦ dp ∗
       y.[intervalNode, go!"parent"] ↦ x ∗ y.[intervalNode, go!"c"] ↦ adt.colorW cy ∗
-      adt.ownNode s 1 x ap a ∗ adt.ownNode s 1 y bp b ∗ adt.ownNode s 1 y dp d }}
+      adt.ownNode K s (DFrac.own 1) x ap a ∗ adt.ownNode K s (DFrac.own 1) y bp b ∗ adt.ownNode K s (DFrac.own 1) y dp d }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"rotateLeft")) (Val #x))
   {{ RET #(); t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
-      adt.ownCtxAt t s C ls y p (some (adt.nodeMax (.node cx a xe b) ye d)) ∗
-      y.[intervalNode, go!"iv"] ↦
-        ({ Ivl' := adt.affIvl ye.1.1 ye.1.2, Val' := ye.2 } : IntervalValue) ∗
-      y.[intervalNode, go!"max"] ↦ adt.maxW (adt.nodeMax (.node cx a xe b) ye d) ∗
+      adt.ownCtxAt K t s C ls y p (some (adt.nodeMax (.node cx a xe b) ye d)) ∗
+      K.ivAt y.[intervalNode, go!"iv"] (DFrac.own 1) ye ∗
+      K.maxAt y.[intervalNode, go!"max"] (DFrac.own 1) (adt.nodeMax (.node cx a xe b) ye d) ∗
       y.[intervalNode, go!"left"] ↦ x ∗ y.[intervalNode, go!"right"] ↦ dp ∗
       y.[intervalNode, go!"parent"] ↦ p ∗ y.[intervalNode, go!"c"] ↦ adt.colorW cy ∗
-      x.[intervalNode, go!"iv"] ↦
-        ({ Ivl' := adt.affIvl xe.1.1 xe.1.2, Val' := xe.2 } : IntervalValue) ∗
-      x.[intervalNode, go!"max"] ↦ adt.maxW (adt.nodeMax a xe b) ∗
+      K.ivAt x.[intervalNode, go!"iv"] (DFrac.own 1) xe ∗
+      K.maxAt x.[intervalNode, go!"max"] (DFrac.own 1) (adt.nodeMax a xe b) ∗
       x.[intervalNode, go!"left"] ↦ ap ∗ x.[intervalNode, go!"right"] ↦ bp ∗
       x.[intervalNode, go!"parent"] ↦ y ∗ x.[intervalNode, go!"c"] ↦ adt.colorW cx ∗
-      adt.ownNode s 1 x ap a ∗ adt.ownNode s 1 x bp b ∗ adt.ownNode s 1 y dp d }}
+      adt.ownNode K s (DFrac.own 1) x ap a ∗ adt.ownNode K s (DFrac.own 1) x bp b ∗ adt.ownNode K s (DFrac.own 1) y dp d }}
 
 end spec
 

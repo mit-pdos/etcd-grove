@@ -330,7 +330,7 @@ def sentTypes : List w32 :=
   [MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
    MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgSnap]
 
-/-- (2026-10-22, D33a) **The shape of a `MsgApp` raft sends**: no vote, not a rejection, no
+/-- (2026-10-22, D38a) **The shape of a `MsgApp` raft sends**: no vote, not a rejection, no
 hint, no snapshot, no context, no responses -- the fields the msgappv2 codec's short frame does not
 carry (its decoder sets them to their defaults). Raft's one `MsgApp` (`maybeSendAppend`) sets only
 `To`, `Type`, `Index`, `LogTerm`, `Entries`, `Commit` (and `send`, `From` and `Term`). -/
@@ -345,7 +345,7 @@ carries it to the receiver): a type of
 read-index request, and from a node other than its destination unless it is a read-index request
 (forwarded, it keeps its requester), a vote or pre-vote response, or an accepting `MsgAppResp`
 (the self-addressed responses `acceptReady` steps). What a receiver's `NetMsgOk` needs of a
-message addressed to it (`NetMsgOk.of_sent`, `InvRawnode.lean`). (2026-10-22, D33a) And a `MsgApp`
+message addressed to it (`NetMsgOk.of_sent`, `InvRawnode.lean`). (2026-10-22, D38a) And a `MsgApp`
 of raft's shape (`AppShape`), what rafthttp's msgappv2 codec needs to carry it whole; and no
 message with responses (raft sets them only on its local storage messages), what both of rafthttp's
 codecs need to marshal it (`MsgMarshals`). -/
@@ -358,7 +358,7 @@ def SentMsgOk (st : MsgSt) : Prop :=
   (st.msg.Type' = MsgApp → AppShape st) ∧
   st.resps = []
 
-/-- (2026-10-22, D33a) `SentMsgOk` carries over to a message with the same scalars and no
+/-- (2026-10-22, D38a) `SentMsgOk` carries over to a message with the same scalars and no
 responses, if it is not a `MsgApp` (whose shape reads the rest): e.g. a `MsgSnap` with its
 snapshot replaced. -/
 theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.msg)
@@ -367,7 +367,7 @@ theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.
   unfold SentMsgOk; rw [hm]
   exact ⟨a, b, c, d, e, fun h => absurd h hna, hr⟩
 
-/-- (2026-10-22, D33a) **A `MsgApp` is from its sender** `id`: `send` stamps `From = r.id` into every
+/-- (2026-10-22, D38a) **A `MsgApp` is from its sender** `id`: `send` stamps `From = r.id` into every
 message but a forwarded read-index or transfer request, and raft's one `MsgApp` (`maybeSendAppend`)
 is the node's own. What rafthttp's msgappv2 codec needs: its frames carry no sender, the decoder
 sets the stream's remote peer (`XfOk`, `isRaftMsg`). -/
@@ -380,7 +380,7 @@ queued message is of a type the model describes (so neither a `MsgTimeoutNow` no
 and with transfer off too every queued message is `SentMsgOk`. (2026-10-19, D22 S-a, to
 2026-10-20, D22 S-c) The term was the no-snapshot mode's (`NGhost.ns`), so that `SentMsgOk` was of
 both modes and its types excluded `MsgSnap`: leaving the no-snapshot mode (S-l) would have lost the
-receiver's facts. (2026-10-22, D33a) And in every mode, no queued message has responses (`send`'s
+receiver's facts. (2026-10-22, D38a) And in every mode, no queued message has responses (`send`'s
 premise): what a `Ready` says of its messages (`isRaftMsg`), so that a transport can marshal them. -/
 def XfOk (id : w64) (s : NState) (l : List QMsg) : Prop :=
   (s.gh.xf = true → s.lt = W64 0 ∧ ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none) ∧

@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- `as.authInfoFromToken(ctx, token)`: the token provider's `info` at the store's revision. -/
 
 abbrev auth.authStore.authInfoFromToken.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (ctx : GoInterface) (token : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R }}
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ctx : GoInterface) (token : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M }}
     (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"authInfoFromToken")) (Val #ctx)) (Val #token))
   {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a }}
 

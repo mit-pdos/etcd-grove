@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
     apply.quotaApplierV3.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r log Pre Q Post
+  intro E c inner p r log Pre Q Post info
   wp_start as ⟨#Hq, #Hin, HR, Hpre, Hwt, #Hsp⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
@@ -50,7 +50,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   wp_auto
   wp_apply HAvail $$ %_ %r [] as %ok -
   · ipureintro; exact Or.inr (Or.inr rfl)
-  ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ Hf Hres
+  ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ Hf Hres
   wp_apply HResp $$ %go!"LeaseGrant" %r %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
     as %resp %err ⟨Hpost, #HeI'⟩
   · ipureintro; simp [apply.respMethods]
@@ -61,7 +61,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
     iframe #
   iunfold apply.mPost at Hpost
   icases Hpost with ⟨Hkv, Hres, HPP⟩
-  ihave Hres := apply.chainRes_quota_in c p (.ok bi) $$ Hf Hres
+  ihave Hres := apply.chainResAny_quota_in c p (.ok bi) $$ Hf Hres
   rcases err with e | _ <;> cases ok <;> (try wp_auto) <;>
   · iapply HΦ
     iunfold apply.mPost

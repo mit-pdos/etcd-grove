@@ -15,7 +15,7 @@ of a counter under a mutex, traced with a counter clock, the trace checked by po
 translated `CheckOperationsVerbose` with no timeout -- and panics unless the answer is `Ok`.
 So no panic means porcupine answered `Ok`.
 
-It follows from Perennial's `goose_adequacy`, as the register's (`register/Adequacy.lean`):
+It follows from Perennial's `goose_adequacy` (through `examples/common/Adequacy.lean`'s `init_adequate`), as the register's (`register/Adequacy.lean`):
 the disk FFI (the proofs are generic over the FFI), a concrete ghost-state bundle `counterGF`,
 the bounds `N = n + 1` (time receipts) and `T = n + 2` (threads, `Proof/runtime/Threads.lean`),
 the package initialization (`counter/Init.lean`, at the program's table `PkgTable.lean`, both
@@ -38,6 +38,7 @@ generated; `context`'s `isClosedchanInit`, which `Main.spec` takes, from `contex
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.PkgTable
@@ -136,42 +137,19 @@ theorem counter_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  suffices H : (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
-    refine ⟨H.1, H.2.1, fun v hv => ?_⟩
-    cases h : v.isPanic
-    · rfl
-    · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
-      exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
-  refine goose_adequacy (GF := counterGF) (n + 1) (n + 2) counterProgram σ g
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
-  intro hG HN _ HL
-  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
-  subst Hlctx
-  subst HL
-  letI : HeapGS .hasLC counterGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
+  refine init_adequate (GF := counterGF) github_com.mit_pdos.etcd_grove.examples.lintest.counter.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.lintest.counter.Main) #())
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g trivial trivial Hlctx Hinit
+    Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
+  letI : HeapGS .hasLC counterGF := heapWith hG lctx
   have Hbound : receiptBound counterGF ≤ 2 ^ 63 := by rw [HN]; omega
-  unfold IsInit at Hinit
-  rw [Hinit]
-  iintro _ _ Hgs Htok
-  ihave Hown : ownInitializing
-      (github_com.mit_pdos.etcd_grove.examples.lintest.counter.getIsPkgInit (GF := counterGF)) $$ [Hgs]
-  · rw [ownInitializing_unseal]
-    unfold ownInitializingDef
-    iexists ∅
-    iframe Hgs
-    imodintro
-    iapply BigSepM.bigSepM_empty.2
-    itrivial
-  imodintro
-  unfold counterProgram
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.lintest.counter.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.lintest.counter.getIsPkgInit_wf) $$ Hown as ⟨_, #Hpkg⟩
+  unfold progOk0
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.lintest.counter.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.lintest.counter.getIsPkgInit_wf, ?_⟩
+  iintro #Hpkg -
   ihave #Hcc : context.isClosedchanInit (GF := counterGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
-  wp_apply counter.wp_Main Hbound $$ [Hpkg Hcc]
+  wp_apply (counter.wp_Main Hbound) $$ [Hpkg Hcc]
   · iframe #
   ipureintro
   rfl

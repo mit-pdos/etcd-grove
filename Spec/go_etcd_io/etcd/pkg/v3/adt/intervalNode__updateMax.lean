@@ -30,26 +30,25 @@ with it (the loop goes up until a `max` does not change: the nodes above it are 
 right). The context's frames' locations `ls` are kept (`CtxAt.lean`: `Delete` finds the node
 it removes where it was, above the walk's start). -/
 abbrev adt.intervalNode.updateMax.spec : Prop :=
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
   ∀ (t s : Loc) (C : adt.RbCtx adt.Entry) (ls : List (Loc × Loc)) (x p lp rp : Loc)
     (e : adt.Entry) (m0 : GoString)
     (ml mr : Option GoString),
   x ≠ s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
-      adt.ownCtxAt t s C ls x p (some m0) ∗
-      x.[intervalNode, go!"iv"] ↦
-        ({ Ivl' := adt.affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      x.[intervalNode, go!"max"] ↦ adt.maxW m0 ∗
+      adt.ownCtxAt K t s C ls x p (some m0) ∗
+      K.ivAt x.[intervalNode, go!"iv"] (DFrac.own 1) e ∗
+      K.maxAt x.[intervalNode, go!"max"] (DFrac.own 1) m0 ∗
       x.[intervalNode, go!"left"] ↦ lp ∗ x.[intervalNode, go!"right"] ↦ rp ∗
       x.[intervalNode, go!"parent"] ↦ p ∗
-      adt.childMax s lp ml ∗ adt.childMax s rp mr }}
+      adt.childMax K s lp ml ∗ adt.childMax K s rp mr }}
     (App (Val (x @!! go.GoType.PointerType intervalNode.ty @!! go!"updateMax")) (Val #s))
-  {{ RET #(); adt.ownCtxAt t s C ls x p (some (adt.nodeMaxO ml e mr)) ∗
-      x.[intervalNode, go!"iv"] ↦
-        ({ Ivl' := adt.affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      x.[intervalNode, go!"max"] ↦ adt.maxW (adt.nodeMaxO ml e mr) ∗
+  {{ RET #(); adt.ownCtxAt K t s C ls x p (some (adt.nodeMaxO ml e mr)) ∗
+      K.ivAt x.[intervalNode, go!"iv"] (DFrac.own 1) e ∗
+      K.maxAt x.[intervalNode, go!"max"] (DFrac.own 1) (adt.nodeMaxO ml e mr) ∗
       x.[intervalNode, go!"left"] ↦ lp ∗ x.[intervalNode, go!"right"] ↦ rp ∗
       x.[intervalNode, go!"parent"] ↦ p ∗
-      adt.childMax s lp ml ∗ adt.childMax s rp mr }}
+      adt.childMax K s lp ml ∗ adt.childMax K s rp mr }}
 
 end spec
 

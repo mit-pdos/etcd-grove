@@ -28,10 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`a.RoleAdd(r)`**: the auth store's `RoleAdd` (a critical section, or none); the response's `Header` set to `newHeader()` if any. -/
 abbrev apply.applierV3backend.RoleAdd.spec : Prop :=
-  ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
+  ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      (∃ n : GoString, apply.authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗
-      apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ }}
+      ((∃ n : GoString, apply.authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW) ∗
+      apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗ mvcc.storeWT E.γ }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleAdd")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
 

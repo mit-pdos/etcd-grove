@@ -1,9 +1,9 @@
 /-
 The interval tree with a hole, its frames' locations pinned (`Delete`'s and the fixups' view of
-it): `ownPathAt s q A ls n p mh`, the frames of the context `A` from the hole `n` (child of `p`)
+it): `ownPathAt K s q A ls n p mh`, the frames of the context `A` from the hole `n` (child of `p`)
 up, at the fraction `q`, each frame's node's parent and other child listed in `ls` (innermost
 first) — a path from a node `topAt A ls n p` down to the hole, its top's parent field included —;
-and `ownCtxAt t s C ls n p mh`, such a path from the tree's root (`ownCtx` with the locations as
+and `ownCtxAt K t s C ls n p mh`, such a path from the tree's root (`ownCtx` with the locations as
 an index: `ownCtx_at`). The helpers' specs that change a tree under a hole (`updateMax`,
 `replaceParent`, the rotations) keep `ls`: a caller that has moved the hole along a path (from
 the node `Delete` removes down to its successor) finds the path's nodes where they were
@@ -57,92 +57,82 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
-
-/-- A node is not the sentinel, nor `nil`. -/
-theorem ownNode_node_ne (s : Loc) (q : Qp) (p n : Loc) (c : RbColor) (l : RbT Entry) (e : Entry)
-    (r : RbT Entry) : ownNode (GF := GF) s q p n (.node c l e r) ⊢ ⌜n ≠ s ∧ n ≠ null⌝ := by
-  iintro H
-  icases ownNode_node_open _ _ _ _ _ _ _ _ $$ H with ⟨%lp, %rp, %Hn, -⟩
-  ipureintro; exact Hn
+variable (K : KeyRep (GF := GF))
 
 /-- The path from `topAt A ls n p` down to the hole at `n` (child of `p`), the hole's subtree's
 max being `mh`, at the fraction `q`: per frame, the parent node `p` (not the sentinel) with its
 fields, its child pointer at `n`, its other child and parent as listed, its `max` as `updateMax`
 computes it from `mh`, its other subtree; `ls` must have one entry per frame. -/
-def ownPathAt (s : Loc) (q : Qp) :
+def ownPathAt (K : KeyRep (GF := GF)) (s : Loc) (q : DFrac) :
     RbCtx Entry → List (Loc × Loc) → Loc → Loc → Option GoString → IProp GF
   | .top, [], _, _, _ => iprop(True)
   | .inL c C e r, (pp, rp) :: ls, n, p, mh => iprop(⌜p ≠ s ∧ p ≠ null⌝ ∗
-      p.[intervalNode, go!"iv"] ↦{DFrac.own q}
-        ({ Ivl' := affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      p.[intervalNode, go!"max"] ↦{DFrac.own q} maxW (nodeMaxO mh e r.maxEnd) ∗
-      p.[intervalNode, go!"left"] ↦{DFrac.own q} n ∗
-      p.[intervalNode, go!"right"] ↦{DFrac.own q} rp ∗
-      p.[intervalNode, go!"parent"] ↦{DFrac.own q} pp ∗
-      p.[intervalNode, go!"c"] ↦{DFrac.own q} colorW c ∗
-      ownNode s q p rp r ∗ ownPathAt s q C ls p pp (some (nodeMaxO mh e r.maxEnd)))
+      K.ivAt p.[intervalNode, go!"iv"] q e ∗
+      K.maxAt p.[intervalNode, go!"max"] q (nodeMaxO mh e r.maxEnd) ∗
+      p.[intervalNode, go!"left"] ↦{q} n ∗
+      p.[intervalNode, go!"right"] ↦{q} rp ∗
+      p.[intervalNode, go!"parent"] ↦{q} pp ∗
+      p.[intervalNode, go!"c"] ↦{q} colorW c ∗
+      ownNode K s q p rp r ∗ ownPathAt K s q C ls p pp (some (nodeMaxO mh e r.maxEnd)))
   | .inR c l e C, (pp, lp) :: ls, n, p, mh => iprop(⌜p ≠ s ∧ p ≠ null⌝ ∗
-      p.[intervalNode, go!"iv"] ↦{DFrac.own q}
-        ({ Ivl' := affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      p.[intervalNode, go!"max"] ↦{DFrac.own q} maxW (nodeMaxO l.maxEnd e mh) ∗
-      p.[intervalNode, go!"left"] ↦{DFrac.own q} lp ∗
-      p.[intervalNode, go!"right"] ↦{DFrac.own q} n ∗
-      p.[intervalNode, go!"parent"] ↦{DFrac.own q} pp ∗
-      p.[intervalNode, go!"c"] ↦{DFrac.own q} colorW c ∗
-      ownNode s q p lp l ∗ ownPathAt s q C ls p pp (some (nodeMaxO l.maxEnd e mh)))
+      K.ivAt p.[intervalNode, go!"iv"] q e ∗
+      K.maxAt p.[intervalNode, go!"max"] q (nodeMaxO l.maxEnd e mh) ∗
+      p.[intervalNode, go!"left"] ↦{q} lp ∗
+      p.[intervalNode, go!"right"] ↦{q} n ∗
+      p.[intervalNode, go!"parent"] ↦{q} pp ∗
+      p.[intervalNode, go!"c"] ↦{q} colorW c ∗
+      ownNode K s q p lp l ∗ ownPathAt K s q C ls p pp (some (nodeMaxO l.maxEnd e mh)))
   | .top, _ :: _, _, _, _ => iprop(False)
   | .inL _ _ _ _, [], _, _, _ => iprop(False)
   | .inR _ _ _ _, [], _, _, _ => iprop(False)
 
-theorem ownPathAt_top (s : Loc) (q : Qp) (n p : Loc) (mh : Option GoString) :
-    ownPathAt (GF := GF) s q .top [] n p mh = iprop(True) := by rw [ownPathAt]
+theorem ownPathAt_top (s : Loc) (q : DFrac) (n p : Loc) (mh : Option GoString) :
+    ownPathAt (GF := GF) K s q .top [] n p mh = iprop(True) := by rw [ownPathAt]
 
-theorem ownPathAt_top_intro (s : Loc) (q : Qp) (n p : Loc) (mh : Option GoString) :
-    ⊢ ownPathAt (GF := GF) s q .top [] n p mh := by
+theorem ownPathAt_top_intro (s : Loc) (q : DFrac) (n p : Loc) (mh : Option GoString) :
+    ⊢ ownPathAt (GF := GF) K s q .top [] n p mh := by
   rw [ownPathAt_top]; exact pure_intro trivial
 
-theorem ownPathAt_top_cons (s : Loc) (q : Qp) (f : Loc × Loc) (ls : List (Loc × Loc))
+theorem ownPathAt_top_cons (s : Loc) (q : DFrac) (f : Loc × Loc) (ls : List (Loc × Loc))
     (n p : Loc) (mh : Option GoString) :
-    ownPathAt (GF := GF) s q .top (f :: ls) n p mh = iprop(False) := by rw [ownPathAt]
+    ownPathAt (GF := GF) K s q .top (f :: ls) n p mh = iprop(False) := by rw [ownPathAt]
 
-theorem ownPathAt_inL (s : Loc) (q : Qp) (c : RbColor) (C : RbCtx Entry) (e : Entry)
+theorem ownPathAt_inL (s : Loc) (q : DFrac) (c : RbColor) (C : RbCtx Entry) (e : Entry)
     (r : RbT Entry) (pp rp : Loc) (ls : List (Loc × Loc)) (n p : Loc) (mh : Option GoString) :
-    ownPathAt (GF := GF) s q (.inL c C e r) ((pp, rp) :: ls) n p mh = iprop(⌜p ≠ s ∧ p ≠ null⌝ ∗
-      p.[intervalNode, go!"iv"] ↦{DFrac.own q}
-        ({ Ivl' := affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      p.[intervalNode, go!"max"] ↦{DFrac.own q} maxW (nodeMaxO mh e r.maxEnd) ∗
-      p.[intervalNode, go!"left"] ↦{DFrac.own q} n ∗
-      p.[intervalNode, go!"right"] ↦{DFrac.own q} rp ∗
-      p.[intervalNode, go!"parent"] ↦{DFrac.own q} pp ∗
-      p.[intervalNode, go!"c"] ↦{DFrac.own q} colorW c ∗
-      ownNode s q p rp r ∗ ownPathAt s q C ls p pp (some (nodeMaxO mh e r.maxEnd))) := by
+    ownPathAt (GF := GF) K s q (.inL c C e r) ((pp, rp) :: ls) n p mh = iprop(⌜p ≠ s ∧ p ≠ null⌝ ∗
+      K.ivAt p.[intervalNode, go!"iv"] q e ∗
+      K.maxAt p.[intervalNode, go!"max"] q (nodeMaxO mh e r.maxEnd) ∗
+      p.[intervalNode, go!"left"] ↦{q} n ∗
+      p.[intervalNode, go!"right"] ↦{q} rp ∗
+      p.[intervalNode, go!"parent"] ↦{q} pp ∗
+      p.[intervalNode, go!"c"] ↦{q} colorW c ∗
+      ownNode K s q p rp r ∗ ownPathAt K s q C ls p pp (some (nodeMaxO mh e r.maxEnd))) := by
   rw [ownPathAt]
 
-theorem ownPathAt_inR (s : Loc) (q : Qp) (c : RbColor) (l : RbT Entry) (e : Entry)
+theorem ownPathAt_inR (s : Loc) (q : DFrac) (c : RbColor) (l : RbT Entry) (e : Entry)
     (C : RbCtx Entry) (pp lp : Loc) (ls : List (Loc × Loc)) (n p : Loc) (mh : Option GoString) :
-    ownPathAt (GF := GF) s q (.inR c l e C) ((pp, lp) :: ls) n p mh = iprop(⌜p ≠ s ∧ p ≠ null⌝ ∗
-      p.[intervalNode, go!"iv"] ↦{DFrac.own q}
-        ({ Ivl' := affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      p.[intervalNode, go!"max"] ↦{DFrac.own q} maxW (nodeMaxO l.maxEnd e mh) ∗
-      p.[intervalNode, go!"left"] ↦{DFrac.own q} lp ∗
-      p.[intervalNode, go!"right"] ↦{DFrac.own q} n ∗
-      p.[intervalNode, go!"parent"] ↦{DFrac.own q} pp ∗
-      p.[intervalNode, go!"c"] ↦{DFrac.own q} colorW c ∗
-      ownNode s q p lp l ∗ ownPathAt s q C ls p pp (some (nodeMaxO l.maxEnd e mh))) := by
+    ownPathAt (GF := GF) K s q (.inR c l e C) ((pp, lp) :: ls) n p mh = iprop(⌜p ≠ s ∧ p ≠ null⌝ ∗
+      K.ivAt p.[intervalNode, go!"iv"] q e ∗
+      K.maxAt p.[intervalNode, go!"max"] q (nodeMaxO l.maxEnd e mh) ∗
+      p.[intervalNode, go!"left"] ↦{q} lp ∗
+      p.[intervalNode, go!"right"] ↦{q} n ∗
+      p.[intervalNode, go!"parent"] ↦{q} pp ∗
+      p.[intervalNode, go!"c"] ↦{q} colorW c ∗
+      ownNode K s q p lp l ∗ ownPathAt K s q C ls p pp (some (nodeMaxO l.maxEnd e mh))) := by
   rw [ownPathAt]
 
-theorem ownPathAt_inL_nil (s : Loc) (q : Qp) (c : RbColor) (C : RbCtx Entry) (e : Entry)
+theorem ownPathAt_inL_nil (s : Loc) (q : DFrac) (c : RbColor) (C : RbCtx Entry) (e : Entry)
     (r : RbT Entry) (n p : Loc) (mh : Option GoString) :
-    ownPathAt (GF := GF) s q (.inL c C e r) [] n p mh = iprop(False) := by rw [ownPathAt]
+    ownPathAt (GF := GF) K s q (.inL c C e r) [] n p mh = iprop(False) := by rw [ownPathAt]
 
-theorem ownPathAt_inR_nil (s : Loc) (q : Qp) (c : RbColor) (l : RbT Entry) (e : Entry)
+theorem ownPathAt_inR_nil (s : Loc) (q : DFrac) (c : RbColor) (l : RbT Entry) (e : Entry)
     (C : RbCtx Entry) (n p : Loc) (mh : Option GoString) :
-    ownPathAt (GF := GF) s q (.inR c l e C) [] n p mh = iprop(False) := by rw [ownPathAt]
+    ownPathAt (GF := GF) K s q (.inR c l e C) [] n p mh = iprop(False) := by rw [ownPathAt]
 
 /-- The path's frames are as many as the context's. -/
-theorem ownPathAt_length (s : Loc) (q : Qp) : ∀ (A : RbCtx Entry) (ls : List (Loc × Loc))
+theorem ownPathAt_length (s : Loc) (q : DFrac) : ∀ (A : RbCtx Entry) (ls : List (Loc × Loc))
     (n p : Loc) (mh : Option GoString),
-    ownPathAt (GF := GF) s q A ls n p mh ⊢ ⌜ls.length = A.depth⌝
+    ownPathAt (GF := GF) K s q A ls n p mh ⊢ ⌜ls.length = A.depth⌝
   | .top, [], _, _, _ => by rw [ownPathAt_top]; iintro -; ipureintro; rfl
   | .top, _ :: _, _, _, _ => by rw [ownPathAt_top_cons]; iintro %h; exact h.elim
   | .inL c C e r, [], _, _, _ => by rw [ownPathAt_inL_nil]; iintro %h; exact h.elim
@@ -159,10 +149,10 @@ theorem ownPathAt_length (s : Loc) (q : Qp) : ∀ (A : RbCtx Entry) (ls : List (
     ipureintro; simp [RbCtx.depth, h]
 
 /-- **The path with its hole's subtree** is the subtree of its top. -/
-theorem ownPathAt_plug (s : Loc) (q : Qp) : ∀ (A : RbCtx Entry) (ls : List (Loc × Loc))
+theorem ownPathAt_plug (s : Loc) (q : DFrac) : ∀ (A : RbCtx Entry) (ls : List (Loc × Loc))
     (n p : Loc) (T : RbT Entry),
-    ownPathAt (GF := GF) s q A ls n p T.maxEnd ∗ ownNode s q p n T ⊢
-      ownNode s q (topAt A ls n p).2 (topAt A ls n p).1 (A.plug T)
+    ownPathAt (GF := GF) K s q A ls n p T.maxEnd ∗ ownNode K s q p n T ⊢
+      ownNode K s q (topAt A ls n p).2 (topAt A ls n p).1 (A.plug T)
   | .top, [], n, p, T => by iintro ⟨-, H⟩; simp only [topAt_top, RbCtx.plug_top]; iexact H
   | .top, _ :: _, _, _, _ => by rw [ownPathAt_top_cons]; iintro ⟨%h, -⟩; exact h.elim
   | .inL c C e r, [], _, _, _ => by rw [ownPathAt_inL_nil]; iintro ⟨%h, -⟩; exact h.elim
@@ -192,43 +182,41 @@ theorem ownPathAt_plug (s : Loc) (q : Qp) : ∀ (A : RbCtx Entry) (ls : List (Lo
     iframe
     ipureintro; exact Hp
 
-theorem ownPathAt_plug' (s : Loc) (q : Qp) (A : RbCtx Entry) (ls : List (Loc × Loc))
+theorem ownPathAt_plug' (s : Loc) (q : DFrac) (A : RbCtx Entry) (ls : List (Loc × Loc))
     (n p m pm : Loc) (T : RbT Entry) (h : topAt A ls n p = (m, pm)) :
-    ownPathAt (GF := GF) s q A ls n p T.maxEnd ∗ ownNode s q p n T ⊢ ownNode s q pm m (A.plug T) := by
-  have := ownPathAt_plug (GF := GF) s q A ls n p T
+    ownPathAt (GF := GF) K s q A ls n p T.maxEnd ∗ ownNode K s q p n T ⊢ ownNode K s q pm m (A.plug T) := by
+  have := ownPathAt_plug K (GF := GF) s q A ls n p T
   rw [h] at this; exact this
 
 /-- One level down to the left child, from the node's fields (a descent that read them). -/
-theorem ownPathAt_push_inL (s : Loc) (q : Qp) (C : RbCtx Entry) (ls : List (Loc × Loc))
+theorem ownPathAt_push_inL (s : Loc) (q : DFrac) (C : RbCtx Entry) (ls : List (Loc × Loc))
     (x y : Loc) (c : RbColor) (l : RbT Entry) (e : Entry) (r : RbT Entry) (lp rp : Loc)
     (hx : x ≠ s ∧ x ≠ null) :
-    ownPathAt (GF := GF) s q C ls x y (some (nodeMax l e r)) ∗
-      x.[intervalNode, go!"iv"] ↦{DFrac.own q}
-        ({ Ivl' := affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      x.[intervalNode, go!"max"] ↦{DFrac.own q} maxW (nodeMax l e r) ∗
-      x.[intervalNode, go!"left"] ↦{DFrac.own q} lp ∗
-      x.[intervalNode, go!"right"] ↦{DFrac.own q} rp ∗
-      x.[intervalNode, go!"parent"] ↦{DFrac.own q} y ∗
-      x.[intervalNode, go!"c"] ↦{DFrac.own q} colorW c ∗
-      ownNode s q x rp r ⊢ ownPathAt s q (.inL c C e r) ((y, rp) :: ls) lp x l.maxEnd := by
+    ownPathAt (GF := GF) K s q C ls x y (some (nodeMax l e r)) ∗
+      K.ivAt x.[intervalNode, go!"iv"] q e ∗
+      K.maxAt x.[intervalNode, go!"max"] q (nodeMax l e r) ∗
+      x.[intervalNode, go!"left"] ↦{q} lp ∗
+      x.[intervalNode, go!"right"] ↦{q} rp ∗
+      x.[intervalNode, go!"parent"] ↦{q} y ∗
+      x.[intervalNode, go!"c"] ↦{q} colorW c ∗
+      ownNode K s q x rp r ⊢ ownPathAt K s q (.inL c C e r) ((y, rp) :: ls) lp x l.maxEnd := by
   iintro ⟨HC, Hiv, Hmx, Hl, Hr, Hp, Hc, Hnr⟩
   rw [ownPathAt_inL]
   simp only [nodeMax_eq]
   iframe
   ipureintro; exact hx
 
-theorem ownPathAt_push_inR (s : Loc) (q : Qp) (C : RbCtx Entry) (ls : List (Loc × Loc))
+theorem ownPathAt_push_inR (s : Loc) (q : DFrac) (C : RbCtx Entry) (ls : List (Loc × Loc))
     (x y : Loc) (c : RbColor) (l : RbT Entry) (e : Entry) (r : RbT Entry) (lp rp : Loc)
     (hx : x ≠ s ∧ x ≠ null) :
-    ownPathAt (GF := GF) s q C ls x y (some (nodeMax l e r)) ∗
-      x.[intervalNode, go!"iv"] ↦{DFrac.own q}
-        ({ Ivl' := affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      x.[intervalNode, go!"max"] ↦{DFrac.own q} maxW (nodeMax l e r) ∗
-      x.[intervalNode, go!"left"] ↦{DFrac.own q} lp ∗
-      x.[intervalNode, go!"right"] ↦{DFrac.own q} rp ∗
-      x.[intervalNode, go!"parent"] ↦{DFrac.own q} y ∗
-      x.[intervalNode, go!"c"] ↦{DFrac.own q} colorW c ∗
-      ownNode s q x lp l ⊢ ownPathAt s q (.inR c l e C) ((y, lp) :: ls) rp x r.maxEnd := by
+    ownPathAt (GF := GF) K s q C ls x y (some (nodeMax l e r)) ∗
+      K.ivAt x.[intervalNode, go!"iv"] q e ∗
+      K.maxAt x.[intervalNode, go!"max"] q (nodeMax l e r) ∗
+      x.[intervalNode, go!"left"] ↦{q} lp ∗
+      x.[intervalNode, go!"right"] ↦{q} rp ∗
+      x.[intervalNode, go!"parent"] ↦{q} y ∗
+      x.[intervalNode, go!"c"] ↦{q} colorW c ∗
+      ownNode K s q x lp l ⊢ ownPathAt K s q (.inR c l e C) ((y, lp) :: ls) rp x r.maxEnd := by
   iintro ⟨HC, Hiv, Hmx, Hl, Hr, Hp, Hc, Hnl⟩
   rw [ownPathAt_inR]
   simp only [nodeMax_eq]
@@ -236,9 +224,9 @@ theorem ownPathAt_push_inR (s : Loc) (q : Qp) (C : RbCtx Entry) (ls : List (Loc 
   ipureintro; exact hx
 
 /-- The path's top is not the sentinel when the path has a frame. -/
-theorem ownPathAt_top_ne (s : Loc) (q : Qp) : ∀ (A : RbCtx Entry) (ls : List (Loc × Loc))
+theorem ownPathAt_top_ne (s : Loc) (q : DFrac) : ∀ (A : RbCtx Entry) (ls : List (Loc × Loc))
     (n p : Loc) (mh : Option GoString), A ≠ .top →
-    ownPathAt (GF := GF) s q A ls n p mh ⊢ ⌜(topAt A ls n p).1 ≠ s⌝
+    ownPathAt (GF := GF) K s q A ls n p mh ⊢ ⌜(topAt A ls n p).1 ≠ s⌝
   | .top, _, _, _, _, h => absurd rfl h
   | .inL c C e r, [], _, _, _, _ => by rw [ownPathAt_inL_nil]; iintro %h; exact h.elim
   | .inR c l e C, [], _, _, _, _ => by rw [ownPathAt_inR_nil]; iintro %h; exact h.elim
@@ -260,7 +248,7 @@ theorem ownPathAt_top_ne (s : Loc) (q : Qp) : ∀ (A : RbCtx Entry) (ls : List (
 /-- The path's top is not a node whose `parent` field is owned elsewhere. -/
 theorem ownPathAt_top_ne_node (s : Loc) : ∀ (A : RbCtx Entry) (ls : List (Loc × Loc))
     (n p : Loc) (mh : Option GoString) (x v : Loc), A ≠ .top →
-    ownPathAt (GF := GF) s 1 A ls n p mh ∗ x.[intervalNode, go!"parent"] ↦ v ⊢
+    ownPathAt (GF := GF) K s (DFrac.own 1) A ls n p mh ∗ x.[intervalNode, go!"parent"] ↦ v ⊢
       ⌜(topAt A ls n p).1 ≠ x⌝
   | .top, _, _, _, _, _, _, h => absurd rfl h
   | .inL c C e r, [], _, _, _, _, _, _ => by
@@ -294,13 +282,13 @@ theorem ownPathAt_top_ne_node (s : Loc) : ∀ (A : RbCtx Entry) (ls : List (Loc 
 
 /-- `ownCtx` with the frames' locations as an index: a path from the root (the tree's `root`
 field, its parent the sentinel). -/
-def ownCtxAt (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
+def ownCtxAt (K : KeyRep (GF := GF)) (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
     (mh : Option GoString) : IProp GF :=
-  iprop(ownPathAt s 1 C ls n p mh ∗ ⌜(topAt C ls n p).2 = s⌝ ∗
+  iprop(ownPathAt K s (DFrac.own 1) C ls n p mh ∗ ⌜(topAt C ls n p).2 = s⌝ ∗
     t.[intervalTree, go!"root"] ↦ (topAt C ls n p).1)
 
 theorem ownCtxAt_top (t s n p : Loc) (mh : Option GoString) :
-    ownCtxAt (GF := GF) t s .top [] n p mh ⊣⊢ ⌜p = s⌝ ∗ t.[intervalTree, go!"root"] ↦ n := by
+    ownCtxAt (GF := GF) K t s .top [] n p mh ⊣⊢ ⌜p = s⌝ ∗ t.[intervalTree, go!"root"] ↦ n := by
   unfold ownCtxAt
   rw [ownPathAt_top, topAt_top]
   constructor
@@ -309,15 +297,14 @@ theorem ownCtxAt_top (t s n p : Loc) (mh : Option GoString) :
 
 theorem ownCtxAt_inL (t s : Loc) (c : RbColor) (C : RbCtx Entry) (e : Entry) (r : RbT Entry)
     (pp rp : Loc) (ls : List (Loc × Loc)) (n p : Loc) (mh : Option GoString) :
-    ownCtxAt (GF := GF) t s (.inL c C e r) ((pp, rp) :: ls) n p mh ⊣⊢ ⌜p ≠ s ∧ p ≠ null⌝ ∗
-      p.[intervalNode, go!"iv"] ↦
-        ({ Ivl' := affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      p.[intervalNode, go!"max"] ↦ maxW (nodeMaxO mh e r.maxEnd) ∗
+    ownCtxAt (GF := GF) K t s (.inL c C e r) ((pp, rp) :: ls) n p mh ⊣⊢ ⌜p ≠ s ∧ p ≠ null⌝ ∗
+      K.ivAt p.[intervalNode, go!"iv"] (DFrac.own 1) e ∗
+      K.maxAt p.[intervalNode, go!"max"] (DFrac.own 1) (nodeMaxO mh e r.maxEnd) ∗
       p.[intervalNode, go!"left"] ↦ n ∗
       p.[intervalNode, go!"right"] ↦ rp ∗
       p.[intervalNode, go!"parent"] ↦ pp ∗
       p.[intervalNode, go!"c"] ↦ colorW c ∗
-      ownNode s 1 p rp r ∗ ownCtxAt t s C ls p pp (some (nodeMaxO mh e r.maxEnd)) := by
+      ownNode K s (DFrac.own 1) p rp r ∗ ownCtxAt K t s C ls p pp (some (nodeMaxO mh e r.maxEnd)) := by
   unfold ownCtxAt
   rw [ownPathAt_inL, topAt_inL]
   constructor
@@ -328,15 +315,14 @@ theorem ownCtxAt_inL (t s : Loc) (c : RbColor) (C : RbCtx Entry) (e : Entry) (r 
 
 theorem ownCtxAt_inR (t s : Loc) (c : RbColor) (l : RbT Entry) (e : Entry) (C : RbCtx Entry)
     (pp lp : Loc) (ls : List (Loc × Loc)) (n p : Loc) (mh : Option GoString) :
-    ownCtxAt (GF := GF) t s (.inR c l e C) ((pp, lp) :: ls) n p mh ⊣⊢ ⌜p ≠ s ∧ p ≠ null⌝ ∗
-      p.[intervalNode, go!"iv"] ↦
-        ({ Ivl' := affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
-      p.[intervalNode, go!"max"] ↦ maxW (nodeMaxO l.maxEnd e mh) ∗
+    ownCtxAt (GF := GF) K t s (.inR c l e C) ((pp, lp) :: ls) n p mh ⊣⊢ ⌜p ≠ s ∧ p ≠ null⌝ ∗
+      K.ivAt p.[intervalNode, go!"iv"] (DFrac.own 1) e ∗
+      K.maxAt p.[intervalNode, go!"max"] (DFrac.own 1) (nodeMaxO l.maxEnd e mh) ∗
       p.[intervalNode, go!"left"] ↦ lp ∗
       p.[intervalNode, go!"right"] ↦ n ∗
       p.[intervalNode, go!"parent"] ↦ pp ∗
       p.[intervalNode, go!"c"] ↦ colorW c ∗
-      ownNode s 1 p lp l ∗ ownCtxAt t s C ls p pp (some (nodeMaxO l.maxEnd e mh)) := by
+      ownNode K s (DFrac.own 1) p lp l ∗ ownCtxAt K t s C ls p pp (some (nodeMaxO l.maxEnd e mh)) := by
   unfold ownCtxAt
   rw [ownPathAt_inR, topAt_inR]
   constructor
@@ -346,44 +332,44 @@ theorem ownCtxAt_inR (t s : Loc) (c : RbColor) (l : RbT Entry) (e : Entry) (C : 
     iframe; ipureintro; exact ⟨Hp, Ht⟩
 
 theorem ownCtxAt_top_cons (t s : Loc) (f : Loc × Loc) (ls : List (Loc × Loc)) (n p : Loc)
-    (mh : Option GoString) : ownCtxAt (GF := GF) t s .top (f :: ls) n p mh ⊢ False := by
+    (mh : Option GoString) : ownCtxAt (GF := GF) K t s .top (f :: ls) n p mh ⊢ False := by
   unfold ownCtxAt; rw [ownPathAt_top_cons]; iintro ⟨%h, -⟩; exact h.elim
 
 theorem ownCtxAt_inL_nil (t s : Loc) (c : RbColor) (C : RbCtx Entry) (e : Entry)
     (r : RbT Entry) (n p : Loc) (mh : Option GoString) :
-    ownCtxAt (GF := GF) t s (.inL c C e r) [] n p mh ⊢ False := by
+    ownCtxAt (GF := GF) K t s (.inL c C e r) [] n p mh ⊢ False := by
   unfold ownCtxAt; rw [ownPathAt_inL_nil]; iintro ⟨%h, -⟩; exact h.elim
 
 theorem ownCtxAt_inR_nil (t s : Loc) (c : RbColor) (l : RbT Entry) (e : Entry)
     (C : RbCtx Entry) (n p : Loc) (mh : Option GoString) :
-    ownCtxAt (GF := GF) t s (.inR c l e C) [] n p mh ⊢ False := by
+    ownCtxAt (GF := GF) K t s (.inR c l e C) [] n p mh ⊢ False := by
   unfold ownCtxAt; rw [ownPathAt_inR_nil]; iintro ⟨%h, -⟩; exact h.elim
 
 /-- **`ownCtx` is `ownCtxAt` with the locations hidden.** -/
 theorem ownCtx_at (t s : Loc) : ∀ (C : RbCtx Entry) (n p : Loc) (mh : Option GoString),
-    ownCtx (GF := GF) t s C n p mh ⊣⊢ ∃ ls, ownCtxAt t s C ls n p mh
+    ownCtx (GF := GF) K t s C n p mh ⊣⊢ ∃ ls, ownCtxAt K t s C ls n p mh
   | .top, n, p, mh => by
     rw [ownCtx_top]
     constructor
-    · iintro H; iexists []; iapply (ownCtxAt_top t s n p mh).2; iexact H
+    · iintro H; iexists []; iapply (ownCtxAt_top K t s n p mh).2; iexact H
     · iintro ⟨%ls, H⟩
       cases ls with
-      | nil => iapply (ownCtxAt_top t s n p mh).1; iexact H
-      | cons f ls => iexfalso; iapply ownCtxAt_top_cons $$ H
+      | nil => iapply (ownCtxAt_top K t s n p mh).1; iexact H
+      | cons f ls => iexfalso; iapply ownCtxAt_top_cons K $$ H
   | .inL c C e r, n, p, mh => by
     rw [ownCtx_inL]
     constructor
     · iintro ⟨%pp, %rp, %Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnr, HC⟩
       icases (ownCtx_at t s C p pp _).1 $$ HC with ⟨%ls, HC⟩
       iexists (pp, rp) :: ls
-      iapply (ownCtxAt_inL t s c C e r pp rp ls n p mh).2
+      iapply (ownCtxAt_inL K t s c C e r pp rp ls n p mh).2
       iframe; ipureintro; exact Hp
     · iintro ⟨%ls, H⟩
       cases ls with
-      | nil => iexfalso; iapply ownCtxAt_inL_nil $$ H
+      | nil => iexfalso; iapply ownCtxAt_inL_nil K $$ H
       | cons f ls =>
         obtain ⟨pp, rp⟩ := f
-        icases (ownCtxAt_inL t s c C e r pp rp ls n p mh).1 $$ H with
+        icases (ownCtxAt_inL K t s c C e r pp rp ls n p mh).1 $$ H with
           ⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnr, HC⟩
         iexists pp, rp
         iframe
@@ -397,14 +383,14 @@ theorem ownCtx_at (t s : Loc) : ∀ (C : RbCtx Entry) (n p : Loc) (mh : Option G
     · iintro ⟨%pp, %lp, %Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnl, HC⟩
       icases (ownCtx_at t s C p pp _).1 $$ HC with ⟨%ls, HC⟩
       iexists (pp, lp) :: ls
-      iapply (ownCtxAt_inR t s c l e C pp lp ls n p mh).2
+      iapply (ownCtxAt_inR K t s c l e C pp lp ls n p mh).2
       iframe; ipureintro; exact Hp
     · iintro ⟨%ls, H⟩
       cases ls with
-      | nil => iexfalso; iapply ownCtxAt_inR_nil $$ H
+      | nil => iexfalso; iapply ownCtxAt_inR_nil K $$ H
       | cons f ls =>
         obtain ⟨pp, lp⟩ := f
-        icases (ownCtxAt_inR t s c l e C pp lp ls n p mh).1 $$ H with
+        icases (ownCtxAt_inR K t s c l e C pp lp ls n p mh).1 $$ H with
           ⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnl, HC⟩
         iexists pp, lp
         iframe
@@ -414,19 +400,19 @@ theorem ownCtx_at (t s : Loc) : ∀ (C : RbCtx Entry) (n p : Loc) (mh : Option G
         iexists ls; iexact HC
 
 theorem ownCtxAt_ctx (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
-    (mh : Option GoString) : ownCtxAt (GF := GF) t s C ls n p mh ⊢ ownCtx t s C n p mh := by
-  iintro H; iapply (ownCtx_at t s C n p mh).2; iexists ls; iexact H
+    (mh : Option GoString) : ownCtxAt (GF := GF) K t s C ls n p mh ⊢ ownCtx K t s C n p mh := by
+  iintro H; iapply (ownCtx_at K t s C n p mh).2; iexists ls; iexact H
 
 /-- The hole's parent is the sentinel exactly at the top. -/
 theorem ownCtxAt_parent (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
-    (mh : Option GoString) : ownCtxAt (GF := GF) t s C ls n p mh ⊢ ⌜C = .top ↔ p = s⌝ := by
+    (mh : Option GoString) : ownCtxAt (GF := GF) K t s C ls n p mh ⊢ ⌜C = .top ↔ p = s⌝ := by
   iintro H
   iapply ownCtx_parent
   iapply ownCtxAt_ctx; iexact H
 
 /-- At the top, the hole's max does not matter. -/
 theorem ownCtxAt_top_any (t s n p : Loc) (ls : List (Loc × Loc)) (mh mh' : Option GoString) :
-    ownCtxAt (GF := GF) t s .top ls n p mh ⊢ ownCtxAt t s .top ls n p mh' := by
+    ownCtxAt (GF := GF) K t s .top ls n p mh ⊢ ownCtxAt K t s .top ls n p mh' := by
   unfold ownCtxAt
   cases ls with
   | nil => rw [ownPathAt_top, ownPathAt_top]
@@ -436,8 +422,8 @@ theorem ownCtxAt_top_any (t s n p : Loc) (ls : List (Loc × Loc)) (mh mh' : Opti
 theorem ownCtxAt_comp (t s : Loc) (D : RbCtx Entry) (ls2 : List (Loc × Loc)) (m pm : Loc) :
     ∀ (A : RbCtx Entry) (ls1 : List (Loc × Loc)) (n p : Loc) (mh : Option GoString),
     topAt A ls1 n p = (m, pm) →
-    ownPathAt (GF := GF) s 1 A ls1 n p mh ∗ ownCtxAt t s D ls2 m pm (A.upMax mh) ⊢
-      ownCtxAt t s (A.comp D) (ls1 ++ ls2) n p mh
+    ownPathAt (GF := GF) K s (DFrac.own 1) A ls1 n p mh ∗ ownCtxAt K t s D ls2 m pm (A.upMax mh) ⊢
+      ownCtxAt K t s (A.comp D) (ls1 ++ ls2) n p mh
   | .top, [], n, p, mh, h => by
     simp only [topAt_top, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
@@ -451,7 +437,7 @@ theorem ownCtxAt_comp (t s : Loc) (D : RbCtx Entry) (ls2 : List (Loc × Loc)) (m
     simp only [RbCtx.upMax]
     iintro ⟨⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnr, HC⟩, HD⟩
     rw [RbCtx.comp_inL, List.cons_append]
-    iapply (ownCtxAt_inL t s c (C.comp D) e r pp rp (ls ++ ls2) n p mh).2
+    iapply (ownCtxAt_inL K t s c (C.comp D) e r pp rp (ls ++ ls2) n p mh).2
     iframe
     isplitl []
     · ipureintro; exact Hp
@@ -462,7 +448,7 @@ theorem ownCtxAt_comp (t s : Loc) (D : RbCtx Entry) (ls2 : List (Loc × Loc)) (m
     simp only [RbCtx.upMax]
     iintro ⟨⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnl, HC⟩, HD⟩
     rw [RbCtx.comp_inR, List.cons_append]
-    iapply (ownCtxAt_inR t s c l e (C.comp D) pp lp (ls ++ ls2) n p mh).2
+    iapply (ownCtxAt_inR K t s c l e (C.comp D) pp lp (ls ++ ls2) n p mh).2
     iframe
     isplitl []
     · ipureintro; exact Hp
@@ -473,9 +459,9 @@ theorem ownCtxAt_comp (t s : Loc) (D : RbCtx Entry) (ls2 : List (Loc × Loc)) (m
 theorem ownCtxAt_split (t s : Loc) (D : RbCtx Entry) (ls2 : List (Loc × Loc)) :
     ∀ (A : RbCtx Entry) (ls1 : List (Loc × Loc)) (n p : Loc) (mh : Option GoString),
     ls1.length = A.depth →
-    ownCtxAt (GF := GF) t s (A.comp D) (ls1 ++ ls2) n p mh ⊢
-      ownPathAt s 1 A ls1 n p mh ∗
-        ownCtxAt t s D ls2 (topAt A ls1 n p).1 (topAt A ls1 n p).2 (A.upMax mh)
+    ownCtxAt (GF := GF) K t s (A.comp D) (ls1 ++ ls2) n p mh ⊢
+      ownPathAt K s (DFrac.own 1) A ls1 n p mh ∗
+        ownCtxAt K t s D ls2 (topAt A ls1 n p).1 (topAt A ls1 n p).2 (A.upMax mh)
   | .top, [], n, p, mh, _ => by
     rw [ownPathAt_top]; simp only [topAt_top, RbCtx.comp_top_left, List.nil_append, RbCtx.upMax]
     iintro H; iframe
@@ -486,7 +472,7 @@ theorem ownCtxAt_split (t s : Loc) (D : RbCtx Entry) (ls2 : List (Loc × Loc)) :
     rw [RbCtx.comp_inL, List.cons_append, ownPathAt_inL, topAt_inL]
     simp only [RbCtx.upMax]
     iintro H
-    icases (ownCtxAt_inL t s c (C.comp D) e r pp rp (ls ++ ls2) n p mh).1 $$ H with
+    icases (ownCtxAt_inL K t s c (C.comp D) e r pp rp (ls ++ ls2) n p mh).1 $$ H with
       ⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnr, HC⟩
     icases ownCtxAt_split t s D ls2 C ls p pp _ (by simpa [RbCtx.depth] using h) $$ HC with
       ⟨HA, HD⟩
@@ -496,7 +482,7 @@ theorem ownCtxAt_split (t s : Loc) (D : RbCtx Entry) (ls2 : List (Loc × Loc)) :
     rw [RbCtx.comp_inR, List.cons_append, ownPathAt_inR, topAt_inR]
     simp only [RbCtx.upMax]
     iintro H
-    icases (ownCtxAt_inR t s c l e (C.comp D) pp lp (ls ++ ls2) n p mh).1 $$ H with
+    icases (ownCtxAt_inR K t s c l e (C.comp D) pp lp (ls ++ ls2) n p mh).1 $$ H with
       ⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnl, HC⟩
     icases ownCtxAt_split t s D ls2 C ls p pp _ (by simpa [RbCtx.depth] using h) $$ HC with
       ⟨HA, HD⟩
@@ -506,9 +492,9 @@ theorem ownCtxAt_split (t s : Loc) (D : RbCtx Entry) (ls2 : List (Loc × Loc)) :
 /-- The root field, lent out: the path's top (the hole itself at the top). -/
 theorem ownCtxAt_root (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
     (mh : Option GoString) :
-    ownCtxAt (GF := GF) t s C ls n p mh ⊢
+    ownCtxAt (GF := GF) K t s C ls n p mh ⊢
       t.[intervalTree, go!"root"] ↦ (topAt C ls n p).1 ∗
-        (t.[intervalTree, go!"root"] ↦ (topAt C ls n p).1 -∗ ownCtxAt t s C ls n p mh) := by
+        (t.[intervalTree, go!"root"] ↦ (topAt C ls n p).1 -∗ ownCtxAt K t s C ls n p mh) := by
   unfold ownCtxAt
   iintro ⟨HP, %Ht, Hr⟩
   iframe Hr
@@ -519,18 +505,18 @@ theorem ownCtxAt_root (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n 
 field is owned elsewhere). -/
 theorem ownCtxAt_root_ne (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p x v : Loc)
     (mh : Option GoString) (hC : C ≠ .top) :
-    ownCtxAt (GF := GF) t s C ls n p mh ∗ x.[intervalNode, go!"parent"] ↦ v ⊢
+    ownCtxAt (GF := GF) K t s C ls n p mh ∗ x.[intervalNode, go!"parent"] ↦ v ⊢
       ⌜(topAt C ls n p).1 ≠ x⌝ := by
   unfold ownCtxAt
   iintro ⟨⟨HP, -, -⟩, Hx⟩
-  iapply ownPathAt_top_ne_node s C ls n p mh x v hC; iframe
+  iapply ownPathAt_top_ne_node K s C ls n p mh x v hC; iframe
 
 theorem ownCtxAt_root_ne_s (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
     (mh : Option GoString) (hC : C ≠ .top) :
-    ownCtxAt (GF := GF) t s C ls n p mh ⊢ ⌜(topAt C ls n p).1 ≠ s⌝ := by
+    ownCtxAt (GF := GF) K t s C ls n p mh ⊢ ⌜(topAt C ls n p).1 ≠ s⌝ := by
   unfold ownCtxAt
   iintro ⟨HP, -, -⟩
-  iapply ownPathAt_top_ne s 1 C ls n p mh hC $$ HP
+  iapply ownPathAt_top_ne K s (DFrac.own 1) C ls n p mh hC $$ HP
 
 /-! ## The sentinel's fields -/
 
@@ -539,7 +525,7 @@ theorem ownCtxAt_root_ne_s (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)
 def sentAt (s x p : Loc) : IProp GF :=
   iprop(∃ v : intervalNode, s ↦ v ∗ ⌜x = s → v.parent' = p⌝)
 
-theorem sentAt_ownSentinel (s x p : Loc) : sentAt (GF := GF) s x p ⊢ ownSentinel s 1 := by
+theorem sentAt_ownSentinel (s x p : Loc) : sentAt (GF := GF) s x p ⊢ ownSentinel s (DFrac.own 1) := by
   unfold sentAt ownSentinel
   iintro ⟨%v, H, -⟩
   iexists v; iexact H
@@ -608,8 +594,8 @@ theorem node_c (n : Loc) (v : intervalNode) :
 /-- The hole's `parent` field, lent out: in its node, or the sentinel's when it is the
 sentinel. -/
 theorem parentAt_open (s p x : Loc) (tx : RbT Entry) :
-    ownNode (GF := GF) s 1 p x tx ∗ sentAt s x p ⊢ x.[intervalNode, go!"parent"] ↦ p ∗
-      (x.[intervalNode, go!"parent"] ↦ p -∗ ownNode s 1 p x tx ∗ sentAt s x p) := by
+    ownNode (GF := GF) K s (DFrac.own 1) p x tx ∗ sentAt s x p ⊢ x.[intervalNode, go!"parent"] ↦ p ∗
+      (x.[intervalNode, go!"parent"] ↦ p -∗ ownNode K s (DFrac.own 1) p x tx ∗ sentAt s x p) := by
   cases tx with
   | leaf =>
     rw [ownNode_leaf]
@@ -628,7 +614,7 @@ theorem parentAt_open (s p x : Loc) (tx : RbT Entry) :
     ipureintro; intro _; rfl
   | node c l e r =>
     iintro ⟨H, Hs⟩
-    icases ownNode_node_open _ _ _ _ _ _ _ _ $$ H with
+    icases ownNode_node_open K _ _ _ _ _ _ _ _ $$ H with
       ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr, Hp, Hc, Hnl, Hnr⟩
     iframe Hp
     iintro Hp
@@ -641,41 +627,41 @@ theorem parentAt_open (s p x : Loc) (tx : RbT Entry) :
 /-- The hole is the root exactly at the top. -/
 theorem ownCtxAt_root_ne_hole (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (x p : Loc)
     (mh : Option GoString) (tx : RbT Entry) (hC : C ≠ .top) :
-    ownCtxAt (GF := GF) t s C ls x p mh ⊢ ownNode s 1 p x tx -∗ ⌜(topAt C ls x p).1 ≠ x⌝ := by
+    ownCtxAt (GF := GF) K t s C ls x p mh ⊢ ownNode K s (DFrac.own 1) p x tx -∗ ⌜(topAt C ls x p).1 ≠ x⌝ := by
   cases tx with
   | leaf =>
     rw [ownNode_leaf]
     iintro H %hx
     subst hx
-    iapply ownCtxAt_root_ne_s t _ C ls _ p mh hC $$ H
+    iapply ownCtxAt_root_ne_s K t _ C ls _ p mh hC $$ H
   | node c l e r =>
     iintro H Hn
-    icases ownNode_node_open _ _ _ _ _ _ _ _ $$ Hn with
+    icases ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hn with
       ⟨%lp, %rp, %Hn, -, -, -, -, Hp, -⟩
-    iapply ownCtxAt_root_ne t s C ls x p x p mh hC
+    iapply ownCtxAt_root_ne K t s C ls x p x p mh hC
     iframe
 
 /-- The hole is not its sibling node. -/
 theorem ownNode_hole_ne_sib (s p x p' w : Loc) (tx : RbT Entry) (c : RbColor) (l : RbT Entry)
     (e : Entry) (r : RbT Entry) :
-    ownNode (GF := GF) s 1 p x tx ⊢ ownNode s 1 p' w (.node c l e r) -∗ ⌜w ≠ x⌝ := by
+    ownNode (GF := GF) K s (DFrac.own 1) p x tx ⊢ ownNode K s (DFrac.own 1) p' w (.node c l e r) -∗ ⌜w ≠ x⌝ := by
   cases tx with
   | leaf =>
     rw [ownNode_leaf]
     iintro %hx Hw
-    ihave %Hw := ownNode_node_ne _ _ _ _ _ _ _ _ $$ Hw
+    ihave %Hw := ownNode_node_ne K _ _ _ _ _ _ _ _ $$ Hw
     ipureintro; rw [hx]; exact Hw.1
   | node cx lx ex rx =>
     iintro Hx Hw
-    icases ownNode_node_open _ _ _ _ _ _ _ _ $$ Hx with ⟨%a, %b, %Hxn, -, -, -, -, Hxp, -⟩
-    iapply ownNode_ne s p' w x p (.node c l e r) Hxn.1 $$ Hw Hxp
+    icases ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hx with ⟨%a, %b, %Hxn, -, -, -, -, Hxp, -⟩
+    iapply ownNode_ne K s p' w x p (.node c l e r) Hxn.1 $$ Hw Hxp
 
 /-- The spliced child's `parent` field, to be written (`x.parent = y.parent`): in its node, or
 the sentinel's. -/
 theorem parent_write (s z x : Loc) (tx : RbT Entry) :
-    ownNode (GF := GF) s 1 z x tx ∗ ownSentinel s 1 ⊢ ∃ v : Loc,
+    ownNode (GF := GF) K s (DFrac.own 1) z x tx ∗ ownSentinel s (DFrac.own 1) ⊢ ∃ v : Loc,
       x.[intervalNode, go!"parent"] ↦ v ∗
-        (∀ w, x.[intervalNode, go!"parent"] ↦ w -∗ ownNode s 1 w x tx ∗ sentAt s x w) := by
+        (∀ w, x.[intervalNode, go!"parent"] ↦ w -∗ ownNode K s (DFrac.own 1) w x tx ∗ sentAt s x w) := by
   cases tx with
   | leaf =>
     rw [ownNode_leaf]
@@ -695,7 +681,7 @@ theorem parent_write (s z x : Loc) (tx : RbT Entry) :
     ipureintro; intro _; rfl
   | node c l e r =>
     iintro ⟨H, Hs⟩
-    icases ownNode_node_open _ _ _ _ _ _ _ _ $$ H with
+    icases ownNode_node_open K _ _ _ _ _ _ _ _ $$ H with
       ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr, Hp, Hc, Hnl, Hnr⟩
     iexists z
     iframe Hp
@@ -724,9 +710,9 @@ theorem parent_ne (y z a b : Loc) :
 /-- The `max` field of a path's top node (a frame), lent out. -/
 theorem ownPathAt_top_max (s : Loc) : ∀ (A : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
     (mh : Option GoString), A ≠ .top →
-    ownPathAt (GF := GF) s 1 A ls n p mh ⊢ ∃ M, ⌜A.upMax mh = some M⌝ ∗
-      (topAt A ls n p).1.[intervalNode, go!"max"] ↦ maxW M ∗
-      ((topAt A ls n p).1.[intervalNode, go!"max"] ↦ maxW M -∗ ownPathAt s 1 A ls n p mh)
+    ownPathAt (GF := GF) K s (DFrac.own 1) A ls n p mh ⊢ ∃ M, ⌜A.upMax mh = some M⌝ ∗
+      K.maxAt (topAt A ls n p).1.[intervalNode, go!"max"] (DFrac.own 1) M ∗
+      (K.maxAt (topAt A ls n p).1.[intervalNode, go!"max"] (DFrac.own 1) M -∗ ownPathAt K s (DFrac.own 1) A ls n p mh)
   | .top, _, _, _, _, h => absurd rfl h
   | .inL c C e r, [], _, _, _, _ => by rw [ownPathAt_inL_nil]; iintro %h; exact h.elim
   | .inR c l e C, [], _, _, _, _ => by rw [ownPathAt_inR_nil]; iintro %h; exact h.elim
@@ -782,20 +768,20 @@ theorem ownPathAt_top_max (s : Loc) : ∀ (A : RbCtx Entry) (ls : List (Loc × L
       ipureintro; exact Hp
 
 /-- A subtree is the leaf exactly at the sentinel. -/
-theorem ownNode_leaf_iff (s : Loc) (q : Qp) (p n : Loc) (T : RbT Entry) :
-    ownNode (GF := GF) s q p n T ⊢ ⌜n = s ↔ T = .leaf⌝ := by
+theorem ownNode_leaf_iff (s : Loc) (q : DFrac) (p n : Loc) (T : RbT Entry) :
+    ownNode (GF := GF) K s q p n T ⊢ ⌜n = s ↔ T = .leaf⌝ := by
   cases T with
   | leaf => rw [ownNode_leaf]; iintro %h; ipureintro; simp [h]
   | node c l e r =>
     iintro H
-    ihave %Hn := ownNode_node_ne _ _ _ _ _ _ _ _ $$ H
+    ihave %Hn := ownNode_node_ne K _ _ _ _ _ _ _ _ $$ H
     ipureintro; simp [Hn.1]
 
 /-- The child `Delete` splices in for a node with at most one child: the left one if it is a
 node, else the right one (the other one dropped: it is the leaf). -/
 theorem ownNode_one_child (s z lp rp : Loc) (l r : RbT Entry) :
-    ownNode (GF := GF) s 1 z lp l ∗ ownNode s 1 z rp r ⊢
-      ownNode s 1 z (if lp = s then rp else lp) (if lp = s then r else l) := by
+    ownNode (GF := GF) K s (DFrac.own 1) z lp l ∗ ownNode K s (DFrac.own 1) z rp r ⊢
+      ownNode K s (DFrac.own 1) z (if lp = s then rp else lp) (if lp = s then r else l) := by
   iintro ⟨Hl, Hr⟩
   by_cases h : lp = s
   · simp only [h, ↓reduceIte]; iexact Hr
@@ -805,10 +791,10 @@ theorem ownNode_one_child (s z lp rp : Loc) (l r : RbT Entry) :
 subtree's root when the path is empty), lent out. -/
 theorem ownPathAt_childMax (s : Loc) (A : RbCtx Entry) (ls : List (Loc × Loc)) (n p : Loc)
     (T : RbT Entry) :
-    ownPathAt (GF := GF) s 1 A ls n p T.maxEnd ∗ ownNode s 1 p n T ⊢
-      childMax s (topAt A ls n p).1 (A.upMax T.maxEnd) ∗
-        (childMax s (topAt A ls n p).1 (A.upMax T.maxEnd) -∗
-          ownPathAt s 1 A ls n p T.maxEnd ∗ ownNode s 1 p n T) := by
+    ownPathAt (GF := GF) K s (DFrac.own 1) A ls n p T.maxEnd ∗ ownNode K s (DFrac.own 1) p n T ⊢
+      childMax K s (topAt A ls n p).1 (A.upMax T.maxEnd) ∗
+        (childMax K s (topAt A ls n p).1 (A.upMax T.maxEnd) -∗
+          ownPathAt K s (DFrac.own 1) A ls n p T.maxEnd ∗ ownNode K s (DFrac.own 1) p n T) := by
   by_cases hA : A = .top
   · subst hA
     cases ls with
@@ -817,14 +803,14 @@ theorem ownPathAt_childMax (s : Loc) (A : RbCtx Entry) (ls : List (Loc × Loc)) 
     rw [ownPathAt_top]
     simp only [topAt_top, RbCtx.upMax]
     iintro ⟨-, Hn⟩
-    icases ownNode_childMax _ _ _ T $$ Hn with ⟨Hm, Hback⟩
+    icases ownNode_childMax K _ _ _ T $$ Hn with ⟨Hm, Hback⟩
     iframe Hm
     iintro Hm
     ihave Hn := Hback $$ Hm
     iframe
   · iintro ⟨HP, Hn⟩
-    ihave %Hne := ownPathAt_top_ne s 1 A ls n p _ hA $$ HP
-    icases ownPathAt_top_max s A ls n p _ hA $$ HP with ⟨%M, %HM, Hm, Hback⟩
+    ihave %Hne := ownPathAt_top_ne K s (DFrac.own 1) A ls n p _ hA $$ HP
+    icases ownPathAt_top_max K s A ls n p _ hA $$ HP with ⟨%M, %HM, Hm, Hback⟩
     rw [HM, childMax_some]
     isplitl [Hm]
     · iframe; ipureintro; exact Hne

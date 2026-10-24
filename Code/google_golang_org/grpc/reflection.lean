@@ -9,45 +9,44 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.grpc.reflection : GoString := go!"google.golang.org/grpc/reflection"
+noncomputable def google_golang_org.grpc.reflection : GoString := go!"google.golang.org/grpc/reflection"
 end pkg_id
 
 namespace google_golang_org.grpc.reflection
 
-def v1AlphaServerImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def v1AlphaServerImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.v1AlphaServerImpl" [])
 
 attribute [irreducible] v1AlphaServerImpl.ty
 
-def v1AlphaServerStreamAdapter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def v1AlphaServerStreamAdapter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.v1AlphaServerStreamAdapter" [])
 
 attribute [irreducible] v1AlphaServerStreamAdapter.ty
 
-def GRPCServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GRPCServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.GRPCServer" [])
 
 attribute [irreducible] GRPCServer.ty
 
-def ServiceInfoProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceInfoProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.ServiceInfoProvider" [])
 
 attribute [irreducible] ServiceInfoProvider.ty
 
-def ExtensionResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.ExtensionResolver" [])
 
 attribute [irreducible] ExtensionResolver.ty
 
-def ServerOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/reflection.ServerOptions" [])
 
 attribute [irreducible] ServerOptions.ty
@@ -77,7 +76,7 @@ noncomputable def NewServer [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewServerV1 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/reflection.NewServerV1"
 
-instance info' : PkgInfo pkg_id.google_golang_org.grpc.reflection where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.reflection where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -133,7 +132,7 @@ attribute [instance] GRPCServer.TypeAssumptions.type_repr
 
 abbrev ServiceInfoProvider [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ServiceInfoProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceInfoProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetServiceInfo" (go.signature.Signature [] false [(go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.ServiceInfo.ty)]))])
 
 class ServiceInfoProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

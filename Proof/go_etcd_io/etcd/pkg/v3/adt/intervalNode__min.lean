@@ -21,13 +21,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 theorem adt.intervalNode.min.wp_proof : adt.intervalNode.min.spec (GF := GF) (hG := hG) := by
-  intro x0 s p0 T0 hT0
+  intro K hK x0 s p0 T0 hT0
   wp_start as Hn
   wp_auto
   ihave HI : (∃ (y yp : Loc) (A : adt.RbCtx adt.Entry) (ls : List (Loc × Loc))
       (Ty : adt.RbT adt.Entry),
-      "x" ∷ x_ptr ↦ y ∗ "HA" ∷ adt.ownPathAt s 1 A ls y yp Ty.maxEnd ∗
-      "Hy" ∷ adt.ownNode s 1 yp y Ty ∗
+      "x" ∷ x_ptr ↦ y ∗ "HA" ∷ adt.ownPathAt K s (DFrac.own 1) A ls y yp Ty.maxEnd ∗
+      "Hy" ∷ adt.ownNode K s (DFrac.own 1) yp y Ty ∗
       "%Hinv" ∷ ⌜adt.topAt A ls y yp = (x0, p0) ∧ A.plug Ty = T0 ∧ A.AllL ∧ Ty ≠ .leaf⌝ :
       IProp GF) $$ [x Hn]
   · iexists x0, p0, .top, [], T0
@@ -41,7 +41,7 @@ theorem adt.intervalNode.min.wp_proof : adt.intervalNode.min.spec (GF := GF) (hG
   cases Ty with
   | leaf => exact absurd rfl Hne
   | node c l e r =>
-  icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hy with
+  icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hy with
     ⟨%lp, %rp, %Hyn, Hiv, Hmx, Hl, Hr, Hp, Hc, Hnl, Hnr⟩
   wp_auto
   have hvb : decide ((#false : val) = #true) = false :=
@@ -52,7 +52,7 @@ theorem adt.intervalNode.min.wp_proof : adt.intervalNode.min.spec (GF := GF) (hG
     simp only [_root_.decide_true, Bool.not_true, hvb, Bool.false_eq_true, ↓reduceIte]
     cases l with
     | node cl ll el rl =>
-      icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hnl with ⟨%a, %b, %Hn, -⟩
+      icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hnl with ⟨%a, %b, %Hn, -⟩
       exact absurd rfl Hn.1
     | leaf =>
     wp_auto
@@ -69,7 +69,7 @@ theorem adt.intervalNode.min.wp_proof : adt.intervalNode.min.spec (GF := GF) (hG
   · simp only [decide_false, hls, Bool.not_false, _root_.decide_true, ↓reduceIte]
     cases l with
     | leaf =>
-      icases adt.ownNode_leaf_open _ _ _ _ $$ Hnl with %Hn
+      icases adt.ownNode_leaf_open K _ _ _ _ $$ Hnl with %Hn
       exact absurd Hn hls
     | node cl ll el rl =>
     wp_auto
@@ -77,7 +77,7 @@ theorem adt.intervalNode.min.wp_proof : adt.intervalNode.min.spec (GF := GF) (hG
     iframe
     iexists lp, y, .inL c A e r, (yp, rp) :: ls, .node cl ll el rl
     iframe Hnl
-    ihave HA := adt.ownPathAt_push_inL _ 1 A ls y yp c (.node cl ll el rl) e r lp rp Hyn $$
+    ihave HA := adt.ownPathAt_push_inL K _ (DFrac.own 1) A ls y yp c (.node cl ll el rl) e r lp rp Hyn $$
       [HA Hiv Hmx Hl Hr Hp Hc Hnr]
     · iframe
     iframe

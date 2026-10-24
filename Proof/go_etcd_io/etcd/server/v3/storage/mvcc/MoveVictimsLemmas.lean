@@ -326,8 +326,8 @@ theorem takeState_ok {σ : WsState} (h : WsOk σ) (vs : GoSlice) : WsOk (takeSta
     cases hv : (σ.victimOf w).isSome
     · rw [hv] at hw
       have hs : σ.ST !! w = some st := by cases h' : σ.ST !! w <;> simp_all
-      obtain ⟨h1, h2, h3, h4⟩ := h.st_flags w st hs
-      refine ⟨h1, h2, fun hl => ?_, ?_⟩
+      obtain ⟨h1, h3, h4⟩ := h.st_flags w st hs
+      refine ⟨h1, fun hl => ?_, ?_⟩
       · rw [takeState_victimOf]
         obtain ⟨hl', -⟩ := hlive_of w hl
         rw [h3 hl', hv]; simp
@@ -351,9 +351,9 @@ theorem takeState_ok {σ : WsState} (h : WsOk σ) (vs : GoSlice) : WsOk (takeSta
         · simp only [hv] at hw
           simp only [Option.none_or, Option.filter_some, ↓reduceIte, Option.some.injEq] at hw
           subst hw
-          obtain ⟨h1, h2, h3, h4⟩ := h.st_flags w _ hs
+          obtain ⟨h1, h3, h4⟩ := h.st_flags w _ hs
           have hl : σ.live w := Or.inr (Or.inr hv)
-          refine ⟨h1, h2, (h3 hl).2 hv, fun e => ?_⟩
+          refine ⟨h1, (h3 hl).2 hv, fun e => ?_⟩
           exact (h4.1 e) hl
   · intro w γw ed hw hm he
     rw [hE] at he
@@ -405,7 +405,7 @@ theorem readdState_ok {σ : WsState} (h : WsOk σ) {w : Loc} {st0 : WatcherSt} (
     (hd : b = true → ∀ γw, σ.M !! w = some γw → max γw.lo σ.Lmu.length ≤ e.2) :
     WsOk (readdState σ w r { st0 with victim := false } b e) := by
   obtain ⟨hST, hl, hWs, hWu, hv, hE⟩ := h.out hw
-  obtain ⟨hc, hr, -, hch⟩ := h.wo_flags w st0 hw
+  obtain ⟨hc, -, hch⟩ := h.wo_flags w st0 hw
   have hlv := readdState_live σ w r { st0 with victim := false } b e
   have hvo := readdState_victimOf σ w r { st0 with victim := false } b e
   constructor
@@ -476,15 +476,15 @@ theorem readdState_ok {σ : WsState} (h : WsOk σ) {w : Loc} {st0 : WatcherSt} (
     · subst hx
       have h1' : <[w' := { st0 with victim := false }]> σ.ST !! w' = some st' := h1
       rw [GMap.lookup_insert] at h1'; cases h1'
-      refine ⟨hc, hr, fun _ => ?_, ?_⟩
+      refine ⟨hc, fun _ => ?_, ?_⟩
       · rw [hvo, hv]; simp
       · constructor
         · intro e'; exact absurd e' hch
         · intro hn; exact absurd ((hlv w').2 (Or.inl rfl)) hn
     · have h1' : <[w := { st0 with victim := false }]> σ.ST !! w' = some st' := h1
       rw [GMap.lookup_insert_ne _ _ (Ne.symm hx)] at h1'
-      obtain ⟨h1, h2, h3, h4⟩ := h.st_flags w' st' h1'
-      refine ⟨h1, h2, fun hl' => ?_, ?_⟩
+      obtain ⟨h1, h3, h4⟩ := h.st_flags w' st' h1'
+      refine ⟨h1, fun hl' => ?_, ?_⟩
       · rw [hvo]; exact h3 (((hlv w').1 hl').resolve_left hx)
       · rw [h4, hlv]; simp [hx]
   · intro w' st' h1
@@ -595,7 +595,61 @@ theorem readdState_settled {σ : WsState} (h : WsOk σ) (hs : σ.settled) {w : L
     · rw [GMap.lookup_delete_ne _ (Ne.symm hk)] at h2'
       exact hs.2.2 k st h2'
 
+/-- The victims taken out keep the unsynced group's restore fact (D22 receiver epochs, S6): no
+victim is unsynced. -/
+theorem takeState_unsRst {σ : WsState} (h : WsOk σ) (hs : σ.unsRst) (vs : GoSlice) :
+    (takeState σ vs).unsRst := by
+  intro w st hu hst
+  have hst' : (GMap.filter (fun w _ => !(σ.victimOf w).isSome) σ.ST) !! w = some st := hst
+  rw [GMap.lookup_filter] at hst'
+  cases h0 : σ.ST !! w with
+  | none => rw [h0] at hst'; cases hst'
+  | some st0 =>
+    rw [h0] at hst'
+    simp only [Option.filter_some] at hst'
+    split at hst'
+    · exact (Option.some.inj hst') ▸ hs w st0 hu h0
+    · cases hst'
+
+/-- A victim re-added (D22 receiver epochs, S6): unsynced, below the notified log. -/
+theorem readdState_unsRst {σ : WsState} (hs : σ.unsRst) (w : Loc) (r : WatchRange)
+    (st : WatcherSt) (b : Bool) (e : List EvM × Nat)
+    (hWu : σ.Wu !! w = none) (hd : b = false → sint.Z st.minRev < σ.Lmu.length) :
+    (readdState σ w r st b e).unsRst := by
+  intro k st' hu hst
+  by_cases hk : k = w
+  · subst hk
+    have hst' : (<[k := st]> σ.ST) !! k = some st' := hst
+    rw [GMap.lookup_insert] at hst'; cases hst'
+    cases b
+    · left; exact hd rfl
+    · simp only [readdState, ↓reduceIte, hWu] at hu; cases hu
+  · have hst' : (<[w := st]> σ.ST) !! k = some st' := hst
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)] at hst'
+    have hu' : (σ.Wu !! k).isSome := by
+      have hk' : w ≠ k := Ne.symm hk
+      cases b <;> simp_all [readdState, GMap.lookup_insert_ne _ _ hk']
+    exact hs k st' hu' hst'
+
+/-- The failed victims back as victims keep the unsynced group's restore fact (S6): they are not
+unsynced. -/
+theorem appendState_unsRst {σ : WsState} (h : WsOk σ) (hs : σ.unsRst) (NV : GMap Loc NvEnt)
+    (vs : GoSlice) (nvm : GoMap) (hNV : ∀ w x, NV !! w = some x → σ.Wo !! w = some x.st) :
+    (appendState σ NV vs nvm).unsRst := by
+  intro w st hu hst
+  have hst' : (σ.ST !! w).or ((NV !! w).map NvEnt.st) = some st := hst
+  cases h0 : σ.ST !! w with
+  | some st0 =>
+    rw [h0] at hst'; simp only [Option.some_or, Option.some.injEq] at hst'; subst hst'
+    exact hs w st0 hu h0
+  | none =>
+    exfalso
+    have hl : σ.live w := Or.inr (Or.inl hu)
+    have := h.live_st w hl
+    rw [h0] at this; cases this
+
 theorem appendState_settled {σ : WsState} (h : WsOk σ) (hs : σ.settled) (NV : GMap Loc NvEnt)
+
     (vs : GoSlice) (nvm : GoMap) (hNV : ∀ w x, NV !! w = some x → σ.Wo !! w = some x.st) :
     (appendState σ NV vs nvm).settled := by
   have hvo := appendState_victimOf σ NV vs nvm
@@ -777,8 +831,8 @@ theorem appendState_ok {σ : WsState} (h : WsOk σ) (NV : GMap Loc NvEnt) (vs : 
         cases h' : NV !! w with
         | none => rfl
         | some _ => have := (hout w (by rw [h']; rfl)).1; rw [hs] at this; cases this
-      obtain ⟨h1, h2, h3, h4⟩ := h.st_flags w _ hs
-      refine ⟨h1, h2, fun hl => ?_, ?_⟩
+      obtain ⟨h1, h3, h4⟩ := h.st_flags w _ hs
+      refine ⟨h1, fun hl => ?_, ?_⟩
       · rw [hnn w (by rw [hn]; rfl)]
         exact h3 (by rw [hlv, hn] at hl; simpa using hl)
       · rw [h4, hlv, hn]; simp
@@ -789,8 +843,8 @@ theorem appendState_ok {σ : WsState} (h : WsOk σ) (NV : GMap Loc NvEnt) (vs : 
       | some x =>
         rw [hn] at h1; simp only [Option.none_or, Option.map_some, Option.some.injEq] at h1
         subst h1
-        obtain ⟨h1, h2, h3, h4⟩ := h.wo_flags w _ (hNV w x hn)
-        refine ⟨h1, h2, fun _ => ?_, ?_⟩
+        obtain ⟨h1, h3, h4⟩ := h.wo_flags w _ (hNV w x hn)
+        refine ⟨h1, fun _ => ?_, ?_⟩
         · rw [hvo, hn, h3]; simp
         · constructor
           · intro e; exact absurd e h4
@@ -1081,7 +1135,7 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
         · ipureintro; simp [hlo]
         iexists Lc
         iframe HLc
-        ipureintro; exact hLc
+        ipureintro; show (sint.Z st.minRev).toNat ≤ _; omega
       · have h1 : (σ'.Ws !! w).isSome = true := by rw [eWs]; simp [GMap.lookup_insert]
         simp only [h1, ↓reduceIte]
         iframe Hwf

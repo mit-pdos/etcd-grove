@@ -5,6 +5,7 @@ unit P2).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.VerdictLemmas
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Revision
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
@@ -48,7 +49,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
     (h_lockedReadTx : auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG))
     (h_isRangeOpPermitted : auth.authStore.isRangeOpPermitted.spec (GF := GF) (hG := hG)) :
     auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG) := by
-  intro st R user rev key re k e dk de pt
+  intro st R M info key re k e dk de pt
   wp_start as ⟨#Hinv, Hrd, Hk, He, %Hpt, %Hlen⟩
   iunfold authRd at Hrd
   icases Hrd with ⟨Hen, Hca, Hbr, HR⟩
@@ -71,24 +72,31 @@ theorem auth.authStore.isOpPermitted.wp_proof
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply (h_IsAuthEnabled st R) $$ [$Hinv $Hen] as %en Hen
+  wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en ⟨Hen, #Hev⟩
   cases en
   · wp_auto
     iapply HΦ
     iunfold authRd
     iframe
-    iunfold authErrIs; ileft; ipureintro; rfl
+    isplitl []
+    · iunfold authErrIs; ileft; ipureintro; rfl
+    · iapply permVerdict_of_disabled M info k e (permOp pt) $$ Hev
   wp_auto
   wp_if_destruct
   · iapply HΦ
     iunfold authRd
     iframe
-    iunfold authErrIs
-    iright
-    iexists ErrUserEmpty, eUE
-    iframe HeUEa
-    ipureintro; simp
-  wp_apply (h_Revision st R) $$ [$Hinv] as %cur -
+    isplitl []
+    · iunfold authErrIs
+      iright
+      iexists ErrUserEmpty, eUE
+      iframe HeUEa
+      ipureintro; simp
+    · iapply (permVerdict_rev0 M info k e (permOp pt) (GoInterface.ok eUE) (fun h => by cases h)
+        (by rw [Hif]; word)) $$ Hev
+  have h0 : uint.nat info.Revision' ≠ 0 := fun h => Hif (by word)
+  wp_apply (h_Revision st R M none) $$ [$Hinv] as %cur ⟨-, #Hrv, -⟩
+  · iunfold authOwnOpt; itrivial
   (try wp_auto)
   wp_if_destruct
   · wp_apply h_Uint64 _ _ as %f1 -
@@ -107,24 +115,33 @@ theorem auth.authStore.isOpPermitted.wp_proof
     iapply HΦ
     iunfold authRd
     iframe
-    iunfold authErrIs
-    iright
-    iexists ErrAuthOldRevision, eOR
-    iframe HeORa
-    ipureintro; simp
-  wp_apply (h_lockedReadTx st R) $$ [$Hinv $Hbr $HR] as %tx ⟨Hbr, Htx⟩
+    isplitl []
+    · iunfold authErrIs
+      iright
+      iexists ErrAuthOldRevision, eOR
+      iframe HeORa
+      ipureintro; simp
+    · iapply (permVerdict_oldRev M info k e (permOp pt) (GoInterface.ok eOR) cur
+        (fun h => by cases h) (by word)) $$ Hev Hrv
+  have hcur : uint.nat cur ≤ uint.nat info.Revision' := by word
+  wp_apply (h_lockedReadTx st R M) $$ [$Hinv $Hbr $HR] as %tx ⟨Hbr, Htx⟩
   iunfold authReadTxLocked at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%Tk, Htok, #HUG, #HRU⟩
+  icases Htx with ⟨%sta, %Hs, Htok, #Hsnap, #Hreads⟩
+  iunfold authTxReads at Hreads
+  icases Hreads with ⟨#Hrds, #HRU⟩
+  iunfold authReaderOk at Hrds
+  icases Hrds with ⟨#HUG, -, -, -, -⟩
   wp_auto
-  wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #user))
+  wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #info.Username'))
   iapply HUG $$ Htok
   inext
-  iintro %u Htok
+  iintro %u ⟨Htok, Hu⟩
   wp_auto
   wp_if_destruct
-  · wp_apply h_String _ _ as %f -
+  · ihave %Hnone := userOut_null sta info.Username' $$ Hu
+    wp_apply h_String _ _ as %f -
     (try wp_auto)
     wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f]
     isplitr
@@ -142,17 +159,23 @@ theorem auth.authStore.isOpPermitted.wp_proof
     iapply HΦ
     iunfold authRd
     iframe
-    iunfold authErrIs
-    iright
-    iexists ErrPermissionDenied, ePD
-    iframe HePDa
-    ipureintro; simp
-  wp_apply h_hasRootRole $$ [] as %root -
-  · ipureintro; assumption
+    isplitl []
+    · iunfold authErrIs
+      iright
+      iexists ErrPermissionDenied, ePD
+      iframe HePDa
+      ipureintro; simp
+    · iapply (permVerdict_noUser M info k e (permOp pt) (GoInterface.ok ePD) sta
+        (fun h => by cases h) Hnone) $$ Hev Hsnap
+  ihave Hu' := userOut_some u sta info.Username' Hif $$ Hu
+  icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
+  wp_apply h_hasRootRole $$ [$Hu] as %root ⟨Hu, %Hroot⟩
+  · ipureintro; rw [Hur.2.1]; exact Hur.2.2
   cases root
-  · (try wp_auto)
-    wp_apply (h_isRangeOpPermitted st R user key re k e dk de pt) $$ [$Hinv $Hca $Hk $He]
-      as %okr ⟨Hca, Hk, He⟩
+  · have hn : ¬ isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_false Hroot.symm
+    (try wp_auto)
+    wp_apply (h_isRangeOpPermitted st R M info.Username' key re k e dk de pt) $$ [$Hinv $Hca $Hk $He]
+      as %okr ⟨Hca, Hk, He, #Hcv⟩
     · ipureintro; exact ⟨Hpt, Hlen⟩
     cases okr
     · (try wp_auto)
@@ -164,11 +187,14 @@ theorem auth.authStore.isOpPermitted.wp_proof
       iapply HΦ
       iunfold authRd
       iframe
-      iunfold authErrIs
-      iright
-      iexists ErrPermissionDenied, ePD
-      iframe HePDa
-      ipureintro; simp
+      isplitl []
+      · iunfold authErrIs
+        iright
+        iexists ErrPermissionDenied, ePD
+        iframe HePDa
+        ipureintro; simp
+      · iapply (permVerdict_cache_refused M info k e pt (GoInterface.ok ePD) sta roles
+          (fun h => by cases h) Hur.1 hn) $$ Hev Hsnap Hcv
     · (try wp_auto)
       wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
       iapply HRU $$ Htok
@@ -178,8 +204,11 @@ theorem auth.authStore.isOpPermitted.wp_proof
       iapply HΦ
       iunfold authRd
       iframe
-      iunfold authErrIs; ileft; ipureintro; rfl
-  · (try wp_auto)
+      isplitl []
+      · iunfold authErrIs; ileft; ipureintro; rfl
+      · iapply (permVerdict_cache_pass M info k e pt cur sta roles h0 hcur Hur.1) $$ Hrv Hsnap Hcv
+  · have hroot : isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_true Hroot.symm
+    (try wp_auto)
     wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
     iapply HRU $$ Htok
     inext
@@ -188,7 +217,9 @@ theorem auth.authStore.isOpPermitted.wp_proof
     iapply HΦ
     iunfold authRd
     iframe
-    iunfold authErrIs; ileft; ipureintro; rfl
+    isplitl []
+    · iunfold authErrIs; ileft; ipureintro; rfl
+    · iapply (permVerdict_root M info k e (permOp pt) cur sta roles h0 hcur Hur.1 hroot) $$ Hrv Hsnap
 
 end proof
 

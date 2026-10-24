@@ -100,8 +100,8 @@ writeView__Put: traceutil_TODO store__Write metricsTxnWrite__Put metricsTxnWrite
 writeView__DeleteRange: traceutil_TODO store__Write metricsTxnWrite__DeleteRange metricsTxnWrite__End
 # The store's constructor (kvstore.go) on a fresh backend, see InvStore.lean: the ghost state
 # allocated (the index at the initial log `[[], []]`, the committed log, the revision budget), the
-# batch lock's resource deposited at the first `Unlock`, the locks initialized; zap's `NewNop`,
-# and `restore` (the identity on a fresh backend) are the trust boundary (axioms); schedule's
+# batch lock's resource deposited at the first `Unlock`, the locks initialized; zap's `NewNop`
+# is the trust boundary (an axiom); `restore` on the empty bucket (restore plan R4, option 1) and schedule's
 # `NewFIFOScheduler` (with its worker `run` and `executeJob`; verify's `Assert` an axiom),
 # `NewHashStorage` and schema's `UnsafeCreateMetaBucket` (over the batch transaction's
 # `UnsafeCreateBucket` triple) are proved.
@@ -112,7 +112,7 @@ schedule_fifo__run: schedule_fifo__executeJob
 schedule_NewFIFOScheduler: verify_Assert schedule_fifo__run
 NewHashStorage:
 schema_UnsafeCreateMetaBucket:
-store__restore:
+store__restore: store__setupMetricsReporter NewRevBytes RevToBytes UnsafeReadFinishedCompact UnsafeReadScheduledCompact restoreIntoIndex restoreChunk BytesToRev zap_Int64 zap_Logger__Info
 # schema's `bucket` methods (bucket.go): the backend calls them through its `Bucket` interface
 # (`isBucket`), on schema's `Key` and `Meta` (the backend bridge, `BackendBridge.lean`).
 schema_bucket__ID:
@@ -238,6 +238,14 @@ schedule_Scheduler__Stop: schedule_fifo__Stop
 # The store's `Close` (translated 2026-10-22): `close(s.stopc)`, the scheduler's `Stop`.
 store__Close: schedule_Scheduler__Stop
 watchableStore__Close: store__Close
+# The store's `Restore` (translated; D22 receiver epochs S6, 2026-10-22; proved in the restore
+# plan's R5f, 2026-10-24): the scheduler's `Stop`, a new index, a new scheduler, `store.restore`.
+store__Restore: schedule_Scheduler__Stop newTreeIndex schedule_NewFIFOScheduler store__restore
+# (S6) proved: `store.Restore` under its lock, the synced watchers moved to the unsynced group.
+watchableStore__Restore: store__Restore newWatcherGroup watcherGroup__add
+# The store's `Commit` (translated; D22 S-l's sender items, 2026-10-22): under `s.mu`, the
+# backend's `ForceCommit` (its contract in `physOk`).
+store__Commit:
 schedule_job__Do:
 schedule_job__Name:
 schedule_NewJob: schedule_job__Do
@@ -263,3 +271,11 @@ store__scheduleCompaction: treeIndex__Compact binary_bigEndian__PutUint64 newKVH
 store__compact: schedule_NewJob context_Err store__compactBarrier store__scheduleCompaction zap_Error zap_Logger__Warn hashStorage__Store zap_Logger__Info schedule_Scheduler__Schedule traceutil_Trace__Step
 store__compactLockfree: store__checkPrevCompactionCompleted store__updateCompactRev traceutil_TODO store__compact
 store__Compact: store__checkPrevCompactionCompleted store__updateCompactRev traceutil_Trace__Step store__compact
+# Restore (kvstore.go, key_index.go; notes/restore-plan.md, R1): the key index's restore
+# constructors and one chunk of `restoreChunk`'s range scan (InvRestore.lean).
+keyIndex__restore: zap_Int zap_Logger__Panic
+keyIndex__restoreTombstone: keyIndex__restore
+restoreChunk: proto_Unmarshal isTombstone
+restoreIntoIndex: keyIndex__put keyIndex__tombstone keyIndex__restore keyIndex__restoreTombstone treeIndex__KeyIndex treeIndex__Insert BytesToRev isTombstone verify_Verify zap_Error zap_Logger__Warn
+# (restore plan R2) setupMetricsReporter: the five reporters, each under its lock (mvccInit's reportVar).
+store__setupMetricsReporter:

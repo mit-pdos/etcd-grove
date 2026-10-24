@@ -155,6 +155,22 @@ type read-only, and `E.M m`. (2026-10-19, D21 stage M1: owned, no longer persist
 def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
   iprop(∃ (to : w64) (ty : w32), msgAt m to ty ∗ E.M m)
 
+/-- (D22 S-l sender, 2026-10-22) **A `MsgSnap` raft handed out, owned**, with its protocol facts:
+raft's `Ready` hands a `MsgSnap` out whole (`readyDq`: not a response), and `applyAll`'s merge
+writes its `Snapshot` field (`createMergedSnapshotMessage`), so it is not persisted like the others
+(`rnMsgOk`): what `processMessages` hands `msgSnapC` (`isRNMsgSnapC`). Its read credit is `0` and
+its tickets none (`stTks`: a `MsgProp`'s only), so `isRaftMsg` and `termLB` are all it carries. -/
+def rnSnapMsg (γ : NodeNames) (m : Loc) : IProp GF :=
+  iprop(∃ st : MsgSt, msgOwn m (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgSnap⌝ ∗
+    isRaftMsg γ.raft γ.id st ∗ termLB γ.bud st.msg.Term')
+
+/-- (D22 S-l sender) **A message of a `Ready`, as the server receives it**: any but a `MsgSnap`
+read-only with `E.M` (`rnMsgOk`'s, with its type not `MsgSnap`), a `MsgSnap` owned
+(`rnSnapMsg`). `processMessages` turns the first into `rnMsgOk` for the transport and hands the
+second to `msgSnapC`. -/
+def rnMsgR (E : RNEnv GF) (γ : NodeNames) (m : Loc) : IProp GF :=
+  iprop((∃ (to : w64) (ty : w32), msgAt m to ty ∗ ⌜ty ≠ MsgSnap⌝ ∗ E.M m) ∨ rnSnapMsg γ m)
+
 /-! ## The node's `Ready`/`Advance` exchange -/
 
 /-- `MemoryStorage.Append`'s index bound (`Spec/go_etcd_io/raft/v3/MemoryStorage__Append.lean`):
@@ -189,7 +205,7 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
   iprop(∃ (ceL esL msL : List Loc) (hs : HardStateModel),
     rd.CommittedEntries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (d ++ ce) ∗
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ rnAppendRight γ es ∗
-    rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgOk E m) ∗
+    rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgR E γ.node m) ∗
     softStateAt rd.SoftState' ∗ hardStateAt rd.HardState' hs ∗
     -- (D22 S-b) raft's witness of a non-empty hard state: the node's term and commit index at the
     -- `Ready` (`commitWit`), the commit index bounding the committed log handed out; (D22l) of
@@ -409,8 +425,9 @@ theorem txnCtx_nodeCtx (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
 
 /-! ### Receiving a `Ready`: raft's data in the server's terms -/
 
-/-- The messages a `Ready` hands out, persisted, each one `E.M` admits, with its read credit
-(2026-10-19, D21 stage M1). -/
+/-- The messages a `Ready` hands out, each one `E.M` admits, with its read credit (2026-10-19, D21
+stage M1), persisted; (D22 S-l sender, 2026-10-22) but a `MsgSnap`, kept owned (`rnSnapMsg`:
+`readyDq` hands it out whole). -/
 theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
     ∀ ms : List QMsg,
       ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft γ.node.id st ∗
@@ -422,7 +439,7 @@ theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
         ([∗list] q ∈ ms, rdCred γ.node.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) -∗
         ([∗list] q ∈ ms, stTks γ.node.raft q.st)
           ={⊤}=∗
-        [∗list] m ∈ ms.map QMsg.loc, rnMsgOk E m
+        [∗list] m ∈ ms.map QMsg.loc, rnMsgR E γ.node m
   | [] => by
     iintro #HM - - -
     imodintro
@@ -437,19 +454,38 @@ theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
       (if q.st.msg.Type' = MsgReadIndex then 1 else 0))).1 $$ Hc with ⟨Hc1, Hcrest⟩
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => stTks (GF := GF) γ.node.raft q.st)).1
       $$ Htk with ⟨Ht1, Htrest⟩
-    imod msgOwn_persist_fupd q.loc _ q.st ⊤ $$ Hm with #Hm
     imod rnMsgOk_of_raft E γ ms $$ HM Hrest Hcrest Htrest with Hrest
-    imodintro
     simp only [List.map_cons]
-    iapply (BigSepL.bigSepL_cons (Φ := fun _ m => rnMsgOk (GF := GF) E m)).2
+    by_cases hsn : q.st.msg.Type' = MsgSnap
+    · -- a `MsgSnap`: owned (not a response type)
+      have hdq : readyDq q.st = DFrac.own 1 := by
+        unfold readyDq RespType
+        rw [hsn]
+        decide
+      rw [hdq]
+      imodintro
+      iapply (BigSepL.bigSepL_cons (Φ := fun _ m => rnMsgR (GF := GF) E γ.node m)).2
+      iframe Hrest
+      iunfold rnMsgR
+      iright
+      iunfold rnSnapMsg
+      iexists q.st
+      iframe Hm Hrm Htl
+      ipureintro; exact hsn
+    imod msgOwn_persist_fupd q.loc _ q.st ⊤ $$ Hm with #Hm
+    imodintro
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ m => rnMsgR (GF := GF) E γ.node m)).2
     iframe Hrest
-    iunfold rnMsgOk
+    iunfold rnMsgR
+    ileft
     iexists q.st.msg.To', q.st.msg.Type'
     isplitr
     · iunfold msgAt
       iexists q.st
       iframe Hm
       ipureintro; exact ⟨rfl, rfl⟩
+    isplitr
+    · ipureintro; exact hsn
     iapply HM $$ %q.loc %q.st
     iframe Hm Hrm Htl Hc1 Ht1
 
@@ -854,12 +890,13 @@ def rnApplyTok (γ : RNNames) (A : List EntryModel) : IProp GF :=
   iprop(∃ rcv : List toApply, spscConsumer γ.ap rcv ∗ monoListIdxOwn γ.cum rcv.length A)
 
 /-- `msgSnapC`: a channel of messages raft may send, each a `MsgSnap` (D19p, 2026-10-18: so that
-a server whose raft sends none, `srvEr`'s `E.M`, knows the channel never delivers). -/
-def isRNMsgSnapC (E : RNEnv GF) (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := Loc)
-    (fun m => iprop(rnMsgOk E m ∗ ∃ to : w64, msgAt m to MsgSnap)))
+a server whose raft sends none knows the channel never delivers); (D22 S-l sender, 2026-10-22)
+each owned with its protocol facts (`rnSnapMsg`), for `applyAll`'s merge, which writes it. -/
+def isRNMsgSnapC (γ : RNNames) (c : Loc) : IProp GF :=
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := Loc) (rnSnapMsg γ.node))
 
-instance isRNMsgSnapC_persistent (E : RNEnv GF) (c : Loc) : Persistent (isRNMsgSnapC E c) := by
+instance isRNMsgSnapC_persistent (γ : RNNames) (c : Loc) :
+    Persistent (isRNMsgSnapC (GF := GF) γ c) := by
   unfold isRNMsgSnapC; infer_instance
 
 /-- `readStateC`: a channel of read states, each answering the registrations of its request id
@@ -890,7 +927,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Hhb" ∷ rnHeartbeatAddr r ↦□ hb ∗
     "#Htr" ∷ rnTransportAddr r ↦□ tr ∗ "#Htri" ∷ isRNTransport E tr ∗
     "#Hmsc" ∷ rnMsgSnapCAddr r ↦□ msc ∗
-    "#Hmsci" ∷ isRNMsgSnapC E msc ∗
+    "#Hmsci" ∷ isRNMsgSnapC γ msc ∗
     "#Hapc" ∷ rnApplycAddr r ↦□ apc ∗ "#Hapci" ∷ isRNApplyc E γ apc ∗
     "#Hrsc" ∷ rnReadStateCAddr r ↦□ rsc ∗
     "#Hrsci" ∷ isRNReadStateC E rsc ∗

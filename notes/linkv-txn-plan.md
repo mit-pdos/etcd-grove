@@ -1,6 +1,9 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
 Status: done (2026-10-20; status-history.md "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E", "stage F"; STATUS "linkv-txn stage G"): `linkvtxn_safe`, on exactly `linkv_safe`'s axioms.
+linkv and linkv3 were retired on 2026-10-22 (`notes/decisions.md` D34): the `linkv/` files named
+below are deleted, but for the model's (`PendModel.lean`, `TxnModel.lean`, `TxnModelKV.lean`, the
+put/get ops of `ModelKV.lean`) and `Proph.lean`, which moved to `linkvtxn/`.
 
 ## Goal
 

@@ -1,4 +1,4 @@
-# rafthttp's message path with bodies (D33, `notes/rafthttp-plan.md` stage 1, 2026-10-22): the
+# rafthttp's message path with bodies (D38, `notes/rafthttp-plan.md` stage 1, 2026-10-22): the
 # transport, peers, stream writers and readers, the pipeline, remotes, the pipeline and stream
 # handlers, the two codecs, the URL picker, the peer status and the request helpers. Names only:
 # the snapshot stream (the sender, its handler and `SendSnapshot`: D22's contract, an axiom), the

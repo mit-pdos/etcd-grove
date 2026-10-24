@@ -27,7 +27,8 @@ revision `rev = ilog.length` (sealed and certified: `evLog` of `ilog ++ [pend]`,
 released, `relLb`, D25): each synced
 watcher with events gets them in one response (one revision: the `revs != 1` panic is
 unreachable) and is then delivered up to `rev + 1`, or, if its channel is full, becomes a victim
-with its batch; the others are delivered up to `rev + 1` with nothing to send. -/
+with its batch; the others are delivered up to `rev + 1` with nothing to send; the unsynced group and its
+members' states are untouched (D22 receiver epochs, S6: `WsState.unsRst`). -/
 abbrev mvcc.watchableStore.notify.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (ilog : mvcc.Log)
     (pend : List mvcc.Change) (evs : GoSlice) (dq : DFrac) (es : List Loc) (evm : List mvcc.EvM),
@@ -42,7 +43,8 @@ abbrev mvcc.watchableStore.notify.spec : Prop :=
       (Val #(W64 ilog.length))) (Val #evs))
   {{ RET #(); evs ↦*{dq} es ∗ ∃ σ' : mvcc.WsState, mvcc.watchStoreBody s γ 1 σ' ∗
       ⌜σ'.Lmu = ilog ∧ σ'.syncedAbove (ilog.length + 1) ∧
-        σ'.syncedBelow (ilog.length + 1) ∧ σ'.vicBelow (ilog.length + 1) ∧ σ'.M = σ.M⌝ }}
+        σ'.syncedBelow (ilog.length + 1) ∧ σ'.vicBelow (ilog.length + 1) ∧ σ'.M = σ.M ∧
+        σ'.Wu = σ.Wu ∧ ∀ w, (σ.Wu !! w).isSome → σ'.ST !! w = σ.ST !! w⌝ }}
 
 end spec
 

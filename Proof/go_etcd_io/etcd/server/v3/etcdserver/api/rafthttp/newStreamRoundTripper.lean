@@ -1,5 +1,5 @@
 /-
-The trust boundary: `newStreamRoundTripper` (untranslated; the HTTP boundary's, D34).
+The trust boundary: `newStreamRoundTripper` (untranslated; the HTTP boundary's, D39).
 -/
 module
 
@@ -20,7 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Trust boundary** (rafthttp stage 6c, D34): `newStreamRoundTripper` (`util.go`) is
+/-- **Trust boundary** (rafthttp stage 6c, D39): `newStreamRoundTripper` (`util.go`) is
 `transport.NewTimeoutTransport(tlsInfo, dialTimeout, ConnReadTimeout, ConnWriteTimeout)` (`client/pkg/transport`): an
 `*http.Transport` dialing with the timeout, with a read and a write timeout (a connection's read or write past it fails), and with `tlsInfo`'s TLS
 configuration, or the error of reading its certificates. Go's `http.Transport` is a client of

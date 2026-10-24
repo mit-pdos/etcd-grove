@@ -48,67 +48,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **What a successful writing `Txn` returns** (of a transaction with no range end `[0]`, which
-the wire keeps): its update `Q` fired at a state `σ`; the server's run of the transaction at `σ`
-(at `σ`'s next revision) gives the reply's verdict and its branch's responses (its ranges run:
-linkv-txn stage B1), and the state after its changes has the reply's revision. -/
-theorem client_txn_value (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log)
-    (t : TxnModel) (Q : KVState → IProp GF) (cid mid : w64) (m : TxnRespM)
-    (hro : txn.txnReadonly t = false) (hnz : irrNoZeroEnd (irrTxn t)) :
-    txnReplied E γw γr c F t Q cid mid m ⊢
-      ∃ σ : KVState, Q σ ∗
-        ⌜m.succeeded = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).1 ∧
-          opRespsRel false (t.branch m.succeeded)
-            (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.2 m.resps ∧
-          m.hdr.revision =
-            W64 ((σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev :
-              Int)⌝ := by
-  iintro H
-  unfold txnReplied
-  simp only [hro, Bool.false_eq_true, ↓reduceIte]
-  icases H with ⟨%hm, %rq', %t', %x, %x', %l, %skip, %Hp, -, -, -, -, HQ⟩
-  obtain ⟨-, -, Hz, -, hrev, -, -, -, hlen, -, hok, hrel, hsk⟩ := Hp
-  have ht : t' = t := Hz hnz
-  subst ht hsk
-  have hr : ((kvStateOf x.log).rev + 1 : Nat) = x.log.length := kvStateOf_rev_succ _ hlen
-  iexists kvStateOf x.log
-  iframe HQ
-  ipureintro
-  have hs : (kvStateOf x.log).kvs = mvcc.stateAfter x.log := rfl
-  rw [hr, hs]
-  refine ⟨hok, hrel, ?_⟩
-  rw [hrev, ← hs, kvStateOf_commit_rev _ _ hlen, hs]
-
-/-- **What a successful linearizable read-only `Txn` returns**: its read update `Q` fired at a
-state `σ`; the server's run of the transaction at `σ` gives the reply's verdict and its branch's
-responses (ranges executed), and `σ`'s revision is the reply's. -/
-theorem client_txn_value_ro (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log)
-    (t : TxnModel) (Q : KVState → IProp GF) (cid mid : w64) (m : TxnRespM)
-    (hro : txn.txnReadonly t = true) (hser : txn.txnSerializable t = false) :
-    txnReplied E γw γr c F t Q cid mid m ⊢
-      ∃ σ : KVState, □ Q σ ∗
-        ⌜m.succeeded = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).1 ∧
-          opRespsRel false (t.branch m.succeeded)
-            (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.2 m.resps ∧
-          m.hdr.revision = W64 (σ.rev : Int)⌝ := by
-  iintro H
-  unfold txnReplied
-  simp only [hro, hser, Bool.false_eq_true, ↓reduceIte]
-  icases H with ⟨%log, -, -, %Hp, -, #HQ⟩
-  obtain ⟨hlen, -, -, hrev, -, -, hok, hrel⟩ := Hp
-  have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
-  iexists kvStateOf log
-  iframe HQ
-  ipureintro
-  have hs : (kvStateOf log).kvs = mvcc.stateAfter log := rfl
-  rw [hr, hs]
-  refine ⟨hok, hrel, ?_⟩
-  rw [hrev]
-  unfold kvStateOf
-  simp only
-  congr 1
-  omega
-
 end values
 
 end client

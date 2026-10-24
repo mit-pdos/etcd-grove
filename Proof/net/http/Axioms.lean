@@ -1,5 +1,5 @@
 /-
-**The HTTP boundary's axioms** (rafthttp stage 4e, 2026-10-23; D33a, D33b, D33c): the statements
+**The HTTP boundary's axioms** (rafthttp stage 4e, 2026-10-23; D38a, D38b, D38c): the statements
 of `Proof/net/http/Boundary.lean` the proofs use, assumed, and the registration of an address's
 protocol. Lean-first. Each is a fact about Go's `net/http`, `io` and `bytes` (read against the
 statement's docstring in `Boundary.lean`); the specs not listed (`respRead_spec`, `HeaderGet_spec`)
@@ -30,7 +30,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Reservation** (D34a, 2026-10-23; D33c's registration, split): the right to fix an
+/-- **Reservation** (D39a, 2026-10-23; D38c's registration, split): the right to fix an
 address's protocol (`httpProtoFree a`, once per address from program start) fixes it, before the
 address's listener exists: a client may then send to the address (`RoundTrip` needs
 `httpProtoAt`; before the listener is bound the connection is refused, an error the spec allows).
@@ -39,7 +39,7 @@ set once, with the exclusive `httpProtoFree a`. -/
 axiom reserve (a : GoString) (P : Proto GF) :
   ⊢ httpProtoFree (GF := GF) a ==∗ httpProtoAt a P ∗ httpProtoOwn a P
 
-/-- **Registration** (D33c, D34a): the address's listener, with the right to serve it with the
+/-- **Registration** (D38c, D39a): the address's listener, with the right to serve it with the
 address's reserved protocol, serves it with that protocol (the model: the listener bound once,
 `net.Listen` consuming `netAddrFree a`; the protocol the ghost map's entry for `a`). -/
 axiom register (l : GoInterface) (a : GoString) (P : Proto GF) :

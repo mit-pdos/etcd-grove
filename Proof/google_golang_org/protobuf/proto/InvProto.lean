@@ -74,7 +74,7 @@ opaque pbEnc (ty : go.GoType) (l : Loc) : List w8
 
 /-- **The trust boundary: what `pbEnc` is.** The encoding of a read-only-for-good `*T` holding `m`
 is an encoding of `m` if `m` marshals (`T.wire`, the instance's wire model), and shorter than
-`2^63` bytes (protobuf-go sizes it as an `int`). (2026-10-22, D33a: what `Size` and `Marshal`
+`2^63` bytes (protobuf-go sizes it as an `int`). (2026-10-22, D38a: what `Size` and `Marshal`
 return, stated of the message itself, so that a writer may be permitted the frame of an encoding
 before the encoding is computed: the msgappv2 encoder writes the entries' count before it sizes
 them.) -/

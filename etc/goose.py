@@ -6,9 +6,11 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
   --check      translate into a scratch directory and compare with the checked-in
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
-               produces from the pinned Go source.
-  --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine, bridge,
-               lintest, raft-witness or kvwitness; repeatable; default: all).
+               produces from the pinned Go source.  Also exit 1 if the examples'
+               go.mod files replace etcd or raft by another revision than the
+               projects' pins (GO_MOD_PINS; without --check, only a warning).
+  --project    only this project (raft, etcd, kv, putget, putget3, linkvtxn, porcupine, bridge,
+               lintest, raft-witness, kvwitness or k8s-apiserver; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -43,6 +45,7 @@ import argparse
 import difflib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -140,7 +143,7 @@ PROJECTS = [
         # `raftAdvancedC` (issues/etcd-compact-past-raft-applied.md; D19i part 1) as 06aa6e6e, and
         # (D19l) etcd-io/etcd#22297 cherry-picked as 5615016f6 (`syncWatchersLoop`'s ticker reset,
         # issues/etcd-watch-sync-ticker-reset-zero.md) and `AuthInfoFromTLS`'s checked assertion
-        # as 17c88a667 (issues/etcd-auth-tls-info-assert.md), and the client's
+        # as 17c88a667 (issues/nonissues/etcd-auth-tls-info-assert.md), and the client's
         # `closeRequireLeader` context alignment (a7bd9a16e,
         # issues/etcd-lease-close-require-leader-ctx-misaligned.md) and the retry interceptor's
         # non-repeatable context-error return (8a24be2a3, issues/etcd-client-retry-put-ctx-error.md),
@@ -159,12 +162,16 @@ PROJECTS = [
         # issues/etcd-watch-resume-waitgroup-overflow.md), and (D22, the snapshot path) the alarm
         # store recovered in place (8fd98af04, issues/etcd-alarm-store-snapshot-race.md) and a
         # snapshot's older files released only after `applySnapshot` opens it (188113160,
-        # issues/etcd-release-snapdb-before-open.md).
+        # issues/etcd-release-snapdb-before-open.md). Then (D30n, 2026-10-23) branch
+        # `goose-lean-getproph2` (on 188113160; `goose-lean-getproph`'s 942601555 made on
+        # 2aed163b1, cherry-picked): `kubernetes.Client.Get` resolves a prophecy with its
+        # response's revision and the key's mod revision (bc9c3868c; verification only, a no-op
+        # in Go).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="188113160d8753c88a9fe59f324e1f94652789e9",
+        rev="bc9c3868ced67e518fb2fecba44ce0fa70b7303b",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -287,6 +294,11 @@ PROJECTS = [
             "unicode/utf8",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
+            # with bodies (client/v3/kubernetes.toml): the client the Kubernetes API server's
+            # etcd3 store calls (project k8s-apiserver; notes/k8s-etcd3-goose.md)
+            "go.etcd.io/etcd/client/v3/kubernetes",
+            # names only: grpc's logger, which the etcd3 store names (project k8s-apiserver)
+            "google.golang.org/grpc/grpclog",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
             "go.etcd.io/etcd/api/v3/mvccpb",
             "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
@@ -324,7 +336,7 @@ PROJECTS = [
             # types only (the interfaces `Hash`, `Hash32`, ...): the type of mvcc's
             # `kvHasher.hash` field, so that Goose translates `kvHasher`
             "hash",
-            # names only (D33, rafthttp's stage 1): what rafthttp's message path calls of the
+            # names only (D38, rafthttp's stage 1): what rafthttp's message path calls of the
             # standard library's `path` (the stream handler's URL parsing) and of etcd's
             # `pkg/v3/ioutil` (the pipeline handler's limited reader) and `pkg/v3/httputil`
             "path",
@@ -353,8 +365,10 @@ PROJECTS = [
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
-               "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
-               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("encoding", "hex"), os.path.join("crypto", "tls"),
+               os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
+               "go_opentelemetry_io",
+               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("encoding", "hex"),
+               os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
                os.path.join("github_com", "xiang90"),
@@ -376,10 +390,10 @@ PROJECTS = [
         # An example application on raft's Node: a replicated string-to-string key-value
         # store (Put, Get, Append; until 2026-10-19 the replicated string register
         # `examples/register`), with its randomized linearizability test over the lintest
-        # driver and porcupine (check.go). A Go module of this repository, whose go.mod requires
-        # go.etcd.io/raft/v3 and replaces it by the revision pinned above
+        # driver and porcupine (check.go). A package of the examples' Go module (examples/go.mod),
+        # which replaces go.etcd.io/raft/v3 by the revision pinned above
         # (`github.com/upamanyus/etcd/v3`, the fork's pseudo-version under a /v3 path, since
-        # its go.mod declares go.etcd.io/raft/v3; keep the two in step), and lintest and
+        # its go.mod declares go.etcd.io/raft/v3; GO_MOD_PINS checks the two agree), and lintest and
         # porcupine by this repository's copies.
         repo=None,
         rev=None,
@@ -394,11 +408,27 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kv")],
     ),
     Project(
+        name="common",
+        # The examples' shared start of etcd (`examples/common`): a member's configuration and
+        # server (one member's, `StartServer`; a cluster's, `NewMember`, `StartMember`), its gRPC
+        # service on a listener (`Serve`), a client of one address (`NewClient`), each translated
+        # and proved once. A package of the examples' Go module (examples/go.mod), as every example
+        # but kvwitness. Its imports are the etcd project's translations (names reached through the
+        # empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "common"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "common")],
+    ),
+    Project(
         name="putget",
         # The adequacy example of etcd's server and client (open-work item 9): one member
-        # started in-process, a client's Put and Get of one key. A Go module of this
-        # repository whose go.mod replaces etcd's modules by the etcd fork at the etcd pin
-        # above and go.etcd.io/raft/v3 by the raft pin (pseudo-versions; keep them in step).
+        # started in-process, a client's Put and Get of one key. A package of the examples' Go
+        # module (examples/go.mod), which replaces etcd's modules by the etcd fork at the etcd pin
+        # above and go.etcd.io/raft/v3 by the raft pin (pseudo-versions; GO_MOD_PINS checks them).
         # Its imports are the etcd project's translations (names reached through the empty root).
         repo=None,
         rev=None,
@@ -409,29 +439,14 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget")],
     ),
     Project(
-        name="linkv",
-        # The lintest driver instantiated with etcd (D20): one member started in-process, as
-        # in putget, and lintest.Run's clients doing Put and Get through one client, checked
-        # by porcupine against a key-value model. A Go module of this repository, with
-        # putget's replaces (keep them in step); its imports are the etcd, lintest and
-        # porcupine projects' translations (names reached through the empty root).
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "linkv"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
-                    "google.golang.org=", "net="],
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv")],
-    ),
-    Project(
         name="linkvtxn",
         # The lintest driver over etcd's KV API as its robustness tester drives it
-        # (notes/linkv-txn-plan.md, stage D): linkv's member and client, and lintest.Run's
-        # clients doing gets, lists, puts, deletes and transactions, checked by porcupine against
-        # the robustness model's Go form (Model, the Lean TxnModel's). A Go module of this
-        # repository, with putget's replaces (keep them in step; its tests' robustness model is
-        # etcd's tests/v3, test-only); its imports are the etcd, lintest and porcupine projects'
+        # (notes/linkv-txn-plan.md, stage D): one member started in-process and a client to it,
+        # as in putget, and lintest.Run's clients doing gets, lists, puts, deletes and
+        # transactions, checked by porcupine against
+        # the robustness model's Go form (Model, the Lean TxnModel's). A package of the
+        # examples' Go module (examples/go.mod; its tests' robustness model is etcd's tests/v3,
+        # test-only); its imports are the etcd, lintest and porcupine projects'
         # translations (names reached through the empty root).
         repo=None,
         rev=None,
@@ -443,29 +458,13 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkvtxn")],
     ),
     Project(
-        name="linkv3",
-        # linkv over a three-member cluster (D20, D21): three members started in-process as in
-        # putget3, a client to the first, and linkv's workload (`linkv.Check`, imported). A Go
-        # module of this repository, with putget's replaces (keep them in step); its imports
-        # are the etcd, linkv, lintest and porcupine projects' translations (names reached
-        # through the empty root).
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "linkv3"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
-                    "google.golang.org=", "net="],
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv3")],
-    ),
-    Project(
         name="linkv3p",
-        # linkv3 under network partitions (notes/partition-plan.md): three members started
-        # in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
+        # linkvtxn's workload under network partitions (notes/partition-plan.md): three members
+        # started in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
         # goroutine cutting and mending links on `Main`'s schedule (etcd's `CutPeer`/`MendPeer`),
         # and linkvtxn's workload (`Gen`, `Apply`, `Model`, imported; its own `Apply` picks the
-        # member; linkv's until 2026-10-20, notes/linkv3p-txn-plan.md). A Go module of this
-        # repository, with putget's replaces (keep them in step); its imports are the etcd,
+        # member; linkv's until 2026-10-20, notes/linkv3p-txn-plan.md). A package of the
+        # examples' Go module (examples/go.mod); its imports are the etcd,
         # linkvtxn, lintest and porcupine projects' translations (names reached through the empty
         # root).
         repo=None,
@@ -481,8 +480,8 @@ PROJECTS = [
         name="watchkv",
         # The watch example: one member started in-process, as in putget, a prefix watch from
         # revision 1, writer goroutines putting random keys under the prefix, and a check of the
-        # watched events against the writes. A Go module of this repository, with putget's
-        # replaces (keep them in step); its imports are the etcd project's translations (names
+        # watched events against the writes. A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd project's translations (names
         # reached through the empty root).
         repo=None,
         rev=None,
@@ -496,8 +495,8 @@ PROJECTS = [
         name="cachekv",
         # watchkv with the watch read through etcd's cache: one member started in-process, as in
         # putget, a cache of the prefix over the client, a cache watch from revision 2, writer
-        # goroutines putting random keys under the prefix, and watchkv's check. A Go module of
-        # this repository, with putget's replaces and the cache module's (keep them in step); its
+        # goroutines putting random keys under the prefix, and watchkv's check. A package of
+        # the examples' Go module (examples/go.mod); its
         # imports are the etcd project's translations (names reached through the empty root).
         repo=None,
         rev=None,
@@ -511,7 +510,7 @@ PROJECTS = [
         name="putget3",
         # putget with three members (D21 stage M5): three members started in-process, each
         # serving its raft handler on its own peer listener, a client's Put and Get through the
-        # first. A Go module of this repository, with putget's replaces (keep them in step); its
+        # first. A package of the examples' Go module (examples/go.mod); its
         # imports are the etcd project's translations (names reached through the empty root).
         repo=None,
         rev=None,
@@ -550,7 +549,9 @@ PROJECTS = [
     Project(
         name="lintest",
         # A generic driver over porcupine: clients that run a linearizable library's
-        # operations, traced as etcd's robustness tests trace them, then checked.
+        # operations, traced as etcd's robustness tests trace them, then checked. A Go module of
+        # its own (needing only porcupine), which the examples' module and kvwitness's replace by
+        # this directory.
         repo=None,
         rev=None,
         local=os.path.join("examples", "lintest"),
@@ -585,11 +586,76 @@ PROJECTS = [
         counted_modules=["go.etcd.io/raft/v3"],
     ),
     Project(
+        name="k8s-apiserver",
+        # The survey of the Kubernetes API server's etcd3 storage backend
+        # (notes/k8s-etcd3-goose.md): `k8s.io/apiserver/pkg/storage/etcd3` and
+        # `k8s.io/apiserver/pkg/storage`, with bodies, over etcd's client (the etcd project's
+        # translation, with `client/v3/kubernetes`). A Go module of this repository
+        # (examples/k8setcd3) requiring k8s.io/apiserver at a master pseudo-version (2026-10-21)
+        # and replacing etcd's modules by the etcd fork at the etcd pin; the API server's other
+        # dependencies names only (their .toml). Also the driver itself (the package `.`,
+        # notes/k8s-etcd3-plan.md phase 6), whose imports beyond the store are the etcd, lintest
+        # and porcupine projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8setcd3"),
+        lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=",
+                    "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
+                    "iter=", "path=", "github.com/mit-pdos/etcd-grove=",
+                    "github.com/anishathalye/porcupine="],
+        packages=[
+            ".",
+            "k8s.io/apiserver/pkg/storage/etcd3",
+            "k8s.io/apiserver/pkg/storage",
+            # types and names only (their .toml): what the two name
+            "k8s.io/apimachinery/pkg/api/errors",
+            "k8s.io/apimachinery/pkg/api/validate/content",
+            "k8s.io/apimachinery/pkg/api/meta",
+            "k8s.io/apimachinery/pkg/apis/meta/v1",
+            "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
+            "k8s.io/apimachinery/pkg/conversion",
+            "k8s.io/apimachinery/pkg/fields",
+            "k8s.io/apimachinery/pkg/labels",
+            "k8s.io/apimachinery/pkg/runtime",
+            "k8s.io/apimachinery/pkg/runtime/schema",
+            "k8s.io/apimachinery/pkg/sharding",
+            "k8s.io/apimachinery/pkg/types",
+            "k8s.io/apimachinery/pkg/util/errors",
+            "k8s.io/apimachinery/pkg/util/runtime",
+            "k8s.io/apimachinery/pkg/util/validation/field",
+            "k8s.io/apimachinery/pkg/util/wait",
+            "k8s.io/apimachinery/pkg/watch",
+            "k8s.io/apiserver/pkg/audit",
+            "k8s.io/apiserver/pkg/endpoints/request",
+            "k8s.io/apiserver/pkg/features",
+            "k8s.io/apiserver/pkg/storage/etcd3/metrics",
+            "k8s.io/apiserver/pkg/storage/feature",
+            "k8s.io/apiserver/pkg/storage/value",
+            "k8s.io/apiserver/pkg/util/feature",
+            "k8s.io/apiserver/pkg/util/flowcontrol",
+            "k8s.io/component-base/tracing",
+            "k8s.io/component-base/featuregate",
+            "k8s.io/klog/v2",
+            "k8s.io/utils/clock",
+            "encoding/json",
+            "encoding/base64",
+            "iter",
+            # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
+        ],
+        owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+               os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
+               os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
+               os.path.join("encoding", "base64"), "iter",
+               os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8setcd3")],
+        counted_modules=["k8s.io/apiserver"],
+    ),
+    Project(
         name="kvwitness",
         # The key-value store example (project kv) on the witness raft (project raft-witness):
         # a cluster of two voters and an in-process witness (`StartClusterWitness`, `MainWitness`;
-        # notes/raft-witness.md, "W4"). A Go module of this repository whose go.mod replaces
-        # go.etcd.io/raft/v3 by the fork at raft-witness's pin (keep the two in step), and
+        # notes/raft-witness.md, "W4"). A Go module of its own (not the examples', whose raft is
+        # project raft's), whose go.mod replaces go.etcd.io/raft/v3 by the fork at raft-witness's
+        # pin (GO_MOD_PINS checks the two agree), and
         # lintest and porcupine by this repository's copies. Translated into RaftWitness, its
         # raft the raft-witness project's, lintest and porcupine the main tree's.
         repo=None,
@@ -604,6 +670,42 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kvwitness")],
     ),
 ]
+
+
+# The Go modules of this repository that build the examples against the forks, and which project's
+# pinned `rev` each replaced Go path must be at (a replace's pseudo-version names the commit): the
+# examples' module, kvwitness's, whose raft is the witness experiment's, and k8setcd3's. `--check` fails on a
+# mismatch, so that a fork-pin bump cannot leave the examples on the old code.
+GO_MOD_PINS = {
+    os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
+    os.path.join("examples", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
+    # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
+    os.path.join("examples", "k8setcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
+}
+
+
+def go_mod_pin_errors():
+    """The replaces of GO_MOD_PINS's go.mod files not at their project's pinned revision."""
+    revs = {p.name: p.rev for p in PROJECTS}
+    errors = []
+    for f, pins in GO_MOD_PINS.items():
+        text = open(os.path.join(ROOT, f), encoding="utf-8").read()
+        found = set()
+        # `OLD => NEW VERSION`, in a replace block or a one-line replace
+        for old, new, ver in re.findall(r"^\s*(?:replace\s+)?(\S+)(?:\s+\S+)?\s+=>\s+(\S+)\s+(\S+)\s*$",
+                                        text, re.M):
+            proj = next((pn for prefix, pn in pins.items() if old.startswith(prefix)), None)
+            if proj is None:
+                continue
+            found.add(proj)
+            m = re.search(r"-([0-9a-f]{12})$", ver)
+            if not m or not revs[proj].startswith(m.group(1)):
+                errors.append(f"{f}: {old} => {new} {ver} is not project {proj}'s pinned "
+                              f"revision {revs[proj][:12]} (etc/goose.py)")
+        for proj in sorted(set(pins.values()) - found):
+            errors.append(f"{f}: no replace of {proj}'s Go paths "
+                          f"({', '.join(k for k, v in pins.items() if v == proj)})")
+    return errors
 
 
 def run(args, cwd=None, quiet=False):
@@ -771,7 +873,10 @@ def main():
         cwd=perennial)
 
     ok = [translate(p, src, bindir, rev, desc, args.check) for p, src, desc in sources]
-    if not all(ok):
+    pin_errors = go_mod_pin_errors()
+    for e in pin_errors:
+        print("goose.py: " + e, file=sys.stderr)
+    if not all(ok) or (args.check and pin_errors):
         sys.exit(1)
 
 

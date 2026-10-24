@@ -9,60 +9,59 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.client.pkg.v3.types : GoString := go!"go.etcd.io/etcd/client/pkg/v3/types"
+noncomputable def go_etcd_io.etcd.client.pkg.v3.types : GoString := go!"go.etcd.io/etcd/client/pkg/v3/types"
 end pkg_id
 
 namespace go_etcd_io.etcd.client.pkg.v3.types
 
-def ID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" [])
 
 attribute [irreducible] ID.ty
 
-def IDSlice.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IDSlice.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.IDSlice" [])
 
 attribute [irreducible] IDSlice.ty
 
-def Set'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Set'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.Set" [])
 
 attribute [irreducible] Set'.ty
 
-def ThreadsafeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ThreadsafeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ThreadsafeSet" [])
 
 attribute [irreducible] ThreadsafeSet.ty
 
-def unsafeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unsafeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.unsafeSet" [])
 
 attribute [irreducible] unsafeSet.ty
 
-def tsafeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tsafeSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.tsafeSet" [])
 
 attribute [irreducible] tsafeSet.ty
 
-def Uint64Slice.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Uint64Slice.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.Uint64Slice" [])
 
 attribute [irreducible] Uint64Slice.ty
 
-def URLs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def URLs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.URLs" [])
 
 attribute [irreducible] URLs.ty
 
-def URLsMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def URLsMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.URLsMap" [])
 
 attribute [irreducible] URLsMap.ty
@@ -103,7 +102,7 @@ noncomputable def URLs.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "us"))
   (App (App (Val (GoInstruction (FuncResolve go.len [URLs.ty]))) (Val #())) (Var "$a0"))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.types where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.types where
   pkgImportedPkgs := [pkg_id.net.url]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -123,7 +122,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev ID [FfiSyntax] : Type := w64
 
-@[reducible] def ID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint64
 
 class ID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -133,7 +132,7 @@ attribute [instance] ID.TypeAssumptions.underlying
 
 abbrev IDSlice [FfiSyntax] : Type := GoSlice
 
-@[reducible] def IDSlice.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IDSlice.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType ID.ty)
 
 class IDSlice.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,7 +142,7 @@ attribute [instance] IDSlice.TypeAssumptions.underlying
 
 abbrev Set' [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Set'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Set'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Contains" (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool])), (go.InterfaceElem.MethodElem go!"ContainsAll" (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool])), (go.InterfaceElem.MethodElem go!"Copy" (go.signature.Signature [] false [Set'.ty])), (go.InterfaceElem.MethodElem go!"Equals" (go.signature.Signature [Set'.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Length" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Remove" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Sub" (go.signature.Signature [Set'.ty] false [Set'.ty])), (go.InterfaceElem.MethodElem go!"Values" (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))])
 
 class Set.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -153,7 +152,7 @@ attribute [instance] Set.TypeAssumptions.underlying
 
 abbrev ThreadsafeSet [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ThreadsafeSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ThreadsafeSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Set'.ty)])])
 
 class ThreadsafeSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -165,20 +164,20 @@ structure unsafeSet [FfiSyntax] where
   mk ::
   d' : GoMap
 
-instance unsafeSet.zero_val [FfiSyntax] : ZeroVal unsafeSet :=
+noncomputable instance unsafeSet.zero_val [FfiSyntax] : ZeroVal unsafeSet :=
   ⟨unsafeSet.mk zeroValDef⟩
 
-@[reducible] def unsafeSet.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def unsafeSet.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"d" (go.GoType.MapType go.string (go.GoType.StructType [])))]
 
-@[irreducible] def unsafeSet.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def unsafeSet.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   unsafeSet.fieldsUnsealed
 
-instance equals_unfold_unsafeSet [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_unsafeSet [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold unsafeSet.fields unsafeSet.fieldsUnsealed :=
   ⟨by unfold unsafeSet.fields; rfl⟩
 
-@[reducible] def unsafeSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def unsafeSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType unsafeSet.fields)
 
 class unsafeSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -207,7 +206,7 @@ attribute [instance] tsafeSet.TypeAssumptions.type_repr
 
 abbrev Uint64Slice [FfiSyntax] : Type := GoSlice
 
-@[reducible] def Uint64Slice.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Uint64Slice.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.uint64)
 
 class Uint64Slice.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -217,7 +216,7 @@ attribute [instance] Uint64Slice.TypeAssumptions.underlying
 
 abbrev URLs [FfiSyntax] : Type := GoSlice
 
-@[reducible] def URLs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def URLs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType _root_.Perennial.net.url.URL.ty)
 
 class URLs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -232,7 +231,7 @@ attribute [instance] URLs.TypeAssumptions.underlying
 
 abbrev URLsMap [FfiSyntax] : Type := GoMap
 
-@[reducible] def URLsMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def URLsMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string URLs.ty)
 
 class URLsMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

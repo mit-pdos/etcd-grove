@@ -175,7 +175,7 @@ theorem idsOk_bksReset {P : BParams} {B : GMap w64 (List Ent)} (h : idsOk P B) :
   | some es0 => exact h i es0 hb
 
 theorem hookStep_refl (P : BParams) (st : BSess) : hookStep P st st :=
-  ⟨rfl, rfl, rfl, fun _ _ _ _ => rfl, Int.le_refl _, by omega, Int.le_refl _, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, fun _ _ _ _ => rfl, Int.le_refl _, by omega, Int.le_refl _, rfl, rfl⟩
 
 /-- A free state leaves room for a commit's hook. -/
 theorem room_of_freeOk {P : BParams} {st : BSess} (hP : P.Wf) (h : freeOk P st) :
@@ -252,7 +252,7 @@ theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt
     (hC' : C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C)) :
     sessWf P (commitSt st' C' tx' cnt') ∧ freeOk P (commitSt st' C' tx' cnt') ∧
       vData P (C', st'.R.reset) = sData P st.S := by
-  obtain ⟨hsC, hsR, hsS, hsW, hsp1, hsp2, hsn, hstx, hscnt⟩ := hs
+  obtain ⟨hsC, hsR, hsS, hsB, hsW, hsp1, hsp2, hsn, hstx, hscnt⟩ := hs
   have hW' : ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = [] :=
     fun n i h1 h2 => (hsW n i h1 h2).trans (hW n i h1 h2)
   -- the committed data reads, off the hook's buckets, as the writer's contents before the hook
@@ -314,13 +314,13 @@ theorem commit_bgOk {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {n w 
     (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : hookStep P st st') (hst : sessWf P st)
     (hb' : bgOk P st' false n w u) (n' w' u' : Nat)
     (hbud : uint.Z st.R.ver + n' + k' < 2 ^ 40) (huw : u' ≤ w')
-    (hc : st.cnt.c + 1 ≤ k' + 1 + (if u' = w' then 1 else 0)) :
+    (hc : st.cnt.c + 1 ≤ k' + 1 + (if u' = w' then 1 else 0)) (hwv : (w' : Int) ≤ uint.Z st.R.ver) :
     bgOk P (commitSt st' C' tx' ⟨k', st.cnt.c + 1, 0, 0, false⟩) true n' w' u' := by
-  obtain ⟨hsC, hsR, hsS, hsW, hsp1, hsp2, hsn, hstx, hscnt⟩ := hs
+  obtain ⟨hsC, hsR, hsS, hsB, hsW, hsp1, hsp2, hsn, hstx, hscnt⟩ := hs
   obtain ⟨-, -, -, h4, -, -, h7, -, -⟩ := hb'
   have hp := hst.2.2.2.2.1
   refine ⟨?_, huw, hc, by simp [commitSt],
-    ⟨Or.inl rfl, Or.inr (fun i => bkOf_bksResetC _ i)⟩, Nat.zero_le _, ?_, ?_, ?_⟩
+    ⟨Or.inl rfl, Or.inr (fun i => bkOf_bksResetC _ i)⟩, Nat.zero_le _, ?_, ?_, ?_, ?_⟩
   · show uint.Z (bksReset st'.R.bks, st'.R.ver).2 + n' + k' < 2 ^ 40
     rw [hsR]; exact hbud
   · intro i
@@ -340,6 +340,8 @@ theorem commit_bgOk {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {n w 
     simp
   · intro _
     exact ⟨rfl, fun h => absurd rfl h⟩
+  · show (w' : Int) ≤ uint.Z (bksReset st'.R.bks, st'.R.ver).2
+    rw [hsR]; exact hwv
 
 end backend
 end EtcdGrove

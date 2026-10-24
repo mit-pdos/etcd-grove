@@ -4,6 +4,7 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/minClusterVersi
 -/
 module
 
+public import Proof.github_com.Masterminds.semver.v3.MustParsePure
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.minClusterVersion
 public import Spec.github_com.Masterminds.semver.v3.MustParse
 public import Proof.github_com.Masterminds.semver.v3.Simple
@@ -44,7 +45,7 @@ theorem rafthttp.minClusterVersion.wp_proof
     rw [he]
     simp only [↓reduceIte]
     (try wp_auto)
-    wp_apply hMP as %rv %Hrv
+    wp_apply (semver.MustParse.pure hMP _) as %rv %Hrv
     obtain ⟨nv, rfl, Hnv⟩ : ∃ v : Loc, rv = #v ∧ v ≠ null := by
       rcases Hrv with ⟨-, h⟩ | ⟨Hn, -⟩
       · exact h
@@ -53,7 +54,7 @@ theorem rafthttp.minClusterVersion.wp_proof
     iapply HΦ; ipureintro; exact Or.inl ⟨nv, rfl, Hnv⟩
   · (try simp only [_root_.decide_eq_false he])
     (try wp_auto)
-    wp_apply hMP as %rv %Hrv
+    wp_apply (semver.MustParse.pure hMP _) as %rv %Hrv
     rcases Hrv with ⟨-, nv, rfl, Hnv⟩ | ⟨-, p, rfl⟩
     · wp_auto
       iapply HΦ; ipureintro; exact Or.inl ⟨nv, rfl, Hnv⟩

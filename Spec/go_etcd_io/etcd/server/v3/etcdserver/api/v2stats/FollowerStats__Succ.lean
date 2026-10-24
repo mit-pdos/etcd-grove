@@ -2,7 +2,7 @@
 `(*v2stats.FollowerStats).Succ(d)`: the trust boundary (v2stats is names-only but for
 `NewLeaderStats`; `Succ` is floating-point latency bookkeeping under the stats' own lock: `math.Sqrt`
 of running averages). rafthttp's msgappv2 encoder calls it after each frame. A no-op spec, as the
-metrics' (D33). Lean-first.
+metrics' (D38). Lean-first.
 -/
 module
 

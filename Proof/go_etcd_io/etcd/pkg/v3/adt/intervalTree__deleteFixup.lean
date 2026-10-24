@@ -26,13 +26,13 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 /-- The tree after the exit's blackening of `x`. -/
 theorem adt.del_exit_post (t s : Loc) (C : adt.RbCtx adt.Entry) (ls : List (Loc × Loc))
     (x p : Loc) (tx : adt.RbT adt.Entry) (h : C.DelInv tx) (hx : C = .top ∨ tx.color = .red) :
-    adt.ownCtxAt t s C ls x p tx.maxEnd ∗ adt.ownNode (GF := GF) s 1 p x tx.blacken ⊢
+    adt.ownCtxAt K t s C ls x p tx.maxEnd ∗ adt.ownNode (GF := GF) K s (DFrac.own 1) p x tx.blacken ⊢
       ∃ (r : Loc) (T : adt.RbT adt.Entry), t.[intervalTree, go!"root"] ↦ r ∗
-        adt.ownNode s 1 s r T ∗ ⌜adt.RbOk T ∧ T.inorder = (C.plug tx).inorder⌝ := by
+        adt.ownNode K s (DFrac.own 1) s r T ∗ ⌜adt.RbOk T ∧ T.inorder = (C.plug tx).inorder⌝ := by
   iintro ⟨HC, Hx⟩
-  ihave HC := adt.ownCtxAt_ctx _ _ _ _ _ _ _ $$ HC
+  ihave HC := adt.ownCtxAt_ctx K _ _ _ _ _ _ _ $$ HC
   rw [← adt.maxEnd_blacken]
-  icases adt.ownCtx_plug _ _ _ _ _ _ $$ [HC Hx] with ⟨%r, Hr, HT⟩
+  icases adt.ownCtx_plug K _ _ _ _ _ _ $$ [HC Hx] with ⟨%r, Hr, HT⟩
   · iframe
   iexists r, C.plug tx.blacken
   iframe
@@ -46,7 +46,7 @@ ends (`x` the root, `x` red): after `x == ivt.root` and after `x.color(ivt.senti
 local macro "del_exit" h:term:max : tactic => `(tactic| (
     cases tx with
     | leaf =>
-      icases adt.ownNode_leaf_open _ _ _ _ $$ Hx with %Hxs
+      icases adt.ownNode_leaf_open K _ _ _ _ $$ Hx with %Hxs
       rw [Hxs]
       unfold adt.sentAt
       icases Hsent with ⟨%v, Hsv, -⟩
@@ -63,9 +63,9 @@ local macro "del_exit" h:term:max : tactic => `(tactic| (
       iapply adt.del_exit_post t s _ ls s p .leaf hinv $h
       iframe
     | node c l e r =>
-      ihave %Hxn := adt.ownNode_node_ne _ _ _ _ _ _ _ _ $$ Hx
+      ihave %Hxn := adt.ownNode_node_ne K _ _ _ _ _ _ _ _ $$ Hx
       rw [_root_.decide_eq_false Hxn.2]
-      icases adt.ownNode_blacken _ _ _ _ _ _ _ $$ Hx with ⟨Hc, Hxback⟩
+      icases adt.ownNode_blacken K _ _ _ _ _ _ _ $$ Hx with ⟨Hc, Hxback⟩
       rw [show black = #(adt.colorW .black) from rfl]
       wp_auto
       ihave Hx := Hxback $$ Hc
@@ -82,12 +82,12 @@ set_option hygiene false in
 /-- `w.left.color(...) == black && w.right.color(...) == black`, for a black sibling `w`, `x` a left
 and a right child. -/
 local macro "sib_colors" : tactic => `(tactic| (
-    icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hw with
+    icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hw with
       ⟨%wlp, %wrp, %Hwn, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hwln, Hwrn⟩
     rw [_root_.decide_eq_false Hwn.2]
     wp_auto
-    icases adt.ownNode_colorAt _ _ _ _ $$ Hwln with ⟨Hlc, Hlback⟩
-    icases adt.ownNode_colorAt _ _ _ _ $$ Hwrn with ⟨Hrc, Hrback⟩
+    icases adt.ownNode_colorAt K _ _ _ _ $$ Hwln with ⟨Hlc, Hlback⟩
+    icases adt.ownNode_colorAt K _ _ _ _ $$ Hwrn with ⟨Hrc, Hrback⟩
     wp_join (Q := fun v => iprop(⌜v = #(decide (wl'.color = .black ∧ wr'.color = .black))⌝ ∗
         adt.colorAt s wlp wl'.color (DFrac.own 1) ∗ adt.colorAt s wrp wr'.color (DFrac.own 1) ∗
         w'.[intervalNode, go!"left"] ↦ wlp ∗ w'.[intervalNode, go!"right"] ↦ wrp ∗
@@ -122,14 +122,14 @@ theorem adt.intervalTree.deleteFixup.wp_proof
     (h_rotateLeft : adt.intervalTree.rotateLeft.spec (GF := GF) (hG := hG))
     (h_rotateRight : adt.intervalTree.rotateRight.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.deleteFixup.spec (GF := GF) (hG := hG) := by
-  intro t s dq C0 x0 p0 tx0 hinv0
+  intro K hK t s dq C0 x0 p0 tx0 hinv0
   wp_start as ⟨Hs, HC, Hx, Hsent⟩
   wp_auto
   have hvb : decide ((#false : val) = #true) = false :=
     decide_eq_false (fun h => Bool.false_ne_true (go.intoVal_inj h))
   ihave HI : (∃ (x p : Loc) (C : adt.RbCtx adt.Entry) (tx : adt.RbT adt.Entry),
-      "x" ∷ x_ptr ↦ x ∗ "HC" ∷ adt.ownCtx t s C x p tx.maxEnd ∗
-      "Hx" ∷ adt.ownNode s 1 p x tx ∗ "Hsent" ∷ adt.sentAt s x p ∗
+      "x" ∷ x_ptr ↦ x ∗ "HC" ∷ adt.ownCtx K t s C x p tx.maxEnd ∗
+      "Hx" ∷ adt.ownNode K s (DFrac.own 1) p x tx ∗ "Hsent" ∷ adt.sentAt s x p ∗
       "%Hinv" ∷ ⌜C.DelInv tx ∧ (C.plug tx).inorder = (C0.plug tx0).inorder⌝ : IProp GF)
       $$ [x HC Hx Hsent]
   · iexists x0, p0, C0, tx0
@@ -137,8 +137,8 @@ theorem adt.intervalTree.deleteFixup.wp_proof
     ipureintro; exact ⟨hinv0, rfl⟩
   wp_for HI
   obtain ⟨hinv, hord⟩ := Hinv
-  icases (adt.ownCtx_at _ _ _ _ _ _).1 $$ HC with ⟨%ls, HC⟩
-  icases adt.ownCtxAt_root _ _ _ _ _ _ _ $$ HC with ⟨Hroot, HCback⟩
+  icases (adt.ownCtx_at K _ _ _ _ _ _).1 $$ HC with ⟨%ls, HC⟩
+  icases adt.ownCtxAt_root K _ _ _ _ _ _ _ $$ HC with ⟨Hroot, HCback⟩
   by_cases hCt : C = .top
   · -- `x` is the root: the loop ends
     subst hCt
@@ -150,12 +150,12 @@ theorem adt.intervalTree.deleteFixup.wp_proof
     -- the exit: `x` blackened
     del_exit (Or.inl rfl)
   · ihave HC := HCback $$ Hroot
-    ihave %Hne := adt.ownCtxAt_root_ne_hole t s C ls x p _ tx hCt $$ HC Hx
-    icases adt.ownCtxAt_root _ _ _ _ _ _ _ $$ HC with ⟨Hroot, HCback⟩
+    ihave %Hne := adt.ownCtxAt_root_ne_hole K t s C ls x p _ tx hCt $$ HC Hx
+    icases adt.ownCtxAt_root K _ _ _ _ _ _ _ $$ HC with ⟨Hroot, HCback⟩
     wp_auto
     rw [_root_.decide_eq_false (Ne.symm Hne)]
     simp only [Bool.not_false]
-    icases adt.ownNode_colorAt _ _ _ _ $$ Hx with ⟨Hxc, Hxback⟩
+    icases adt.ownNode_colorAt K _ _ _ _ $$ Hx with ⟨Hxc, Hxback⟩
     wp_auto
     wp_apply h_color x s tx.color (DFrac.own 1) $$ [Hxc] as Hxc
     · iframe
@@ -176,16 +176,16 @@ theorem adt.intervalTree.deleteFixup.wp_proof
       | top => exact absurd rfl hCt
       | inL cp CP pe tw =>
         cases ls with
-        | nil => iexfalso; iapply adt.ownCtxAt_inL_nil $$ HC
+        | nil => iexfalso; iapply adt.ownCtxAt_inL_nil K $$ HC
         | cons f ls' =>
         obtain ⟨pp, wp⟩ := f
         obtain ⟨cw, wl, we, wr, rfl⟩ := adt.RbCtx.delInv_sib_L hinv
-        icases (adt.ownCtxAt_inL _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
+        icases (adt.ownCtxAt_inL K _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
           ⟨%Hpn, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hw, HC⟩
-        icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+        icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
         · iframe
         wp_auto
-        icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hw with
+        icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hw with
           ⟨%wlp, %wrp, %Hwn, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hwln, Hwrn⟩
         ihave Hwc := adt.colorAt_intro s wp cw (DFrac.own 1) Hwn.1 $$ Hwc
         wp_apply h_color wp s cw (DFrac.own 1) $$ [Hwc] as Hwc
@@ -196,9 +196,9 @@ theorem adt.intervalTree.deleteFixup.wp_proof
             (ls'' : List (Loc × Loc)) (wl' : adt.RbT adt.Entry) (we' : adt.Entry)
             (wr' : adt.RbT adt.Entry),
             w_ptr ↦ w' ∗ x_ptr ↦ x ∗ ivt_ptr ↦ t ∗ t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
-            adt.ownCtxAt t s (.inL cp' CP' pe (.node .black wl' we' wr')) ((pp', w') :: ls'') x p
+            adt.ownCtxAt K t s (.inL cp' CP' pe (.node .black wl' we' wr')) ((pp', w') :: ls'') x p
               tx.maxEnd ∗
-            adt.ownNode s 1 p x tx ∗ adt.sentAt s x p ∗
+            adt.ownNode K s (DFrac.own 1) p x tx ∗ adt.sentAt s x p ∗
             ⌜(adt.RbCtx.inL cp' CP' pe (.node .black wl' we' wr')).DelInv tx ∧
               ((adt.RbCtx.inL cp' CP' pe (.node .black wl' we' wr')).plug tx).inorder =
                 (C0.plug tx0).inorder⌝)
@@ -213,22 +213,22 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           subst hcw
           ihave Hx := Hxback $$ Hxp
           icases Hx with ⟨Hx, Hsent⟩
-          wp_apply h_rotateLeft t s dq CP ls' p pp wp x wlp wrp .red .black tx wl wr pe we Hpn Hwn
+          wp_apply (h_rotateLeft K hK) t s dq CP ls' p pp wp x wlp wrp .red .black tx wl wr pe we Hpn Hwn
             $$ [Hs HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hwiv Hwmx Hwl Hwr Hwp Hwc Hx Hwln Hwrn]
             as ⟨Hs, HC, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hx, Hwln,
               Hwrn⟩
           · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe
-          icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+          icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
           · iframe
           wp_auto
           ihave Hx := Hxback $$ Hxp
           icases Hx with ⟨Hx, Hsent⟩
           obtain ⟨hinv1, hwlc, hord1⟩ := adt.RbCtx.del_case1_L hinv
-          ihave HC1 := (adt.ownCtxAt_inL t s .black CP we wr pp wrp ls' p wp
+          ihave HC1 := (adt.ownCtxAt_inL K t s .black CP we wr pp wrp ls' p wp
               (some (adt.nodeMaxO tx.maxEnd pe wl.maxEnd))).2
             $$ [HC Hwiv Hwmx Hwl Hwr Hwp Hwc Hwrn]
           · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro; exact Hwn
-          ihave HC2 := (adt.ownCtxAt_inL t s .red (.inL .black CP we wr) pe wl wp wlp
+          ihave HC2 := (adt.ownCtxAt_inL K t s .red (.inL .black CP we wr) pe wl wp wlp
               ((pp, wrp) :: ls') x p tx.maxEnd).2
             $$ [HC1 Hpiv Hpmx Hpl Hpr Hpp Hpc Hwln]
           · simp only [adt.nodeMax_eq]; iframe; ipureintro; exact Hpn
@@ -248,24 +248,24 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           subst hcw
           ihave Hx := Hxback $$ Hxp
           icases Hx with ⟨Hx, Hsent⟩
-          ihave Hw := adt.ownNode_node_close s 1 p wp .black wl we wr $$
+          ihave Hw := adt.ownNode_node_close K s (DFrac.own 1) p wp .black wl we wr $$
             [Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln Hwrn]
           · iexists wlp, wrp; iframe; ipureintro; exact Hwn
-          ihave HC := (adt.ownCtxAt_inL t s cp CP pe (.node .black wl we wr) pp wp ls' x p
+          ihave HC := (adt.ownCtxAt_inL K t s cp CP pe (.node .black wl we wr) pp wp ls' x p
               tx.maxEnd).2 $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hw]
           · iframe; ipureintro; exact Hpn
           iexists cp, CP, pp, wp, ls', wl, we, wr
           iframe
           ipureintro; exact ⟨hinv, hord⟩
         -- the sibling black: `w`'s children's colours
-        icases (adt.ownCtxAt_inL _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
+        icases (adt.ownCtxAt_inL K _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
           ⟨%Hpn', Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hw, HC⟩
         sib_colors
         by_cases hA : wl'.color = .black ∧ wr'.color = .black
         · -- case 2: both of `w`'s children black: `w` red, `x` moves up
           rw [_root_.decide_eq_true hA]
           wp_auto
-          icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+          icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
           · iframe
           wp_auto
           ihave Hx := Hxback $$ Hxp
@@ -274,13 +274,13 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           ihave Hwrn := Hrback $$ Hrc
           wp_for_post
           obtain ⟨hinv2, hord2⟩ := adt.RbCtx.del_case2_L hinv' htxc hA.1 hA.2
-          ihave Hw := adt.ownNode_node_close s 1 p w' .red wl' we' wr' $$
+          ihave Hw := adt.ownNode_node_close K s (DFrac.own 1) p w' .red wl' we' wr' $$
             [Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln Hwrn]
           · iexists wlp, wrp; iframe; ipureintro; exact Hwn
-          ihave Hp := adt.ownNode_node_close s 1 pp' p cp' tx pe (.node .red wl' we' wr') $$
+          ihave Hp := adt.ownNode_node_close K s (DFrac.own 1) pp' p cp' tx pe (.node .red wl' we' wr') $$
             [Hpiv Hpmx Hpl Hpr Hpp Hpc Hx Hw]
           · iexists x, w'; simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro; exact Hpn'
-          ihave HC := adt.ownCtxAt_ctx _ _ _ _ _ _ _ $$ HC
+          ihave HC := adt.ownCtxAt_ctx K _ _ _ _ _ _ _ $$ HC
           ihave Hsent := adt.sentAt_other s x p p pp' Hpn'.1 $$ Hsent
           iframe
           iexists p, pp', CP', .node cp' tx pe (.node .red wl' we' wr')
@@ -295,9 +295,9 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           wp_join iprop(∃ (w2 : Loc) (wl2 : adt.RbT adt.Entry) (we2 : adt.Entry)
               (a2 : adt.RbT adt.Entry) (e2 : adt.Entry) (b2 : adt.RbT adt.Entry),
               w_ptr ↦ w2 ∗ x_ptr ↦ x ∗ ivt_ptr ↦ t ∗ t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
-              adt.ownCtxAt t s (.inL cp' CP' pe (.node .black wl2 we2 (.node .red a2 e2 b2)))
+              adt.ownCtxAt K t s (.inL cp' CP' pe (.node .black wl2 we2 (.node .red a2 e2 b2)))
                 ((pp', w2) :: ls'') x p tx.maxEnd ∗
-              adt.ownNode s 1 p x tx ∗ adt.sentAt s x p ∗
+              adt.ownNode K s (DFrac.own 1) p x tx ∗ adt.sentAt s x p ∗
               ⌜(adt.RbCtx.inL cp' CP' pe (.node .black wl2 we2 (.node .red a2 e2 b2))).DelInv tx ∧
                 ((adt.RbCtx.inL cp' CP' pe (.node .black wl2 we2 (.node .red a2 e2 b2))).plug
                   tx).inorder = (C0.plug tx0).inorder⌝)
@@ -315,36 +315,36 @@ theorem adt.intervalTree.deleteFixup.wp_proof
               | leaf => simp at hwl
               | node c a e1 b => simp at hwl; subst hwl; exact ⟨a, e1, b, rfl⟩
             ihave Hwln := Hlback $$ Hlc
-            icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hwln with
+            icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hwln with
               ⟨%ap, %bp, %Hln, Hliv, Hlmx, Hll, Hlr, Hlp, Hlcc, Hlan, Hlbn⟩
             wp_auto
             ihave Hwrn := Hrback $$ Hrc
-            ihave HCr := (adt.ownCtxAt_inR t s cp' tx pe CP' pp' x ls'' w' p
+            ihave HCr := (adt.ownCtxAt_inR K t s cp' tx pe CP' pp' x ls'' w' p
                 (some (adt.nodeMax (.node .black a e1 b) we' wr'))).2
               $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hx]
             · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro; exact Hpn'
-            wp_apply h_rotateRight t s dq (.inR cp' tx pe CP') ((pp', x) :: ls'') w' p wlp ap bp wrp
+            wp_apply (h_rotateRight K hK) t s dq (.inR cp' tx pe CP') ((pp', x) :: ls'') w' p wlp ap bp wrp
                 .red .black a b wr' we' e1 Hwn Hln
               $$ [Hs HCr Hwiv Hwmx Hwl Hwr Hwp Hwc Hliv Hlmx Hll Hlr Hlp Hlcc Hlan Hlbn Hwrn]
               as ⟨Hs, HCr, Hliv, Hlmx, Hll, Hlr, Hlp, Hlcc, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hlan,
                 Hlbn, Hwrn⟩
             · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe
-            icases (adt.ownCtxAt_inR _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HCr with
+            icases (adt.ownCtxAt_inR K _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HCr with
               ⟨-, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hx, HC⟩
-            icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+            icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
             · iframe
             wp_auto
             ihave Hx := Hxback $$ Hxp
             icases Hx with ⟨Hx, Hsent⟩
             obtain ⟨hinv3, hord3⟩ := adt.RbCtx.del_case3_L hinv' hwr
-            ihave Hwn' := adt.ownNode_node_close s 1 wlp w' .red b we' wr' $$
+            ihave Hwn' := adt.ownNode_node_close K s (DFrac.own 1) wlp w' .red b we' wr' $$
               [Hwiv Hwmx Hwl Hwr Hwp Hwc Hlbn Hwrn]
             · iexists bp, wrp; iframe; ipureintro; exact Hwn
-            ihave Hsib := adt.ownNode_node_close s 1 p wlp .black a e1 (.node .red b we' wr') $$
+            ihave Hsib := adt.ownNode_node_close K s (DFrac.own 1) p wlp .black a e1 (.node .red b we' wr') $$
               [Hliv Hlmx Hll Hlr Hlp Hlcc Hlan Hwn']
             · iexists ap, w'; simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro
               exact Hln
-            ihave HC := (adt.ownCtxAt_inL t s cp' CP' pe (.node .black a e1 (.node .red b we' wr'))
+            ihave HC := (adt.ownCtxAt_inL K t s cp' CP' pe (.node .black a e1 (.node .red b we' wr'))
                 pp' wlp ls'' x p tx.maxEnd).2 $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hsib]
             · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro; exact Hpn'
             wp_join_done
@@ -362,10 +362,10 @@ theorem adt.intervalTree.deleteFixup.wp_proof
               | node c a e2 b => simp at hwr; subst hwr; exact ⟨a, e2, b, rfl⟩
             ihave Hwln := Hlback $$ Hlc
             ihave Hwrn := Hrback $$ Hrc
-            ihave Hw := adt.ownNode_node_close s 1 p w' .black wl' we' (.node .red a e2 b) $$
+            ihave Hw := adt.ownNode_node_close K s (DFrac.own 1) p w' .black wl' we' (.node .red a e2 b) $$
               [Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln Hwrn]
             · iexists wlp, wrp; iframe; ipureintro; exact Hwn
-            ihave HC := (adt.ownCtxAt_inL t s cp' CP' pe (.node .black wl' we' (.node .red a e2 b))
+            ihave HC := (adt.ownCtxAt_inL K t s cp' CP' pe (.node .black wl' we' (.node .red a e2 b))
                 pp' w' ls'' x p tx.maxEnd).2 $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hw]
             · iframe; ipureintro; exact Hpn'
             iexists w', wl', we', a, e2, b
@@ -373,13 +373,13 @@ theorem adt.intervalTree.deleteFixup.wp_proof
             ipureintro; exact ⟨hinv', hord'⟩
           -- case 4: `w` takes `P`'s colour, `P` and `w`'s right child black, `P` rotated left
           obtain ⟨hinv3, hord3⟩ := Hinv3
-          icases (adt.ownCtxAt_inL _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
+          icases (adt.ownCtxAt_inL K _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
             ⟨%Hpn3, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hw, HC⟩
-          icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hw with
+          icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hw with
             ⟨%wlp, %wrp, %Hwn, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hwln, Hwrn⟩
-          icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hwrn with
+          icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hwrn with
             ⟨%ap, %bp, %Hrn, Hriv, Hrmx, Hrl, Hrr, Hrp, Hrc, Hran, Hrbn⟩
-          icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+          icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
           · iframe
           ihave Hpc := adt.colorAt_intro s p cp' (DFrac.own 1) Hpn3.1 $$ Hpc
           wp_auto
@@ -389,24 +389,24 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           wp_auto
           ihave Hx := Hxback $$ Hxp
           icases Hx with ⟨Hx, Hsent⟩
-          ihave Hwrn := adt.ownNode_node_close s 1 w2 wrp .black a2 e2 b2 $$
+          ihave Hwrn := adt.ownNode_node_close K s (DFrac.own 1) w2 wrp .black a2 e2 b2 $$
             [Hriv Hrmx Hrl Hrr Hrp Hrc Hran Hrbn]
           · iexists ap, bp; iframe; ipureintro; exact Hrn
-          wp_apply h_rotateLeft t s dq CP' ls'' p pp' w2 x wlp wrp .black cp' tx wl2
+          wp_apply (h_rotateLeft K hK) t s dq CP' ls'' p pp' w2 x wlp wrp .black cp' tx wl2
               (.node .black a2 e2 b2) pe we2 Hpn3 Hwn
             $$ [Hs HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hwiv Hwmx Hwl Hwr Hwp Hwc Hx Hwln Hwrn]
             as ⟨Hs, HC, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hx, Hwln,
               Hwrn⟩
           · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe
-          ihave Hp := adt.ownNode_node_close s 1 w2 p .black tx pe wl2 $$
+          ihave Hp := adt.ownNode_node_close K s (DFrac.own 1) w2 p .black tx pe wl2 $$
             [Hpiv Hpmx Hpl Hpr Hpp Hpc Hx Hwln]
           · iexists x, wlp; iframe; ipureintro; exact Hpn3
-          ihave Hw := adt.ownNode_node_close s 1 pp' w2 cp' (.node .black tx pe wl2) we2
+          ihave Hw := adt.ownNode_node_close K s (DFrac.own 1) pp' w2 cp' (.node .black tx pe wl2) we2
               (.node .black a2 e2 b2) $$ [Hwiv Hwmx Hwl Hwr Hwp Hwc Hp Hwrn]
           · iexists p, wrp; simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro
             exact Hwn
-          ihave HC := adt.ownCtxAt_ctx _ _ _ _ _ _ _ $$ HC
-          icases adt.ownCtx_plug t s CP' w2 pp'
+          ihave HC := adt.ownCtxAt_ctx K _ _ _ _ _ _ _ $$ HC
+          icases adt.ownCtx_plug K t s CP' w2 pp'
               (.node cp' (.node .black tx pe wl2) we2 (.node .black a2 e2 b2)) $$ [HC Hw]
             with ⟨%r, Hroot, HT⟩
           · simp only [adt.maxEnd_node, adt.nodeMax_eq]; iframe
@@ -417,8 +417,8 @@ theorem adt.intervalTree.deleteFixup.wp_proof
             (.node .black a2 e2 b2)
           rw [hT] at hinv4 hord4
           rw [hT]
-          ihave %Hrs := adt.ownNode_node_ne _ _ _ _ _ _ _ _ $$ HT
-          icases adt.ownCtx_root t s r _ $$ [Hroot HT] with ⟨HC, HT⟩
+          ihave %Hrs := adt.ownNode_node_ne K _ _ _ _ _ _ _ _ $$ HT
+          icases adt.ownCtx_root K t s r _ $$ [Hroot HT] with ⟨HC, HT⟩
           · iframe
           ihave Hsent := adt.sentAt_other s x p r s Hrs.1 $$ Hsent
           iframe
@@ -427,19 +427,19 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           ipureintro; exact ⟨hinv4, hord4.trans hord3⟩
       | inR cp tw pe CP =>
         cases ls with
-        | nil => iexfalso; iapply adt.ownCtxAt_inR_nil $$ HC
+        | nil => iexfalso; iapply adt.ownCtxAt_inR_nil K $$ HC
         | cons f ls' =>
         obtain ⟨pp, wp⟩ := f
         obtain ⟨cw, wl, we, wr, rfl⟩ := adt.RbCtx.delInv_sib_R hinv
-        icases (adt.ownCtxAt_inR _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
+        icases (adt.ownCtxAt_inR K _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
           ⟨%Hpn, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hw, HC⟩
-        ihave %Hwx := adt.ownNode_hole_ne_sib _ _ _ _ _ _ _ _ _ _ $$ Hx Hw
-        icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+        ihave %Hwx := adt.ownNode_hole_ne_sib K _ _ _ _ _ _ _ _ _ _ $$ Hx Hw
+        icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
         · iframe
         wp_auto
         rw [_root_.decide_eq_false (Ne.symm Hwx)]
         wp_auto
-        icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hw with
+        icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hw with
           ⟨%wlp, %wrp, %Hwn, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hwln, Hwrn⟩
         ihave Hwc := adt.colorAt_intro s wp cw (DFrac.own 1) Hwn.1 $$ Hwc
         wp_apply h_color wp s cw (DFrac.own 1) $$ [Hwc] as Hwc
@@ -450,9 +450,9 @@ theorem adt.intervalTree.deleteFixup.wp_proof
             (ls'' : List (Loc × Loc)) (wl' : adt.RbT adt.Entry) (we' : adt.Entry)
             (wr' : adt.RbT adt.Entry),
             w_ptr ↦ w' ∗ x_ptr ↦ x ∗ ivt_ptr ↦ t ∗ t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
-            adt.ownCtxAt t s (.inR cp' (.node .black wl' we' wr') pe CP') ((pp', w') :: ls'') x p
+            adt.ownCtxAt K t s (.inR cp' (.node .black wl' we' wr') pe CP') ((pp', w') :: ls'') x p
               tx.maxEnd ∗
-            adt.ownNode s 1 p x tx ∗ adt.sentAt s x p ∗
+            adt.ownNode K s (DFrac.own 1) p x tx ∗ adt.sentAt s x p ∗
             ⌜(adt.RbCtx.inR cp' (.node .black wl' we' wr') pe CP').DelInv tx ∧
               ((adt.RbCtx.inR cp' (.node .black wl' we' wr') pe CP').plug tx).inorder =
                 (C0.plug tx0).inorder⌝)
@@ -467,22 +467,22 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           subst hcw
           ihave Hx := Hxback $$ Hxp
           icases Hx with ⟨Hx, Hsent⟩
-          wp_apply h_rotateRight t s dq CP ls' p pp wp wlp wrp x .red .black wl wr tx pe we Hpn Hwn
+          wp_apply (h_rotateRight K hK) t s dq CP ls' p pp wp wlp wrp x .red .black wl wr tx pe we Hpn Hwn
             $$ [Hs HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hwiv Hwmx Hwl Hwr Hwp Hwc Hx Hwln Hwrn]
             as ⟨Hs, HC, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hwln, Hwrn,
               Hx⟩
           · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe
-          icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+          icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
           · iframe
           wp_auto
           ihave Hx := Hxback $$ Hxp
           icases Hx with ⟨Hx, Hsent⟩
           obtain ⟨hinv1, hwrc, hord1⟩ := adt.RbCtx.del_case1_R hinv
-          ihave HC1 := (adt.ownCtxAt_inR t s .black wl we CP pp wlp ls' p wp
+          ihave HC1 := (adt.ownCtxAt_inR K t s .black wl we CP pp wlp ls' p wp
               (some (adt.nodeMaxO wr.maxEnd pe tx.maxEnd))).2
             $$ [HC Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln]
           · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro; exact Hwn
-          ihave HC2 := (adt.ownCtxAt_inR t s .red wr pe (.inR .black wl we CP) wp wrp
+          ihave HC2 := (adt.ownCtxAt_inR K t s .red wr pe (.inR .black wl we CP) wp wrp
               ((pp, wlp) :: ls') x p tx.maxEnd).2
             $$ [HC1 Hpiv Hpmx Hpl Hpr Hpp Hpc Hwrn]
           · simp only [adt.nodeMax_eq]; iframe; ipureintro; exact Hpn
@@ -502,24 +502,24 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           subst hcw
           ihave Hx := Hxback $$ Hxp
           icases Hx with ⟨Hx, Hsent⟩
-          ihave Hw := adt.ownNode_node_close s 1 p wp .black wl we wr $$
+          ihave Hw := adt.ownNode_node_close K s (DFrac.own 1) p wp .black wl we wr $$
             [Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln Hwrn]
           · iexists wlp, wrp; iframe; ipureintro; exact Hwn
-          ihave HC := (adt.ownCtxAt_inR t s cp (.node .black wl we wr) pe CP pp wp ls' x p
+          ihave HC := (adt.ownCtxAt_inR K t s cp (.node .black wl we wr) pe CP pp wp ls' x p
               tx.maxEnd).2 $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hw]
           · iframe; ipureintro; exact Hpn
           iexists cp, CP, pp, wp, ls', wl, we, wr
           iframe
           ipureintro; exact ⟨hinv, hord⟩
         -- the sibling black: `w`'s children's colours
-        icases (adt.ownCtxAt_inR _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
+        icases (adt.ownCtxAt_inR K _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
           ⟨%Hpn', Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hw, HC⟩
         sib_colors
         by_cases hA : wl'.color = .black ∧ wr'.color = .black
         · -- case 2: both of `w`'s children black: `w` red, `x` moves up
           rw [_root_.decide_eq_true hA]
           wp_auto
-          icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+          icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
           · iframe
           wp_auto
           ihave Hx := Hxback $$ Hxp
@@ -528,13 +528,13 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           ihave Hwrn := Hrback $$ Hrc
           wp_for_post
           obtain ⟨hinv2, hord2⟩ := adt.RbCtx.del_case2_R hinv' htxc hA.1 hA.2
-          ihave Hw := adt.ownNode_node_close s 1 p w' .red wl' we' wr' $$
+          ihave Hw := adt.ownNode_node_close K s (DFrac.own 1) p w' .red wl' we' wr' $$
             [Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln Hwrn]
           · iexists wlp, wrp; iframe; ipureintro; exact Hwn
-          ihave Hp := adt.ownNode_node_close s 1 pp' p cp' (.node .red wl' we' wr') pe tx $$
+          ihave Hp := adt.ownNode_node_close K s (DFrac.own 1) pp' p cp' (.node .red wl' we' wr') pe tx $$
             [Hpiv Hpmx Hpl Hpr Hpp Hpc Hw Hx]
           · iexists w', x; simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro; exact Hpn'
-          ihave HC := adt.ownCtxAt_ctx _ _ _ _ _ _ _ $$ HC
+          ihave HC := adt.ownCtxAt_ctx K _ _ _ _ _ _ _ $$ HC
           ihave Hsent := adt.sentAt_other s x p p pp' Hpn'.1 $$ Hsent
           iframe
           iexists p, pp', CP', .node cp' (.node .red wl' we' wr') pe tx
@@ -549,9 +549,9 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           wp_join iprop(∃ (w2 : Loc) (a2 : adt.RbT adt.Entry) (e2 : adt.Entry) (b2 : adt.RbT adt.Entry)
               (we2 : adt.Entry) (wr2 : adt.RbT adt.Entry),
               w_ptr ↦ w2 ∗ x_ptr ↦ x ∗ ivt_ptr ↦ t ∗ t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
-              adt.ownCtxAt t s (.inR cp' (.node .black (.node .red a2 e2 b2) we2 wr2) pe CP')
+              adt.ownCtxAt K t s (.inR cp' (.node .black (.node .red a2 e2 b2) we2 wr2) pe CP')
                 ((pp', w2) :: ls'') x p tx.maxEnd ∗
-              adt.ownNode s 1 p x tx ∗ adt.sentAt s x p ∗
+              adt.ownNode K s (DFrac.own 1) p x tx ∗ adt.sentAt s x p ∗
               ⌜(adt.RbCtx.inR cp' (.node .black (.node .red a2 e2 b2) we2 wr2) pe CP').DelInv tx ∧
                 ((adt.RbCtx.inR cp' (.node .black (.node .red a2 e2 b2) we2 wr2) pe CP').plug
                   tx).inorder = (C0.plug tx0).inorder⌝)
@@ -569,36 +569,36 @@ theorem adt.intervalTree.deleteFixup.wp_proof
               | leaf => simp at hwr
               | node c a e1 b => simp at hwr; subst hwr; exact ⟨a, e1, b, rfl⟩
             ihave Hwrn := Hrback $$ Hrc
-            icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hwrn with
+            icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hwrn with
               ⟨%ap, %bp, %Hrn, Hriv, Hrmx, Hrl, Hrr, Hrp, Hrcc, Hran, Hrbn⟩
             wp_auto
             ihave Hwln := Hlback $$ Hlc
-            ihave HCl := (adt.ownCtxAt_inL t s cp' CP' pe tx pp' x ls'' w' p
+            ihave HCl := (adt.ownCtxAt_inL K t s cp' CP' pe tx pp' x ls'' w' p
                 (some (adt.nodeMax wl' we' (.node .black a e1 b)))).2
               $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hx]
             · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro; exact Hpn'
-            wp_apply h_rotateLeft t s dq (.inL cp' CP' pe tx) ((pp', x) :: ls'') w' p wrp wlp ap bp
+            wp_apply (h_rotateLeft K hK) t s dq (.inL cp' CP' pe tx) ((pp', x) :: ls'') w' p wrp wlp ap bp
                 .red .black wl' a b we' e1 Hwn Hrn
               $$ [Hs HCl Hwiv Hwmx Hwl Hwr Hwp Hwc Hriv Hrmx Hrl Hrr Hrp Hrcc Hwln Hran Hrbn]
               as ⟨Hs, HCl, Hriv, Hrmx, Hrl, Hrr, Hrp, Hrcc, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hwln,
                 Hran, Hrbn⟩
             · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe
-            icases (adt.ownCtxAt_inL _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HCl with
+            icases (adt.ownCtxAt_inL K _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HCl with
               ⟨-, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hx, HC⟩
-            icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+            icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
             · iframe
             wp_auto
             ihave Hx := Hxback $$ Hxp
             icases Hx with ⟨Hx, Hsent⟩
             obtain ⟨hinv3, hord3⟩ := adt.RbCtx.del_case3_R hinv' hwl
-            ihave Hwn' := adt.ownNode_node_close s 1 wrp w' .red wl' we' a $$
+            ihave Hwn' := adt.ownNode_node_close K s (DFrac.own 1) wrp w' .red wl' we' a $$
               [Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln Hran]
             · iexists wlp, ap; iframe; ipureintro; exact Hwn
-            ihave Hsib := adt.ownNode_node_close s 1 p wrp .black (.node .red wl' we' a) e1 b $$
+            ihave Hsib := adt.ownNode_node_close K s (DFrac.own 1) p wrp .black (.node .red wl' we' a) e1 b $$
               [Hriv Hrmx Hrl Hrr Hrp Hrcc Hwn' Hrbn]
             · iexists w', bp; simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro
               exact Hrn
-            ihave HC := (adt.ownCtxAt_inR t s cp' (.node .black (.node .red wl' we' a) e1 b) pe CP'
+            ihave HC := (adt.ownCtxAt_inR K t s cp' (.node .black (.node .red wl' we' a) e1 b) pe CP'
                 pp' wrp ls'' x p tx.maxEnd).2 $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hsib]
             · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro; exact Hpn'
             wp_join_done
@@ -616,10 +616,10 @@ theorem adt.intervalTree.deleteFixup.wp_proof
               | node c a e2 b => simp at hwl; subst hwl; exact ⟨a, e2, b, rfl⟩
             ihave Hwln := Hlback $$ Hlc
             ihave Hwrn := Hrback $$ Hrc
-            ihave Hw := adt.ownNode_node_close s 1 p w' .black (.node .red a e2 b) we' wr' $$
+            ihave Hw := adt.ownNode_node_close K s (DFrac.own 1) p w' .black (.node .red a e2 b) we' wr' $$
               [Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln Hwrn]
             · iexists wlp, wrp; iframe; ipureintro; exact Hwn
-            ihave HC := (adt.ownCtxAt_inR t s cp' (.node .black (.node .red a e2 b) we' wr') pe CP'
+            ihave HC := (adt.ownCtxAt_inR K t s cp' (.node .black (.node .red a e2 b) we' wr') pe CP'
                 pp' w' ls'' x p tx.maxEnd).2 $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hw]
             · iframe; ipureintro; exact Hpn'
             iexists w', a, e2, b, we', wr'
@@ -627,13 +627,13 @@ theorem adt.intervalTree.deleteFixup.wp_proof
             ipureintro; exact ⟨hinv', hord'⟩
           -- case 4: `w` takes `P`'s colour, `P` and `w`'s left child black, `P` rotated right
           obtain ⟨hinv3, hord3⟩ := Hinv3
-          icases (adt.ownCtxAt_inR _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
+          icases (adt.ownCtxAt_inR K _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
             ⟨%Hpn3, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hw, HC⟩
-          icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hw with
+          icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hw with
             ⟨%wlp, %wrp, %Hwn, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hwln, Hwrn⟩
-          icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hwln with
+          icases adt.ownNode_node_open K _ _ _ _ _ _ _ _ $$ Hwln with
             ⟨%ap, %bp, %Hln, Hliv, Hlmx, Hll, Hlr, Hlp, Hlc, Hlan, Hlbn⟩
-          icases adt.parentAt_open _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
+          icases adt.parentAt_open K _ _ _ _ $$ [Hx Hsent] with ⟨Hxp, Hxback⟩
           · iframe
           ihave Hpc := adt.colorAt_intro s p cp' (DFrac.own 1) Hpn3.1 $$ Hpc
           wp_auto
@@ -643,24 +643,24 @@ theorem adt.intervalTree.deleteFixup.wp_proof
           wp_auto
           ihave Hx := Hxback $$ Hxp
           icases Hx with ⟨Hx, Hsent⟩
-          ihave Hwln := adt.ownNode_node_close s 1 w2 wlp .black a2 e2 b2 $$
+          ihave Hwln := adt.ownNode_node_close K s (DFrac.own 1) w2 wlp .black a2 e2 b2 $$
             [Hliv Hlmx Hll Hlr Hlp Hlc Hlan Hlbn]
           · iexists ap, bp; iframe; ipureintro; exact Hln
-          wp_apply h_rotateRight t s dq CP' ls'' p pp' w2 wlp wrp x .black cp'
+          wp_apply (h_rotateRight K hK) t s dq CP' ls'' p pp' w2 wlp wrp x .black cp'
               (.node .black a2 e2 b2) wr2 tx pe we2 Hpn3 Hwn
             $$ [Hs HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln Hwrn Hx]
             as ⟨Hs, HC, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hwln, Hwrn,
               Hx⟩
           · simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe
-          ihave Hp := adt.ownNode_node_close s 1 w2 p .black wr2 pe tx $$
+          ihave Hp := adt.ownNode_node_close K s (DFrac.own 1) w2 p .black wr2 pe tx $$
             [Hpiv Hpmx Hpl Hpr Hpp Hpc Hwrn Hx]
           · iexists wrp, x; iframe; ipureintro; exact Hpn3
-          ihave Hw := adt.ownNode_node_close s 1 pp' w2 cp' (.node .black a2 e2 b2) we2
+          ihave Hw := adt.ownNode_node_close K s (DFrac.own 1) pp' w2 cp' (.node .black a2 e2 b2) we2
               (.node .black wr2 pe tx) $$ [Hwiv Hwmx Hwl Hwr Hwp Hwc Hwln Hp]
           · iexists wlp, p; simp only [adt.nodeMax_eq, adt.maxEnd_node]; iframe; ipureintro
             exact Hwn
-          ihave HC := adt.ownCtxAt_ctx _ _ _ _ _ _ _ $$ HC
-          icases adt.ownCtx_plug t s CP' w2 pp'
+          ihave HC := adt.ownCtxAt_ctx K _ _ _ _ _ _ _ $$ HC
+          icases adt.ownCtx_plug K t s CP' w2 pp'
               (.node cp' (.node .black a2 e2 b2) we2 (.node .black wr2 pe tx)) $$ [HC Hw]
             with ⟨%r, Hroot, HT⟩
           · simp only [adt.maxEnd_node, adt.nodeMax_eq]; iframe
@@ -671,8 +671,8 @@ theorem adt.intervalTree.deleteFixup.wp_proof
             (.node .black wr2 pe tx)
           rw [hT] at hinv4 hord4
           rw [hT]
-          ihave %Hrs := adt.ownNode_node_ne _ _ _ _ _ _ _ _ $$ HT
-          icases adt.ownCtx_root t s r _ $$ [Hroot HT] with ⟨HC, HT⟩
+          ihave %Hrs := adt.ownNode_node_ne K _ _ _ _ _ _ _ _ $$ HT
+          icases adt.ownCtx_root K t s r _ $$ [Hroot HT] with ⟨HC, HT⟩
           · iframe
           ihave Hsent := adt.sentAt_other s x p r s Hrs.1 $$ Hsent
           iframe

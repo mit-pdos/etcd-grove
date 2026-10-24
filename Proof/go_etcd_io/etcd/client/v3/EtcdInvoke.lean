@@ -21,7 +21,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
-open go_etcd_io.etcd.cache.v3 (statusErrOk)
+open go_etcd_io.etcd.cache.v3 (statusErrOk errCellOk)
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -53,7 +53,7 @@ abbrev etcdConn.Invoke.spec : Prop :=
     (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
-      isGrpcRpcs addr method Spec ∗ reqPre conn addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
+      isGrpcRpcs addr method Spec ∗ reqPre conn method addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
       Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
@@ -64,7 +64,7 @@ abbrev etcdConn.Invoke.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       Req.send inp m ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
-        (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)) }}
+        (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }}
 
 /-- **`Invoke` on an etcd client's connection** (`etcdConn.Invoke.spec`), from grpc's contract:
 the chain is the one interceptor, called with an invoker that behaves as grpc's `invoke`, which

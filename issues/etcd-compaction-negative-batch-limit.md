@@ -115,3 +115,38 @@ links:
   defaultCompactionBatchLimit }`; or validate the flag in `embed.Config.Validate`.
 - **Found**: 2026-10-13, while specifying the compaction job (`store.scheduleCompaction`, the
   mvcc store's unit 5a): its loop's exit needs a positive limit, which `NewStore` does not ensure.
+- **Triage (2026-10-23, etcd main `3aaab3479`)**: does etcd validate its numeric flags?
+  - *Still there at main*: `kvstore.go:91-93` (only `== 0` defaulted) and
+    `kvstore_compaction.go:47-68` are unchanged; no validation of the flag anywhere
+    (`embed/config.go:739`, `fs.IntVar`; `Config.Validate`, `embed/config.go:926-1058`, does not
+    mention it; `etcdmain` only calls `Validate`, `etcdmain/config.go:245`; `ServerConfig` has
+    no numeric checks). The help text (`etcdmain/help.go:273-274`, "the maximum revisions deleted
+    in each compaction batch") gives no meaning to a non-positive value.
+  - *Siblings*: etcd's validation is partial and ad hoc. `Validate` rejects only the values that
+    break the server: zero heartbeat/election (`config.go:981-986`, added by `cffa13025`, 2017),
+    election < 5 heartbeats or > 50s (`:987-992`), an unknown compaction mode (`:999-1005`) and a
+    non-positive `--compact-hash-check-time` (`:1022-1024`, `d44bbff27`, 2022: the monitor's
+    `time.After` loop, `server.go:2279-2282`, would spin). Most numeric flags are unsigned
+    (snapshot count, max txn ops/request bytes, heartbeat/election, max wals/snaps) or have
+    a non-positive value with a meaning: `0` defaults (snapshot count/catch-up,
+    `server.go:553-567`; backend batch limit/interval, `storage/backend.go:36-47`; this flag and
+    the sleep interval, `kvstore.go:91-96`), a negative quota disables quotas
+    (`storage/quota.go:77`), keepalives and the watch progress interval apply only if `> 0`
+    (`embed/etcd.go:776-783`, `v3rpc/watch.go:77-84`, the latter clamped up to a minimum). This
+    flag is the only `int` among them whose negative value hangs the server's work. Other
+    unvalidated negatives found on the way: `--corrupt-check-time` (negative: `time.NewTicker`
+    panics in `monitorKVHash`, `server.go:2245-2249`), `--downgrade-check-time` (negative: a
+    busy loop, `server.go:2334-2340`), `--backend-batch-interval` (negative: the commit timer
+    fires at once, a commit loop, `backend.go:465-477`), all milder or of the same kind.
+  - *Would a startup check break anyone?* No test or doc sets a negative value (searched
+    `server/`); the default is 1000 and `0` would stay "default".
+  - *Upstream*: no duplicate (searches `compaction-batch-limit negative`, `parseCompactionRetention`;
+    `#21284` is the range-free compaction proposal, unrelated).
+  - *Recommendation*: **upstream a small validation fix**, in the place and style of the
+    `--compact-hash-check-time` check (the closest sibling: a value whose wrong sign makes a
+    background loop never progress): in `Config.Validate`, `if cfg.CompactionBatchLimit < 0 {
+    return fmt.Errorf("--compaction-batch-limit must be >=0 (set to %d)", ...) }`, plus
+    `NewStore`'s `== 0` made `<= 0` for library users of `mvcc` (defensive, one character). Low
+    severity (operator misconfiguration, no data loss); documentation alone is weaker since the
+    failure is silent (compactions never finish, the db grows until the quota alarm). Bundling
+    `--corrupt-check-time < 0` (a startup panic) in the same PR fits the pattern.

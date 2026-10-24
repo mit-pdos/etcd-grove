@@ -4,8 +4,9 @@
 # transactions (kvstore_txn.go) and their metrics wrappers (metrics_txn.go), and the
 # store type (kvstore.go), and the watchable store: the store with watchers
 # (watchable_store.go, watchable_store_txn.go), the watch streams (watcher.go) and the
-# watcher groups (watcher_group.go). The rest of the package (restore, compaction,
-# hashing) is names only.
+# watcher groups (watcher_group.go), and the store's restore from its backend (2026-10-23,
+# notes/restore-plan.md R0: store.restore, restoreIntoIndex, restoreChunk, the key index's
+# restore). The rest of the package (compaction, hashing) is names only.
 translate = ["!*",
   # revision.go
   "revBytesLen", "markedRevBytesLen", "markBytePosition", "markTombstone",
@@ -15,7 +16,7 @@ translate = ["!*",
   "ErrRevisionNotFound", "keyIndex.put", "keyIndex.tombstone", "keyIndex.get",
   "keyIndex.isEmpty", "keyIndex.findGeneration", "keyIndex.Less",
   "generation.isEmpty", "generation.walk", "keyIndex.compact", "keyIndex.keep",
-  "keyIndex.doCompact",
+  "keyIndex.doCompact", "keyIndex.restore", "keyIndex.restoreTombstone",
   # index.go
   "newTreeIndex", "treeIndex.Put", "treeIndex.Get", "treeIndex.unsafeGet",
   "treeIndex.KeyIndex", "treeIndex.keyIndex", "treeIndex.unsafeVisit",
@@ -39,7 +40,15 @@ translate = ["!*",
   # kvstore.go
   "ErrCompacted", "ErrFutureRev", "NewStore", "store.Compact", "store.compactLockfree",
   "store.compact", "store.updateCompactRev", "store.checkPrevCompactionCompleted",
-  "store.compactBarrier", "store.Restore", "store.Close", "store.HashStorage",
+  "store.compactBarrier", "store.Restore", "store.Close", "store.HashStorage", "store.Commit",
+  # (restore plan R0, 2026-10-23) the restore from the backend
+  "restoreChunkKeys", "store.restore", "store.setupMetricsReporter", "restoreIntoIndex",
+  "restoreChunk",
+  # (restore plan R2, 2026-10-23) metrics.go: the reporters setupMetricsReporter sets, and their locks
+  "reportDbTotalSizeInBytesMu", "reportDbTotalSizeInBytes",
+  "reportDbTotalSizeInUseInBytesMu", "reportDbTotalSizeInUseInBytes",
+  "reportDbOpenReadTxNMu", "reportDbOpenReadTxN", "reportCurrentRevMu", "reportCurrentRev",
+  "reportCompactRevMu", "reportCompactRev",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go
@@ -82,6 +91,8 @@ translate = ["!*",
   "watchableStore.Range", "watchableStore.DeleteRange", "watchableStore.Put",
   # (unit N4, 2026-10-17: `NewServer` calls `srv.kv.HashStorage()` on the watchable store)
   "watchableStore.HashStorage",
+  # (D22 S-l's sender items, 2026-10-22: `applyAll`'s merge calls `s.KV().Commit()`)
+  "watchableStore.Commit",
   "watchableStoreTxnWrite.FirstRev", "watchableStoreTxnWrite.Rev",
   "watchableStoreTxnWrite.Range", "watchableStoreTxnWrite.DeleteRange",
   "watchableStoreTxnWrite.Put", "watchableStoreTxnWrite.Changes"]

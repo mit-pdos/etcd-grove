@@ -8,6 +8,7 @@ variable's, from rafthttp's facts, or `Errorf`'s, whose message begins with its 
 -/
 module
 
+public import Proof.strings.TrimSuffixAny
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.checkPostResponse
 public import Spec.strings.TrimSuffix
 public import Spec.fmt.ErrorfPlain
@@ -130,7 +131,7 @@ theorem rafthttp.checkPostResponse.wp_proof
     (try wp_auto)
     wp_apply wp_bytes_to_string _ _ _ $$ [Hb] as Hb
     · iframe Hb
-    wp_apply hTrim as %ts -
+    wp_apply (strings.TrimSuffix.any hTrim _ _) as %ts -
     (try wp_auto)
     wp_apply HxIVM
     (try wp_auto)

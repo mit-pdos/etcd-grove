@@ -11,6 +11,27 @@ schema_ReadConsistentIndex: schema_UnsafeReadConsistentIndex
 schema_unsafeUpdateConsistentIndex: binary_bigEndian__PutUint64 verify_Verify schema_UnsafeReadConsistentIndex
 schema_UnsafeUpdateConsistentIndex: schema_unsafeUpdateConsistentIndex
 schema_UnsafeUpdateConsistentIndexForce: schema_unsafeUpdateConsistentIndex
+# schema's auth backend, the read side (server/storage/schema/auth.go, auth_users.go, auth_roles.go;
+# the auth plan's S1, 2026-10-23), see etcdserver/InvAuthBackend.lean. The trust boundary:
+# proto.Unmarshal on authpb.User and authpb.Role (the encodings opaque, auth/Buckets.lean).
+# bytes.Equal is Perennial's. Not linked: unsafeGetAllUsers (backend.UnsafeForEach has no spec),
+# unsafeGetAllRoles (a range of a non-safe bucket: only a batch transaction may do it,
+# issues/etcd-auth-readtx-getallroles-panics.md), the batch-transaction methods (the admin side, S4).
+proto_UnmarshalUser:
+proto_UnmarshalRole:
+schema_unsafeReadAuthEnabled:
+schema_unsafeReadAuthRevision: binary_bigEndian__Uint64
+schema_unsafeGetUser: proto_UnmarshalUser
+schema_unsafeGetRole: proto_UnmarshalRole
+schema_authReadTx__UnsafeReadAuthEnabled: schema_unsafeReadAuthEnabled
+schema_authReadTx__UnsafeReadAuthRevision: schema_unsafeReadAuthRevision
+schema_authReadTx__UnsafeGetUser: schema_unsafeGetUser
+schema_authReadTx__UnsafeGetRole: schema_unsafeGetRole
+schema_authReadTx__RLock:
+schema_authReadTx__RUnlock:
+schema_authBackend__ReadTx:
+schema_authBackend__GetUser: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetUser schema_authReadTx__RUnlock
+schema_authBackend__GetRole: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetRole schema_authReadTx__RUnlock
 # The consistent index (server/etcdserver/cindex/cindex.go), see InvCindex.lean.
 NewConsistentIndex:
 consistentIndex__SetConsistentIndex:
@@ -114,6 +135,10 @@ EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
+# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8): `restore` is
+# the trust boundary (names-only).
+AlarmStore__restore:
+AlarmStore__Recover: AlarmStore__restore
 # (the trust boundary, continued)
 RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
 errors_Is:
@@ -144,6 +169,7 @@ HardState__GetTerm: @
 HardState__GetVote: @
 HardState__GetCommit: @
 raftpb_Message__GetTo: @
+raftpb_ConfChangeType__Enum: @
 Message__GetFrom: @
 Message__GetType: @
 Snapshot__GetMetadata: @
@@ -242,6 +268,31 @@ EtcdServer__getCommittedIndex:
 EtcdServer__FeatureEnabled:
 EtcdServer__AuthStore:
 EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
+# the auth plan's A2 (2026-10-23): the server's auth guards and the member operations they guard
+# (`AuthGuard.lean`; `mayRemoveMember` and `configure`, names only, are the spec's contracts)
+EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
+EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
+EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
+# the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
+# `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`
+# (`reqPropOk` has no auth request), so they have no callee. Authenticate (auth's
+# `ErrAuthNotEnabled`, not in the package's fact) is translated but not proved; UserAdd and
+# UserChangePassword are names only (they hash the password: bcrypt, base64).
+EtcdServer__AuthEnable:
+EtcdServer__AuthDisable:
+EtcdServer__AuthStatus:
+EtcdServer__UserDelete:
+EtcdServer__UserGrantRole:
+EtcdServer__UserGet:
+EtcdServer__UserList:
+EtcdServer__UserRevokeRole:
+EtcdServer__RoleAdd:
+EtcdServer__RoleGrantPermission:
+EtcdServer__RoleGet:
+EtcdServer__RoleList:
+EtcdServer__RoleRevokePermission:
+EtcdServer__RoleDelete:
 EtcdServer__parseProposeCtxErr: errors_IsCtxErr time_Time__After EtcdServer__getLead EtcdServer__MemberID RaftCluster__Members etcdserver_isConnectedToQuorumSince etcdserver_isConnectedSince
 EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr context_ErrDone strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
 EtcdServer__raftRequest: EtcdServer__processInternalRaftRequestOnce trace_SpanFromContext context_ValueStartTime traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong
@@ -392,12 +443,34 @@ auth_redactToken:
 auth_authStore__AuthInfoFromTLS:
 NewBytesAffinePoint: @
 NewBytesAffineInterval: @
+NewIntervalTree: @
+BytesAffineComparable__Compare: @
 auth_authStore__Revision:
 auth_authStore__IsAuthEnabled:
 auth_isOpenEnded:
 auth_checkKeyPoint: NewBytesAffinePoint
 auth_checkKeyInterval: auth_isOpenEnded NewBytesAffineInterval
 auth_authStore__isRangeOpPermitted: zap_String zap_Logger__Error auth_checkKeyInterval auth_checkKeyPoint
+# The permission cache's construction (the auth plan's S2, 2026-10-23): `getMergedPerms` builds a
+# user's two trees from the transaction's user and roles (the tree's bytes-affine facts are
+# axioms, adt/BytesIvl.lean, not hypotheses), `refreshRangePermCache` the map from its users.
+auth_getMergedPerms: NewIntervalTree NewBytesAffineInterval NewBytesAffinePoint
+auth_authStore__refreshRangePermCache: zap_Logger__Debug zap_String zap_Logger__Error auth_getMergedPerms
+auth_isValidPermissionRange: auth_isOpenEnded BytesAffineComparable__Compare
+# The admin side (the auth plan's S4, 2026-10-24): each a step of the model's state appended to the
+# history (`auth/Steps.lean`), over the write side's contracts (`InvAuth.lean`, `authWR`). The trust
+# boundary: zap.Strings, selectPassword (bcrypt, base64).
+zap_Strings:
+auth_authStore__selectPassword:
+auth_authStore__setRevision:
+auth_authStore__commitRevision: auth_authStore__Revision
+auth_authStore__UserAdd: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_authStore__selectPassword zap_String zap_Logger__Info
+auth_authStore__RoleAdd: auth_authStore__commitRevision zap_String zap_Logger__Info
+auth_authStore__UserDelete: auth_authStore__commitRevision auth_authStore__refreshRangePermCache zap_String zap_Strings zap_Logger__Error zap_Logger__Info
+auth_authStore__UserChangePassword: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_authStore__selectPassword zap_String zap_Strings zap_Logger__Info
+auth_authStore__AuthDisable: auth_authStore__commitRevision zap_Logger__Info
+auth_authStore__AuthEnable: auth_authStore__refreshRangePermCache auth_authStore__setRevision auth_hasRootRole zap_Logger__Info
+auth_authStore__Recover: auth_authStore__refreshRangePermCache auth_authStore__setRevision
 auth_authStore__lockedReadTx:
 auth_authStore__isOpPermitted: auth_authStore__IsAuthEnabled auth_authStore__Revision zap_Uint64 zap_ByteString zap_Error zap_Logger__Warn zap_String zap_Logger__Error auth_hasRootRole auth_authStore__lockedReadTx auth_authStore__isRangeOpPermitted
 auth_authStore__IsPutPermitted: auth_authStore__isOpPermitted
@@ -603,7 +676,6 @@ rafthttp_urlPicker__unreachable:
 rafthttp_waitSchedule:
 types_NewURLs:
 v2stats_LeaderStats__Follower:
-zap_Strings:
 probing_NewHandler:
 v2stats_ServerStats__SendAppendReq:
 raftpb_MessageType__String:

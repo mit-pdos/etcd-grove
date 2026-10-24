@@ -22,12 +22,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 /-! ## Pure lemmas -/
 
-theorem demuxUSL_take_subslice {α : Type} (evs : List α) {j k : Nat} (hjk : j ≤ k) :
-    evs.take k = evs.take j ++ subslice j k evs := by
-  rw [subslice_def]
-  conv => lhs; rw [← List.take_append_drop j (evs.take k)]
-  rw [List.take_take, Nat.min_eq_left hjk]
-
 theorem demuxUSL_mem_subslice {α : Type} {evs : List α} {j k : Nat} {x : α}
     (h : x ∈ subslice j k evs) : ∃ i, j ≤ i ∧ i < k ∧ evs[i]? = some x := by
   rw [subslice_def] at h
@@ -61,7 +55,7 @@ theorem demuxUSL_split_step {evs : List EvModel} {j k : Nat} {e0 : EvModel} (hjk
     exact hrun i e h1 h2 h3
   have hbr : batchRev (subslice j k evs) = e0.rev := by rw [hhead]; rfl
   refine ⟨?_, ⟨by rw [hhead]; simp, fun e he => by rw [hbr]; exact hall e he⟩, hbr⟩
-  rw [demuxUSL_take_subslice evs (Nat.le_of_lt hjk)]
+  rw [take_eq_take_append_subslice evs (Nat.le_of_lt hjk)]
   rw [splitBatches_append _ _ (fun x y hx hy => by
     rw [hhead] at hy; simp at hy; subst hy; exact hbd x hx)]
   rw [splitBatches_run _ (by rw [hhead]; simp) e0.rev hall]
@@ -106,11 +100,6 @@ theorem demuxUSL_run_extend {cap : Nat} {c : DemuxCore} {evs : List EvModel} {j 
   · have : i = k := by omega
     subst this; rw [he1] at hi3; cases hi3; exact hr
 
-theorem demuxUSL_getLast_take {α : Type} {l : List α} {k : Nat} (hk0 : 0 < k)
-    (hk : k ≤ l.length) : (l.take k).getLast? = l[k - 1]? := by
-  rw [List.getLast?_eq_getElem?, List.length_take, Nat.min_eq_left hk,
-    List.getElem?_take_of_lt (by omega)]
-
 theorem demuxUSL_rev_lt {a b : EvModel} (hle : sint.Z a.rev ≤ sint.Z b.rev) (hne : b.rev ≠ a.rev) :
     sint.Z a.rev < sint.Z b.rev := by
   rcases Int.lt_or_eq_of_le hle with h | h
@@ -140,7 +129,7 @@ theorem demuxUSL_run_new {cap : Nat} {c : DemuxCore} {evs : List EvModel} {j k :
   · have : i = k := by omega
     subst this; rw [he1] at hi3; cases hi3; rfl
   · have hkl : k ≤ evs.length := Nat.le_of_lt (List.getElem?_eq_some_iff.1 he1).1
-    rw [demuxUSL_getLast_take (by omega) hkl] at hx
+    rw [getLast?_take (by omega) hkl] at hx
     have := h1 (k - 1) x (by omega) (by omega) hx
     rw [this]; exact fun h => hr h.symm
   · rw [happ] at hx

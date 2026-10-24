@@ -62,10 +62,12 @@ def metaIs (S : Data) (m : MetaCI) : Prop :=
     dget S schema.metaName schema.termKeyBytes = encMeta m.2
 
 /-- The backend's parameters make the consistent index's two keys in `Meta` the hook's own
-(`Meta` in the table, a hook's bucket, both keys `HK`), with room for the hook's two puts. -/
+(`Meta` in the table, a hook's bucket, both keys `HK`), with room for the hook's two puts, and
+(D22, 2026-10-23) `Meta` not a tracked bucket (`RB`). -/
 def ciKeys (P : BParams) : Prop :=
   P.has mvcc.metaBI ∧ P.HB schema.metaName = true ∧ 2 ≤ P.hookMax ∧
-    P.HK schema.metaName schema.ciKeyBytes = true ∧ P.HK schema.metaName schema.termKeyBytes = true
+    P.HK schema.metaName schema.ciKeyBytes = true ∧ P.HK schema.metaName schema.termKeyBytes = true ∧
+    P.RB schema.metaName = false
 
 theorem ci_ne_term : schema.ciKeyBytes ≠ schema.termKeyBytes := by decide
 
@@ -74,7 +76,7 @@ theorem ciKeys_hk {P : BParams} (hP : ciKeys P) {k : GoString}
   unfold BParams.hk
   rcases hk with rfl | rfl
   · rw [hP.2.1, hP.2.2.2.1]
-  · rw [hP.2.1, hP.2.2.2.2]
+  · rw [hP.2.1, hP.2.2.2.2.1]
 
 /-- The hook's own keys determine the meta keys. -/
 theorem metaIs_of_hkData {P : BParams} (hP : ciKeys P) {S S' : Data} {m : MetaCI}
@@ -92,21 +94,21 @@ theorem metaIs_of_hkData {P : BParams} (hP : ciKeys P) {S S' : Data} {m : MetaCI
 the term (`ut`), each at most once: only the writer's contents and the write buffer's `Meta`
 bucket changed, one pending operation per put. -/
 def hookRun (P : BParams) (st0 st : BSess) (ui ut : Bool) : Prop :=
-  st.C = st0.C ∧ st.R = st0.R ∧ sData P st.S = sData P st0.S ∧
+  st.C = st0.C ∧ st.R = st0.R ∧ sData P st.S = sData P st0.S ∧ rbData P st.S = rbData P st0.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = bkOf st0.W.bks i) ∧
   sint.Z st.pend = sint.Z st0.pend + (if ui then 1 else 0) + (if ut then 1 else 0) ∧
   st.ndel = st0.ndel ∧ st.tx = st0.tx ∧ st.cnt = st0.cnt
 
 theorem hookRun_refl (P : BParams) (st0 : BSess) :
     hookRun P st0 st0 false false :=
-  ⟨rfl, rfl, rfl, fun _ _ _ _ => rfl, by simp, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, fun _ _ _ _ => rfl, by simp, rfl, rfl, rfl⟩
 
 /-- A run of the hook is a hook step (at most two puts). -/
 theorem hookStep_of_run {P : BParams} (hP : ciKeys P) {st0 st : BSess} {ui ut : Bool}
     (h : hookRun P st0 st ui ut) : hookStep P st0 st := by
-  obtain ⟨hC, hR, hS, hW, hp, hn, htx, hc⟩ := h
+  obtain ⟨hC, hR, hS, hB, hW, hp, hn, htx, hc⟩ := h
   have h2 := hP.2.2.1
-  refine ⟨hC, hR, hS, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
+  refine ⟨hC, hR, hS, hB, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
   · rw [hp]; split <;> split <;> omega
   · rw [hp]; split <;> split <;> omega
 
@@ -116,11 +118,12 @@ theorem hookRun_put {P : BParams} (hPw : P.Wf) (hP : ciKeys P) {st0 st : BSess} 
     (hk : (kb = schema.ciKeyBytes ∧ ui = false) ∨ (kb = schema.termKeyBytes ∧ ut = false)) :
     hookRun P st0 (st.put mvcc.metaBI kb vb false) (ui || decide (kb = schema.ciKeyBytes))
       (ut || decide (kb = schema.termKeyBytes)) := by
-  obtain ⟨hC, hR, hS, hW, hp, hn, htx, hc⟩ := h
+  obtain ⟨hC, hR, hS, hB, hW, hp, hn, htx, hc⟩ := h
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
-  refine ⟨hC, hR, ?_, ?_, ?_, hn, htx, hc⟩
+  refine ⟨hC, hR, ?_, ?_, ?_, ?_, hn, htx, hc⟩
   · show sData P (st.S.insert mvcc.metaBI.name ((bktOf st.S mvcc.metaBI.name).insert kb vb)) = _
     rw [storage.sData_put_HB (n := mvcc.metaBI.name) hP.2.1]; exact hS
+  · rw [rbData_put_other _ _ _ _ _ hP.2.2.2.2.2]; exact hB
   · intro n i hni hHB
     show bkOf (wbAdd st.W.bks mvcc.metaBI.id (kb, vb)) i = _
     rw [bkOf_wbAdd]
@@ -247,7 +250,7 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
   ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hsch $HM]
   imod ownSlice_persist $$ Hval with #Hval
   have hpend : sint.Z st.pend + 1 < 2 ^ 58 := by
-    have h1 := hr.2.2.2.2.1
+    have h1 := hr.2.2.2.2.2.1
     have h2 := hpre.2.1
     have h3 := hP.2.2.1
     simp only [Bool.false_eq_true, ↓reduceIte] at h1
@@ -263,10 +266,13 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
   have hhk' : P.hk schema.metaName schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.ciKeyBytes (u64Be x) hP.1
       (by decide) (by decide) hpend hSB)
-    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk⟩
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -⟩
   · iframe #
     rw [hkPut_hk hhk]
-    iexact Hhk
+    iframe Hhk
+    simp only [rbPut, show mvcc.metaBI.name = schema.metaName from rfl, hP.2.2.2.2.2,
+      Bool.false_eq_true, ↓reduceIte]
+    itrivial
   iapply HΦ
   simp only [hkPut, hhk', ↓reduceIte]
   iexists (st.put mvcc.metaBI schema.ciKeyBytes (u64Be x) false), true, ut
@@ -309,7 +315,7 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
   ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hsch $HM]
   imod ownSlice_persist $$ Hval with #Hval
   have hpend : sint.Z st.pend + 1 < 2 ^ 58 := by
-    have h1 := hr.2.2.2.2.1
+    have h1 := hr.2.2.2.2.2.1
     have h2 := hpre.2.1
     have h3 := hP.2.2.1
     simp only [Bool.false_eq_true, ↓reduceIte] at h1
@@ -325,10 +331,13 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
   have hhk' : P.hk schema.metaName schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.termKeyBytes (u64Be x) hP.1
       (by decide) (by decide) hpend hSB)
-    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk⟩
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -⟩
   · iframe #
     rw [hkPut_hk hhk]
-    iexact Hhk
+    iframe Hhk
+    simp only [rbPut, show mvcc.metaBI.name = schema.metaName from rfl, hP.2.2.2.2.2,
+      Bool.false_eq_true, ↓reduceIte]
+    itrivial
   iapply HΦ
   simp only [hkPut, hhk', ↓reduceIte]
   iexists (st.put mvcc.metaBI schema.termKeyBytes (u64Be x) false), ui, true
@@ -417,7 +426,7 @@ theorem hookTM_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) 
     iframe Hvs
     iintro !> HTM
     icases HTM with ⟨%st', %ui', %ut', Hl', Hhk', Hti', Htt', %Hm'⟩
-    have htx : st'.tx = st.tx := by rw [Hm'.2.2.2.2.2.2.2.1, hr.2.2.2.2.2.2.1]
+    have htx : st'.tx = st.tx := by rw [Hm'.2.2.2.2.2.2.2.2.1, hr.2.2.2.2.2.2.2.1]
     ihave Hc := Hcap $$ %vsl %(u64Be (sel m)) %st' Hrd Hl'
     ihave Hc2 := Hc $$ []
     · ipureintro; exact htx
@@ -515,16 +524,17 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ∗
+      applyRegd γA ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
           (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
       {{ RET #(); ∃ (st' : BSess) (ui ut : Bool), batchLocked γ P b st' ∗
           batchLockInv γA (metaTM γ P) ∗ ⌜hookRun P st st' ui ut⌝ }} := by
   apply texan_of_strong _ _ _ _ _ (by rfl)
-  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv⟩ %Φ ⟨Hl, Hbl, %Hpre⟩ HΦ
+  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv, #Hreg⟩ %Φ ⟨Hl, Hbl, %Hpre⟩ HΦ
   iunfold batchLockInv at Hbl
-  icases Hbl with ⟨%mm, Hmt, HTM, Hpend⟩
+  icases Hbl with ⟨%mm, Hmt, HTM, Hpend, #HregF⟩
   icases metaTM_agree γ hP b st mm $$ [$Hl $HTM] with ⟨Hl, Hhk, %Hmm⟩
   imod token_alloc with ⟨%γi, Hti⟩
   imod token_alloc with ⟨%γt, Htt⟩
@@ -541,7 +551,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
   iapply (hSave ci γA.ci (btIface t) (hookTM γ P b st γi γt) (token γi) (token γt) mm) $$
     [HTM Hti Htt] [Hmt Hpend HΦ]
   · iframe Hcpkg Hci Hw HTM Hti Htt
-  iapply (commit_save_au γA mm) $$ Hinv Hmt Hpend
+  iapply (commit_save_au γA mm) $$ Hinv Hmt Hpend Hreg
   iintro %k %s %Hmono %Hok Hmt Hpend
   isplitr
   · ipureintro; exact Hmono
@@ -555,7 +565,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
   · unfold batchLockInv
     iexists (metaAfterSave mm k tm)
     rw [metaAfterSave_fst]
-    iframe Hmt Hpend
+    iframe Hmt Hpend HregF
     unfold metaTM
     iexists st'.S
     iframe Hhk
@@ -579,7 +589,8 @@ theorem ci_hook_backend (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ∗
+      applyRegd γA ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
           (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
@@ -592,6 +603,38 @@ theorem ci_hook_backend (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG 
   iexists st'
   iframe Hl Hbl
   ipureintro; exact hookStep_of_run hP Hr
+
+/-- **What a hook of the backend `γB` with the server's batch-lock resource at `γA` knows of its
+names** (persistent; D22 receiver epochs, S8b, 2026-10-24): registered, or carrying `γB`'s
+write-back and open names (the batch-lock resource of a backend `applySnapshot` opens). -/
+def regdOrLink (γA : ApplyNames) (γB : BNames) : IProp GF :=
+  iprop(applyRegd γA ∨ ⌜γB.wb = γA.ph.bwb ∧ γB.opn = γA.ph.bopn⌝)
+
+instance regdOrLink_persistent (γA : ApplyNames) (γB : BNames) :
+    Persistent (regdOrLink (GF := GF) γA γB) := by
+  unfold regdOrLink; infer_instance
+
+/-- **The batch lock's registration, in a hook** (S8b): with `regdOrLink`, a commit's hook of the
+backend `γ` (its batch lock held, its commit paid) finds its names registered: from the lock's
+resource, or the premise, or (a future backend's) by `fut_resolve`. -/
+theorem batchLockInv_resolve (γA : ApplyNames) (TM : MetaCI → IProp GF) (γ : BNames) (P : BParams)
+    (b : Loc) (st : BSess) (stop : Bool) (m u : Nat) :
+    inv applyN (consInv γA) ∗ regdOrLink γA γ ⊢ batchLockInv γA TM -∗ batchLocked γ P b st -∗
+      payIn γ st stop m u -∗ |={⊤}=> applyRegd γA ∗ batchLockInv γA TM ∗ batchLocked γ P b st ∗
+        payIn γ st stop m u := by
+  iintro ⟨#Hinv, #Hrl⟩ Hbl Hl Hpay
+  iunfold batchLockInv at Hbl
+  icases Hbl with ⟨%mm, Hmt, HTM, Hpend, #HregF⟩
+  ihave Hbl : batchLockInv γA TM $$ [Hmt HTM Hpend]
+  · iunfold batchLockInv; iexists mm; iframe Hmt HTM Hpend HregF
+  iunfold applyRegdF at HregF
+  icases HregF with (#Hreg | #Hfut)
+  · imodintro; iframe Hreg Hbl Hl Hpay
+  iunfold regdOrLink at Hrl
+  icases Hrl with (#Hreg | %Hlink)
+  · imodintro; iframe Hreg Hbl Hl Hpay
+  imod fut_resolve γA γ P b st stop m u Hlink.1 Hlink.2 $$ Hinv Hfut Hl Hpay with ⟨#Hreg, Hl, Hpay⟩
+  imodintro; iframe Hreg Hbl Hl Hpay
 
 /-- The `hookFnSpec` of a hook function that runs the consistent index's `UnsafeSave` on the
 batch transaction (etcd's `BackendHooks.OnPreCommitUnsafe` does that first; its `confState` part,
@@ -609,27 +652,36 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ∗
+      regdOrLink γA γ ∗
       □ (∀ (v : val) (Ψ : val → IProp GF),
           WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
             (Val v)) {{ Ψ }} -∗
           WP (App (Val #f) (Val v)) {{ Ψ }}) ⊢
       hookFnSpec γ P (batchLockInv γA (metaTM γ P)) b t f := by
-  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv, #Hf⟩
+  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv, #Hrl, #Hf⟩
   unfold hookFnSpec
-  iintro !> %st %Φ !> Hpre HΦ
+  iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, %Hpre, Hpay⟩ HΦ
+  imod batchLockInv_resolve γA (metaTM γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
+    with ⟨#Hreg, Hbl, Hl, Hpay⟩
   iapply Hf
   iapply (ci_hook_backend hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
-    [] Hpre HΦ
-  iframe #
+    [] [Hl Hbl]
+  · iframe #
+  · iframe Hl Hbl; ipureintro; exact Hpre
+  iintro !> ⟨%st', Hl, Hbl, %Hs⟩
+  iapply HΦ
+  iexists st'
+  iframe Hl Hbl Hpay
+  ipureintro; exact Hs
 
 /-- A run of the consistent index's hook leaves what the server's hook's `confState` put needs
 (`storage.hookSaveStep`): a third put's room (`hookMax ≥ 3`). -/
 theorem hookSaveStep_of_run {P : BParams} (hH : storage.hooksParams P) {st0 st : BSess}
     {ui ut : Bool} (h : hookRun P st0 st ui ut) :
     storage.hookSaveStep P st0 st := by
-  obtain ⟨hC, hR, hS, hW, hp, hn, htx, hc⟩ := h
-  have h3 := hH.2.2.2
-  refine ⟨hC, hR, hS, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
+  obtain ⟨hC, hR, hS, hB, hW, hp, hn, htx, hc⟩ := h
+  have h3 := hH.2.2.2.1
+  refine ⟨hC, hR, hS, hB, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
   · rw [hp]; split <;> split <;> omega
   · rw [hp]; split <;> split <;> omega
 
@@ -648,19 +700,118 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ∗
+      regdOrLink γA γ ⊢
       storage.saveSpec γ P (batchLockInv γA (metaTM γ P)) b t
         ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ := by
-  iintro #H
+  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv, #Hrl⟩
   unfold storage.saveSpec
-  iintro !> %st %Φ !> ⟨Hl, Hbl, %Hpre⟩ HΦ
-  iapply (ci_hook_backend_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ H
+  iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, %Hpre, Hpay⟩ HΦ
+  imod batchLockInv_resolve γA (metaTM γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
+    with ⟨#Hreg, Hbl, Hl, Hpay⟩
+  iapply (ci_hook_backend_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ []
     [Hl Hbl]
+  · iframe #
   · iframe Hl Hbl; ipureintro; exact Hpre
   iintro !> ⟨%st', %ui, %ut, Hl, Hbl, %Hr⟩
   iapply HΦ
   iexists st'
-  iframe Hl Hbl
+  iframe Hl Hbl Hpay
+  ipureintro; exact hookSaveStep_of_run hH Hr
+
+/-- **The consistent index's save opening the stored-index window** (D22 the stored-index window,
+2026-10-23; `notes/decisions.md`, "D22 the stored-index window carried out"): `ci_hook_backend_run`
+at the request of the apply thread at `s` (`ci = s.k`, not 0, nothing in flight), whose state it
+takes: the save stores `s.k` and freezes the protocol (`commit_freeze_au`); the apply thread gets
+`freezeY γA s`. -/
+theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (γA : ApplyNames) (ci : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc)
+    (hP : ciKeys P) (st : BSess) (s : ApplyState) (hk0 : s.k ≠ W64 0)
+    (hps : s.pending = false) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      {{ batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ applyThread γA s ∗
+          ⌜hookPre P st⌝ }}
+        (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
+          (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
+      {{ RET #(); ∃ (st' : BSess) (ui ut : Bool), batchLocked γ P b st' ∗
+          batchLockInv γA (metaTM γ P) ∗ freezeY γA s ∗ ⌜hookRun P st st' ui ut⌝ }} := by
+  apply texan_of_strong _ _ _ _ _ (by rfl)
+  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv⟩ %Φ ⟨Hl, Hbl, Hst, %Hpre⟩ HΦ
+  iunfold batchLockInv at Hbl
+  icases Hbl with ⟨%mm, Hmt, HTM, Hpend, #Hreg⟩
+  icases metaTM_agree γ hP b st mm $$ [$Hl $HTM] with ⟨Hl, Hhk, %Hmm⟩
+  imod token_alloc with ⟨%γi, Hti⟩
+  imod token_alloc with ⟨%γt, Htt⟩
+  ihave #Hw := hookTM_writer hPut hUR hID hName hSafe γ P W Pk b t st γi γt hP Hpre $$
+    [$Hpkg $Hsch $Hb $Ht]
+  ihave HTM : hookTM γ P b st γi γt mm $$ [Hl Hhk]
+  · unfold hookTM
+    iexists st, false, false
+    iframe Hl Hhk
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    isplitr; · itrivial
+    isplitr; · itrivial
+    ipureintro; exact ⟨Hmm, hookRun_refl P st⟩
+  iapply (hSave ci γA.ci (btIface t) (hookTM γ P b st γi γt) (token γi) (token γt) mm) $$
+    [HTM Hti Htt] [Hmt Hpend Hst HΦ]
+  · iframe Hcpkg Hci Hw HTM Hti Htt
+  iapply (commit_freeze_au γA mm s _ hk0 hps) $$ Hinv Hmt Hpend Hst
+  iintro %k %s' %Hmono %Hok Hmt Hpend HY
+  isplitr
+  · ipureintro; exact Hmono
+  iintro %tm HTM
+  unfold hookTM
+  icases HTM with ⟨%st', %ui, %ut, Hl, Hhk, -, -, %Hm'⟩
+  iapply HΦ
+  iexists st', ui, ut
+  iframe Hl HY
+  isplitl
+  · unfold batchLockInv
+    iexists (metaAfterSave mm k tm)
+    rw [metaAfterSave_fst]
+    iframe Hmt Hpend Hreg
+    unfold metaTM
+    iexists st'.S
+    iframe Hhk
+    ipureintro; exact Hm'.1
+  · ipureintro; exact Hm'.2
+
+/-- **The consistent index's save opening the stored-index window, as the server's hook's indexer
+save** (`storage.saveReq`; D22 the stored-index window, 2026-10-23): `ci_saveSpec` serving the
+apply thread's request `applyThread γA s ⇒ freezeY γA s`. -/
+theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (γA : ApplyNames) (ci : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc)
+    (hP : ciKeys P) (hH : storage.hooksParams P) (s : ApplyState) (hk0 : s.k ≠ W64 0)
+    (hps : s.pending = false) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      storage.saveReq γ P (batchLockInv γA (metaTM γ P)) b t
+        ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ (applyThread γA s) (freezeY γA s) := by
+  iintro #H
+  unfold storage.saveReq
+  iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, Hst, %Hpre, Hpay⟩ HΦ
+  iapply (ci_hook_freeze_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hk0 hps)
+    $$ H [Hl Hbl Hst]
+  · iframe Hl Hbl Hst; ipureintro; exact Hpre
+  iintro !> ⟨%st', %ui, %ut, Hl, Hbl, HY, %Hr⟩
+  iapply HΦ
+  iexists st'
+  iframe Hl Hbl HY Hpay
   ipureintro; exact hookSaveStep_of_run hH Hr
 
 end hook

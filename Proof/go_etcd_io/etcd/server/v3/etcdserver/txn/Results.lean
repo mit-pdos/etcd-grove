@@ -126,7 +126,14 @@ theorem put_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
             leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log))) ∗ Post ∗
             ⌜mvcc.stateAfter (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) =
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (putTxnOp o)).1⌝)) }} :=
-  put_soleWriter_of wp_Put ctx cd lg le kv s γ p o log P Pre Q Post f L ot te hlen
+  by
+  -- (D22 receiver epochs, S5b) the hook's facts of the caller's hook (the writer's fragment is
+  -- the sole writer's, `kvWriter`'s)
+  iintro %Φ ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, Hhook⟩ HΦ
+  icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨Hhook, -⟩
+  iapply (put_soleWriter_of wp_Put ctx cd lg le kv s γ p o log P Pre Q Post f L ot te hlen)
+    $$ %Φ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 Hhook] HΦ
+  iframe
 
 /-- **`DeleteRange` at the sole writer of `log`**: the client's delete
 on `log`'s state committed (no revision if nothing was deleted), the sole writer at the
@@ -158,7 +165,13 @@ theorem deleteRange_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (.delete o)).1⌝) ∨
          (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
            kvWriter s γ log)) }} :=
-  deleteRange_soleWriter_of wp_DeleteRange ctx cd nd lg kv s γ dr o log P Pre Q Post f ot te hlen
+  by
+  -- (D22 receiver epochs, S5b) the hook's facts of the caller's hook
+  iintro %Φ ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, Hhook⟩ HΦ
+  icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨Hhook, -⟩
+  iapply (deleteRange_soleWriter_of wp_DeleteRange ctx cd nd lg kv s γ dr o log P Pre Q Post f ot te
+    hlen) $$ %Φ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 Hhook] HΦ
+  iframe
 
 end unit1
 
@@ -328,7 +341,7 @@ pair and a linked result (`Link.lean`).
   always without nested transactions, `opsStable_flat`), the committed state, the verdict and the
   results are the client's `runTxn` at the sole writer's log. etcd evaluates every comparison
   first (`compareToPath`); the client model evaluates a nested transaction's comparisons when it
-  runs (`issues/etcd-txn-nested-compare-snapshot.md`).
+  runs (`issues/nonissues/etcd-txn-nested-compare-snapshot.md`).
 * **Read-only requests make no revision** (`txn_readonly_no_revision`), **a failed check writes
   nothing** (`txn_check_error_no_write`).
 * **The path** (`compareToPath_txnPath`), **serializable is not linearizable**
@@ -382,11 +395,13 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
               (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
             kvWriter s γ (mvcc.commitLog log pend) ∗
             leasesKnown L (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1)) }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hrest⟩
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, Hhook⟩
+  icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨#Hhook, -⟩
   ihave ⟨Hsw, #Hc⟩ := kvWriter_cert s γ log $$ Hsw
   iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te log)
-    $$ [Hrd Hsw Hrest]
-  · iframe Hkv Hrd Hsw Hc Hrest Hpkg
+    $$ [Hrd Hsw H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12]
+  · iframe Hkv Hrd Hsw Hc Hpkg H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12
+    iframe #
   inext
   iintro %resp %trace %err ⟨Hrd, Hu, Hout⟩
   iapply HΦ
@@ -431,11 +446,13 @@ theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc
             txnResponseIs skip resp (W64 ((log.length - 1 : Nat) : Int)) t
               (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
               (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2)) }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hrest⟩
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, Hhook⟩
+  icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨#Hhook, -⟩
   ihave ⟨Hsw, #Hc⟩ := kvWriter_cert s γ log $$ Hsw
   iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te log)
-    $$ [Hrd Hsw Hrest]
-  · iframe Hkv Hrd Hsw Hc Hrest Hpkg
+    $$ [Hrd Hsw H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12]
+  · iframe Hkv Hrd Hsw Hc Hpkg H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12
+    iframe #
   inext
   iintro %resp %trace %err ⟨Hrd, Hu, Hout⟩
   iapply HΦ
@@ -476,11 +493,13 @@ theorem txn_check_error_no_write (ctx : GoInterfaceOk) (cd : context.ContextDesc
         mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗ ∃ log' : mvcc.Log, kvWriter s γ log' ∗
           ((⌜err ≠ GoInterface.nil⌝ ∗ Pre) ∨ (Pre ∨ Post)) ∗
           ⌜err ≠ GoInterface.nil → log' = log ∧ resp = null⌝ }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hrest⟩
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, Hhook⟩
+  icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨#Hhook, -⟩
   ihave ⟨Hsw, #Hc⟩ := kvWriter_cert s γ log $$ Hsw
   iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te log)
-    $$ [Hrd Hsw Hrest]
-  · iframe Hkv Hrd Hsw Hc Hrest Hpkg
+    $$ [Hrd Hsw H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12]
+  · iframe Hkv Hrd Hsw Hc Hpkg H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12
+    iframe #
   inext
   iintro %resp %trace %err ⟨Hrd, Hu, Hout⟩
   iapply HΦ

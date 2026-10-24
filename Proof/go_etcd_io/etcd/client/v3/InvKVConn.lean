@@ -71,7 +71,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.api.v3
-open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil)
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil errCellOk errCellOk_nil)
 
 /-! ## Messages -/
 
@@ -201,7 +201,7 @@ theorem leafWire_txnOpOf (o : OpFull) (op : TxnOp) (h : txnOpOf o = some op) :
   · rw [if_neg h1] at h ⊢
     by_cases h2 : o.t = W64 2
     · rw [if_pos h2] at h ⊢
-      simp only [txn.putTxnOp, putWireOf, txn.putOpOf, OpFull.newOp]
+      simp only [txn.putTxnOp, putWireOf, txn.putOpOf, op_simps]
       by_cases hv : o.ignoreValue = true <;> by_cases hl : o.ignoreLease = true <;>
         (try simp only [Bool.not_eq_true] at hv) <;> (try simp only [Bool.not_eq_true] at hl) <;>
         simp only [hv, hl, Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte, true_and, false_and,
@@ -538,7 +538,7 @@ facts (`cache/v3/Base.lean`). -/
 def sortNamesOk : IProp GF :=
   iprop((∃ e : GoInterface,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrInvalidSortOption ↦□ e ∗
-      ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ ∗ statusErrOk e) ∗
+      ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ ∗ statusErrOk e ∗ errCellOk e) ∗
     (∃ (mp : Loc) (M : GMap w32 GoString),
       globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder_name ↦□ mp ∗
       mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 2⌝) ∗
@@ -559,28 +559,53 @@ instance sortNamesIf_persistent (b : Bool) : Persistent (sortNamesIf (GF := GF) 
 theorem sortNamesIf_false : ⊢ sortNamesIf (GF := GF) false := by
   unfold sortNamesIf; iintro; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
 
+/-- **The error of a KV call** (persistent; D37): a client error (`clientErr`: a leaf, as
+`errors.Is` and `errors.As` see it) that grpc's `status` accepts (`statusErrOk`) and that is no
+caller's own `errors.New` value (`errCellOk`: an `*errorString` among the client's errors holds one
+of `clientErrMsgs`; `errCellOk_ne`). What the client's KV results (`client_put_any`, ...) say of a
+returned error; what a program needs to tell its own sentinel errors apart from the client's
+(Kubernetes' storage test: `errors.Is(err, errDeleteRejected)` is `false` for the store's etcd
+errors). -/
+def kvErr (err : GoInterface) : IProp GF :=
+  iprop(⌜clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)
+
+instance kvErr_persistent (err : GoInterface) : Persistent (kvErr (GF := GF) err) := by
+  unfold kvErr; infer_instance
+
+/-- **A KV call's error is no caller's `errors.New(msg)` value** of a message not among the
+client's (`clientErrMsgs`): the caller's error at `y` (whose cell holds `msg`, as Perennial's
+`errors.New` leaves it, `errStrCell y msg`) differs from it; with `clientErr` (a leaf), so does
+`errors.Is` (D37). -/
+theorem kvErr_ne (err : GoInterface) (y : Loc) (msg : GoString)
+    (hmsg : msg ∉ go_etcd_io.etcd.cache.v3.clientErrMsgs) :
+    kvErr (GF := GF) err ⊢ y.[_root_.Perennial.errors.errorString, go!"s"] ↦□ msg -∗
+      ⌜err ≠ interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #y⌝ := by
+  unfold kvErr
+  iintro ⟨-, -, #Hcl⟩ #Hy
+  iapply (go_etcd_io.etcd.cache.v3.errCellOk_ne err y msg hmsg) $$ Hcl Hy
+
 /-- **What a unary `Put` call returns** to the client (every layer's postcondition: the stub's,
 the retry client's, `kv.Do`'s at its `put` field): `nil` and a response holding a message `m`
 (`putRespMsg`) with the run's knowledge `Q m`; or a client error that grpc's `status` accepts
 (`statusErrOk`, unit P3a: `ContextError` passes it to `rpctypes.Error`) and no response. -/
 def putCallOut (Q : PutRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗ Q m) ∨
-    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
 /-- **What a unary `Range` call returns** to the client (as `putCallOut`). -/
 def rangeCallOut (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ Q m) ∨
-    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
 /-- **What a unary `DeleteRange` call returns** (as `putCallOut`; the vertical slice's unit V2). -/
 def deleteCallOut (Q : DelRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗ Q m) ∨
-    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
 /-- **What a unary `Txn` call returns** (as `putCallOut`; the vertical slice's unit V2). -/
 def txnCallOut (Q : TxnRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗ Q m) ∨
-    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
 /-! ## The KV service's messages -/
 
@@ -758,7 +783,7 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
-          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)) }})
+          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }})
 
 instance etcdInterceptorOk_persistent (ic : GoFunc) : Persistent (etcdInterceptorOk (GF := GF) ic) := by
   unfold etcdInterceptorOk; infer_instance
@@ -771,19 +796,18 @@ def scalarOpts (vs : List GoInterface) : Prop :=
 /-- **The attempt modes of the retry interceptor's contract**: any number of attempts (a
 persistent precondition), or a write that is never retried (D29: a refusal-free connection and
 no retry option, so the call's policy is the default `nonRepeatable`, which the interceptor
-retries only after a refusal). (Until 2026-10-22 also one attempt, D21 M6: `MaxUnaryRetries: 1`,
-which no client configures since D31.) -/
+retries only after a refusal). -/
 inductive AttemptMode where
   | any
   | write
   deriving DecidableEq
 
 /-- The request's precondition in a mode. -/
-def modePre (md : AttemptMode) (addr : List GoString) (vs : List GoInterface) (P : IProp GF) :
-    IProp GF :=
+def modePre (md : AttemptMode) (method : GoString) (addr : List GoString) (vs : List GoInterface)
+    (P : IProp GF) : IProp GF :=
   match md with
   | .any => iprop(□ ▷ P)
-  | .write => iprop(▷ P ∗ ⌜(∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝)
+  | .write => iprop(▷ P ∗ ⌜kvMethod method ∧ (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝)
 
 /-- The retry interceptor's contract in a mode (D29): `etcdInterceptorOk` (`.any`),
 `etcdInterceptorOkW` (`.write`). -/
@@ -794,14 +818,14 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcs addr method Spec ∗
-        modePre md addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗
+        modePre md method addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
-          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)) }})
+          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }})
 
 instance etcdInterceptorOkM_persistent (md : AttemptMode) (ic : GoFunc) :
     Persistent (etcdInterceptorOkM (GF := GF) md ic) := by
@@ -850,29 +874,28 @@ instance isEtcdConn_persistent (conn : Loc) (addr : List GoString) :
 
 /-- **A request's precondition on a connection, with the call options `vs`** (D29): persistent
 (any number of attempts), or ordinary on a refusal-free connection with scalar call options (a
-write, never retried). (Until 2026-10-22 also ordinary on a connection configured for one
-attempt, D21 M6.) -/
-def reqPre (conn : Loc) (addr : List GoString) (vs : List GoInterface) (P : IProp GF) :
-    IProp GF :=
-  iprop(□ ▷ P ∨ (⌜(∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝ ∗ ▷ P))
+write, never retried). -/
+def reqPre (conn : Loc) (method : GoString) (addr : List GoString) (vs : List GoInterface)
+    (P : IProp GF) : IProp GF :=
+  iprop(□ ▷ P ∨ (⌜kvMethod method ∧ (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝ ∗ ▷ P))
 
-theorem reqPre_box (conn : Loc) (addr : List GoString) (vs : List GoInterface) (P : IProp GF) :
-    (□ ▷ P : IProp GF) ⊢ reqPre conn addr vs P := by
+theorem reqPre_box (conn : Loc) (method : GoString) (addr : List GoString) (vs : List GoInterface)
+    (P : IProp GF) : (□ ▷ P : IProp GF) ⊢ reqPre conn method addr vs P := by
   unfold reqPre; iintro #H; ileft; iexact H
 
 /-- Scalar options added to a call's options keep its precondition (the stubs' `StaticMethod`). -/
-theorem reqPre_scalar_app (conn : Loc) (addr : List GoString) (ws vs : List GoInterface)
-    (P : IProp GF) (h : scalarOpts ws) :
-    reqPre (GF := GF) conn addr vs P ⊢ reqPre conn addr (ws ++ vs) P := by
+theorem reqPre_scalar_app (conn : Loc) (method : GoString) (addr : List GoString)
+    (ws vs : List GoInterface) (P : IProp GF) (h : scalarOpts ws) :
+    reqPre (GF := GF) conn method addr vs P ⊢ reqPre conn method addr (ws ++ vs) P := by
   unfold reqPre
   iintro (#H | ⟨%Hw, H⟩)
   · ileft; iexact H
   · iright; iframe H
     ipureintro
-    refine ⟨Hw.1, fun v hv => ?_⟩
+    refine ⟨Hw.1, Hw.2.1, fun v hv => ?_⟩
     rcases List.mem_append.1 hv with hv | hv
     · exact h v hv
-    · exact Hw.2 v hv
+    · exact Hw.2.2 v hv
 
 /-! ## Context errors -/
 
@@ -893,7 +916,7 @@ def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IP
          | .Done => iprop(⌜err ≠ interface.nil⌝)
          | _ => if err = interface.nil then iprop(True)
                 else context.ContextClosed cd.Done_gn) -∗
-        ⌜clientErr err⌝ -∗ statusErrOk err -∗ Φ #err) -∗
+        ⌜clientErr err⌝ -∗ statusErrOk err -∗ errCellOk err -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
 instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
@@ -957,8 +980,7 @@ instance kvObjAt_persistent (api : Loc) (addr : List GoString) : Persistent (kvO
   unfold kvObjAt; infer_instance
 
 /-- **A request's precondition on a `*kv`** (D29): persistent, or ordinary over a refusal-free
-connection (a write: the `*kv` passes its client's call options, scalars, `callOptsAt`). (Until
-2026-10-22 also ordinary over a connection configured for one attempt, D21 M6.) -/
+connection (a write: the `*kv` passes its client's call options, scalars, `callOptsAt`). -/
 def kvReqPre (api : Loc) (addr : List GoString) (P : IProp GF) : IProp GF :=
   iprop(□ ▷ P ∨ (⌜∀ a ∈ addr, noRefusalAt a⌝ ∗ ▷ P))
 
@@ -967,18 +989,18 @@ theorem kvReqPre_box (api : Loc) (addr : List GoString) (P : IProp GF) :
   unfold kvReqPre; iintro #H; ileft; iexact H
 
 /-- A `*kv`'s precondition is its connection's, with scalar call options. -/
-theorem kvReqPre_conn (api rkv conn : Loc) (addr : List GoString) (vs : List GoInterface)
-    (P : IProp GF) (hvs : scalarOpts vs) :
+theorem kvReqPre_conn (api rkv conn : Loc) (method : GoString) (hm : kvMethod method)
+    (addr : List GoString) (vs : List GoInterface) (P : IProp GF) (hvs : scalarOpts vs) :
     structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" api ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv :
-        GoInterface) ∗ retryKVAt rkv conn ∗ kvReqPre api addr P ⊢ reqPre conn addr vs P := by
+        GoInterface) ∗ retryKVAt rkv conn ∗ kvReqPre api addr P ⊢ reqPre conn method addr vs P := by
   iintro ⟨-, -, H⟩
   unfold kvReqPre reqPre
   icases H with (#H | ⟨%Hnr, H⟩)
   · ileft; iexact H
   · iright
     iframe H
-    ipureintro; exact ⟨Hnr, hvs⟩
+    ipureintro; exact ⟨hm, Hnr, hvs⟩
 
 /-- **What `NewKV` reads of the `*Client` `cl`**: its connection (to the server at `addr`) and call
 options, fixed since `clientv3.New` (an assumption about the unverified constructor). -/

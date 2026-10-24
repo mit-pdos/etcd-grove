@@ -9,35 +9,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.ioutil : GoString := go!"go.etcd.io/etcd/pkg/v3/ioutil"
+noncomputable def go_etcd_io.etcd.pkg.v3.ioutil : GoString := go!"go.etcd.io/etcd/pkg/v3/ioutil"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.ioutil
 
-def PageWriter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PageWriter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/ioutil.PageWriter" [])
 
 attribute [irreducible] PageWriter.ty
 
-def ReaderAndCloser.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReaderAndCloser.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/ioutil.ReaderAndCloser" [])
 
 attribute [irreducible] ReaderAndCloser.ty
 
-def exactReadCloser.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def exactReadCloser.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/ioutil.exactReadCloser" [])
 
 attribute [irreducible] exactReadCloser.ty
 
-def limitedBufferReader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def limitedBufferReader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/ioutil.limitedBufferReader" [])
 
 attribute [irreducible] limitedBufferReader.ty
@@ -114,7 +113,7 @@ noncomputable def limitedBufferReader.Read.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "np") (Var "$r0"))))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.ioutil where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.ioutil where
   pkgImportedPkgs := [pkg_id.io]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -144,10 +143,10 @@ structure PageWriter [FfiSyntax] where
   buf' : GoSlice
   bufWatermarkBytes' : w64
 
-instance PageWriter.zero_val [FfiSyntax] : ZeroVal PageWriter :=
+noncomputable instance PageWriter.zero_val [FfiSyntax] : ZeroVal PageWriter :=
   ⟨PageWriter.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def PageWriter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PageWriter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"w" _root_.Perennial.io.Writer.ty),
 (go.field_decl.FieldDecl go!"pageOffset" go.int),
 (go.field_decl.FieldDecl go!"pageBytes" go.int),
@@ -155,14 +154,14 @@ instance PageWriter.zero_val [FfiSyntax] : ZeroVal PageWriter :=
 (go.field_decl.FieldDecl go!"buf" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"bufWatermarkBytes" go.int)]
 
-@[irreducible] def PageWriter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PageWriter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   PageWriter.fieldsUnsealed
 
-instance equals_unfold_PageWriter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PageWriter [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold PageWriter.fields PageWriter.fieldsUnsealed :=
   ⟨by unfold PageWriter.fields; rfl⟩
 
-@[reducible] def PageWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PageWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PageWriter.fields)
 
 class PageWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -201,21 +200,21 @@ structure ReaderAndCloser [FfiSyntax] where
   Reader' : _root_.Perennial.io.Reader
   Closer' : _root_.Perennial.io.Closer
 
-instance ReaderAndCloser.zero_val [FfiSyntax] : ZeroVal ReaderAndCloser :=
+noncomputable instance ReaderAndCloser.zero_val [FfiSyntax] : ZeroVal ReaderAndCloser :=
   ⟨ReaderAndCloser.mk zeroValDef zeroValDef⟩
 
-@[reducible] def ReaderAndCloser.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ReaderAndCloser.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Reader" _root_.Perennial.io.Reader.ty),
 (go.field_decl.EmbeddedField go!"Closer" _root_.Perennial.io.Closer.ty)]
 
-@[irreducible] def ReaderAndCloser.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ReaderAndCloser.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ReaderAndCloser.fieldsUnsealed
 
-instance equals_unfold_ReaderAndCloser [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ReaderAndCloser [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ReaderAndCloser.fields ReaderAndCloser.fieldsUnsealed :=
   ⟨by unfold ReaderAndCloser.fields; rfl⟩
 
-@[reducible] def ReaderAndCloser.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReaderAndCloser.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ReaderAndCloser.fields)
 
 class ReaderAndCloser.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -239,22 +238,22 @@ structure exactReadCloser [FfiSyntax] where
   br' : w64
   totalBytes' : w64
 
-instance exactReadCloser.zero_val [FfiSyntax] : ZeroVal exactReadCloser :=
+noncomputable instance exactReadCloser.zero_val [FfiSyntax] : ZeroVal exactReadCloser :=
   ⟨exactReadCloser.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def exactReadCloser.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def exactReadCloser.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"rc" _root_.Perennial.io.ReadCloser.ty),
 (go.field_decl.FieldDecl go!"br" go.int64),
 (go.field_decl.FieldDecl go!"totalBytes" go.int64)]
 
-@[irreducible] def exactReadCloser.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def exactReadCloser.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   exactReadCloser.fieldsUnsealed
 
-instance equals_unfold_exactReadCloser [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_exactReadCloser [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold exactReadCloser.fields exactReadCloser.fieldsUnsealed :=
   ⟨by unfold exactReadCloser.fields; rfl⟩
 
-@[reducible] def exactReadCloser.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def exactReadCloser.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType exactReadCloser.fields)
 
 class exactReadCloser.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -281,21 +280,21 @@ structure limitedBufferReader [FfiSyntax] where
   r' : _root_.Perennial.io.Reader
   n' : w64
 
-instance limitedBufferReader.zero_val [FfiSyntax] : ZeroVal limitedBufferReader :=
+noncomputable instance limitedBufferReader.zero_val [FfiSyntax] : ZeroVal limitedBufferReader :=
   ⟨limitedBufferReader.mk zeroValDef zeroValDef⟩
 
-@[reducible] def limitedBufferReader.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def limitedBufferReader.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"r" _root_.Perennial.io.Reader.ty),
 (go.field_decl.FieldDecl go!"n" go.int)]
 
-@[irreducible] def limitedBufferReader.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def limitedBufferReader.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   limitedBufferReader.fieldsUnsealed
 
-instance equals_unfold_limitedBufferReader [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_limitedBufferReader [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold limitedBufferReader.fields limitedBufferReader.fieldsUnsealed :=
   ⟨by unfold limitedBufferReader.fields; rfl⟩
 
-@[reducible] def limitedBufferReader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def limitedBufferReader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType limitedBufferReader.fields)
 
 class limitedBufferReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

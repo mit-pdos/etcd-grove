@@ -9,40 +9,39 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.protobuf.internal.pragma : GoString := go!"google.golang.org/protobuf/internal/pragma"
+noncomputable def google_golang_org.protobuf.internal.pragma : GoString := go!"google.golang.org/protobuf/internal/pragma"
 end pkg_id
 
 namespace google_golang_org.protobuf.internal.pragma
 
-def NoUnkeyedLiterals.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NoUnkeyedLiterals.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])
 
 attribute [irreducible] NoUnkeyedLiterals.ty
 
-def DoNotImplement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DoNotImplement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])
 
 attribute [irreducible] DoNotImplement.ty
 
-def DoNotCompare.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DoNotCompare.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotCompare" [])
 
 attribute [irreducible] DoNotCompare.ty
 
-def DoNotCopy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DoNotCopy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotCopy" [])
 
 attribute [irreducible] DoNotCopy.ty
 
-instance info' : PkgInfo pkg_id.google_golang_org.protobuf.internal.pragma where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.internal.pragma where
   pkgImportedPkgs := [pkg_id.sync]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -57,20 +56,20 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 structure NoUnkeyedLiterals [FfiSyntax] where
   mk ::
 
-instance NoUnkeyedLiterals.zero_val [FfiSyntax] : ZeroVal NoUnkeyedLiterals :=
+noncomputable instance NoUnkeyedLiterals.zero_val [FfiSyntax] : ZeroVal NoUnkeyedLiterals :=
   ⟨NoUnkeyedLiterals.mk⟩
 
-@[reducible] def NoUnkeyedLiterals.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NoUnkeyedLiterals.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def NoUnkeyedLiterals.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NoUnkeyedLiterals.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   NoUnkeyedLiterals.fieldsUnsealed
 
-instance equals_unfold_NoUnkeyedLiterals [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NoUnkeyedLiterals [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold NoUnkeyedLiterals.fields NoUnkeyedLiterals.fieldsUnsealed :=
   ⟨by unfold NoUnkeyedLiterals.fields; rfl⟩
 
-@[reducible] def NoUnkeyedLiterals.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NoUnkeyedLiterals.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NoUnkeyedLiterals.fields)
 
 class NoUnkeyedLiterals.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -82,7 +81,7 @@ attribute [instance] NoUnkeyedLiterals.TypeAssumptions.type_repr
 
 abbrev DoNotImplement [FfiSyntax] : Type := GoInterface
 
-@[reducible] def DoNotImplement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DoNotImplement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoInternal" (go.signature.Signature [DoNotImplement.ty] false []))])
 
 class DoNotImplement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -92,7 +91,7 @@ attribute [instance] DoNotImplement.TypeAssumptions.underlying
 
 abbrev DoNotCompare [FfiSyntax] : Type := (GoArray GoFunc 0)
 
-@[reducible] def DoNotCompare.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DoNotCompare.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 0 (go.GoType.FunctionType (go.signature.Signature [] false [])))
 
 class DoNotCompare.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -102,7 +101,7 @@ attribute [instance] DoNotCompare.TypeAssumptions.underlying
 
 abbrev DoNotCopy [FfiSyntax] : Type := (GoArray _root_.Perennial.sync.Mutex 0)
 
-@[reducible] def DoNotCopy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DoNotCopy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 0 _root_.Perennial.sync.Mutex.ty)
 
 class DoNotCopy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

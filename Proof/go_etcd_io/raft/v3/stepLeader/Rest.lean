@@ -66,6 +66,11 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 
 noncomputable section
 
+-- (2026-10-22) the eight `stepLeader` theorems one after another: in parallel they took 384s CPU,
+-- in sequence 156s (presumably the WP tactics' caches, which are per thread, rebuilt by each);
+-- wall alone 104s -> 190s, and the module is off the build's critical path
+set_option Elab.async false
+
 namespace Perennial
 namespace EtcdGrove
 

@@ -28,15 +28,16 @@ red-black but for that (`DelInv`); `x` may be the sentinel (the spliced node had
 `parent` is then `p` (`sentAt`): the whole tree (from the root field) red-black, with the same
 entries; the sentinel's fields are any (the code writes its colour when the tree is empty). -/
 abbrev adt.intervalTree.deleteFixup.spec : Prop :=
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
   ∀ (t s : Loc) (dq : DFrac) (C : adt.RbCtx adt.Entry) (x p : Loc) (tx : adt.RbT adt.Entry),
   C.DelInv tx →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
       t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
-      adt.ownCtx t s C x p tx.maxEnd ∗ adt.ownNode s 1 p x tx ∗ adt.sentAt s x p }}
+      adt.ownCtx K t s C x p tx.maxEnd ∗ adt.ownNode K s (DFrac.own 1) p x tx ∗ adt.sentAt s x p }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"deleteFixup")) (Val #x))
-  {{ RET #(); t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ adt.ownSentinel s 1 ∗
+  {{ RET #(); t.[intervalTree, go!"sentinel"] ↦{dq} s ∗ adt.ownSentinel s (DFrac.own 1) ∗
       ∃ (r : Loc) (T : adt.RbT adt.Entry), t.[intervalTree, go!"root"] ↦ r ∗
-        adt.ownNode s 1 s r T ∗ ⌜adt.RbOk T ∧ T.inorder = (C.plug tx).inorder⌝ }}
+        adt.ownNode K s (DFrac.own 1) s r T ∗ ⌜adt.RbOk T ∧ T.inorder = (C.plug tx).inorder⌝ }}
 
 end spec
 

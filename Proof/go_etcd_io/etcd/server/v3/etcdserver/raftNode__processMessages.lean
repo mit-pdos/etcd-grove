@@ -30,6 +30,80 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- (D22 S-l sender) A `Ready`'s message opened: its fields at some fraction, and back to what
+it is for the transport (any but a `MsgSnap`) or for `msgSnapC` (a `MsgSnap`). -/
+theorem rnMsgR_open (E : RNEnv GF) (γ : NodeNames) (m : Loc) :
+    rnMsgR E γ m ⊢ ∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗
+      ((⌜st.msg.Type' ≠ MsgSnap⌝ -∗ msgOwn m dq st -∗ rnMsgOk E m) ∧
+       (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg γ m)) := by
+  iintro H
+  iunfold rnMsgR at H
+  icases H with (⟨%to, %ty, #Hat, %Hty, HM⟩ | Hs)
+  · iunfold msgAt at Hat
+    icases Hat with ⟨%st, #Hm, %Hst⟩
+    obtain ⟨rfl, rfl⟩ := Hst
+    iexists DFrac.discard, st
+    iframe Hm
+    isplit
+    · iintro %_ -
+      iunfold rnMsgOk
+      iexists st.msg.To', st.msg.Type'
+      iframe HM
+      iunfold msgAt
+      iexists st
+      iframe Hm
+      ipureintro; exact ⟨rfl, rfl⟩
+    · iintro %h
+      exact absurd h Hty
+  · iunfold rnSnapMsg at Hs
+    icases Hs with ⟨%st, Hm, %Hty, #Hrm, #Htl⟩
+    iexists DFrac.own 1, st
+    iframe Hm
+    isplit
+    · iintro %h
+      exact absurd Hty h
+    · iintro %_ Hm
+      iunfold rnSnapMsg
+      iexists st
+      iframe Hm Hrm Htl
+      ipureintro; exact Hty
+
+/-- `m.GetTo()` at any fraction. -/
+theorem wp_msgOwn_GetTo (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
+    (m : Loc) (dq : DFrac) (st : MsgSt) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgOwn m dq st }}
+      (App (Val (m @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetTo")) (Val #()))
+    {{ RET #st.msg.To'; msgOwn m dq st }} := by
+  iintro %Φ ⟨#Hi, Hm⟩ HΦ
+  iapply wp_GetTo.1 m dq DFrac.discard false st $$ [$Hi $Hm]
+  inext
+  iexact HΦ
+
+/-- `m.GetType()` at any fraction. -/
+theorem wp_msgOwn_GetType (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
+    (m : Loc) (dq : DFrac) (st : MsgSt) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgOwn m dq st }}
+      (App (Val (m @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetType")) (Val #()))
+    {{ RET #st.msg.Type'; msgOwn m dq st }} := by
+  iintro %Φ ⟨#Hi, Hm⟩ HΦ
+  iapply wp_GetType.1 m dq DFrac.discard false st $$ [$Hi $Hm]
+  inext
+  iexact HΦ
+
+theorem wp_msgOwn_GetTo' (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
+    (m : Loc) (dq : DFrac) (st : MsgSt) (to : w64) (h : st.msg.To' = to) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgOwn m dq st }}
+      (App (Val (m @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetTo")) (Val #()))
+    {{ RET #to; msgOwn m dq st }} := by
+  subst h; exact wp_msgOwn_GetTo wp_GetTo m dq st
+
+theorem wp_msgOwn_GetType' (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
+    (m : Loc) (dq : DFrac) (st : MsgSt) (ty : w32) (h : st.msg.Type' = ty) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgOwn m dq st }}
+      (App (Val (m @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetType")) (Val #()))
+    {{ RET #ty; msgOwn m dq st }} := by
+  subst h; exact wp_msgOwn_GetType wp_GetType m dq st
+
 theorem raftNode.processMessages.wp_proof
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
@@ -37,8 +111,8 @@ theorem raftNode.processMessages.wp_proof
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     raftNode.processMessages.spec (GF := GF) (hG := hG) := by
-  have wp_GetTo := wp_msgAt_GetTo wp_GetTo
-  have wp_GetType := wp_msgAt_GetType wp_GetType
+  have wp_GetTo := wp_msgOwn_GetTo' wp_GetTo
+  have wp_GetType := wp_msgOwn_GetType' wp_GetType
   intro E γ r sl msL
   wp_start as ⟨#Hr, #Hsl, Hall⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
@@ -52,7 +126,7 @@ theorem raftNode.processMessages.wp_proof
       "Hcap" ∷ ownSliceCap Loc out (DFrac.own 1) ∗ "Houtok" ∷ ([∗list] m ∈ outL, rnMsgOk E m) ∗
       "sentAppResp" ∷ sentAppResp_ptr ↦ b ∗
       -- (D21 stage M1) the messages not yet looked at, each with its bundle
-      "Hall" ∷ ([∗list] m ∈ msL.take (sint.Z k + 1).toNat, rnMsgOk E m) ∗
+      "Hall" ∷ ([∗list] m ∈ msL.take (sint.Z k + 1).toNat, rnMsgR E γ.node m) ∗
       "%Hk" ∷ ⌜-1 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len⌝) $$ [r ms i messages sentAppResp Hall]
   · iexists sl.len - W64 1, slice.nil, [], false
     iframe r ms i sentAppResp
@@ -85,13 +159,13 @@ theorem raftNode.processMessages.wp_proof
       have : sint.Z (k - W64 1) = sint.Z k - 1 := by word
       omega
     rw [htake]
-    icases (BigSepL.bigSepL_snoc (Φ := fun _ m => rnMsgOk (GF := GF) E m)).1 $$ Hall
-      with ⟨Hall, HmOk⟩
-    iunfold rnMsgOk at HmOk
-    icases HmOk with ⟨%to, %ty, #Hmat, HM⟩
-    ihave HmOk : rnMsgOk E m $$ [HM]
-    · iunfold rnMsgOk; iexists to, ty; iframe Hmat HM
-    wp_apply wp_GetTo m to ty $$ [$Hrpb $Hmat]
+    icases (BigSepL.bigSepL_snoc (Φ := fun _ m => rnMsgR (GF := GF) E γ.node m)).1 $$ Hall
+      with ⟨Hall, HmR⟩
+    -- (D22 S-l sender) a `MsgSnap` owned, any other read-only
+    icases rnMsgR_open E γ.node m $$ HmR with ⟨%dq, %st, Hmat, HK⟩
+    obtain ⟨to, hto⟩ : ∃ to, st.msg.To' = to := ⟨_, rfl⟩
+    obtain ⟨ty, hty⟩ : ∃ ty, st.msg.Type' = ty := ⟨_, rfl⟩
+    wp_apply wp_GetTo m dq st to hto $$ [$Hrpb $Hmat] as Hmat
     iunfold isRNIDRemoved at Hidri
     ispecialize Hidri $$ %to
     wp_apply Hidri as %rm -
@@ -104,7 +178,7 @@ theorem raftNode.processMessages.wp_proof
       rw [hk1]
       iframe
       ipureintro; constructor <;> word
-    wp_apply wp_GetType m to ty $$ [$Hrpb $Hmat]
+    wp_apply wp_GetType m dq st _ hty $$ [$Hrpb $Hmat] as Hmat
     wp_if_destruct
     · -- `MsgAppResp`: only the last one
       cases b
@@ -117,8 +191,8 @@ theorem raftNode.processMessages.wp_proof
         iframe
         ipureintro; constructor <;> word
       wp_auto
-      wp_apply wp_GetType m to _ $$ [$Hrpb $Hmat]
-      wp_apply wp_GetType m to _ $$ [$Hrpb $Hmat]
+      wp_apply wp_GetType m dq st _ hty $$ [$Hrpb $Hmat] as Hmat
+      wp_apply wp_GetType m dq st _ hty $$ [$Hrpb $Hmat] as Hmat
       wp_apply wp_slice_literal (l := [m])
       isplitr
       · ipureintro; rfl
@@ -130,24 +204,28 @@ theorem raftNode.processMessages.wp_proof
       iexists k - W64 1, out', outL ++ [m], _
       rw [hk1]
       iframe r ms i messages Hout Hcap sentAppResp Hall
+      have hne : st.msg.Type' ≠ MsgSnap := by
+        rw [hty]; first | decide | (unfold MsgSnap; intro h; simp_all)
+      icases HK with ⟨HK, -⟩
+      ihave HmOk := HK $$ %hne Hmat
       isplitl [Houtok HmOk]
 
       · iapply BigSepL.bigSepL_snoc.2
         iframe Houtok HmOk
       ipureintro; constructor <;> word
-    · wp_apply wp_GetType m to ty $$ [$Hrpb $Hmat]
+    · wp_apply wp_GetType m dq st _ hty $$ [$Hrpb $Hmat] as Hmat
       wp_if_destruct
       · -- `MsgSnap`: to `msgSnapC` if it has room, then `continue`
         -- (D19p) handed on with its type
-        ihave HmS : iprop(rnMsgOk E m ∗ ∃ to' : w64, msgAt m to' MsgSnap) $$ [HmOk]
-        · iframe HmOk
-          iexists to
-          rw [show MsgSnap = (W32 7 : w32) from rfl]
-          iexact Hmat
+        -- (D22 S-l sender) owned, with its protocol facts
+        have hsn : st.msg.Type' = MsgSnap := hty
+        icases HK with ⟨-, HK⟩
+        ihave HmS : rnSnapMsg γ.node m $$ [HK Hmat]
+        · iapply HK $$ %hsn Hmat
         iunfold isRNMsgSnapC at Hmsci
         icases Hmsci with ⟨%γc, #Hbag⟩
         ihave #Hbagch := is_bag_is_chan γc msc
-          (fun m => iprop(rnMsgOk E m ∗ ∃ to : w64, msgAt m to MsgSnap)) $$ Hbag
+          (rnSnapMsg γ.node) $$ Hbag
         rw [isChanBag_unseal]
         iunfold isChanBagDef at Hbag
         icases Hbag with ⟨#Hch, #Hinv⟩
@@ -217,10 +295,10 @@ theorem raftNode.processMessages.wp_proof
           iframe
           ipureintro; constructor <;> word
 
-      wp_apply wp_GetType m to ty $$ [$Hrpb $Hmat]
+      wp_apply wp_GetType m dq st _ hty $$ [$Hrpb $Hmat] as Hmat
       wp_if_destruct
       · -- `MsgHeartbeat`: the timeout detector
-        wp_apply wp_GetTo m to _ $$ [$Hrpb $Hmat]
+        wp_apply wp_GetTo m dq st _ hto $$ [$Hrpb $Hmat] as Hmat
         iunfold isRNTimeoutDetector at Htdi
         icases Htdi with ⟨%Htdnn, #HReset, #HObs⟩
         ispecialize HObs $$ %to
@@ -232,7 +310,7 @@ theorem raftNode.processMessages.wp_proof
           · iPkgInit
           ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
           · iPkgInit
-          wp_apply wp_GetTo m to _ $$ [$Hrpb $Hmat]
+          wp_apply wp_GetTo m dq st _ hto $$ [$Hrpb $Hmat] as Hmat
           wp_apply wp_slice_literal
           isplitr
           · ipureintro; rfl
@@ -270,6 +348,10 @@ theorem raftNode.processMessages.wp_proof
           iexists k - W64 1, out', outL ++ [m], _
           rw [hk1]
           iframe r ms i messages Hout Hcap sentAppResp Hall
+          have hne : st.msg.Type' ≠ MsgSnap := by
+            rw [hty]; first | decide | (unfold MsgSnap; intro h; simp_all)
+          icases HK with ⟨HK, -⟩
+          ihave HmOk := HK $$ %hne Hmat
           isplitl [Houtok HmOk]
           · iapply BigSepL.bigSepL_snoc.2
             iframe Houtok HmOk
@@ -289,6 +371,10 @@ theorem raftNode.processMessages.wp_proof
           iexists k - W64 1, out', outL ++ [m], _
           rw [hk1]
           iframe r ms i messages Hout Hcap sentAppResp Hall
+          have hne : st.msg.Type' ≠ MsgSnap := by
+            rw [hty]; first | decide | (unfold MsgSnap; intro h; simp_all)
+          icases HK with ⟨HK, -⟩
+          ihave HmOk := HK $$ %hne Hmat
           isplitl [Houtok HmOk]
           · iapply BigSepL.bigSepL_snoc.2
             iframe Houtok HmOk
@@ -306,6 +392,10 @@ theorem raftNode.processMessages.wp_proof
       iexists k - W64 1, out', outL ++ [m], _
       rw [hk1]
       iframe r ms i messages Hout Hcap sentAppResp Hall
+      have hne : st.msg.Type' ≠ MsgSnap := by
+        rw [hty]; first | decide | (unfold MsgSnap; intro h; simp_all)
+      icases HK with ⟨HK, -⟩
+      ihave HmOk := HK $$ %hne Hmat
       isplitl [Houtok HmOk]
       · iapply BigSepL.bigSepL_snoc.2
         iframe Houtok HmOk

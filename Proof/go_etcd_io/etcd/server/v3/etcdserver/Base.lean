@@ -56,6 +56,12 @@ def keyName : GoString := go!"key"
 /-- The name of the `Meta` bucket (`metaBucketName`). -/
 def metaName : GoString := go!"meta"
 
+/-- The names of the auth buckets (`authBucketName`, `authUsersBucketName`, `authRolesBucketName`;
+the auth plan's S1, 2026-10-23). -/
+def authName : GoString := go!"auth"
+def authUsersName : GoString := go!"authUsers"
+def authRolesName : GoString := go!"authRoles"
+
 /-- `b` is the `Bucket` value `bucket{id, name, safeRangeBucket: safe}` (`bucket.go`'s
 `backend.Bucket(bucket{...})`), its name's slice holding `name`, read-only. -/
 def bucketIs (b : GoInterface) (id : w64) (name : GoString) (safe : Bool) : IProp GF :=
@@ -70,8 +76,11 @@ instance bucketIs_persistent (b : GoInterface) (id : w64) (name : GoString) (saf
 /-- `schema`'s package facts: the `Meta` bucket and the two key names of `cindex.go`, and the
 `Key` bucket (the mvcc store's), the two buckets as `bucket.go` makes them (`bucketIs`: id 2,
 `"meta"`, not safe-range; id 1, `"key"`, safe-range; 2026-10-13: they were only some values,
-before `bucket.go` was translated); and (item 8, 2026-10-17: moved here from the server's and
-mvcc's facts) `AllBuckets` some slice and the compaction's two key names (`bucket.go`). -/
+before `bucket.go` was translated); (item 8, 2026-10-17: moved here from the server's and
+mvcc's facts) `AllBuckets` some slice and the compaction's two key names (`bucket.go`); and (the
+auth plan's S1, 2026-10-23) the three auth buckets (ids 20, 21, 22, not safe-range), the auth
+bucket's two key names and `auth.go`'s `authEnabled`/`authDisabled` values (`[]byte{1}`,
+`[]byte{0}`), after the earlier conjuncts (every destructuring's trailing `-` keeps them). -/
 abbrev schemaInit : IProp GF :=
   iprop((∃ b : GoInterface, globalAddr Meta ↦□ b ∗ bucketIs b (W64 2) metaName false) ∗
     (∃ s : GoSlice, globalAddr MetaConsistentIndexKeyName ↦□ s ∗ s ↦*□ ciKeyBytes) ∗
@@ -79,7 +88,14 @@ abbrev schemaInit : IProp GF :=
     (∃ b : GoInterface, globalAddr Key ↦□ b ∗ bucketIs b (W64 1) keyName true) ∗
     (∃ sl : GoSlice, globalAddr AllBuckets ↦□ sl) ∗
     (∃ s : GoSlice, globalAddr ScheduledCompactKeyName ↦□ s ∗ s ↦*□ (go!"scheduledCompactRev" : GoString)) ∗
-    (∃ s : GoSlice, globalAddr FinishedCompactKeyName ↦□ s ∗ s ↦*□ (go!"finishedCompactRev" : GoString)))
+    (∃ s : GoSlice, globalAddr FinishedCompactKeyName ↦□ s ∗ s ↦*□ (go!"finishedCompactRev" : GoString)) ∗
+    (∃ b : GoInterface, globalAddr Auth ↦□ b ∗ bucketIs b (W64 20) authName false) ∗
+    (∃ b : GoInterface, globalAddr AuthUsers ↦□ b ∗ bucketIs b (W64 21) authUsersName false) ∗
+    (∃ b : GoInterface, globalAddr AuthRoles ↦□ b ∗ bucketIs b (W64 22) authRolesName false) ∗
+    (∃ s : GoSlice, globalAddr AuthEnabledKeyName ↦□ s ∗ s ↦*□ (go!"authEnabled" : GoString)) ∗
+    (∃ s : GoSlice, globalAddr AuthRevisionKeyName ↦□ s ∗ s ↦*□ (go!"authRevision" : GoString)) ∗
+    (∃ s : GoSlice, globalAddr authEnabled ↦□ s ∗ s ↦*□ [W8 1]) ∗
+    (∃ s : GoSlice, globalAddr authDisabled ↦□ s ∗ s ↦*□ [W8 0]))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=
   define_is_pkg_init schemaInit

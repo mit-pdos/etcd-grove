@@ -1,5 +1,5 @@
 /-
-**A member's peer URL strings** (rafthttp stage 6a, D34): the form `http://host:port` whose
+**A member's peer URL strings** (rafthttp stage 6a, D39): the form `http://host:port` whose
 `url.Parse` gives a URL with only its scheme and host set, what `types.NewURLs` returns for the
 transport's peers (`Spec/go_etcd_io/etcd/client/pkg/v3/types/NewURLs.lean`). Decidable, so a
 closed theorem's directory is checked by `decide`. Lean-first.

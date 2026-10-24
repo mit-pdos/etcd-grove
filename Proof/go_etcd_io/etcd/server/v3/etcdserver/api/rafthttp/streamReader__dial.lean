@@ -4,6 +4,8 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/streamReader__d
 -/
 module
 
+public import Proof.strings.TrimSuffixAny
+public import Proof.github_com.Masterminds.semver.v3.MustParsePure
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamReader__dial
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__pick
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__unreachable
@@ -191,7 +193,7 @@ local macro "status_switch" : tactic => `(tactic| (
       · iframe Hbsl
       ihave #Hstrp : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
       · iPkgInit
-      wp_apply hTrim as %ts -
+      wp_apply (strings.TrimSuffix.any hTrim _ _) as %ts -
       (try wp_auto)
       wp_apply HxIVM
       (try wp_auto)
@@ -450,7 +452,7 @@ theorem rafthttp.streamReader.dial.wp_proof
     (try wp_auto)
     ihave #Hsp : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
     · iPkgInit
-    wp_apply hMP as %lvv %Hlv
+    wp_apply (semver.MustParse.pure hMP _) as %lvv %Hlv
     obtain ⟨lv, rfl, Hlvnn⟩ : ∃ v : Loc, lvv = #v ∧ v ≠ null := by
       rcases Hlv with ⟨-, h⟩ | ⟨Hn, -⟩
       · exact h

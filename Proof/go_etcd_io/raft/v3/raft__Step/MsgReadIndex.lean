@@ -79,7 +79,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.role = .follower → s.lead ≠ id) →
     (s.role = .leader → RdOk c.voters s.rd ∧ s.term ≠ W64 0) →
     NStateWf s →
-    -- (2026-10-22, D33a) a forwarded message has no responses (`stepFollower`'s premise)
+    -- (2026-10-22, D38a) a forwarded message has no responses (`stepFollower`'s premise)
     rs = [] →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗

@@ -211,12 +211,14 @@ commits. -/
 theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
-      □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF),
-        {{ putPre E (alarmChain E.authOn ns cr) (.ok ai) r rq o log Pre Q Post }}
+      □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
+          (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+        {{ putPre E (alarmChain E.authOn ns cr) (.ok ai) info r rq o log Pre Q Post }}
           (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmPut ns cr o log oc⌝ ∗ putAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗
+              (∀ _ : authPassed oc, reqClass E.authMode info rq) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -226,7 +228,7 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold applierTriples at Ht
   icases Ht with ⟨#HPut, -⟩
   imodintro
-  iintro %r %rq %o %log %Pre %Q %Post
+  iintro %r %rq %o %log %Pre %Q %Post %info
   imodintro
   iintro %Φ Hpre HΦ
   iunfold putPre at Hpre
@@ -235,7 +237,7 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold mPre at Hm
   icases Hm with ⟨Hkv, Hm⟩
   ihave ⟨Hkv, #Hc⟩ := kvOwn_cert E log $$ Hkv
-  iapply HPut $$ %r %rq %o %log %log %Pre %Q %Post [Hwt Hkv Hm]
+  iapply HPut $$ %r %rq %o %log %log %Pre %Q %Post %info [Hwt Hkv Hm]
   · iframe Hc
     iunfold putPre
     iframe Hwt Hr Hcp
@@ -249,22 +251,27 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases Hpost with ⟨%oc, %Hst0, HR⟩
   have Hst := Hst0.1
   iexists oc
-  icases HR with ⟨H1, H2, H3, H4⟩
+  icases HR with ⟨H1, H2, H3, H4, #Hcls⟩
   iframe H1 H2 H3 H4 Htr
-  ipureintro
-  exact chainStep_alarm_put E.authOn ns cr rq o log oc Hk.2.1 Hk.1 Hst
+  isplitr
+  · ipureintro
+    exact chainStep_alarm_put E.authOn ns cr rq o log oc Hk.2.1 Hk.1 Hst
+  iintro %hp
+  iapply (chainClass_alarm _ _ _ _ _ _ _ hp) $$ Hcls
 /-- **A delete through the uber-applier's chain** (`alarmChain E.authOn ns cr`; `baseChain` at
 `ns = cr = false`): the outcome `alarmDelete` (the txn package's `deleteModel`), its answer, the log it
 commits. -/
 theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
-      □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF),
-        {{ deletePre E (alarmChain E.authOn ns cr) (.ok ai) r rq o log Pre Q Post }}
+      □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
+          (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+        {{ deletePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq o log Pre Q Post }}
           (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmDelete cr o log oc⌝ ∗ deleteAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗
+              (∀ _ : authPassed oc, reqClass E.authMode info rq) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -274,7 +281,7 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold applierTriples at Ht
   icases Ht with ⟨-, #HDel, -⟩
   imodintro
-  iintro %r %rq %o %log %Pre %Q %Post
+  iintro %r %rq %o %log %Pre %Q %Post %info
   imodintro
   iintro %Φ Hpre HΦ
   iunfold deletePre at Hpre
@@ -283,7 +290,7 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold mPre at Hm
   icases Hm with ⟨Hkv, Hm⟩
   ihave ⟨Hkv, #Hc⟩ := kvOwn_cert E log $$ Hkv
-  iapply HDel $$ %r %rq %o %log %log %Pre %Q %Post [Hwt Hkv Hm]
+  iapply HDel $$ %r %rq %o %log %log %Pre %Q %Post %info [Hwt Hkv Hm]
   · iframe Hc
     iunfold deletePre
     iframe Hwt Hr Hcp
@@ -297,21 +304,26 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases Hpost with ⟨%oc, %Hst0, HR⟩
   have Hst := Hst0.1
   iexists oc
-  icases HR with ⟨H1, H2, H3, H4⟩
+  icases HR with ⟨H1, H2, H3, H4, #Hcls⟩
   iframe H1 H2 H3 H4 Htr
-  ipureintro
-  exact chainStep_alarm_delete E.authOn ns cr rq o log oc Hk.2.1 Hk.1 Hst
+  isplitr
+  · ipureintro
+    exact chainStep_alarm_delete E.authOn ns cr rq o log oc Hk.2.1 Hk.1 Hst
+  iintro %hp
+  iapply (chainClass_alarm _ _ _ _ _ _ _ hp) $$ Hcls
 /-- **A range through the uber-applier's chain**: the outcome `alarmRange` (`rangeResult` at
 `log` unless rejected), its answer; the log as it is. -/
 theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
-      □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log),
-        {{ rangePre E (alarmChain E.authOn ns cr) (.ok ai) r rq o log }}
+      □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
+          (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+        {{ rangePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq o log }}
           (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmRange cr log oc⌝ ∗ rangeOutcomeIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) ∗ traceRes trace }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ traceRes trace ∗
+              (∀ _ : authPassed oc, reqClass E.authMode info rq) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -321,12 +333,12 @@ theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold applierTriples at Ht
   icases Ht with ⟨-, -, #HRange, -⟩
   imodintro
-  iintro %r %rq %o %log
+  iintro %r %rq %o %log %info
   imodintro
   iintro %Φ Hpre HΦ
   iunfold rangePre at Hpre
   icases Hpre with ⟨%Hk, #Hr, Hm⟩
-  iapply HRange $$ %r %rq %o %log [Hm]
+  iapply HRange $$ %r %rq %o %log %info [Hm]
   · iunfold rangePre
     iframe Hm Hr
     ipureintro; exact Hk
@@ -336,10 +348,13 @@ theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold rangePost at Hpost
   icases Hpost with ⟨%oc, %Hst, HR⟩
   iexists oc
-  icases HR with ⟨H1, H2, H3⟩
+  icases HR with ⟨H1, H2, H3, #Hcls⟩
   iframe H1 H2 H3 Htr
-  ipureintro
-  exact chainStep_alarm_range E.authOn ns cr rq log oc Hk.2.1 Hst
+  isplitr
+  · ipureintro
+    exact chainStep_alarm_range E.authOn ns cr rq log oc Hk.2.1 Hst
+  iintro %hp
+  iapply (chainClass_alarm _ _ _ _ _ _ _ hp) $$ Hcls
 
 /-- **A transaction through the uber-applier's chain**: the outcome `alarmTxn` (the txn
 package's `txnModel`: `checkTxn`'s error or the server's run `srvRunTxn`), its answer, the log it
@@ -348,12 +363,13 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log)
-          (Pre Q Post : IProp GF),
-        {{ txnPre E (alarmChain E.authOn ns cr) (.ok ai) r rq t log Pre Q Post }}
+          (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+        {{ txnPre E (alarmChain E.authOn ns cr) (.ok ai) info r rq t log Pre Q Post }}
           (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnAnswerIs log t skip resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗ traceRes trace ∗
+              (∀ _ : authPassed oc, reqClass E.authMode info rq) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -363,7 +379,7 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold applierTriples at Ht
   icases Ht with ⟨-, -, -, #HTxn, -⟩
   imodintro
-  iintro %r %skip %rq %t %log %Pre %Q %Post
+  iintro %r %skip %rq %t %log %Pre %Q %Post %info
   imodintro
   iintro %Φ Hpre HΦ
   iunfold txnPre at Hpre
@@ -372,7 +388,7 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold mPre at Hm
   icases Hm with ⟨Hkv, Hm⟩
   ihave ⟨Hkv, #Hc⟩ := kvOwn_cert E log $$ Hkv
-  iapply HTxn $$ %r %skip %rq %t %log %log %Pre %Q %Post [Hwt Hkv Hm]
+  iapply HTxn $$ %r %skip %rq %t %log %log %Pre %Q %Post %info [Hwt Hkv Hm]
   · iframe Hc
     iunfold txnPre
     iframe Hwt Hr Hcp
@@ -386,10 +402,13 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases Hpost with ⟨%oc, %Hst0, HR⟩
   have Hst := Hst0.1
   iexists oc
-  icases HR with ⟨H1, H2, H3, H4⟩
+  icases HR with ⟨H1, H2, H3, H4, #Hcls⟩
   iframe H1 H2 H3 H4 Htr
-  ipureintro
-  exact chainStep_alarm_txn E.authOn ns cr rq t log oc Hk.2.1 Hk.1 Hst
+  isplitr
+  · ipureintro
+    exact chainStep_alarm_txn E.authOn ns cr rq t log oc Hk.2.1 Hk.1 Hst
+  iintro %hp
+  iapply (chainClass_alarm _ _ _ _ _ _ _ hp) $$ Hcls
 
 end triples
 

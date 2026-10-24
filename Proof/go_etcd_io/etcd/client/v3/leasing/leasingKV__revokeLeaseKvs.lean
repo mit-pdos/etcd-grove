@@ -98,14 +98,14 @@ theorem leasingKV.revokeLeaseKvs.wp_proof
       iintro %i %f %g %Hf
       simp at Hf
     wp_apply hGet (strings.trimPrefix v.key pfx) slice.nil [] $$ [$Hnil] as %opv #Hopv
-    · ipureintro; simp [opGetPanics, opFold, OpFull.newOp]
+    · ipureintro; simp [opGetPanics, op_simps]
     ihave #H0 := etcdReached_zero (GF := GF)
     wp_apply hRev lkv γ pfx ctx cs (strings.trimPrefix v.key pfx) opv
         (opGetModel (strings.trimPrefix v.key pfx) []) (.get (opGetModel (strings.trimPrefix v.key pfx) []))
         (W64 0) $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hopv $H0]
       as %resp %err ⟨Hrd, -⟩
     · ipureintro
-      simp [txnOpOf, opGetModel, opFold, OpFull.getInit, OpFull.newOp, OpModel.zero]
+      simp [op_simps]
     rcases err with e | _
     · wp_auto
       wp_for_post

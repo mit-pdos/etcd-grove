@@ -387,7 +387,7 @@ structure NodeNames [FfiSyntax] where
   while its offer waits (`advInv`); (D22 S-d4) `none` after a snapshot `Ready`, which asks for
   no floor (`reqOf`) -/
   req : GName
-  /-- (2026-10-22, D33a) the node's id (`isNode`'s): the sender of the messages its `Ready`s hand
+  /-- (2026-10-22, D38a) the node's id (`isNode`'s): the sender of the messages its `Ready`s hand
   out (`isRaftMsg`, whose `MsgApp`s are from it) -/
   id : w64
   /-- (D22 S-d4, 2026-10-21) **the application may deliver a `MsgSnap`** (`netP`), a parameter of
@@ -414,7 +414,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (`appendEntry` stamps it; a transport delivers a copy), its context (until 2026-10-13 not
 the leader-transfer marker), and what it carries as a protocol message (each entry's data,
 `entData`, so its update was deposited). (2026-10-16, stage R5: the message at `ml`, owned as
-`raft.Step` takes a proposal, `msgIn ml 1`, its entries' slots owned.) (2026-10-22, D33a) With no
+`raft.Step` takes a proposal, `msgIn ml 1`, its entries' slots owned.) (2026-10-22, D38a) With no
 responses (`raft.Step`'s `Hnors`: the leader may forward it on). -/
 def fwdP (γ : NodeNames) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgIn ml (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgProp ∧ st.resps = []⌝ ∗
@@ -962,7 +962,7 @@ def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     -- the cluster's commit invariant (2026-10-10; (2026-10-16, stage R5, D6) the proposed
     -- slices' invariant `propDataInv` is gone)
     "#Hcinv" ∷ raftCommitInv γ.raft ∗
-    -- (2026-10-22, D33a) the names' id is the node's
+    -- (2026-10-22, D38a) the names' id is the node's
     "%Hgid" ∷ ⌜γ.id = id⌝)
 
 set_option synthInstance.maxHeartbeats 400000 in

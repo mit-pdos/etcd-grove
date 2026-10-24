@@ -1,4 +1,4 @@
-# Names only (D33, rafthttp's stage 1): what rafthttp's message path calls; (stage 4, 2026-10-23)
+# Names only (D38, rafthttp's stage 1): what rafthttp's message path calls; (stage 4, 2026-10-23)
 # with the body of the pipeline handler's reader, `NewLimitedBufferReader` (a per-read cap).
 translate = ["!*", "NewLimitedBufferReader", "limitedBufferReader.Read"]
 imports = ["!*", "io", "net/http"]

@@ -3,7 +3,7 @@
 * `TrN`: the transport's names: its member, the receiver's snapshot directory, the resource its
   `Raft`'s calls borrow, and its lock's two ghost records.
 * `netHttpOk` (persistent): the network's streams' registry and every member's hosts registered
-  with the raft protocol (the program's start, D34a), what a transport's peers post to.
+  with the raft protocol (the program's start, D39a), what a transport's peers post to.
 * `trState` (persistent): a started transport: its fixed fields (`trFixed`), probers, stop rights'
   invariant, the guard of its lock, the snapshotter's directory; `trLive` with the half of `γr`
   that `AddPeer`/`AddRemote` update; `trFrozen` after the freeze (`trRemotesFrozen`); `trTok`, a
@@ -44,7 +44,7 @@ variable [sem : go.Semantics]
 
 /-- **The network's HTTP side, ready for the member `lid`** (persistent): the streams' registry,
 and every other member's hosts registered with the raft protocol (`pipeReg`: the program's start
-reserves them, D34a), what the member's peers post to. -/
+reserves them, D39a), what the member's peers post to. -/
 def netHttpOk (γn : NetNames GF) (lid : w64) : IProp GF :=
   iprop(streamRegInv (netRh γn) ∗
     □ ∀ pid : w64, ⌜(netRh γn).member pid ∧ pid ≠ lid⌝ -∗ pipeReg (netRh γn) pid)

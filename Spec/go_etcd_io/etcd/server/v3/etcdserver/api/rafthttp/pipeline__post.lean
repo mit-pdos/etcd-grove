@@ -1,5 +1,5 @@
 /-
-`(*pipeline).post(data)` (`pipeline.go`; rafthttp stage 4d, D33b). Lean-first.
+`(*pipeline).post(data)` (`pipeline.go`; rafthttp stage 4d, D38b). Lean-first.
 -/
 module
 

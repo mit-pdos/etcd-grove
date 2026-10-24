@@ -10,100 +10,99 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.client.pkg.v3.transport : GoString := go!"go.etcd.io/etcd/client/pkg/v3/transport"
+noncomputable def go_etcd_io.etcd.client.pkg.v3.transport : GoString := go!"go.etcd.io/etcd/client/pkg/v3/transport"
 end pkg_id
 
 namespace go_etcd_io.etcd.client.pkg.v3.transport
 
-def keepaliveListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def keepaliveListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.keepaliveListener" [])
 
 attribute [irreducible] keepaliveListener.ty
 
-def keepAliveConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def keepAliveConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.keepAliveConn" [])
 
 attribute [irreducible] keepAliveConn.ty
 
-def tlsKeepaliveListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tlsKeepaliveListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.tlsKeepaliveListener" [])
 
 attribute [irreducible] tlsKeepaliveListener.ty
 
-def limitListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def limitListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.limitListener" [])
 
 attribute [irreducible] limitListener.ty
 
-def limitListenerConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def limitListenerConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.limitListenerConn" [])
 
 attribute [irreducible] limitListenerConn.ty
 
-def TLSInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TLSInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.TLSInfo" [])
 
 attribute [irreducible] TLSInfo.ty
 
-def ListenerOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListenerOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.ListenerOptions" [])
 
 attribute [irreducible] ListenerOptions.ty
 
-def ListenerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListenerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.ListenerOption" [])
 
 attribute [irreducible] ListenerOption.ty
 
-def tlsListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tlsListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.tlsListener" [])
 
 attribute [irreducible] tlsListener.ty
 
-def tlsCheckFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tlsCheckFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.tlsCheckFunc" [])
 
 attribute [irreducible] tlsCheckFunc.ty
 
-def Controls.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Controls.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.Controls" [])
 
 attribute [irreducible] Controls.ty
 
-def SocketOpts.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SocketOpts.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.SocketOpts" [])
 
 attribute [irreducible] SocketOpts.ty
 
-def timeoutConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timeoutConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.timeoutConn" [])
 
 attribute [irreducible] timeoutConn.ty
 
-def rwTimeoutDialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rwTimeoutDialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.rwTimeoutDialer" [])
 
 attribute [irreducible] rwTimeoutDialer.ty
 
-def rwTimeoutListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rwTimeoutListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.rwTimeoutListener" [])
 
 attribute [irreducible] rwTimeoutListener.ty
 
-def unixTransport.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unixTransport.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.unixTransport" [])
 
 attribute [irreducible] unixTransport.ty
 
-def unixListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unixListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/transport.unixListener" [])
 
 attribute [irreducible] unixListener.ty
@@ -236,7 +235,7 @@ noncomputable def NewTransport [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewUnixListener [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/transport.NewUnixListener"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.transport where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.transport where
   pkgImportedPkgs := [pkg_id.crypto.tls, pkg_id.go_uber_org.zap]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -345,10 +344,10 @@ structure TLSInfo [FfiSyntax] where
   EmptyCN' : Bool
   LocalAddr' : GoString
 
-instance TLSInfo.zero_val [FfiSyntax] : ZeroVal TLSInfo :=
+noncomputable instance TLSInfo.zero_val [FfiSyntax] : ZeroVal TLSInfo :=
   ⟨TLSInfo.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def TLSInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TLSInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"CertFile" go.string),
 (go.field_decl.FieldDecl go!"KeyFile" go.string),
 (go.field_decl.FieldDecl go!"ClientCertFile" go.string),
@@ -373,14 +372,14 @@ instance TLSInfo.zero_val [FfiSyntax] : ZeroVal TLSInfo :=
 (go.field_decl.FieldDecl go!"EmptyCN" go.bool),
 (go.field_decl.FieldDecl go!"LocalAddr" go.string)]
 
-@[irreducible] def TLSInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TLSInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   TLSInfo.fieldsUnsealed
 
-instance equals_unfold_TLSInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TLSInfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold TLSInfo.fields TLSInfo.fieldsUnsealed :=
   ⟨by unfold TLSInfo.fields; rfl⟩
 
-@[reducible] def TLSInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TLSInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TLSInfo.fields)
 
 class TLSInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -497,7 +496,7 @@ attribute [instance] ListenerOptions.TypeAssumptions.type_repr
 
 abbrev ListenerOption [FfiSyntax] : Type := GoFunc
 
-@[reducible] def ListenerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ListenerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType ListenerOptions.ty)] false []))
 
 class ListenerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -549,21 +548,21 @@ structure SocketOpts [FfiSyntax] where
   ReusePort' : Bool
   ReuseAddress' : Bool
 
-instance SocketOpts.zero_val [FfiSyntax] : ZeroVal SocketOpts :=
+noncomputable instance SocketOpts.zero_val [FfiSyntax] : ZeroVal SocketOpts :=
   ⟨SocketOpts.mk zeroValDef zeroValDef⟩
 
-@[reducible] def SocketOpts.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SocketOpts.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ReusePort" go.bool),
 (go.field_decl.FieldDecl go!"ReuseAddress" go.bool)]
 
-@[irreducible] def SocketOpts.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SocketOpts.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   SocketOpts.fieldsUnsealed
 
-instance equals_unfold_SocketOpts [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SocketOpts [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold SocketOpts.fields SocketOpts.fieldsUnsealed :=
   ⟨by unfold SocketOpts.fields; rfl⟩
 
-@[reducible] def SocketOpts.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SocketOpts.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SocketOpts.fields)
 
 class SocketOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

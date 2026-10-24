@@ -124,8 +124,8 @@ def viewAt (γ : BNames) (vd : VData) : IProp GF := ghostVar γ.view (1 : Qp).ha
 /-- The witness agrees with a client's share of the view. -/
 theorem viewAt_bView_agree (γ : BNames) (q : Qp) (vd vd' : VData) :
     viewAt (GF := GF) γ vd ∗ bView γ q vd' ⊢ ⌜vd = vd'⌝ := by
-  unfold viewAt bView
-  iintro ⟨Ha, Hb, -⟩
+  unfold viewAt bView bViewC
+  iintro ⟨Ha, %c, Hb, -, -⟩
   icombine Ha Hb gives %H
   ipureintro
   exact H.2

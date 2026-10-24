@@ -136,7 +136,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     NStateWf s →
     -- (2026-10-18, D19b stage 5) the log's last index fits a word (the ghost state's)
     plogLastIndexZ (toPState s).base (toPState s).log < 2 ^ 64 →
-    -- (2026-10-22, D33a) a forwarded message has no responses (`stepFollower`'s premise)
+    -- (2026-10-22, D38a) a forwarded message has no responses (`stepFollower`'s premise)
     rs = [] →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗

@@ -35,5 +35,5 @@ own (`V2Compat.short_count`, `short_len`, `app_len` in `rafthttp/MsgAppV2.lean`)
 **Possible fixes**: check `l` and `size` against `readBytesLimit` (or a limit derived from
 `MaxSizePerMsg`) and return `ErrExceedSizeLimit`, as `messageDecoder.decodeLimit` does.
 
-**Found**: 2026-10-22, proving `msgAppV2Decoder.decode` (rafthttp stage 3, D33a): the decoder's
+**Found**: 2026-10-22, proving `msgAppV2Decoder.decode` (rafthttp stage 3, D38a): the decoder's
 proof needs the closed-world premise to know the lengths are an encoder's.

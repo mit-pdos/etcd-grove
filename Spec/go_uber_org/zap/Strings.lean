@@ -1,13 +1,14 @@
 /-
-`zap.Strings`: the trust boundary (`go.uber.org/zap` is names-only; rafthttp stage 6c, the
-transport's `AddPeer`/`AddRemote` logs). Lean-first.
+`zap.Strings` (`go.uber.org/zap` is names-only): the trust boundary, as `zap.String`. The auth
+plan's S4 (2026-10-24): the admin side logs a user's roles. Lean-first.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
-public import GeneratedProof.go_uber_org.zap
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -22,13 +23,12 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `zap.Strings(k, ss)` of a slice of strings (read): some field (which refers to the slice; the
-logger reads it during the call it is passed to), the slice back. -/
+/-- `zap.Strings(k, v)` returns a field. -/
 abbrev zap.Strings.spec : Prop :=
-  ∀ (k : GoString) (sl : GoSlice) (dq : DFrac) (ss : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ sl ↦*{dq} ss }}
-    (App (App (Val (@! zap.Strings)) (Val #k)) (Val #sl))
-  {{ (f : zap.zapcore.Field), RET #f; sl ↦*{dq} ss }}
+  ∀ (k : GoString) (v : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap }}
+    (App (App (Val (@! zap.Strings)) (Val #k)) (Val #v))
+  {{ (f : zap.zapcore.Field), RET #f; True }}
 
 end spec
 

@@ -21,9 +21,9 @@ premise receives one of each), and each consumption is one registration (one lis
 of `Ns` is registered twice and no address of `As` bound twice, which is what `MustRegister`'s and
 `Listen`'s specs need. The rest is `goose_adequacy`.
 
-(D34a, 2026-10-23) It also receives `httpProtoFree a` for each address of `As`: a purely ghost
+(D39a, 2026-10-23) It also receives `httpProtoFree a` for each address of `As`: a purely ghost
 right, the only source of an address's HTTP protocol (`http.reserve`), so each address's protocol
-is fixed once in a run (the model of `http.register`'s D33c: a global ghost map from addresses to
+is fixed once in a run (the model of `http.register`'s D38c: a global ghost map from addresses to
 saved protocols, now set by `reserve`). No Go operation is involved: nothing to check of `e`.
 Why it is once only: nothing else produces `nameFree`, `netAddrFree` or `httpProtoFree` (axiomatized
 predicates, `Registry.lean`, `InvNet.lean`; no axiom or definition gives one), so the rights exist
@@ -73,7 +73,7 @@ of `e` whose behaviour this repository does not verify binds one. -/
 axiom addrsUnclaimed [FfiSyntax] (e : Expr) (As : List GoString) : Prop
 
 /-- The rights program start gives: the right to register each name of `Ns` and to listen on
-each address of `As`, and (D34a, 2026-10-23) to fix each address's HTTP protocol
+each address of `As`, and (D39a, 2026-10-23) to fix each address's HTTP protocol
 (`httpProtoFree`). -/
 def startRights {GF : BundledGFunctors} [FfiSyntax] (Ns As : List GoString) : IProp GF :=
   iprop(([∗list] n ∈ Ns, prometheus.nameFree n) ∗ ([∗list] a ∈ As, netAddrFree a) ∗

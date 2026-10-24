@@ -263,6 +263,9 @@ exists only because a reader's slot and token are exclusive, bounded, and must a
   swap, and only it holds `storeWT`. About 25 files, mostly framing.
 - **S6. Axioms of `store.Restore` and `watchableStore.Restore`**, true of the Go code. About 4 files
   (Spec, Link, `etc/tcb-baseline.txt`).
+  *Done 2026-10-22* (`notes/decisions.md`, "D22 receiver epochs, S6 carried out"): `store.Restore`
+  an axiom, `watchableStore.Restore` proved over it; it took more than the estimate: the restored
+  backend's pending registration (`writerReg`) and the watch side (item 3 there).
   - *Pre:* `isStore s γ`; the watchable `s.mu` share; `storeCloser`; `crevFrozen γ`; the writer's
     `cur` fragment; `ownToks γ.revs (|L'|-|L|)`; `⌜L <+: L'⌝`; `restoreLogOk`; the new backend's key
     contract over `keyImage L'` with `bkNoCmp`; its token stock (`bkRTx`×N, `wbTok`s) and `lateReg`;
@@ -281,6 +284,12 @@ exists only because a reader's slot and token are exclusive, bounded, and must a
     `BuildLemmas`, `NewServer` (+spec), `InvStorageVersion` (+monitor), `EtcdServer__Backend`,
     `InvRead`, `Contracts`, `Chain`, `AuthDerive`, the three constructor specs,
     `EtcdServer__{apply,applyEntryNormal,applyAll,run,start}`, `Results`. About 35 files.
+  *Done 2026-10-23 but the first bullet* (`notes/decisions.md`, "D22 receiver epochs, S7 carried
+  out"): the fields, `bemu`'s ghost variable, the monitor's token in the write budget, and the
+  objects' backend fields as their "on backend `d`" fragments (half the lock's, half the user's,
+  lent by the write right) instead of ghost variables; `AlarmStore.Recover` proved (+1 axiom,
+  `restore`). The apply protocol's physical names (the first bullet) designed there, not done: the
+  old backend's `Close` commits through the shared hooks, which a retired set must allow.
 - **S8. `applySnapshot`'s spec and proof** (S-j2 item 6, unchanged in substance).
   - `s.be` is written under `bemu.Lock`, with the apply thread's half plus `bemuP 1`.
   - `s.uberApply` and `s.alarmStore` are owned points-to.

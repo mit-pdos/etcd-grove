@@ -53,6 +53,17 @@ theorem safeRv_reset (P : BParams) (C : Data) (R : RBuf) : safeRv P (C, R.reset)
     | some es => simp only [Option.filter]; split <;> rfl
   exact absurd he (by show e ∉ bkOf (bksReset R.bks) i; rw [h0]; simp)
 
+/-- A reset read buffer is clean (the restore plan's R5a). -/
+theorem rbClean_reset (P : BParams) (R : RBuf) : rbClean P R.reset := by
+  intro n i _ _
+  unfold bkOf
+  show (((R.bks.filter _).fmap _).lookup i).getD [] = []
+  rw [show ((R.bks.filter (fun _ es => !es.isEmpty)).fmap (fun _ => ([] : List Ent))).lookup i =
+    ((R.bks.lookup i).filter (fun es => !es.isEmpty)).map (fun _ => []) from rfl]
+  cases R.bks.lookup i with
+  | none => rfl
+  | some es => simp only [Option.filter]; split <;> rfl
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -73,7 +84,8 @@ def rtCm (γ : BNames) (P : BParams) (C : Data) (R : RBuf) (win : Bool) : IProp 
   iprop(∃ (rd : RdSt) (H : GMap (w64 × Nat) RView),
     ghostVar γ.rd 1 rd ∗ ghostVar γ.view (1 : Qp).half.half (vData P (C, R)) ∗
     ghostVar γ.rvs (1 : Qp).half ((C, R), win) ∗
-    ghostVar γ.cur (1 : Qp).half ((R.ver, rd.idx), win) ∗ ghostMapAuth γ.hist 1 H ∗
+    ghostVar γ.cur (1 : Qp).half ((R.ver, rd.idx), win) ∗ ghostVar γ.cln (1 : Qp).half rd.cln ∗
+    ghostMapAuth γ.hist 1 H ∗
     ⌜rd.win = win ∧ R.Wf ∧ idsOk P R.bks ∧ H.lookup (R.ver, rd.idx) = some (C, R) ∧
       (∀ k rv', H.lookup k = some rv' → keyLe k (R.ver, rd.idx)) ∧ (win = true → rd.idx = 0)⌝ ∗
     histAt γ R.ver rd.idx (C, R) ∗ cacheValid γ P (C, R) rd.idx ∗
@@ -126,7 +138,7 @@ theorem rtRes_wb_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, Hw⟩ := Heq
   ihave Hown := rbAt_ownRB _ m Pb R Hok $$ Hrb
-  icases Hr with ⟨Hcur, Hhist, Hrtx, Hwg, %Hf, Hr⟩
+  icases Hr with ⟨Hcur, Hcln, Hhist, Hrtx, Hwg, %Hf, Hr⟩
   iframe
   isplitr
   · ipureintro; exact ⟨Hf.1, Hf.2.1⟩
@@ -165,6 +177,27 @@ theorem rtIntv_upd (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (i : Nat) (w
     (cm : GoMap) (D : Data) :
     rtIntv (GF := GF) γ P q { rd with idx := i, win := w } cm D = rtIntv γ P q rd cm D := rfl
 
+/-- The clients' half of the clean flag clears `readTx.mu`'s (held whole): both `false` (a
+write-back that changes the view may put off the hook's buckets; the restore plan's R5a). -/
+theorem rtCore_clear_cln (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
+    (cm : GoMap) (H : GMap (w64 × Nat) RView) (c : Bool) :
+    rtCore (GF := GF) γ P rt 1 rd rv cm H ∗ ghostVar γ.cln (1 : Qp).half c ⊢
+      |==> (rtCore γ P rt 1 { rd with cln := false } rv cm H ∗
+        ghostVar γ.cln (1 : Qp).half false) := by
+  iintro ⟨Hc, Hcl⟩
+  unfold rtCore clnPart
+  icases Hc with ⟨Hrd, Hrvs, Hcur, ⟨Hcln, -⟩, Hhist, Hrtx, Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+  imod ghostVar_update_halves false γ.cln _ _ $$ Hcln Hcl with ⟨Hcln, Hcl⟩
+  imod ghostVar_update { rd with cln := false } γ.rd rd $$ Hrd with Hrd
+  imodintro
+  iframe Hcl
+  iframe; iframe #
+  isplitr
+  · ipureintro; intro h; cases h
+  isplitr
+  · ipureintro; exact Hf
+  iapply (rtIntv_congr γ P 1 rd { rd with cln := false } cm rv.1 rfl rfl rfl rfl rfl rfl) $$ Hiv
+
 /-- The write-back's common part: the new version's state `(ver + 1, 0)`, given the view's
 quarter already at the new view, the clients' share to deposit for a window. -/
 theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R : RBuf)
@@ -172,15 +205,18 @@ theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R 
     (hsafe : safeRv P (C, writebackR W R)) :
     cacheInv (GF := GF) γ ∗
       (∃ (rd : RdSt) (cm : GoMap) (H : GMap (w64 × Nat) RView), ⌜rd.win = false⌝ ∗
+        ⌜rd.cln = true → rbClean P R → rbClean P (writebackR W R)⌝ ∗
         rbktOf (baseOf rt) ↦ cm ∗ rtCore γ P rt 1 rd (C, R) cm H) ∗
       ghostVar γ.view (1 : Qp).half.half (vData P (C, writebackR W R)) ∗
       ownRB (rbufOf (baseOf rt)) (writebackR W R) ∗
       ghostVar γ.rvs (1 : Qp).half ((C, R), false) ∗
       (if win then iprop(∃ vd, bView γ 1 vd) else iprop(True)) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C, writebackR W R), win)) := by
-  iintro ⟨#Hci, ⟨%rd, %cm, %H, %Hw, Hcm, Hc⟩, Hview, Hrb, Hb, Hdep⟩
-  unfold rtCore
-  icases Hc with ⟨Hrd, Hrvs, Hcur, Hhist, Hrtx, Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+  iintro ⟨#Hci, ⟨%rd, %cm, %H, %Hw, %Hkeep, Hcm, Hc⟩, Hview, Hrb, Hb, Hdep⟩
+  unfold rtCore clnPart
+  icases Hc with ⟨Hrd, Hrvs, Hcur, ⟨Hcln, %Hcl⟩, Hhist, Hrtx, Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth,
+    Hiv⟩
+  have Hcl' : rd.cln = true → rbClean P (writebackR W R) := fun h => Hkeep h (Hcl h)
   obtain ⟨hRwf, hids, hHl, hHall, -⟩ := Hf
   -- `γ.rvs`
   imod ghostVar_update_halves ((C, writebackR W R), win) γ.rvs _ _ $$ Hrvs Hb with ⟨Hrvs, Hb⟩
@@ -233,13 +269,15 @@ theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R 
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     imodintro
     iframe Hb
-    unfold rtRes rtResAt rtRest rtCore
+    unfold rtRes rtResAt rtRest rtCore clnPart
     iexists rd', (C, writebackR W R), H.insert (R.ver + W64 1, 0) (C, writebackR W R), m, Pb, cm
     simp only [rd']
     iframe
     iframe #
     isplitr
     · ipureintro; exact Hok
+    isplitr
+    · ipureintro; exact Hcl'
     isplitr
     · ipureintro
       refine ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, ?_, fun _ => trivial, hsafe⟩
@@ -280,13 +318,15 @@ theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R 
     · simp only [↓reduceIte]; unfold poisonAt; iexact Hpo
     imodintro
     iframe Hb
-    unfold rtRes rtResAt rtRest rtCore
+    unfold rtRes rtResAt rtRest rtCore clnPart
     iexists rd', (C, writebackR W R), H.insert (R.ver + W64 1, 0) (C, writebackR W R), m, Pb, cm
     simp only [rd']
     iframe
     iframe #
     isplitr
     · ipureintro; exact Hok
+    isplitr
+    · ipureintro; exact Hcl'
     isplitr
     · ipureintro
       refine ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, ?_, fun _ => trivial, hsafe⟩
@@ -317,26 +357,30 @@ theorem rtRes_wb_close (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Da
   iintro ⟨#Hci, Hwb, Hrb, Hb, Hvq, Hbv⟩
   unfold rtWb rtRest
   icases Hwb with ⟨%rd, %cm, %H, %Hw, Hcm, Hvr, Hcore⟩
-  unfold bView
-  icases Hbv with ⟨Hvc, Hcw⟩
+  unfold bView bViewC
+  icases Hbv with ⟨%c, Hvc, Hcw, Hcl⟩
+  imod rtCore_clear_cln γ P rt rd (C, R) cm H c $$ [Hcore Hcl] with ⟨Hcore, Hcl⟩
+  · iframe
   imod view_upd3 γ _ _ _ (vData P (C, writebackR W R)) $$ [Hvr Hvq Hvc] with ⟨Hvr, Hvq, Hvc⟩
   · iframe
   cases win
   · imod wb_core γ P rt W C R false hW hver hsafe $$ [Hcm Hcore Hvr Hrb Hb] with ⟨Hres, Hb⟩
     · iframe #; iframe
       isplitr
-      · ipureintro; exact Hw
+      · ipureintro; exact ⟨Hw, fun h => by cases h⟩
       simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     imodintro
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe
-  · imod wb_core γ P rt W C R true hW hver hsafe $$ [Hcm Hcore Hvr Hrb Hb Hvc Hcw] with ⟨Hres, Hb⟩
+  · imod wb_core γ P rt W C R true hW hver hsafe $$ [Hcm Hcore Hvr Hrb Hb Hvc Hcw Hcl]
+      with ⟨Hres, Hb⟩
     · iframe #; iframe
       isplitr
-      · ipureintro; exact Hw
+      · ipureintro; exact ⟨Hw, fun h => by cases h⟩
       simp only [↓reduceIte]
       iexists _
-      unfold bView
+      unfold bView bViewC
+      iexists false
       iframe
     imodintro
     simp only [↓reduceIte]
@@ -348,7 +392,7 @@ untouched. -/
 theorem rtRes_wb_close_same (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data)
     (R : RBuf) (hW : idsOk P W.bks) (hver : uint.Z R.ver + 1 < 2 ^ 64)
     (hsame : vData P (C, writebackR W R) = vData P (C, R))
-    (hsafe : safeRv P (C, writebackR W R)) :
+    (hsafe : safeRv P (C, writebackR W R)) (hkeep : rbClean P R → rbClean P (writebackR W R)) :
     cacheInv (GF := GF) γ ∗ rtWb γ P rt C R ∗ ownRB (rbufOf (baseOf rt)) (writebackR W R) ∗
       ghostVar γ.rvs (1 : Qp).half ((C, R), false) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C, writebackR W R), false)) := by
@@ -359,7 +403,7 @@ theorem rtRes_wb_close_same (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C
   iapply wb_core γ P rt W C R false hW hver hsafe $$ [Hcm Hcore Hvr Hrb Hb]
   iframe #; iframe
   isplitr
-  · ipureintro; exact Hw
+  · ipureintro; exact ⟨Hw, fun _ => hkeep⟩
   simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
 
 /-! ## The commit -/
@@ -375,9 +419,9 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
       ownRB (rbufOf (baseOf rt)) R ∗
       (rollbackRes γ rtx wg ∨ (⌜rtx = Loc.null⌝ ∗ bStopped γ)) ∗
       rtCm γ P C R win ∗ ghostVar γ.rvs (1 : Qp).half ((C, R), win) := by
-  unfold rtRes rtResAt rtRest rtCore
-  iintro ⟨⟨%rd, %rv, %H, %m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hhist, Hrtx, Hwg,
-    %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, Hb⟩
+  unfold rtRes rtResAt rtRest rtCore clnPart
+  iintro ⟨⟨%rd, %rv, %H, %m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, ⟨Hcln, -⟩, Hhist, Hrtx,
+    Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, Hb⟩
   icombine Hrvs Hb gives %Heq0
   have Heq := Heq0.2
   simp only [Prod.mk.injEq] at Heq
@@ -417,7 +461,7 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
         · ipureintro; exact Hn.1
         ipureintro; exact Hn.2
       imodintro
-      isplitr [Hrd Hview Hrvs Hcur Hhist Hpo]
+      isplitr [Hrd Hview Hrvs Hcur Hcln Hhist Hpo]
       · ileft
         unfold rollbackRes
         iexists γwg, rd.γw, rd.γo, rd.γt, C
@@ -435,12 +479,12 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
 /-- A new interval for the bbolt read transaction `tx` over `D` (with a fresh buckets map and
 `WaitGroup`), or none at a stop: its invariants and `readTx.mu`'s whole share. -/
 theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Loc) (idx : Nat)
-    (stop : Bool) :
+    (stop cln : Bool) :
     (if stop then iprop(⌜tx = Loc.null⌝ ∗ bStopped γ)
        else iprop(txLive tx 1 ∗ rtxSnap tx D ∗ rtxStats tx)) ∗
       cm ↦$ (∅ : GMap w64 Loc) ∗ wg ↦ (zero_val sync.WaitGroup) ∗
       ownTokAuthDfrac (GF := GF) γ.rdt DFrac.discard rdMax ⊢
-    |={⊤}=> ∃ rd' : RdSt, ⌜rd'.rtx = tx ∧ rd'.wg = wg ∧ rd'.idx = idx ∧ rd'.win = false⌝ ∗
+    |={⊤}=> ∃ rd' : RdSt, ⌜rd'.rtx = tx ∧ rd'.wg = wg ∧ rd'.idx = idx ∧ rd'.win = false ∧ rd'.cln = cln⌝ ∗
       rtIntv γ P 1 rd' cm D := by
   iintro ⟨Hn, Hcm, Hwg, #Hauth⟩
   cases stop
@@ -480,9 +524,9 @@ theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Lo
     imod inv_alloc (bN.@"stats") ⊤ iprop(rtxStats tx ∨ ghostVar γ.txb 1 ()) $$ [Hst] with #Hiv2
     · inext; ileft; iexact Hst
     imodintro
-    iexists (⟨tx, wg, γw, γo, γt, idx, false, true⟩ : RdSt)
+    iexists (⟨tx, wg, γw, γo, γt, idx, false, true, cln⟩ : RdSt)
     isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+    · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
     unfold rtIntv
     simp only [↓reduceIte]
     iframe; iframe #
@@ -494,9 +538,9 @@ theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Lo
   · simp only [↓reduceIte]
     icases Hn with ⟨%Hnull, #Hst⟩
     imodintro
-    iexists (⟨tx, wg, γ.rd, γ.rd, γ.rd, idx, false, false⟩ : RdSt)
+    iexists (⟨tx, wg, γ.rd, γ.rd, γ.rd, idx, false, false, cln⟩ : RdSt)
     isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+    · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
     unfold rtIntv
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe #
@@ -522,12 +566,12 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
       (if win then bView γ 1 (vData P (C', R.reset)) else iprop(True))) := by
   iintro ⟨#Hci, Hcm, Hb, Hvq, Htx, Hcmf, Hcm0, Hwgf, Hwg0, Hrb, Hn⟩
   unfold rtCm
-  icases Hcm with ⟨%rd, %H, Hrd, Hvr, Hrvs, Hcur, Hhist, %Hf, #Hha, #Hcv, Hpo, #Hauth⟩
+  icases Hcm with ⟨%rd, %H, Hrd, Hvr, Hrvs, Hcur, Hcln, Hhist, %Hf, #Hha, #Hcv, Hpo, #Hauth⟩
   obtain ⟨Hw, hRwf, hids, hHl, hHall, hwin0⟩ := Hf
   -- the new interval
-  imod new_intv γ P cm C' tx wg (rd.idx + 1) stop $$ [Hn Hcm0 Hwg0] with ⟨%rd', %Hrd', Hiv⟩
+  imod new_intv γ P cm C' tx wg (rd.idx + 1) stop rd.cln $$ [Hn Hcm0 Hwg0] with ⟨%rd', %Hrd', Hiv⟩
   · iframe; iframe #
-  obtain ⟨hr1, hr2, hr3, hr4⟩ := Hrd'
+  obtain ⟨hr1, hr2, hr3, hr4, hr5⟩ := Hrd'
   -- `γ.rvs`, the layout, the history
   imod ghostVar_update_halves ((C', R.reset), false) γ.rvs _ _ $$ Hrvs Hb with ⟨Hrvs, Hb⟩
   imod ghostVar_update rd' γ.rd rd $$ Hrd with Hrd
@@ -582,13 +626,15 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
     rw [hview rfl]
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe Hb Hvq
-    unfold rtRes rtResAt rtRest rtCore
+    unfold rtRes rtResAt rtRest rtCore clnPart
     iexists rd', (C', R.reset), H.insert (R.ver, rd.idx + 1) (C', R.reset), m, Pb, cm
-    rw [hr1, hr2, hr3, hr4, show R.reset.ver = R.ver from rfl, hview rfl]
+    rw [hr1, hr2, hr3, hr4, hr5, show R.reset.ver = R.ver from rfl, hview rfl]
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe; iframe #
     isplitr
     · ipureintro; exact Hok
+    isplitr
+    · ipureintro; exact fun _ => rbClean_reset P R
     isplitr
     · ipureintro
       exact ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, hH', (fun h => by cases h), safeRv_reset P C' R⟩
@@ -596,8 +642,8 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
   · -- a window: the clients' share back from the cache's invariant, the view updated
     icases Hwin with (>%Hbad | ⟨%vd, >Hbv⟩)
     · cases Hbad
-    unfold bView
-    icases Hbv with ⟨Hvc, Hcw⟩
+    unfold bView bViewC
+    icases Hbv with ⟨%c, Hvc, Hcw, Hcl⟩
     ihave #Hpo' : poisonAt γ R.ver rd.idx $$ [Hpo]
     · simp only [↓reduceIte]; iexact Hpo
     ihave #Hcv' : cacheValid γ P (C', R.reset) (rd.idx + 1) $$ []
@@ -627,14 +673,16 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
     imodintro
     simp only [↓reduceIte]
     iframe Hb Hvq
-    isplitr [Hvc Hcw]
-    · unfold rtRes rtResAt rtRest rtCore
+    isplitr [Hvc Hcw Hcl]
+    · unfold rtRes rtResAt rtRest rtCore clnPart
       iexists rd', (C', R.reset), H.insert (R.ver, rd.idx + 1) (C', R.reset), m, Pb, cm
-      rw [hr1, hr2, hr3, hr4, show R.reset.ver = R.ver from rfl]
+      rw [hr1, hr2, hr3, hr4, hr5, show R.reset.ver = R.ver from rfl]
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe; iframe #
       isplitr
       · ipureintro; exact Hok
+      isplitr
+      · ipureintro; exact fun _ => rbClean_reset P R
       isplitr
       · ipureintro
         exact ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, hH', (fun h => by cases h), safeRv_reset P C' R⟩

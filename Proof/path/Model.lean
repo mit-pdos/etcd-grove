@@ -1,6 +1,6 @@
 /-
 **Go's `path`, as pure functions** (rafthttp stage 5d; the user chose a translation over a trusted
-model, 2026-10-22, D33 stage 2). Lean-first.
+model, 2026-10-22, D38 stage 2). Lean-first.
 
 Each function follows its Go code step by step (`path.go`, `internal/bytealg`'s
 `LastIndexByteString`): the specs (`Spec/path/*.lean`) say the code returns the model's value, and

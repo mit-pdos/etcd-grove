@@ -38,7 +38,7 @@ at `ai`, with the log applied through `ai` the KV's (`appliedLogAt γr ai x.log`
 log applied through `ai'` the KV's after (`apply` deposits one per entry; 2026-10-14, unit C2a:
 each entry committed, `batchCommittedIdx`). **The write budget**
 (2026-10-13, unit 6): one write token of the store per entry applied (since D19b, 2026-10-18,
-taken by `apply` from the budget `srvWTPool E.γ` with a time receipt; until then
+taken by `apply` from the budget `srvWTPool E` with a time receipt; until then
 `txn.storeWTs E.γ (unapplied ai ms).length`, handed in and spent: `apply.Apply` may open one store write transaction per entry, and over the real backend
 every write transaction's `Unlock` may write back, costing one of the backend's write-back
 tokens, `backend.wbTok`). **The KV model** (2026-10-14, unit T1): the apply thread at the committed
@@ -56,8 +56,8 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗
       srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
-      batchCommittedIdx γr ms ∗ srvWTPool E.γ γp ∗ srvWTAt γp ai ∗ srvFS s ∗
-      kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) }}
+      batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTAt γp ai ∗ srvFS s ∗
+      kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
       (Val #ep)) (Val #ap))
   {{ RET #(); srvFS s ∗
@@ -67,7 +67,7 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
         srvAppliedOwn γr ai' ∗ srvWTAt γp ai' ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
-          kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x') ∗
+          kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗ srvRest E γr (A ++ unapplied ai ms)) ∗
         ⌜loopOk γ st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ st'.k = ciEff γ st.k ∨

@@ -116,6 +116,15 @@ instance membershippb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.membershippb :=
   build_get_is_pkg_init_wf
 
+-- `protoreflect` (names only), before `authpb`, whose translation imports it (the auth plan's S1,
+-- 2026-10-23: `authpb`'s messages and getters are translated with bodies, `authpb.toml`).
+instance protoreflect_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  define_is_pkg_init iprop(True)
+instance protoreflect_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  build_get_is_pkg_init_wf
+
 instance authpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
   define_is_pkg_init iprop(True)
 instance authpb_get_is_pkg_init_wf_inst :
@@ -454,15 +463,8 @@ instance zap_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap :=
   build_get_is_pkg_init_wf
 
--- protobuf's `proto` (`clientv3.cloneCompare` calls `proto.Clone`) and `protoreflect`, which
--- it imports (names only).
-instance protoreflect_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
-  define_is_pkg_init iprop(True)
-instance protoreflect_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
-  build_get_is_pkg_init_wf
-
+-- protobuf's `proto` (`clientv3.cloneCompare` calls `proto.Clone`; names only; `protoreflect`,
+-- which it imports, is above `authpb`).
 instance proto_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
   define_is_pkg_init iprop(True)
 instance proto_get_is_pkg_init_wf_inst :
@@ -594,6 +596,72 @@ theorem errorStringSpec_of_msg (e : GoInterfaceOk) (msg : GoString) :
   iapply H
   inext
   iapply HΦ
+
+/-- **The messages of the `errors.New` errors a unary call of the client can return** (D37):
+io's `EOF`, which grpc's `invoke` may return as it is (its `toRPCErr` passes `io.EOF` through and
+turns every other error into a status error, or keeps one carrying a status: grpc v1.84,
+`rpc_util.go`), and context's `Canceled` (a caller's context's `Err()`, which the client's
+`toErr` returns in place of a canceled call's status). Every other error such a call returns has
+another dynamic type (a grpc status error, an `rpctypes.EtcdError`, context's
+`deadlineExceededError`). -/
+def clientErrMsgs : List GoString := [go!"EOF", go!"context canceled"]
+
+/-- **An error that is no caller's own `errors.New` value** (persistent; D37): if it is an
+`*errors.errorString` at `x`, the cell of `x` holds one of `clientErrMsgs` for good (the `s`
+field, which only `errors.New` writes: `errStrCell`). A caller's `errors.New(msg)` error, `msg`
+not among them, is then a different value (`errCellOk_ne`), and, the client's errors being leaves
+(`clientErr`), not `errors.Is` it either. What a program that tells its own errors apart from the
+client's needs (Kubernetes' storage test: `errDeleteRejected`, `errUpdateRejected`). -/
+def errCellOk (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ x : Loc,
+    ⌜err = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ →
+    ∃ m : GoString, ⌜m ∈ clientErrMsgs⌝ ∗ x.[_root_.Perennial.errors.errorString, go!"s"] ↦□ m)
+
+instance errCellOk_persistent (err : GoInterface) : Persistent (errCellOk (GF := GF) err) := by
+  unfold errCellOk; infer_instance
+
+theorem errCellOk_nil : ⊢ errCellOk (GF := GF) GoInterface.nil := by
+  unfold errCellOk
+  iintro !> %x %h
+  cases h
+
+/-- An error of a dynamic type other than `*errors.errorString`. -/
+theorem errCellOk_of_ty (e : GoInterfaceOk)
+    (h : e.ty ≠ go.GoType.PointerType _root_.Perennial.errors.errorString.ty) :
+    ⊢ errCellOk (GF := GF) (GoInterface.ok e) := by
+  unfold errCellOk
+  iintro !> %x %he
+  injection he with he
+  exact absurd (congrArg GoInterfaceOk.ty he) h
+
+/-- An `*errors.errorString` whose cell holds one of `clientErrMsgs`. -/
+theorem errCellOk_of_cell (x : Loc) (m : GoString) (hm : m ∈ clientErrMsgs) :
+    x.[_root_.Perennial.errors.errorString, go!"s"] ↦□ m ⊢
+      errCellOk (GF := GF)
+        (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+  unfold errCellOk
+  iintro #Hc !> %y %he
+  have hy : x = y := by
+    injection he with he
+    injection he with _ hv
+    exact go.intoVal_inj (V := Loc) hv
+  subst hy
+  iexists m
+  iframe Hc
+  ipureintro; exact hm
+
+/-- **A client error is not a caller's `errors.New(msg)` value** of a message `msg` not among
+`clientErrMsgs`. -/
+theorem errCellOk_ne (err : GoInterface) (y : Loc) (msg : GoString) (hmsg : msg ∉ clientErrMsgs) :
+    errCellOk (GF := GF) err ⊢ y.[_root_.Perennial.errors.errorString, go!"s"] ↦□ msg -∗
+      ⌜err ≠ interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #y⌝ := by
+  unfold errCellOk
+  iintro #H #Hy
+  by_cases he : err = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #y
+  · ihave ⟨%m, %hm, #Hm⟩ := H $$ %y %he
+    icombine Hy Hm gives %h
+    exact absurd (h ▸ hm) hmsg
+  · ipureintro; exact he
 
 end errstr
 

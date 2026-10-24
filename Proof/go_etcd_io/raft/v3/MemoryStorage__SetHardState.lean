@@ -40,10 +40,10 @@ theorem MemoryStorage.SetHardState.wp_proof :
   iNamedSuffix Hfields_inv "_f"
   icombine HhardState HhardState_f gives %Heq
   subst Heq
-  ihave HhardState := (ptsto_halves _ _).2 $$ [HhardState HhardState_f]
+  ihave HhardState := (typedPointsto_half_split _ _ 1).2 $$ [HhardState HhardState_f]
   · iframe HhardState HhardState_f
   wp_auto
-  icases (ptsto_halves _ _).1 $$ HhardState with ⟨HhardState, HhardState_f⟩
+  icases (typedPointsto_half_split _ _ 1).1 $$ HhardState with ⟨HhardState, HhardState_f⟩
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState_f

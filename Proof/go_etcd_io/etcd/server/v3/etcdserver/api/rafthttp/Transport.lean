@@ -1,5 +1,5 @@
 /-
-**The transport and its peers' shared definitions** (rafthttp stage 6; D34). Lean-first.
+**The transport and its peers' shared definitions** (rafthttp stage 6; D39). Lean-first.
 * `trFixed`: the transport's fields after `Start`, read-only (its logger, id, URLs, cluster id,
   `Raft`, `ErrorC`, round trippers, dial-retry rate, stats), the network's stream registry, the
   registration of every member's hosts (`pipeReg`), `RaftStreamPrefix`'s value and (stage 6d) that

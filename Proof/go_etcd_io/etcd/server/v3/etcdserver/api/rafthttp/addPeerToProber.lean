@@ -1,5 +1,5 @@
 /-
-The trust boundary: `addPeerToProber` (untranslated; D34).
+The trust boundary: `addPeerToProber` (untranslated; D39).
 -/
 module
 
@@ -20,7 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Trust boundary** (rafthttp stage 6c, D34, the user's choice): `addPeerToProber`
+/-- **Trust boundary** (rafthttp stage 6c, D39, the user's choice): `addPeerToProber`
 (`probing_status.go`) builds the probe URLs (`us[i] + ProbingPrefix`, reading `us`), adds them to the
 prober `p` (`github.com/xiang90/probing`, untranslated: its goroutine `GET`s them on the transport's
 round tripper and records round trips), and, if the prober has the peer, starts

@@ -9,9 +9,8 @@ public import Code.path
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -26,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : path.Assumptions]
 
-instance lazybuf_typed_pointsto :
+noncomputable instance lazybuf_typed_pointsto :
     TypedPointsto (GF := GF) path.lazybuf where
   typedPointstoDef l v dq := iprop(
     "s" ∷ typedPointsto (structFieldRef path.lazybuf go!"s" l) v.s' dq ∗
@@ -37,11 +36,11 @@ instance lazybuf_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance lazybuf_into_val_typed :
+noncomputable instance lazybuf_into_val_typed :
     IntoValTypedUnderlying (GF := GF) path.lazybuf path.lazybuf.underlying := by
   solve_into_val_typed_struct
 
-instance lazybuf_access_load_s (l : Loc) (v : path.lazybuf) (dq : DFrac) :
+noncomputable instance lazybuf_access_load_s (l : Loc) (v : path.lazybuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef path.lazybuf go!"s" l) v.s' dq)
       (typedPointsto (structFieldRef path.lazybuf go!"s" l) v.s' dq)
@@ -49,7 +48,7 @@ instance lazybuf_access_load_s (l : Loc) (v : path.lazybuf) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance lazybuf_access_store_s (l : Loc) (v : path.lazybuf) (s' : GoString) :
+noncomputable instance lazybuf_access_store_s (l : Loc) (v : path.lazybuf) (s' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef path.lazybuf go!"s" l) v.s' (DFrac.own 1))
       (typedPointsto (structFieldRef path.lazybuf go!"s" l) s' (DFrac.own 1))
@@ -57,7 +56,7 @@ instance lazybuf_access_store_s (l : Loc) (v : path.lazybuf) (s' : GoString) :
  by
   solve_pointsto_access_struct
 
-instance lazybuf_access_load_buf (l : Loc) (v : path.lazybuf) (dq : DFrac) :
+noncomputable instance lazybuf_access_load_buf (l : Loc) (v : path.lazybuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef path.lazybuf go!"buf" l) v.buf' dq)
       (typedPointsto (structFieldRef path.lazybuf go!"buf" l) v.buf' dq)
@@ -65,7 +64,7 @@ instance lazybuf_access_load_buf (l : Loc) (v : path.lazybuf) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance lazybuf_access_store_buf (l : Loc) (v : path.lazybuf) (buf' : GoSlice) :
+noncomputable instance lazybuf_access_store_buf (l : Loc) (v : path.lazybuf) (buf' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef path.lazybuf go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef path.lazybuf go!"buf" l) buf' (DFrac.own 1))
@@ -73,7 +72,7 @@ instance lazybuf_access_store_buf (l : Loc) (v : path.lazybuf) (buf' : GoSlice) 
  by
   solve_pointsto_access_struct
 
-instance lazybuf_access_load_w (l : Loc) (v : path.lazybuf) (dq : DFrac) :
+noncomputable instance lazybuf_access_load_w (l : Loc) (v : path.lazybuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef path.lazybuf go!"w" l) v.w' dq)
       (typedPointsto (structFieldRef path.lazybuf go!"w" l) v.w' dq)
@@ -81,7 +80,7 @@ instance lazybuf_access_load_w (l : Loc) (v : path.lazybuf) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance lazybuf_access_store_w (l : Loc) (v : path.lazybuf) (w' : w64) :
+noncomputable instance lazybuf_access_store_w (l : Loc) (v : path.lazybuf) (w' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef path.lazybuf go!"w" l) v.w' (DFrac.own 1))
       (typedPointsto (structFieldRef path.lazybuf go!"w" l) w' (DFrac.own 1))

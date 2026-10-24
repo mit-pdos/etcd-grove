@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 
 @[expose] public section
 
@@ -22,22 +22,24 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `newTreeIndex(lg)` (a non-nil logger): a fresh tree index (as the `index` interface), with its writer's handle
-for the empty log, the other half of the committed log's authority (`idxLogAuth`), the whole
-authority of the compaction revision at `-1` (none; `crevUB`, which the store splits between its
-locks and the compaction right), the compactor's token (`idxCompactor`, no compaction yet: what
-`treeIndex.Compact` takes), and its reader tokens (one per reader slot of the `RWMutex`). The
-index's ghost names `γ` are the caller's, fresh (`mvcc.idxFresh`, `mvcc.idxFresh_alloc`;
-2026-10-16, D13a: the etcd server chooses them before `newRaftNode`). -/
+/-- `newTreeIndex(lg)` (a non-nil logger): a fresh tree index (as the `index` interface), private
+(`ownIdxPriv`: its `RWMutex` not yet a lock, the restore plan's R3 design point: `restore` rebuilds
+it outside any lock and makes the lock, `idx_publish`), with the lock's ghost part (`idxLockG γ n`)
+and the compactor's token (`idxCompactor`, no compaction yet: what `treeIndex.Compact` takes).
+The caller brings the index's event count's authority at `n` (the events the rebuild will put:
+`0` for `NewStore`, the restored log's for `store.Restore`) and the compactor's state, whole, both
+fresh, with lower bounds of the compaction revision and the committed log (the restore plan's
+R5d: `store.Restore`'s new index keeps the store's history, committed-log and compaction names).
+`NewStore` takes all of fresh names (`idxFresh`, split by `idxFresh_split`; 2026-10-16, D13a: the
+etcd server chooses them before `newRaftNode`). -/
 abbrev mvcc.newTreeIndex.spec : Prop :=
-  ∀ (γ : mvcc.IdxNames) (lg : Loc),
+  ∀ (γ : mvcc.IdxNames) (lg : Loc) (n : Nat) (log₀ : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ ⌜lg ≠ null⌝ ∗
-      mvcc.idxFresh γ }}
+      monoNatAuthOwn γ.nev 1 n ∗ ghostVar γ.cmp 1 ((-1 : Int), ([] : List Loc)) ∗
+      mvcc.crevLb γ (-1) ∗ monoListLbOwn γ.log log₀ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex)) (Val #lg))
   {{ (ti : Loc), RET #(interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti);
-      mvcc.isTreeIndex ti γ ∗ mvcc.idxWriter γ [] [] ∗
-        mvcc.idxLogAuth γ (1 : Qp).half [] ∗ mvcc.crevUB γ 1 (-1) ∗ mvcc.idxCompactor γ (-1) ∗
-        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.idxReader ti γ }}
+      mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ n ∗ mvcc.idxCompactor γ (-1) }}
 
 end spec
 

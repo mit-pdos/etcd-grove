@@ -324,7 +324,7 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     (Hd : Deliverable st) (Hto : st.msg.To' = id)
     -- (D22 S-r) a snapshot only to a node that takes one
     (Hsi : st.msg.Type' = MsgSnap → γn.snapIn = true)
-    -- (2026-10-22, D33a) no responses (`deliver`'s copy has none)
+    -- (2026-10-22, D38a) no responses (`deliver`'s copy has none)
     (Hr : st.resps = []) :
     ⊢ □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
           isMessage (GF := GF) γn.raft (absMsg ty st.msg st.ents st.ctx)) -∗

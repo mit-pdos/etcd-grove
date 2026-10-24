@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/etcd#15220 issue closed: related, different: a requested progress response overtook a watch's queued events (progress request after the create)
   - etcd-io/etcd#15237 pr merged: the fix of #15220 (progress responses through mvcc's watch channel); leaves the created response on ctrlStream, which overtakes the progress response here
@@ -22,7 +22,10 @@ candidate: issues/upstream/etcd-watch-progress-before-created/
 - **Upstream candidate** (2026-10-19; rebased 2026-10-21): branch `fix/etcd-watch-progress-before-created` off
   upstream `main` `bf9cadf04` (not pushed), with a deterministic integration test `TestV3WatchProgressBeforeCreated`
   over a raw watch stream (fails 20 of 20 at the base) and the fix with a bounded drain (`len(Chan())` responses), which
-  upstream prefers to draining until empty; `issues/upstream/etcd-watch-progress-before-created/`.
+  upstream prefers to draining until empty; `issues/upstream/etcd-watch-progress-before-created/`. Revised 2026-10-23
+  (the user's review: report it, as a break of linearizability): the issue states the guarantee broken (a progress
+  notification at revision R promises every event up to R; the new watch then receives an event below R), rebuilt on
+  upstream `main` `3aaab3479`.
 - **Status**: bug (a wrong result): a watch created from an old revision can receive, as its first
   response, a progress notification at a revision above events it has not received yet. A client
   that reads a progress notification as "nothing changed under my range up to this revision" (its

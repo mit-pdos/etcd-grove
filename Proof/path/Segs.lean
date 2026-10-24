@@ -24,6 +24,15 @@ def plainSeg (s : List w8) : Prop := s ≠ [] ∧ ∀ c ∈ s, c ≠ slash ∧ c
 
 instance : DecidablePred plainSeg := fun s => by unfold plainSeg; infer_instance
 
+/-- A non-empty segment without `/` that is neither `.` nor `..`: what `Clean` copies as it is
+(2026-10-24, for `path.PathCleanAbs`, whose segments may contain `.`). -/
+def cleanSeg (s : List w8) : Prop := s ≠ [] ∧ (∀ c ∈ s, c ≠ slash) ∧ s ≠ [dot] ∧ s ≠ [dot, dot]
+
+theorem plainSeg.toClean {s : List w8} (h : plainSeg s) : cleanSeg s := by
+  refine ⟨h.1, fun c hc => (h.2 c hc).1, ?_, ?_⟩
+  · rintro rfl; exact (h.2 dot (by simp)).2 rfl
+  · rintro rfl; exact (h.2 dot (by simp)).2 rfl
+
 /-- `/s1/s2/.../sn`. -/
 def segsPath (segs : List (List w8)) : List w8 := segs.foldl (fun acc s => acc ++ [slash] ++ s) []
 
@@ -52,6 +61,9 @@ theorem segsPath_cons_ne (s : List w8) (b : List (List w8)) :
     ∃ rest, segsPath (s :: b) = slash :: rest := ⟨s ++ segsPath b, by rw [segsPath_cons]; simp⟩
 
 theorem plainSeg_length (s : List w8) (h : plainSeg s) : 1 ≤ s.length := by
+  cases s with | nil => exact absurd rfl h.1 | cons _ _ => simp
+
+theorem cleanSeg_length (s : List w8) (h : cleanSeg s) : 1 ≤ s.length := by
   cases s with | nil => exact absurd rfl h.1 | cons _ _ => simp
 
 /-- What follows a segment in a path: the end, or a `/`. -/
@@ -94,54 +106,91 @@ theorem cleanLoop_slash (p : List w8) (rt : Bool) (r : Nat) (o : List w8) (dd : 
   rw [cleanLoop_step _ _ _ _ _ hr, cleanStep, if_pos h]
 
 /-- A plain segment of a rooted path is copied, after a `/` unless the output is the root. -/
-theorem cleanLoop_seg (pre s rest o : List w8) (hs : plainSeg s)
+theorem cleanLoop_seg (pre s rest o : List w8) (hs : cleanSeg s)
     (hrest : rest = [] ∨ rest.head? = some slash) :
     cleanLoop (pre ++ s ++ rest) true pre.length o 1 =
       cleanLoop (pre ++ s ++ rest) true (pre.length + s.length)
         ((if o.length ≠ 1 then o ++ [slash] else o) ++ s) 1 := by
-  obtain ⟨hne, hcs⟩ := hs
+  obtain ⟨hne, hcs', hn1, hn2⟩ := hs
   obtain ⟨c, s', rfl⟩ : ∃ c s', s = c :: s' := by
     cases s with | nil => exact absurd rfl hne | cons c s' => exact ⟨c, s', rfl⟩
-  have hc := hcs c (by simp)
+  have hc : c ≠ slash := hcs' c (by simp)
   have hlen : pre.length < (pre ++ c :: s' ++ rest).length := by simp
   have hg : (pre ++ c :: s' ++ rest).getD pre.length 0 = c := by simp
   rw [cleanLoop_step _ _ _ _ _ hlen]
-  have hcs' : ∀ x ∈ c :: s', x ≠ slash := fun x hx => (hcs x hx).1
+  -- not `.` nor `..` followed by the end or a `/`: the segment's next bytes are its own
+  have hd1 : ¬ (c = dot ∧ (pre.length + 1 = (pre ++ c :: s' ++ rest).length ∨
+      (pre ++ c :: s' ++ rest).getD (pre.length + 1) 0 = slash)) := by
+    rintro ⟨rfl, h⟩
+    cases s' with
+    | nil => exact hn1 rfl
+    | cons d s'' =>
+      have hd : d ≠ slash := hcs' d (by simp)
+      rcases h with h | h
+      · simp at h
+      · have e : (pre ++ dot :: d :: s'' ++ rest).getD (pre.length + 1) 0 = d := by
+          rw [List.getD_eq_getElem?_getD, List.append_assoc, List.getElem?_append_right (by omega)]
+          simp
+        rw [e] at h; exact hd h
+  have hd2 : ¬ (c = dot ∧ (pre ++ c :: s' ++ rest).getD (pre.length + 1) 0 = dot ∧
+      (pre.length + 2 = (pre ++ c :: s' ++ rest).length ∨
+        (pre ++ c :: s' ++ rest).getD (pre.length + 2) 0 = slash)) := by
+    rintro ⟨rfl, h1, h⟩
+    cases s' with
+    | nil => exact hn1 rfl
+    | cons d s'' =>
+      have e1 : (pre ++ dot :: d :: s'' ++ rest).getD (pre.length + 1) 0 = d := by
+        rw [List.getD_eq_getElem?_getD, List.append_assoc, List.getElem?_append_right (by omega)]
+        simp
+      rw [e1] at h1; subst h1
+      cases s'' with
+      | nil => exact hn2 rfl
+      | cons e s3 =>
+        have he : e ≠ slash := hcs' e (by simp)
+        rcases h with h | h
+        · simp at h
+        · have e2 : (pre ++ dot :: dot :: e :: s3 ++ rest).getD (pre.length + 2) 0 = e := by
+            rw [List.getD_eq_getElem?_getD, List.append_assoc, List.getElem?_append_right (by omega)]
+            simp
+          rw [e2] at h; exact he h
   have hce := copyElem_seg pre (c :: s') rest (if o.length ≠ 1 then o ++ [slash] else o) hcs' hrest
   have Hst : cleanStep (pre ++ c :: s' ++ rest) true pre.length o 1 =
       (pre.length + (c :: s').length,
         (if o.length ≠ 1 then o ++ [slash] else o) ++ c :: s', 1) := by
-    rw [cleanStep, if_neg (by rw [hg]; exact hc.1), if_neg (by rw [hg]; intro h; exact hc.2 h.1),
-      if_neg (by rw [hg]; intro h; exact hc.2 h.1)]
+    rw [cleanStep, if_neg (by rw [hg]; exact hc), if_neg (by rw [hg]; exact hd1),
+      if_neg (by rw [hg]; intro h; exact hd2 h)]
     have e : (decide (true = true ∧ o.length ≠ 1) || decide ((!true) = true ∧ o.length ≠ 0)) =
         decide (o.length ≠ 1) := by simp
     simp only [Bool.not_true, Bool.false_eq_true, false_and, or_false, true_and]
     rw [hce]
   rw [Hst]
 
-theorem segsPath_length_two (a : List (List w8)) (ha : a ≠ []) (hp : ∀ s ∈ a, plainSeg s) :
+theorem segsPath_length_two (a : List (List w8)) (ha : a ≠ []) (hp : ∀ s ∈ a, cleanSeg s) :
     2 ≤ (segsPath a).length := by
   cases a with
   | nil => exact absurd rfl ha
   | cons s b =>
-    have := plainSeg_length s (hp s (by simp))
+    have := cleanSeg_length s (hp s (by simp))
     rw [segsPath_cons]; simp; omega
 
-/-- **A rooted path of plain segments, then the end or a `/`**: from the end of its first
-segments `a`, `Clean`'s loop reaches the end of `a ++ b` with that path as its output. -/
-theorem cleanLoop_segs (a b : List (List w8)) (t : List w8) (ha : a ≠ [])
-    (hpa : ∀ s ∈ a, plainSeg s) (hb : ∀ s ∈ b, plainSeg s) (ht : t = [] ∨ t.head? = some slash) :
-    cleanLoop (segsPath (a ++ b) ++ t) true (segsPath a).length (segsPath a) 1 =
-      cleanLoop (segsPath (a ++ b) ++ t) true (segsPath (a ++ b)).length (segsPath (a ++ b)) 1 := by
+/-- **A rooted path of clean segments after any prefix `pre`, then the end or a `/`**: from the
+end of its first segments `a`, `Clean`'s loop reaches the end of `a ++ b` with that path as its
+output. -/
+theorem cleanLoop_segs_pre (pre : List w8) (a b : List (List w8)) (t : List w8) (ha : a ≠ [])
+    (hpa : ∀ s ∈ a, cleanSeg s) (hb : ∀ s ∈ b, cleanSeg s) (ht : t = [] ∨ t.head? = some slash) :
+    cleanLoop (pre ++ segsPath (a ++ b) ++ t) true (pre.length + (segsPath a).length) (segsPath a) 1 =
+      cleanLoop (pre ++ segsPath (a ++ b) ++ t) true (pre.length + (segsPath (a ++ b)).length)
+        (segsPath (a ++ b)) 1 := by
   induction b generalizing a with
   | nil => simp
   | cons s b ih =>
     have hs := hb s (by simp)
-    have hb' : ∀ s ∈ b, plainSeg s := fun x hx => hb x (by simp [hx])
-    have hp : segsPath (a ++ s :: b) ++ t = (segsPath a ++ [slash]) ++ s ++ (segsPath b ++ t) := by
+    have hb' : ∀ s ∈ b, cleanSeg s := fun x hx => hb x (by simp [hx])
+    have hp : pre ++ segsPath (a ++ s :: b) ++ t =
+        (pre ++ segsPath a ++ [slash]) ++ s ++ (segsPath b ++ t) := by
       rw [segsPath_append, segsPath_cons]; simp
     have h2 := segsPath_length_two a ha hpa
-    have hpa' : ∀ x ∈ a ++ [s], plainSeg x := by
+    have hpa' : ∀ x ∈ a ++ [s], cleanSeg x := by
       intro x hx
       simp only [List.mem_append, List.mem_singleton] at hx
       rcases hx with hx | rfl
@@ -149,30 +198,44 @@ theorem cleanLoop_segs (a b : List (List w8)) (t : List w8) (ha : a ≠ [])
       · exact hs
     have ih' := ih (a ++ [s]) (by simp) hpa' hb'
     rw [show a ++ [s] ++ b = a ++ s :: b by simp, segsPath_snoc] at ih'
-    have hlt : (segsPath a).length < (segsPath (a ++ s :: b) ++ t).length := by
+    have hlt : pre.length + (segsPath a).length < (pre ++ segsPath (a ++ s :: b) ++ t).length := by
       rw [hp]; simp
-    have hsl : (segsPath (a ++ s :: b) ++ t).getD (segsPath a).length 0 = slash := by
-      rw [hp]; simp
+    have hsl : (pre ++ segsPath (a ++ s :: b) ++ t).getD (pre.length + (segsPath a).length) 0 =
+        slash := by
+      rw [hp, List.getD_eq_getElem?_getD, List.append_assoc, List.append_assoc,
+        List.getElem?_append_right (by simp)]
+      simp
     rw [cleanLoop_slash _ _ _ _ _ hlt hsl]
-    have hseg := cleanLoop_seg (segsPath a ++ [slash]) s (segsPath b ++ t) (segsPath a) hs
+    have hseg := cleanLoop_seg (pre ++ segsPath a ++ [slash]) s (segsPath b ++ t) (segsPath a) hs
       (segsPath_tail b t ht)
     rw [← hp] at hseg
-    have e1 : (segsPath a ++ [slash]).length = (segsPath a).length + 1 := by simp
+    have e1 : (pre ++ segsPath a ++ [slash]).length = pre.length + (segsPath a).length + 1 := by
+      simp; omega
     rw [e1, if_pos (by omega)] at hseg
     rw [hseg]
     have e2 : (segsPath a ++ [slash] ++ s).length = (segsPath a).length + 1 + s.length := by
       simp; omega
     rw [e2] at ih'
+    rw [show pre.length + (segsPath a).length + 1 + s.length =
+      pre.length + ((segsPath a).length + 1 + s.length) by omega]
     exact ih'
+
+/-- **A rooted path of clean segments, then the end or a `/`**: from the end of its first
+segments `a`, `Clean`'s loop reaches the end of `a ++ b` with that path as its output. -/
+theorem cleanLoop_segs (a b : List (List w8)) (t : List w8) (ha : a ≠ [])
+    (hpa : ∀ s ∈ a, cleanSeg s) (hb : ∀ s ∈ b, cleanSeg s) (ht : t = [] ∨ t.head? = some slash) :
+    cleanLoop (segsPath (a ++ b) ++ t) true (segsPath a).length (segsPath a) 1 =
+      cleanLoop (segsPath (a ++ b) ++ t) true (segsPath (a ++ b)).length (segsPath (a ++ b)) 1 := by
+  simpa using cleanLoop_segs_pre [] a b t ha hpa hb ht
 
 /-- **`Clean` of a rooted path of plain segments, then the end or one `/`**: the path. -/
 theorem cleanModel_segs (segs : List (List w8)) (t : List w8) (hne : segs ≠ [])
-    (hp : ∀ s ∈ segs, plainSeg s) (ht : t = [] ∨ t = [slash]) :
+    (hp : ∀ s ∈ segs, cleanSeg s) (ht : t = [] ∨ t = [slash]) :
     cleanModel (segsPath segs ++ t) = segsPath segs := by
   obtain ⟨s1, b, rfl⟩ : ∃ s1 b, segs = s1 :: b := by
     cases segs with | nil => exact absurd rfl hne | cons s1 b => exact ⟨s1, b, rfl⟩
   have hs1 := hp s1 (by simp)
-  have hb : ∀ s ∈ b, plainSeg s := fun x hx => hp x (by simp [hx])
+  have hb : ∀ s ∈ b, cleanSeg s := fun x hx => hp x (by simp [hx])
   have ht' : t = [] ∨ t.head? = some slash := by rcases ht with rfl | rfl <;> simp
   have hp1 : segsPath (s1 :: b) ++ t = [slash] ++ s1 ++ (segsPath b ++ t) := by
     rw [segsPath_cons]; simp
@@ -207,7 +270,7 @@ theorem cleanModel_segs (segs : List (List w8)) (t : List w8) (hne : segs ≠ []
 theorem joinModel_segs (segs : List (List w8)) (s : List w8) (hne : segs ≠ [])
     (hp : ∀ x ∈ segs, plainSeg x) (hs : plainSeg s) :
     joinModel [segsPath segs, s] = segsPath (segs ++ [s]) := by
-  have hl := segsPath_length_two segs hne hp
+  have hl := segsPath_length_two segs hne (fun x hx => (hp x hx).toClean)
   have h0 : segsPath segs ≠ [] := by intro h; rw [h] at hl; simp at hl
   have hA : 0 < (segsPath segs).length := by omega
   have hb : joinBuf [segsPath segs, s] [] = segsPath (segs ++ [s]) := by
@@ -222,8 +285,8 @@ theorem joinModel_segs (segs : List (List w8)) (s : List w8) (hne : segs ≠ [])
   have := cleanModel_segs (segs ++ [s]) [] (by simp) (by
     intro x hx; simp only [List.mem_append, List.mem_singleton] at hx
     rcases hx with hx | rfl
-    · exact hp x hx
-    · exact hs) (Or.inl rfl)
+    · exact (hp x hx).toClean
+    · exact hs.toClean) (Or.inl rfl)
   simpa using this
 
 /-- The last `/` of `q ++ "/" ++ s`, for `s` without `/`. -/
@@ -283,7 +346,7 @@ theorem dirModel_segs (segs : List (List w8)) (s : List w8) (hne : segs ≠ [])
       segsPath segs ++ [slash] := by
     rw [List.append_assoc, List.take_append]; simp [List.take_of_length_le]
   simp only [ht]
-  exact cleanModel_segs segs [slash] hne hp (Or.inr rfl)
+  exact cleanModel_segs segs [slash] hne (fun x hx => (hp x hx).toClean) (Or.inr rfl)
 
 end path
 end EtcdGrove

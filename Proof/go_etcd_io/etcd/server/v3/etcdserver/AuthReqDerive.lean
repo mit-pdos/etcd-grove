@@ -63,9 +63,9 @@ file header). -/
 theorem isReqAuth_of_authInv
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hTLS : auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R ⊢
-      isReqAuth (auth.authIface st) (auth.authRd st R) := by
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
+      isReqAuth (auth.authIface st) (auth.authRd st R M) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iunfold isReqAuth
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
@@ -75,7 +75,7 @@ theorem isReqAuth_of_authInv
   · iintro !> %ctx %cd %Φ !> ⟨-, Hrd⟩ HΦ
     iunfold auth.authRd at Hrd
     icases Hrd with ⟨Hen, Hca, HR⟩
-    iapply (hCtx st R (GoInterface.ok ctx)) $$ [Hen]
+    iapply (hCtx st R M (GoInterface.ok ctx)) $$ [Hen]
     · iframe; iframe #
     iintro !> %a %err ⟨Hen, #Ha, #Herr⟩
     iapply HΦ
@@ -85,7 +85,7 @@ theorem isReqAuth_of_authInv
     · iapply authInfoRO_authInfoOpt a $$ Ha
     iapply EtcdGrove.apply.authErrIs_applyErrIs err $$ [$Hpkg $Herr]
   · iintro !> %ctx %cd %Φ !> - HΦ
-    iapply (hTLS st R (GoInterface.ok ctx)) $$ []
+    iapply (hTLS st R M (GoInterface.ok ctx)) $$ []
     · iframe #
     iintro !> %a #Ha
     iapply HΦ

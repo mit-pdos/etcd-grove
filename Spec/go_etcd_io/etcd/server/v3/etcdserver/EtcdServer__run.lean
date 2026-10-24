@@ -34,7 +34,7 @@ in the runs covered (D19m, 2026-10-18): nothing is sent on either (`srvRunFields
 predicate `False`), so it never returns; until then the shutdown was proved, with `Cleanup` a false
 trust-boundary axiom (it closes the backend and the stores that request goroutines still use). The write
 budget is the store's write tokens (the backend's unit 6: one token per applied entry), since D19b
-(2026-10-18) in the receipt-backed budget `srvWTPool E.γ` (`isServerRun`), from which `apply` takes
+(2026-10-18) in the receipt-backed budget `srvWTPool E` (`isServerRun`), from which `apply` takes
 one per entry. Until D19b `run` held `txn.storeWTs E.γ N` and handed each batch's share to its
 job, under the lifetime premise `srvLifeBound ρ.raft N` (D14g: every committed log has at most `N`
 entries; until 2026-10-17, `2 ^ 64 ≤ N`). -/

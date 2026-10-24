@@ -218,14 +218,17 @@ def leaseMeta (id : w64) (l : Loc) (q : Qp) : IProp GF :=
 
 /-- **The lessor's apply-side fields** under `le.mu` at `q`, for its lease map `M`: `demotec`,
 the expiry notifier, the checkpoint heap (a queue of fresh items, any ids), the checkpointer
-`cp`, and every granted lease's `leaseMeta`. -/
+`cp`, and every granted lease's `leaseMeta`; (D22 receiver epochs, S7c, 2026-10-23) half the
+fraction of the backend `b` (the other half its user's, `lessorBeOn`: `Recover` replaces it). -/
 def lessorExtra (lp : Loc) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (cp : GoFunc),
+  iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (cp : GoFunc)
+      (b : GoInterface),
     lF go!"demotec" lp ↦{DFrac.own q} dc ∗
     lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q} np ∗ notifierAt np q ∗
     lF go!"leaseCheckpointHeap" lp ↦{DFrac.own q} h ∗ queueAt h hx q ∗
     lF go!"cp" lp ↦{DFrac.own q} cp ∗
-    [∗map] id ↦ l ∈ M, leaseMeta id l q)
+    ([∗map] id ↦ l ∈ M, leaseMeta id l q) ∗
+    lF go!"b" lp ↦{DFrac.own q.half} b)
 
 /-- **What `le.mu` guards** at fraction `q`: the lease map `M` (whose domain is the live set
 `L`; the lessor's share of it, `q/2`, and of the ghost map's authority), the item map, the range

@@ -8,20 +8,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def unicode.utf8 : GoString := go!"unicode/utf8"
+noncomputable def unicode.utf8 : GoString := go!"unicode/utf8"
 end pkg_id
 
 namespace unicode.utf8
 
-def acceptRange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def acceptRange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"unicode/utf8.acceptRange" [])
 
 attribute [irreducible] acceptRange.ty
@@ -166,7 +165,7 @@ noncomputable def ValidString [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def ValidRune [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.ValidRune"
 
-instance info' : PkgInfo pkg_id.unicode.utf8 where
+noncomputable instance info' : PkgInfo pkg_id.unicode.utf8 where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -186,21 +185,21 @@ structure acceptRange [FfiSyntax] where
   lo' : w8
   hi' : w8
 
-instance acceptRange.zero_val [FfiSyntax] : ZeroVal acceptRange :=
+noncomputable instance acceptRange.zero_val [FfiSyntax] : ZeroVal acceptRange :=
   ⟨acceptRange.mk zeroValDef zeroValDef⟩
 
-@[reducible] def acceptRange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def acceptRange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lo" go.uint8),
 (go.field_decl.FieldDecl go!"hi" go.uint8)]
 
-@[irreducible] def acceptRange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def acceptRange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   acceptRange.fieldsUnsealed
 
-instance equals_unfold_acceptRange [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_acceptRange [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold acceptRange.fields acceptRange.fieldsUnsealed :=
   ⟨by unfold acceptRange.fields; rfl⟩
 
-@[reducible] def acceptRange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def acceptRange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType acceptRange.fields)
 
 class acceptRange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

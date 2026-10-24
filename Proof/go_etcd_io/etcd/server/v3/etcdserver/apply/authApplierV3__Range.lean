@@ -27,16 +27,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.authApplierV3.Range.wp_proof :
     apply.authApplierV3.Range.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq o log
+  intro E c inner p r rq o log info
   wp_start as ⟨#Hauth, #Hinner, Hpre⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, -, -⟩
   iunfold apply.rangePre at Hpre
   icases Hpre with ⟨%Hk, #Hr, Hkv, Hres⟩
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
-  ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner $$ Happ Hres
-  iunfold apply.authInfoOwn at Hinfo
-  icases Hinfo with ⟨%info, Hinfo⟩
+  ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hst' := Hst
   iunfold apply.isAuthStore at Hst'
   icases Hst' with ⟨%sti, %Hsti, -, #HRange, -⟩
@@ -44,7 +42,10 @@ theorem apply.authApplierV3.Range.wp_proof :
   ihave #Hr' := Hr
   iunfold txn.rangeRequestIs at Hr'
   icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %x1, %x2, %x3, %x4, %x5, %x6, %x7, %x8, %x9, %x10,
-    %x11, #HK, #Hk, #HE, #He, -, -, -, -, -, -, -, -, -, -, -, -, %Hkb⟩
+    %x11, #HK, #Hk, #HE, #He, -, -, -, -, -, -, -, -, -, -, -, %Ho, %Hkb⟩
+  ihave %Hel := ownSlice_len _ _ _ $$ He
+  have hkey : o.key = k := by rw [Ho]; simp only [txn.rangeOpOf.proj_key]
+  have hre : o.base.rangeEnd = txn.rangeEndOf esl e := by rw [Ho]; simp only [txn.rangeOpOf.proj_base]
   subst Hsti
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -54,7 +55,7 @@ theorem apply.authApplierV3.Range.wp_proof :
   icases Ht with ⟨-, -, #HRangeI, -⟩
   wp_auto
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
-    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff⟩
+    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff, #Hpv⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   ihave Hkv := Hkv $$ Hard
   cases err with
@@ -76,12 +77,18 @@ theorem apply.authApplierV3.Range.wp_proof :
     · isplitr
       · ipureintro; trivial
       · iframe HeI; ipureintro; simp
-    iapply apply.chainRes_auth_in c p (.ok bi) $$ Happ [Hinfo] Hres
-    iunfold apply.authInfoOwn
-    iexists info; iexact Hinfo
+    isplitl [Hinfo Hres]
+    · iapply apply.chainRes_auth_in c p (.ok bi) info $$ Happ Hinfo Hres
+    iapply apply.chainClass_auth_rejected
   | nil =>
   wp_auto
-  wp_apply HRangeI $$ %r %rq %o %log [Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc⟩
+  ihave #Hrc' : apply.rangeClass (GF := GF) E.authMode info o $$ []
+  · rw [← hkey]
+    iapply (apply.rangeClass_of_verdict E.authMode info o esl e Hel.1 hre) $$ Hpv
+  ihave #Hrc := apply.reqClass_range E.authMode info rq o Hk.1 Hk.2.1 $$ Hrc'
+  iunfold apply.chainResAny at Hres
+  icases Hres with ⟨%info', Hres⟩
+  wp_apply HRangeI $$ %r %rq %o %log %info' [Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.rangePre
     iframe
     iframe #
@@ -92,16 +99,17 @@ theorem apply.authApplierV3.Range.wp_proof :
   · iexact Htrc
   iunfold apply.rangePost at Hpost
   iunfold apply.rangePost
-  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres⟩
+  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, -⟩
   iexists oc
   iframe HR Hkv
   isplitr
   · ipureintro
     simp only [apply.chainStep, apply.authChecks, Hk.2.1]
     simp [Hst]
-  iapply apply.chainRes_auth_in c p (.ok bi) $$ Happ [Hinfo] Hres
-  iunfold apply.authInfoOwn
-  iexists info; iexact Hinfo
+  ihave Hres := apply.chainResAny_of c _ info' $$ Hres
+  isplitl [Hinfo Hres]
+  · iapply apply.chainRes_auth_in c p (.ok bi) info $$ Happ Hinfo Hres
+  iapply apply.chainClass_auth_pass $$ Hrc
 
 end proof
 

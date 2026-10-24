@@ -32,7 +32,7 @@ theorem NewOp.wp_proof : NewOp.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iframe Hop
   unfold opFullAt opAt OpFields
-  dsimp only [OpFull.newOp, OpModel.zero]
+  dsimp only [op_simps]
   isplitl []
   · isplitl []
     · ipureintro; simp

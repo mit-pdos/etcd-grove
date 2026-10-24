@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 /-- **`t.MendPeer(id)`** on a frozen transport with one of its lock's reader tokens, `id` no
 remote: it returns the token. It resumes the peer of `id` (`peer.Resume`, if one is added): the transport
 delivers again (until the next `CutPeer`); a dropped message is one the network may lose. `id` is no remote: a remote's `Pause` stops
-its pipeline, a second one panics (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
+its pipeline, a second one panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
 method set's premise `PeerPausable` (`*peer` implements `Pausable`). -/
 abbrev rafthttp.Transport.MendPeer.spec : Prop :=
   PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64),

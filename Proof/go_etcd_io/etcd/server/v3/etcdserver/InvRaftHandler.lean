@@ -7,7 +7,7 @@
   transport `τ.t` with the names `τ.c` (`SrvTr`), of member `id`, frozen (`trFrozen`) with no
   remote (a new cluster's bootstrap has none, `bootOk`'s `Hrms0`; what `CutPeer`/`MendPeer` need,
   the partition plan's S2, 2026-10-20) and every other member of the network added as a peer
-  (what `Handler` needs, D35). `NewServer` gives it.
+  (what `Handler` needs, D40). `NewServer` gives it.
 * `srvTrTok γn τ`: one of the transport's lock's reader tokens (`trTok`), what `CutPeer` and
   `MendPeer` borrow; `srvServeRes γn τ`: what each request the transport's handler serves
   borrows, a reader's token and an `R` (`Handler`, `http.Serve_spec`'s `httpProcSlots` copies).

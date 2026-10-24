@@ -189,22 +189,16 @@ theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (sid : w6
   icases Hr with ⟨%H, -⟩
   ipureintro; exact H hns
 
-/-- **The server's `msgSnapC` never delivers** (D19p): what `processMessages` hands it is a
-`MsgSnap` (`isRNMsgSnapC`), which no message of `srvEr`'s is. -/
-theorem srvMsgSnapC_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (bud : BudgetNames) (id : w64) (S : IProp GF) (m : Loc) :
-    rnMsgOk (srvEr ρ E ai₀ c₀ x₀ bud id S) m ∗ (∃ to : w64, msgAt m to MsgSnap) ⊢ (False : IProp GF) := by
-  iintro ⟨H1, H2⟩
-  iunfold rnMsgOk at H1
-  simp only [srvEr]
-  icases H1 with ⟨%to0, %ty0, -, ⟨-, HM⟩⟩
-  icases H2 with ⟨%to, H2⟩
-  iunfold msgAt at H2
-  icases H2 with ⟨%st', #Hst', %Hst'⟩
-  iunfold srvMsgNoSnap at HM
-  icases HM with ⟨%st, #Hst, %Hns⟩
-  ihave %Hag := msgOwn_type_agree m st st' $$ [$Hst $Hst']
-  exact absurd (Hag.trans Hst'.2) Hns
+/-- **The server's `msgSnapC` never delivers** (D19p) in raft's no-snapshot mode: what
+`processMessages` hands it is an owned `MsgSnap` with its protocol facts (`rnSnapMsg`, D22 S-l
+sender, 2026-10-22), which raft never sends in that mode (`isRaftMsg_not_snap`). -/
+theorem rnSnapMsg_false (γ : NodeNames) (hns : γ.raft.reNoSnap = true) (m : Loc) :
+    rnSnapMsg γ m ⊢ (False : IProp GF) := by
+  iintro H
+  iunfold rnSnapMsg at H
+  icases H with ⟨%st, -, %Hty, #Hrm, -⟩
+  ihave %Hne := isRaftMsg_not_snap γ.raft hns γ.id st $$ Hrm
+  exact absurd Hty Hne
 
 /-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
 `NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the
@@ -239,12 +233,12 @@ instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) :
 
 /-! ## The built part and the residual -/
 
-/-- `srvFieldsBuilt` without the uber-applier (`srvUberApplyAddr`, `applierFor`: a KV row,
-`srvBuildGap`). -/
+/-- `srvFieldsBuilt` (D22 receiver epochs, S7a, 2026-10-23: the same; until then `srvFieldsBuilt`
+had the uber-applier, `srvUberApplyAddr`, `applierFor`, a KV row of `srvBuildGap`). -/
 def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (W : SrvWorkload) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
-      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E⌝ ∗
+      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk W v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
@@ -263,8 +257,8 @@ instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
 /-- `srvReadBuilt` without the KV rows (`srvKVAddr`, `txn.isKV`, the store's read view,
 `storeSmall`: `srvBuildGap`). -/
 def srvReadBuiltNK (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
-  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authOn ∗
+  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RW ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
@@ -280,8 +274,9 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReader s ∗ revAuth E x₀.log ∗
-    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗
+    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
+    revAuth E x₀.log ∗
+    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvForceSnapAddr s ↦ f)
 
 /-- **The built part** (`NewServer.spec`'s postcondition, on success): `isServerBuilt` but the
@@ -335,12 +330,12 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
           #rv : GoInterface) ∗
       mvcc.isReadView rv E.s E.γ) ∗
-    "HWB" ∷ txn.storeWTs E.γ N ∗
+    "HWB" ∷ srvWTStock E N ∗
     "#Hsmall" ∷ storeSmall E.γ ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
     "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
-    "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
+    "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀) ∗
     -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
     "Hwtok" ∷ idWaitTok ρ.ids)

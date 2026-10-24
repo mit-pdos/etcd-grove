@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 
 @[expose] public section
 
@@ -28,14 +29,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`CheckTxnAuth(as, ai, lessor, rt)`**: `checkTxnPermission`. -/
 abbrev apply.CheckTxnAuth.spec : Prop :=
-  ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : Bool) (ai : Loc)
+  ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : TxnModel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on ∗ apply.isApplyLessorAny le γ P f ∗ ai ↦{dq} info ∗ RD ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
       txn.txnRequestIs rt t }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
   {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
-      ⌜on = false → err = GoInterface.nil⌝ }}
+      ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
+      (∀ _ : err = GoInterface.nil, apply.txnClass on info t) }}
 
 end spec
 

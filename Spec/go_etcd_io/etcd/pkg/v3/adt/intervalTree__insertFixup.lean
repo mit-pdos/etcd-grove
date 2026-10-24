@@ -25,15 +25,16 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 the context `C`, its subtree `tz` red over a tree that is red-black but for `z` under a red
 parent (`FixInv`): the whole tree (from the root field) red-black, with the same entries. -/
 abbrev adt.intervalTree.insertFixup.spec : Prop :=
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
   ∀ (t s : Loc) (dq : DFrac) (C : adt.RbCtx adt.Entry) (z p : Loc) (tz : adt.RbT adt.Entry),
   C.FixInv tz →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
       t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
-      adt.ownCtx t s C z p tz.maxEnd ∗ adt.ownNode s 1 p z tz }}
+      adt.ownCtx K t s C z p tz.maxEnd ∗ adt.ownNode K s (DFrac.own 1) p z tz }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"insertFixup")) (Val #z))
   {{ RET #(); t.[intervalTree, go!"sentinel"] ↦{dq} s ∗
       ∃ (r : Loc) (T : adt.RbT adt.Entry), t.[intervalTree, go!"root"] ↦ r ∗
-        adt.ownNode s 1 s r T ∗ ⌜adt.RbOk T ∧ T.inorder = (C.plug tz).inorder⌝ }}
+        adt.ownNode K s (DFrac.own 1) s r T ∗ ⌜adt.RbOk T ∧ T.inorder = (C.plug tz).inorder⌝ }}
 
 end spec
 

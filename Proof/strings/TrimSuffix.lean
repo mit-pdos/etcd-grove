@@ -1,6 +1,5 @@
 /-
-The trust boundary: `strings.TrimSuffix` (`Spec/strings/TrimSuffix.lean`; a Perennial gap,
-`notes/perennial-changes.md`).
+The trust boundary of `strings.TrimSuffix` (see its spec).
 -/
 module
 
@@ -18,11 +17,10 @@ open Iris Iris.BI
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Trust boundary** (rafthttp stage 5e-3): Go's `TrimSuffix` (`strings.go`) slices `s`, reading
-no memory but the strings and not panicking. -/
+/-- The trust boundary (see the spec's file header). -/
 axiom strings.TrimSuffix.wp_proof : strings.TrimSuffix.spec (GF := GF) (hG := hG)
 
 end proof

@@ -30,13 +30,12 @@ theorem readOp_fields (k : GoString) (gs : List (OpFull → OpFull)) (h : ReadOp
     (opGetModel k gs).base.maxModRev = W64 0 ∧ (opGetModel k gs).base.minCreateRev = W64 0 ∧
     (opGetModel k gs).base.maxCreateRev = W64 0 := by
   rcases h with rfl | rfl | ⟨S, rfl⟩ <;>
-    simp [opGetModel, opFold, withRevM, withSerializableM, OpFull.getInit, OpFull.newOp,
-      OpModel.zero, OpFull.effSortOrder]
+    simp [op_simps, OpFull.effSortOrder]
 
 theorem readOp_not_panics (gs : List (OpFull → OpFull)) (h : ReadOptsOk gs) :
     ¬ opGetPanics gs := by
   rcases h with rfl | rfl | ⟨S, rfl⟩ <;>
-    simp [opGetPanics, opFold, withRevM, withSerializableM, OpFull.newOp, OpModel.zero]
+    simp [opGetPanics, op_simps]
 
 theorem readOp_ok (pfx k : GoString) (gs : List (OpFull → OpFull)) (h : ReadOptsOk gs)
     (hk : pfx <+: k) : readOpOk pfx (opGetModel k gs) := by
@@ -344,30 +343,6 @@ theorem respOpRead_fact (pfx k : GoString) (p : Loc) (e : ReadM) :
   unfold respOpReadAt readRespAt
   iintro ⟨-, %w, %rr, -, -, -, #H, -⟩
   iexact H
-
-theorem readsAt_insert_rd (pfx k : GoString) (rsMap : GMap GoString Loc) (reads : GMap GoString ReadM)
-    (p : Loc) (e : ReadM) :
-    readsAt (GF := GF) pfx rsMap reads ∗ readRespAt pfx k p e ⊢
-      readsAt pfx (GMap.insert k p rsMap) (GMap.insert k e reads) := by
-  unfold readsAt
-  iintro ⟨⟨%Hdom, #Hall⟩, #He⟩
-  isplitr
-  · ipureintro; intro k'
-    rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]
-    split
-    · rfl
-    · exact Hdom k'
-  imodintro
-  iintro %k' %p' %e' %Hp %He'
-  rw [GMap.lookup_insert_eq_iff] at Hp He'
-  split at Hp
-  · rename_i h; subst h
-    simp only [↓reduceIte, Option.some.injEq] at Hp He'
-    subst Hp He'
-    iexact He
-  · rename_i h
-    simp only [h, ↓reduceIte] at He'
-    iapply Hall $$ %k' %p' %e' %Hp %He'
 
 theorem readsAt_delete (pfx k : GoString) (rsMap : GMap GoString Loc) (reads : GMap GoString ReadM) :
     readsAt (GF := GF) pfx rsMap reads ⊢

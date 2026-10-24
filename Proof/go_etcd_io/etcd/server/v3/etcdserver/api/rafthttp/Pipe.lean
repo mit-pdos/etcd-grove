@@ -1,5 +1,5 @@
 /-
-**The pipeline's protocol** (rafthttp stage 4, D33b; `notes/rafthttp-plan.md`). Lean-first.
+**The pipeline's protocol** (rafthttp stage 4, D38b; `notes/rafthttp-plan.md`). Lean-first.
 
 A pipeline request (`POST /raft`, `pipeline.post`) carries one marshalled message, whose bundle
 cannot cross the wire. The sender deposits it per request: an invariant holding the message's
@@ -62,13 +62,13 @@ structure RaftHttp (GF : BundledGFunctors) [FfiSyntax] where
   γreg : GName
   member : w64 → Prop
 
-/-- **The directory's hosts are distinct** (D34, stage 6a): no URL `http://h` is two members'. -/
+/-- **The directory's hosts are distinct** (D39, stage 6a): no URL `http://h` is two members'. -/
 def dirHostsDistinct (dir : w64 → List GoString) : Prop :=
   ∀ (id id' : w64) (h : GoString), go!"http://" ++ h ∈ dir id → go!"http://" ++ h ∈ dir id' →
     id = id'
 
 open Classical in
-/-- **The member owning the host `h`** in the directory `dir` (D34, stage 6a): the member one of
+/-- **The member owning the host `h`** in the directory `dir` (D39, stage 6a): the member one of
 whose peer URLs is `http://h`, or `0` (no member: raft's ids are not `0`) if none. -/
 noncomputable def netOwner (dir : w64 → List GoString) (h : GoString) : w64 :=
   if hx : ∃ id, go!"http://" ++ h ∈ dir id then Classical.choose hx else 0
@@ -93,7 +93,7 @@ theorem netOwner_mem (dir : w64 → List GoString) (h : GoString) (pid : w64) (h
     subst ho
     exact absurd hd0 hm
 
-/-- **The network's raft-over-HTTP names** (D34, stage 6a): its owner map from the directory, its
+/-- **The network's raft-over-HTTP names** (D39, stage 6a): its owner map from the directory, its
 streams' registry, (stage 6d) its members those with peer URLs in the directory. -/
 noncomputable def netRh (γn : NetNames GF) : RaftHttp GF :=
   ⟨γn, netOwner γn.dir, γn.reg, fun id => γn.dir id ≠ []⟩
@@ -108,7 +108,7 @@ theorem netRh_owner (γn : NetNames GF) (h : GoString) : (netRh γn).owner h = n
 theorem netRh_member (γn : NetNames GF) (id : w64) : (netRh γn).member id ↔ γn.dir id ≠ [] :=
   Iff.rfl
 
-/-- **A request's sender, from its headers** (stage 6d; D35): `X-Server-From` holds the id of a
+/-- **A request's sender, from its headers** (stage 6d; D40): `X-Server-From` holds the id of a
 member other than the receiver `rid` (`addRemoteFromRequest` reads it: then `AddRemote` of a peer
 does nothing). -/
 def fromOkAt (Rh : RaftHttp GF) (rid : w64) (hs : List (GoString × GoString)) : Prop :=

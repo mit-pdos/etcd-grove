@@ -30,9 +30,13 @@ thread holds one in `kvOwn` (the auth layer's KV methods' checks), the auth laye
 
 **An applier value** (`applierSpec E c a`): the triples of the `applierV3` interface value `a`'s
 methods, as the chain `c` runs them (persistent; every method but `Compaction`, which is out of
-the model). The thread-owned resources a chain's methods need (`chainRes c a`): the auth layer's
-`authInfo` (its `Apply` takes them from its mutex and hands them to the `applyFunc`, which hands
-them to the methods; the other layers own nothing). Each layer's methods are `Spec/`+`Proof/`
+the model). The thread-owned resources a chain's methods need (`chainRes c a info`): the auth
+layer's `authInfo`, holding the principal `info` (its `Apply` takes the field from its mutex,
+where it holds the zero `AuthInfo` between `Apply`s, sets it to the request's principal
+`principalOf rq` and hands it to the `applyFunc`, which hands it to the methods; the other layers
+own nothing). The KV methods' posts state the request's class for that principal (`chainClass`,
+A3 of the auth plan, 2026-10-23): if the auth layer did not reject, the permissions the request
+needs were granted to it (`reqClass`, `AuthClass.lean`). Each layer's methods are `Spec/`+`Proof/`
 files stated over `applierSpec E c inner` (the inner applier is a dynamic interface call); the
 constructors' specs package them (`newQuotaApplierV3`: `{applierSpec E c app} … {a; applierSpec E
 (.quota c) a}`).
@@ -46,6 +50,7 @@ the lessor's by their contracts), from which `outcomeErrIs` (`UberLemmas.lean`) 
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
@@ -243,7 +248,12 @@ request with at most one checkpoint (each checkpoint is its own critical section
 lock: `issues/etcd-apply-lease-checkpoint-sections.md`; until 2026-10-17); a cluster version that
 parses. **No lease request** (D14h, 2026-10-17, the user's decision): the workload has no
 `LeaseGrant`, `LeaseRevoke` or `LeaseCheckpoint` (with no lease granted none expires, so the
-lessor proposes no revocation and no checkpoint); `lessor.Revoke` is not specified (unit T3). -/
+lessor proposes no revocation and no checkpoint); `lessor.Revoke` is not specified (unit T3).
+**No alarm, auth or downgrade request** (D22, 2026-10-23: the backend over every bucket): their
+writers take the environment's write right `AEnv.RW` (the server's is `False`: the apply thread
+holds the rest buckets at their model, `RestModel.lean`), so `dispatch` does not call them; no
+workload admits one (the server's `plainCover`). Until then their premise was `True` (the user's
+and role's name within the key bound for `UserAdd`/`RoleAdd`). -/
 def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log
@@ -254,10 +264,24 @@ def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
   | .leaseRevoke => False
   | .leaseCheckpoint => False
   | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v
-  -- unit N4, D14g (2026-10-17): a new user's or role's name is a bbolt key, within its bound
-  -- (`issues/etcd-auth-useradd-long-name-fatal.md`)
-  | .authUserAdd => ∀ n, rq.authUserAdd = some n → n.length ≤ backend.maxKeySize
-  | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
+  | .downgradeInfoSet => False
+  | .alarm => False
+  | .authenticate => False
+  | .authEnable => False
+  | .authDisable => False
+  | .authUserAdd => False
+  | .authUserDelete => False
+  | .authUserChangePassword => False
+  | .authUserGrantRole => False
+  | .authUserGet => False
+  | .authUserRevokeRole => False
+  | .authRoleAdd => False
+  | .authRoleGrantPermission => False
+  | .authRoleGet => False
+  | .authRoleRevokePermission => False
+  | .authRoleDelete => False
+  | .authUserList => False
+  | .authRoleList => False
   | _ => True
 
 section defs
@@ -282,9 +306,10 @@ structure AEnv (GF : BundledGFunctors) where
   f : val
   RD : IProp GF
   γrev : GName
-  /-- whether the auth store is enabled (2026-10-14, unit T1): the auth layer's mode
-  (`Chain.auth E.authOn`), the auth store's contract's (`isAuthStore … E.authOn`) -/
-  authOn : Bool
+  /-- the auth store's mode (2026-10-14, unit T1, a boolean; 2026-10-23, the auth plan's A0,
+  `auth.AuthMode`): the auth store's contract's (`isAuthStore … E.authMode`); the auth layer's
+  boolean mode (`Chain.auth E.authOn`) is `E.authOn`, whether it may refuse -/
+  authMode : auth.AuthMode
   /-- the apply thread's right to `ForceSnapshot` (D14i, 2026-10-17: the server's
   `s.forceDiskSnapshot`, which `ForceSnapshot` writes), threaded to the cluster methods -/
   FS : IProp GF
@@ -292,6 +317,23 @@ structure AEnv (GF : BundledGFunctors) where
   protocol's state with the consistent index's owner share), lent out of the critical section's
   precondition (`ciSplit`) -/
   ciC : IProp GF → Prop
+  /-- (D22, 2026-10-23: the backend over every bucket) the apply thread's resource of the rest
+  buckets and the cluster's in-memory members at their value (`RestModel.lean`): the cluster's
+  `SetVersion` and `UpdateAttributes` change it (`isCluster`) -/
+  RO : RestM → IProp GF
+  /-- (D22, 2026-10-23) the write right of the writers the workload does not reach (the alarm
+  store's, the auth store's, the lessor's, the cluster's `SetDowngradeInfo`); the server's is
+  `False` -/
+  RW : IProp GF
+  /-- (D22 receiver epochs, S7b, 2026-10-23) the server's ghost variable of its current backend
+  (`s.be`'s, `bemuP`), which the apply package does not use (as `γrev`) -/
+  γbe : GName
+
+/-- Whether the auth store may refuse (`Chain.auth E.authOn`; until the auth plan's A0 a field):
+`false` exactly in the mode `off`. -/
+def AEnv.authOn (E : AEnv GF) : Bool := E.authMode.isOn
+
+theorem AEnv.authOn_eq (E : AEnv GF) : E.authOn = E.authMode.isOn := rfl
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
@@ -301,18 +343,20 @@ def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
 
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
 the KV's writer of `log` (`txn.kvWriter`: the sole writer, and for a watchable store the writer's
-half of its notified log; unit N4), every lease of its state live, and the auth store's reader resource
-(`E.RD`, 2026-10-14, unit A2). -/
+half of its notified log; unit N4), every lease of its state live, the auth store's reader resource
+(`E.RD`, 2026-10-14, unit A2), and the sole writer's own resources on the store's backend
+(`mvcc.writerOwn`, D22 receiver epochs, S5a: its backend token, which the writes under the batch
+lock borrow; until then the reader slots' own). -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
   iprop(mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log ∗
-    leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD)
+    leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗ mvcc.writerOwn E.γ)
 
 open Iris.ProofMode in
 /-- The auth store's reader resource of the apply thread's KV resources, lent out (unit A2). -/
 theorem kvOwn_rd (E : AEnv GF) (log : mvcc.Log) :
     kvOwn E log ⊢ E.RD ∗ (E.RD -∗ kvOwn E log) := by
   unfold kvOwn
-  iintro ⟨Hsr, Hsw, Hll, Hrd⟩
+  iintro ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
   iframe Hrd
   iintro Hrd
   iframe
@@ -326,29 +370,168 @@ theorem kvOwn_cert (E : AEnv GF) (log : mvcc.Log) :
   ihave ⟨Hsw, #Hc⟩ := txn.kvWriter_cert E.s E.γ log $$ Hsw
   iframe Hrd Hsw Hll Hc
 
-/-- **The thread-owned resources of the chain `c`'s methods** at its value `a`: the auth layers'
-`authInfo` (owned while the layer's `Apply` holds its mutex), and the inner chain's. -/
-def chainRes : Chain → GoInterface → IProp GF
-  | .backend, _ => iprop(True)
-  | .auth _ c, a =>
+/-- **The thread-owned resources of the chain `c`'s methods** at its value `a`, for the
+principal `info`: the outermost auth layer's `authInfo`, holding `info` (owned while the layer's
+`Apply` holds its mutex; A3, 2026-10-23: the principal is an index, so that the methods' posts
+can state the request's class for it; the index is a phantom below that layer, whose inner
+chain's resources are at any principal), and the inner chain's. -/
+def chainRes : Chain → GoInterface → go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF
+  | .backend, _, _ => iprop(True)
+  | .auth _ c, a, info =>
       iprop(∃ (p : Loc) (inner : GoInterface),
         ⌜a = interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p⌝ ∗
         structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
-        (∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
-          structFieldRef authApplierV3 go!"authInfo" p ↦ info) ∗
-        chainRes c inner)
-  | .quota c, a =>
+        structFieldRef authApplierV3 go!"authInfo" p ↦ info ∗
+        ∃ info' : go_etcd_io.etcd.server.v3.auth.AuthInfo, chainRes c inner info')
+  | .quota c, a, info =>
       iprop(∃ (p : Loc) (inner : GoInterface),
         ⌜a = interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p⌝ ∗
-        structFieldRef quotaApplierV3 go!"applierV3" p ↦□ inner ∗ chainRes c inner)
-  | .capped c, a =>
+        structFieldRef quotaApplierV3 go!"applierV3" p ↦□ inner ∗ chainRes c inner info)
+  | .capped c, a, info =>
       iprop(∃ (p : Loc) (inner : GoInterface),
         ⌜a = interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p⌝ ∗
-        structFieldRef applierV3Capped go!"applierV3" p ↦□ inner ∗ chainRes c inner)
-  | .corrupt c, a =>
+        structFieldRef applierV3Capped go!"applierV3" p ↦□ inner ∗ chainRes c inner info)
+  | .corrupt c, a, info =>
       iprop(∃ (p : Loc) (inner : GoInterface),
         ⌜a = interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p⌝ ∗
-        structFieldRef applierV3Corrupt go!"applierV3" p ↦□ inner ∗ chainRes c inner)
+        structFieldRef applierV3Corrupt go!"applierV3" p ↦□ inner ∗ chainRes c inner info)
+
+/-- The chain's resources at some principal (after a method that may reset the auth layer's
+`authInfo`: `UserGet` and `RoleGet` clear it when they reject, `auth.go`). -/
+def chainResAny (c : Chain) (a : GoInterface) : IProp GF :=
+  iprop(∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, chainRes c a info)
+
+theorem chainResAny_of (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    chainRes (GF := GF) c a info ⊢ chainResAny c a := by
+  iintro H; iunfold chainResAny; iexists info; iexact H
+
+/-! ## The class of a request through the chain (A3 of the auth plan, 2026-10-23) -/
+
+/-- **The class a run of `rq` through `c` with the outcome `oc` establishes** for the principal
+`info` in the mode `M` (persistent): each wrapper that rejects says, if it did not reject, what
+the rest says; the (outermost) auth layer says that if it did not reject, its checks passed, so
+the request's permissions were granted to `info` at recorded states (`reqClass`). -/
+def chainClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    Chain → IRRModel → Outcome → IProp GF
+  | .backend, _, _ => iprop(True)
+  | .auth _ _, rq, oc => iprop(∀ _ : oc ≠ .rejected .auth, reqClass M info rq)
+  | .quota c, rq, oc => chainClass M info c rq oc
+  | .capped c, rq, oc => iprop(∀ _ : oc ≠ .rejected .noSpace, chainClass M info c rq oc)
+  | .corrupt c, rq, oc => iprop(∀ _ : oc ≠ .rejected .corrupt, chainClass M info c rq oc)
+
+instance chainClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (c : Chain) (rq : IRRModel) (oc : Outcome) : Persistent (chainClass (GF := GF) M info c rq oc) := by
+  induction c with
+  | backend => simp only [chainClass]; infer_instance
+  | auth on c ih => simp only [chainClass]; infer_instance
+  | quota c ih => simp only [chainClass]; exact ih
+  | capped c ih => simp only [chainClass]; infer_instance
+  | corrupt c ih => simp only [chainClass]; infer_instance
+
+/-- The request's class gives the chain's, whatever the outcome. -/
+theorem chainClass_of_reqClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    reqClass (GF := GF) M info rq ⊢ chainClass M info c rq oc := by
+  induction c with
+  | backend => simp only [chainClass]; iintro -; itrivial
+  | auth on c ih => simp only [chainClass]; iintro #H %_; iexact H
+  | quota c ih => simp only [chainClass]; exact ih
+  | capped c ih => simp only [chainClass]; iintro #H %_; iapply ih $$ H
+  | corrupt c ih => simp only [chainClass]; iintro #H %_; iapply ih $$ H
+
+/-- A request the auth layer's KV methods do not check: the trivial class. -/
+theorem chainClass_nonKV (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (c : Chain) (rq : IRRModel) (oc : Outcome) (h : isKVKind (dispatchKind rq) = false) :
+    ⊢ chainClass (GF := GF) M info c rq oc := by
+  iintro; iapply chainClass_of_reqClass; iapply reqClass_nonKV M info rq h
+
+/-- The auth layer's rejection says nothing. -/
+theorem chainClass_auth_rejected (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (on : Bool) (c : Chain) (rq : IRRModel) :
+    ⊢ chainClass (GF := GF) M info (.auth on c) rq (.rejected .auth) := by
+  simp only [chainClass]; iintro %h; exact absurd rfl h
+
+/-- The auth layer passed: the request's class. -/
+theorem chainClass_auth_pass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (on : Bool) (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    reqClass (GF := GF) M info rq ⊢ chainClass M info (.auth on c) rq oc := by
+  simp only [chainClass]; iintro #H %_; iexact H
+
+theorem chainClass_quota (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    chainClass (GF := GF) M info c rq oc ⊢ chainClass M info (.quota c) rq oc := by
+  simp only [chainClass]; iintro H; iexact H
+
+theorem chainClass_quota_out (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    chainClass (GF := GF) M info (.quota c) rq oc ⊢ chainClass M info c rq oc := by
+  simp only [chainClass]; iintro H; iexact H
+
+theorem chainClass_capped (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    chainClass (GF := GF) M info c rq oc ⊢ chainClass M info (.capped c) rq oc := by
+  simp only [chainClass]; iintro #H %_; iexact H
+
+theorem chainClass_capped_rejected (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (c : Chain) (rq : IRRModel) :
+    ⊢ chainClass (GF := GF) M info (.capped c) rq (.rejected .noSpace) := by
+  simp only [chainClass]; iintro %h; exact absurd rfl h
+
+theorem chainClass_corrupt (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (c : Chain) (rq : IRRModel) (oc : Outcome) :
+    chainClass (GF := GF) M info c rq oc ⊢ chainClass M info (.corrupt c) rq oc := by
+  simp only [chainClass]; iintro #H %_; iexact H
+
+theorem chainClass_corrupt_rejected (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (c : Chain) (rq : IRRModel) :
+    ⊢ chainClass (GF := GF) M info (.corrupt c) rq (.rejected .corrupt) := by
+  simp only [chainClass]; iintro %h; exact absurd rfl h
+
+/-- **The outcome passed the auth layer's checks**: applied, or rejected by the backend. -/
+def authPassed : Outcome → Prop
+  | .rejected k => k = .backend
+  | .applied _ _ => True
+
+/-- Through the uber-applier's chain (`alarmChain`), an outcome that passed the auth layer's
+checks has the request's class. -/
+theorem chainClass_alarm (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (on ns cr : Bool) (rq : IRRModel) (oc : Outcome) (h : authPassed oc) :
+    chainClass (GF := GF) M info (alarmChain on ns cr) rq oc ⊢ reqClass M info rq := by
+  have h1 : oc ≠ .rejected .auth := by
+    intro e; subst e; simp [authPassed] at h
+  have h2 : oc ≠ .rejected .noSpace := by
+    intro e; subst e; simp [authPassed] at h
+  have h3 : oc ≠ .rejected .corrupt := by
+    intro e; subst e; simp [authPassed] at h
+  unfold alarmChain baseChain
+  cases ns <;> cases cr <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> simp only [chainClass]
+  · iintro H; ihave H := H $$ %h1; iexact H
+  · iintro H; ihave H := H $$ %h3; ihave H := H $$ %h1; iexact H
+  · iintro H; ihave H := H $$ %h2; ihave H := H $$ %h1; iexact H
+  · iintro H; ihave H := H $$ %h3; ihave H := H $$ %h2; ihave H := H $$ %h1; iexact H
+
+/-- **The admin check of `Apply` passed for the request's principal** (persistent): a request
+that needs admin permission (`needAdminPermission`) ran its `applyFunc` only after
+`IsAdminPermitted(principalOf rq)` answered `nil`, whose verdict this is (A0); stated for a chain
+with the auth layer enabled (`c.authOn`; with it disabled the verdict is trivial, `adminVerdict
+.off`). -/
+def adminPass (M : auth.AuthMode) (c : Chain) (rq : IRRModel) : IProp GF :=
+  iprop(∀ _ : c.authOn = true ∧ needAdminPermission rq = true,
+    auth.adminVerdict M (some (principalOf rq)) GoInterface.nil)
+
+instance adminPass_persistent (M : auth.AuthMode) (c : Chain) (rq : IRRModel) :
+    Persistent (adminPass (GF := GF) M c rq) := by
+  unfold adminPass; infer_instance
+
+/-- A chain without an enabled auth layer: the admin pass is trivial. -/
+theorem adminPass_off (M : auth.AuthMode) (c : Chain) (rq : IRRModel) (h : c.authOn = false) :
+    ⊢ adminPass (GF := GF) M c rq := by
+  unfold adminPass; iintro %hh; simp [h] at hh
+
+/-- The admin pass of a wrapper layer is its inner's (the same `authOn`). -/
+theorem adminPass_wrap (M : auth.AuthMode) (c c' : Chain) (rq : IRRModel) (h : c'.authOn = c.authOn) :
+    adminPass (GF := GF) M c rq ⊢ adminPass M c' rq := by
+  unfold adminPass; rw [h]
 
 /-! ## The outcomes, in the heap -/
 
@@ -541,33 +724,37 @@ theorem certOkNext_of_commitLog (γ : mvcc.StoreNames) (log : mvcc.Log) (pend : 
     rw [hc]
     iintro #H; iright; iexact H
 
-/-- The common precondition of a writing method. -/
-def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
-    (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(kvOwn E log ∗ chainRes c a ∗ mvcc.csContract E.P E.f Pre Q Post)
+/-- The common precondition of a writing method (`info`: the principal, A3). -/
+def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop(kvOwn E log ∗ chainRes c a info ∗ mvcc.csContract E.P E.f Pre Q Post)
 
-/-- The common postcondition of a writing method that leaves the log as it is. -/
+/-- The common postcondition of a writing method that leaves the log as it is (the chain's
+resources at some principal: `UserGet` and `RoleGet` reset the auth layer's `authInfo` when
+they reject). -/
 def mPost (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
-  iprop(kvOwn E log ∗ chainRes c a ∗ (Post ∨ Pre))
+  iprop(kvOwn E log ∗ chainResAny c a ∗ (Post ∨ Pre))
 
 /-- The precondition of a method that writes only with `shouldApplyV3` (`v3`: the cluster's):
 `cPre v3`, the critical-section contract with `v3`, else `Pre` alone. -/
-def mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
+def mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log)
     (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(kvOwn E log ∗ chainRes c a ∗ cPre v3 E.P E.f Pre Q Post)
+  iprop(kvOwn E log ∗ chainRes c a info ∗ cPre v3 E.P E.f Pre Q Post)
 
 /-- Its postcondition: `cPost v3` (`Post ∨ Pre` with `v3`, else `Pre`: no write). -/
-def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
+def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
-  iprop(kvOwn E log ∗ chainRes c a ∗ cPost v3 Pre Post)
+  iprop(kvOwn E log ∗ chainRes c a info ∗ cPost v3 Pre Post)
 
 /-- The postcondition of a KV method on `rq`: an outcome of the chain, its answer `R`, the log
-it commits. -/
-def kvPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (log : mvcc.Log)
-    (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
+it commits, and the request's class for the principal `info` (A3, `chainClass`). -/
+def kvPost (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) (log : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc⌝ ∗ R oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a ∗ (Post ∨ Pre))
+    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc)
 
 /-- **A floor met** (the vertical slice's unit V2): an outcome where the backend ran (`applied`)
 ran at a log extending the floor `F` (a certified log the request's client saw: the backend
@@ -577,74 +764,135 @@ def floorOkO (F log : mvcc.Log) (oc : Outcome) : Prop :=
 
 /-- The postcondition of a KV method on `rq` with a floor `F` (unit V2): `kvPost`'s, the outcome
 meeting the floor. -/
-def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (log F : mvcc.Log)
-    (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
+def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) (log F : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ floorOkO F log oc⌝ ∗ R oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a ∗ (Post ∨ Pre))
+    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc)
 
 /-- `Put(r)`'s precondition: `r` is `rq`'s put `o`. -/
-def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel) (o : OpFull)
-    (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ certPre E c rq log ∗
     txn.putRequestIs r o ∗
-    mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
+    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
 
 /-- `DeleteRange(r)`'s precondition. -/
-def deletePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
-    (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+def deletePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
-    certPre E c rq log ∗ txn.deleteRangeRequestIs r o ∗ mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
+    certPre E c rq log ∗ txn.deleteRangeRequestIs r o ∗ mvcc.storeWT E.γ ∗
+    mPre E c a info log Pre Q Post)
 
 /-- `Range(r)`'s precondition (a read: no contract). -/
-def rangePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
-    (o : OpFull) (log : mvcc.Log) : IProp GF :=
+def rangePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) : IProp GF :=
   iprop(⌜rq.range = some o ∧ dispatchKind rq = .range ∧ rangeOk log o⌝ ∗
-    txn.rangeRequestIs r o ∗ kvOwn E log ∗ chainRes c a)
+    txn.rangeRequestIs r o ∗ kvOwn E log ∗ chainRes c a info)
 
 /-- `Range(r)`'s postcondition. -/
-def rangePost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (o : OpFull)
-    (log : mvcc.Log) (resp : Loc) (err : GoInterface) : IProp GF :=
+def rangePost (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc⌝ ∗ rangeOutcomeIs log o resp err oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a)
+    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ chainClass E.authMode info c rq oc)
 
 /-- `Txn(r, skip)`'s precondition. -/
-def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
-    (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPre log t⌝ ∗ certPre E c rq log ∗
     txn.txnRequestIs r t ∗
-    mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
+    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
 
 /-- `LeaseRevoke(r)`'s precondition. -/
-def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
-    (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ rqOk log rq⌝ ∗
     certPre E c rq log ∗
     leaseRevokeIs r id ∗
-    mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
+    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
+
+/-! ### The backend's posts: no chain resources, the trivial class -/
+
+theorem chainClass_backend {M : auth.AuthMode} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
+    {rq : IRRModel} {oc : Outcome} : ⊢ chainClass (GF := GF) M info .backend rq oc := by
+  simp only [chainClass]; iintro; itrivial
+
+theorem chainResAny_backend {a : GoInterface} : ⊢ chainResAny (GF := GF) .backend a := by
+  iintro; iunfold chainResAny; iexists zeroValDef; simp only [chainRes]; itrivial
+
+theorem kvPost_backend {E : AEnv GF} {a : GoInterface} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
+    {rq : IRRModel} {log : mvcc.Log} {R : Outcome → IProp GF} {Pre Post : IProp GF} :
+    (∃ oc : Outcome, ⌜chainStep backendStep .backend rq log oc⌝ ∗ R oc ∗
+      kvOwn E (oc.logAfter log) ∗ chainRes .backend a info ∗ (Post ∨ Pre)) ⊢
+      kvPost E .backend a info rq log R Pre Post := by
+  iintro ⟨%oc, %H, HR, Hkv, Hres, HPP⟩
+  unfold kvPost
+  iexists oc
+  iframe HR Hkv Hres HPP
+  isplitr
+  · ipureintro; exact H
+  iapply chainClass_backend
+
+theorem kvPostF_backend {E : AEnv GF} {a : GoInterface} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
+    {rq : IRRModel} {log F : mvcc.Log} {R : Outcome → IProp GF} {Pre Post : IProp GF} :
+    (∃ oc : Outcome, ⌜chainStep backendStep .backend rq log oc ∧ floorOkO F log oc⌝ ∗ R oc ∗
+      kvOwn E (oc.logAfter log) ∗ chainRes .backend a info ∗ (Post ∨ Pre)) ⊢
+      kvPostF E .backend a info rq log F R Pre Post := by
+  iintro ⟨%oc, %H, HR, Hkv, Hres, HPP⟩
+  unfold kvPostF
+  iexists oc
+  iframe HR Hkv Hres HPP
+  isplitr
+  · ipureintro; exact H
+  iapply chainClass_backend
+
+theorem rangePost_backend {E : AEnv GF} {a : GoInterface} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
+    {rq : IRRModel} {o : OpFull} {log : mvcc.Log} {resp : Loc} {err : GoInterface} :
+    (∃ oc : Outcome, ⌜chainStep backendStep .backend rq log oc⌝ ∗ rangeOutcomeIs log o resp err oc ∗
+      kvOwn E (oc.logAfter log) ∗ chainRes .backend a info) ⊢
+      rangePost E .backend a info rq o log resp err := by
+  iintro ⟨%oc, %H, HR, Hkv, Hres⟩
+  unfold rangePost
+  iexists oc
+  iframe HR Hkv Hres
+  isplitr
+  · ipureintro; exact H
+  iapply chainClass_backend
+
+theorem mPost_backend {E : AEnv GF} {a : GoInterface} {log : mvcc.Log} {Pre Post : IProp GF} :
+    kvOwn E log ∗ (Post ∨ Pre) ⊢ mPost E .backend a log Pre Post := by
+  iintro ⟨Hkv, HPP⟩
+  unfold mPost
+  iframe Hkv HPP
+  iapply chainResAny_backend
 
 /-- The request facts of a one-argument method that leaves the log as it is, by method: what
 the layers read of the request (`R r`); `True` for those passed on unread to the auth store. -/
 def reqFacts (E : AEnv GF) (m : GoString) (r : Loc) : IProp GF :=
   if m = go!"LeaseGrant" then
-    iprop(∃ g : LeaseGrantModel, leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id)
+    iprop((∃ g : LeaseGrantModel, leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗ E.RW)
   else if m = go!"LeaseCheckpoint" then
-    iprop(∃ cms : List CheckpointModel, leaseCheckpointIs r cms ∗ ⌜cms.length ≤ 1⌝)
-  else if m = go!"Alarm" then iprop(∃ am : AlarmModel, alarmRequestIs r am)
-  else if m = go!"Authenticate" then iprop(∃ am : AuthenticateModel, authenticateIs r am)
-  else if m = go!"UserGet" then iprop(∃ n : GoString, authUserGetIs r n)
+    iprop((∃ cms : List CheckpointModel, leaseCheckpointIs r cms ∗ ⌜cms.length ≤ 1⌝) ∗ E.RW)
+  else if m = go!"Alarm" then iprop((∃ am : AlarmModel, alarmRequestIs r am) ∗ E.RW)
+  else if m = go!"Authenticate" then iprop((∃ am : AuthenticateModel, authenticateIs r am) ∗ E.RW)
+  else if m = go!"UserGet" then iprop((∃ n : GoString, authUserGetIs r n) ∗ E.RW)
   else if m = go!"UserAdd" then
-    iprop(∃ n : GoString, authUserAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝)
+    iprop((∃ n : GoString, authUserAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW)
   else if m = go!"RoleAdd" then
-    iprop(∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝)
-  else if m = go!"RoleGet" then iprop(∃ n : GoString, authRoleGetIs r n)
-  else if m = go!"ClusterVersionSet" then
-    iprop(∃ v : GoString, clusterVersionSetIs r v ∗ ⌜semverValid v⌝)
-  else if m = go!"ClusterMemberAttrSet" then iprop(∃ mm : MemberAttrModel, memberAttrSetIs r mm)
-  else if m = go!"DowngradeInfoSet" then iprop(∃ dm : DowngradeModel, downgradeInfoSetIs r dm)
-  else iprop(True)
+    iprop((∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW)
+  else if m = go!"RoleGet" then iprop((∃ n : GoString, authRoleGetIs r n) ∗ E.RW)
+  else E.RW
+
+/-- **A cluster method's request facts** (D22, 2026-10-23): the request `r` of the method `m`
+(`ClusterReq.method`) holds `cr`; `DowngradeInfoSet`'s with the write right `E.RW`. -/
+def clusterFacts (E : AEnv GF) (m : GoString) (cr : ClusterReq) (r : Loc) : IProp GF :=
+  match cr with
+  | .ver v => iprop(⌜m = go!"ClusterVersionSet"⌝ ∗ clusterVersionSetIs r v ∗ ⌜semverValid v⌝)
+  | .attr a => iprop(⌜m = go!"ClusterMemberAttrSet"⌝ ∗ memberAttrSetIs r a)
+  | .dg d => iprop(⌜m = go!"DowngradeInfoSet"⌝ ∗ downgradeInfoSetIs r d ∗ E.RW)
 
 /-- The methods `(resp, err) = m(r)` that leave the log as it is (the lease grant and
-checkpoint, the alarm, and the auth store's requests). -/
+checkpoint, the alarm, and the auth store's requests): writers the workload does not reach,
+their facts with the write right `E.RW` (`reqFacts`, D22, 2026-10-23). -/
 def respMethods : List GoString :=
   [go!"LeaseGrant", go!"LeaseCheckpoint", go!"Alarm", go!"Authenticate", go!"UserAdd",
     go!"UserDelete", go!"UserChangePassword", go!"UserGrantRole", go!"UserGet",
@@ -680,67 +928,80 @@ instance ciSplit_persistent (E : AEnv GF) (Pre : IProp GF) : Persistent (ciSplit
   unfold ciSplit; infer_instance
 
 /-- **The method triples of the `applierV3` value `ai` of the chain `c`** in the environment
-`E` (each persistent: `dispatch` calls one per request). -/
+`E` (each persistent: `dispatch` calls one per request). Each takes the principal `info` the
+chain's resources hold (A3, 2026-10-23); `Apply` hands its `applyFunc` the resources at the
+request's principal (`principalOf rq`), takes them back at any, and says its admin check passed
+for it (`adminPass`). -/
 def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
   iprop(
     -- the KV methods
-    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF),
-      {{ putPre E c (.ok ai) r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
+        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      {{ putPre E c (.ok ai) info r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
         (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPostF E c (.ok ai) rq log F (putAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
-    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF),
-      {{ deletePre E c (.ok ai) r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+          kvPostF E c (.ok ai) info rq log F (putAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
+    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
+        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      {{ deletePre E c (.ok ai) info r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
         (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPostF E c (.ok ai) rq log F (deleteAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
-    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log),
-      {{ rangePre E c (.ok ai) r rq o log }}
+          kvPostF E c (.ok ai) info rq log F (deleteAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
+    □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
+        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      {{ rangePre E c (.ok ai) info r rq o log }}
         (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          rangePost E c (.ok ai) rq o log resp err ∗ traceRes trace }}) ∗
+          rangePost E c (.ok ai) info rq o log resp err ∗ traceRes trace }}) ∗
     □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log F : mvcc.Log)
-        (Pre Q Post : IProp GF),
-      {{ txnPre E c (.ok ai) r rq t log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+        (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      {{ txnPre E c (.ok ai) info r rq t log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPostF E c (.ok ai) rq log F (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace }}) ∗
-    □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF),
-      {{ revokePre E c (.ok ai) r rq id log Pre Q Post }}
+          kvPostF E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace }}) ∗
+    □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF)
+        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      {{ revokePre E c (.ok ai) info r rq id log Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          kvPost E c (.ok ai) rq log (revokeOutcomeIs resp err) Pre Post }}) ∗
+          kvPost E c (.ok ai) info rq log (revokeOutcomeIs resp err) Pre Post }}) ∗
     -- the methods that leave the log as it is
-    □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF), ⌜m ∈ respMethods⌝ -∗
-      {{ reqFacts E m r ∗ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ ciSplit E Pre }}
+    □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ respMethods⌝ -∗
+      {{ reqFacts E m r ∗ mPre E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ ciSplit E Pre }}
         (App (Val #(methods ai.ty m ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
-    □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF), ⌜m ∈ resp0Methods⌝ -∗
+    □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF)
+        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ resp0Methods⌝ -∗
       ⌜m = go!"AuthEnable" → E.authOn = true⌝ -∗
-      {{ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ }}
+      {{ mPre E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.RW }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
-    □ (∀ (log : mvcc.Log),
-      {{ kvOwn E log ∗ chainRes c (.ok ai) }}
+    □ (∀ (log : mvcc.Log) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      {{ kvOwn E log ∗ chainRes c (.ok ai) info }}
         (App (Val #(methods ai.ty go!"AuthStatus" ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          kvOwn E log ∗ chainRes c (.ok ai) ∗ applyErrIs err }}) ∗
-    □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
+          kvOwn E log ∗ chainRes c (.ok ai) info ∗ applyErrIs err }}) ∗
+    □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
+        (cr : ClusterReq) (rs : RestM) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
       ⌜m ∈ clusterMethods⌝ -∗
-      {{ reqFacts E m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS }}
+      {{ clusterFacts E m cr r ∗ mPreV v3 E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS ∗
+          E.RO rs }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
-      {{ RET #(); mPostV v3 E c (.ok ai) log Pre Post ∗ E.FS }}) ∗
-    -- `Apply`: the `applyFunc` under the chain's resources, or the auth layers' admin rejection
+      {{ RET #(); mPostV v3 E c (.ok ai) info log Pre Post ∗ E.FS ∗ E.RO (cr.eff v3 rs) }}) ∗
+    -- `Apply`: the `applyFunc` under the chain's resources at the request's principal, or the
+    -- auth layers' admin rejection
     □ (∀ (r : Loc) (rq : IRRModel) (skip v3 : Bool) (af : GoFunc) (A : IProp GF)
         (B : Loc → IProp GF),
       {{ irrWrapperIs r rq skip ∗ A ∗
-          ({{ chainRes c (.ok ai) ∗ A }} (App (App (Val #af) (Val #r)) (Val #v3))
-            {{ (ar : Loc), RET #ar; chainRes c (.ok ai) ∗ B ar }}) }}
+          ({{ chainRes c (.ok ai) (principalOf rq) ∗ A }} (App (App (Val #af) (Val #r)) (Val #v3))
+            {{ (ar : Loc), RET #ar; chainResAny c (.ok ai) ∗ B ar }}) }}
         (App (App (App (Val #(methods ai.ty go!"Apply" ai.v)) (Val #r)) (Val #v3)) (Val #af))
       {{ (ar : Loc), RET #ar;
-          B ar ∨ (⌜needAdminPermission rq = true⌝ ∗ A ∗ rejectResultIs ar) }}))
+          (B ar ∗ adminPass E.authMode c rq) ∨
+            (⌜needAdminPermission rq = true⌝ ∗ A ∗ rejectResultIs ar) }}))
 
 instance applierTriples_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) :
     Persistent (applierTriples E c ai) := by
@@ -760,9 +1021,10 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 /-- **The backend's options** `opts` in the environment `E`: a logger, the KV (the store `E.s`,
 whose hook is `E.f` under `E.P`), and the components with their contracts. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
-  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookIs E.γ E.P E.f ∗
-    isApplyLessor opts.Lessor' E.s E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authOn ∗
-    isAlarmStore opts.AlarmStore' E.γ E.P E.f ∗ isCluster opts.Cluster' E.γ E.P E.f ∗
+  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookOk E.γ E.P E.f ∗
+    isApplyLessor opts.Lessor' E.s E.γ E.P E.f E.RW ∗
+    isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authMode E.RW ∗
+    isAlarmStore opts.AlarmStore' E.γ E.P E.f E.RW ∗ isCluster opts.Cluster' E.γ E.P E.f E.RO E.RW ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' E.FS ∗
     isConsistentIndexer opts.ConsistentIndex' E.ciC)
 
@@ -796,10 +1058,12 @@ def cappedIs (p : Loc) (inner : GoInterface) : IProp GF :=
 def corruptIs (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef applierV3Corrupt go!"applierV3" p ↦□ inner)
 
-/-- The auth layer's mutex's resource: its `authInfo`. -/
-def authInfoOwn (p : Loc) : IProp GF :=
-  iprop(∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
-    structFieldRef authApplierV3 go!"authInfo" p ↦ info)
+/-- The auth layer's mutex's resource: its `authInfo`, the zero `AuthInfo` between `Apply`s
+(set at construction, `newAuthApplierV3`; reset after every `Apply`, and by `UserGet` and
+`RoleGet` when they reject, `auth.go`). -/
+def authInfoIdle (p : Loc) : IProp GF :=
+  iprop(structFieldRef authApplierV3 go!"authInfo" p ↦
+    (zeroValDef : go_etcd_io.etcd.server.v3.auth.AuthInfo))
 
 /-- **The `*authApplierV3` `p`**: its inner applier, auth store and lessor, read-only, with
 their contracts, and its mutex, whose resource is its `authInfo` and a reader resource of the auth
@@ -807,10 +1071,10 @@ store (`E.RD`: `Apply`'s admin check; 2026-10-14, unit A2). -/
 def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
     (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
-      isAuthStore st E.γ E.P E.f E.RD E.authOn) ∗
+      isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
-      isApplyLessor le E.s E.γ E.P E.f) ∗
-    sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoOwn p ∗ E.RD))
+      isApplyLessor le E.s E.γ E.P E.f E.RW) ∗
+    sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoIdle p ∗ E.RD))
 
 instance authIs_persistent (E : AEnv GF) (p : Loc) (inner : GoInterface) :
     Persistent (authIs E p inner) := by

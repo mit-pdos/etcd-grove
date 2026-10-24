@@ -57,7 +57,7 @@ theorem kvOpAu1_congr (γk γk' : KVNames) (hst : γk.st = γk'.st) (hwl : γk.w
 /-- **The writers' log's lock invariant** (watchkv's `wsInv`, its records' `okFactH`). -/
 def wsInvH (w : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ (sl : GoSlice) (oks : List wrec),
-    structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.writes go!"ok" w ↦ sl ∗
+    structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Ok" w ↦ sl ∗
     sl ↦* oks ∗ ownSliceCap wrec sl (DFrac.own 1) ∗ □ [∗list] p ∈ oks, okFactH γr p)
 
 end defs
@@ -102,8 +102,10 @@ theorem client_Put_hist [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client.client_put_any api ms ci cd key val sl Q) $$ [Hau] as %resp %err Hout
+  wp_apply (client.client_put_any api ms ci cd key val sl Q []) $$ [Hau] as %resp %err Hout
   · iframe #
+    iright
+    iframe #
     iexact Hau
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
@@ -116,7 +118,7 @@ theorem client_Put_hist [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     iframe Hr
     ipureintro; exact hx
   · iright
-    ipureintro; exact Herr
+    ipureintro; exact Herr.1
 
 end put
 

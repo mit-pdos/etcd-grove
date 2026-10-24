@@ -1,6 +1,6 @@
 /-
 `addPeerToProber(lg, p, id, us, name, rttSec)` (`probing_status.go`, untranslated; rafthttp stage 6c):
-the trust boundary (D34, the user's choice: the prober an axiom). Lean-first.
+the trust boundary (D39, the user's choice: the prober an axiom). Lean-first.
 -/
 module
 

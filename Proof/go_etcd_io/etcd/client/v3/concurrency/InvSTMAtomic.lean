@@ -88,7 +88,7 @@ theorem kvAt_filter_ne (s : List EtcdKv) (k0 k : GoString) :
 
 theorem rangeIn_deleteOp_filter (k0 : GoString) (_s : List EtcdKv) :
     (opDeleteModel k0 []).key = k0 ∧ (opDeleteModel k0 []).base.rangeEnd = [] := by
-  simp [opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero]
+  simp [op_simps]
 
 theorem kvAt_put (R : w64) (k0 v : GoString) (l : w64) (s : List EtcdKv)
     (hs : s.Pairwise etcdKvLess) (k : GoString) :

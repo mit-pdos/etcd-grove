@@ -1,5 +1,5 @@
 /-
-The trust boundary: `snapshotSender.stop` (untranslated; D34).
+The trust boundary: `snapshotSender.stop` (untranslated; D39).
 -/
 module
 
@@ -20,7 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Trust boundary** (rafthttp stage 6b, D34): `stop` (`snapshot_sender.go`) closes `stopc`, once
+/-- **Trust boundary** (rafthttp stage 6b, D39): `stop` (`snapshot_sender.go`) closes `stopc`, once
 (the right). -/
 axiom rafthttp.snapshotSender.stop.wp_proof :
   rafthttp.snapshotSender.stop.spec (GF := GF) (hG := hG)

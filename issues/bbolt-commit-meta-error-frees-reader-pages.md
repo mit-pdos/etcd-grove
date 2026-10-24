@@ -1,7 +1,9 @@
 ---
-upstream: none
-checked: 2026-10-21
+upstream: reported
+checked: 2026-10-23
 links:
+  - etcd-io/bbolt#1311 issue open: this finding, filed by us 2026-10-23
+  - etcd-io/bbolt#1312 pr open: our fix (branch upamanyus/bbolt fix/bbolt-commit-meta-error-frees-reader-pages)
   - etcd-io/bbolt#262 issue closed: a fault in rollback's db.meta (a concurrent remap), a different cause
   - etcd-io/bbolt#152 issue closed: a rollback panic with NoFreelistSync, a different path
   - etcd-io/bbolt#331 issue closed: a crash between the data pages' sync and the meta's, a different path
@@ -17,7 +19,7 @@ candidate: issues/upstream/bbolt-commit-meta-error-frees-reader-pages/
   `batchTx.commit`: `lg.Fatal("failed to commit tx")`); any bbolt user that keeps the `DB` open
   after a failed `Commit` meets it.
 - **Where**: bbolt v1.5.0 (the version the bbolt proof pins, branch `bbolt`); upstream `main`
-  unchanged as of 2026-10-21 (a4ef197).
+  unchanged as of 2026-10-23 (a4ef197).
   - `tx.go:267-271`, `Tx.Commit`: on a `writeMeta` error it calls `tx.rollback()`.
   - `tx.go:595-625`, `Tx.writeMeta`: writes the meta page through `db.ops.writeAt`, then
     `fdatasync`; either can fail after the meta's bytes are in the file.

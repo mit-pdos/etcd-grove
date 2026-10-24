@@ -736,7 +736,7 @@ slices' invariant (D6).) The error is `raft.Step`'s for a proposal (`"Herr"`): `
 theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (ml : Loc) (st : MsgSt)
     (Hty : st.msg.Type' = MsgProp) (Hfr : st.msg.From' = id)
-    -- (2026-10-22, D33a) no responses (`raft.Step`'s `Hnors`)
+    -- (2026-10-22, D38a) no responses (`raft.Step`'s `Hnors`)
     (Hrs : st.resps = []) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗

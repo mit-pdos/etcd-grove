@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 /-- **`t.CutPeer(id)`** on a frozen transport with one of its lock's reader tokens, `id` no
 remote: it returns the token. It pauses the peer of `id` (`peer.Pause`, if one is added): the transport
 drops every message to and from member `id` (etcd's partition injection, its integration tests' `InjectPartition`), until `MendPeer`; a dropped message is one the network may lose. `id` is no remote: a remote's `Pause` stops
-its pipeline, a second one panics (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
+its pipeline, a second one panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
 method set's premise `PeerPausable` (`*peer` implements `Pausable`). -/
 abbrev rafthttp.Transport.CutPeer.spec : Prop :=
   PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64),

@@ -60,7 +60,7 @@ theorem EtcdServer.Start.wp_proof
     (hDG : EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG)) :
     EtcdServer.Start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0
-  wp_start as ⟨Hb, Htok, Hlg, Hlgm, Hsv, #Hoff, Hlgd⟩
+  wp_start as ⟨Hb, Htok, Hlg, Hlgm, Hsv, #Hoff, Hlgd, Hrc⟩
   wp_auto
   wp_apply hStart s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0 $$ [Hb]
     as ⟨%γw, #Hreq, #Hrd, Hst, %γp, #Hwp⟩
@@ -91,17 +91,15 @@ theorem EtcdServer.Start.wp_proof
     wp_apply hAdj s
     iapply HΦ'
     try itrivial
-  -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
-    isplitr
-    · itrivial
-    iintro !> %Φ' - HΦ'
+  -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`, with the right to close `readych`
+  wp_apply hGA s _ (srvReadyCloser s) $$ [Hgr Hlg Hrc] as ⟨Hgr, Hlg⟩
+  · iframe Hgr Hlg Hrc
+    iintro !> %Φ' Hrc HΦ'
     wp_auto
     wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
     · iframe #
-    wp_apply hPub s _ E { wait := γw, rd := ρ.rd } $$ []
-    · iframe #; iapply srvMonitorPermit_of $$ Hreq
+    wp_apply hPub s _ E { wait := γw, rd := ρ.rd } $$ [Hrc]
+    · iframe #; iframe Hrc; iapply srvMonitorPermit_of $$ Hreq
     iapply HΦ'
     try itrivial
   -- `s.purgeFile`
@@ -134,7 +132,7 @@ theorem EtcdServer.Start.wp_proof
     · iframe #; iapply srvMonitorPermit_of $$ Hreq
     iapply HΦ'
     try itrivial
-  wp_apply hGA s _ (srvSVRes s E.γ) $$ [Hgr Hlg Hsv] as ⟨Hgr, Hlg⟩
+  wp_apply hGA s _ (srvSVRes s E) $$ [Hgr Hlg Hsv] as ⟨Hgr, Hlg⟩
   · iframe Hgr Hlg Hsv
     iintro !> %Φ' HL HΦ'
     wp_apply hMSV s E { wait := γw, rd := ρ.rd } γp $$ [HL]

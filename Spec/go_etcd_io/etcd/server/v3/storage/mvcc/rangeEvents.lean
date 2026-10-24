@@ -23,8 +23,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `rangeEvents(lg, b, minRev, maxRev, c)` over the backend `b` of the store's bucket (the
 caller's view of it at a fraction, `bucketMap log` of the committed log `log`, which the caller's
-certificate makes well formed), for `0 ≤ minRev ≤ maxRev ≤ log.length` (the `minRev < 0` warning
-is dead), the group `g` as the `contains` interface: a fresh slice of fresh events, read-only for
+certificate makes well formed), for `0 ≤ minRev`, `0 ≤ maxRev ≤ log.length` (the `minRev < 0` warning
+is dead; D22 receiver epochs, S6: `minRev` may be past `maxRev`, after a restore, and the range
+is then empty), the group `g` as the `contains` interface: a fresh slice of fresh events, read-only for
 good, the events of the revisions `[minRev, maxRev)` of `log` whose key some member of `g` covers,
 in revision order. The backend's reader token `RT` is lent (2026-10-13, unit 5). The store is
 not compacted (`crevFrozen`): its snapshot misses no event (compaction is out of the watchable
@@ -39,7 +40,7 @@ abbrev mvcc.rangeEvents.spec : Prop :=
       mvcc.crevFrozen γ ∗
       mvcc.bucketView γ q (mvcc.bucketMap log) ∗
       mvcc.idxCert γ.idx log ∗ mvcc.ownWatcherGroup g W ∗
-      ⌜0 ≤ sint.Z minRev ∧ sint.Z minRev ≤ sint.Z maxRev ∧ sint.Z maxRev ≤ log.length⌝ }}
+      ⌜0 ≤ sint.Z minRev ∧ 0 ≤ sint.Z maxRev ∧ sint.Z maxRev ≤ log.length⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents)) (Val #lg))
       (Val #b)) (Val #minRev)) (Val #maxRev))
       (Val #(interface.mkOk (go.GoType.PointerType watcherGroup.ty) #g)))

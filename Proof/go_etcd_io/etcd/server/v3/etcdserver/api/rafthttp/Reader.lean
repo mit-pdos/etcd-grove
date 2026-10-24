@@ -1,5 +1,5 @@
 /-
-**The stream reader** (rafthttp stage 5c; `notes/rafthttp-plan.md`, D33d). Lean-first.
+**The stream reader** (rafthttp stage 5c; `notes/rafthttp-plan.md`, D38d). Lean-first.
 
 A `streamReader` of type `ty` of the local member `lid` pulls the stream the peer `pid` writes for it:
 it dials (`GET` the stream's path, with a ticket registered as `(γw, ty, lid)`, `stream_ticket_alloc`),

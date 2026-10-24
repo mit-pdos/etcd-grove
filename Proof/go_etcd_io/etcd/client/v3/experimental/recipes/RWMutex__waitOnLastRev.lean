@@ -100,8 +100,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
   · iframe Hopts' Hlo
     ipureintro
     exact ⟨lastRevOp_not_panics _, lastRevOp_t bp _, by
-      simp [OpFull.getExact, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-        withMaxModRevM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
   have Hop : opGetModel bp (withTopM (W64 3) (W64 2) ++ [withMaxModRevM (st.rev - W64 1)]) =
       lastRevOp bp (st.rev - W64 1) := rfl
   rw [Hop]

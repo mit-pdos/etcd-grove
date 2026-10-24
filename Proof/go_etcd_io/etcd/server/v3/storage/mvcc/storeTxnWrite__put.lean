@@ -107,8 +107,7 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
       %d %_ %_ [$(frameH `HKeyG) $(frameH `Hlocked) $(frameH `Hbv) $(frameH `Hib)
           $(frameH `Hd)] as ⟨Hlocked, Hbv⟩
     · ipureintro; exact mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
-    icases mvcc.muHeld_idx s γ crev ti $$ [Hmu] with ⟨Hidxf, HmuI⟩
-    · iframe Hmu Hidx
+    icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$(frameH `HtiS) $(frameH `Hw)
@@ -193,16 +192,8 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   have HBM : pend.length + 1 < mvcc.putMax γ := by have := mvcc.putMax_ge γ; omega
   have Hb := HBM
   have Hb63 : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hb (mvcc.kbPutMax_le _)
-  iunfold mvcc.idxPin at Hidx
-  icases Hidx with ⟨%o0, #Hpin0, %Ho0⟩
-  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [HpinS Hpin0]
-  · iframe HpinS Hpin0
-  subst Hoo
-  simp only at Ho0
-  have Ho1 := Ho0.symm
-  subst Ho1
-  ihave #Hidx : mvcc.idxPin γ ti $$ []
-  · iunfold mvcc.idxPin; iexists _; iframe Hpin0; ipureintro; rfl
+  -- the transaction's tree index (D22 receiver epochs, S5b: its `s.mu` share's)
+  icases mvcc.muHeld_tree s γ crev ti $$ Hmu with ⟨Hmu, #HtiS⟩
   -- package facts: `ErrRevisionNotFound`, the `Key` bucket, zap, protobuf, traceutil
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -249,11 +240,10 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   -- `tw.s.kvindex.Get(key, rev)` by the writer
   ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
   · rw [mvcc.idxKnows_writer]; iexact Hw
-  icases mvcc.muHeld_crev_idx s γ crev ti $$ [Hmu] with ⟨Hcu, Hidxf, Hmub⟩
-  · iframe Hmu Hidx
+  icases mvcc.muHeld_crev_idx s γ crev ti $$ Hmu with ⟨Hcu, Hidxf, Hmub⟩
   (try wp_auto)
   wp_apply (hGet ti γ.idx (.writer ilog pend) key k (W64 (ilog.length : Int)) e0 _ crev)
-    $$ [$HtiS $Hti $Hkn $Hkey $Herr $Hcu] as ⟨Hti, Hw, Hcu, -⟩
+    $$ [$HtiS $Hti $Hkn $Hkey $Herr $Hcu] as %cs ⟨Hti, Hw, Hcu, -⟩
   · ipureintro; rw [mvcc.IdxKnow.log_writer]
     have h : sint.Z (W64 (ilog.length : Int) : w64) = ilog.length := by
       word
@@ -282,7 +272,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     wp_apply (hStep trace te _ slice.nil) $$ [Htrc] as Htrc
     · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
     (try wp_auto)
-    tw_write c.main (ver + W64 1)
+    tw_write c (ver + W64 1)
     -- `if oldLease != lease.NoLease { Detach }`: the first goal is `oldLease == NoLease`
     wp_if_destruct
     · (try wp_auto)

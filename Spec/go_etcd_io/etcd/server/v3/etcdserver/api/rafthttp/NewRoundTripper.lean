@@ -1,6 +1,6 @@
 /-
 `NewRoundTripper(tlsInfo, dialTimeout)` (`util.go`, untranslated; rafthttp stage 6c, `Transport.Start`'s
-round trippers): the trust boundary (the HTTP boundary's, D34). Lean-first.
+round trippers): the trust boundary (the HTTP boundary's, D39). Lean-first.
 -/
 module
 

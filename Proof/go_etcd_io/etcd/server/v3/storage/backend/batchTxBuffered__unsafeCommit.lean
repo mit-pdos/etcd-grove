@@ -38,8 +38,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     (hBC : backend.batchTx.commit.spec (GF := GF) (hG := hG))
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t rt st win stop m u
-  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpay⟩
+  intro γ P W Pk b t rt st win stop m u X Y
+  wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpay, HX, #Hrq⟩
   obtain ⟨Hroom, Hp0, HWe, Hview⟩ := Hc
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
@@ -80,20 +80,41 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   have Hwf := sessWf_setHw Hwf
   have Hbg0 := bgOk_setHw true Hbg0
   wp_join iprop(∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P (st.setHw true) st'⌝ ∗
-      t_ptr ↦ t) at next
-      with [Hl HWR t] as ⟨%st', Hl, HWR, %Hs, t⟩
-  · unfold hooksSpec
-    icases Hhs with (%Hnil | ⟨%ho, %Hho, #Hhook⟩)
-    · subst Hnil
+      payIn γ (st.setHw true) stop m u ∗ t_ptr ↦ t ∗ Y) at next
+      with [Hl HWR t HX Hpay] as ⟨%st', Hl, HWR, %Hs, Hpay, t, HY⟩
+  · unfold commitReq
+    icases Hrq with (#Hw | ⟨%t', %h', #Ht', #Hh', #Hrq⟩)
+    · -- no request: the hook as `hooksSpec` says, `X` passed along
+      ihave HY := Hw $$ HX
+      unfold hooksSpec
+      icases Hhs with (%Hnil | ⟨%ho, %Hho, #Hhook⟩)
+      · subst Hnil
+        wp_auto
+        wp_join_done
+        iexists (st.setHw true)
+        iframe
+        ipureintro
+        exact hookStep_refl P (st.setHw true)
+      · subst Hho
+        wp_auto
+        wp_apply Hhook $$ %(st.setHw true) %stop %m %u [$Hl $HWR $Hpay] as ⟨%st', Hl, HWR, Hpay, %Hs⟩
+        · ipureintro
+          exact ⟨rfl, Hroom, Hwin⟩
+        wp_join_done
+        iexists st'
+        iframe
+        ipureintro
+        exact Hs
+    · -- the request: the backend's hooks serve it
+      icombine Ht Ht' gives %Heqt
+      subst Heqt
+      icombine Hh Hh' gives %Heqh
+      subst Heqh
+      unfold hooksReq
+      icases Hrq with ⟨%ho, %Hho, #Hhook⟩
+      subst Hho
       wp_auto
-      wp_join_done
-      iexists (st.setHw true)
-      iframe
-      ipureintro
-      exact hookStep_refl P (st.setHw true)
-    · subst Hho
-      wp_auto
-      wp_apply Hhook $$ %(st.setHw true) [$Hl $HWR] as ⟨%st', Hl, HWR, %Hs⟩
+      wp_apply Hhook $$ %(st.setHw true) %stop %m %u [$Hl $HWR $HX $Hpay] as ⟨%st', Hl, HWR, HY, Hpay, %Hs⟩
       · ipureintro
         exact ⟨rfl, Hroom, Hwin⟩
       wp_join_done
@@ -165,7 +186,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := st'.tx) (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)
       imodintro
       iapply HΦ
-      iframe Hrr HWR Hpo
+      iframe Hrr HWR Hpo HY
       try simp only [Bool.false_eq_true, ↓reduceIte]
       iexists (commitSt st' st'.C st'.tx cnt'), db
       iframe Hown Hg
@@ -199,7 +220,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := tx') (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inl rfl)
       imodintro
       iapply HΦ
-      iframe Hrr HWR Hpo
+      iframe Hrr HWR Hpo HY
       try simp only [Bool.false_eq_true, ↓reduceIte]
       iexists (commitSt st' st'.S tx' cnt'), db
       iframe Hown Hg
@@ -230,7 +251,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       iframe Hbs
     imodintro
     iapply HΦ
-    iframe Hrr HWR
+    iframe Hrr HWR HY
     unfold payOut
     simp only [Bool.true_eq_false, _root_.false_and, ↓reduceIte]
     iframe Hown Hbs Hpend

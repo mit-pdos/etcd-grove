@@ -2,7 +2,7 @@
 `(*v2stats.FollowerStats).Fail()`: the trust boundary (v2stats is names-only but for
 `NewLeaderStats`; `Fail` increments a counter under the stats' own lock, as `Succ` keeps its
 latencies: `FollowerStats__Succ.lean`). rafthttp's pipeline calls it after a failed `MsgApp`. A
-no-op spec, as `Succ`'s (D33). Lean-first.
+no-op spec, as `Succ`'s (D38). Lean-first.
 -/
 module
 

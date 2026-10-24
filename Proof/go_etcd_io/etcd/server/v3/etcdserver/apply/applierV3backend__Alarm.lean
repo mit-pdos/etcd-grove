@@ -35,8 +35,8 @@ theorem apply.applierV3backend.Alarm.wp_proof
     (hAT : etcdserverpb.AlarmType.String.spec (GF := GF) (hG := hG))
     (hWLV : prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Alarm.spec (GF := GF) (hG := hG) := by
-  intro E p r log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%am, #Hr⟩, Hpre, Hwt⟩
+  intro E p r log Pre Q Post info
+  wp_start as ⟨#Hb, ⟨⟨%am, #Hr⟩, HRW⟩, Hpre, Hwt⟩
   ihave Hai : (applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨⟨%gv, #Hgv, %Hgvl⟩, -⟩
@@ -59,7 +59,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iframe
     iright
     iapply apply.csContract_pre
@@ -73,25 +73,26 @@ theorem apply.applierV3backend.Alarm.wp_proof
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iunfold apply.mPost
+      iapply apply.mPost_backend
       iframe
       iright
       iapply apply.csContract_pre
       iexact Hcs
     iunfold apply.kvOwn at Hkv
     icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-    icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
-    wp_apply HAct $$ %am.memberID %am.alarm %Pre %Q %Post [$Hcs $Hwt $Hrt] as %m ⟨HPP, Hrt, Hm⟩
+    icases Hard with ⟨Hard, Hwo⟩
+    icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
+    wp_apply HAct $$ %am.memberID %am.alarm %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %m ⟨HPP, Hrt, Hm, HRW⟩
     · ipureintro; exact Hif
-    ihave Hrd := Hrdb $$ Hrt
-    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard]
+    ihave Hwo := Hrdb $$ Hrt
+    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
     · iunfold apply.kvOwn; iframe
     wp_if_destruct
     · -- no alarm member
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iunfold apply.mPost
+      iapply apply.mPost_backend
       iframe
     icases Hm with (%Hn | #Hm)
     · exact absurd Hn Hif
@@ -125,23 +126,24 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iframe
   wp_if_destruct
   · -- DEACTIVATE
     iunfold apply.kvOwn at Hkv
     icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-    icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
-    wp_apply HDeact $$ %am.memberID %am.alarm %Pre %Q %Post [$Hcs $Hwt $Hrt] as %m ⟨HPP, Hrt, Hm⟩
-    ihave Hrd := Hrdb $$ Hrt
-    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard]
+    icases Hard with ⟨Hard, Hwo⟩
+    icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
+    wp_apply HDeact $$ %am.memberID %am.alarm %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %m ⟨HPP, Hrt, Hm, HRW⟩
+    ihave Hwo := Hrdb $$ Hrt
+    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
     · iunfold apply.kvOwn; iframe
     wp_if_destruct
     · -- no alarm member
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iunfold apply.mPost
+      iapply apply.mPost_backend
       iframe
     icases Hm with (%Hn | #Hm)
     · exact absurd Hn Hif
@@ -175,13 +177,13 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iframe
   · -- any other action
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iframe
     iright
     iapply apply.csContract_pre

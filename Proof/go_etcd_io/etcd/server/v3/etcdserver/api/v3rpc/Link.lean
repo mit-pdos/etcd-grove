@@ -8,6 +8,25 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin__isPermitted
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin__requireAuthInfo
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__AuthDisable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__AuthEnable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__AuthStatus
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__Authenticate
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleAdd
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleDelete
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleGet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleGrantPermission
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleRevokePermission
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserAdd
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserChangePassword
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserDelete
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserGet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserGrantRole
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserRevokeRole
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.FiltersFromRequest
@@ -42,6 +61,16 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.IsCapabilityEnabled
 public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int64
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Alarm
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Defragment
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Downgrade
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Hash
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__HashKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__MoveLeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Snapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Status
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__isPermitted
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__requireAuthInfo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkDeleteRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkPutRequest
@@ -78,6 +107,7 @@ public import Proof.google_golang_org.grpc.health.NewServer
 public import Proof.google_golang_org.grpc.health.Server__SetServingStatus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isRPCSupportedForLearner
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Compact
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Range
@@ -154,10 +184,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem rand.wp_Int63n :
-    EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.rand.Int63n.wp_proof
-
 theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.Is.wp_proof
@@ -173,6 +199,10 @@ theorem status.wp_Error :
 theorem wp_togRPCError :
     EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.togRPCError.wp_proof errors.wp_Is errors.wp_IsDeadlineExceeded status.wp_Error
+
+theorem rand.wp_Int63n :
+    EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rand.Int63n.wp_proof
 
 theorem header.wp_fillWithoutRevision :
     EtcdGrove.v3rpc.header.fillWithoutRevision.spec (GF := GF) (hG := hG) :=
@@ -336,6 +366,82 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+theorem AuthAdmin.wp_isPermitted :
+    EtcdGrove.v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthAdmin.isPermitted.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
+
+theorem AuthAdmin.wp_requireAuthInfo :
+    EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
+
+theorem AuthServer.wp_AuthDisable :
+    EtcdGrove.v3rpc.AuthServer.AuthDisable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.AuthDisable.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_AuthEnable :
+    EtcdGrove.v3rpc.AuthServer.AuthEnable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.AuthEnable.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_AuthStatus :
+    EtcdGrove.v3rpc.AuthServer.AuthStatus.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.AuthStatus.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_Authenticate :
+    EtcdGrove.v3rpc.AuthServer.Authenticate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.Authenticate.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleAdd :
+    EtcdGrove.v3rpc.AuthServer.RoleAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleAdd.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleDelete :
+    EtcdGrove.v3rpc.AuthServer.RoleDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleDelete.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleGet :
+    EtcdGrove.v3rpc.AuthServer.RoleGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleGet.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleGrantPermission :
+    EtcdGrove.v3rpc.AuthServer.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleGrantPermission.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleList :
+    EtcdGrove.v3rpc.AuthServer.RoleList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleList.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleRevokePermission :
+    EtcdGrove.v3rpc.AuthServer.RoleRevokePermission.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleRevokePermission.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserAdd :
+    EtcdGrove.v3rpc.AuthServer.UserAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserAdd.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserChangePassword :
+    EtcdGrove.v3rpc.AuthServer.UserChangePassword.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserChangePassword.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserDelete :
+    EtcdGrove.v3rpc.AuthServer.UserDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserDelete.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserGet :
+    EtcdGrove.v3rpc.AuthServer.UserGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserGet.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserGrantRole :
+    EtcdGrove.v3rpc.AuthServer.UserGrantRole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserGrantRole.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserList :
+    EtcdGrove.v3rpc.AuthServer.UserList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserList.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserRevokeRole :
+    EtcdGrove.v3rpc.AuthServer.UserRevokeRole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserRevokeRole.wp_proof wp_togRPCError
 
 theorem EtcdServer.wp_IsLearner :
     EtcdGrove.EtcdServer.IsLearner.spec (GF := GF) (hG := hG) :=
@@ -581,6 +687,46 @@ theorem etcdserverpb.wp__Watch_Watch_Handler :
     EtcdGrove.etcdserverpb._Watch_Watch_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._Watch_Watch_Handler.wp_proof grpc.GenericServerStream.wp_Recv grpc.GenericServerStream.wp_Send grpc.GenericServerStream.wp_Context
 
+theorem authMaintenanceServer.wp_isPermitted :
+    EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.wp_proof AuthAdmin.wp_isPermitted
+
+theorem authMaintenanceServer.wp_requireAuthInfo :
+    EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.wp_proof AuthAdmin.wp_requireAuthInfo
+
+theorem authMaintenanceServer.wp_Alarm :
+    EtcdGrove.v3rpc.authMaintenanceServer.Alarm.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Alarm.wp_proof authMaintenanceServer.wp_isPermitted authMaintenanceServer.wp_requireAuthInfo wp_togRPCError
+
+theorem authMaintenanceServer.wp_Defragment :
+    EtcdGrove.v3rpc.authMaintenanceServer.Defragment.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Defragment.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
+
+theorem authMaintenanceServer.wp_Downgrade :
+    EtcdGrove.v3rpc.authMaintenanceServer.Downgrade.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Downgrade.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
+
+theorem authMaintenanceServer.wp_Hash :
+    EtcdGrove.v3rpc.authMaintenanceServer.Hash.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Hash.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
+
+theorem authMaintenanceServer.wp_HashKV :
+    EtcdGrove.v3rpc.authMaintenanceServer.HashKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.HashKV.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
+
+theorem authMaintenanceServer.wp_MoveLeader :
+    EtcdGrove.v3rpc.authMaintenanceServer.MoveLeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.MoveLeader.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
+
+theorem authMaintenanceServer.wp_Snapshot :
+    EtcdGrove.v3rpc.authMaintenanceServer.Snapshot.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Snapshot.wp_proof authMaintenanceServer.wp_isPermitted wp_togRPCError
+
+theorem authMaintenanceServer.wp_Status :
+    EtcdGrove.v3rpc.authMaintenanceServer.Status.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.Status.wp_proof authMaintenanceServer.wp_requireAuthInfo wp_togRPCError
+
 theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.IsCtxErr.wp_proof
@@ -596,6 +742,10 @@ theorem wp_filterNoPut :
 theorem wp_isClientCtxErr :
     EtcdGrove.v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.isClientCtxErr.wp_proof
+
+theorem kvServer.wp_Compact :
+    EtcdGrove.v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.kvServer.Compact.wp_proof AuthAdmin.wp_isPermitted wp_togRPCError header.wp_fill
 
 theorem storage.wp_NewBackendQuota :
     EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=

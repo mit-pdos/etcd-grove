@@ -17,6 +17,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Specs: `sort.SearchStrings`
+
+- **Missing.** A spec of `sort.SearchStrings(a, x)` (Perennial translates `sort`, `Perennial/Code/
+  sort.lean`, but has no `wp_SearchStrings`): for a sorted slice, the least index whose string is
+  not below `x` (the binary search's contract), the slice kept.
+- **Needed by.** `auth.hasRootRole` (`server/auth/store.go`: `sort.SearchStrings(u.Roles, rootRole)`
+  then a bounds-checked index), the root-role shortcut of every permission check and of
+  `IsAdminPermitted` (the auth plan's S3, 2026-10-24).
+- **Workaround here.** `hasRootRole` stays names only, a trust-boundary axiom restated to return
+  `decide (isRoot ur.roles)` of a user message with sorted roles (`Spec/go_etcd_io/etcd/server/v3/
+  auth/hasRootRole.lean`; S1's `userOut` gives the sorting, which `UserGrantRole` maintains).
+- **Proposed change.** `sort.wp_SearchStrings` in Perennial's `Proof/sort` (as `slices.BinarySearch`'s
+  shape if it has one; else over `GoStringLt` with `Pairwise`), general; then `hasRootRole` is
+  translated with its body and proved here, and the axiom goes.
+- **Status.** Open.
+
 ### Tactics: `word`'s caches shared between parallel declarations
 
 - **Missing.** Deterministic elaboration under a parallel build. `word`'s caches
@@ -52,6 +68,25 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** `⌜cancel ≠ func.nil⌝` in the postconditions of `WithCancel`'s specs (and of
   `WithTimeout`/`WithDeadline`'s, whose cancel functions are closures too).
 - **Status.** Not started (found 2026-10-22).
+
+### Proof idioms: a closed theorem from a program's initializer and body
+
+- **Missing.** A form of `goose_adequacy` for the usual closed theorem: a program
+  `init #() ;; body` run from a fresh state (`IsInit`) with one thread, the receipt and thread
+  bounds `n + 1`, `n + 2` of an `n`-step execution, the right to initialize (`ownInitializing`)
+  from the empty package state, and the conclusion with `v.isPanic = false` for each final value
+  (from `UnrecoveredPanic`'s exclusion). Every closed theorem repeated these steps.
+- **Needed by.** The examples' closed theorems (2026-10-22, D36): kv's, the counter's and
+  kvwitness's over `goose_adequacy`; the etcd examples' over this repository's
+  `goose_adequacy_start` (`Proof/runtime/Start.lean`), which stays here.
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/common/Adequacy.lean`:
+  `init_adequate` (over `goose_adequacy`, its WP obligation `progOk0`: the initializer's triple
+  and the body's WP from the package's predicate and the main thread's token, at every ghost-state
+  instance at the state's local context), `adequate_of_unrecovered`, `ownInitializing_of_empty`;
+  no axiom. (`etcd_adequate`, the same over `goose_adequacy_start`, is this repository's.)
+- **Proposed change.** `init_adequate`, `adequate_of_unrecovered` and `ownInitializing_of_empty`
+  in `Perennial/GooseLang/Adequacy.lean` (or beside `IsInit` in `Perennial/Golang/Theory/Pkg.lean`).
+- **Status.** Not started (2026-10-22).
 
 ### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
 
@@ -129,6 +164,120 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   needed, local until proposed.
 - **Proposed.** Translations (or trusted models) of the four in Perennial's standard library, and
   the specs above, each with the subset proofs use.
+- **Status.** Not started. (2026-10-22) Local trust-boundary specs here for `strings.HasSuffix`,
+  `strings.Contains` (`Spec/strings/`). (2026-10-23) Also `strings.TrimSuffix` (`Spec/strings/TrimSuffix.lean`: Perennial's
+  `strings` has no body for it) and `path.Join` for the one case `etcd3.New` uses
+  (`Spec/path/Join.lean`: `Join(["/", p])` of a clean absolute `p` is `p`, `PathCleanAbs`).
+  (2026-10-24, the auth plan's A3) The server's `UserAdd`/`UserChangePassword` call
+  `base64.StdEncoding.EncodeToString`: a package *variable* of the names-only package, whose load
+  needs a points-to the package's fact (`True`) does not give; they stay names only until a model
+  of `encoding/base64` (and of `golang.org/x/crypto/bcrypt`'s `GenerateFromPassword`) exists.
+
+### `reflect.Value` held in a variable: its typed points-to is `sorry`
+
+- **Limitation.** `reflect` is names-only, and its axiomatized types' generated instances
+  (`GeneratedProof/reflect.lean`: `Value_typed_pointsto`, `Value_into_val_typed`) are
+  `sorry -- axiomatized type`. Any function that stores a `reflect.Value` in a variable (a
+  parameter is one: Goose allocates it) needs them, so a proof of it rests on a `sorry`.
+- **Needed by.** The k8s etcd3 store's `Delete` and `GuaranteedUpdate`: `v, _ :=
+  conversion.EnforcePtr(out)` is passed to `conditionalDelete`, `deleteOnce`, `updateOnce`,
+  `getCurrentState`, `stateFromEtcdResponse`, which make a fresh object with
+  `reflect.New(v.Type()).Interface().(runtime.Object)` (`notes/k8s-etcd3-plan.md`, "What blocks
+  where"). `Get` and `Create` do not use it.
+- **Proposed.** An opaque `reflect.Value` with real instances (a translated struct whose fields
+  are not modelled, or a hand-written typed points-to that only allows moving the value), plus
+  specs of `Value.Addr`/`Type`/`Interface`/`Elem`/`Set` and `reflect.New` for pointer-to-struct
+  values. Designed and reviewed on its own (Perennial's trusted base).
+- **Workaround here** (the user's choice, 2026-10-22: axioms here now, a trusted model with proved
+  reasoning principles later). `Proof/reflect/Values.lean`: the two instances as axioms of higher
+  priority than the generated `sorry`s; opaque predicates relating a `Value` to a Go type and a
+  location (`reflElem`, `reflPtr`, `reflType`) and `reflect.New`'s allocation (`reflNew`, with
+  `reflNew_pointsto`); the specs of `reflect.New`, `Value.Addr`/`Type`/`Interface` and
+  `conversion.EnforcePtr` as axioms (`Spec/reflect/`, `Spec/k8s_io/apimachinery/pkg/conversion/`).
+  Go's `reflect` works on the runtime's representation (type descriptors, `unsafe.Pointer`,
+  interfaces as two words), outside the semantics, so the model will be trusted, its principles
+  proved from it.
+- **Status.** Not started in Perennial.
+
+### Goose: a names-only package's constants are values of unknown shape
+
+- **Need.** A names-only package's constants are axiomatized `val`s
+  (`k8s.io/apiserver/pkg/features.AllowUnsafeMalformedObjectDeletion`). Binding one (`let x :=
+  features.F`, as Goose translates a call argument) is a beta step whose premise is that the value
+  is not a panic (`pure_beta`), which nothing says of an axiom.
+- **Workaround here.** `Proof/k8s_io/apiserver/pkg/features/Values.lean`: a trust-boundary axiom
+  that this constant is not a panic value, used by `store.Delete`'s proof (`wp_pure` with it in
+  the context).
+- **Proposed fix.** Goose could translate a names-only package's constants (their values are
+  constant expressions, never code), or emit with each axiomatized constant the fact that it is a
+  value of its Go type (`#(c : V)` for a Lean type `V` of the constant's type), from which
+  `isPanic_intoVal` gives the premise.
+- **Status.** Not started.
+
+### Goose: interface types whose methods name an alias stay axiomatized (G1)
+
+- **Limitation.** Goose's `getStructInfo`/type translation does not see through type aliases
+  (`notes/k8s-etcd3-goose.md`, G1): a type naming an alias is skipped by `translate_types`, so it
+  is axiomatized. (2026-10-23) `k8s.io/apiserver/pkg/storage/feature.FeatureSupportChecker`
+  (`CheckClient(ctx, client, storage.Feature)`, `storage.Feature = string`) stays axiomatized even
+  with its imports configured (G4's fix made `client` concrete).
+- **Needed by.** `etcd3.New` calls `feature.DefaultFeatureSupportChecker.CheckClient(...)`.
+- **Workaround here.** The `storage/feature` package's fact (`checkerInit`,
+  `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`) is the call's own WP, the variable's load
+  included, so no proof touches the axiomatized type's `sorry` instances.
+- **Proposed fix.** `types.Unalias` in Goose where it resolves a named type (G1).
+- **Status.** Not started.
+
+### `≤u` has no transitive instance (conversion to a defined type of a named interface)
+
+- **Limitation.** `InterfaceSemantics.convert_to_interface` needs `to ≤u go.InterfaceType elems`;
+  `≤u` (`UnderlyingEq`) is found from one `<u` step only (`unfold_to_underlying_eq`,
+  `Golang/Theory/PostLifting.lean`), and `UnderlyingDirectedEq`'s docstring mentions a transitive
+  instance that does not exist. A defined type of a named interface (`type Codec Serializer` in
+  `k8s.io/apimachinery/pkg/runtime`: `Codec <u Serializer.ty <u interface{Encoder; Decoder}`) then
+  has no conversion step.
+- **Needed by.** The k8setcd3 driver's `Main` (`etcd3.New(..., codec{}, ...)`, 2026-10-23).
+- **Workaround here.** A local instance proved from the two `TypeAssumptions` (`haveI` in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Main.lean`); no axiom.
+- **Proposed fix.** An instance `[t <u t'] [t' ≤u t''] : t ≤u t''` (in place of
+  `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
+- **Status.** Not started.
+
+### The type set of an interface with an embedded interface
+
+- **Limitation.** `typeSetTermContains t (TypeTerm t')` is `t = t'`
+  (`Golang/Defn/Interface.lean`), and Goose translates an embedded interface (`type Serializer
+  interface { Encoder; Decoder }`) as `TypeElem [TypeTerm Encoder.ty]`. Go's type set of a term
+  that is an interface is that interface's type set, so in the model no concrete type is in
+  `Serializer`'s (or `Codec`'s) type set: a type assertion to such an interface panics where Go
+  succeeds (the model is less defined, so proofs stay sound, but such an assertion cannot be
+  verified).
+- **Needed by.** Nothing yet (found 2026-10-23 while converting the driver's codec to
+  `runtime.Codec`; conversions and method calls do not consult type sets).
+- **Proposed fix.** In `typeSetTermContains`, a term whose underlying type is an interface
+  contributes that interface's type set (`typeSetContains t t'`); a semantics change, through
+  Perennial's `fix-semantics` workflow.
+- **Status.** Not started.
+
+### `os.Getenv`, `strconv.ParseBool` have no specs
+
+- **Limitation.** Both are names-only in Perennial (no body, no spec).
+- **Needed by.** `k8s.io/apiserver/pkg/storage/etcd3`'s `init` (`watcher.go`: whether
+  `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true), which the driver's initialization runs.
+- **Workaround here.** Trust-boundary specs (`Spec/os/Getenv.lean`, `Spec/strconv/ParseBool.lean`,
+  axioms in `Proof/`): each returns some value.
+- **Proposed fix.** Specs in Perennial (`ParseBool` can be translated: it is pure).
+- **Status.** Not started.
+
+### Goose: a type defined over a type of a package the file does not import (G3)
+
+- **Limitation.** `grpclog.LoggerV2` is `type LoggerV2 internal.LoggerV2`; `grpclog/internal` is
+  not translated, so `LoggerV2` is axiomatized and a conversion to it does not step.
+- **Needed by.** `etcd3`'s `init` (`logger.go`: `grpclog.SetLoggerV2(klogWrapper{})`).
+- **Workaround here.** `etcd3`'s `klogWrapper_toLoggerV2` (generated into its `Init.lean` from
+  `etc/gen-init.py`): the conversion returns some interface value.
+- **Proposed fix.** Translate `grpclog/internal` names-only (configuration here), or G3's general
+  fix in Goose (`notes/k8s-etcd3-goose.md`).
 - **Status.** Not started.
 - **Also `hash` (2026-10-22, branch `kvhasher`).** Perennial does not translate `hash`, so mvcc's
   `kvHasher` (a `hash.Hash32` field) was an axiomatized type with `sorry` instances, the
@@ -148,7 +297,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   and raft's messages marshalled.
 - **Workaround here.** Trust-boundary axioms: `Spec/encoding/binary/{WriteUint64,WriteUint8,
   ReadUint64}.lean` (Go's fast path of an integer, stated over the writer's `Write` / the reader's
-  `io.ReadFull`), and generic protobuf specs over a per-type wire model (D33a:
+  `io.ReadFull`), and generic protobuf specs over a per-type wire model (D38a:
   `Proof/google_golang_org/protobuf/proto/InvProto.lean`'s `PbType`, `Spec/google_golang_org/
   protobuf/proto/{Size,Marshal,Unmarshal}Pb.lean`).
 - **Proposed.** Specs of `binary.Write`/`Read` of fixed-size integers in Perennial (or a trusted
@@ -199,8 +348,95 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed.** A translation or model of `TrimSuffix` with a spec (the string without the suffix,
   if it ends with it), as `TrimPrefix`'s.
 - **Status.** Not started.
+### Tactics: framing up to the projections of a structure instance
+
+- **Missing.** The proof mode's matching of a hypothesis against a goal (`iframe`, the `$$`
+  arguments of `iapply`/`ihave`) does not see through the projection of an anonymous constructor:
+  `dghostVar (γ.withPhys p).rst dq v` does not frame `dghostVar γ.rst dq v`, nor `crevFrozen γ`
+  the premise `crevFrozen (γ.withPhys p)`, though they are definitionally equal (`rfl`) and Lean's
+  `exact` accepts them.
+- **Needed by.** The store's names at the current physical names (`mvcc.StoreNames.withPhys`,
+  D22 receiver epochs S5b, 2026-10-22): every proof that works at `γ.withPhys p` and uses a
+  logical fact of `γ`.
+- **Workaround.** Explicit rewrites by `rfl` lemmas (`mvcc.isStore_withPhys`, ..., the
+  `withPhys_simp` tactic of `InvStore.lean`), lemmas bridged in term mode
+  (`readerPool_checkout_p`, `revMuInv_open_cur`), and `revMuBody` with separate logical and
+  physical names.
+- **Proposed.** iris-lean's (not Perennial's) frame and specialization matching could unify up to
+  `whnfR` of projections of constructor applications (structure eta), as Lean's `isDefEq` does at
+  reducible transparency for `instances`. Not proposed yet: to be weighed against the cost of
+  every match.
+- **Status.** Open (observed; no change drafted).
+
+### Context: `Canceled`'s message cell in `context`'s package facts
+
+- **Missing.** Perennial's context initialization allocates `Canceled` with `errors.New("context
+  canceled")` and persists the `errorString`'s `s` field, but `isInit`'s `"#HCanceled"` keeps only
+  `isTypedErr`: a proof cannot tell `Canceled` apart from another `errors.New` value (D37, D19k).
+- **Needed by.** `ctxErrClientAllW_of` (`client/v3/ErrorsNewOk.lean`): a context's error is no
+  caller's `errors.New` value (`errCellOk`), for the Kubernetes driver's sentinel errors.
+- **Workaround here.** `context.ErrAny` (this repository's trust-boundary axiom) states the cell
+  of `Canceled`'s value and that `DeadlineExceeded`'s is no `*errorString` (true of Go).
+- **Proposed change.** `"#HCanceled"` with the cell (`x.[errorString, "s"] ↦□ "context
+  canceled"`, as this repository's `errStrCell`), and `"#HDeadlineExceeded"` with its dynamic type
+  (`deadlineExceededError`); then `ErrAny` drops the two facts.
+- **Status.** Not started (found 2026-10-23).
 
 ## Landed
+
+### Specs: `context.WithTimeout`/`WithDeadline` of `Background()`
+
+- **Missing.** A spec of `context.WithTimeout(parent, d)` (and `WithDeadline`,
+  `WithDeadlineCause`) whose parent is `context.Background()` (or `TODO()`): Perennial's
+  `context.WithTimeout.spec` takes `isContext parent`, which `Background()`'s value is not (its
+  `Done()` is `nil`). `WithCancel` has the counterpart (`wp_WithCancel_Background`,
+  `WithCancelGen.lean`), and the pieces of the deadline case are there too (`wp_background_Deadline`,
+  `wp_propagateCancel_background`, `isContext_timerCtx_of`).
+- **Needed by.** The pattern of client/v3's documentation, `ctx, cancel :=
+  context.WithTimeout(context.Background(), timeout)` around each call: the examples' call sites
+  since 2026-10-23 (`notes/client-timeouts-plan.md`, D-T2, D-T3) and the server's read loop
+  (`sendReadIndex`, the request path's unit 4a).
+- **Workaround here.** The trust-boundary axiom `context.WithTimeoutBackground.wp_proof`
+  (`Spec/context/WithTimeoutBackground.lean`: an `isContext` of some descriptor and a callable
+  `cancel`), in the `read`, `server` and every etcd example's collection; the examples use it
+  through `client.wp_WithTimeout_bg` (`Proof/go_etcd_io/etcd/client/v3/TimeoutCtx.lean`).
+- **Proposed change.** `wp_WithTimeout_Background` and `wp_WithDeadline_Background` (the
+  `Background()` parent of `WithDeadlineCause`'s proof, as `wp_WithCancel_Background` is of
+  `WithCancel`'s), with the descriptor they give (`Deadline := some d`, `PDone := True`, fresh
+  Done names). Then the axiom here becomes a theorem (one axiom fewer in the baseline and in
+  those collections: the plan's T3).
+- **Status.** Landed: Perennial `c25bef57e` (branch `with-timeout-background` off `lean`
+  `d761e15b2`, 2026-10-23: `wp_WithDeadlineCause_Background_of`, `wp_WithDeadline_Background_of`,
+  `wp_WithTimeout_Background_of` in `Proof/context/WithDeadlineBackground.lean`, exposed in
+  `Results.lean`; `propagateCancel`'s spec takes any child for a `Background()` parent,
+  `wp_propagateCancel_background_any`); the pin moved to it and the axiom here is the theorem
+  `context.WithTimeoutBackground.wp_proof` over `wp_WithTimeout_Background` (one axiom fewer in
+  the baseline and in the `read`, `server` and every etcd example's collection).
+
+### Std, PostLifting: generic lemmas the client, the cache and the examples each proved a copy of
+
+- **Missing.** Facts about Perennial's and Lean's own definitions, proved in several places here
+  (`notes/dedup-plan.md`, C1-C4 and D): a points-to at `q` as two halves and back, with agreement
+  (twelve copies by value type: `ptsto_w64_halves`, `loc_halves`, `chan_split`, ...), half a
+  points-to fractional (`half_pointsto_fractional_loc`/`_chan`); `N.@x` disjoint from `N.@y` and
+  `N.@z` (the `*_mask` lemmas); setting the first entry of a `replicate` padding (five copies);
+  one more function of a `foldl (fun o g => g o)` (`opFold_take_succ`, `stmOptsFold_take_succ`,
+  `cfgApply_take_succ`); indexing and prefix facts Lean core lacks (`zip_get_snd`,
+  `getElem?_snoc_cases`, `prefix_drop_cons`, the `crl_*_mid` three, `flatten_getElem?`, ...);
+  `GoStringLt` on cons cells (`client/v3/PrefixRange.lean`).
+- **Needed by.** `Proof/go_etcd_io/etcd/{client,cache}/v3/`, `examples/{linkvtxn,lintest}`.
+- **Workaround here.** None now (the local copies stayed until the pin moved).
+- **Proposed change.** Perennial branch `dedup-lemmas` (`f97c83add`, off the pin `537c426e0`;
+  worktree `/shared/perennial-dd`): `typedPointsto_half_split`/`_half_combine`/`_half_fractional`
+  (`Golang/Theory/PostLifting.lean`), `mask_ndot_ne2` (`Std/Namespaces.lean`), the list lemmas
+  (`Std/List.lean`, sections `list_index`, `subslice_take`, `join_same_len_index`),
+  `goStringLt_cons_iff`/`_nil_cons`/`_not_nil` (`Golang/Defn/String.lean`). Theorems only.
+  Then, here: each copy deleted and its uses pointed at Perennial's (the `_take_succ` three stay
+  one-liners over `foldl_apply_take_succ`: `opFold` and its kin are in specs' statements).
+- **Status.** Landed 2026-10-22: Perennial `lean` `f97c83add`, the pin since; the local copies are
+  deleted (etcd-grove branch `dedup-pin`), their uses pointed at Perennial's (the server's
+  `mask_ndot_ne2` at `nroot` and the three `_take_succ` one-liners over Perennial's; raft's
+  `ptsto_halves` too). Found 2026-10-22.
 
 ### Proof idioms: a synchronous SPSC channel, a thread-token join, a ghost update at a fork
 
@@ -272,3 +508,64 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   `Request_underlying_typeRepr` (and `Response`'s), high-priority instances from the type
   assumptions. Proposed change: Goose emits no `IntoValTyped` instance for an axiomatized type
   (or one of low priority), so its `TypeRepr` comes from the type assumptions. Not yet proposed.
+### `wp_apply`'s frame list can admit a goal silently
+
+- **Missing.** In `mvcc.restoreChunk.wp_proof` (2026-10-23), `wp_apply (wp_spsc_send …) $$
+  [$Hsp $Hprod HP]` followed by a bullet for `HP`'s subgoal elaborated with no error, but the
+  rest of the enclosing bullet never ran and the theorem got a `sorryAx` (found only through
+  "declaration uses `sorry`", located by printing the `sorryAx` terms' source names). Framing a
+  prepared hypothesis (`$HP'`) instead proved it.
+- **A second instance** (2026-10-23, `schema.authBackend.GetUser.wp_proof`, the auth plan's S1):
+  `wp_apply (hRU l rt R Held D) $$ [$Htxf $Hrtx $HD] as HR` at the *deferred* `tx.RUnlock()` call
+  (the goal `WP ((RUnlock #() ;; oldf #()) ;; #u) {{Φ}}` after `wp_with_defer`'s body returned),
+  `hRU` a Lean spec whose instance names `D`, a variable introduced after the defer by an earlier
+  `wp_apply ... as ⟨%D, ...⟩`: no error at the line, the rest of the proof runs on nothing, and the
+  theorem ends with "unsolved goals" showing the goal as it was before the call. `wp_apply_core`
+  of the same term fails with "unknown free variable" (`_fvar...`), while `have h := hRU l rt R
+  Held D` elaborates, and `wp_apply` of the same shape worked for `hRL` two calls earlier (before
+  `D` existed). Workaround: `wp_bind` the call, then `iapply (hRU ...) $$ [Hpkg Htxf Hrtx HD]`,
+  prove the precondition goal by `iframe`, `inext`, `iintro HR`.
+- **Workaround here.** Prepare the hypothesis with `ihave` and frame it with `$`; check every new
+  proof for the "declaration uses `sorry`" warning; at a deferred call, `wp_bind` and `iapply`.
+- **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
+  the error instead of admitting.
+
+### Std, String: the successor string and the order's facts
+
+- **Missing.** Lemmas about `GoStringLt`/`GoStringLe` beyond the four in
+  `Perennial/Golang/Theory/String.lean`: that `k ++ "\x00"` is the immediate successor of `k`
+  (`GoStringLt k b → k ++ "\x00" = b ∨ GoStringLt (k ++ "\x00") b`, so `k < b ↔ k ++ "\x00" ≤ b`
+  and `k < key ++ "\x00" ↔ k ≤ key`), that a string is below its proper extensions, that `""` is
+  the least string, and `GoStringLe`'s transitivity/antisymmetry/totality.
+- **Needed by.** etcd's point interval `[k, k ++ "\x00")` (the watchable store's watchers on a
+  key, the auth store's point permissions and `checkKeyPoint`): `mvcc/InvWatchGroup.lean`
+  (`strLt_succ_le`, `succ_ne_empty`, `ivlCmp_point_iff`), `adt/Contains.lean` (the same three,
+  restated so that `auth` does not import `mvcc`), `auth/PermTree.lean` (`goStringLt_succ_iff`),
+  `adt/Model.lean` (`strLt_append`), the B-tree's and the cache's `goStringLe_*`.
+- **Workaround here.** The copies above.
+- **Proposed change.** The lemmas in `Perennial/Golang/Theory/String.lean`, with `GoStringLe`'s
+  order instance; the copies here then go.
+
+### Sequential specs of an `RWMutex` no one else can reach
+
+- **Missing.** Perennial's `RWMutex` specs need the lock allocated (`isRWMutex`/`ownRWMutex`,
+  `init_RWMutex`); code that locks a mutex of an object not yet shared (etcd's `restoreIntoIndex`
+  on the index it is rebuilding, `restore` on `s.revMu` inside `NewStore`) has no spec.
+- **Workaround here.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/PlainRWMutex.lean`:
+  `plain.wp_RLock`/`wp_RUnlock`/`wp_Lock`/`wp_Unlock` on owned memory (values `rwZero`, `rwR1`,
+  `rwW`), and `plain.wp_Mutex_Lock`/`wp_Mutex_Unlock` for the trusted spin lock, proved over
+  Perennial's translation (no assumption).
+- **Proposed change.** The same lemmas in Perennial's `Proof/sync` (for `Mutex` and `RWMutex`),
+  stated for any number of nested readers if needed; not yet designed.
+
+### `wp_apply` of a hypothesis fails as "unsolved goals" at the proof's `by`
+
+- **Missing.** In `mvcc.store.restore.wp_proof` (2026-10-23), `wp_apply Hru $$ [$Htok]` (an
+  Iris hypothesis, the read transaction's `RUnlock` triple from `keyReadLocked`) failed with
+  "unsolved goals" reported at the theorem's `:= by`, the goal shown being the call, and the
+  tactics after it never ran (a `fail` after it did not fire). The same call is applied this way
+  in `storeTxnRead__End.lean`.
+- **Workaround here.** `wp_bind` the call, then `iapply Hru $$ [Htok]`, `iexact Htok`, `inext`,
+  `iintro`.
+- **Proposed change.** Not designed: a minimal reproduction first; the tactic should report
+  where and why it fails.

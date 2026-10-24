@@ -26,27 +26,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- Reader tokens of the index's lock are reader handles (with the tree's address). -/
-theorem idxReaders_of_toks (ti t : Loc) (γ : mvcc.IdxNames) : ∀ (n : Nat),
-    ti.[treeIndex, go!"tree"] ↦□ t ∗
-      ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (mvcc.idxMuAddr ti) (mvcc.idxLockInv (GF := GF) t γ)) ⊢
-      [∗list] _x ∈ List.replicate n (), mvcc.idxReader ti γ
-  | 0 => by rw [List.replicate_zero]; iintro _; iapply BigSepL.bigSepL_nil_intro; iempintro
-  | n + 1 => by
-    rw [List.replicate_succ]
-    iintro ⟨#Ht, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, Hs⟩
-    iapply BigSepL.bigSepL_cons.2
-    isplitl [H1]
-    · iunfold mvcc.idxReader; iexists t; iframe H1; iexact Ht
-    · iapply idxReaders_of_toks ti t γ n; iframe Hs; iexact Ht
-
 theorem mvcc.newTreeIndex.wp_proof
     (wp_btree_New : btree.New.spec (GF := GF) (hG := hG))
     (hLess : mvcc.keyIndex.Less.spec (GF := GF) (hG := hG)) :
     mvcc.newTreeIndex.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
-  intro γ lg
-  wp_start as ⟨%Hlgnn, Hfresh⟩
+  intro γ lg n log₀
+  wp_start as ⟨%Hlgnn, Hnauth, Hcmp, #Hclb, #Hllb⟩
   wp_auto
   -- `btree.New(32, func(aki, bki) bool { return aki.Less(bki) })`
   wp_apply (wp_btree_New mvcc.kiPtrT (W64 32) _ mvcc.kiItemIs mvcc.kiItemLess) $$ [] as %t Ht
@@ -71,96 +57,36 @@ theorem mvcc.newTreeIndex.wp_proof
   iStructNamed Hti
   ipersist tree
   ipersist lg
-  obtain ⟨γh, γn, γl, γc, γm⟩ := γ
-  iunfold mvcc.idxFresh at Hfresh
-  icases Hfresh with ⟨Hhauth, #Hhlb, Hnauth, #Hnlb, Hlauth, #Hllb, Hcauth, #Hclb, Hcmp⟩
-  have hcmph := (ghostVar_fractional (GF := GF) γm ((-1 : Int), ([] : List Loc))).fractional
+  have hcmph := (ghostVar_fractional (GF := GF) γ.cmp ((-1 : Int), ([] : List Loc))).fractional
     (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hcmph
   icases hcmph.1 $$ Hcmp with ⟨Hcmp, Hcmpr⟩
-  have hhalves := (monoListAuthOwn_fractional (GF := GF) γl ([] : mvcc.Log)).fractional
-    (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at hhalves
-  icases hhalves.1 $$ Hlauth with ⟨Hlauth, Hlother⟩
-  let γ : mvcc.IdxNames := ⟨γh, γn, γl, γc, γm⟩
-  have hshape : mvcc.histShape [] [] = [] := rfl
-  have hevs : (mvcc.evsOf ([] ++ [[]])).length = 0 := rfl
-  have hwf : mvcc.IdxWf [] [] := by
-    refine ⟨⟨fun _ => rfl, fun r cs i k hr hi => ?_⟩, by simp, by simp, fun _ h => by simp at h⟩
-    simp only [List.nil_append, List.getElem?_singleton] at hr
-    split at hr
-    · simp only [Option.some.injEq] at hr; subst hr; simp at hi
-    · simp at hr
-  imod sync.init_RWMutex (mvcc.idxLockInv (hG := hG) t γ) (mvcc.idxMuAddr ti) $$ [Hnauth Ht Hcmp] RWMutex
-    with Htoks
-  · inext
-    unfold mvcc.idxLockInv
-    iexists [], [], [], -1
-    simp only [named, γ]
-    rw [hshape, hevs]
+  wp_auto
+  iapply HΦ
+  isplitl [RWMutex Ht]
+  · iunfold mvcc.ownIdxPriv
+    iexists t, lg
+    iframe tree lg RWMutex
+    isplitl []
+    · ipureintro; exact Hlgnn
+    iunfold mvcc.ownTree
+    rw [show mvcc.itemsOfEntries [] = [] from rfl]
+    iframe Ht
+    isplitl []
+    · ipureintro; exact List.Pairwise.nil
+    iapply BigSepL.bigSepL_nil_intro; iempintro
+  isplitl [Hnauth Hcmp]
+  · iunfold mvcc.idxLockG
     iframe Hnauth
     isplitl []
-    · iexact Hhlb
-    isplitl [Ht]
-    · iunfold mvcc.ownTree
-      rw [show mvcc.itemsOfEntries [] = [] from rfl]
-      iframe Ht
-      isplitl []
-      · ipureintro; exact List.Pairwise.nil
-      iapply BigSepL.bigSepL_nil_intro; iempintro
+    · iexact Hclb
     isplitl []
-    · iunfold mvcc.crevLb; rw [mvcc.crevN_neg]; iexact Hclb
-    isplitl []
-    · iexists []; iframe Hllb; ipureintro; simp
-    isplitl []
-    · ipureintro; exact ⟨mvcc.IdxCRep.nil (Int.le_refl _), Int.le_refl _⟩
-    isplitl []
-    · ipureintro; exact hwf
+    · iexists log₀; iexact Hllb
     iunfold mvcc.idxCmpOwn
     iexists -1, []
     iframe Hcmp
     ipureintro; simp
-  imod receipt_zero (GF := GF) with Hr0
-  wp_auto
-  -- one token's guard
-  have hpos : 0 < Int.toNat sync.rwmutex.actualMaxReaders :=
-    Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
-  obtain ⟨m, hm⟩ : ∃ m, Int.toNat sync.rwmutex.actualMaxReaders = m + 1 :=
-    ⟨_, (Nat.succ_pred_eq_of_pos hpos).symm⟩
-  rw [hm, List.replicate_succ]
-  icases BigSepL.bigSepL_cons.1 $$ Htoks with ⟨Htok, Htoks⟩
-  icases sync.ownRWMutex_guard _ _ $$ Htok with ⟨Htok, #Hguard⟩
-  iapply HΦ
-  isplitl []
-  · iunfold mvcc.isTreeIndex
-    iexists t, lg
-    simp only [named, γ]
-    iframe #
-    ipureintro; exact Hlgnn
-  isplitl [Hhauth Hlauth Hr0]
-  · iunfold mvcc.idxWriter
-    simp only [γ]
-    rw [hshape, hevs]
-    iframe Hhauth Hlauth
-    isplitl []
-    · iexact Hnlb
-    isplitl []
-    · ipureintro; exact hwf
-    simp only [mvcc.logCh, List.map_nil, List.sum_nil, List.length_nil, Nat.add_zero]
-    iexact Hr0
-  isplitl [Hlother]
-  · iexact Hlother
-  isplitl [Hcauth]
-  · iunfold mvcc.crevUB; rw [mvcc.crevN_neg]; iexact Hcauth
-  isplitl [Hcmpr]
-  · iunfold mvcc.idxCompactor; iexact Hcmpr
-  rw [← List.replicate_succ]
-  iapply idxReaders_of_toks ti t γ (m + 1)
-  isplitl []
-  · iexact tree
-  rw [List.replicate_succ]
-  iapply BigSepL.bigSepL_cons.2
-  iframe Htok Htoks
+  iunfold mvcc.idxCompactor; iexact Hcmpr
 
 end proof
 

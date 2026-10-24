@@ -14,9 +14,8 @@ public import Code.go_etcd_io.raft.v3.quorum
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -31,7 +30,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.raft.v3.quorum.Assumptions]
 
-instance tup_typed_pointsto :
+noncomputable instance tup_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.raft.v3.quorum.tup where
   typedPointstoDef l v dq := iprop(
     "id" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"id" l) v.id' dq ∗
@@ -43,11 +42,11 @@ instance tup_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance tup_into_val_typed :
+noncomputable instance tup_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.quorum.tup go_etcd_io.raft.v3.quorum.tup.underlying := by
   solve_into_val_typed_struct
 
-instance tup_access_load_id (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : DFrac) :
+noncomputable instance tup_access_load_id (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"id" l) v.id' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"id" l) v.id' dq)
@@ -55,7 +54,7 @@ instance tup_access_load_id (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : 
  by
   solve_pointsto_access_struct
 
-instance tup_access_store_id (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (id' : w64) :
+noncomputable instance tup_access_store_id (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (id' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"id" l) id' (DFrac.own 1))
@@ -63,7 +62,7 @@ instance tup_access_store_id (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (id' 
  by
   solve_pointsto_access_struct
 
-instance tup_access_load_idx (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : DFrac) :
+noncomputable instance tup_access_load_idx (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"idx" l) v.idx' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"idx" l) v.idx' dq)
@@ -71,7 +70,7 @@ instance tup_access_load_idx (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq :
  by
   solve_pointsto_access_struct
 
-instance tup_access_store_idx (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (idx' : go_etcd_io.raft.v3.quorum.Index') :
+noncomputable instance tup_access_store_idx (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (idx' : go_etcd_io.raft.v3.quorum.Index') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"idx" l) v.idx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"idx" l) idx' (DFrac.own 1))
@@ -79,7 +78,7 @@ instance tup_access_store_idx (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (idx
  by
   solve_pointsto_access_struct
 
-instance tup_access_load_ok (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : DFrac) :
+noncomputable instance tup_access_load_ok (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"ok" l) v.ok' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"ok" l) v.ok' dq)
@@ -87,7 +86,7 @@ instance tup_access_load_ok (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : 
  by
   solve_pointsto_access_struct
 
-instance tup_access_store_ok (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (ok' : Bool) :
+noncomputable instance tup_access_store_ok (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (ok' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"ok" l) v.ok' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"ok" l) ok' (DFrac.own 1))
@@ -95,7 +94,7 @@ instance tup_access_store_ok (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (ok' 
  by
   solve_pointsto_access_struct
 
-instance tup_access_load_bar (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : DFrac) :
+noncomputable instance tup_access_load_bar (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"bar" l) v.bar' dq)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"bar" l) v.bar' dq)
@@ -103,7 +102,7 @@ instance tup_access_load_bar (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (dq :
  by
   solve_pointsto_access_struct
 
-instance tup_access_store_bar (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (bar' : w64) :
+noncomputable instance tup_access_store_bar (l : Loc) (v : go_etcd_io.raft.v3.quorum.tup) (bar' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"bar" l) v.bar' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.quorum.tup go!"bar" l) bar' (DFrac.own 1))

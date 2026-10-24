@@ -4,22 +4,19 @@
 # `linkv3p`. Perennial's standard-library results (`time.Sleep`, `primitive.RandomUint64`) are
 # used directly by the proofs, not linked here.
 #
-# `startMember`: linkv3's start of one member plus its gRPC server (the server's, v3rpc's and the
-# client's results, linked in their `Link.lean`s; the feature gate's, `net.Listen`'s,
-# grpc's `KeepaliveEnforcementPolicy`'s and `Serve`'s trust-boundary axioms; `RaftHandler`, linked
-# in the server's `Link.lean`; the HTTP boundary's `Serve`, used by the proof directly)
-etcdserver_NewServer: @
+# `startMember`: the examples' shared `NewMember` (linked in `common`'s `Link.lean`), the
+# server's `Start` (linked in its `Link.lean`), then its gRPC server (v3rpc's results, linked in
+# its `Link.lean`; `net.Listen`'s, grpc's `KeepaliveEnforcementPolicy`'s and `Serve`'s
+# trust-boundary axioms)
+common_NewMember: @
 EtcdServer__Start: @
 v3rpc_Server: @
-features_NewDefaultServerFeatureGate:
 net_Listen:
-EtcdServer__RaftHandler: @
 grpc_Server__Serve:
 grpc_KeepaliveEnforcementPolicy:
-linkv3p_startMember: features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start net_Listen EtcdServer__RaftHandler grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve
-# `newClient`: the client's `New` (linked in the client's `Link.lean`)
-client_v3_New: @
-linkv3p_newClient: client_v3_New
+linkv3p_startMember: common_NewMember EtcdServer__Start net_Listen grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve
+# `common.NewClients`: the examples' client constructor (common's `Link.lean`; notes/client-timeouts-plan.md)
+common_NewClients: @
 # `startBridge`: `net.Listen` and the bridge's `New` (the bridge's trust-boundary axioms, D26)
 bridge_New:
 linkv3p_startBridge: net_Listen bridge_New
@@ -44,27 +41,26 @@ linkvtxn_Model: @
 linkvtxn_Gen: @
 linkv3p_Check: Run CounterClock linkvtxn_Model linkvtxn_Gen linkv3p_Apply
 # `startCluster`: the members, the bridges and the clients (W4 of `notes/watch-cut-plan.md`)
-linkv3p_startCluster: linkv3p_startMember linkv3p_startBridge linkv3p_newClient
+linkv3p_startCluster: linkv3p_startMember linkv3p_startBridge common_NewClients
 # `Main`: the start of the cluster, the partitioner forked, the check (zap's trust-boundary axiom;
 # the rest linkv3p's own)
 zap_NewNop:
 linkv3p_Main: zap_NewNop linkv3p_startCluster linkv3p_partitioner linkv3p_Check
-# `MainWatch` (W4 of `notes/watch-cut-plan.md`): watchkv's workload over the cluster: linkv3p's
-# copies of watchkv's helpers (`genPut`, `genAll`, `attempted`, `checkWatch`, `maxRev`, `writer`,
-# `collect`), the cluster's start, the partitioner, the client's options and `Watch`
-linkv3p_genPut:
-linkv3p_genAll: linkv3p_genPut
-linkv3p_attempted:
-linkv3p_checkWatch: linkv3p_attempted
-linkv3p_maxRev:
-linkv3p_writer:
-WatchResponse__Err: @
-linkv3p_collect: WatchResponse__Err
+# `MainWatch` (W4 of `notes/watch-cut-plan.md`): watchkv's workload over the cluster: the examples'
+# shared `GenAll`, `MaxRev`, `Collect` and `Check` (linked in `common`'s `Link.lean`), linkv3p's own
+# `writer` (each put through a client picked at random), the cluster's start, the partitioner, the
+# client's options and `Watch`
+common_GenAll: @
+common_MaxRev: @
+common_Collect: @
+common_Check: @
+context_WithTimeoutBackground:
+context_ErrAny: @
+linkv3p_writer: context_WithTimeoutBackground context_ErrAny
 getPrefix:
 WithPrefix: getPrefix
 WithRev:
 WithProgressNotify:
 WithCreatedNotify:
-context_ErrAny: @
 watcher__Watch: @
-linkv3p_MainWatch: linkv3p_genAll zap_NewNop linkv3p_startCluster linkv3p_partitioner linkv3p_writer linkv3p_maxRev linkv3p_collect linkv3p_checkWatch context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify
+linkv3p_MainWatch: common_GenAll zap_NewNop linkv3p_startCluster linkv3p_partitioner linkv3p_writer common_MaxRev common_Collect common_Check context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify

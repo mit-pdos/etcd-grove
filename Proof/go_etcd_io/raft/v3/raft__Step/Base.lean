@@ -52,7 +52,9 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-/-- Rocq `w32_ne`: two distinct message-type constants differ. -/
+/-- Rocq `w32_ne`: two distinct message-type constants differ. The goal left is literals only, so
+`decide` settles it (`of_decide_eq_true rfl`: the goal names the `FfiSyntax` instance, which
+`decide` refuses); `word` simplifies every hypothesis too (2026-10-22). -/
 macro "w32_ne" : tactic =>
   `(tactic| (simp only [Perennial.EtcdGrove.MsgBeat, Perennial.EtcdGrove.MsgHup,
       Perennial.EtcdGrove.MsgProp, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgAppResp,
@@ -64,10 +66,12 @@ macro "w32_ne" : tactic =>
       Perennial.EtcdGrove.MsgForgetLeader, Perennial.EtcdGrove.MsgUnreachable,
       Perennial.EtcdGrove.MsgSnapStatus, Perennial.EtcdGrove.MsgTransferLeader,
       Perennial.EtcdGrove.MsgTimeoutNow, Perennial.EtcdGrove.MsgCheckQuorum,
-      ne_eq]; word))
+      ne_eq]; first | exact of_decide_eq_true rfl | word))
 
 /-- `m.Type' ≠ MsgSnap` from a hypothesis `h` naming `m.Type'` (one type, or a disjunction of
-them), for the configuration conjunct of the `stepX` results (2026-10-14, stage B7). -/
+them), for the configuration conjunct of the `stepX` results (2026-10-14, stage B7). The goal
+left is literals only, so `decide` settles it, as in `w32_ne`; `word` would simplify every
+hypothesis (`word_unfold_lit` is `simp ... at *`), the step result's too: 11s a call (2026-10-22). -/
 syntax "nonsnap " ident : tactic
 macro_rules
   | `(tactic| nonsnap $h:ident) =>
@@ -82,7 +86,7 @@ macro_rules
         Perennial.EtcdGrove.MsgForgetLeader, Perennial.EtcdGrove.MsgUnreachable,
         Perennial.EtcdGrove.MsgSnapStatus, Perennial.EtcdGrove.MsgTransferLeader,
         Perennial.EtcdGrove.MsgTimeoutNow, Perennial.EtcdGrove.MsgCheckQuorum, _root_.or_false, _root_.false_or,
-        _root_.or_self]; word))
+        _root_.or_self]; first | exact of_decide_eq_true rfl | word))
 
 set_option hygiene false in
 /-- (D22 S-b′3, 2026-10-20) `m.Type' ≠ MsgSnap` at a branch that steps another type, from the
@@ -94,7 +98,7 @@ macro "notsnap_tac" : tactic =>
     | (intro hsnap; simp_all [Perennial.EtcdGrove.MsgSnap]))
 
 set_option hygiene false in
-/-- (2026-10-22, D33a) `stepFollower`'s premise that a forwarded message (`MsgProp`, `MsgReadIndex`,
+/-- (2026-10-22, D38a) `stepFollower`'s premise that a forwarded message (`MsgProp`, `MsgReadIndex`,
 `MsgTransferLeader`) has no responses, at a branch that steps another type: vacuous, by the branch's
 type hypothesis (as `notsnap_tac`). -/
 macro "notfwd_tac" : tactic =>

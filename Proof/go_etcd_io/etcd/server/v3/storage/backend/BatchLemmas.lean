@@ -270,9 +270,9 @@ theorem bgOk_step {P : BParams} {st st' : BSess} {n w u : Nat}
     (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1) :
     bgOk P st' false n w u := by
   unfold bgOk at h ⊢
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10⟩ := h
   rw [hR, hc]
-  refine ⟨h1, h2, h3, by omega, h5, h6, ?_, ?_, by simp⟩
+  refine ⟨h1, h2, h3, by omega, h5, h6, ?_, ?_, by simp, h10⟩
   · intro i
     obtain ⟨a1, a2⟩ := h7 i
     have := hW i
@@ -364,6 +364,31 @@ theorem hkData_delBucket {P : BParams} (st : BSess) (bi : BucketInfo)
   · subst hn
     rw [h k] at hk; cases hk
   · rw [bktOf_delete_ne _ _ _ hn]
+
+/-! ## The tracked buckets (`rbData`) across a session's operations (D22, 2026-10-23) -/
+
+theorem rbData_put_other {P : BParams} (st : BSess) (bi : BucketInfo) (kb vb : GoString)
+    (seq : Bool) (h : P.RB bi.name = false) :
+    rbData P (st.put bi kb vb seq).S = rbData P st.S :=
+  rbData_insert_other _ h
+
+theorem rbData_create_other {P : BParams} (st : BSess) (bi : BucketInfo)
+    (h : P.RB bi.name = false) :
+    rbData P (st.create bi).S = rbData P st.S := by
+  show rbData P (if st.S.lookup bi.name = none then st.S.insert bi.name ∅ else st.S) = _
+  split
+  · exact rbData_insert_other _ h
+  · rfl
+
+theorem rbData_del_other {P : BParams} (st : BSess) (bi : BucketInfo) (kb : GoString)
+    (h : P.RB bi.name = false) :
+    rbData P (st.del bi kb).S = rbData P st.S :=
+  rbData_insert_other _ h
+
+theorem rbData_delBucket_other {P : BParams} (st : BSess) (bi : BucketInfo)
+    (h : P.RB bi.name = false) :
+    rbData P (st.delBucket bi).S = rbData P st.S :=
+  rbData_delete_other h
 
 end backend
 end EtcdGrove

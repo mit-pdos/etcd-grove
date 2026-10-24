@@ -1,10 +1,10 @@
-# linkv3p (examples/linkv3p; the partition plan, notes/partition-plan.md, 2026-10-20): linkv's
+# linkv3p (examples/linkv3p; the partition plan, notes/partition-plan.md, 2026-10-20): linkvtxn's
 # workload over a three-member cluster whose links are cut and mended on a schedule (etcd's
 # CutPeer/MendPeer), with a client at every member. The results of
 # Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Results.lean: `linkv3p_Main` (over linkv3p's
-# own functions, the server's, v3rpc's, the client's and linkv's linked results and the
+# own functions, the server's, v3rpc's, the client's and linkvtxn's linked results and the
 # trust-boundary axioms) and the closed theorem `linkv3p_safe`/`linkv3p_adequate`, which also rests
-# on the package initializers' axioms. Expected: linkv3's axioms plus rafthttp's `Transport.CutPeer`
+# on the package initializers' axioms. Expected: the retired linkv3's axioms (D34) plus rafthttp's `Transport.CutPeer`
 # and `Transport.MendPeer` (D24), no sorry.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/linkv3p.txt            what it rests on
@@ -308,7 +308,6 @@ axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
-axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.AsLeaf.wp_proof
@@ -434,7 +433,7 @@ axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
-axiom mvcc.store.restore.wp_proof
+axiom mvcc.kbNoCmp_metaNone
 axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt

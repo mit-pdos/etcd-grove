@@ -18,10 +18,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-theorem stm_deleteOp_txnOpOf (key : GoString) :
-    txnOpOf (opDeleteModel key []) = some (.delete (opDeleteModel key [])) := by
-  simp [opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero, txnOpOf]
-
 /-! ## Map sizes -/
 
 /-! ## `readSet.first` -/
@@ -78,18 +74,6 @@ theorem FirstUpTo_final {reads : GMap GoString ReadM} {rsMap : GMap GoString Loc
 
 /-! ## Lists built by appending in a map's order -/
 
-theorem filterMap_take_succ {A B : Type} (f : A → Option B) (l : List A) (n : Nat) (a : A) (b : B)
-    (ha : l[n]? = some a) (hb : f a = some b) :
-    (l.take (n + 1)).filterMap f = (l.take n).filterMap f ++ [b] := by
-  rw [List.take_add_one, ha]
-  simp [List.filterMap_append, hb]
-
-theorem map_take_succ {A B : Type} (f : A → B) (l : List A) (n : Nat) (a : A)
-    (ha : l[n]? = some a) :
-    (l.take (n + 1)).map f = (l.take n).map f ++ [f a] := by
-  rw [List.take_add_one, ha]
-  simp
-
 /-! ## `readSet.add` -/
 
 theorem readsAdd_take_succ (reads : GMap GoString ReadM) (ks : List GoString) (es : List ReadM)
@@ -138,30 +122,6 @@ theorem writesAt_insert (pfx k : GoString) (wsMap : GMap GoString stmPut)
     iexact Hw
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at Hsp Hw'
     iapply Hall $$ %k' %sp' %w' %Hsp %Hw'
-
-/-- A read added to the read set. -/
-theorem readsAt_insert (pfx k : GoString) (rsMap : GMap GoString Loc)
-    (reads : GMap GoString ReadM) (p : Loc) (e : ReadM) :
-    readsAt (GF := GF) pfx rsMap reads ∗ readRespAt pfx k p e ⊢
-      readsAt pfx (GMap.insert k p rsMap) (GMap.insert k e reads) := by
-  unfold readsAt
-  iintro ⟨⟨%Hdom, #Hall⟩, #Hr⟩
-  isplitr
-  · ipureintro
-    intro k'
-    by_cases h : k' = k
-    · subst h; simp
-    · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), GMap.lookup_insert_ne _ _ (Ne.symm h)]
-      exact Hdom k'
-  imodintro
-  iintro %k' %p' %e' %Hp %He
-  by_cases h : k' = k
-  · subst h
-    rw [GMap.lookup_insert] at Hp He
-    cases Hp; cases He
-    iexact Hr
-  · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at Hp He
-    iapply Hall $$ %k' %p' %e' %Hp %He
 
 /-- The empty pointwise relation. -/
 theorem pointwise_nil {A B : Type} (P : A → B → IProp GF) :

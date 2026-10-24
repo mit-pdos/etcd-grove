@@ -17,6 +17,7 @@ Stated under the cache package's assumptions and `errors.As`'s target, as `Apply
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Defs
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
 
@@ -37,7 +38,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 
 /-- See the file header. -/
 abbrev Check.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (γ : linkvtxn.LinkvNames) (cls : GoSlice)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (γ : linkvtxn.LinkvNames) (cls : GoSlice)
     (clis : List Loc) (clients ops dur : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   receiptBound GF ≤ 2 ^ 63 → clis ≠ [] →

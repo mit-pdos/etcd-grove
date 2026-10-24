@@ -21,35 +21,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.client.v3.leasing : GoString := go!"go.etcd.io/etcd/client/v3/leasing"
+noncomputable def go_etcd_io.etcd.client.v3.leasing : GoString := go!"go.etcd.io/etcd/client/v3/leasing"
 end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.leasing
 
-def leaseCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def leaseCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/leasing.leaseCache" [])
 
 attribute [irreducible] leaseCache.ty
 
-def leaseKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def leaseKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/leasing.leaseKey" [])
 
 attribute [irreducible] leaseKey.ty
 
-def leasingKV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def leasingKV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/leasing.leasingKV" [])
 
 attribute [irreducible] leasingKV.ty
 
-def txnLeasing.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def txnLeasing.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/leasing.txnLeasing" [])
 
 attribute [irreducible] txnLeasing.ty
@@ -3899,7 +3898,7 @@ noncomputable def closeAll.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.StructType []))))) (Pair (Var "ch") (Var "$value"))))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.leasing where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.leasing where
   pkgImportedPkgs := [pkg_id.context, pkg_id.strings, pkg_id.sync, pkg_id.time, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.errors, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.v3.concurrency, pkg_id.bytes]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -3958,23 +3957,23 @@ structure leaseCache [FfiSyntax] where
   revokes' : GoMap
   header' : Loc
 
-instance leaseCache.zero_val [FfiSyntax] : ZeroVal leaseCache :=
+noncomputable instance leaseCache.zero_val [FfiSyntax] : ZeroVal leaseCache :=
   ⟨leaseCache.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def leaseCache.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def leaseCache.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"entries" (go.GoType.MapType go.string (go.GoType.PointerType leaseKey.ty))),
 (go.field_decl.FieldDecl go!"revokes" (go.GoType.MapType go.string _root_.Perennial.time.Time.ty)),
 (go.field_decl.FieldDecl go!"header" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))]
 
-@[irreducible] def leaseCache.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def leaseCache.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   leaseCache.fieldsUnsealed
 
-instance equals_unfold_leaseCache [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_leaseCache [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold leaseCache.fields leaseCache.fieldsUnsealed :=
   ⟨by unfold leaseCache.fields; rfl⟩
 
-@[reducible] def leaseCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def leaseCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType leaseCache.fields)
 
 class leaseCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4040,22 +4039,22 @@ structure leaseKey [FfiSyntax] where
   rev' : w64
   waitc' : GoChan
 
-instance leaseKey.zero_val [FfiSyntax] : ZeroVal leaseKey :=
+noncomputable instance leaseKey.zero_val [FfiSyntax] : ZeroVal leaseKey :=
   ⟨leaseKey.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def leaseKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def leaseKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"response" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)),
 (go.field_decl.FieldDecl go!"rev" go.int64),
 (go.field_decl.FieldDecl go!"waitc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] def leaseKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def leaseKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   leaseKey.fieldsUnsealed
 
-instance equals_unfold_leaseKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_leaseKey [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold leaseKey.fields leaseKey.fieldsUnsealed :=
   ⟨by unfold leaseKey.fields; rfl⟩
 
-@[reducible] def leaseKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def leaseKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType leaseKey.fields)
 
 class leaseKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4092,10 +4091,10 @@ structure leasingKV [FfiSyntax] where
   session' : Loc
   sessionc' : GoChan
 
-instance leasingKV.zero_val [FfiSyntax] : ZeroVal leasingKV :=
+noncomputable instance leasingKV.zero_val [FfiSyntax] : ZeroVal leasingKV :=
   ⟨leasingKV.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def leasingKV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def leasingKV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"cl" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)),
 (go.field_decl.FieldDecl go!"kv" _root_.Perennial.go_etcd_io.etcd.client.v3.KV.ty),
 (go.field_decl.FieldDecl go!"pfx" go.string),
@@ -4107,14 +4106,14 @@ instance leasingKV.zero_val [FfiSyntax] : ZeroVal leasingKV :=
 (go.field_decl.FieldDecl go!"session" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session.ty)),
 (go.field_decl.FieldDecl go!"sessionc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] def leasingKV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def leasingKV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   leasingKV.fieldsUnsealed
 
-instance equals_unfold_leasingKV [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_leasingKV [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold leasingKV.fields leasingKV.fieldsUnsealed :=
   ⟨by unfold leasingKV.fields; rfl⟩
 
-@[reducible] def leasingKV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def leasingKV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType leasingKV.fields)
 
 class leasingKV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4223,10 +4222,10 @@ structure txnLeasing [FfiSyntax] where
   opst' : GoSlice
   opse' : GoSlice
 
-instance txnLeasing.zero_val [FfiSyntax] : ZeroVal txnLeasing :=
+noncomputable instance txnLeasing.zero_val [FfiSyntax] : ZeroVal txnLeasing :=
   ⟨txnLeasing.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def txnLeasing.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def txnLeasing.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Txn" _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty),
 (go.field_decl.FieldDecl go!"lkv" (go.GoType.PointerType leasingKV.ty)),
 (go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
@@ -4234,14 +4233,14 @@ instance txnLeasing.zero_val [FfiSyntax] : ZeroVal txnLeasing :=
 (go.field_decl.FieldDecl go!"opst" (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty)),
 (go.field_decl.FieldDecl go!"opse" (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty))]
 
-@[irreducible] def txnLeasing.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def txnLeasing.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   txnLeasing.fieldsUnsealed
 
-instance equals_unfold_txnLeasing [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_txnLeasing [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold txnLeasing.fields txnLeasing.fieldsUnsealed :=
   ⟨by unfold txnLeasing.fields; rfl⟩
 
-@[reducible] def txnLeasing.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def txnLeasing.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType txnLeasing.fields)
 
 class txnLeasing.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

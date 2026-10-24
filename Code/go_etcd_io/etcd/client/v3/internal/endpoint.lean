@@ -8,20 +8,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.client.v3.internal.endpoint : GoString := go!"go.etcd.io/etcd/client/v3/internal/endpoint"
+noncomputable def go_etcd_io.etcd.client.v3.internal.endpoint : GoString := go!"go.etcd.io/etcd/client/v3/internal/endpoint"
 end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.internal.endpoint
 
-def CredsRequirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CredsRequirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/internal/endpoint.CredsRequirement" [])
 
 attribute [irreducible] CredsRequirement.ty
@@ -53,7 +52,7 @@ noncomputable def RequiresCredentials [FfiSyntax] [GoGlobalContext] : GoString :
 noncomputable def Interpret [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/endpoint.Interpret"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -67,7 +66,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev CredsRequirement [FfiSyntax] : Type := w64
 
-@[reducible] def CredsRequirement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CredsRequirement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class CredsRequirement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

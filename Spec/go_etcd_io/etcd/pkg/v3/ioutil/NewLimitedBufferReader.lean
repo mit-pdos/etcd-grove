@@ -1,5 +1,5 @@
 /-
-`ioutil.NewLimitedBufferReader(r, n)` (rafthttp stage 4, D33b): the pipeline handler reads a
+`ioutil.NewLimitedBufferReader(r, n)` (rafthttp stage 4, D38b): the pipeline handler reads a
 request's body through it. Its `Read` caps each read at `n` bytes (`n` is not decremented: a cap
 per read, not a limit on the total), so the reader it returns keeps `r`'s prefix contract
 (`http.prefixReaderOk`). Lean-first.

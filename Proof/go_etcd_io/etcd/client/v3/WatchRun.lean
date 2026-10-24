@@ -315,7 +315,7 @@ theorem cancels_of_snoc {L L' : List v3rpc.WatchReqM} (x : v3rpc.WatchReqM) (X :
   intro i hi
   rcases h with rfl | rfl
   · exact hi
-  · rcases getElem?_snoc_cases hi with ⟨-, h⟩ | ⟨-, e⟩
+  · rcases Perennial.getElem?_snoc_cases hi with ⟨-, h⟩ | ⟨-, e⟩
     · exact h
     · exact absurd e.symm hx
 
@@ -495,25 +495,6 @@ theorem cancelReq_send (a b c : Loc) (X : w64)
     iexact CancelRequest
   iexact WatchId
 
-/-- A points-to, split in halves. -/
-theorem ptsto_split_half (l : Loc) (v : w64) :
-    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
-      typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
-        typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) := by
-  have h := ((fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
-    (1 : Qp).half (1 : Qp).half)
-  rw [Qp.half_add_half] at h
-  exact h.1
-
-theorem ptsto_split_half_loc (l : Loc) (v : Loc) :
-    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
-      typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
-        typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) := by
-  have h := ((fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
-    (1 : Qp).half (1 : Qp).half)
-  rw [Qp.half_add_half] at h
-  exact h.1
-
 /-- A fresh substream (its id field owned) is none of those `run` made. -/
 theorem wsElems_fresh (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt) (U : GMap Loc Unit) (ws : Loc)
     (v : w64) :
@@ -529,13 +510,6 @@ theorem wsElems_fresh (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames
     subst HP
     iexfalso
     iapply w64_ptsto_excl $$ [$Hid $Hid2]
-
-theorem prefix_snoc_eq {α : Type} {D L : List α} {m : α}
-    (h : D <+: L ++ [m] ∨ L ++ [m] <+: D) (hl : L.length = D.length) : L = D := by
-  rcases h with h | h
-  · rw [List.prefix_iff_eq_take] at h
-    rw [h, List.take_append_of_le_length (by omega), List.take_of_length_le (by omega)]
-  · have := h.length_le; simp at this; omega
 
 theorem evsSoFar_snoc_ctrl (Dm : List v3rpc.WatchRespM) (m : v3rpc.WatchRespM) (w : Loc)
     (h : m.src = none) : evsSoFar (Dm ++ [m]) w = evsSoFar Dm w := by

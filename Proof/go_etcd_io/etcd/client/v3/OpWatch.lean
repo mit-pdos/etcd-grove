@@ -32,7 +32,7 @@ theorem OpWatch.wp_proof (wp_applyOpts : Op.applyOpts.spec (GF := GF) (hG := hG)
   wp_apply wp_applyOpts ret_ptr _ (OpFull.getInit key) sl gs $$ [$ret] as %op' ⟨Hret, #Hat⟩
   · iframe #
     unfold opFullAt opAt OpFields
-    dsimp only [OpFull.getInit, OpFull.newOp, OpModel.zero]
+    dsimp only [op_simps]
     isplitl []
     · isplitl []
       · ipureintro; simp

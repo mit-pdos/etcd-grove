@@ -447,10 +447,10 @@ theorem watchGRPCStream.newWatchClient.wp_proof
       wp_apply (chan.wp_make1 (V := Unit)) as %dnc %γdn ⟨#Hdnc, %-, Hdno⟩
       iunfold donecAt at Hdcx
       icases Hdcx with ⟨Hdcf, -⟩
-      icases client.ptsto_loc_combine _ _ _ $$ [Hdnf Hdcf] with ⟨%Hdceq, Hdcf⟩
+      icases typedPointsto_half_combine _ _ _ 1 $$ [Hdnf Hdcf] with ⟨%Hdceq, Hdcf⟩
       · iframe
       wp_auto
-      icases client.ptsto_split_half_loc _ _ $$ Hdcf with ⟨Hdnf1, Hdnf2⟩
+      icases (typedPointsto_half_split _ _ 1).1 $$ Hdcf with ⟨Hdnf1, Hdnf2⟩
       imod dghostVar_alloc false with ⟨%γt, Hγt⟩
       icases dghostVar_halves _ _ $$ Hγt with ⟨Hγt1, Hγt2⟩
       imod dghostVar_alloc () with ⟨%γk, Htk⟩

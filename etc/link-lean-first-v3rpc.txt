@@ -204,6 +204,22 @@ NewQuotaLeaseServer: NewLeaseServer
 # the server's lease methods, whose triples are the contract `raftLessor s E S` (InvLease.lean, a
 # precondition, as `raftKV`), the quota wrapper's `LeaseGrant` (its `LeaseRevoke` is promoted:
 # QuotaLeaseLemmas.lean), the generated handlers of the Lease service's unary methods.
+# the auth plan's A2 (2026-10-23): auth.go's AuthAdmin guards, maintenance.go's guarded wrappers
+# (their inner maintenanceServer methods, names only, are the specs' contracts) and key.go's
+# kvServer.Compact (`InvAuthAdmin.lean`)
+AuthAdmin__isPermitted: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+AuthAdmin__requireAuthInfo: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+authMaintenanceServer__isPermitted: AuthAdmin__isPermitted
+authMaintenanceServer__requireAuthInfo: AuthAdmin__requireAuthInfo
+authMaintenanceServer__Defragment: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__Hash: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__HashKV: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__MoveLeader: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__Downgrade: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__Status: authMaintenanceServer__requireAuthInfo togRPCError
+authMaintenanceServer__Alarm: authMaintenanceServer__isPermitted authMaintenanceServer__requireAuthInfo togRPCError
+authMaintenanceServer__Snapshot: authMaintenanceServer__isPermitted togRPCError
+kvServer__Compact: AuthAdmin__isPermitted togRPCError header__fill
 LeaseServer__LeaseGrant: togRPCError header__fill
 LeaseServer__LeaseRevoke: togRPCError header__fill
 quotaLeaseServer__LeaseGrant: quotaAlarmer__check
@@ -211,6 +227,25 @@ _Lease_LeaseGrant_Handler:
 _Lease_LeaseRevoke_Handler:
 NewClusterServer: EtcdServer__Cluster
 NewAuthServer:
+# the auth plan's A3, the API layer (2026-10-24): auth.go's AuthServer wrappers over the server's
+# methods as contracts (`InvAuthServer.lean`)
+AuthServer__AuthEnable: togRPCError
+AuthServer__AuthDisable: togRPCError
+AuthServer__AuthStatus: togRPCError
+AuthServer__Authenticate: togRPCError
+AuthServer__UserAdd: togRPCError
+AuthServer__UserDelete: togRPCError
+AuthServer__UserChangePassword: togRPCError
+AuthServer__UserGrantRole: togRPCError
+AuthServer__UserGet: togRPCError
+AuthServer__UserList: togRPCError
+AuthServer__UserRevokeRole: togRPCError
+AuthServer__RoleAdd: togRPCError
+AuthServer__RoleGrantPermission: togRPCError
+AuthServer__RoleGet: togRPCError
+AuthServer__RoleList: togRPCError
+AuthServer__RoleRevokePermission: togRPCError
+AuthServer__RoleDelete: togRPCError
 healthNotifier__startServe: zap_String zap_Logger__Info health_Server__SetServingStatus grpc_health_v1_HealthCheckResponse_ServingStatus__String
 newHealthNotifier: healthNotifier__startServe EtcdServer__Logger EtcdServer__FeatureEnabled
 getServerMetrics: prometheus_NewServerMetrics prometheus_WithServerHandlingTimeHistogram prometheus_Register zap_Logger__Warn zap_Error

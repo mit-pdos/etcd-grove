@@ -14,20 +14,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.raft.v3.confchange : GoString := go!"go.etcd.io/raft/v3/confchange"
+noncomputable def go_etcd_io.raft.v3.confchange : GoString := go!"go.etcd.io/raft/v3/confchange"
 end pkg_id
 
 namespace go_etcd_io.raft.v3.confchange
 
-def Changer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Changer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/confchange.Changer" [])
 
 attribute [irreducible] Changer.ty
@@ -1549,7 +1548,7 @@ noncomputable def Restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Pair (Var "outgoing") (Var "$r0")))))))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.confchange where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.confchange where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.fmt, pkg_id.strings, pkg_id.go_etcd_io.raft.v3.quorum, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.go_etcd_io.raft.v3.tracker]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -1579,21 +1578,21 @@ structure Changer [FfiSyntax] where
   Tracker' : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker
   LastIndex' : w64
 
-instance Changer.zero_val [FfiSyntax] : ZeroVal Changer :=
+noncomputable instance Changer.zero_val [FfiSyntax] : ZeroVal Changer :=
   ⟨Changer.mk zeroValDef zeroValDef⟩
 
-@[reducible] def Changer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Changer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Tracker" _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty),
 (go.field_decl.FieldDecl go!"LastIndex" go.uint64)]
 
-@[irreducible] def Changer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Changer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Changer.fieldsUnsealed
 
-instance equals_unfold_Changer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Changer [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Changer.fields Changer.fieldsUnsealed :=
   ⟨by unfold Changer.fields; rfl⟩
 
-@[reducible] def Changer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Changer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Changer.fields)
 
 class Changer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -11,37 +11,36 @@ public import TrustedCode.google_golang_org.protobuf.proto
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.protobuf.proto : GoString := go!"google.golang.org/protobuf/proto"
+noncomputable def google_golang_org.protobuf.proto : GoString := go!"google.golang.org/protobuf/proto"
 end pkg_id
 
 namespace google_golang_org.protobuf.proto
 
-def UnmarshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnmarshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/proto.UnmarshalOptions" [])
 
 attribute [irreducible] UnmarshalOptions.ty
 
-def MarshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MarshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/proto.MarshalOptions" [])
 
 attribute [irreducible] MarshalOptions.ty
 
-def mergeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mergeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/proto.mergeOptions" [])
 
 attribute [irreducible] mergeOptions.ty
 
 axiom UnmarshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-@[reducible] def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage.ty
 
 axiom speculativeLength [FfiSyntax] [GoGlobalContext] : val
@@ -171,7 +170,7 @@ noncomputable def Uint64 [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def String [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.String"
 
-instance info' : PkgInfo pkg_id.google_golang_org.protobuf.proto where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.proto where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.internal.pragma]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -221,23 +220,23 @@ structure MarshalOptions [FfiSyntax] where
   Deterministic' : Bool
   UseCachedSize' : Bool
 
-instance MarshalOptions.zero_val [FfiSyntax] : ZeroVal MarshalOptions :=
+noncomputable instance MarshalOptions.zero_val [FfiSyntax] : ZeroVal MarshalOptions :=
   ⟨MarshalOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def MarshalOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MarshalOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
 (go.field_decl.FieldDecl go!"AllowPartial" go.bool),
 (go.field_decl.FieldDecl go!"Deterministic" go.bool),
 (go.field_decl.FieldDecl go!"UseCachedSize" go.bool)]
 
-@[irreducible] def MarshalOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MarshalOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   MarshalOptions.fieldsUnsealed
 
-instance equals_unfold_MarshalOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MarshalOptions [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold MarshalOptions.fields MarshalOptions.fieldsUnsealed :=
   ⟨by unfold MarshalOptions.fields; rfl⟩
 
-@[reducible] def MarshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MarshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MarshalOptions.fields)
 
 class MarshalOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -266,20 +265,20 @@ attribute [instance] MarshalOptions.TypeAssumptions.type_repr
 structure mergeOptions [FfiSyntax] where
   mk ::
 
-instance mergeOptions.zero_val [FfiSyntax] : ZeroVal mergeOptions :=
+noncomputable instance mergeOptions.zero_val [FfiSyntax] : ZeroVal mergeOptions :=
   ⟨mergeOptions.mk⟩
 
-@[reducible] def mergeOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def mergeOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def mergeOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def mergeOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   mergeOptions.fieldsUnsealed
 
-instance equals_unfold_mergeOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_mergeOptions [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold mergeOptions.fields mergeOptions.fieldsUnsealed :=
   ⟨by unfold mergeOptions.fields; rfl⟩
 
-@[reducible] def mergeOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def mergeOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType mergeOptions.fields)
 
 class mergeOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

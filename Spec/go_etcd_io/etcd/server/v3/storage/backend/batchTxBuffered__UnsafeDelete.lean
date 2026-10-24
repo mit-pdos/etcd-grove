@@ -25,14 +25,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `t.UnsafeDelete(bucket, key)` under the lock: bbolt's writer deletes the entry; a pending
-delete (the `Unlock` commits). Not in a safe-range bucket (`P.SB`), not a hook's own key (`P.hk`). -/
+delete (the `Unlock` commits). Not in a safe-range bucket (`P.SB`), not a hook's own key (`P.hk`);
+in a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's half of the tracked buckets
+(`rbPut`), given back updated. -/
 abbrev backend.batchTxBuffered.UnsafeDelete.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString)
     (dk : DFrac),
   P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.SB bi.name = false → P.hk bi.name kb = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*{dk} kb }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ rbPut γ P bi.name st.S }}
     (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #key))
-  {{ RET #(); batchLocked γ P b (st.del bi kb) ∗ key ↦*{dk} kb }}
+  {{ RET #(); batchLocked γ P b (st.del bi kb) ∗ key ↦*{dk} kb ∗ rbPut γ P bi.name (st.del bi kb).S }}
 
 end spec
 

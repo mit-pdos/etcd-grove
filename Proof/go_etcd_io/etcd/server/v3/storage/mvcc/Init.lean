@@ -36,6 +36,7 @@ public import Proof.hash.Init
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Perennial.Proof.context.NewErrorString
 public import Proof.errors.NewVarCell
+public import Perennial.Proof.sync.RWMutexGuard
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -66,19 +67,13 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([restoreChunkKeys.init,
-        totalEventsCounter.init,
-        reportDbTotalSizeInBytes.init,
+    ∀ v ∈ ([totalEventsCounter.init,
         dbTotalSize.init,
-        reportDbTotalSizeInUseInBytes.init,
         dbTotalSizeInUse.init,
-        reportDbOpenReadTxN.init,
         dbOpenReadTxN.init,
         hashSec.init,
         hashRevSec.init,
-        reportCurrentRev.init,
         currentRev.init,
-        reportCompactRev.init,
         compactRev.init,
         «_».init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
@@ -118,11 +113,6 @@ axiom dbCompactionKeysCounter_init :
     {{ (True : IProp GF) }} (App (Val dbCompactionKeysCounter.init) (Val #()))
     {{ RET #(); ∃ m : GoInterfaceOk, globalAddr dbCompactionKeysCounter ↦ GoInterface.ok m ∗ counterSpec m }}
 
-/-- `keysGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom keysGauge_init :
-    {{ (True : IProp GF) }} (App (Val keysGauge.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr keysGauge ↦ GoInterface.ok m ∗ gaugeSpec m }}
-
 /-- `watchStreamGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
 axiom watchStreamGauge_init :
     {{ (True : IProp GF) }} (App (Val watchStreamGauge.init) (Val #()))
@@ -147,6 +137,11 @@ axiom totalPutSizeGauge_init :
 axiom slowWatcherGauge_init :
     {{ (True : IProp GF) }} (App (Val slowWatcherGauge.init) (Val #()))
     {{ RET #(); ∃ m : GoInterfaceOk, globalAddr slowWatcherGauge ↦ GoInterface.ok m ∗ gaugeSpec m ∗ gaugeSetSpec m }}
+
+/-- `keysGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
+axiom keysGauge_init :
+    {{ (True : IProp GF) }} (App (Val keysGauge.init) (Val #()))
+    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr keysGauge ↦ GoInterface.ok m ∗ gaugeSpec m ∗ gaugeSetSpec m }}
 
 /-- `dbCompactionLast = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
 axiom dbCompactionLast_init :
@@ -214,6 +209,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := w64) watchResyncPeriod _ as HwatchResyncPeriod
   wp_apply wp_GlobalAlloc (V := w64) maxWatchersPerSync _ as HmaxWatchersPerSync
   wp_apply wp_GlobalAlloc (V := w64) chanBufLen _ as HchanBufLen
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportCompactRev _ as HreportCompactRev
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportCompactRevMu _ as HreportCompactRevMu
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportCurrentRev _ as HreportCurrentRev
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportCurrentRevMu _ as HreportCurrentRevMu
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportDbOpenReadTxN _ as HreportDbOpenReadTxN
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbOpenReadTxNMu _ as HreportDbOpenReadTxNMu
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportDbTotalSizeInUseInBytes _ as HreportDbTotalSizeInUseInBytes
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInUseInBytesMu _ as HreportDbTotalSizeInUseInBytesMu
+  wp_apply wp_GlobalAlloc (V := GoFunc) reportDbTotalSizeInBytes _ as HreportDbTotalSizeInBytes
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) reportDbTotalSizeInBytesMu _ as HreportDbTotalSizeInBytesMu
+  wp_apply wp_GlobalAlloc (V := w64) restoreChunkKeys _ as HrestoreChunkKeys
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrFutureRev _ as HErrFutureRev
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrCompacted _ as HErrCompacted
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrRevisionNotFound _ as HErrRevisionNotFound
@@ -254,17 +260,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrRevisionNotFound))
   -- translated initializer of ErrCompacted))
   -- translated initializer of ErrFutureRev))
+  -- translated initializer of restoreChunkKeys))
   wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF
   wp_apply EtcdGrove.wp_New_errorString_cell as %xCP ⟨#MCP, #CCP⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xFR ⟨#MFR, #CFR⟩
-  wp_apply (opaqueInitsOk restoreChunkKeys.init (by mem_tac))
   wp_apply defaultCompactionBatchLimit_init as HdefaultCompactionBatchLimit
   wp_apply defaultCompactionSleepInterval_init as ⟨%ddefaultCompactionSleepInterval, HdefaultCompactionSleepInterval⟩
   wp_apply rangeCounter_init as ⟨%mrangeCounter, HrangeCounter, #S0rangeCounter⟩
   wp_apply putCounter_init as ⟨%mputCounter, HputCounter, #S0putCounter⟩
   wp_apply deleteCounter_init as ⟨%mdeleteCounter, HdeleteCounter, #S0deleteCounter⟩
   wp_apply txnCounter_init as ⟨%mtxnCounter, HtxnCounter, #S0txnCounter⟩
-  wp_apply keysGauge_init as ⟨%mkeysGauge, HkeysGauge, #S0keysGauge⟩
+  wp_apply keysGauge_init as ⟨%mkeysGauge, HkeysGauge, #S0keysGauge, #S1keysGauge⟩
   wp_apply watchStreamGauge_init as ⟨%mwatchStreamGauge, HwatchStreamGauge, #S0watchStreamGauge⟩
   wp_apply watcherGauge_init as ⟨%mwatcherGauge, HwatcherGauge, #S0watcherGauge⟩
   wp_apply slowWatcherGauge_init as ⟨%mslowWatcherGauge, HslowWatcherGauge, #S0slowWatcherGauge, #S1slowWatcherGauge⟩
@@ -275,17 +281,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply dbCompactionTotalMs_init as ⟨%mdbCompactionTotalMs, HdbCompactionTotalMs, #S0dbCompactionTotalMs⟩
   wp_apply dbCompactionLast_init as ⟨%mdbCompactionLast, HdbCompactionLast, #S0dbCompactionLast⟩
   wp_apply dbCompactionKeysCounter_init as ⟨%mdbCompactionKeysCounter, HdbCompactionKeysCounter, #S0dbCompactionKeysCounter⟩
-  wp_apply (opaqueInitsOk reportDbTotalSizeInBytes.init (by mem_tac))
+  -- translated initializer of reportDbTotalSizeInBytes))
   wp_apply (opaqueInitsOk dbTotalSize.init (by mem_tac))
-  wp_apply (opaqueInitsOk reportDbTotalSizeInUseInBytes.init (by mem_tac))
+  -- translated initializer of reportDbTotalSizeInUseInBytes))
   wp_apply (opaqueInitsOk dbTotalSizeInUse.init (by mem_tac))
-  wp_apply (opaqueInitsOk reportDbOpenReadTxN.init (by mem_tac))
+  -- translated initializer of reportDbOpenReadTxN))
   wp_apply (opaqueInitsOk dbOpenReadTxN.init (by mem_tac))
   wp_apply (opaqueInitsOk hashSec.init (by mem_tac))
   wp_apply (opaqueInitsOk hashRevSec.init (by mem_tac))
-  wp_apply (opaqueInitsOk reportCurrentRev.init (by mem_tac))
+  -- translated initializer of reportCurrentRev))
   wp_apply (opaqueInitsOk currentRev.init (by mem_tac))
-  wp_apply (opaqueInitsOk reportCompactRev.init (by mem_tac))
+  -- translated initializer of reportCompactRev))
   wp_apply (opaqueInitsOk compactRev.init (by mem_tac))
   wp_apply totalPutSizeGauge_init as ⟨%mtotalPutSizeGauge, HtotalPutSizeGauge, #S0totalPutSizeGauge⟩
   -- translated initializer of chanBufLen))
@@ -311,12 +317,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HdeleteCounter
   ipersist HtxnCounter
   ipersist HdbCompactionKeysCounter
-  ipersist HkeysGauge
   ipersist HwatchStreamGauge
   ipersist HwatcherGauge
   ipersist HpendingEventsGauge
   ipersist HtotalPutSizeGauge
   ipersist HslowWatcherGauge
+  ipersist HkeysGauge
   ipersist HdbCompactionLast
   ipersist HindexCompactionPauseMs
   ipersist HdbCompactionPauseMs
@@ -327,13 +333,40 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HmaxWatchersPerSync
   ipersist HwatchResyncPeriod
   ipersist HwatchBatchMaxRevs
+  ipersist HrestoreChunkKeys
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd5
-  icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK⟩
+  icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK, -⟩
   ihave #VCP : (EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" : IProp GF) $$ []
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP
   ihave #VFR : (EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrFutureRev CFR
+  -- (R2) the metrics reporters' locks, each over its reporter (any closure)
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportDbTotalSizeInBytes) (globalAddr reportDbTotalSizeInBytesMu) (E := ⊤)) $$ [HreportDbTotalSizeInBytes] HreportDbTotalSizeInBytesMu with HRP0
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportDbTotalSizeInBytes
+  ihave ⟨-, #GRP0⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP0
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportDbTotalSizeInUseInBytes) (globalAddr reportDbTotalSizeInUseInBytesMu) (E := ⊤)) $$ [HreportDbTotalSizeInUseInBytes] HreportDbTotalSizeInUseInBytesMu with HRP1
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportDbTotalSizeInUseInBytes
+  ihave ⟨-, #GRP1⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP1
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportDbOpenReadTxN) (globalAddr reportDbOpenReadTxNMu) (E := ⊤)) $$ [HreportDbOpenReadTxN] HreportDbOpenReadTxNMu with HRP2
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportDbOpenReadTxN
+  ihave ⟨-, #GRP2⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP2
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportCurrentRev) (globalAddr reportCurrentRevMu) (E := ⊤)) $$ [HreportCurrentRev] HreportCurrentRevMu with HRP3
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportCurrentRev
+  ihave ⟨-, #GRP3⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP3
+  imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportCompactRev) (globalAddr reportCompactRevMu) (E := ⊤)) $$ [HreportCompactRev] HreportCompactRevMu with HRP4
+  · inext
+    unfold go_etcd_io.etcd.server.v3.storage.mvcc.reportP
+    iexists _; iframe HreportCompactRev
+  ihave ⟨-, #GRP4⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP4
   iframe Hown
   imodintro
   isplitr

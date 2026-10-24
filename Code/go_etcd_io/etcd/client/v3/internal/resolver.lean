@@ -8,20 +8,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.client.v3.internal.resolver : GoString := go!"go.etcd.io/etcd/client/v3/internal/resolver"
+noncomputable def go_etcd_io.etcd.client.v3.internal.resolver : GoString := go!"go.etcd.io/etcd/client/v3/internal/resolver"
 end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.internal.resolver
 
-def EtcdManualResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EtcdManualResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/internal/resolver.EtcdManualResolver" [])
 
 attribute [irreducible] EtcdManualResolver.ty
@@ -37,7 +36,7 @@ noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def getCC [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/resolver.getCC"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.internal.resolver where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.internal.resolver where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

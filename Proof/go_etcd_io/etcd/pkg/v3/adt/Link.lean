@@ -8,6 +8,7 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesAffineComparable__Compare
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Interval__Compare
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffineInterval
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffinePoint
@@ -20,14 +21,26 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalNode__min
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalNode__successor
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalNode__updateMax
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalNode__visit
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains_bytes
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains_gen
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Delete
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Delete_gen
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Find
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Find_gen
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert_bytes
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert_gen
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects_bytes
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects_gen
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Len
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Stab
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Stab_gen
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union_gen
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Visit
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Visit_gen
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__createIntervalNode
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__deleteFixup
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__find
@@ -53,13 +66,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-theorem adt.StringAffineComparable.wp_Compare :
-    adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG) :=
-  adt.StringAffineComparable.Compare.wp_proof
+theorem adt.BytesAffineComparable.wp_Compare :
+    adt.BytesAffineComparable.Compare.spec (GF := GF) (hG := hG) :=
+  adt.BytesAffineComparable.Compare.wp_proof
 
 theorem adt.Interval.wp_Compare :
     adt.Interval.Compare.spec (GF := GF) (hG := hG) :=
-  adt.Interval.Compare.wp_proof adt.StringAffineComparable.wp_Compare
+  adt.Interval.Compare.wp_proof
 
 theorem adt.wp_NewBytesAffineInterval :
     adt.NewBytesAffineInterval.spec (GF := GF) (hG := hG) :=
@@ -81,6 +94,10 @@ theorem adt.wp_NewStringAffinePoint :
     adt.NewStringAffinePoint.spec (GF := GF) (hG := hG) :=
   adt.NewStringAffinePoint.wp_proof adt.wp_NewStringAffineInterval
 
+theorem adt.StringAffineComparable.wp_Compare :
+    adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG) :=
+  adt.StringAffineComparable.Compare.wp_proof
+
 theorem adt.intervalNode.wp_color :
     adt.intervalNode.color.spec (GF := GF) (hG := hG) :=
   adt.intervalNode.color.wp_proof
@@ -95,15 +112,31 @@ theorem adt.intervalNode.wp_successor :
 
 theorem adt.intervalNode.wp_updateMax :
     adt.intervalNode.updateMax.spec (GF := GF) (hG := hG) :=
-  adt.intervalNode.updateMax.wp_proof adt.StringAffineComparable.wp_Compare
+  adt.intervalNode.updateMax.wp_proof
 
 theorem adt.intervalNode.wp_visit :
     adt.intervalNode.visit.spec (GF := GF) (hG := hG) :=
   adt.intervalNode.visit.wp_proof adt.Interval.wp_Compare
 
+theorem adt.intervalTree.wp_Visit_gen :
+    adt.intervalTree.Visit_gen.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Visit_gen.wp_proof adt.intervalNode.wp_visit
+
+theorem adt.intervalTree.wp_Contains_gen :
+    adt.intervalTree.Contains_gen.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Contains_gen.wp_proof adt.intervalTree.wp_Visit_gen
+
+theorem adt.intervalTree.wp_Contains :
+    adt.intervalTree.Contains.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Contains.wp_proof adt.intervalTree.wp_Contains_gen adt.StringAffineComparable.wp_Compare
+
+theorem adt.intervalTree.wp_Contains_bytes :
+    adt.intervalTree.Contains_bytes.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Contains_bytes.wp_proof adt.intervalTree.wp_Contains_gen adt.BytesAffineComparable.wp_Compare
+
 theorem adt.intervalTree.wp_find :
     adt.intervalTree.find.spec (GF := GF) (hG := hG) :=
-  adt.intervalTree.find.wp_proof adt.StringAffineComparable.wp_Compare
+  adt.intervalTree.find.wp_proof
 
 theorem adt.intervalTree.wp_replaceParent :
     adt.intervalTree.replaceParent.spec (GF := GF) (hG := hG) :=
@@ -121,13 +154,21 @@ theorem adt.intervalTree.wp_deleteFixup :
     adt.intervalTree.deleteFixup.spec (GF := GF) (hG := hG) :=
   adt.intervalTree.deleteFixup.wp_proof adt.intervalNode.wp_color adt.intervalTree.wp_rotateLeft adt.intervalTree.wp_rotateRight
 
+theorem adt.intervalTree.wp_Delete_gen :
+    adt.intervalTree.Delete_gen.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Delete_gen.wp_proof adt.intervalTree.wp_find adt.intervalNode.wp_successor adt.intervalNode.wp_updateMax adt.intervalNode.wp_color adt.intervalTree.wp_deleteFixup
+
 theorem adt.intervalTree.wp_Delete :
     adt.intervalTree.Delete.spec (GF := GF) (hG := hG) :=
-  adt.intervalTree.Delete.wp_proof adt.intervalTree.wp_find adt.intervalNode.wp_successor adt.intervalNode.wp_updateMax adt.intervalNode.wp_color adt.intervalTree.wp_deleteFixup
+  adt.intervalTree.Delete.wp_proof adt.intervalTree.wp_Delete_gen adt.StringAffineComparable.wp_Compare
+
+theorem adt.intervalTree.wp_Find_gen :
+    adt.intervalTree.Find_gen.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Find_gen.wp_proof adt.intervalTree.wp_find
 
 theorem adt.intervalTree.wp_Find :
     adt.intervalTree.Find.spec (GF := GF) (hG := hG) :=
-  adt.intervalTree.Find.wp_proof adt.intervalTree.wp_find
+  adt.intervalTree.Find.wp_proof adt.intervalTree.wp_Find_gen adt.StringAffineComparable.wp_Compare
 
 theorem adt.intervalTree.wp_createIntervalNode :
     adt.intervalTree.createIntervalNode.spec (GF := GF) (hG := hG) :=
@@ -137,29 +178,53 @@ theorem adt.intervalTree.wp_insertFixup :
     adt.intervalTree.insertFixup.spec (GF := GF) (hG := hG) :=
   adt.intervalTree.insertFixup.wp_proof adt.intervalNode.wp_color adt.intervalTree.wp_rotateLeft adt.intervalTree.wp_rotateRight
 
+theorem adt.intervalTree.wp_Insert_gen :
+    adt.intervalTree.Insert_gen.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Insert_gen.wp_proof adt.intervalTree.wp_createIntervalNode adt.intervalNode.wp_updateMax adt.intervalTree.wp_insertFixup
+
 theorem adt.intervalTree.wp_Insert :
     adt.intervalTree.Insert.spec (GF := GF) (hG := hG) :=
-  adt.intervalTree.Insert.wp_proof adt.intervalTree.wp_createIntervalNode adt.StringAffineComparable.wp_Compare adt.intervalNode.wp_updateMax adt.intervalTree.wp_insertFixup
+  adt.intervalTree.Insert.wp_proof adt.intervalTree.wp_Insert_gen adt.StringAffineComparable.wp_Compare
+
+theorem adt.intervalTree.wp_Insert_bytes :
+    adt.intervalTree.Insert_bytes.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Insert_bytes.wp_proof adt.intervalTree.wp_Insert_gen adt.BytesAffineComparable.wp_Compare
+
+theorem adt.intervalTree.wp_Intersects_gen :
+    adt.intervalTree.Intersects_gen.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Intersects_gen.wp_proof adt.Interval.wp_Compare
 
 theorem adt.intervalTree.wp_Intersects :
     adt.intervalTree.Intersects.spec (GF := GF) (hG := hG) :=
-  adt.intervalTree.Intersects.wp_proof adt.Interval.wp_Compare adt.StringAffineComparable.wp_Compare
+  adt.intervalTree.Intersects.wp_proof adt.intervalTree.wp_Intersects_gen adt.StringAffineComparable.wp_Compare
+
+theorem adt.intervalTree.wp_Intersects_bytes :
+    adt.intervalTree.Intersects_bytes.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Intersects_bytes.wp_proof adt.intervalTree.wp_Intersects_gen adt.BytesAffineComparable.wp_Compare
 
 theorem adt.intervalTree.wp_Len :
     adt.intervalTree.Len.spec (GF := GF) (hG := hG) :=
   adt.intervalTree.Len.wp_proof
 
-theorem adt.intervalTree.wp_Visit :
-    adt.intervalTree.Visit.spec (GF := GF) (hG := hG) :=
-  adt.intervalTree.Visit.wp_proof adt.intervalNode.wp_visit
+theorem adt.intervalTree.wp_Stab_gen :
+    adt.intervalTree.Stab_gen.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Stab_gen.wp_proof adt.intervalTree.wp_Visit_gen
 
 theorem adt.intervalTree.wp_Stab :
     adt.intervalTree.Stab.spec (GF := GF) (hG := hG) :=
-  adt.intervalTree.Stab.wp_proof adt.intervalTree.wp_Visit
+  adt.intervalTree.Stab.wp_proof adt.intervalTree.wp_Stab_gen adt.StringAffineComparable.wp_Compare
+
+theorem adt.intervalTree.wp_Union_gen :
+    adt.intervalTree.Union_gen.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Union_gen.wp_proof adt.intervalTree.wp_Visit_gen adt.intervalTree.wp_Insert_gen
 
 theorem adt.intervalTree.wp_Union :
     adt.intervalTree.Union.spec (GF := GF) (hG := hG) :=
-  adt.intervalTree.Union.wp_proof adt.intervalTree.wp_Visit adt.intervalTree.wp_Insert
+  adt.intervalTree.Union.wp_proof adt.intervalTree.wp_Union_gen adt.StringAffineComparable.wp_Compare
+
+theorem adt.intervalTree.wp_Visit :
+    adt.intervalTree.Visit.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Visit.wp_proof adt.intervalTree.wp_Visit_gen adt.StringAffineComparable.wp_Compare
 
 theorem adt.wp_ownIvt_split :
     adt.ownIvt_split.spec (GF := GF) (hG := hG) :=

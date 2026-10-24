@@ -26,11 +26,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Inv
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
-public import Proof.go_etcd_io.etcd.client.v3.Failover
+public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.HistoryModel
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Defs
 
 @[expose] public section
 
@@ -143,7 +144,7 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List
 premises for a client `cl` of some members `ms` (at least one; all three since 2026-10-21,
 failover, `notes/decisions.md` D27) -- `New`'s client of their endpoints, with the default
 retries since 2026-10-21 (`isNewClient`; a write sent at most once, `clientWriteOnce`: the
-endpoints refusal-free, D29; until then configured for one attempt, `clientKVOnce`), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at each
+endpoints refusal-free, D29), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at each
 member's endpoint with that member's apply environment, read names and ids (`kvRegsAt`), and the
 instance's invariant at each member's KV names (the cluster's state, D21 M4: `linkvInv_congr`,
 `Alloc.lean`). A list of clients is a `[∗list]` of these. (Until 2026-10-20, linkv's: `Put` and
@@ -159,17 +160,11 @@ instance clientOk_persistent (γ : linkvtxn.LinkvNames) (cl : Loc) :
     Persistent (clientOk (GF := GF) γ cl) := by
   unfold clientOk; infer_instance
 
-/-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
-network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens
-(`srvTrTok`), which `CutPeer` and `MendPeer` borrow. -/
-def srvPeerCtl (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
-  iprop(∃ τ : SrvTr GF, srvNetMember γn s id τ ∗ srvTrTok γn τ)
-
-/-- **A member started and served** (the success of `startMember`): putget3's `memberUp` reduced
+/-- **A member started and served** (the success of `startMember`): the shared start's `common.memberUp` reduced
 to what `Main` needs of it -- the server's request and read views (at its apply environment `E`,
 agreeing with the stand-in `E₀`, auth off), the `GoAttach` resources with the thread token
 (`srvGoRes`), the member's place in the network with a reader's token of its transport
-(`srvPeerCtl`: what the partitioner's `CutPeer`/`MendPeer` take), and etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its
+(`common.srvPeerCtl`: what the partitioner's `CutPeer`/`MendPeer` take), and etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its
 client address (`etcd_kv_started`), what its client's `Apply` takes, and (D29) that address
 refusal-free (`etcd_noRefusal`). -/
 def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ : apply.AEnv GF)
@@ -177,7 +172,7 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
   iprop(∃ (E : apply.AEnv GF) (γw : GName) (cid mid : w64),
     ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗
     isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvGoRes s ∗
-    srvPeerCtl γn s id ∗
+    common.srvPeerCtl γn s id ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/DeleteRange"
@@ -308,7 +303,7 @@ def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (W : SrvWorkload
     memberAt γn s₃ id₃ ρ₃ E₃ cid₃ mid₃ R₃ bridgeAddr₃ clientAddr₃ γ ∗
     -- (2026-10-24, rafthttp stage 6d) each member's place in the network, with a reader's token
     -- of its transport (until then in `memberAt`, without)
-    srvPeerCtl γn s₁ id₁ ∗ srvPeerCtl γn s₂ id₂ ∗ srvPeerCtl γn s₃ id₃ ∗
+    common.srvPeerCtl γn s₁ id₁ ∗ common.srvPeerCtl γn s₂ id₂ ∗ common.srvPeerCtl γn s₃ id₃ ∗
     bridge.ownBridge br₁ clientAddr₁ false ∗ bridge.ownBridge br₂ clientAddr₂ false ∗
     bridge.ownBridge br₃ clientAddr₃ false ∗
     isNewClient cl₁ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗

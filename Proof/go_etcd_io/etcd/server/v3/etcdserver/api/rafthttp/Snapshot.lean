@@ -1,5 +1,5 @@
 /-
-**The snapshot sender, opaque** (rafthttp stage 6b; D34, the user's choice: the snapshot stream a
+**The snapshot sender, opaque** (rafthttp stage 6b; D39, the user's choice: the snapshot stream a
 trust-boundary axiom cut at its own functions). `snapshot_sender.go` is untranslated (the
 configuration's `!newSnapshotSender`, `!snapshotSender.*`): `newSnapshotSender` gives a sender
 (`snapSenderOk`, persistent) and the right to stop it once (`snapSenderStop`); its `send`, reached

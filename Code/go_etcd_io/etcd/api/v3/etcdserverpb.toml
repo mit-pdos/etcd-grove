@@ -33,6 +33,8 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "RangeRequest_VERSION", "RangeRequest_CREATE", "RangeRequest_MOD", "RangeRequest_VALUE",
   "InternalRaftRequest", "RequestHeader", "InternalRaftStringer", "InternalAuthenticateRequest",
   "CompactionRequest", "CompactionResponse",
+  # the auth plan's A2 (2026-10-23): the server's `MemberList` reads the request's `Linearizable`
+  "MemberListRequest",
   "LeaseGrantRequest", "LeaseGrantResponse", "LeaseRevokeRequest", "LeaseCheckpointRequest",
   "LeaseCheckpoint", "LeaseCheckpointResponse",
   "AlarmRequest", "AlarmResponse", "AlarmMember", "AlarmRequest_GET", "AlarmRequest_ACTIVATE",
@@ -47,6 +49,10 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # request model records (a name above bbolt's key bound is fatal:
   # issues/etcd-auth-useradd-long-name-fatal.md)
   "AuthUserAddRequest", "AuthRoleAddRequest",
+  # the auth plan's S4 (2026-10-24): the requests of the store's proved admin methods;
+  # A3, the API layer (2026-10-24): the requests whose fields the server's Authenticate and
+  # UserChangePassword read and write (the name and the passwords)
+  "AuthUserDeleteRequest", "AuthUserChangePasswordRequest", "AuthenticateRequest",
   # the server's RaftKV interface names the stream of RangeStream (an alias of a generic grpc
   # interface: an untranslated alias is emitted without the `.ty` its users name)
   "KV_RangeStreamServer",

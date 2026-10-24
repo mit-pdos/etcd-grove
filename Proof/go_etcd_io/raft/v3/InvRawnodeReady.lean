@@ -635,7 +635,7 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (o : List Msg) (ms1 ms2
     -- (2026-10-19, D21 M2r) and the message `SentMsgOk` in the no-transfer mode (`XfOk`; D22
     -- S-a to S-c: in it and the no-snapshot mode)
     (Hsent : γ.reNoXfer = true → SentMsgOk q.st)
-    -- (2026-10-22, D33a) and no responses (`XfOk`)
+    -- (2026-10-22, D38a) and no responses (`XfOk`)
     (Hrs : q.st.resps = [] ∧ AppFrom id q.st) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCert γ q -∗ isRaftMsg γ id q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp

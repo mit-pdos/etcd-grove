@@ -95,7 +95,7 @@ variable [sem : go.Semantics]
 answer's key, are the owned key-values of the selection (`sel`, one for one with the answers),
 as read. -/
 theorem rangeKvs_kvsAt (full : Bool) (st : List EtcdKv) :
-    ∀ (ps : List Loc) (answers : List (GoString × Rev × Rev × w64)) (sel : List EtcdKv),
+    ∀ (ps : List Loc) (answers : List (GoString × Rev × w64 × w64)) (sel : List EtcdKv),
     List.Forall₂ (fun a v => findKey a.1 st = some v) answers sel → ps.length = answers.length →
     ([∗list] pa ∈ ps.zip answers, ∃ kv : EtcdKv, ⌜findKey pa.2.1 st = some kv⌝ ∗
         mvcc.kvPtrIs (GF := GF) full pa.1 kv) ⊢
@@ -161,7 +161,7 @@ theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
   icases HcT with ⟨-, %Hp, -⟩
   isplitl
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, ti, rt, ranges
+    iexists p, trw, tr, ti, rt, ranges
     iframe
     iframe #
   · ipureintro
@@ -178,10 +178,10 @@ theorem isTxnRead_cert (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
   iNamedSuffix HtrT "T"
   isplitl
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, ti, rt, ranges
+    iexists p, trw, tr, ti, rt, ranges
     iframe
     iframe #
-  · iexact HcertT
+  · rw [← mvcc.idxCert_withPhys γ p]; iexact HcertT
 
 end txn_read
 

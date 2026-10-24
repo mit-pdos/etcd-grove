@@ -8,40 +8,39 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
-def Compactor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Compactor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.Compactor" [])
 
 attribute [irreducible] Compactor.ty
 
-def Compactable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Compactable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.Compactable" [])
 
 attribute [irreducible] Compactable.ty
 
-def RevGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RevGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.RevGetter" [])
 
 attribute [irreducible] RevGetter.ty
 
-def Periodic.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Periodic.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.Periodic" [])
 
 attribute [irreducible] Periodic.ty
 
-def Revision.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Revision.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.Revision" [])
 
 attribute [irreducible] Revision.ty
@@ -69,7 +68,7 @@ noncomputable def newPeriodic [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newRevision [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.newRevision"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -83,7 +82,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Compactor [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Compactor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Compactor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Pause" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Resume" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Run" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false []))])
 
 class Compactor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -106,7 +105,7 @@ attribute [instance] Compactable.TypeAssumptions.type_repr
 
 abbrev RevGetter [FfiSyntax] : Type := GoInterface
 
-@[reducible] def RevGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RevGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Rev" (go.signature.Signature [] false [go.int64]))])
 
 class RevGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

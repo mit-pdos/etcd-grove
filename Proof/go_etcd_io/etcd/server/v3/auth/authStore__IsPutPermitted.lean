@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__IsPutPermitted
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.VerdictLemmas
 
 @[expose] public section
 
@@ -28,21 +29,23 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.authStore.IsPutPermitted.wp_proof
     (h_isOpPermitted : auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG)) :
     auth.authStore.IsPutPermitted.spec (GF := GF) (hG := hG) := by
-  intro st R a info dq key k dk
+  intro st R M a info dq key k dk
   wp_start as ⟨#Hinv, Hrd, Ha, Hk, %Hlen⟩
   ihave %Hann := typedPointsto_not_null $$ Ha
   iStructNamed Ha
   wp_auto
-  wp_apply (h_isOpPermitted st R info.Username' info.Revision' key slice.nil k [] dk (DFrac.own 1)
-      (W32 1)) $$ [$Hinv $Hrd $Hk] as %err ⟨Hrd, Hk, -, Herr⟩
+  wp_apply (h_isOpPermitted st R M info key slice.nil k [] dk (DFrac.own 1)
+      (W32 1)) $$ [$Hinv $Hrd $Hk] as %err ⟨Hrd, Hk, -, Herr, #Hv⟩
   · isplitl
     · iapply ownSlice_nil (V := w8) (DFrac.own 1)
     ipureintro; exact ⟨by simp [permTypOk], Hlen⟩
+  ihave Ha : a ↦{dq} info $$ [Username Revision]
+  · iapply typedPointsto_combine a info dq Hann
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
   iapply HΦ
   iframe
-  iapply typedPointsto_combine a info dq Hann
-  simp only [TypedPointsto.typedPointstoDef]
-  iframe
+  iapply permVerdict_permOp_write M info k [] err $$ Hv
 
 end proof
 

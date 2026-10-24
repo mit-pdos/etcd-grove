@@ -86,14 +86,14 @@ theorem watchGRPCStream.close.wp_proof
             icases Heof $$ %e He with ⟨%Hc, -⟩
             ipureintro; exact Hc.2
         wp_auto
-        wp_apply wp_ContextError G.ctx G.cd e $$ [] as %err' ⟨-, #Hse'⟩
+        wp_apply wp_ContextError G.ctx G.cd e $$ [] as %err' ⟨-, #Hse', -⟩
         · iframe #
           ipureintro; intro _; exact Hce
         iapply HΦ; iexact Hse'
       · itrivial
     · iapply BigAndL.bigAndL_nil.2; itrivial
   · wp_auto
-    wp_apply wp_ContextError G.ctx G.cd GoInterface.nil $$ [] as %err' ⟨-, #Hse'⟩
+    wp_apply wp_ContextError G.ctx G.cd GoInterface.nil $$ [] as %err' ⟨-, #Hse', -⟩
     · iframe #
       isplitr
       · ipureintro; intro h; exact absurd rfl h

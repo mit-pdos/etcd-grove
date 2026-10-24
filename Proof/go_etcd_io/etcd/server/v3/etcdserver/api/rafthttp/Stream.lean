@@ -1,5 +1,5 @@
 /-
-**The streams' protocol** (rafthttp stage 5a, D33d; `notes/rafthttp-plan.md`). Lean-first.
+**The streams' protocol** (rafthttp stage 5a, D38d; `notes/rafthttp-plan.md`). Lean-first.
 
 A stream is pulled: the reader B sends `GET /raft/stream/{msgapp|message}/<B>` to the writer A,
 whose handler hands the response writer to A's stream writer, which writes the frames of many

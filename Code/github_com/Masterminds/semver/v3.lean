@@ -8,40 +8,39 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def github_com.Masterminds.semver.v3 : GoString := go!"github.com/Masterminds/semver/v3"
+noncomputable def github_com.Masterminds.semver.v3 : GoString := go!"github.com/Masterminds/semver/v3"
 end pkg_id
 
 namespace github_com.Masterminds.semver.v3
 
-def Collection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Collection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.Collection" [])
 
 attribute [irreducible] Collection.ty
 
-def Constraints.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Constraints.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.Constraints" [])
 
 attribute [irreducible] Constraints.ty
 
-def constraint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def constraint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.constraint" [])
 
 attribute [irreducible] constraint.ty
 
-def cfunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cfunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.cfunc" [])
 
 attribute [irreducible] cfunc.ty
 
-def Version.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Version.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" [])
 
 attribute [irreducible] Version.ty
@@ -216,7 +215,7 @@ noncomputable def validateMetadata [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def validateVersion [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.validateVersion"
 
-instance info' : PkgInfo pkg_id.github_com.Masterminds.semver.v3 where
+noncomputable instance info' : PkgInfo pkg_id.github_com.Masterminds.semver.v3 where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -266,7 +265,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Collection [FfiSyntax] : Type := GoSlice
 
-@[reducible] def Collection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Collection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType Version.ty))
 
 class Collection.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -280,22 +279,22 @@ structure Constraints [FfiSyntax] where
   containsPre' : GoSlice
   IncludePrerelease' : Bool
 
-instance Constraints.zero_val [FfiSyntax] : ZeroVal Constraints :=
+noncomputable instance Constraints.zero_val [FfiSyntax] : ZeroVal Constraints :=
   ⟨Constraints.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Constraints.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Constraints.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"constraints" (go.GoType.SliceType (go.GoType.SliceType (go.GoType.PointerType constraint.ty)))),
 (go.field_decl.FieldDecl go!"containsPre" (go.GoType.SliceType go.bool)),
 (go.field_decl.FieldDecl go!"IncludePrerelease" go.bool)]
 
-@[irreducible] def Constraints.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Constraints.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Constraints.fieldsUnsealed
 
-instance equals_unfold_Constraints [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Constraints [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Constraints.fields Constraints.fieldsUnsealed :=
   ⟨by unfold Constraints.fields; rfl⟩
 
-@[reducible] def Constraints.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Constraints.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Constraints.fields)
 
 class Constraints.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -326,10 +325,10 @@ structure constraint [FfiSyntax] where
   dirty' : Bool
   patchDirty' : Bool
 
-instance constraint.zero_val [FfiSyntax] : ZeroVal constraint :=
+noncomputable instance constraint.zero_val [FfiSyntax] : ZeroVal constraint :=
   ⟨constraint.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def constraint.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def constraint.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"con" (go.GoType.PointerType Version.ty)),
 (go.field_decl.FieldDecl go!"orig" go.string),
 (go.field_decl.FieldDecl go!"origfunc" go.string),
@@ -337,14 +336,14 @@ instance constraint.zero_val [FfiSyntax] : ZeroVal constraint :=
 (go.field_decl.FieldDecl go!"dirty" go.bool),
 (go.field_decl.FieldDecl go!"patchDirty" go.bool)]
 
-@[irreducible] def constraint.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def constraint.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   constraint.fieldsUnsealed
 
-instance equals_unfold_constraint [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_constraint [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold constraint.fields constraint.fieldsUnsealed :=
   ⟨by unfold constraint.fields; rfl⟩
 
-@[reducible] def constraint.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def constraint.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType constraint.fields)
 
 class constraint.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -380,7 +379,7 @@ attribute [instance] constraint.TypeAssumptions.type_repr
 
 abbrev cfunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def cfunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def cfunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Version.ty), (go.GoType.PointerType constraint.ty), go.bool] false [go.bool, go.error]))
 
 class cfunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -397,10 +396,10 @@ structure Version [FfiSyntax] where
   metadata' : GoString
   original' : GoString
 
-instance Version.zero_val [FfiSyntax] : ZeroVal Version :=
+noncomputable instance Version.zero_val [FfiSyntax] : ZeroVal Version :=
   ⟨Version.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Version.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Version.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"major" go.uint64),
 (go.field_decl.FieldDecl go!"minor" go.uint64),
 (go.field_decl.FieldDecl go!"patch" go.uint64),
@@ -408,14 +407,14 @@ instance Version.zero_val [FfiSyntax] : ZeroVal Version :=
 (go.field_decl.FieldDecl go!"metadata" go.string),
 (go.field_decl.FieldDecl go!"original" go.string)]
 
-@[irreducible] def Version.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Version.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Version.fieldsUnsealed
 
-instance equals_unfold_Version [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Version [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Version.fields Version.fieldsUnsealed :=
   ⟨by unfold Version.fields; rfl⟩
 
-@[reducible] def Version.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Version.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Version.fields)
 
 class Version.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

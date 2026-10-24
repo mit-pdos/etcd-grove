@@ -241,7 +241,7 @@ theorem DoubleBarrier.Enter.wp_proof
       icases Hkv' with ⟨-, -, -, #HPut⟩
       iunfold isEtcdPutKVTodo at HPut
       ihave #Hnil : optsAt (GF := GF) slice.nil ([] : List (OpFull → OpFull)) $$ []
-      · iapply concurrency.optsAt_nil
+      · iapply optsAt_nil
       ihave #HP := HPut $$ %(key ++ go!"/ready") %([] : GoString) %slice.nil
         %([] : List (OpFull → OpFull)) %(TxnOp.put (key ++ go!"/ready") [] (W64 0)) %R2
       wp_apply HP $$ [] as %presp %perr Hpres

@@ -37,7 +37,7 @@ read-only request, which runs on the read transaction), its response with header
 put whose key is missing at `log` fails the check instead), room for the run's changes; and every
 lease of the state after `log` known (`leasesKnown`). A write request's transaction runs under the
 store's batch lock by the critical-section contract (`csContract P f Pre Q Post`, the store's hook
-`hookIs γ P f`): `Post`; a failed check or a read-only request takes no lock: `Pre`. A success's
+`hookOk γ P f`, with the writer's fragment of `kvWriter`: D22 receiver epochs, S5b): `Post`; a failed check or a read-only request takes no lock: `Pre`. A success's
 response header has its id fields owned (`respHdrOwn`: `newTxnResp` allocates it, the gRPC
 layer's `header.fill` writes them; 2026-10-12, the request path's unit 3b). It spends a write
 token (`mvcc.storeWT γ`, whether or not it writes; 2026-10-13, unit 6).
@@ -62,7 +62,7 @@ abbrev txn.Txn.specSole : Prop :=
       (if txn.txnReadonly t then iprop(True) else
         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
         mvcc.certOkNext γ log (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
-      mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
+      mvcc.csContract P f Pre Q Post ∗ mvcc.hookOk γ P f }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);

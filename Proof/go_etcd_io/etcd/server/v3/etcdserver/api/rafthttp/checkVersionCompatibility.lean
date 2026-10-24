@@ -4,6 +4,7 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/checkVersionCom
 -/
 module
 
+public import Proof.github_com.Masterminds.semver.v3.MustParsePure
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.checkVersionCompatibility
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.compareMajorMinorVersion
 public import Spec.github_com.Masterminds.semver.v3.MustParse
@@ -65,13 +66,13 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
   ihave #Hfp : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   wp_auto
-  wp_apply hMP as %lsv %Hls
+  wp_apply (semver.MustParse.pure hMP _) as %lsv %Hls
   obtain ⟨ls, rfl, Hlsnn⟩ : ∃ v : Loc, lsv = #v ∧ v ≠ null := by
     rcases Hls with ⟨-, h⟩ | ⟨Hn, -⟩
     · exact h
     · exact absurd (semver.semverValid_simple _ (by decide)) Hn
   (try wp_auto)
-  wp_apply hMP as %lmv %Hlm
+  wp_apply (semver.MustParse.pure hMP _) as %lmv %Hlm
   obtain ⟨lm, rfl, Hlmnn⟩ : ∃ v : Loc, lmv = #v ∧ v ≠ null := by
     rcases Hlm with ⟨-, h⟩ | ⟨Hn, -⟩
     · exact h

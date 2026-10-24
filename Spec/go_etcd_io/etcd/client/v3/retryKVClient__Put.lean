@@ -30,7 +30,7 @@ abbrev retryKVClient.Put.spec : Prop :=
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryKVAt rkv conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" Spec ∗
-      reqPre conn addr vs (Spec (putReqOp req k v) Q) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
+      reqPre conn go!"/etcdserverpb.KV/Put" addr vs (Spec (putReqOp req k v) Q) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
       opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (rkv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty @!!
         go!"Put")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

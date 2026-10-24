@@ -67,7 +67,7 @@ set_option hygiene false in
 /-- `commit` of the written-back batch (`vw`: whether a view update is owed, `pf` its part of the
 precondition), up to its outcome `Hpost` (both commit tests, with or without the view). -/
 local macro "bu_commit" vw:term:max pf:term:max : tactic => `(tactic| (
-    wp_apply (hC γ P W Pk b t rt (wbSt P st) $vw false 2 0) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd HPk] as ⟨HPk, -, Hpost⟩
+    wp_apply (hC γ P W Pk b t rt (wbSt P st) $vw false 2 0 iprop(True) iprop(True)) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd HPk] as ⟨-, HPk, -, Hpost⟩
     · iframe #
       unfold batchLockedW batchGhostW batchPhys
       isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd]
@@ -92,8 +92,14 @@ local macro "bu_commit" vw:term:max pf:term:max : tactic => `(tactic| (
         exact ⟨Hroom, rfl, fun _ i _ _ => bkOf_writebackW _ _ i, $pf⟩
       unfold payIn
       rw [if_neg (by decide), if_neg (by decide), if_neg (by decide)]
-      ipureintro
-      rfl
+      isplitr
+      · isplitr
+        · ipureintro
+          rfl
+        iapply monoNatLbOwn_le 1 (by omega) $$ Hlb1
+      isplitr
+      · itrivial
+      iapply commitReq_true
     try simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, Hbv2⟩
   ))
@@ -141,8 +147,8 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       wp_auto
       obtain ⟨hfo, hbg⟩ := free_of_pend0 HP Hwf Hbg hp0 Hhw
       bu_free st hbg hfo
-    · unfold bView
-      icases Hbv with ⟨Hbv1, Hcvw⟩
+    · unfold bView bViewC
+      icases Hbv with ⟨%c, Hbv1, Hcvw, Hcl⟩
       icombine Hv Hbv1 gives % ⟨_, Hvd⟩
       rw [decide_eq_true hp0]
       wp_auto
@@ -152,6 +158,9 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         $$ [Hbv1 Hcvw]
       · rw [← hvf, Hvd]
         iframe
+      ihave Hbv : iprop(∃ c, ghostVar γ.view (1 : Qp).half (sData P st.S) ∗
+          ghostVar γ.cvw (1 : Qp).half () ∗ ghostVar γ.cln (1 : Qp).half c) $$ [Hbv Hcl]
+      · iexists c; icases Hbv with ⟨H1, H2⟩; iframe
       icases HQw $$ Hbv with ⟨HWv, HQ⟩
       bu_free st hbg hfo
   · icases Hcase with (⟨%Hvs, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
@@ -161,7 +170,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       unfold wbTok
       icombine Ha Htok gives %Hle
       imod ownTokAuth_sub 1 γ.wb n $$ Ha Htok with Ha
-      imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, -⟩
+      imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, #Hlb1⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
       have hbb := bgOk_bufBound HP Hwf Hbg
       wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
@@ -177,7 +186,8 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       have hvs' : vData P ((wbSt P st).C, (wbSt P st).R) = sData P (wbSt P st).S := by
         rw [wbSt_C, wbSt_R, wbSt_S, hsame]
         exact Hvs.1
-      imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame hsafe) $$ [$Hci $Hwb $HRB $Hrvs]
+      imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame hsafe
+        (rbClean_writeback Hvs.2)) $$ [$Hci $Hwb $HRB $Hrvs]
         with ⟨Hrr, Hrvs⟩
       ihave Hv : ghostVar γ.view (1 : Qp).half.half (vData P (st.C, writebackR st.W st.R)) $$ [Hv]
       · rw [hsame]; iexact Hv
@@ -205,7 +215,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       unfold wbTok
       icombine Ha Htok gives %Hle
       imod ownTokAuth_sub 1 γ.wb n $$ Ha Htok with Ha
-      imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, -⟩
+      imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, #Hlb1⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
       have hbb := bgOk_bufBound HP Hwf Hbg
       wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]

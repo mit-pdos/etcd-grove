@@ -37,7 +37,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
-open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil backoffOk)
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil backoffOk errCellOk errCellOk_nil)
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -47,9 +47,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **An error the client's retry path handles** (persistent): `nil`, or a client error
-(`clientErr`) that grpc's `status` accepts (`statusErrOk`). -/
+(`clientErr`) that grpc's `status` accepts (`statusErrOk`) and that is no caller's `errors.New`
+value (`errCellOk`, D37). -/
 def clientErrOk (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ GoInterface.nil → clientErr err⌝ ∗ statusErrOk err)
+  iprop(⌜err ≠ GoInterface.nil → clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)
 
 instance clientErrOk_persistent (err : GoInterface) : Persistent (clientErrOk (GF := GF) err) := by
   unfold clientErrOk; infer_instance
@@ -58,7 +59,9 @@ theorem clientErrOk_nil : ⊢ clientErrOk (GF := GF) GoInterface.nil := by
   unfold clientErrOk
   isplitl
   · ipureintro; intro h; exact absurd rfl h
-  · iapply statusErrOk_nil
+  · isplitl
+    · iapply statusErrOk_nil
+    · iapply errCellOk_nil
 
 /-- **The interceptor's options value** `ov`: its backoff function returns. -/
 def optionsOk (ov : go_etcd_io.etcd.client.v3.options) : IProp GF := backoffOk ov.backoffFunc'
@@ -87,8 +90,7 @@ instance optApplyOk_persistent (f : GoFunc) : Persistent (optApplyOk (GF := GF) 
 
 /-- **A `retryOption`'s closure `f`, keeping the retry policy** (persistent; 2026-10-21, D29): as
 `optApplyOk`, and with `kp`, the retry policy kept (the dial's `withMax`, `withBackoff`; not a
-call's, which may set it). (Until 2026-10-22 it also tracked the options' retry bound `max`, D21
-M6, which no result used once the one-attempt client was gone.) -/
+call's, which may set it). -/
 def optApplyKeep (f : GoFunc) (kp : Bool := false) : IProp GF :=
   iprop(□ ∀ (o : Loc) (ov : go_etcd_io.etcd.client.v3.options),
     {{ o ↦ ov ∗ optionsOk ov }}

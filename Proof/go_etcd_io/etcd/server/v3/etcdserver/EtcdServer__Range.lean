@@ -33,6 +33,7 @@ public import Spec.time.Duration__Seconds
 public import Spec.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposerLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
@@ -218,7 +219,8 @@ local macro "range_tail" : tactic => `(tactic| (
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
       mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
       txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) o true ∗
-      txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te)) trc false)
+      txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te))
+    (fun info => apply.rangeClass E.authMode info o) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
   · iframe #
     isplitr
@@ -230,10 +232,20 @@ local macro "range_tail" : tactic => `(tactic| (
       iapply HIRP $$ [Ha Hard]
       · iframe Ha Hks Hes Hard; ipureintro; exact Hkb
       inext
-      iintro %perr ⟨Ha, -, -, Hard, #HpE, -⟩
+      iintro %perr ⟨Ha, -, -, Hard, #HpE, -, #Hpv⟩
       wp_auto
       iapply HΦ'
       iframe Ha Hard HpE
+      iintro %Hpn
+      subst Hpn
+      ihave %Hel := ownSlice_len _ _ _ $$ Hes
+      unfold apply.rangeClass
+      iexists e
+      isplitl []
+      · ipureintro; rw [Ho]; simp only [txn.rangeOpOf.proj_base]
+        exact apply.authEndOf_rangeEndOf esl e Hel.1
+      · rw [Ho]; simp only [txn.rangeOpOf.proj_key]
+        iapply (apply.classRes_of_permVerdict E.authMode info k e .read) $$ Hpv
     isplitr
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
@@ -271,7 +283,7 @@ local macro "range_tail" : tactic => `(tactic| (
       iframe #
       ipureintro; exact ⟨Hl1, Hl2, Hl3⟩
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
+  icases Hds with ⟨Hard, (⟨%Hs0, ⟨%infoc, #Hcls⟩, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
     ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
@@ -308,6 +320,8 @@ local macro "range_tail" : tactic => `(tactic| (
       ileft
       isplitr
       · ipureintro; exact ⟨rfl, Hrn1⟩
+      isplitl [Hcls]
+      · iexists infoc; iexact Hcls
       iunfold rangeReadOk
       iexists log
       iframe Hcert Hrok Hres

@@ -52,17 +52,9 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     #Hpin0, Hidx0, Hti0,
     #Hctx, #Hkey, #Hend, Hcmp, Hcu, %Hc0, Hown⟩
   iunfold mvcc.isStore at Hs
-  icases Hs with ⟨%b, %ti', %lg, Hs⟩
   iNamed Hs
-  -- the transaction's index is the store's (D22 receiver epochs, S3: the pin)
-  iunfold mvcc.idxPin at Hpin0
-  icases Hpin0 with ⟨%o0, #Hpin0, %Ho0⟩
-  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [Hpin Hpin0]
-  · iframe Hpin Hpin0
-  subst Hoo
-  simp only at Ho0
-  have Ho1 := Ho0.symm
-  subst Ho1
+  -- the transaction's tree index (D22 receiver epochs, S5b: its share's; until then the pin's)
+  ihave #Hti := Hpin0
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨⟨%e0, #Herr⟩, ⟨%ecp, #Hcomp⟩, ⟨%ef, #Hfut⟩, -, -, -, -, -, -⟩
@@ -173,11 +165,11 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         (try wp_auto)
         wp_apply (hRange ti γ.idx kn key endk k e (mvcc.rangeRev rev ro.Rev') ro.Limit'
           ro.WithTotalCount' e0 qc c) $$ [$Hti $Hti0 $Hkn $Hkey $Hend $Herr $Hcu]
-          as %keys %modifies %creates %vers %total
-            ⟨Hti0, Hkn, Hcu, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal⟩
+          as %keys %modifies %creates %vers %total %cl
+            ⟨Hti0, Hkn, Hcu, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal, %Hcl⟩
         · ipureintro; rw [Hklog]; exact ⟨⟨Hc0.1, hcle⟩, hR0, hRlt⟩
         rw [Hklog]
-        rw [Hklog] at Htotal
+        rw [Hklog] at Htotal Hcl
         (try wp_auto)
         wp_apply (hStep trace te _ slice.nil) $$ [Hown] as Hown
         · iframe #; iframe Hown; iapply traceutil.ownFields_nil
@@ -225,7 +217,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           · iapply ownSlice_nil
           isplitl []
           · ipureintro; rfl
-          rw [show ([] : List Loc).zip ([] : List (GoString × mvcc.Rev × mvcc.Rev × w64)) = []
+          rw [show ([] : List Loc).zip ([] : List (GoString × mvcc.Rev × w64 × w64)) = []
             from rfl]
           iapply BigSepL.bigSepL_nil_intro; iempintro
         · -- the key-values of the answers, one per key
@@ -310,6 +302,9 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             ihave %Hclen := ownSlice_len _ _ _ $$ Hcre
             ihave %Hvlen := ownSlice_len _ _ _ $$ Hvers
             simp only [List.length_map] at Hmlen Hclen Hvlen
+            have Hcll : cl.length = taken.length := by
+              have h := congrArg List.length Hcl; simpa only [List.length_map] using h
+            rw [Hcll] at Hclen
             have hml : (taken.length : Int) = sint.Z modifies.len := by
               have h1 := Hmlen.1; have h2 := Hmlen.2; unfold sint.nat at h1; unfold sint.Z at *; omega
             have hcl : (taken.length : Int) = sint.Z creates.len := by
@@ -327,10 +322,16 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             have Hbc : 0 ≤ sint.Z (W64 (i : Int)) ∧ sint.Z (W64 (i : Int)) < sint.Z creates.len := by
               rw [hi]; omega
             simp only [Hbc, _root_.and_self, ite_true]
-            icases ownSlice_elem_acc (sint.Z (W64 (i : Int))) (mvcc.revVal a.2.2.1) creates
-              DFrac.discard _ (by omega) (by rw [hiN, List.getElem?_map, ha]; rfl) $$ Hcre
+            obtain ⟨ci, hci⟩ : ∃ ci, cl[i]? = some ci := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+            have hciM : ci.Main' = a.2.2.1 := by
+              have h := congrArg (·[i]?) Hcl
+              simp only [List.getElem?_map, hci, ha, Option.map_some, Option.some.injEq] at h
+              exact h
+            icases ownSlice_elem_acc (sint.Z (W64 (i : Int))) ci creates
+              DFrac.discard _ (by omega) (by rw [hiN, hci]) $$ Hcre
               with ⟨#HelC, -⟩
             icases mvcc.rev_split _ _ _ $$ HelC with ⟨#HCm, -, -⟩
+            rw [hciM]
             (try wp_auto)
             have Hbv : 0 ≤ sint.Z (W64 (i : Int)) ∧ sint.Z (W64 (i : Int)) < sint.Z vers.len := by
               rw [hi]; omega
@@ -474,7 +475,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           · iapply ownSlice_nil
           isplitl []
           · ipureintro; rfl
-          rw [show ([] : List Loc).zip ([] : List (GoString × mvcc.Rev × mvcc.Rev × w64)) = []
+          rw [show ([] : List Loc).zip ([] : List (GoString × mvcc.Rev × w64 × w64)) = []
             from rfl]
           iapply BigSepL.bigSepL_nil_intro; iempintro
         · -- the key-values from the bucket

@@ -104,7 +104,7 @@ theorem covers_prefix (c : v3rpc.CreateReqM) (id : w64) (r : WatchRange)
   · subst hk0
     have hlt : go.GoStringLt [] c.key := by
       obtain ⟨a, t, ht⟩ := List.exists_cons_of_ne_nil hkey
-      rw [ht]; exact concurrency.goStringLt_nil_cons a t
+      rw [ht]; exact go.goStringLt_nil_cons a t
     simp [hlt]
   · simp [hk0, hkey, h0]
 

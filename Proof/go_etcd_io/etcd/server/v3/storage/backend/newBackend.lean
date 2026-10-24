@@ -65,7 +65,7 @@ theorem backend.newBackend.wp_proof
     (hNew : backend.newBatchTxBuffered.spec (GF := GF) (hG := hG))
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
-  intro cfg P D W Pk
+  intro cfg P D W Pk K
   wp_start as ⟨Hfile, %HP, #Hhk, Hmk⟩
   -- `boltOpenOptions`: the backend's package fact (item 8)
   ihave #Hboo : (boltOpenOptionsOk : IProp GF) $$ []
@@ -213,7 +213,7 @@ theorem backend.newBackend.wp_proof
   ipersist batchTx
   ipersist hooks
   -- the backend's invariants
-  imod backend_init P W Pk cfg.Hooks' «$r0_ptr» t «$v5_ptr» «$v3_ptr» «$v2_ptr» db lg wtx rtx m cm γd
+  imod backend_init P W Pk K cfg.Hooks' «$r0_ptr» t «$v5_ptr» «$v3_ptr» «$v2_ptr» db lg wtx rtx m cm γd
     γrw D sc dc γsc γdc HP.1 Hlg $$ [Hmk Hmu1 Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
       Hwtx Hst Hrtoks rtx Hlive Hstats rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
       cbuf cbufVersion Hsco Hdco]
@@ -221,7 +221,7 @@ theorem backend.newBackend.wp_proof
   · rw [HP.2]
     iframe
     iframe #
-  iunfold newPost at Hpost
+  iunfold newPostK at Hpost
   icases Hpost with ⟨#Hb, Hpost⟩
   -- `go b.run()`
   wp_apply wp_fork $$ [Hdcp Hrtok Hopnr Husedr]
@@ -235,7 +235,7 @@ theorem backend.newBackend.wp_proof
   iexists «$r0_ptr», γ
   isplitr
   · ipureintro; rfl
-  unfold newPost
+  unfold newPostK
   iframe Hb
   iexact Hpost
 

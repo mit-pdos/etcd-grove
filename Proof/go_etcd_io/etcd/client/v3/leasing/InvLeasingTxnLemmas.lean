@@ -142,29 +142,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 
-/-- A comparison with its operand set is a comparison. -/
-theorem cmpSetAt_cmpAt (c : go_etcd_io.etcd.client.v3.Cmp) (m : CmpModel) :
-    cmpSetAt (GF := GF) c m ⊢ cmpAt c m := by
-  unfold cmpSetAt cmpAt compareAt
-  iintro ⟨%Hc, %ksl, %esl, %u, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, -⟩
-  iframe %Hc
-  iexists ksl, esl, u
-  iframe #
-
-theorem cmpsSetAt_cmpsAt (sl : GoSlice) (ms : List CmpModel) :
-    cmpsSetAt (GF := GF) sl ms ⊢ cmpsAt sl ms := by
-  unfold cmpsSetAt cmpsAt
-  iintro ⟨%cs, #Hsl, %Hlen, #H⟩
-  iexists cs
-  iframe #
-  isplitr
-  · ipureintro; exact Hlen
-  imodintro
-  iintro %i %c %m %Hc %Hm
-  iapply cmpSetAt_cmpAt
-  iapply H $$ %i %c %m %Hc %Hm
-
-
 theorem opListAtC_length (c : Bool) :
     ∀ (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT),
       opListAtC (GF := GF) c vs ts ⊢ ⌜vs.length = ts.length⌝

@@ -30,7 +30,7 @@ theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof
     (hBT : backend.batchTx.UnsafeDeleteBucket.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t st bk bi Hhas Hp Hsb Hhk
-  wp_start as ⟨#Hb, #Ht, Hl, #Hbk⟩
+  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hrbp⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
@@ -40,6 +40,10 @@ theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof
   icombine Ht Ht' gives %Heq
   subst Heq
   wp_auto
+  imod batchGhost_step_rb γ P (st := st) (st' := (st.delBucket bi)) rfl rfl rfl
+    (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
+    bi.name (hkData_delBucket st bi Hhk)
+    (rbData_delBucket_other st bi) $$ Hg Hrbp with ⟨Hg, Hrbp⟩
   wp_apply (hBT γ P W Pk b t st bk bi) $$ [Htxf Hpend Hwtx] as Hw
   · iframe #
     unfold btW
@@ -47,11 +51,9 @@ theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof
   unfold btW
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
   iapply HΦ
+  iframe Hrbp
   iexists t, db
   iframe Ht' Hown
-  ihave Hg := batchGhost_step γ P (st := st) (st' := (st.delBucket bi)) rfl rfl rfl
-    (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
-    (hkData_delBucket st bi Hhk) $$ Hg
   iframe Hg
   isplitl
   · iexists hk

@@ -8,25 +8,24 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.grpc.internal.status : GoString := go!"google.golang.org/grpc/internal/status"
+noncomputable def google_golang_org.grpc.internal.status : GoString := go!"google.golang.org/grpc/internal/status"
 end pkg_id
 
 namespace google_golang_org.grpc.internal.status
 
-def Status.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Status.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])
 
 attribute [irreducible] Status.ty
 
-def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/internal/status.Error" [])
 
 attribute [irreducible] Error.ty
@@ -59,7 +58,7 @@ noncomputable def IsRestrictedControlPlaneCode [FfiSyntax] [GoGlobalContext] : G
 noncomputable def RawStatusProto [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.RawStatusProto"
 
-instance info' : PkgInfo pkg_id.google_golang_org.grpc.internal.status where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.internal.status where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

@@ -5,7 +5,7 @@ Status: S0–S3b done (2026-10-20, branch `linkv3p`, worktree `/shared/etcd-grov
 transport axioms and the server's `CutPeer`/`MendPeer` proved; the example's functions proved and
 linked; `Main` proved and the closed theorem `linkv3p_safe` closed, for every schedule. S1 needed
 a change of design (D24 in decisions.md): a second `CutPeer` of a *remote* panics
-(`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`), so the transport's ghost state now tracks
+(`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`), so the transport's ghost state now tracks
 its remotes and the axioms take `id ∉ rs`; a new cluster's member has none (`bootOk`). S4 (the
 gates and notes) is in STATUS's S3b entry.
 
@@ -13,7 +13,8 @@ gates and notes) is in STATUS's S3b entry.
 
 An end-to-end safety theorem for a three-member etcd cluster whose members get cut off from one
 another during the run, with clients at every member: `linkv3p_safe`, the shape of `linkv3_safe`
-(`Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/Results.lean`) with one more input, the
+(`Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/Results.lean`; linkv3 retired on 2026-10-22,
+`notes/decisions.md` D34) with one more input, the
 partition schedule, universally quantified:
 
 > For every `clients`, `ops` and every schedule `sched`, every real execution of `n` steps of
@@ -143,7 +144,7 @@ pauses the two stream readers, after which `send` returns without sending and `d
 discards what it decodes; `Resume` clears them; both idempotent; nothing is resent. Every message
 so dropped is one `Transport.Start`'s promise already allows to be lost, so the network model is
 unchanged. **The amendment** (D24): `id` must not be a remote, since a remote's second `Pause`
-panics (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`); `transportLive γn t rs` tracks the
+panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`); `transportLive γn t rs` tracks the
 ids `AddRemote` was called with (`Start` at `[]`, `AddPeer` keeps it), given up for
 `transportStarted γn t ∗ transportRemotes t rs` (`InvBoot.lean`); `Start`/`AddRemote`/`AddPeer`
 restated. Linked in `etc/link-lean-first-server.txt` (axioms, as `Transport__Start`'s).

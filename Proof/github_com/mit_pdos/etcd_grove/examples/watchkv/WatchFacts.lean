@@ -2,12 +2,16 @@
 **What a watch of a watchkv server's prefix delivers** (D23, 2026-10-20). Lean-first (no Rocq
 counterpart).
 
-`chain_wk`: etcd's chain of steps a response's events come with (the cache's watch contract,
-`watchChain` of their batches, at the server's model `v3rpc.etcdModelOfServer`), from the
-watch's position after `n` events (`Cur n prev`), is, at a watchkv server (`wk_log`: each step's
-log is a watchkv log; `step_wk`), one event per batch, the `j`-th the put at revision `2 + n + j`
-of a key and value of the plan (`evFact`: the event's type, revision, its key-value's value
-field and `revAt`).
+`chain_gen`: etcd's chain of steps a response's events come with (the cache's watch contract,
+`watchChain` of their batches), from the watch's position after `n` events (`Cur n prev`), is,
+at a model whose steps are of watchkv logs (`wkSteps`; `step_wk`), one event per batch, the
+`j`-th the put at revision `2 + n + j` of a key and value of the plan (`common.evFactR`: the
+event's type, revision, its key-value's value field and `R`, what the model's logs say of that
+revision). `prog_step_gen` and `resp_gen` follow (a progress step; one response).
+
+The facts are generic in the model so that one proof serves both places watchkv's workload is
+watched: a server (`v3rpc.etcdModelOfServer`, `wkSteps_srv` from `wk_log`, `R` the store's
+`revAt`; `resp_wk`) and the cluster's history (`linkv3p.wkSteps_hist`, `linkv3p.resp_hist`).
 -/
 module
 
@@ -26,6 +30,8 @@ namespace watchkv
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
+export common (wp_etcdWatch_receive watchRespOk_closeErr')
+
 section facts
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -34,11 +40,10 @@ variable [sem : go.Semantics]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **A watched event `e`, the put at revision `r`** (persistent; see the file header). -/
-def evFact (E : apply.AEnv GF) (P : List (GoString × GoString)) (r : Nat) (e : EvModel) :
+/-- **An event's facts at revision `r`** at the store `E` (`common.evFactR` at `revAt E`). -/
+abbrev evFact (E : apply.AEnv GF) (P : List (GoString × GoString)) (r : Nat) (e : EvModel) :
     IProp GF :=
-  iprop(⌜e.typ = W32 0 ∧ sint.Z e.rev = r⌝ ∗ ∃ (v : GoString) (kvv : EtcdKv),
-    kvValAt e.kv kvv ∗ ⌜kvv.value = v ∧ (e.key, v) ∈ P⌝ ∗ revAt E r e.key v)
+  common.evFactR (revAt E) P r e
 
 theorem putNv_value (r : w64) (k val : GoString) (l : w64) (s : List EtcdKv) :
     (txn.putNv r k val l s).value = val := by
@@ -50,34 +55,76 @@ theorem putNv_modRev (r : w64) (k val : GoString) (l : w64) (s : List EtcdKv) :
   unfold txn.putNv
   cases s.find? (fun v => decide (v.key = k)) <;> rfl
 
-/-- **The chain of a watch's batches at a watchkv server** (see the file header). -/
-theorem chain_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []])
-    (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) :
+/-- **A step's facts at a log** (`v3rpc.srvStep`'s and `v3rpc.histStep`'s, about the log they
+name): from `r0` to `r1` under `pfx`, no events strictly between, and `evs` at `r1`. -/
+def StepFacts (L : mvcc.Log) (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv) : Prop :=
+  0 ≤ sint.Z r0 ∧ sint.Z r0 ≤ sint.Z r1 ∧ sint.Z r1 < L.length ∧
+    (∀ x : Nat, sint.Z r0 < x → x < sint.Z r1 → txn.revEvs L pfx x = []) ∧
+    txn.revEvs L pfx (sint.Z r1).toNat = evs
+
+/-- **The model `EM`'s steps are a watchkv server's** (persistent): each step under `wkPfx` is of
+a watchkv log `L` (`WkLog P L`, `StepFacts`) whose puts give `R` (`revAt E` at a server,
+`linkv3p.revAtH` at the cluster's history). The premise of `chain_gen`, `prog_step_gen` and
+`resp_gen`, which watchkv (`resp_wk`) and linkv3p (`linkv3p.resp_hist`) instantiate. -/
+def wkSteps (EM : EtcdModel GF) (P : List (GoString × GoString))
+    (R : Nat → GoString → GoString → IProp GF) : IProp GF :=
+  iprop(□ ∀ (r0 r1 : w64) (evs : List EtcdEv), EtcdStep (self := EM) r0 r1 wkPfx evs ={⊤}=∗
+    ∃ L : mvcc.Log, ⌜WkLog P L ∧ StepFacts L r0 r1 wkPfx evs⌝ ∗
+      □ ∀ (r : Nat) (k v : GoString), ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝ -∗ R r k v)
+
+instance wkSteps_persistent (EM : EtcdModel GF) (P : List (GoString × GoString))
+    (R : Nat → GoString → GoString → IProp GF) : Persistent (wkSteps EM P R) := by
+  unfold wkSteps; infer_instance
+
+/-- **A watchkv server's steps** (`wk_log`). -/
+theorem wkSteps_srv (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
+    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []]) :
+    ⊢ srvKVInvs (GF := GF) E γr -∗ mvcc.idxCert E.γ.idx [[], []] -∗
+      wkSteps (v3rpc.etcdModelOfServer E) P (revAt E) := by
+  iintro #Hinvs #H0
+  iunfold wkSteps
+  iintro !> %r0 %r1 %evs #Hstep
+  ihave #Hstep' : v3rpc.srvStep E r0 r1 wkPfx evs $$ []
+  · iexact Hstep
+  iunfold v3rpc.srvStep at Hstep'
+  icases Hstep' with ⟨%L, #Hsl, #Hc, %Hs⟩
+  iunfold v3rpc.srvLog at Hsl
+  icases Hsl with ⟨#Hsd, -⟩
+  imod wk_log E γr P hwl hlog L $$ Hinvs H0 Hsd Hc with %Hwk
+  imodintro
+  iexists L
+  isplitr
+  · ipureintro; exact ⟨Hwk, Hs⟩
+  iintro !> %r %k %v %h
+  iunfold revAt
+  iexists L
+  iframe Hsd
+  ipureintro; exact h
+
+/-- **The chain of a watch's batches** at a model whose steps are a watchkv server's (`wkSteps`; see
+the file header). -/
+theorem chain_gen (EM : EtcdModel GF) (P : List (GoString × GoString))
+    (R : Nat → GoString → GoString → IProp GF) (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) :
     ∀ (bs : List Batch) (prev : w64) (n : Nat), Cur n prev → (∀ b ∈ bs, BatchOk b) →
-      ⊢ srvKVInvs (GF := GF) E γr -∗ mvcc.idxCert E.γ.idx [[], []] -∗
-        watchChain (EM := v3rpc.etcdModelOfServer E) wkPfx prev bs ={⊤}=∗
-        □ ∀ (j : Nat) (e : EvModel), ⌜bs.flatten[j]? = some e⌝ -∗ evFact E P (2 + n + j) e
+      ⊢ wkSteps EM P R -∗ watchChain (EM := EM) wkPfx prev bs ={⊤}=∗
+        □ ∀ (j : Nat) (e : EvModel), ⌜bs.flatten[j]? = some e⌝ -∗ common.evFactR R P (2 + n + j) e
   | [], _, _, _, _ => by
-    iintro #Hinvs #H0 -
+    iintro #HS -
     imodintro
     iintro !> %j %e %h
     simp at h
   | b :: bs, prev, n, hcur, hok => by
-    iintro #Hinvs #H0 Hch
+    iintro #HS Hch
     iunfold watchChain at Hch
     icases Hch with ⟨#Hcert, %Hlt, Hrest⟩
     iunfold etcdStepCertBody at Hcert
     icases Hcert with ⟨%cs, #Hm, #Hstep, -, -⟩
-    ihave #Hstep' : v3rpc.srvStep E prev (batchRev b) wkPfx cs $$ []
-    · iexact Hstep
-    iunfold v3rpc.srvStep at Hstep'
+    ihave #HSw : wkSteps EM P R $$ []
+    · iexact HS
+    iunfold wkSteps at HS
+    imod HS $$ %prev %(batchRev b) %cs Hstep with ⟨%L, %HL, #HR⟩
     iclear Hstep
-    icases Hstep' with ⟨%L, #Hsl, #Hc, %Hs⟩
-    obtain ⟨h0, -, hr1, hnone, hcs⟩ := Hs
-    iunfold v3rpc.srvLog at Hsl
-    icases Hsl with ⟨#Hsd, -⟩
-    imod wk_log E γr P hwl hlog L $$ Hinvs H0 Hsd Hc with %Hwk
+    obtain ⟨Hwk, h0, -, hr1, hnone, hcs⟩ := HL
     iunfold evsMatch at Hm
     icases Hm with ⟨%Hml, #Hmv⟩
     obtain ⟨hbne, hbrev⟩ := hok b (List.mem_cons_self ..)
@@ -96,8 +143,8 @@ theorem chain_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × Go
     simp only [txn.changeEv, txn.putNv_key, putNv_modRev] at hty hkey hrev
     -- the rest of the chain, from `2 + n` after `n + 1` events
     have hcur' : Cur (n + 1) (batchRev [e0]) := Or.inr ⟨by omega, by omega⟩
-    imod chain_wk E γr P hwl hlog hpk bs (batchRev [e0]) (n + 1) hcur'
-      (fun b' hb' => hok b' (List.mem_cons_of_mem _ hb')) $$ Hinvs H0 Hrest with #Hrest
+    imod chain_gen EM P R hpk bs (batchRev [e0]) (n + 1) hcur'
+      (fun b' hb' => hok b' (List.mem_cons_of_mem _ hb')) $$ HSw Hrest with #Hrest
     imodintro
     iintro !> %j %e %hj
     cases j with
@@ -105,7 +152,7 @@ theorem chain_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × Go
       simp only [List.flatten_cons, List.singleton_append, List.getElem?_cons_zero,
         Option.some.injEq] at hj
       subst hj
-      iunfold evFact
+      iunfold common.evFactR
       isplitr
       · ipureintro
         refine ⟨hty, ?_⟩
@@ -116,9 +163,7 @@ theorem chain_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × Go
       · ipureintro
         refine ⟨by simp [txn.changeEv, putNv_value], ?_⟩
         rw [hkey]; exact hkv
-      iunfold revAt
-      iexists L
-      iframe Hsd
+      iapply HR
       ipureintro
       rw [hkey]; simpa using hL
     | succ j =>
@@ -127,44 +172,33 @@ theorem chain_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × Go
       rw [show 2 + n + (j + 1) = 2 + (n + 1) + j by omega]
       iexact H
 
-theorem isProgressNotify_events' {r : RespModel} (h : r.isProgressNotify = true) :
-    r.events = [] := by
-  unfold RespModel.isProgressNotify at h
-  simp only [Bool.and_eq_true, List.isEmpty_iff] at h
-  exact h.1.1.1.1
-
-/-- **A progress step at a watchkv server** stays at the position or, before the first event,
-moves to at most `1`. -/
-theorem prog_step_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []])
-    (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) (n : Nat) (c p : w64) (hcur : Cur n c) :
-    ⊢ srvKVInvs (GF := GF) E γr -∗ mvcc.idxCert E.γ.idx [[], []] -∗
-      EtcdStep (self := v3rpc.etcdModelOfServer E) c p wkPfx [] ={⊤}=∗ ⌜c = p ∨ Cur n p⌝ := by
-  iintro #Hinvs #H0 #Hstep
-  ihave #Hstep' : v3rpc.srvStep E c p wkPfx [] $$ []
-  · iexact Hstep
-  iunfold v3rpc.srvStep at Hstep'
-  icases Hstep' with ⟨%L, #Hsl, #Hc, %Hs⟩
-  obtain ⟨-, hle, hp, -, hnone⟩ := Hs
-  iunfold v3rpc.srvLog at Hsl
-  icases Hsl with ⟨#Hsd, -⟩
-  imod wk_log E γr P hwl hlog L $$ Hinvs H0 Hsd Hc with %Hwk
+/-- **A progress step** at a model whose steps are a watchkv server's stays at the position or,
+before the first event, moves to at most `1`. -/
+theorem prog_step_gen (EM : EtcdModel GF) (P : List (GoString × GoString))
+    (R : Nat → GoString → GoString → IProp GF) (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) (n : Nat)
+    (c p : w64) (hcur : Cur n c) :
+    ⊢ wkSteps EM P R -∗ EtcdStep (self := EM) c p wkPfx [] ={⊤}=∗ ⌜c = p ∨ Cur n p⌝ := by
+  iintro #HS #Hstep
+  iunfold wkSteps at HS
+  imod HS $$ %c %p %([] : List EtcdEv) Hstep with ⟨%L, %HL, -⟩
+  obtain ⟨Hwk, -, hle, hp, -, hnone⟩ := HL
   imodintro
   ipureintro
   exact prog_wk Hwk wkPfx hpk n c p hcur hle hp hnone
 
-/-- **One response of a watch at a watchkv server** (see the file header): its events are puts of
-the plan at the revisions after the position's, which becomes the last's. -/
-theorem resp_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []])
-    (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) (n : Nat) (c c' : w64)
+/-- **One response of a watch** at a model whose steps are a watchkv server's (see the file
+header): its events are puts of the plan at the revisions after the position's, which becomes the
+last's. -/
+theorem resp_gen (EM : EtcdModel GF) (P : List (GoString × GoString))
+    (R : Nat → GoString → GoString → IProp GF) (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) (n : Nat)
+    (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hne : ¬ watchErr v)
     (hcur : Cur n c) :
-    ⊢ srvKVInvs (GF := GF) E γr -∗ mvcc.idxCert E.γ.idx [[], []] -∗
-      watchRespOk (EM := v3rpc.etcdModelOfServer E) wkPfx c c' v r ={⊤}=∗
+    ⊢ wkSteps EM P R -∗ watchRespOk (EM := EM) wkPfx c c' v r ={⊤}=∗
       ⌜Cur (n + r.events.length) c'⌝ ∗
-      □ ∀ (j : Nat) (e : EvModel), ⌜r.events[j]? = some e⌝ -∗ evFact E P (2 + n + j) e := by
-  iintro #Hinvs #H0 Hok
+      □ ∀ (j : Nat) (e : EvModel), ⌜r.events[j]? = some e⌝ -∗
+        common.evFactR R P (2 + n + j) e := by
+  iintro #HS Hok
   iunfold watchRespOk at Hok
   icases Hok with (⟨%H, -⟩ | %H | ⟨%H, #Hs, -⟩ | ⟨%H, Hc⟩)
   · exact absurd H.1 hne
@@ -176,11 +210,11 @@ theorem resp_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoS
     iintro !> %j %e %h
     simp at h
   · obtain ⟨-, hp, hle, rfl, -⟩ := H
-    have he := isProgressNotify_events' hp
+    have he := isProgressNotify_events hp
     ihave Hcp : iprop(|={⊤}=> ⌜c = r.hdrRev ∨ Cur n r.hdrRev⌝) $$ []
     · icases Hs with (%h | #Hst)
       · imodintro; ipureintro; left; exact h
-      · iapply prog_step_wk E γr P hwl hlog hpk n c r.hdrRev hcur $$ Hinvs H0 Hst
+      · iapply prog_step_gen EM P R hpk n c r.hdrRev hcur $$ HS Hst
     imod Hcp with %Hcp
     imodintro
     rw [he]
@@ -193,8 +227,8 @@ theorem resp_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoS
     iintro !> %j %e %h
     simp at h
   · obtain ⟨-, hne', -, -, hlast⟩ := H
-    imod chain_wk E γr P hwl hlog hpk (splitBatches r.events) c n hcur
-      (splitBatches_ok r.events) $$ Hinvs H0 Hc with #Hch
+    imod chain_gen EM P R hpk (splitBatches r.events) c n hcur
+      (splitBatches_ok r.events) $$ HS Hc with #Hch
     irevert Hch
     rw [splitBatches_flatten]
     iintro #Hch
@@ -207,7 +241,7 @@ theorem resp_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoS
     rw [hl] at hlast
     simp at hlast
     ihave #Hf := Hch $$ %(r.events.length - 1) %el %hel
-    iunfold evFact at Hf
+    iunfold common.evFactR at Hf
     icases Hf with ⟨%Hfe, -⟩
     imodintro
     isplitr
@@ -217,40 +251,19 @@ theorem resp_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoS
       rw [← hlast, Hfe.2]; push_cast; omega
     iexact Hch
 
-/-- **Receiving from a client watch channel** (`etcdWatch_recv_au` as a triple). -/
-theorem wp_etcdWatch_receive [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF]
-    (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n : Nat) (cursor : w64) :
-    {{ isEtcdWatchChan ch γ pfx ∗ etcdWatchConsumer γ n cursor }}
-      (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #ch))
-    {{ (v : go_etcd_io.etcd.client.v3.WatchResponse) (ok : Bool), RET (PairV #v #ok);
-        (if ok then iprop(|==> ∃ (r : RespModel) (c' : w64), respAt (GF := GF) v r ∗
-            watchRespOk pfx cursor c' v r ∗ etcdWatchConsumer γ (n + 1) c')
-         else iprop(⌜v = zero_val go_etcd_io.etcd.client.v3.WatchResponse⌝)) }} := by
-  iintro %Φ ⟨#Hw, Hcons⟩ HΦ
-  ihave #Hch : isChan ch γ.spsc.chanName go_etcd_io.etcd.client.v3.WatchResponse $$ [Hw]
-  · iunfold isEtcdWatchChan at Hw
-    icases Hw with ⟨%Pw, #Hsp, -⟩
-    iunfold isSpsc at Hsp; icases Hsp with ⟨$, -⟩
-  iapply chan.wp_receive ch γ.spsc.chanName $$ Hch
-  iintro ⟨Hlc1, Hlc2, _, _⟩
-  iapply etcdWatch_recv_au ch γ pfx n cursor (fun v ok => Φ (PairV #v #ok)) $$ Hw [$Hlc1 $Hlc2] Hcons
-  inext
-  iintro %v %ok H
-  iapply HΦ $$ %v %ok H
-
-/-- The close error of a response etcd's watch contract allows is one grpc's `status` accepts (as
-the cache's `watchRespOk_closeErr`). -/
-theorem watchRespOk_closeErr' [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF]
-    (pfx : GoString) (k k' : w64)
-    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
-    watchRespOk (GF := GF) pfx k k' v r ⊢ go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr' := by
-  unfold watchRespOk
-  iintro (⟨%H, #He⟩ | %H | ⟨%H, -⟩ | ⟨%H, -⟩)
-  · iexact He
-  all_goals
-    have hn : v.closeErr' = GoInterface.nil :=
-      Classical.byContradiction fun h => H.1 (Or.inl h)
-    rw [hn]; iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+/-- **One response of a watch at a watchkv server** (`resp_gen` at `wkSteps_srv`). -/
+theorem resp_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
+    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []])
+    (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) (n : Nat) (c c' : w64)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hne : ¬ watchErr v)
+    (hcur : Cur n c) :
+    ⊢ srvKVInvs (GF := GF) E γr -∗ mvcc.idxCert E.γ.idx [[], []] -∗
+      watchRespOk (EM := v3rpc.etcdModelOfServer E) wkPfx c c' v r ={⊤}=∗
+      ⌜Cur (n + r.events.length) c'⌝ ∗
+      □ ∀ (j : Nat) (e : EvModel), ⌜r.events[j]? = some e⌝ -∗ evFact E P (2 + n + j) e := by
+  iintro #Hinvs #H0 Hok
+  ihave #HS := wkSteps_srv E γr P hwl hlog $$ Hinvs H0
+  iapply resp_gen _ P (revAt E) hpk n c c' v r hne hcur $$ HS Hok
 
 end facts
 

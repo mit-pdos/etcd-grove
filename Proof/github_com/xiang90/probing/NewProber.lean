@@ -20,7 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Trust boundary** (rafthttp stage 6c, D34, the user's choice: the prober an axiom):
+/-- **Trust boundary** (rafthttp stage 6c, D39, the user's choice: the prober an axiom):
 `probing.NewProber(tr)` (`prober.go`) allocates a `*prober` (an empty map of targets, its mutex,
 the round tripper kept for the probes) and returns it as a `Prober`, without a goroutine. Its
 `RemoveAll()` takes the mutex, stops every target's ticker goroutine (closing its stop channel)

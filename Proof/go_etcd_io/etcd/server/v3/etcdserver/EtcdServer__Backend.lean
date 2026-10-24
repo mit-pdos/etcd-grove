@@ -27,22 +27,25 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.Backend.wp_proof : EtcdServer.Backend.spec (GF := GF) (hG := hG) := by
-  intro s
+  intro s γbe
   wp_start as Hrd
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  iunfold srvBemuReader at Hrd
+  iunfold srvBemuReaderAt at Hrd
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold bemuP at HP
-  icases HP with ⟨%b, Hb⟩
+  icases HP with ⟨%d, Hb, Hg, #Hro⟩
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb] as Hrd
-  · inext; iunfold bemuP; iexists b; iexact Hb
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb Hg] as Hrd
+  · inext; iunfold bemuP; iexists d; iframe Hb Hg Hro
   iapply HΦ
-  iunfold srvBemuReader
-  iexact Hrd
+  iunfold srvBemuReaderAt
+  iframe Hrd
+  iexists d
+  iframe Hro
+  ipureintro; rfl
 
 end proof
 

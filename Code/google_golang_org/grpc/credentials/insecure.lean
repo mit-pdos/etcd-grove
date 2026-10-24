@@ -8,30 +8,29 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.grpc.credentials.insecure : GoString := go!"google.golang.org/grpc/credentials/insecure"
+noncomputable def google_golang_org.grpc.credentials.insecure : GoString := go!"google.golang.org/grpc/credentials/insecure"
 end pkg_id
 
 namespace google_golang_org.grpc.credentials.insecure
 
-def insecureTC.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def insecureTC.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials/insecure.insecureTC" [])
 
 attribute [irreducible] insecureTC.ty
 
-def info.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def info.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials/insecure.info" [])
 
 attribute [irreducible] info.ty
 
-def insecureBundle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def insecureBundle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials/insecure.insecureBundle" [])
 
 attribute [irreducible] insecureBundle.ty
@@ -48,7 +47,7 @@ noncomputable def NewCredentials [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewBundle [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials/insecure.NewBundle"
 
-instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials.insecure where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials.insecure where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

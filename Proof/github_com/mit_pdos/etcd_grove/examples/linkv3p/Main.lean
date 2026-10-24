@@ -36,7 +36,7 @@ namespace EtcdGrove
 namespace linkv3p
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open putget3 (httpURL ccOk commonPremises memberBoot id_ne)
+open putget3 (httpURL ccOk commonPremises)
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -53,7 +53,7 @@ theorem Main.wp_proof
     (wp_partitioner : partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE PP N id₁ id₂ id₃ bootLog clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
+  intro CS ESL ESE CRE CEC N id₁ id₂ id₃ bootLog clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
     Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts
@@ -88,17 +88,17 @@ theorem Main.wp_proof
   icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, -, -, -, -⟩
   obtain ⟨-, -, -, hlog₁⟩ := Hp₁
   -- `go partitioner(srvs, brs, sched)`: every member's place in the network
-  ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
+  ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, common.srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
   · iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+      (Φ := fun _ s => iprop(∃ id : w64, common.srvPeerCtl (GF := GF) γn s id))).2
     isplitl [Hctl₁]
     · iexists id₁; iexact Hctl₁
     iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+      (Φ := fun _ s => iprop(∃ id : w64, common.srvPeerCtl (GF := GF) γn s id))).2
     isplitl [Hctl₂]
     · iexists id₂; iexact Hctl₂
     iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+      (Φ := fun _ s => iprop(∃ id : w64, common.srvPeerCtl (GF := GF) γn s id))).2
     isplitl [Hctl₃]
     · iexists id₃; iexact Hctl₃
     iapply BigSepL.bigSepL_nil.2

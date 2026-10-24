@@ -25,16 +25,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- `rt.UnsafeRange(bucket, key, endKey, limit)` of the held shared read transaction: `rtRange`
-of the readers' state (an end key nil or not empty; no limit above 1 on a bucket that is not
-safe-range: that panics). -/
+/-- `rt.UnsafeRange(bucket, key, endKey, limit)` of the held shared read transaction, with any
+share `p` of bbolt's transaction (`rtHeld` is `rtHeldF … sync.rfrac.half`; the restore plan's
+R5b): `rtRange` of the readers' state (an end key nil or not empty; no limit above 1 on a bucket
+that is not safe-range: that panics). -/
 abbrev backend.readTx.UnsafeRange.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (rtx : Loc) (rv : RView) (qo : Qp) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (rtx : Loc) (rv : RView) (p : Qp) (qo : Qp) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
   (endKey = slice.nil ↔ eb = []) → (sint.Z (rangeLimit eb limit) ≤ 1 ∨ bi.safe = true) → P.has bi →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rtHeld γ P b rtx rv ∗ bOpen γ qo ∗ isBucket bk bi ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rtHeldF γ P b rtx rv p ∗ bOpen γ qo ∗ isBucket bk bi ∗
       key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
     (App (App (App (App (Val (rt @!! go.GoType.PointerType readTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
-  {{ (keys vals : GoSlice), RET (PairV #keys #vals); rtHeld γ P b rtx rv ∗ bOpen γ qo ∗
+  {{ (keys vals : GoSlice), RET (PairV #keys #vals); rtHeldF γ P b rtx rv p ∗ bOpen γ qo ∗
       key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd rtx keys vals (rtRange rv bi kb eb limit) }}
 
 end spec

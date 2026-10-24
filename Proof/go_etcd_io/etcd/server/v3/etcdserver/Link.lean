@@ -9,12 +9,17 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__Get
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__Recover
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__restore
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetRangeEnd
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ApplyWait
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthDisable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthEnable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthStatus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Backend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cluster
@@ -35,6 +40,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaderChang
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LinearizableReadNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberList
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MendPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NextRequestID
@@ -42,14 +48,26 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Process
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RemoveMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportUnreachable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestTimeout
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleAdd
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleDelete
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleGet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleGrantPermission
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleRevokePermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Stopping
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__StoppingNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserDelete
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserGet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserGrantRole
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserRevokeRole
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Watchable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__adjustTicks
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__apply
@@ -58,6 +76,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfCh
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkMembershipOperationPermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
@@ -78,6 +97,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInte
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__publishV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__purgeFile
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__requireAuthInfo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
@@ -121,6 +141,8 @@ public import Proof.go_opentelemetry_io.otel.attribute.Int64
 public import Proof.go_opentelemetry_io.otel.attribute.String
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStore
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewTokenProvider
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthDisable
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthEnable
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
@@ -128,15 +150,26 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsDeleteRangePermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsPutPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsRangePermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Recover
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Revision
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__RoleAdd
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserChangePassword
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserDelete
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__lockedReadTx
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__selectPassword
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__setRevision
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
+public import Proof.go_etcd_io.etcd.server.v3.auth.getMergedPerms
 public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
+public import Proof.go_etcd_io.etcd.server.v3.auth.isValidPermissionRange
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.encoding.binary.ReadUint64
@@ -247,6 +280,8 @@ public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.google_golang_org.protobuf.proto.SizeMessage
 public import Proof.google_golang_org.protobuf.proto.SizePb
 public import Proof.google_golang_org.protobuf.proto.UnmarshalPb
+public import Proof.google_golang_org.protobuf.proto.UnmarshalRole
+public import Proof.google_golang_org.protobuf.proto.UnmarshalUser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.quorum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
@@ -354,6 +389,19 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetRole
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetUser
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ReadTx
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__RLock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__RUnlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetRole
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetUser
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthEnabled
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthRevision
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetRole
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetUser
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthEnabled
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthRevision
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
 public import Proof.github_com.Masterminds.semver.v3.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__CloseNotify
@@ -816,6 +864,38 @@ theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
 
+theorem auth.authStore.wp_Revision :
+    auth.authStore.Revision.spec (GF := GF) (hG := hG) :=
+  auth.authStore.Revision.wp_proof
+
+theorem auth.authStore.wp_commitRevision :
+    auth.authStore.commitRevision.spec (GF := GF) (hG := hG) :=
+  auth.authStore.commitRevision.wp_proof auth.authStore.wp_Revision
+
+theorem auth.authStore.wp_AuthDisable :
+    auth.authStore.AuthDisable.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthDisable.wp_proof auth.authStore.wp_commitRevision zap.Logger.wp_Info
+
+theorem auth.wp_getMergedPerms :
+    auth.getMergedPerms.spec (GF := GF) (hG := hG) :=
+  auth.getMergedPerms.wp_proof adt.wp_NewIntervalTree adt.wp_NewBytesAffineInterval adt.wp_NewBytesAffinePoint
+
+theorem auth.authStore.wp_refreshRangePermCache :
+    auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG) :=
+  auth.authStore.refreshRangePermCache.wp_proof zap.Logger.wp_Debug zap.wp_String zap.Logger.wp_Error auth.wp_getMergedPerms
+
+theorem auth.authStore.wp_setRevision :
+    auth.authStore.setRevision.spec (GF := GF) (hG := hG) :=
+  auth.authStore.setRevision.wp_proof
+
+theorem auth.wp_hasRootRole :
+    auth.hasRootRole.spec (GF := GF) (hG := hG) :=
+  auth.hasRootRole.wp_proof
+
+theorem auth.authStore.wp_AuthEnable :
+    auth.authStore.AuthEnable.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthEnable.wp_proof auth.authStore.wp_refreshRangePermCache auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info
+
 theorem auth.authStore.wp_IsAuthEnabled :
     auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsAuthEnabled.wp_proof
@@ -823,10 +903,6 @@ theorem auth.authStore.wp_IsAuthEnabled :
 theorem metadata.wp_FromIncomingContext :
     metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
   metadata.FromIncomingContext.wp_proof
-
-theorem auth.authStore.wp_Revision :
-    auth.authStore.Revision.spec (GF := GF) (hG := hG) :=
-  auth.authStore.Revision.wp_proof
 
 theorem auth.authStore.wp_authInfoFromToken :
     auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG) :=
@@ -847,10 +923,6 @@ theorem auth.authStore.wp_AuthInfoFromTLS :
 theorem auth.authStore.wp_lockedReadTx :
     auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG) :=
   auth.authStore.lockedReadTx.wp_proof
-
-theorem auth.wp_hasRootRole :
-    auth.hasRootRole.spec (GF := GF) (hG := hG) :=
-  auth.hasRootRole.wp_proof
 
 theorem auth.authStore.wp_IsAdminPermitted :
     auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG) :=
@@ -891,6 +963,38 @@ theorem auth.authStore.wp_IsPutPermitted :
 theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem auth.authStore.wp_Recover :
+    auth.authStore.Recover.spec (GF := GF) (hG := hG) :=
+  auth.authStore.Recover.wp_proof auth.authStore.wp_refreshRangePermCache auth.authStore.wp_setRevision
+
+theorem auth.authStore.wp_RoleAdd :
+    auth.authStore.RoleAdd.spec (GF := GF) (hG := hG) :=
+  auth.authStore.RoleAdd.wp_proof auth.authStore.wp_commitRevision zap.wp_String zap.Logger.wp_Info
+
+theorem auth.authStore.wp_selectPassword :
+    auth.authStore.selectPassword.spec (GF := GF) (hG := hG) :=
+  auth.authStore.selectPassword.wp_proof
+
+theorem auth.authStore.wp_UserAdd :
+    auth.authStore.UserAdd.spec (GF := GF) (hG := hG) :=
+  auth.authStore.UserAdd.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String zap.Logger.wp_Info
+
+theorem zap.wp_Strings :
+    zap.Strings.spec (GF := GF) (hG := hG) :=
+  zap.Strings.wp_proof
+
+theorem auth.authStore.wp_UserChangePassword :
+    auth.authStore.UserChangePassword.spec (GF := GF) (hG := hG) :=
+  auth.authStore.UserChangePassword.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String zap.wp_Strings zap.Logger.wp_Info
+
+theorem auth.authStore.wp_UserDelete :
+    auth.authStore.UserDelete.spec (GF := GF) (hG := hG) :=
+  auth.authStore.UserDelete.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error zap.Logger.wp_Info
+
+theorem auth.wp_isValidPermissionRange :
+    auth.isValidPermissionRange.spec (GF := GF) (hG := hG) :=
+  auth.isValidPermissionRange.wp_proof auth.wp_isOpenEnded adt.BytesAffineComparable.wp_Compare
 
 theorem binary.wp_ReadUint64 :
     binary.ReadUint64.spec (GF := GF) (hG := hG) :=
@@ -968,10 +1072,6 @@ theorem types.wp_NewURLs :
     types.NewURLs.spec (GF := GF) (hG := hG) :=
   types.NewURLs.wp_proof
 
-theorem strings.wp_TrimSuffix :
-    strings.TrimSuffix.spec (GF := GF) (hG := hG) :=
-  strings.TrimSuffix.wp_proof
-
 theorem fmt.wp_ErrorfPlain :
     fmt.ErrorfPlain.spec (GF := GF) (hG := hG) :=
   fmt.ErrorfPlain.wp_proof
@@ -995,10 +1095,6 @@ theorem pbutil.wp_MustMarshalMessage :
 theorem proto.wp_SizePb :
     proto.SizePb.spec (GF := GF) (hG := hG) :=
   proto.SizePb.wp_proof
-
-theorem zap.wp_Strings :
-    zap.Strings.spec (GF := GF) (hG := hG) :=
-  zap.Strings.wp_proof
 
 theorem proto.wp_MarshalAppendPb :
     proto.MarshalAppendPb.spec (GF := GF) (hG := hG) :=
@@ -1112,6 +1208,14 @@ theorem os.wp_Rename :
     os.Rename.spec (GF := GF) (hG := hG) :=
   os.Rename.wp_proof
 
+theorem proto.wp_UnmarshalRole :
+    proto.UnmarshalRole.spec (GF := GF) (hG := hG) :=
+  proto.UnmarshalRole.wp_proof
+
+theorem proto.wp_UnmarshalUser :
+    proto.UnmarshalUser.spec (GF := GF) (hG := hG) :=
+  proto.UnmarshalUser.wp_proof
+
 theorem schema.wp_MustUnsafeSaveConfStateToBackend :
     schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
   schema.MustUnsafeSaveConfStateToBackend.wp_proof
@@ -1119,6 +1223,58 @@ theorem schema.wp_MustUnsafeSaveConfStateToBackend :
 theorem schema.wp_UnsafeUpdateConsistentIndexForce :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) :=
   schema.UnsafeUpdateConsistentIndexForce.wp_proof schema.wp_unsafeUpdateConsistentIndex
+
+theorem schema.authBackend.wp_ReadTx :
+    schema.authBackend.ReadTx.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.ReadTx.wp_proof
+
+theorem schema.authReadTx.wp_RLock :
+    schema.authReadTx.RLock.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.RLock.wp_proof
+
+theorem schema.wp_unsafeGetRole :
+    schema.unsafeGetRole.spec (GF := GF) (hG := hG) :=
+  schema.unsafeGetRole.wp_proof proto.wp_UnmarshalRole
+
+theorem schema.authReadTx.wp_UnsafeGetRole :
+    schema.authReadTx.UnsafeGetRole.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeGetRole.wp_proof schema.wp_unsafeGetRole
+
+theorem schema.authReadTx.wp_RUnlock :
+    schema.authReadTx.RUnlock.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.RUnlock.wp_proof
+
+theorem schema.authBackend.wp_GetRole :
+    schema.authBackend.GetRole.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.GetRole.wp_proof schema.authBackend.wp_ReadTx schema.authReadTx.wp_RLock schema.authReadTx.wp_UnsafeGetRole schema.authReadTx.wp_RUnlock
+
+theorem schema.wp_unsafeGetUser :
+    schema.unsafeGetUser.spec (GF := GF) (hG := hG) :=
+  schema.unsafeGetUser.wp_proof proto.wp_UnmarshalUser
+
+theorem schema.authReadTx.wp_UnsafeGetUser :
+    schema.authReadTx.UnsafeGetUser.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeGetUser.wp_proof schema.wp_unsafeGetUser
+
+theorem schema.authBackend.wp_GetUser :
+    schema.authBackend.GetUser.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.GetUser.wp_proof schema.authBackend.wp_ReadTx schema.authReadTx.wp_RLock schema.authReadTx.wp_UnsafeGetUser schema.authReadTx.wp_RUnlock
+
+theorem schema.wp_unsafeReadAuthEnabled :
+    schema.unsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.unsafeReadAuthEnabled.wp_proof
+
+theorem schema.authReadTx.wp_UnsafeReadAuthEnabled :
+    schema.authReadTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeReadAuthEnabled.wp_proof schema.wp_unsafeReadAuthEnabled
+
+theorem schema.wp_unsafeReadAuthRevision :
+    schema.unsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.unsafeReadAuthRevision.wp_proof binary.bigEndian.wp_Uint64
+
+theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
+    schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeReadAuthRevision.wp_proof schema.wp_unsafeReadAuthRevision
 
 theorem snap.Snapshotter.wp_DBFilePath :
     snap.Snapshotter.DBFilePath.spec (GF := GF) (hG := hG) :=
@@ -1143,6 +1299,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+theorem v3alarm.AlarmStore.wp_restore :
+    v3alarm.AlarmStore.restore.spec (GF := GF) (hG := hG) :=
+  v3alarm.AlarmStore.restore.wp_proof
+
+theorem v3alarm.AlarmStore.wp_Recover :
+    v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG) :=
+  v3alarm.AlarmStore.Recover.wp_proof v3alarm.AlarmStore.wp_restore
+
 theorem EtcdServer.wp_getAppliedIndex :
     EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG) :=
   EtcdServer.getAppliedIndex.wp_proof
@@ -1155,6 +1319,14 @@ theorem EtcdServer.wp_ApplyWait :
     EtcdServer.ApplyWait.spec (GF := GF) (hG := hG) :=
   EtcdServer.ApplyWait.wp_proof
 
+theorem EtcdServer.wp_AuthDisable :
+    EtcdServer.AuthDisable.spec (GF := GF) (hG := hG) :=
+  EtcdServer.AuthDisable.wp_proof
+
+theorem EtcdServer.wp_AuthEnable :
+    EtcdServer.AuthEnable.spec (GF := GF) (hG := hG) :=
+  EtcdServer.AuthEnable.wp_proof
+
 theorem EtcdServer.wp_AuthStore :
     EtcdServer.AuthStore.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthStore.wp_proof
@@ -1162,6 +1334,10 @@ theorem EtcdServer.wp_AuthStore :
 theorem EtcdServer.wp_AuthInfoFromCtx :
     EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthInfoFromCtx.wp_proof EtcdServer.wp_AuthStore
+
+theorem EtcdServer.wp_AuthStatus :
+    EtcdServer.AuthStatus.spec (GF := GF) (hG := hG) :=
+  EtcdServer.AuthStatus.wp_proof
 
 theorem EtcdServer.wp_Backend :
     EtcdServer.Backend.spec (GF := GF) (hG := hG) :=
@@ -1294,6 +1470,14 @@ theorem EtcdServer.wp_LeaderChanged :
 theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.LinearizableReadNotify.wp_proof
+
+theorem EtcdServer.wp_requireAuthInfo :
+    EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
+
+theorem EtcdServer.wp_MemberList :
+    EtcdServer.MemberList.spec (GF := GF) (hG := hG) :=
+  EtcdServer.MemberList.wp_proof EtcdServer.wp_requireAuthInfo membership.RaftCluster.wp_Members
 
 theorem rafthttp.streamReader.wp_resume :
     rafthttp.streamReader.resume.spec (GF := GF) (hG := hG) :=
@@ -1479,6 +1663,14 @@ theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
   EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range EtcdServer.wp_doSerialize RangeRequest.wp_String proto.wp_Size
 
+theorem EtcdServer.wp_checkMembershipOperationPermission :
+    EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) :=
+  EtcdServer.checkMembershipOperationPermission.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
+
+theorem EtcdServer.wp_RemoveMember :
+    EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RemoveMember.wp_proof EtcdServer.wp_checkMembershipOperationPermission raftpb.ConfChangeType.wp_Enum
+
 theorem EtcdServer.wp_ReportSnapshot :
     EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG) :=
   EtcdServer.ReportSnapshot.wp_proof
@@ -1490,6 +1682,30 @@ theorem EtcdServer.wp_ReportUnreachable :
 theorem EtcdServer.wp_RequestTimeout :
     EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG) :=
   EtcdServer.RequestTimeout.wp_proof config.ServerConfig.wp_ReqTimeout
+
+theorem EtcdServer.wp_RoleAdd :
+    EtcdServer.RoleAdd.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleAdd.wp_proof
+
+theorem EtcdServer.wp_RoleDelete :
+    EtcdServer.RoleDelete.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleDelete.wp_proof
+
+theorem EtcdServer.wp_RoleGet :
+    EtcdServer.RoleGet.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleGet.wp_proof
+
+theorem EtcdServer.wp_RoleGrantPermission :
+    EtcdServer.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleGrantPermission.wp_proof
+
+theorem EtcdServer.wp_RoleList :
+    EtcdServer.RoleList.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleList.wp_proof
+
+theorem EtcdServer.wp_RoleRevokePermission :
+    EtcdServer.RoleRevokePermission.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleRevokePermission.wp_proof
 
 theorem wait.list.wp_Register :
     wait.list.Register.spec (GF := GF) (hG := hG) :=
@@ -1719,6 +1935,26 @@ theorem EtcdServer.wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) :=
   EtcdServer.Txn.wp_proof txn.wp_IsTxnReadonly traceutil.Tracer.wp_Start trace.wp_WithAttributes TxnRequest.wp_GetCompare wp_firstCompareKey «attribute».wp_String TxnRequest.wp_GetSuccess wp_firstOpKey wp_firstOpType wp_firstOpLease «attribute».wp_Int64 «attribute».wp_Int TxnRequest.wp_GetFailure «attribute».wp_Bool EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_IsTxnSerializable traceutil.Trace.wp_Step apply.wp_CheckTxnAuth txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn EtcdServer.wp_doSerialize context.wp_WithValue EtcdServer.wp_raftRequest proto.wp_Size
 
+theorem EtcdServer.wp_UserDelete :
+    EtcdServer.UserDelete.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserDelete.wp_proof
+
+theorem EtcdServer.wp_UserGet :
+    EtcdServer.UserGet.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserGet.wp_proof
+
+theorem EtcdServer.wp_UserGrantRole :
+    EtcdServer.UserGrantRole.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserGrantRole.wp_proof
+
+theorem EtcdServer.wp_UserList :
+    EtcdServer.UserList.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserList.wp_proof
+
+theorem EtcdServer.wp_UserRevokeRole :
+    EtcdServer.UserRevokeRole.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserRevokeRole.wp_proof
+
 theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
@@ -1914,6 +2150,10 @@ theorem rafthttp.wp_setPeerURLsHeader :
 theorem rafthttp.wp_createPostRequest :
     rafthttp.createPostRequest.spec (GF := GF) (hG := hG) :=
   rafthttp.createPostRequest.wp_proof http.URLString_ok http.NewRequest_ok http.HeaderSetPtr_ok types.ID.wp_String_ptr rafthttp.wp_setPeerURLsHeader
+
+theorem strings.wp_TrimSuffix :
+    strings.TrimSuffix.spec (GF := GF) (hG := hG) :=
+  strings.TrimSuffix.wp_proof
 
 theorem rafthttp.wp_checkPostResponse [EtcdGrove.ErrorStringLeaf] :
     rafthttp.checkPostResponse.spec (GF := GF) (hG := hG) :=

@@ -14,50 +14,49 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.raft.v3.quorum : GoString := go!"go.etcd.io/raft/v3/quorum"
+noncomputable def go_etcd_io.raft.v3.quorum : GoString := go!"go.etcd.io/raft/v3/quorum"
 end pkg_id
 
 namespace go_etcd_io.raft.v3.quorum
 
-def JointConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def JointConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.JointConfig" [])
 
 attribute [irreducible] JointConfig.ty
 
-def MajorityConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MajorityConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.MajorityConfig" [])
 
 attribute [irreducible] MajorityConfig.ty
 
-def tup.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tup.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.tup" [])
 
 attribute [irreducible] tup.ty
 
-def Index'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Index'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.Index" [])
 
 attribute [irreducible] Index'.ty
 
-def AckedIndexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AckedIndexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.AckedIndexer" [])
 
 attribute [irreducible] AckedIndexer.ty
 
-def mapAckIndexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapAckIndexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.mapAckIndexer" [])
 
 attribute [irreducible] mapAckIndexer.ty
 
-def VoteResult.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VoteResult.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.VoteResult" [])
 
 attribute [irreducible] VoteResult.ty
@@ -920,7 +919,7 @@ noncomputable def VoteResult.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore VoteResult.ty))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub VoteResult.ty))) (Pair (App (Val (GoInstruction (GoLoad VoteResult.ty))) (Var "i")) (Val #(W8 1))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.quorum where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.quorum where
   pkgImportedPkgs := [pkg_id.cmp, pkg_id.fmt, pkg_id.math, pkg_id.slices, pkg_id.strings, pkg_id.strconv]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -958,7 +957,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev MajorityConfig [FfiSyntax] : Type := GoMap
 
-@[reducible] def MajorityConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MajorityConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.uint64 (go.GoType.StructType []))
 
 class MajorityConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1003,7 +1002,7 @@ attribute [instance] MajorityConfig.TypeAssumptions.underlying
 
 abbrev JointConfig [FfiSyntax] : Type := (GoArray MajorityConfig 2)
 
-@[reducible] def JointConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def JointConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 2 MajorityConfig.ty)
 
 class JointConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1043,7 +1042,7 @@ attribute [instance] JointConfig.TypeAssumptions.underlying
 
 abbrev Index' [FfiSyntax] : Type := w64
 
-@[reducible] def Index'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Index'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint64
 
 class Index.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1063,23 +1062,23 @@ structure tup [FfiSyntax] where
   ok' : Bool
   bar' : w64
 
-instance tup.zero_val [FfiSyntax] : ZeroVal tup :=
+noncomputable instance tup.zero_val [FfiSyntax] : ZeroVal tup :=
   ⟨tup.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def tup.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def tup.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" go.uint64),
 (go.field_decl.FieldDecl go!"idx" Index'.ty),
 (go.field_decl.FieldDecl go!"ok" go.bool),
 (go.field_decl.FieldDecl go!"bar" go.int)]
 
-@[irreducible] def tup.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def tup.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   tup.fieldsUnsealed
 
-instance equals_unfold_tup [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_tup [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold tup.fields tup.fieldsUnsealed :=
   ⟨by unfold tup.fields; rfl⟩
 
-@[reducible] def tup.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def tup.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType tup.fields)
 
 class tup.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1107,7 +1106,7 @@ attribute [instance] tup.TypeAssumptions.type_repr
 
 abbrev AckedIndexer [FfiSyntax] : Type := GoInterface
 
-@[reducible] def AckedIndexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AckedIndexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AckedIndex" (go.signature.Signature [go.uint64] false [Index'.ty, go.bool]))])
 
 class AckedIndexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1117,7 +1116,7 @@ attribute [instance] AckedIndexer.TypeAssumptions.underlying
 
 abbrev mapAckIndexer [FfiSyntax] : Type := GoMap
 
-@[reducible] def mapAckIndexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def mapAckIndexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.uint64 Index'.ty)
 
 class mapAckIndexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1132,7 +1131,7 @@ attribute [instance] mapAckIndexer.TypeAssumptions.underlying
 
 abbrev VoteResult [FfiSyntax] : Type := w8
 
-@[reducible] def VoteResult.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VoteResult.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint8
 
 class VoteResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

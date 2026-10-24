@@ -9,30 +9,29 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.client.v3.credentials : GoString := go!"go.etcd.io/etcd/client/v3/credentials"
+noncomputable def go_etcd_io.etcd.client.v3.credentials : GoString := go!"go.etcd.io/etcd/client/v3/credentials"
 end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.credentials
 
-def PerRPCCredentialsBundle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PerRPCCredentialsBundle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/credentials.PerRPCCredentialsBundle" [])
 
 attribute [irreducible] PerRPCCredentialsBundle.ty
 
-def perRPCCredentialBundle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def perRPCCredentialBundle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/credentials.perRPCCredentialBundle" [])
 
 attribute [irreducible] perRPCCredentialBundle.ty
 
-def perRPCCredential.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def perRPCCredential.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/credentials.perRPCCredential" [])
 
 attribute [irreducible] perRPCCredential.ty
@@ -45,7 +44,7 @@ noncomputable def NewTransportCredential [FfiSyntax] [GoGlobalContext] : GoStrin
 noncomputable def NewPerRPCCredentialBundle [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/credentials.NewPerRPCCredentialBundle"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.credentials where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.credentials where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.credentials]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -59,7 +58,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev PerRPCCredentialsBundle [FfiSyntax] : Type := GoInterface
 
-@[reducible] def PerRPCCredentialsBundle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PerRPCCredentialsBundle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"PerRPCCredentials" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty])), (go.InterfaceElem.MethodElem go!"UpdateAuthToken" (go.signature.Signature [go.string] false []))])
 
 class PerRPCCredentialsBundle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -71,20 +70,20 @@ structure perRPCCredentialBundle [FfiSyntax] where
   mk ::
   rc' : Loc
 
-instance perRPCCredentialBundle.zero_val [FfiSyntax] : ZeroVal perRPCCredentialBundle :=
+noncomputable instance perRPCCredentialBundle.zero_val [FfiSyntax] : ZeroVal perRPCCredentialBundle :=
   ⟨perRPCCredentialBundle.mk zeroValDef⟩
 
-@[reducible] def perRPCCredentialBundle.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def perRPCCredentialBundle.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"rc" (go.GoType.PointerType perRPCCredential.ty))]
 
-@[irreducible] def perRPCCredentialBundle.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def perRPCCredentialBundle.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   perRPCCredentialBundle.fieldsUnsealed
 
-instance equals_unfold_perRPCCredentialBundle [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_perRPCCredentialBundle [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold perRPCCredentialBundle.fields perRPCCredentialBundle.fieldsUnsealed :=
   ⟨by unfold perRPCCredentialBundle.fields; rfl⟩
 
-@[reducible] def perRPCCredentialBundle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def perRPCCredentialBundle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType perRPCCredentialBundle.fields)
 
 class perRPCCredentialBundle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -28,10 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`a.LeaseGrant(lc)`**: `ErrNoSpace`; nothing written. -/
 abbrev apply.applierV3Capped.LeaseGrant.spec : Prop :=
-  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
+  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.cappedIs p inner ∗ apply.applierSpec E c inner ∗
-      (∃ g : LeaseGrantModel, apply.leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗
-      apply.mPre E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ }}
+      ((∃ g : LeaseGrantModel, apply.leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗ E.RW) ∗
+      apply.mPre E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) info log Pre Q Post ∗ mvcc.storeWT E.γ }}
     (App (Val (p @!! go.GoType.PointerType applierV3Capped.ty @!! go!"LeaseGrant")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) log Pre Post ∗ applyErrIs err }}
 

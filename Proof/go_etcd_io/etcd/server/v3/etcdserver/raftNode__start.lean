@@ -38,6 +38,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+-- (2026-10-22) the unused-variables linter walks the proof's info tree: 8s of this module's CPU
+set_option linter.unusedVariables false in
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 0 in
 theorem raftNode.start.wp_proof
@@ -440,7 +442,7 @@ theorem raftNode.start.wp_proof
         -- `if islead { r.transport.Send(r.processMessages(rd.Messages)) }`
         -- (D21 stage M1) the messages' bundles go to the transport here, or stay for a follower's
         wp_join iprop(rh_ptr ↦ rh ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r ∗ islead_ptr ↦ b' ∗ E.S ∗
-            (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgOk E m))
+            (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgR E γ.node m))
           with [rh rd r islead HS Hmsok] as ⟨rh, rd, r, islead, HS, Hmsok⟩
         -- the cases that reach the join with nothing sent close by framing (`ileft` once the
         -- bundles went to the transport)

@@ -49,19 +49,19 @@ theorem Client.shouldRefreshToken.wp_proof
   wp_if_destruct
   rotate_left
   · iapply HΦ; ipureintro; intro h; cases h
-  wp_apply wp_rpctypes_Error err $$ [$Hse] as %e1 ⟨%Hne1, #Hse1, -, %Hd1⟩
+  wp_apply wp_rpctypes_Error err $$ [$Hse] as %e1 ⟨%Hne1, #Hse1, -, %Hd1, -⟩
   · ipureintro; exact Hne
   wp_apply (wp_Is e1 _ (Or.inl ⟨xUE, rfl⟩)) $$ [$Herrs $Hse1] as %b1 %Hb1
   cases b1
   · wp_auto
     wp_if_destruct
     rotate_left
-    · wp_apply wp_rpctypes_Error err $$ [$Hse] as %e2 ⟨%Hne2, #Hse2, -, %Hd2⟩
+    · wp_apply wp_rpctypes_Error err $$ [$Hse] as %e2 ⟨%Hne2, #Hse2, -, %Hd2, -⟩
       · ipureintro; exact Hne
       wp_apply (wp_Is e2 _ (Or.inl ⟨xIA, rfl⟩)) $$ [$Herrs $Hse2] as %b2 %Hb2
       cases b2
       · wp_auto
-        wp_apply wp_rpctypes_Error err $$ [$Hse] as %e3 ⟨%Hne3, #Hse3, -, %Hd3⟩
+        wp_apply wp_rpctypes_Error err $$ [$Hse] as %e3 ⟨%Hne3, #Hse3, -, %Hd3, -⟩
         · ipureintro; exact Hne
         wp_apply (wp_Is e3 _ (Or.inl ⟨xAO, rfl⟩)) $$ [$Herrs $Hse3] as %b3 %Hb3
         iapply HΦ; ipureintro; intro h

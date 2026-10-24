@@ -1,5 +1,5 @@
 /-
-**The transport's lock and its stop rights** (rafthttp stage 6c; D34). Lean-first.
+**The transport's lock and its stop rights** (rafthttp stage 6c; D39). Lean-first.
 * `trLockP` (fractional, `t.mu`'s, an `RWMutex`): the `peers` and `remotes` maps (each `nil` once
   `Stop` ran: `mapOrNil`), their entries' facts (`peerOk`, `remoteOk`, persistent), half of a
   ghost record `γs` of the maps (`trRec`), and half of a ghost record `γr`: the ids `AddRemote` was

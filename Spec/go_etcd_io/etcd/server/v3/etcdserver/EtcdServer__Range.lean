@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 
 @[expose] public section
 
@@ -30,7 +31,10 @@ id fields owned (`rangeReadOk`); failure, no response and an error the gRPC laye
 read loop's, the auth store's, mvcc's `ErrFutureRev`, or the context's: `fmt.Errorf`'s in
 Perennial's model, `applyErrIs` by the server's package facts). 2026-10-14 (unit T1): with a read
 deposit `kvDep γr.kv Q` (a client's `Get` update, or nothing), a linearizable success read the KV
-model of a committed raft log `L` at which the deposit gave `□ Q L` (`rangeReadOk`). -/
+model of a committed raft log `L` at which the deposit gave `□ Q L` (`rangeReadOk`). 2026-10-23
+(auth plan A1): a success passed the auth store's `IsRangePermitted` for some auth info (the
+context's token's, or the empty one): with auth on, that info's read permission class of the
+request's range (`apply.rangeClass`). -/
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
@@ -42,7 +46,8 @@ abbrev EtcdServer.Range.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
-      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ rangeReadOk E γr c F o resp Q) ∨
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ (∃ info, apply.rangeClass E.authMode info o) ∗
+          rangeReadOk E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

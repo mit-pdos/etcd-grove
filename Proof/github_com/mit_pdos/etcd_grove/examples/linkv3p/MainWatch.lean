@@ -19,11 +19,12 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.MainWatch
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startCluster
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.genAll
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.GenAll
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.writer
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.maxRev
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.collect
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.checkWatch
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.WatchHist
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Spec.context.ErrAny
@@ -66,14 +67,15 @@ put's revision is a watched event's, whose key and value are the put's (`revAtH_
 theorem checkOkH_of [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (γr : ReadNames) (trs : List wkv) (upTo : w64) (evs : List wev) (oks : List wrec)
-    (hup : ∀ p ∈ oks, sint.Z p.rev' ≤ sint.Z upTo) :
-    collectOkH (GF := GF) γr (trs.map pairOf) upTo evs ∗ □ ([∗list] p ∈ oks, okFactH γr p) ⊢
+    (hup : ∀ p ∈ oks, sint.Z p.Rev' ≤ sint.Z upTo) :
+    common.collectOk (GF := GF) (revAtH γr) (trs.map pairOf) upTo evs ∗
+        □ ([∗list] p ∈ oks, okFactH γr p) ⊢
       ⌜CheckOk evs trs oks⌝ := by
-  unfold collectOkH
+  unfold common.collectOk
   iintro ⟨⟨%Hc, #Hrevs⟩, #Hoks⟩
   obtain ⟨hup0, hlen, hevs⟩ := Hc
-  ihave %H : ⌜∀ p, p ∈ oks → 2 ≤ sint.Z p.rev' ∧ ∃ e, evs[(sint.Z p.rev' - 2).toNat]? = some e ∧
-      e.key' = p.key' ∧ e.val' = p.val'⌝ $$ []
+  ihave %H : ⌜∀ p, p ∈ oks → 2 ≤ sint.Z p.Rev' ∧ ∃ e, evs[(sint.Z p.Rev' - 2).toNat]? = some e ∧
+      e.Key' = p.Key' ∧ e.Val' = p.Val'⌝ $$ []
   · iapply BI.pure_forall.2
     iintro %p
     by_cases hp : p ∈ oks
@@ -82,16 +84,16 @@ theorem checkOkH_of [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
       iunfold okFactH at Hf
       icases Hf with ⟨%h2, #Hra⟩
       have hle := hup p hp
-      have hlt : (sint.Z p.rev' - 2).toNat < evs.length := by
+      have hlt : (sint.Z p.Rev' - 2).toNat < evs.length := by
         rcases hup0 with h0 | h0
         · rw [h0] at hle; simp at hle; omega
         · omega
-      obtain ⟨e, he⟩ : ∃ e, evs[(sint.Z p.rev' - 2).toNat]? = some e :=
+      obtain ⟨e, he⟩ : ∃ e, evs[(sint.Z p.Rev' - 2).toNat]? = some e :=
         ⟨_, List.getElem?_eq_getElem hlt⟩
-      have hidx : 2 + (sint.Z p.rev' - 2).toNat = (sint.Z p.rev').toNat := by omega
-      ihave #He : revAtH γr (sint.Z p.rev').toNat e.key' e.val' $$ []
+      have hidx : 2 + (sint.Z p.Rev' - 2).toNat = (sint.Z p.Rev').toNat := by omega
+      ihave #He : revAtH γr (sint.Z p.Rev').toNat e.Key' e.Val' $$ []
       · rw [← hidx]; iapply Hrevs; ipureintro; exact he
-      ihave %Hag := revAtH_agree γr (sint.Z p.rev').toNat e.key' e.val' p.key' p.val' $$ [He Hra]
+      ihave %Hag := revAtH_agree γr (sint.Z p.Rev').toNat e.Key' e.Val' p.Key' p.Val' $$ [He Hra]
       · iframe #
       ipureintro; intro _; exact ⟨h2, e, he, Hag.1, Hag.2⟩
     · ipureintro; intro h; exact absurd h hp
@@ -101,14 +103,14 @@ theorem checkOkH_of [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 set_option maxHeartbeats 1600000 in
 set_option maxRecDepth 8192 in
 theorem MainWatch.wp_proof
-    (wp_genAll : genAll.spec (GF := GF) (hG := hG))
+    (wp_GenAll : common.GenAll.spec (GF := GF) (hG := hG))
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_startCluster : startCluster.spec (GF := GF) (hG := hG))
     (wp_partitioner : partitioner.spec (GF := GF) (hG := hG))
     (wp_writer : writer.spec (GF := GF) (hG := hG))
-    (wp_maxRev : maxRev.spec (GF := GF) (hG := hG))
-    (wp_collect : collect.spec (GF := GF) (hG := hG))
-    (wp_checkWatch : checkWatch.spec (GF := GF) (hG := hG))
+    (wp_MaxRev : common.MaxRev.spec (GF := GF) (hG := hG))
+    (wp_Collect : common.Collect.spec (GF := GF) (hG := hG))
+    (wp_Check : common.Check.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG := hG))
@@ -141,8 +143,17 @@ theorem MainWatch.wp_proof
     have h1 : 0 ≤ sint.Z nw * sint.Z nops := Int.mul_nonneg H0 Hops
     word
   (try wp_auto)
-  wp_apply (wp_genAll (nw * nops) (by rw [hmul]; exact Int.mul_nonneg H0 Hops))
-    as %tsl ⟨%trs, Htrs, %Htrs⟩
+  wp_apply wp_slice_literal (l := genKeys)
+  isplitr
+  · ipureintro; rfl
+  iintro %ksl ⟨Hks, -⟩
+  simp only [go.arrayLiteralSize, List.foldl, Int.reduceAdd,
+    show max (max (3 : Int) 0) 0 = 3 from rfl]
+  imod ownSlice_persist _ _ _ $$ Hks with #Hks
+  (try wp_auto)
+  wp_apply (wp_GenAll (nw * nops) _ genKeys (by rw [hmul]; exact Int.mul_nonneg H0 Hops)
+      (by decide) (by decide)) as %tsl ⟨%trs, Htrs, %Htrs⟩
+  · iframe #
   imod ownSlice_persist _ _ _ $$ Htrs with #Htrs
   have hpk : ∀ kv ∈ trs.map pairOf, wkPfx <+: kv.1 := by
     intro kv hkv
@@ -321,17 +332,17 @@ theorem MainWatch.wp_proof
     iExactEq Hrd0'; rfl
   (try wp_auto)
   -- `go partitioner(srvs, brs, sched)`: every member's place in the network, every bridge owned
-  ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
+  ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, common.srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
   · iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+      (Φ := fun _ s => iprop(∃ id : w64, common.srvPeerCtl (GF := GF) γn s id))).2
     isplitl [Hctl₁]
     · iexists id₁; iexact Hctl₁
     iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+      (Φ := fun _ s => iprop(∃ id : w64, common.srvPeerCtl (GF := GF) γn s id))).2
     isplitl [Hctl₂]
     · iexists id₂; iexact Hctl₂
     iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+      (Φ := fun _ s => iprop(∃ id : w64, common.srvPeerCtl (GF := GF) γn s id))).2
     isplitl [Hctl₃]
     · iexists id₃; iexact Hctl₃
     iapply BigSepL.bigSepL_nil.2
@@ -449,7 +460,7 @@ theorem MainWatch.wp_proof
   try simp only [TypedPointsto.typedPointstoDef]
   icases Hr0 with ⟨mu, ok, -⟩
   imod sync.init_Mutex (wsInvH «$r0_ptr» ρ₁.rd) ⊤
-      (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.writes go!"mu" «$r0_ptr»)
+      (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" «$r0_ptr»)
     $$ mu [ok] with #Hmu
   · inext
     iunfold wsInvH
@@ -531,14 +542,14 @@ theorem MainWatch.wp_proof
   (try wp_auto)
   -- the successful puts, taken out of the log under the lock
   wp_apply (sync.Mutex.wp_Lock (structFieldRef
-      github_com.mit_pdos.etcd_grove.examples.linkv3p.writes go!"mu" «$r0_ptr»)
+      github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" «$r0_ptr»)
       (wsInvH «$r0_ptr» ρ₁.rd)) $$ [] as ⟨Hown, Hws0⟩
   · iframe #
   iunfold wsInvH at Hws0
   icases Hws0 with ⟨%osl', %oks, Hok, Hos, Hocap, #Hoks⟩
   (try wp_auto)
   wp_apply (sync.Mutex.wp_Unlock (structFieldRef
-      github_com.mit_pdos.etcd_grove.examples.linkv3p.writes go!"mu" «$r0_ptr»)
+      github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" «$r0_ptr»)
       (wsInvH «$r0_ptr» ρ₁.rd)) $$ [Hown Hok]
   · iframe #
     iframe Hown
@@ -554,15 +565,19 @@ theorem MainWatch.wp_proof
     iapply BigSepL.bigSepL_nil.2; itrivial
   (try wp_auto)
   -- `collect(wch, maxRev(oks))`, then `cancel()`
-  wp_apply (wp_maxRev osl' oks (DFrac.own 1)) $$ [Hos] as %m ⟨Hos, %Hm⟩
+  wp_apply (wp_MaxRev osl' oks (DFrac.own 1)) $$ [Hos] as %m ⟨Hos, %Hm⟩
   · iframe
   ihave Hcons : etcdWatchConsumer γw 0 (W64 0) $$ [Hcons]
   · rw [← h10]; iexact Hcons
   ihave #Hwch' : isEtcdWatchChan (EM := v3rpc.etcdModelOfHistory ρ₁.rd.raft ρ₁.rd.kv) wch γw
       wkPfx $$ []
   · iExactEq Hwch; rfl
-  wp_apply (wp_collect E₁ ρ₁.rd (trs.map pairOf) wch γw m hwl₁ hlog₁ hpk) $$ [Hcons]
-    as %esl %ok2 Hcol
+  wp_apply (wp_Collect (EM := v3rpc.etcdModelOfHistory ρ₁.rd.raft ρ₁.rd.kv) (revAtH ρ₁.rd)
+      (srvKVInvs E₁ ρ₁.rd) (trs.map pairOf) wkPfx wch γw m
+      (fun n c c' v r hne hcur => by
+        iintro #Hi Hok
+        iapply (resp_hist E₁ ρ₁.rd (trs.map pairOf) hwl₁ hlog₁ hpk n c c' v r hne hcur) $$ Hi Hok))
+    $$ [Hcons] as %esl %ok2 Hcol
   · iframe; iframe #
   (try wp_auto)
   wp_apply Hcancel $$ [] as -
@@ -579,7 +594,7 @@ theorem MainWatch.wp_proof
   imod ownSlice_persist _ _ _ $$ Hes with #Hes
   imod ownSlice_persist _ _ _ $$ Hos with #Hos
   (try wp_auto)
-  wp_apply (wp_checkWatch esl tsl osl' evs trs oks HCk) $$ []
+  wp_apply (wp_Check go!"linkv3p" go!"put" esl tsl osl' evs trs oks HCk) $$ []
   · iframe #
   (try wp_auto)
   iapply HΦ; ipureintro; left; rfl

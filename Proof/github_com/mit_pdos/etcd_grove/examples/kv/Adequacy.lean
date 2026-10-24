@@ -15,7 +15,7 @@ clients, traced with a counter clock, the trace checked by porcupine's translate
 against the store's model -- and panics unless the answer is `Ok`. So no panic means porcupine
 never rejects the store's trace.
 
-It follows from Perennial's `goose_adequacy`, as the register's and the counter's
+It follows from Perennial's `goose_adequacy` (through `examples/common/Adequacy.lean`'s `init_adequate`), as the register's and the counter's
 (`lintest/counter/Adequacy.lean`): the disk FFI (the proofs are generic over the FFI), a
 concrete ghost-state bundle `kvGF`, the bounds `N = n + 1` (time receipts) and `T = n + 2`
 (threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`, at the program's table
@@ -39,6 +39,7 @@ as a hypothesis (`kv_adequate_of`); `AdequacyLinked.lean` applies it to the link
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.PkgTable
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Main
@@ -140,38 +141,15 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  suffices H : (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
-    refine ⟨H.1, H.2.1, fun v hv => ?_⟩
-    cases h : v.isPanic
-    · rfl
-    · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
-      exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
-  refine goose_adequacy (GF := kvGF) (n + 1) (n + 2) kvProgram σ g
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
-  intro hG HN _ HL
-  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
-  subst Hlctx
-  subst HL
-  letI : HeapGS .hasLC kvGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
+  refine init_adequate (GF := kvGF) github_com.mit_pdos.etcd_grove.examples.kv.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.kv.Main) #())
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g trivial trivial Hlctx Hinit
+    Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
+  letI : HeapGS .hasLC kvGF := heapWith hG lctx
   have Hbound : receiptBound kvGF ≤ 2 ^ 63 := by rw [HN]; omega
-  unfold IsInit at Hinit
-  rw [Hinit]
-  iintro _ _ Hgs Htok
-  ihave Hown : ownInitializing
-      (github_com.mit_pdos.etcd_grove.examples.kv.getIsPkgInit (GF := kvGF)) $$ [Hgs]
-  · rw [ownInitializing_unseal]
-    unfold ownInitializingDef
-    iexists ∅
-    iframe Hgs
-    imodintro
-    iapply BigSepM.bigSepM_empty.2
-    itrivial
-  imodintro
-  unfold kvProgram
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.kv.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.kv.getIsPkgInit_wf) $$ Hown as ⟨_, #Hpkg⟩
+  unfold progOk0
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.kv.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.kv.getIsPkgInit_wf, ?_⟩
+  iintro #Hpkg -
   ihave #Hcc : context.isClosedchanInit (GF := kvGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit

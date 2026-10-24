@@ -10,15 +10,14 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.httputil : GoString := go!"go.etcd.io/etcd/pkg/v3/httputil"
+noncomputable def go_etcd_io.etcd.pkg.v3.httputil : GoString := go!"go.etcd.io/etcd/pkg/v3/httputil"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.httputil
@@ -29,7 +28,7 @@ noncomputable def GracefulClose [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def GetHostname [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/httputil.GetHostname"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.httputil where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.httputil where
   pkgImportedPkgs := [pkg_id.io, pkg_id.net.http]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

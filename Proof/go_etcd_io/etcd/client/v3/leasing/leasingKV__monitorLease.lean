@@ -233,7 +233,7 @@ theorem leasingKV.monitorLease.wp_proof
   wp_if_destruct
   · ihave #HKV' := HKV
     iunfold isEtcdKV at HKV'
-    ihave #Hnil := concurrency.optsAt_nil (GF := GF)
+    ihave #Hnil := optsAt_nil (GF := GF)
     ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
     · iapply etcdReached_zero
     ihave #HG := HKV' $$ %ctx %cs %(pfx ++ key) %slice.nil %([] : List (OpFull → OpFull)) %(W64 0)

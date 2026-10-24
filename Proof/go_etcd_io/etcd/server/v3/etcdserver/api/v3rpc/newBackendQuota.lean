@@ -39,12 +39,17 @@ theorem v3rpc.newBackendQuota.wp_proof
   wp_auto
   wp_apply wp_Logger s lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe; iframe #; ipureintro; exact Hlgn
-  wp_apply wp_Backend s $$ [Hbr] as %be Hbr
+  iunfold srvBemuReader at Hbr
+  icases Hbr with ⟨%γbe, Hbr⟩
+  wp_apply wp_Backend s γbe $$ [Hbr] as %be ⟨Hbr, -⟩
   · iframe
   wp_apply wp_NewBackendQuota _ _ _ _ Hbuq as %qv #Hq
   iapply HΦ
   iframe
   iframe #
+  iunfold srvBemuReader
+  iexists γbe
+  iexact Hbr
 
 end proof
 

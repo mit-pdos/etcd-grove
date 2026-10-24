@@ -48,13 +48,11 @@ theorem ownerOp_kvs_cases (pfx : GoString) (s kvs : List EtcdKv) (hp : pfx ≠ [
     · have := (List.pairwise_cons.1 hsorted).1 v hv'; simpa [kvLeBy] using this
 
 theorem ownerOp_isPrefixGet (pfx : GoString) : (ownerOp pfx).isPrefixGet pfx = false := by
-  by_cases h : pfx = [] <;> simp [ownerOp, opGetModel, opFold, withTopM, withPrefixM, withSortM,
-    withLimitM, OpFull.getInit, OpFull.newOp, OpModel.zero, h, OpFull.isPrefixGet]
+  by_cases h : pfx = [] <;> simp [ownerOp, op_simps, h, OpFull.isPrefixGet]
 
 theorem ownerOp_rev (pfx : GoString) : (ownerOp pfx).base.rev = W64 0 ∧
     (ownerOp pfx).base.serializable = false := by
-  by_cases h : pfx = [] <;> simp [ownerOp, opGetModel, opFold, withTopM, withPrefixM, withSortM,
-    withLimitM, OpFull.getInit, OpFull.newOp, OpModel.zero, h]
+  by_cases h : pfx = [] <;> simp [ownerOp, op_simps, h]
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

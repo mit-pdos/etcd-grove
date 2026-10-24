@@ -27,13 +27,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- A bucket key's tombstone mark decodes back. -/
-theorem mvcc.isTomb_revBytes_self (r : mvcc.Rev) (t : Bool) : mvcc.isTomb (mvcc.revBytes r t) = t := by
-  cases t
-  · have h := mvcc.isTomb_revBytes r []
-    rw [List.append_nil] at h; rw [h]; decide
-  · rw [mvcc.revBytes_true, mvcc.isTomb_revBytes]; simp
-
 set_option maxHeartbeats 4000000 in
 theorem mvcc.kvsToEvents.wp_proof
     (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG))

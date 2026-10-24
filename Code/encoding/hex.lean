@@ -8,35 +8,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def encoding.hex : GoString := go!"encoding/hex"
+noncomputable def encoding.hex : GoString := go!"encoding/hex"
 end pkg_id
 
 namespace encoding.hex
 
-def InvalidByteError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidByteError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/hex.InvalidByteError" [])
 
 attribute [irreducible] InvalidByteError.ty
 
-def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/hex.encoder" [])
 
 attribute [irreducible] encoder.ty
 
-def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/hex.decoder" [])
 
 attribute [irreducible] decoder.ty
 
-def dumper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dumper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/hex.dumper" [])
 
 attribute [irreducible] dumper.ty
@@ -97,7 +96,7 @@ noncomputable def Dumper [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def toChar [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"encoding/hex.toChar"
 
-instance info' : PkgInfo pkg_id.encoding.hex where
+noncomputable instance info' : PkgInfo pkg_id.encoding.hex where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -111,7 +110,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev InvalidByteError [FfiSyntax] : Type := w8
 
-@[reducible] def InvalidByteError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidByteError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.byte
 
 class InvalidByteError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

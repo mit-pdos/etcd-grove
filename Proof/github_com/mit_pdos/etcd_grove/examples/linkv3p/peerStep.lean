@@ -37,14 +37,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 stage 6d: until then its place in the network, persistent). -/
 theorem srvPeerCtl_acc (γn : NetNames GF) (ss : List Loc) (k : Nat) (s : Loc)
     (hk : ss[k]? = some s) :
-    ([∗list] s ∈ ss, ∃ id : w64, srvPeerCtl γn s id) ⊢
-      (∃ id : w64, srvPeerCtl γn s id) ∗
-        ((∃ id : w64, srvPeerCtl γn s id) -∗ [∗list] s ∈ ss, ∃ id : w64, srvPeerCtl γn s id) := by
+    ([∗list] s ∈ ss, ∃ id : w64, common.srvPeerCtl γn s id) ⊢
+      (∃ id : w64, common.srvPeerCtl γn s id) ∗
+        ((∃ id : w64, common.srvPeerCtl γn s id) -∗ [∗list] s ∈ ss, ∃ id : w64, common.srvPeerCtl γn s id) := by
   obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 hk
   have hset : ss.set k s = ss := by rw [← hget]; exact List.set_getElem_self hlt
   iintro H
   ihave ⟨Hx, Hc⟩ := (BigSepL.bigSepL_lookup_acc
-    (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id)) hk).1 $$ H
+    (Φ := fun _ s => iprop(∃ id : w64, common.srvPeerCtl (GF := GF) γn s id)) hk).1 $$ H
   iframe Hx
   iintro Hx
   ihave Hl := Hc $$ %s Hx
@@ -102,16 +102,16 @@ theorem peerStep.wp_proof
   -- the two servers' places in the network, each borrowed for its member id (`srvProcOk`'s)
   ihave ⟨Ha, Hclose⟩ := srvPeerCtl_acc γn ss _ sa Hsa_lookup $$ Hmem
   icases Ha with ⟨%ida, Ha⟩
-  iunfold srvPeerCtl at Ha
+  iunfold common.srvPeerCtl at Ha
   icases Ha with ⟨%τa, #Hma, Htka⟩
   ihave Hmem := Hclose $$ [Htka]
-  · iexists ida; iunfold srvPeerCtl; iexists τa; iframe Htka; iexact Hma
+  · iexists ida; iunfold common.srvPeerCtl; iexists τa; iframe Htka; iexact Hma
   ihave ⟨Hb, Hclose⟩ := srvPeerCtl_acc γn ss _ sb Hsb_lookup $$ Hmem
   icases Hb with ⟨%idb, Hb⟩
-  iunfold srvPeerCtl at Hb
+  iunfold common.srvPeerCtl at Hb
   icases Hb with ⟨%τb, #Hmb, Htkb⟩
   ihave Hmem := Hclose $$ [Htkb]
-  · iexists idb; iunfold srvPeerCtl; iexists τb; iframe Htkb; iexact Hmb
+  · iexists idb; iunfold common.srvPeerCtl; iexists τb; iframe Htkb; iexact Hmb
   ihave #Hida : srvMemberIDAddr sa ↦□ ida $$ []
   · iunfold srvNetMember at Hma
     icases Hma with ⟨#Hp, -⟩
@@ -131,24 +131,24 @@ theorem peerStep.wp_proof
     (try wp_auto)
     ihave ⟨Hx, Hclose⟩ := srvPeerCtl_acc γn ss _ sa Hsa_lookup $$ Hmem
     icases Hx with ⟨%idx, Hx⟩
-    iunfold srvPeerCtl at Hx
+    iunfold common.srvPeerCtl at Hx
     icases Hx with ⟨%τx, #Hmx, Htkx⟩
     wp_apply (wp_CutPeer hpp γn sa idx idb τx) $$ [Htkx] as Htkx
     · iframe; iframe #
     ihave Hmem := Hclose $$ [Htkx]
-    · iexists idx; iunfold srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
+    · iexists idx; iunfold common.srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
     (try wp_auto)
     wp_apply (wp_MemberID sa ida) $$ []
     · iframe #
     (try wp_auto)
     ihave ⟨Hx, Hclose⟩ := srvPeerCtl_acc γn ss _ sb Hsb_lookup $$ Hmem
     icases Hx with ⟨%idx, Hx⟩
-    iunfold srvPeerCtl at Hx
+    iunfold common.srvPeerCtl at Hx
     icases Hx with ⟨%τx, #Hmx, Htkx⟩
     wp_apply (wp_CutPeer hpp γn sb idx ida τx) $$ [Htkx] as Htkx
     · iframe; iframe #
     ihave Hmem := Hclose $$ [Htkx]
-    · iexists idx; iunfold srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
+    · iexists idx; iunfold common.srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
     (try wp_auto)
     iapply HΦ; iexact Hmem
   · wp_apply (wp_MemberID sb idb) $$ []
@@ -156,24 +156,24 @@ theorem peerStep.wp_proof
     (try wp_auto)
     ihave ⟨Hx, Hclose⟩ := srvPeerCtl_acc γn ss _ sa Hsa_lookup $$ Hmem
     icases Hx with ⟨%idx, Hx⟩
-    iunfold srvPeerCtl at Hx
+    iunfold common.srvPeerCtl at Hx
     icases Hx with ⟨%τx, #Hmx, Htkx⟩
     wp_apply (wp_MendPeer hpp γn sa idx idb τx) $$ [Htkx] as Htkx
     · iframe; iframe #
     ihave Hmem := Hclose $$ [Htkx]
-    · iexists idx; iunfold srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
+    · iexists idx; iunfold common.srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
     (try wp_auto)
     wp_apply (wp_MemberID sa ida) $$ []
     · iframe #
     (try wp_auto)
     ihave ⟨Hx, Hclose⟩ := srvPeerCtl_acc γn ss _ sb Hsb_lookup $$ Hmem
     icases Hx with ⟨%idx, Hx⟩
-    iunfold srvPeerCtl at Hx
+    iunfold common.srvPeerCtl at Hx
     icases Hx with ⟨%τx, #Hmx, Htkx⟩
     wp_apply (wp_MendPeer hpp γn sb idx ida τx) $$ [Htkx] as Htkx
     · iframe; iframe #
     ihave Hmem := Hclose $$ [Htkx]
-    · iexists idx; iunfold srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
+    · iexists idx; iunfold common.srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
     (try wp_auto)
     iapply HΦ; iexact Hmem
 

@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The membership change's contract.** `s.applyConfChange(cc, ep, v3)` validates the
 change `cc` and applies it to the cluster (`s.cluster`, whose backend is the server's: the
 batch lock `E.P` with the post-lock hook `E.f`: the environment `E` of `s.uberApply`,
-`apply.applierFor`), to raft (`s.r.ApplyConfChange`, the server's raft node's contract in
+`apply.applierFor`; D22 receiver epochs, S7a, 2026-10-23: the field the apply thread's, given
+back), to raft (`s.r.ApplyConfChange`, the server's raft node's contract in
 `srvRaftNode`) and to `ep.confState`. For `v3` (`ApplyBoth`) its writes to the backend happen in
 one critical section of the batch lock, after the hook (as `apply.Apply`'s: the caller's hook
 triple and writes update), or, if the validation fails, there are none and it stores the
@@ -55,14 +56,29 @@ transport's `AddPeer`, which returns at once for a member the construction added
 `transportEffectsOk`), and what it hands raft
 (the change, or on a failed validation the change with `NodeId` `0`) leaves raft's configuration
 as it is (`ccRaftOk`, `raftPropose`'s premise for `ApplyConfChange`). The server's policy admits
-no other conf change (`srvCCPolicy`, `ccBootOk`). -/
+no other conf change (`srvCCPolicy`, `ccBootOk`).
+
+**Its effect on the rest buckets and the members** (D22, 2026-10-23: the backend over every
+bucket): the environment's `RO` is the server's (`srvRestOwnH γB cl H`, D22 receiver epochs,
+S7e: `H` the server's objects on the store's backend `d`, `srvObjsOn`, the cluster's `be` field among
+them, which names the backend its writes go to: `E`'s, whose batch lock is `E.P`; the backend's tracked
+buckets' half and the in-memory members of `s.cluster = cl`), taken at `rs` and given back at
+`ccRest v3 m rs` (D22 receiver epochs, S7c: with the server's objects' backend parts `H`, which it
+leaves, a frame), with `v3`, `ValidateConfigurationChange` reads the `members` and
+`members_removed` buckets (`MustReadMembersFromBackend`, a read transaction: what the apply
+thread, their only writer, last wrote, `Unlock` having written back) and returns `nil` iff
+`membership.ccValidOn rs.bk m`; then `AddMember` saves the context's member
+(`membership.ccMemberOf m.context`: `members/<id> := json(m)`) and puts it in `c.members`; on a
+failed validation, or without `v3`, nothing. -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : CCV1M) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
-    (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64),
-  ccApplyOk γs.raft.reCfg m →
+    (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
+    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (d : mvcc.KBReal) (al st lp : Loc),
+  ccApplyOk γs.raft.reCfg m → E.RO = srvRestOwnH γB cl (srvObjsOn al st lp cl d.be) →
+  E.γ.kb = some d → d.γB = γB →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
-      srvRaftNode s γs ∗
+      srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
+      srvRaftNode s γs ∗ srvClusterAddr s ↦□ cl ∗ E.RO rs ∗
       ownCCV1 cc (DFrac.own 1) m ∗ epConfState ep cs ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post) ∗
@@ -72,10 +88,10 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyConfChange"))
       (Val #cc)) (Val #ep)) (Val #v3))
   {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
-      ⌜removed = false⌝ ∗
+      ⌜removed = false⌝ ∗ srvUberApplyAddr s ↦ ua ∗
       (∃ (m' : CCV1M) (cs' : Loc), ownCCV1 cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
         epConfState ep cs') ∗
-      (if v3 then iprop(Post ∨ Adv) else Pre) }}
+      E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) }}
 
 end spec
 

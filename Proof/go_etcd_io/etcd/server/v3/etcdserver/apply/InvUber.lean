@@ -108,6 +108,12 @@ def ApplyOut.waived : ApplyOut → Bool
   | .rejected => false
   | .dispatched _ skip => skip
 
+/-- **What `apply.Apply` does to the rest buckets and the cluster's members** (D22, 2026-10-23):
+a dispatched request's `restAfter`; a skipped or rejected one nothing. -/
+def restOut [FfiSyntax] (rq : IRRModel) (v3 : Bool) : ApplyOut → RestM → RestM
+  | .dispatched _ _, r => restAfter rq v3 r
+  | _, r => r
+
 /-- **What `apply.Apply` does with the request `rq`** (`v3`: `shouldApplyV3`) from the state `x`
 to `x'`. -/
 def applyStep (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) : ApplyOut → Prop
@@ -129,6 +135,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+/-- **What `Apply`'s auth layer established of the request** (A3, 2026-10-23): dispatched with
+`v3` (through the chain; without `v3` the KV requests are not run), the request's class through
+the chain for its principal (`chainClass`: if the auth layer did not reject, the permissions the
+request needs were granted to `principalOf rq`) and its admin check's pass (`adminPass`); rejected
+by that check, or skipped, nothing. -/
+def applyAuthRes (M : auth.AuthMode) (c : Chain) (rq : IRRModel) (v3 : Bool) :
+    ApplyOut → IProp GF
+  | .dispatched o _ =>
+      iprop((∀ _ : v3 = true, chainClass M (principalOf rq) c rq o) ∗ adminPass M c rq)
+  | _ => iprop(True)
+
+instance applyAuthRes_persistent (M : auth.AuthMode) (c : Chain) (rq : IRRModel) (v3 : Bool)
+    (out : ApplyOut) : Persistent (applyAuthRes (GF := GF) M c rq v3 out) := by
+  unfold applyAuthRes; split <;> infer_instance
+
 
 /-! ## The uber-applier in the heap -/
 

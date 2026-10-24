@@ -6,7 +6,7 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
 * **`linkv3p_Main`** (`Link.lean`'s `linkv3p.wp_Main`): `Main(clients, ops, sched)` -- three etcd
   members started in process and served (`startMember`), a copy of etcd's test bridge to each
   member's client address (`127.0.0.1:2385{1,2,3}` to `127.0.0.1:2383{1,2,3}`, since 2026-10-21),
-  three one-attempt clients each of all three bridges (failover: each attempt to one member, grpc's
+  three clients (etcd's default retries, D31) each of all three bridges (failover: each attempt to one member, grpc's
   balancer's choice, D27), the partitioner forked on the schedule `sched` (the links
   between members cut and mended, in both directions, with etcd's own `CutPeer`/`MendPeer`, and
   the links between each client and its member blackholed, unblackholed or dropped, with the
@@ -51,10 +51,10 @@ links between the clients and their members (`notes/client-cut-plan.md`): each c
 every member, through a copy of etcd's test bridge per member, which is part of the network (D26: trust-boundary
 specs, its code not verified): it relays a prefix of each side's bytes, which gRPC sees as the
 member's server or as a failed attempt, as any connection. A blackholed bridge is never blackholed
-again (its `Blackhole` panics on a second call, `issues/etcd-bridge-blackhole-twice-panic.md`).
-Each client is configured with every member's bridge (failover, D27): a call's one attempt goes to
-one member, and the reply is that member's; the client's results take the conjunction of the
-members' specs (`Proof/go_etcd_io/etcd/client/v3/Failover.lean`).
+again (its `Blackhole` panics on a second call, `issues/nonissues/etcd-bridge-blackhole-twice-panic.md`).
+Each client is configured with every member's bridge (failover, D27): each attempt of a call goes
+to one member, and the reply is that member's; the client's results take the conjunction of the
+members' specs (`Proof/go_etcd_io/etcd/client/v3/Results.lean`, "The client's KV calls").
 -/
 module
 
@@ -112,6 +112,7 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     [PeerPausable]
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
+    (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hms : v3rpc.ServerMethodSets)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : linkv3p.BootFacts id₁ id₂ id₃ bootLog)
@@ -135,7 +136,7 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  linkv3p_adequate Hctx Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops
+  linkv3p_adequate Hctx Hcec Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops
     Hmul steps Hsteps HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn Hwb
 
 /-- **The watch run over the partitioned cluster is safe, in the operational semantics**

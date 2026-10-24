@@ -14,36 +14,64 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
-def BackendGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BackendGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.BackendGetter" [])
 
 attribute [irreducible] BackendGetter.ty
 
-def alarmSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def alarmSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.alarmSet" [])
 
 attribute [irreducible] alarmSet.ty
 
-def AlarmStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AlarmStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.AlarmStore" [])
 
 attribute [irreducible] AlarmStore.ty
 
 noncomputable def NewAlarmStore [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.NewAlarmStore"
+
+/-- go: alarms.go:53:22 -/
+noncomputable def AlarmStore.Recover.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam "be"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))
+  (Let "be" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (Var "be"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (Var "be"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType AlarmStore.ty) go!"restore"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"types"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (Pair (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a")))) (Val #()))))))))))
 
 /-- go: alarms.go:95:22 -/
 noncomputable def AlarmStore.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -120,7 +148,7 @@ noncomputable def AlarmStore.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a")))) (Val #())))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -149,7 +177,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev BackendGetter [FfiSyntax] : Type := GoInterface
 
-@[reducible] def BackendGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BackendGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Backend" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))])
 
 class BackendGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -159,7 +187,7 @@ attribute [instance] BackendGetter.TypeAssumptions.underlying
 
 abbrev alarmSet [FfiSyntax] : Type := GoMap
 
-@[reducible] def alarmSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def alarmSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))
 
 class alarmSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -174,23 +202,23 @@ structure AlarmStore [FfiSyntax] where
   types' : GoMap
   be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend
 
-instance AlarmStore.zero_val [FfiSyntax] : ZeroVal AlarmStore :=
+noncomputable instance AlarmStore.zero_val [FfiSyntax] : ZeroVal AlarmStore :=
   ⟨AlarmStore.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def AlarmStore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AlarmStore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"types" (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)),
 (go.field_decl.FieldDecl go!"be" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty)]
 
-@[irreducible] def AlarmStore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AlarmStore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   AlarmStore.fieldsUnsealed
 
-instance equals_unfold_AlarmStore [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AlarmStore [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold AlarmStore.fields AlarmStore.fieldsUnsealed :=
   ⟨by unfold AlarmStore.fields; rfl⟩
 
-@[reducible] def AlarmStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AlarmStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AlarmStore.fields)
 
 class AlarmStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -205,6 +233,7 @@ class AlarmStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   get_be : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : AlarmStore) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : AlarmStore)))
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Get" AlarmStore.Get.impl
+  ptr_Recover_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Recover" AlarmStore.Recover.impl
 
 attribute [instance] AlarmStore.TypeAssumptions.type_repr
   AlarmStore.TypeAssumptions.underlying
@@ -217,6 +246,7 @@ attribute [instance] AlarmStore.TypeAssumptions.type_repr
   AlarmStore.TypeAssumptions.get_be
   AlarmStore.TypeAssumptions.set_be
   AlarmStore.TypeAssumptions.ptr_Get_unfold
+  AlarmStore.TypeAssumptions.ptr_Recover_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BackendGetter_instance : BackendGetter.TypeAssumptions

@@ -18,9 +18,8 @@ public import Code.github_com.mit_pdos.etcd_grove.examples.kv
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -35,7 +34,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 
-instance Input_typed_pointsto :
+noncomputable instance Input_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.Input where
   typedPointstoDef l v dq := iprop(
     "Kind" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Kind" l) v.Kind' dq ∗
@@ -47,11 +46,11 @@ instance Input_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Input_into_val_typed :
+noncomputable instance Input_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.Input github_com.mit_pdos.etcd_grove.examples.kv.Input.underlying := by
   solve_into_val_typed_struct
 
-instance Input_access_load_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (dq : DFrac) :
+noncomputable instance Input_access_load_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Kind" l) v.Kind' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Kind" l) v.Kind' dq)
@@ -59,7 +58,7 @@ instance Input_access_load_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance Input_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (Kind' : w8) :
+noncomputable instance Input_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (Kind' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Kind" l) v.Kind' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Kind" l) Kind' (DFrac.own 1))
@@ -67,7 +66,7 @@ instance Input_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
-instance Input_access_load_Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (dq : DFrac) :
+noncomputable instance Input_access_load_Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Key" l) v.Key' dq)
@@ -75,7 +74,7 @@ instance Input_access_load_Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.exa
  by
   solve_pointsto_access_struct
 
-instance Input_access_store_Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (Key' : GoString) :
+noncomputable instance Input_access_store_Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (Key' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Key" l) Key' (DFrac.own 1))
@@ -83,7 +82,7 @@ instance Input_access_store_Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance Input_access_load_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (dq : DFrac) :
+noncomputable instance Input_access_load_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Val" l) v.Val' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Val" l) v.Val' dq)
@@ -91,7 +90,7 @@ instance Input_access_load_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.exa
  by
   solve_pointsto_access_struct
 
-instance Input_access_store_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (Val' : GoString) :
+noncomputable instance Input_access_store_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (Val' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Val" l) v.Val' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Val" l) Val' (DFrac.own 1))
@@ -99,7 +98,7 @@ instance Input_access_store_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance Input_access_load_Replica (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (dq : DFrac) :
+noncomputable instance Input_access_load_Replica (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Replica" l) v.Replica' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Replica" l) v.Replica' dq)
@@ -107,7 +106,7 @@ instance Input_access_load_Replica (l : Loc) (v : github_com.mit_pdos.etcd_grove
  by
   solve_pointsto_access_struct
 
-instance Input_access_store_Replica (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (Replica' : w64) :
+noncomputable instance Input_access_store_Replica (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Input) (Replica' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Replica" l) v.Replica' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Input go!"Replica" l) Replica' (DFrac.own 1))
@@ -126,7 +125,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 
-instance quietLogger_typed_pointsto :
+noncomputable instance quietLogger_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.quietLogger where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -134,7 +133,7 @@ instance quietLogger_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance quietLogger_into_val_typed :
+noncomputable instance quietLogger_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.quietLogger github_com.mit_pdos.etcd_grove.examples.kv.quietLogger.underlying := by
   solve_into_val_typed_struct
 
@@ -149,7 +148,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 
-instance transfers_typed_pointsto :
+noncomputable instance transfers_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.transfers where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.transfers go!"mu" l) v.mu' dq ∗
@@ -159,11 +158,11 @@ instance transfers_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance transfers_into_val_typed :
+noncomputable instance transfers_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.transfers github_com.mit_pdos.etcd_grove.examples.kv.transfers.underlying := by
   solve_into_val_typed_struct
 
-instance transfers_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.transfers) (dq : DFrac) :
+noncomputable instance transfers_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.transfers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.transfers go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.transfers go!"mu" l) v.mu' dq)
@@ -171,7 +170,7 @@ instance transfers_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.
  by
   solve_pointsto_access_struct
 
-instance transfers_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.transfers) (mu' : sync.Mutex) :
+noncomputable instance transfers_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.transfers) (mu' : sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.transfers go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.transfers go!"mu" l) mu' (DFrac.own 1))
@@ -179,7 +178,7 @@ instance transfers_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove
  by
   solve_pointsto_access_struct
 
-instance transfers_access_load_left (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.transfers) (dq : DFrac) :
+noncomputable instance transfers_access_load_left (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.transfers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.transfers go!"left" l) v.left' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.transfers go!"left" l) v.left' dq)
@@ -187,7 +186,7 @@ instance transfers_access_load_left (l : Loc) (v : github_com.mit_pdos.etcd_grov
  by
   solve_pointsto_access_struct
 
-instance transfers_access_store_left (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.transfers) (left' : w64) :
+noncomputable instance transfers_access_store_left (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.transfers) (left' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.transfers go!"left" l) v.left' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.transfers go!"left" l) left' (DFrac.own 1))
@@ -206,7 +205,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 
-instance Storage_typed_pointsto :
+noncomputable instance Storage_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.Storage where
   typedPointstoDef l v dq := iprop(
     "MemoryStorage" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"MemoryStorage" l) v.MemoryStorage' dq ∗
@@ -216,11 +215,11 @@ instance Storage_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Storage_into_val_typed :
+noncomputable instance Storage_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.Storage github_com.mit_pdos.etcd_grove.examples.kv.Storage.underlying := by
   solve_into_val_typed_struct
 
-instance Storage_access_load_MemoryStorage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (dq : DFrac) :
+noncomputable instance Storage_access_load_MemoryStorage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"MemoryStorage" l) v.MemoryStorage' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"MemoryStorage" l) v.MemoryStorage' dq)
@@ -228,7 +227,7 @@ instance Storage_access_load_MemoryStorage (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-instance Storage_access_store_MemoryStorage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (MemoryStorage' : Loc) :
+noncomputable instance Storage_access_store_MemoryStorage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (MemoryStorage' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"MemoryStorage" l) v.MemoryStorage' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"MemoryStorage" l) MemoryStorage' (DFrac.own 1))
@@ -236,7 +235,7 @@ instance Storage_access_store_MemoryStorage (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-instance Storage_access_load_voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (dq : DFrac) :
+noncomputable instance Storage_access_load_voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"voters" l) v.voters' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"voters" l) v.voters' dq)
@@ -244,7 +243,7 @@ instance Storage_access_load_voters (l : Loc) (v : github_com.mit_pdos.etcd_grov
  by
   solve_pointsto_access_struct
 
-instance Storage_access_store_voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (voters' : GoSlice) :
+noncomputable instance Storage_access_store_voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (voters' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"voters" l) v.voters' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"voters" l) voters' (DFrac.own 1))
@@ -263,7 +262,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 
-instance KV_typed_pointsto :
+noncomputable instance KV_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.KV where
   typedPointstoDef l v dq := iprop(
     "id" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"id" l) v.id' dq ∗
@@ -280,11 +279,11 @@ instance KV_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance KV_into_val_typed :
+noncomputable instance KV_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.KV github_com.mit_pdos.etcd_grove.examples.kv.KV.underlying := by
   solve_into_val_typed_struct
 
-instance KV_access_load_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+noncomputable instance KV_access_load_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"id" l) v.id' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"id" l) v.id' dq)
@@ -292,7 +291,7 @@ instance KV_access_load_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.example
  by
   solve_pointsto_access_struct
 
-instance KV_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (id' : w64) :
+noncomputable instance KV_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (id' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"id" l) id' (DFrac.own 1))
@@ -300,7 +299,7 @@ instance KV_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.exampl
  by
   solve_pointsto_access_struct
 
-instance KV_access_load_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+noncomputable instance KV_access_load_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"node" l) v.node' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"node" l) v.node' dq)
@@ -308,7 +307,7 @@ instance KV_access_load_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examp
  by
   solve_pointsto_access_struct
 
-instance KV_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (node' : go_etcd_io.raft.v3.Node) :
+noncomputable instance KV_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (node' : go_etcd_io.raft.v3.Node) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"node" l) v.node' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"node" l) node' (DFrac.own 1))
@@ -316,7 +315,7 @@ instance KV_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.exam
  by
   solve_pointsto_access_struct
 
-instance KV_access_load_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+noncomputable instance KV_access_load_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"storage" l) v.storage' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"storage" l) v.storage' dq)
@@ -324,7 +323,7 @@ instance KV_access_load_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance KV_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (storage' : Loc) :
+noncomputable instance KV_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (storage' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"storage" l) v.storage' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"storage" l) storage' (DFrac.own 1))
@@ -332,7 +331,7 @@ instance KV_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
-instance KV_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+noncomputable instance KV_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"mu" l) v.mu' dq)
@@ -340,7 +339,7 @@ instance KV_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.example
  by
   solve_pointsto_access_struct
 
-instance KV_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (mu' : sync.Mutex) :
+noncomputable instance KV_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (mu' : sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"mu" l) mu' (DFrac.own 1))
@@ -348,7 +347,7 @@ instance KV_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.exampl
  by
   solve_pointsto_access_struct
 
-instance KV_access_load_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+noncomputable instance KV_access_load_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"kv" l) v.kv' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"kv" l) v.kv' dq)
@@ -356,7 +355,7 @@ instance KV_access_load_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.example
  by
   solve_pointsto_access_struct
 
-instance KV_access_store_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (kv' : GoMap) :
+noncomputable instance KV_access_store_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (kv' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"kv" l) v.kv' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"kv" l) kv' (DFrac.own 1))
@@ -364,7 +363,7 @@ instance KV_access_store_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.exampl
  by
   solve_pointsto_access_struct
 
-instance KV_access_load_nextSeq (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+noncomputable instance KV_access_load_nextSeq (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"nextSeq" l) v.nextSeq' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"nextSeq" l) v.nextSeq' dq)
@@ -372,7 +371,7 @@ instance KV_access_load_nextSeq (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance KV_access_store_nextSeq (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (nextSeq' : w64) :
+noncomputable instance KV_access_store_nextSeq (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (nextSeq' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"nextSeq" l) v.nextSeq' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"nextSeq" l) nextSeq' (DFrac.own 1))
@@ -380,7 +379,7 @@ instance KV_access_store_nextSeq (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
-instance KV_access_load_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+noncomputable instance KV_access_load_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"applied" l) v.applied' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"applied" l) v.applied' dq)
@@ -388,7 +387,7 @@ instance KV_access_load_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance KV_access_store_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (applied' : GoMap) :
+noncomputable instance KV_access_store_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (applied' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"applied" l) v.applied' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"applied" l) applied' (DFrac.own 1))
@@ -396,7 +395,7 @@ instance KV_access_store_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
-instance KV_access_load_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+noncomputable instance KV_access_load_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"waiters" l) v.waiters' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"waiters" l) v.waiters' dq)
@@ -404,7 +403,7 @@ instance KV_access_load_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance KV_access_store_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (waiters' : GoMap) :
+noncomputable instance KV_access_store_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (waiters' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"waiters" l) v.waiters' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"waiters" l) waiters' (DFrac.own 1))
@@ -412,7 +411,7 @@ instance KV_access_store_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
-instance KV_access_load_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+noncomputable instance KV_access_load_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"reads" l) v.reads' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"reads" l) v.reads' dq)
@@ -420,7 +419,7 @@ instance KV_access_load_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.exam
  by
   solve_pointsto_access_struct
 
-instance KV_access_store_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (reads' : GoMap) :
+noncomputable instance KV_access_store_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (reads' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"reads" l) v.reads' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"reads" l) reads' (DFrac.own 1))

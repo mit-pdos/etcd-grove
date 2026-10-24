@@ -10,25 +10,24 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.pbutil : GoString := go!"go.etcd.io/etcd/pkg/v3/pbutil"
+noncomputable def go_etcd_io.etcd.pkg.v3.pbutil : GoString := go!"go.etcd.io/etcd/pkg/v3/pbutil"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.pbutil
 
-def Marshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Marshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/pbutil.Marshaler" [])
 
 attribute [irreducible] Marshaler.ty
 
-def Unmarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Unmarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/pbutil.Unmarshaler" [])
 
 attribute [irreducible] Unmarshaler.ty
@@ -113,7 +112,7 @@ noncomputable def MustUnmarshalMessage.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.pbutil where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.pbutil where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.google_golang_org.protobuf.proto]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -130,7 +129,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Marshaler [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Marshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Marshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Marshal" (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))])
 
 class Marshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -140,7 +139,7 @@ attribute [instance] Marshaler.TypeAssumptions.underlying
 
 abbrev Unmarshaler [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Unmarshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Unmarshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Unmarshal" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))])
 
 class Unmarshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

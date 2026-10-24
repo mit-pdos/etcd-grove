@@ -30,12 +30,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3backend.LeaseGrant.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro E p r log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%g, #Hr, #Hgr⟩, Hpre, Hwt⟩
+  intro E p r log Pre Q Post info
+  wp_start as ⟨#Hb, ⟨⟨%g, #Hr, #Hgr⟩, HRW⟩, Hpre, Hwt⟩
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
-  icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+  icases Hard with ⟨Hard, Hwo⟩
+  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   iunfold EtcdGrove.lease.lessorUser at Hu
@@ -53,8 +54,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HGrant $$ [$Hcs $Hown $Hwt $Hrt $Hgr] as %l %err ⟨HPP, Hrt, ⟨%L', Hown, %HLL, Hl⟩, #HeI⟩
-  ihave Hrd := Hrdb $$ Hrt
+  wp_apply HGrant $$ [$Hcs $HRW $Hown $Hwt $Hrt $Hgr] as %l %err ⟨HPP, Hrt, ⟨%L', Hown, %HLL, Hl⟩, #HeI⟩
+  ihave Hwo := Hrdb $$ Hrt
   ihave Hlive : apply.leasesLive E.γ (mvcc.stateAfter log) $$ [Hown Hrdo]
   · iunfold apply.leasesLive
     iexists L'
@@ -70,7 +71,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iunfold apply.mPost
+      iapply apply.mPost_backend
       iunfold apply.kvOwn
       iframe
   · subst He
@@ -84,7 +85,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iunfold apply.kvOwn
     iframe
 

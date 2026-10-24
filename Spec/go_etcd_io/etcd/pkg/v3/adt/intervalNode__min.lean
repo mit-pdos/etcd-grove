@@ -25,15 +25,16 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 `T` that is not the leaf: the leftmost node `y` of the subtree (no left child), as its subtree
 under the path of left frames from `x` down to it (`ownPathAt`, `AllL`). -/
 abbrev adt.intervalNode.min.spec : Prop :=
+  ∀ (K : adt.KeyRep (GF := GF)), K.CompareOk →
   ∀ (x s p : Loc) (T : adt.RbT adt.Entry),
   T ≠ .leaf →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownNode s 1 p x T }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownNode K s (DFrac.own 1) p x T }}
     (App (Val (x @!! go.GoType.PointerType intervalNode.ty @!! go!"min")) (Val #s))
   {{ (y : Loc), RET #y;
       ∃ (A : adt.RbCtx adt.Entry) (ls : List (Loc × Loc)) (yp : Loc) (c : adt.RbColor)
         (ye : adt.Entry) (yr : adt.RbT adt.Entry),
-        adt.ownPathAt s 1 A ls y yp (some (adt.nodeMax .leaf ye yr)) ∗
-        adt.ownNode s 1 yp y (.node c .leaf ye yr) ∗
+        adt.ownPathAt K s (DFrac.own 1) A ls y yp (some (adt.nodeMax .leaf ye yr)) ∗
+        adt.ownNode K s (DFrac.own 1) yp y (.node c .leaf ye yr) ∗
         ⌜adt.topAt A ls y yp = (x, p) ∧ A.plug (.node c .leaf ye yr) = T ∧ A.AllL⌝ }}
 
 end spec

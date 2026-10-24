@@ -12,6 +12,7 @@ history's names `γr` (watchkv's workload `P` of the puts tried), `tried` read-o
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.WatchWrites
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -32,7 +33,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 
 /-- See the file header. -/
 abbrev writer.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (clis : GoSlice) (cls : List Loc)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (clis : GoSlice) (cls : List Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γr : ReadNames) (w : Loc)
     (tsl : GoSlice) (tried : List wkv) (lo hi : w64) (P : List (GoString × GoString)),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
@@ -45,7 +48,7 @@ abbrev writer.spec : Prop :=
         client.clientWriteOnce cl (ms.map client.SrvAt.addr)) ∗
       ([∗list] x ∈ ms, memberPut γr x) ∗
       tsl ↦*□ tried ∗ watchkv.wkKV γr ∗
-      sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.writes go!"mu" w)
+      sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" w)
         (wsInvH w γr) }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.writer))
       (Val #clis)) (Val #w)) (Val #tsl)) (Val #lo)) (Val #hi))

@@ -17,6 +17,7 @@ server's `eofVar`.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.Defs
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -38,6 +39,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putget3.Assumpti
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM),
   BootFacts id₁ id₂ id₃ bootLog →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →

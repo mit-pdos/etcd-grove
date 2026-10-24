@@ -41,7 +41,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
   iunfold isServerApplyAll at Hsa
   icases Hsa with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, ⟨%scu, #Hscu, %Hrbs⟩, #Hinf⟩
   -- (D21 M3) the applied index below the receipts' bound, so at most `SnapshotCatchUpEntries`
-  imod srvWTPool_bound E.γ γp ai $$ HWP HWA with %Hrb
+  imod srvWTPool_bound E γp ai $$ HWP HWA with %Hrb
   have Hcmp : (if uint.Z scu < uint.Z ai then uint.Z ai - uint.Z scu else 1) ≤ γs.cap := by
     split <;> omega
   iunfold srvSnapState at Hss

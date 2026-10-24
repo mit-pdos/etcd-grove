@@ -116,7 +116,7 @@ instance trAddRemote_persistent (Rh : RaftHttp GF) (t : Loc) (lid : w64) :
     Persistent (trAddRemote Rh t lid) := by
   unfold trAddRemote; infer_instance
 
-/-- **After the freeze, the handlers' `AddRemote` returns** (D35): every other member is among
+/-- **After the freeze, the handlers' `AddRemote` returns** (D40): every other member is among
 the ids `AddPeer` was called for (the caller's premise: a static cluster's members all added as
 peers before the transport is given up), so `AddRemote` of one does nothing
 (`AddRemote_frozen`). -/

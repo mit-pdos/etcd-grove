@@ -384,25 +384,6 @@ theorem fallbackResps_ro : ∀ (ps : List Loc) (fos : List OpFull) (rs : List Tx
   | _ :: _, [], _ => by simp only [List.map_nil, txnOpsRespOwn]; iintro H; iexfalso; iexact H
   | _ :: _, _ :: _, [] => by simp only [List.map_cons, txnOpsRespOwn]; iintro H; iexfalso; iexact H
 
-/-- Comparisons with their operands set are comparisons. -/
-theorem cmpsSetAt_cmpsAt_c (sl : GoSlice) (ms : List CmpModel) :
-    cmpsSetAt (GF := GF) sl ms ⊢ cmpsAt sl ms := by
-  unfold cmpsSetAt cmpsAt
-  iintro ⟨%cs, #Hs, %Hl, #Hall⟩
-  iexists cs
-  iframe #
-  isplitr
-  · ipureintro; exact Hl
-  imodintro
-  iintro %i %c %m %hc %hm
-  ihave #H := Hall $$ %i %c %m %hc %hm
-  unfold cmpSetAt cmpAt compareAt
-  icases H with ⟨%hnn, %ksl, %esl, %u, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, -⟩
-  isplitr
-  · ipureintro; exact hnn
-  iexists ksl, esl, u
-  iframe #
-
 /-- The user's transaction `OpTxn(cs, opst, opse)` as an operation tree. -/
 theorem userTxn_tree (uv : go_etcd_io.etcd.client.v3.Op) (ms : List CmpModel) (tsl esl : GoSlice)
     (tos eos : List OpFull) (tops eops : List TxnOp)

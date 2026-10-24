@@ -11,9 +11,8 @@ public import Code.google_golang_org.protobuf.proto
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -28,11 +27,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
 
-instance UnmarshalOptions_typed_pointsto :
+noncomputable instance UnmarshalOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.proto.UnmarshalOptions :=
   sorry -- axiomatized type
 
-instance UnmarshalOptions_into_val_typed :
+noncomputable instance UnmarshalOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.UnmarshalOptions google_golang_org.protobuf.proto.UnmarshalOptions.underlying :=
   sorry -- axiomatized type
 
@@ -47,7 +46,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
 
-instance MarshalOptions_typed_pointsto :
+noncomputable instance MarshalOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.proto.MarshalOptions where
   typedPointstoDef l v dq := iprop(
     "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
@@ -59,11 +58,11 @@ instance MarshalOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance MarshalOptions_into_val_typed :
+noncomputable instance MarshalOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.MarshalOptions google_golang_org.protobuf.proto.MarshalOptions.underlying := by
   solve_into_val_typed_struct
 
-instance MarshalOptions_access_load_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
+noncomputable instance MarshalOptions_access_load_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
@@ -71,7 +70,7 @@ instance MarshalOptions_access_load_NoUnkeyedLiterals (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-instance MarshalOptions_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance MarshalOptions_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
@@ -79,7 +78,7 @@ instance MarshalOptions_access_store_NoUnkeyedLiterals (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-instance MarshalOptions_access_load_AllowPartial (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
+noncomputable instance MarshalOptions_access_load_AllowPartial (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
@@ -87,7 +86,7 @@ instance MarshalOptions_access_load_AllowPartial (l : Loc) (v : google_golang_or
  by
   solve_pointsto_access_struct
 
-instance MarshalOptions_access_store_AllowPartial (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (AllowPartial' : Bool) :
+noncomputable instance MarshalOptions_access_store_AllowPartial (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (AllowPartial' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) AllowPartial' (DFrac.own 1))
@@ -95,7 +94,7 @@ instance MarshalOptions_access_store_AllowPartial (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
-instance MarshalOptions_access_load_Deterministic (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
+noncomputable instance MarshalOptions_access_load_Deterministic (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' dq)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' dq)
@@ -103,7 +102,7 @@ instance MarshalOptions_access_load_Deterministic (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
-instance MarshalOptions_access_store_Deterministic (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (Deterministic' : Bool) :
+noncomputable instance MarshalOptions_access_store_Deterministic (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (Deterministic' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) Deterministic' (DFrac.own 1))
@@ -111,7 +110,7 @@ instance MarshalOptions_access_store_Deterministic (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-instance MarshalOptions_access_load_UseCachedSize (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
+noncomputable instance MarshalOptions_access_load_UseCachedSize (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' dq)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' dq)
@@ -119,7 +118,7 @@ instance MarshalOptions_access_load_UseCachedSize (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
-instance MarshalOptions_access_store_UseCachedSize (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (UseCachedSize' : Bool) :
+noncomputable instance MarshalOptions_access_store_UseCachedSize (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (UseCachedSize' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) UseCachedSize' (DFrac.own 1))
@@ -138,7 +137,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
 
-instance mergeOptions_typed_pointsto :
+noncomputable instance mergeOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.proto.mergeOptions where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -146,7 +145,7 @@ instance mergeOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance mergeOptions_into_val_typed :
+noncomputable instance mergeOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.mergeOptions google_golang_org.protobuf.proto.mergeOptions.underlying := by
   solve_into_val_typed_struct
 

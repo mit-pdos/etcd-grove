@@ -76,6 +76,13 @@ theorem isTomb_revBytes (r : Rev) (rest : List w8) :
     | nil => simp
     | cons d u => simp; intro h; omega
 
+/-- A bucket key's tombstone mark decodes back (`kvsToEvents`, `restoreChunk`). -/
+theorem isTomb_revBytes_self (r : Rev) (t : Bool) : isTomb (revBytes r t) = t := by
+  cases t
+  · have h := isTomb_revBytes r []
+    rw [List.append_nil] at h; rw [h]; decide
+  · rw [revBytes_true, isTomb_revBytes]; simp
+
 
 /-! ## The encoder's steps (`BucketKeyToBytes`) -/
 

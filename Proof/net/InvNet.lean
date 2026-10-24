@@ -33,7 +33,7 @@ open Iris Iris.BI
 /-- **The address `addr` is the program's, unbound** (exclusive; see the file header). -/
 axiom netAddrFree {GF : BundledGFunctors} [FfiSyntax] (addr : GoString) : IProp GF
 
-/-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D34a, 2026-10-23,
+/-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,
 rafthttp stage 6a): program start gives it once per address, with `netAddrFree addr`;
 `http.reserve` (`Proof/net/http/Axioms.lean`) consumes it, fixing the address's protocol before
 its listener exists (a raft member sends to its peers before they listen). Purely ghost: no Go

@@ -444,7 +444,7 @@ theorem kiGet_top {ki : KeyIndex} (hwf : KiWf ki) {r : w64} (habove : KiAbove ki
     word
 
 /-- What `get` returns is a revision of the index. -/
-theorem kiGet_mem {ki : KeyIndex} {r : w64} {rev created : Rev} {ver : w64}
+theorem kiGet_mem {ki : KeyIndex} {r : w64} {rev : Rev} {created ver : w64}
     (h : kiGet ki r = some (rev, created, ver)) : rev ∈ kiRevs ki := by
   rw [kiGet_eq] at h
   cases hf : kiFindGen ki r with
@@ -482,10 +482,10 @@ def BucketHas (log : Log) (rev : Rev) (kv : EtcdKv) : Prop :=
 /-- `kiGet`'s answer against the state's key-value: both absent, or the key-value's mod
 revision, create revision and version are the answer's, and the bucket has the key-value at
 the answer's revision. -/
-def KvMatch (log : Log) : Option (Rev × Rev × w64) → Option EtcdKv → Prop
+def KvMatch (log : Log) : Option (Rev × w64 × w64) → Option EtcdKv → Prop
   | none, none => True
   | some (rev, created, ver), some kv =>
-    kv.modRev = rev.main ∧ kv.createRev = created.main ∧ kv.version = ver ∧ BucketHas log rev kv
+    kv.modRev = rev.main ∧ kv.createRev = created ∧ kv.version = ver ∧ BucketHas log rev kv
   | _, _ => False
 
 theorem BucketHas_append {log : Log} {rev : Rev} {kv : EtcdKv} (h : BucketHas log rev kv)
@@ -495,7 +495,7 @@ theorem BucketHas_append {log : Log} {rev : Rev} {kv : EtcdKv} (h : BucketHas lo
   · rw [List.getElem?_append_left hlt]; exact h1
   · rw [stateAt_append_lt _ _ (by omega)]; exact h2
 
-theorem KvMatch_append {log : Log} {o : Option (Rev × Rev × w64)} {kvo : Option EtcdKv}
+theorem KvMatch_append {log : Log} {o : Option (Rev × w64 × w64)} {kvo : Option EtcdKv}
     (h : KvMatch log o kvo)
     (hlt : ∀ rev created ver, o = some (rev, created, ver) → rev.main.toNat < log.length)
     (cs : List Change) : KvMatch (log ++ [cs]) o kvo := by
@@ -504,7 +504,7 @@ theorem KvMatch_append {log : Log} {o : Option (Rev × Rev × w64)} {kvo : Optio
   | some (rev, created, ver), some kv, ⟨h1, h2, h3, h4⟩ =>
     exact ⟨h1, h2, h3, BucketHas_append h4 (hlt _ _ _ rfl) cs⟩
 
-theorem KvMatch_none_right {log : Log} {o : Option (Rev × Rev × w64)} (h : KvMatch log o none) :
+theorem KvMatch_none_right {log : Log} {o : Option (Rev × w64 × w64)} (h : KvMatch log o none) :
     o = none := by
   match o, h with
   | none, _ => rfl

@@ -34,7 +34,7 @@ theorem mvcc.newWatchableStore.wp_proof
     (hNewWG : mvcc.newWatcherGroup.spec (GF := GF) (hG := hG))
     (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f γi γok Hcfg0 Hrb0
+  intro lg b le cfg kb γb γl P f γi γok γtag Hcfg0 Hrb0
   wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -47,7 +47,7 @@ theorem mvcc.newWatchableStore.wp_proof
   wp_apply (hNewStore _ _ _ _ _ _ _ _ f true γi γok Hcfg0 Hrb0)
     $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
-      Hright⟩
+      Hwsd, Hfrag, Hright⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right's
   -- half of the revision's authority given up, the readers those of a never-compacted store (the
   -- closer, with the scheduler's stop token, goes to the caller: D19m (C))
@@ -88,7 +88,7 @@ theorem mvcc.newWatchableStore.wp_proof
   imod ownTokAuth_alloc (GF := GF) with ⟨%γt, Hta⟩
   imod ownTokAuth_add (2 ^ 63 - 3) γt 0 $$ Hta with ⟨Hta, Htw⟩
   imod mono_nat_own_alloc (GF := GF) mvcc.wsInit.Lmu.length with ⟨%γrel, Hrel, -⟩
-  let γ : mvcc.WsNames := ⟨γs, γm, γwl, γwst, γt, γrel⟩
+  let γ : mvcc.WsNames := ⟨γs, γm, γwl, γwst, γt, γrel, γtag⟩
   ihave Hwt : mvcc.watchBudget γ 1 (∅ : GMap Loc mvcc.WatcherNames) $$ [Hta]
   · iunfold mvcc.watchBudget
     iexists 0 + (2 ^ 63 - 3)
@@ -102,14 +102,15 @@ theorem mvcc.newWatchableStore.wp_proof
         mvcc.logQ γs [[], []] := by simp
     rw [← h]; iexact HlogQ
   -- the inner store's fields: the watchable store's share (D22 receiver epochs, S3)
-  ihave Hwsf : mvcc.wsFields «$r0_ptr» γ 1 $$ [Hfw]
-  · iunfold mvcc.wsFields; iexists st; iframe store; iexact Hfw
+  ihave Hwsf : mvcc.wsFields «$r0_ptr» γ 1 $$ [Hfw Hwsd]
+  · iunfold mvcc.wsFields; iexists st; iframe store Hfw; iunfold mvcc.wsDep at Hwsd; iexact Hwsd
   ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ Hrel Hwsf]
   · iunfold mvcc.watchStoreInv
     iexists mvcc.wsInit
     isplitl [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
     rotate_left
-    · iframe Hrel Hwsf; ipureintro; exact ⟨mvcc.wsInit_settled, fun w γw h => by simp [mvcc.wsInit, GMap.lookup_empty] at h⟩
+    · iframe Hrel Hwsf; ipureintro; exact ⟨mvcc.wsInit_settled, fun w γw h => by simp [mvcc.wsInit, GMap.lookup_empty] at h,
+        fun w st h => by simp [mvcc.wsInit, GMap.lookup_empty] at h⟩
     iunfold mvcc.watchStoreBody
     simp only [named, mvcc.wsInit]
     iframe Hwst Hsy Hun victims Hmeta Hwt
@@ -149,7 +150,7 @@ theorem mvcc.newWatchableStore.wp_proof
   iapply HΦ
   iexists st, γ
   isplitr
-  · ipureintro; exact ⟨hγb, hγl, hγk, hγi, hγok⟩
+  · ipureintro; exact ⟨hγb, hγl, hγk, hγi, hγok, rfl⟩
   isplitr
   · iunfold mvcc.isWatchableStore
     iexists vc, stc, rv, γv
@@ -159,7 +160,7 @@ theorem mvcc.newWatchableStore.wp_proof
     · iunfold mvcc.isStopChan
       iexists γstc; iexact Hstop0
     ipureintro; exact hγw
-  iframe HhookP Hsclose wg
+  iframe HhookP Hsclose wg Hfrag
   isplitr [Hmus Hreaders Hstop Htw Hok]
   · iunfold mvcc.watchWriter
     iframe Hcert Hwl2

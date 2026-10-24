@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.authApplierV3.DeleteRange.wp_proof :
     apply.authApplierV3.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq o log F Pre Q Post
+  intro E c inner p r rq o log F Pre Q Post info
   wp_start as ⟨#Hauth, #Hinner, Hpre, #HF⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, -, -⟩
@@ -37,9 +37,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
-  ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner $$ Happ Hres
-  iunfold apply.authInfoOwn at Hinfo
-  icases Hinfo with ⟨%info, Hinfo⟩
+  ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hst' := Hst
   iunfold apply.isAuthStore at Hst'
   icases Hst' with ⟨%sti, %Hsti, -, #HRange, #HDel, -⟩
@@ -47,7 +45,11 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   iunfold apply.permCheck3 at HDel
   ihave #Hr' := Hr
   iunfold txn.deleteRangeRequestIs at Hr'
-  icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, #HPK, -, %Hkb⟩
+  icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, #HPK, %Ho, %Hkb⟩
+  ihave %Hel := ownSlice_len _ _ _ $$ He
+  have hkey : o.key = k := by rw [Ho]; simp only [txn.deleteOpOf.proj_key]
+  have hre : o.base.rangeEnd = txn.rangeEndOf esl e := by rw [Ho]; simp only [txn.deleteOpOf.proj_base]
+  have hpk : o.base.prevKV = pk := by rw [Ho]; simp only [txn.deleteOpOf.proj_base]
   subst Hsti
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -58,7 +60,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
   wp_apply HDel $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
-    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff⟩
+    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff, #Hpw⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   ihave Hkv := Hkv $$ Hard
   cases err with
@@ -68,18 +70,25 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv [Hinfo]
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) info rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo
       Hres Hcs
     · simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
       isplitr
       · ipureintro; trivial
       · iframe HeI; ipureintro; simp
-    · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto
   cases pk
   · wp_auto
-    wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
+    ihave #Hdc : apply.deleteClass (GF := GF) E.authMode info o $$ []
+    · rw [← hkey]
+      iapply (apply.deleteClass_of_verdicts E.authMode info o esl e Hel.1 hre)
+      iframe Hpw
+      iintro %h; rw [hpk] at h; cases h
+    ihave #Hrc := apply.reqClass_deleteRange E.authMode info rq o Hk.1 Hk.2.1 $$ Hdc
+    iunfold apply.chainResAny at Hres
+    icases Hres with ⟨%info', Hres⟩
+    wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
     · iunfold apply.deletePre
       iunfold apply.mPre
       iframe
@@ -89,12 +98,11 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
-    iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
-    iunfold apply.authInfoOwn; iexists info; iexact Hinfo
+    iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc
   wp_auto
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
-    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff⟩
+    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff, #Hpr⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   ihave Hkv := Hkv $$ Hard
   cases err with
@@ -104,16 +112,23 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv [Hinfo]
+    iapply apply.auth_reject_kvPostF E E.authOn c p (.ok bi) info rq log F _ Pre Q Post hk (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo
       Hres Hcs
     · simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
       isplitr
       · ipureintro; trivial
       · iframe HeI; ipureintro; simp
-    · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto
-  wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
+  ihave #Hdc : apply.deleteClass (GF := GF) E.authMode info o $$ []
+  · rw [← hkey]
+    iapply (apply.deleteClass_of_verdicts E.authMode info o esl e Hel.1 hre)
+    iframe Hpw
+    iintro %_; iexact Hpr
+  ihave #Hrc := apply.reqClass_deleteRange E.authMode info rq o Hk.1 Hk.2.1 $$ Hdc
+  iunfold apply.chainResAny at Hres
+  icases Hres with ⟨%info', Hres⟩
+  wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.deletePre
     iunfold apply.mPre
     iframe
@@ -123,8 +138,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
-  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
-  iunfold apply.authInfoOwn; iexists info; iexact Hinfo
+  iapply apply.auth_pass_kvPostF E E.authOn c p (.ok bi) info info' rq log F _ Pre Post $$ Happ Hpost Hinfo Hrc
 
 end proof
 

@@ -47,7 +47,10 @@ abbrev rpctypes.Error.spec : Prop :=
   {{ (err' : GoError), RET #err'; ⌜err' ≠ interface.nil⌝ ∗ statusErrOk err' ∗
       ⌜clientErr err → clientErr err'⌝ ∗
       -- (2026-10-21, D29) the description kept
-      ⌜errDesc err' = errDesc err⌝ }}
+      ⌜errDesc err' = errDesc err⌝ ∗
+      -- (2026-10-23, D37) no caller's `errors.New` value if `err` is none: `err` itself or an
+      -- `EtcdError` value
+      □ (errCellOk err -∗ errCellOk err') }}
 
 end spec
 

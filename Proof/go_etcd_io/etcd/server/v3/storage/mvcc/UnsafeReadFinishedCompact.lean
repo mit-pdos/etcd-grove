@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.UnsafeReadFinishedCompact.wp_proof
     (h0 : mvcc.BytesToRev.spec (GF := GF) (hG := hG)) :
     mvcc.UnsafeReadFinishedCompact.spec (GF := GF) (hG := hG) := by
-  intro rt
+  intro rt nc
   wp_start as #Hrd
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -52,7 +52,7 @@ theorem mvcc.UnsafeReadFinishedCompact.wp_proof
     iexact Hsknv
   inext
   iintro %ks %vs ⟨-, Hr⟩
-  icases Hr with (⟨#Hks, #Hvs⟩ | ⟨%ksl, %vsl, %v, #Hks, #Hksl, #Hvs, #Hvsl, %Hv⟩)
+  icases Hr with (⟨#Hks, #Hvs⟩ | ⟨%ksl, %vsl, %v, %Hnc, #Hks, #Hksl, #Hvs, #Hvsl, %Hv⟩)
   · ihave %Hlen := ownSlice_len _ _ _ $$ Hvs
     (try wp_auto)
     obtain ⟨h1, h2⟩ := Hlen
@@ -88,8 +88,9 @@ theorem mvcc.UnsafeReadFinishedCompact.wp_proof
     (try wp_auto)
     iapply HΦ
     ipureintro
-    simp only [mvcc.revVal_main]
-    exact ⟨fun _ => hx0, fun h => by cases h⟩
+    try simp only [mvcc.revVal_main]
+    refine ⟨fun _ => hx0, (fun h => by cases h), fun h => ?_⟩
+    subst h; cases Hnc
 
 
 end proof

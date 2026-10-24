@@ -65,6 +65,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     isplitr
     · iapply ownSlice_nil
     iunfold collectOk
+    iunfold common.collectOk
     isplitr
     · ipureintro; refine ⟨Or.inl rfl, by simp, fun i e h => by simp at h⟩
     iintro !> %i %e %h
@@ -79,9 +80,9 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
       "%Hc" ∷ ⌜(∀ r ∈ rs, r.canceled = false) ∧ evs0.length = (eventsOf rs).length ∧
         (evs0 ≠ [] → sint.Z lv = 1 + evs0.length) ∧
         ∀ (i : Nat) (e : cev), evs0[i]? = some e →
-          e.put' = true ∧ sint.Z e.rev' = 2 + i ∧ (e.key', e.val') ∈ P⌝ ∗
+          e.Put' = true ∧ sint.Z e.Rev' = 2 + i ∧ (e.Key', e.Val') ∈ P⌝ ∗
       "#Hrevs" ∷ □ ∀ (i : Nat) (e : cev), ⌜evs0[i]? = some e⌝ -∗
-        watchkv.revAt E (2 + i) e.key' e.val' :
+        watchkv.revAt E (2 + i) e.Key' e.Val' :
       IProp GF) $$ [wresp evs last Hcons]
   · iexists [], slice.nil, _, [], _
     iframe
@@ -160,9 +161,9 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z v.Events'.len ∧ ws.length = sint.nat j ∧
         (evs0 ++ ws ≠ [] → sint.Z lv' = 1 + (evs0 ++ ws).length) ∧
         ∀ (i : Nat) (w : cev), ws[i]? = some w →
-          w.put' = true ∧ sint.Z w.rev' = 2 + evs0.length + i ∧ (w.key', w.val') ∈ P⌝ ∗
+          w.Put' = true ∧ sint.Z w.Rev' = 2 + evs0.length + i ∧ (w.Key', w.Val') ∈ P⌝ ∗
       "#Hws" ∷ □ ∀ (i : Nat) (w : cev), ⌜ws[i]? = some w⌝ -∗
-        watchkv.revAt E (2 + evs0.length + i) w.key' w.val' : IProp GF) $$ [i e evs last Hs Hcap]
+        watchkv.revAt E (2 + evs0.length + i) w.Key' w.Val' : IProp GF) $$ [i e evs last Hs Hcap]
   · iexists W64 0, _, sl, lv, []
     simp only [List.append_nil]
     iframe
@@ -187,6 +188,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     iunfold eventAt at Hea
     icases Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
     iunfold watchkv.evFact at Hf
+    iunfold common.evFactR at Hf
     icases Hf with ⟨%Hfe, %val, %kvv, #Hkvv, %Hval, #Hra⟩
     iunfold kvValAt at Hkvv
     icases Hkvv with ⟨%kSl', %valSl, -, -, -, -, -, #Hvalf, #HvalS, -⟩
@@ -212,7 +214,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     wp_for_post
     iframe
     iexists j + W64 1, _, sl2, e.rev,
-      ws ++ [{ rev' := e.rev, key' := e.key, val' := kvv.value, put' := true }]
+      ws ++ [{ Rev' := e.rev, Key' := e.key, Val' := kvv.value, Put' := true }]
     rw [List.append_assoc]
     iframe
     isplitr
@@ -262,6 +264,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
         iexists evs0 ++ ws
         iframe
         iunfold collectOk
+        iunfold common.collectOk
         have hne : evs0 ++ ws ≠ [] := by
           intro h; rw [h] at Hsl2; simp at Hsl2; word
         have hlv := hl' hne

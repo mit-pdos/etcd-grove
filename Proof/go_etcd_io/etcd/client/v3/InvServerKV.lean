@@ -123,6 +123,7 @@ theorem ctxErrClient_todo (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rp
     · ipureintro
       exact ⟨hAs, fun ii h => by cases h⟩
     · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+    · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
 
 /-- **A descriptor for `context.TODO()`** (see the file header): quiet, with `ctxErrClient`. -/
 theorem todo_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
@@ -177,6 +178,7 @@ theorem ctxErrClient_background
     · ipureintro
       exact ⟨hAs, fun ii h => by cases h⟩
     · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+    · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
 
 /-- **A descriptor for `context.Background()`** (as `todo_ctx`): quiet, with `ctxErrClient`. -/
 theorem background_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
@@ -237,11 +239,8 @@ instance kvAnyAu_persistent (E : apply.AEnv GF) (γ : ReadNames) :
 /-- The namespace of a client's invariant holding `etcdKV`. -/
 def kvClientN : Namespace := nroot .@ "kv_client"
 
-theorem kvClientN_mask : (↑kvClientN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN := by
-  intro p hp
-  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
-  exact ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩,
-    fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩
+theorem kvClientN_mask : (↑kvClientN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN :=
+  Perennial.mask_ndot_ne2 nroot _ _ _ (by decide) (by decide)
 
 /-- **A client's invariant holding the abstract state** (unit W-M3: with its revision as a
 monotone counter at `γm`, so a revision the client saw is a lower bound of every later state). -/

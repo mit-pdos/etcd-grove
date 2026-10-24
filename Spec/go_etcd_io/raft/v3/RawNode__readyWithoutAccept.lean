@@ -52,7 +52,7 @@ raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, D8): **the messages are h
 `rd.Messages` (a `[]*pb.Message` aliasing `r.msgs`, extended by the `msgsAfterAppend` messages to
 others) holds the pointers of `ms : List QMsg`, each message owned at `readyDq` (a
 `MsgAppResp`/`MsgVoteResp`/`MsgPreVoteResp` at half: `acceptReady` reads the other half's
-`To`; the application gets those read-only, `issues/raft-ready-messages-read-after-handout.md`;
+`To`; the application gets those read-only, `issues/nonissues/raft-ready-messages-read-after-handout.md`;
 every other message whole); `Habandon` takes them back. `Entries`/`CommittedEntries` are
 `entsRO` (`[]*pb.Entry`, read-only), the read states `readStatesPts` (their contexts bytes, D6),
 `rd.Snapshot` `nil` (was the zero `Snapshot`), and the hard state `hsOpt rd.HardState' h` (new:

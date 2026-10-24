@@ -2,7 +2,8 @@
 # notes/linkv-txn-plan.md): the results of
 # Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Results.lean: `linkvtxn_Main` (over the
 # server's, v3rpc's, the client's and the porcupine driver's linked results) and the closed theorem
-# `linkvtxn_safe`/`linkvtxn_adequate` (linkv's hypotheses at linkvtxn's configuration), which also
+# `linkvtxn_safe`/`linkvtxn_adequate` (putget's hypotheses at linkvtxn's configuration
+# and `Run`'s bounds, as the retired linkv's), which also
 # rest on the package initializers' axioms.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/linkvtxn.txt            what it rests on
@@ -302,7 +303,6 @@ axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
-axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsCtxErr.wp_proof
@@ -325,6 +325,7 @@ axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
+axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
 axiom grpc.MaxSendMsgSize.wp_proof
@@ -403,7 +404,7 @@ axiom membership.RaftCluster.String.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom mvcc.store.restore.wp_proof
+axiom mvcc.kbNoCmp_metaNone
 axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt

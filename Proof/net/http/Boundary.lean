@@ -1,5 +1,5 @@
 /-
-**The HTTP boundary of rafthttp** (D33 (A), stage 2; `notes/rafthttp-http-boundary.md`, reviewed by
+**The HTTP boundary of rafthttp** (D38 (A), stage 2; `notes/rafthttp-http-boundary.md`, reviewed by
 the user 2026-10-22). Lean-first. Definitions and the statements of the boundary's specs
 (`…_spec : Prop`); the proofs take them as hypotheses, and those they use are trust-boundary
 axioms in `Proof/net/http/Axioms.lean` (stage 4e, 2026-10-23), with the registration of an
@@ -26,12 +26,12 @@ The model (the note's points 1-6):
   a`, one per address in a run: `net.Listen` consumes `netAddrFree a`) into `httpListenerAt l a P`,
   which `Serve` takes, and `httpProtoAt a P` (persistent), which `RoundTrip` needs of a request's
   host. Two `httpProtoAt a P` of one address are of the one registration: the facts' model is a
-  global ghost map from addresses to saved protocols, an entry set once. (D34a, 2026-10-23,
+  global ghost map from addresses to saved protocols, an entry set once. (D39a, 2026-10-23,
   stage 6a) The entry is set before the listener exists: `http.reserve` turns the address's
   protocol right (`httpProtoFree a`, from program start) into `httpProtoAt a P` and the right to
   serve it (`httpProtoOwn a P`), which `register` takes with the listener; a member sends to its
   peers before they listen.
-* (2026-10-23, D33b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
+* (2026-10-23, D38b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
   fresh exclusive ghost ticket (`reqTicket γk`) and the handler of the request receives it; the
   protocols are indexed by the ticket's name. Go's client never replays a `POST`
   (`Request.isReplayable`), and its server runs one handler per request it reads. What a one-shot
@@ -119,7 +119,7 @@ instance Proto.resp_persistent (P : Proto GF) (R : HReq) (γk : GName) (st : w64
 structure HttpNet (GF : BundledGFunctors) where
   proto : GoString → Proto GF
 
-/-- **A request's ticket** (exclusive; D33b): allocated fresh by the client, given up to
+/-- **A request's ticket** (exclusive; D38b): allocated fresh by the client, given up to
 `RoundTrip`, received by the handler of the request. -/
 def reqTicket (γk : GName) : IProp GF := dghostVar γk (DFrac.own 1) ()
 
@@ -150,7 +150,7 @@ instance httpProtoAt_persistent (a : GoString) (P : Proto GF) :
     Persistent (httpProtoAt (GF := GF) a P) := by
   unfold httpProtoAt; infer_instance
 
-/-- **The right to serve the address `a` with the protocol `P`** (exclusive, opaque; D34a,
+/-- **The right to serve the address `a` with the protocol `P`** (exclusive, opaque; D39a,
 2026-10-23): what `reserve` gives with `httpProtoAt a P`, and `register` takes with the address's
 listener. -/
 opaque httpProtoOwn (a : GoString) (P : Proto GF) : IProp GF
@@ -566,7 +566,7 @@ def RespHeader_spec : Prop :=
         (App (Val #(methods wi.ty go!"Header" wi.v)) (Val #()))
       {{ (hm : Loc), RET #hm; hdrOwn hm hs ∗ (∀ hs', hdrOwn hm hs' -∗ respHdrs wr hs') }}
 
-/-- **A reader of the bytes `B`** (persistent, D33b): its `Read` from a state `Src r` (`r` read so
+/-- **A reader of the bytes `B`** (persistent, D38b): its `Read` from a state `Src r` (`r` read so
 far; `io.EOF`'s value `e`) reads `ys`, still a prefix of `B`, and returns `EOF` (`e`) only once `r ++ ys = B` -- the
 `io.Reader` contract of a request body (`bodyRead_spec`) and of any reader wrapping one. -/
 def prefixReaderOk (rd : GoInterface) (Src : List w8 → IProp GF) (B : List w8) (e : GoInterface) :
@@ -583,7 +583,7 @@ instance prefixReaderOk_persistent (rd : GoInterface) (Src : List w8 → IProp G
     (e : GoInterface) : Persistent (prefixReaderOk rd Src B e) := by
   unfold prefixReaderOk; infer_instance
 
-/-- `io.ReadAll(rd)` of a reader of `B` (D33b: over any reader keeping the prefix contract, a
+/-- `io.ReadAll(rd)` of a reader of `B` (D38b: over any reader keeping the prefix contract, a
 request body's or a wrapper's): the whole of `B`, or an error. -/
 def ReadAll_spec : Prop :=
   ∀ (rd : GoInterface) (Src : List w8 → IProp GF) (B : List w8) (e : GoInterface),

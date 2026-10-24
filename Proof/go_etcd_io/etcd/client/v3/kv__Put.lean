@@ -50,7 +50,7 @@ theorem kv.Put.wp_proof
       unfold doOut; rw [Ht]; simp only [show (W64 2 = W64 1) = False by decide, ↓reduceIte]
     rw [← Heq]; iexact Hout
   iunfold putCallOut at Hout'
-  icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse⟩)
+  icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
     wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -⟩
@@ -63,8 +63,9 @@ theorem kv.Put.wp_proof
     iframe
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
+    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
     · iframe #; ipureintro; exact fun _ => Hce'
+    ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
     unfold putCallOut
     iright

@@ -8,7 +8,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/read/(Link|Results)\.lean$
 axiom context.ErrAny.wp_proof
-axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof

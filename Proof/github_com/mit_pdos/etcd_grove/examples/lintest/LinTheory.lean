@@ -27,6 +27,7 @@ that returned before another was called comes first (if `b` follows `a` in the l
 module
 
 public import Proof.github_com.anishathalye.porcupine.Theory
+public import Perennial.Std.List
 
 @[expose] public section
 
@@ -92,34 +93,6 @@ theorem clientRecs_pairwise (c : Nat) (Lc : List (α × Int)) :
   simp only [clientRecs, List.getElem_mapIdx]
   exact hik
 
-theorem flatten_length {β : Type} (hs : List (List β)) (m : Nat)
-    (hl : ∀ h ∈ hs, h.length = m) : hs.flatten.length = hs.length * m := by
-  induction hs with
-  | nil => simp
-  | cons h t ih =>
-    simp only [List.flatten_cons, List.length_append, List.length_cons]
-    rw [hl h (List.mem_cons_self), ih (fun h' hh' => hl h' (List.mem_cons_of_mem _ hh'))]
-    rw [Nat.succ_mul, Nat.add_comm]
-
-theorem flatten_getElem? {β : Type} (hs : List (List β)) (m : Nat)
-    (hl : ∀ h ∈ hs, h.length = m) (c j : Nat) (hj : j < m) :
-    hs.flatten[c * m + j]? = hs[c]?.bind (·[j]?) := by
-  induction hs generalizing c with
-  | nil => simp
-  | cons h t ih =>
-    have hh : h.length = m := hl h (List.mem_cons_self)
-    have ht : ∀ h' ∈ t, h'.length = m := fun h' hh' => hl h' (List.mem_cons_of_mem _ hh')
-    simp only [List.flatten_cons]
-    cases c with
-    | zero =>
-      rw [Nat.zero_mul, Nat.zero_add, List.getElem?_append_left (by omega)]
-      simp
-    | succ c =>
-      rw [List.getElem?_append_right (by rw [hh, Nat.succ_mul]; omega)]
-      rw [show (c + 1) * m + j - h.length = c * m + j by rw [hh, Nat.succ_mul]; omega]
-      rw [ih ht c]
-      simp
-
 /-- The history index of a log entry. -/
 def gidx (m : Nat) (e : LinRec α) : Nat := e.c * m + e.j
 
@@ -150,7 +123,7 @@ theorem LogOk.entry (H : LogOk M m hs Lcs L) {e : LinRec α} (he : e ∈ L) :
   obtain ⟨o, ho⟩ : ∃ o, h[e.j]? = some o := ⟨_, List.getElem?_eq_getElem hjh⟩
   refine ⟨hcl, hjm, o, ?_, ?_⟩
   · unfold gidx
-    rw [flatten_getElem? hs m H.hlen e.c e.j hjm, hh]
+    rw [Perennial.join_same_len_getElem? hs m H.hlen e.c e.j hjm, hh]
     simpa using ho
   · have hr := H.recs e.c h Lc hh hLc e.j o p ho hp
     have hio : e.io = p.1 := by rw [hep]
@@ -252,7 +225,7 @@ theorem LogOk.linearizable (H : LogOk M m hs Lcs L) : Linearizable M hs.flatten 
   refine ⟨L.map (gidx m), ?_, ?_, ?_, ?_⟩
   · exact H.nodup_map
   · intro k
-    rw [H.mem_iff k, flatten_length hs m H.hlen]
+    rw [H.mem_iff k, Perennial.join_same_len_length (c := m) hs H.hlen]
     simp
   · rw [H.vals]; exact H.runs
   · rw [List.pairwise_map]

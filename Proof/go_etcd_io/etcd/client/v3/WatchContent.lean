@@ -49,17 +49,6 @@ theorem findKey_applyChanges_other (r : w64) (k : GoString) :
       simp only [Change.key] at hk1
       simp [hk1]
 
-/-- In a list with distinct elements, the element at `i` is not after `i`. -/
-theorem nodup_not_mem_drop {α : Type} {l : List α} (hnd : l.Nodup) {i : Nat} {a : α}
-    (h : l[i]? = some a) : a ∉ l.drop (i + 1) := by
-  intro hm
-  have hl := List.take_append_drop (i + 1) l
-  rw [List.take_add_one, h] at hl
-  rw [← hl] at hnd
-  simp only [Option.toList_some] at hnd
-  rw [List.nodup_append] at hnd
-  exact hnd.2.2 a (by simp) a hm rfl
-
 /-- The keys a list of changes puts are among its keys. -/
 theorem putKeysOf_sub (cs : List Change) {k : GoString} (h : k ∈ putKeysOf cs) :
     k ∈ cs.map Change.key := by

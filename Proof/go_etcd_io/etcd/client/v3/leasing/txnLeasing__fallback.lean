@@ -27,8 +27,8 @@ theorem fallback_getOp (lkey lend : GoString) :
     txnOpOf (opGetModel lkey [withRangeM lend]) = some (.get (opGetModel lkey [withRangeM lend])) ∧
       ¬ opGetPanics [withRangeM lend] := by
   constructor
-  · simp [opGetModel, opFold, withRangeM, OpFull.getInit, OpFull.newOp, OpModel.zero, txnOpOf]
-  · simp [opGetPanics, opFold, withRangeM, OpFull.newOp]
+  · simp [op_simps]
+  · simp [opGetPanics, op_simps]
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

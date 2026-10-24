@@ -1,6 +1,6 @@
 /-
 **The msgappv2 stream's frames** (2026-10-22, rafthttp stage 3): the pure model of
-`msgappv2_codec.go`, what its encoder writes and its decoder reads. Lean-first; D33a.
+`msgappv2_codec.go`, what its encoder writes and its decoder reads. Lean-first; D38a.
 
 The encoder and the decoder of one connection each keep a state (`V2St`: the last `MsgApp`'s term
 and the index its entries end at), updated in lockstep. A frame (`V2Frame from to cs w bs cs'`) at
@@ -222,7 +222,7 @@ def isHB (m : MessageM) : Prop := m.Type' = MsgHeartbeat ∧ m.From' = 0 ∧ m.T
 instance (m : MessageM) : Decidable (isHB m) := by unfold isHB; infer_instance
 
 /-- **A message the msgappv2 encoder may be given** on the connection from `frm` to `to`: one that
-marshals, and either `linkHeartbeatMessage` or an `MsgApp` of raft's shape (`AppShape`, D33a)
+marshals, and either `linkHeartbeatMessage` or an `MsgApp` of raft's shape (`AppShape`, D38a)
 between them (the stream's writer sends only those: `peer.pick`, `streamWriter.run`). -/
 def V2EncOk (frm to : w64) (st : MsgSt) : Prop :=
   MsgMarshals st ∧

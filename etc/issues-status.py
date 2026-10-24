@@ -113,7 +113,7 @@ def main():
     rows = []
     for path in sorted(glob.glob(os.path.join(ROOT, "issues", "*.md"))):
         name = os.path.basename(path)[:-3]
-        if name in ("README", "RANKING"):  # the format, and the triage of all of them
+        if name in ("README", "RANKING", "INDEX"):  # the format, the triage and the index of all of them
             continue
         fm, lines = parse(path)
         if fm is None or fm.get("upstream") not in STATES:

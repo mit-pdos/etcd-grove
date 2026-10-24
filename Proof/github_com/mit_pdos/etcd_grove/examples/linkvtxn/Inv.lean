@@ -306,11 +306,8 @@ def callN : Namespace := linkvN .@ "call"
 client's update (`kvAu1`'s outer mask leaves them out), and the instance's. -/
 def linkvE : CoPset := ↑srvRaftN ∪ ↑kvN ∪ ↑linkvN
 
-theorem linkvN_mask : (↑linkvN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN := by
-  intro p hp
-  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
-  exact ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩,
-    fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩
+theorem linkvN_mask : (↑linkvN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN :=
+  Perennial.mask_ndot_ne2 nroot _ _ _ (by decide) (by decide)
 
 theorem linkvInvN_mask : (↑linkvInvN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN :=
   nclose_subseteq' _ linkvN_mask

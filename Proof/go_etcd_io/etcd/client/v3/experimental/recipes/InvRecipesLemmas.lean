@@ -27,10 +27,10 @@ open concurrency
 /-- `OpPut(key, val)` (no options): a put with no lease. -/
 theorem putOp_txnOpOf' (key val : GoString) :
     txnOpOf (opPutModel key val []) = some (.put key val (W64 0)) := by
-  simp [opPutModel, opFold, OpFull.putInit, OpFull.newOp, OpModel.zero, txnOpOf]
+  simp [op_simps]
 
 theorem putOp_not_panics' (key val : GoString) : ¬ (opPutModel key val []).putPanics := by
-  simp [opPutModel, opFold, OpFull.putInit, OpFull.newOp, OpModel.zero, OpFull.putPanics]
+  simp [op_simps, OpFull.putPanics]
 
 /-! ## `putNewKV`'s transaction -/
 
@@ -238,8 +238,7 @@ theorem keyWatchOp_fields (key : GoString) (rev : w64) :
     (keyWatchOp key rev).isRangeWatch rev = true ∧ ¬ opWatchPanics key [withRevM rev] ∧
       (keyWatchOp key rev).key = key ∧ (keyWatchOp key rev).base.rangeEnd = [] := by
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
-  simp [keyWatchOp, opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit,
-    OpFull.newOp, OpModel.zero, withRevM, OpFull.isRangeWatch]
+  simp [keyWatchOp, opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, OpFull.isRangeWatch]
 
 /-- `Watch(kp, WithPrefix(), WithRev(rev))` is a range watch from `rev` that does not panic, of
 the keys with prefix `kp` (every key from `"\x00"` for the empty `kp`). -/
@@ -250,14 +249,11 @@ theorem prefixWatchOp_fields (kp : GoString) (rev : w64) :
         (prefixWatchOp kp rev).base.rangeEnd = prefixRangeEnd kp) := by
   refine ⟨?_, ?_, ?_⟩
   · by_cases h : kp = [] <;>
-    simp [h, prefixWatchOp, opWatchModel, opFold, OpFull.getInit, OpFull.newOp, OpModel.zero,
-      withRevM, withPrefixM, OpFull.isRangeWatch]
+    simp [h, prefixWatchOp, opWatchModel, op_simps, OpFull.isRangeWatch]
   · by_cases h : kp = [] <;>
-    simp [h, opWatchPanics, OpFull.watchPanics, opWatchModel, opFold, OpFull.getInit,
-      OpFull.newOp, OpModel.zero, withRevM, withPrefixM]
+    simp [h, opWatchPanics, OpFull.watchPanics, opWatchModel, op_simps]
   · intro h
-    simp [h, prefixWatchOp, opWatchModel, opFold, OpFull.getInit, OpFull.newOp, OpModel.zero,
-      withRevM, withPrefixM]
+    simp [h, prefixWatchOp, opWatchModel, op_simps]
 
 /-- A prefix watch on `kp` is under any prefix `pfx` of `kp`. -/
 theorem prefixWatchOp_under (pfx kp : GoString) (rev : w64) (h : pfx <+: kp) :

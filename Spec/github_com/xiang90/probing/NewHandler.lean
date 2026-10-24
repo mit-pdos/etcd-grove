@@ -1,6 +1,6 @@
 /-
 `probing.NewHandler()`: the trust boundary (`github.com/xiang90/probing` is names-only; rafthttp
-stage 6c, `Transport.Handler`'s prober handler, D34: the prober an axiom). Lean-first.
+stage 6c, `Transport.Handler`'s prober handler, D39: the prober an axiom). Lean-first.
 -/
 module
 

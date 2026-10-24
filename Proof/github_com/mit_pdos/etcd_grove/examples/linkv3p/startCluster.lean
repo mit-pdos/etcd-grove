@@ -4,12 +4,12 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/startCluster.lean
 counterpart).
 
 The three peer URL slices and the initial cluster's map; the ghost state of the cluster and its
-members (`cluster3_alloc` at the workload `W`, the ids in the names' order, the client's `etcdKV`
+members (`common.alloc3` at the workload `W`, the ids in the names' order, the client's `etcdKV`
 at the first member's names), each member's pure boot facts kept (`memberBoot`'s: its names, what
 `memberAt` records); `startMember` for each member, the thread token passed along
 (`memberServed`'s `srvGoRes`), its watch server kept; the servers' slice; `startBridge` for each
 member's client address (the bridge owned, its address serving the member's, `forwards`) and the
-bridges' slice; the endpoints' slice and `newClient` of it for each client, at the watch
+bridges' slice; the endpoints' slice and `common.NewClients` of it for each client (linkv3p's `newClient` until 2026-10-23), at the watch
 environment of the three members (`watchEnv`); the clients' slice and `clusterUp`. Every step's
 error ends with `ok = false`.
 -/
@@ -17,8 +17,9 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startCluster
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClients
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Alloc3
 
 @[expose] public section
 
@@ -33,7 +34,8 @@ namespace EtcdGrove
 namespace linkv3p
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open putget3 (httpURL ccOk commonPremises memberBoot id_ne)
+open putget3 (httpURL ccOk commonPremises)
+open common (memberBoot)
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -47,7 +49,7 @@ set_option maxRecDepth 8192 in
 theorem startCluster.wp_proof
     (wp_startMember : startMember.spec (GF := GF) (hG := hG))
     (wp_startBridge : startBridge.spec (GF := GF) (hG := hG))
-    (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
+    (wp_NewClients : common.NewClients.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N id₁ id₂ id₃ bootLog lg W pfx Hbf hW Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
@@ -113,23 +115,19 @@ theorem startCluster.wp_proof
       (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅)) $$ []
   · iExactEq Hpm; rfl
-  -- the ghost state of the cluster and its members (`cluster3_alloc`, in `bootstrap`'s order,
+  -- the ghost state of the cluster and its members (`common.alloc3`, in `bootstrap`'s order,
   -- which is the names'; the client's `etcdKV` at `linkv3p-1`'s names)
-  imod (cluster3_alloc W id₁ id₂ id₃ bootLog Hbf (dir3 id₁ id₂ id₃) (by omega)) with ⟨%γ, %bud, %ρ₁,
-    %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, Hmb₂, Hmb₃, #Hreg, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁, hst₂, hwl₂, hst₃, hwl₃⟩ := Hal
-  obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
-  -- (2026-10-24, rafthttp stage 6d) the directory well formed; the three peer addresses reserved
-  -- for the raft protocol
-  have Hnz := putget3.id_nz id₁ id₂ id₃ bootLog Hbf
+  -- (2026-10-24, rafthttp stage 6d) the directory well formed, its hosts the peer addresses
+  have Hnz := common.id_nz id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have Hdok : netDirOk (dir3 id₁ id₂ id₃) :=
     dir3_ok id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
-  imod (netHttp_reserve3 γn peerAddr₁ peerAddr₂ peerAddr₃ (by rw [hγn2]; exact Hdok.1)
-      (fun i h hm => dir3_host id₁ id₂ id₃ i h (by rw [← hγn2]; exact hm)))
-    $$ Hreg Hf₁ Hf₂ Hf₃ with ⟨#Hnet, Ho₁, Ho₂, Ho₃⟩
-  ihave #Hsl₁ := Hnet $$ %id₁
-  ihave #Hsl₂ := Hnet $$ %id₂
-  ihave #Hsl₃ := Hnet $$ %id₃
+  imod (common.alloc3 W id₁ id₂ id₃ bootLog Hbf.idLow Hbf.idLow0 Hbf.boot (dir3 id₁ id₂ id₃)
+      peerAddr₁ peerAddr₂ peerAddr₃ Hdok.1 (dir3_host id₁ id₂ id₃) (by omega)) $$ Hf₁ Hf₂ Hf₃
+    with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Ho₁⟩, Hmb₂,
+    ⟨#Hsl₂, Ho₂⟩, Hmb₃, ⟨#Hsl₃, Ho₃⟩, Hetcd⟩
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁, hst₂, hwl₂, hst₃, hwl₃, -⟩ :=
+    Hal
+  obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members, each served
   iunfold memberBoot at Hmb₁
@@ -264,7 +262,7 @@ theorem startCluster.wp_proof
     refine ⟨by simp, fun e he => ?_⟩
     simp only [List.mem_cons, List.not_mem_nil, or_false] at he
     rcases he with rfl | rfl | rfl <;> (unfold plainEndpoint; decide)
-  wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
+  wp_apply (wp_NewClients _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
       (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) (by omega) Hlg hpl) $$ [] as %cl₁ %cerr₁ Hcl₁
   · iframe #
   icases Hcl₁ with (Hok₁ | %Hcfail)
@@ -278,7 +276,7 @@ theorem startCluster.wp_proof
   icases Hok₁ with ⟨%Hcerr, #Hnc₁⟩
   subst Hcerr
   wp_auto
-  wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
+  wp_apply (wp_NewClients _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
       (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) (by omega) Hlg hpl) $$ [] as %cl₂ %cerr₂ Hcl₂
   · iframe #
   icases Hcl₂ with (Hok₂ | %Hcfail)
@@ -292,7 +290,7 @@ theorem startCluster.wp_proof
   icases Hok₂ with ⟨%Hcerr, #Hnc₂⟩
   subst Hcerr
   wp_auto
-  wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
+  wp_apply (wp_NewClients _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
       (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) (by omega) Hlg hpl) $$ [] as %cl₃ %cerr₃ Hcl₃
   · iframe #
   icases Hcl₃ with (Hok₃ | %Hcfail)

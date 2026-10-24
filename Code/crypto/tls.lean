@@ -8,470 +8,469 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def crypto.tls : GoString := go!"crypto/tls"
+noncomputable def crypto.tls : GoString := go!"crypto/tls"
 end pkg_id
 
 namespace crypto.tls
 
-def AlertError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AlertError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.AlertError" [])
 
 attribute [irreducible] AlertError.ty
 
-def alert.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def alert.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.alert" [])
 
 attribute [irreducible] alert.ty
 
-def weakCertCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def weakCertCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.weakCertCache" [])
 
 attribute [irreducible] weakCertCache.ty
 
-def CipherSuite.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CipherSuite.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.CipherSuite" [])
 
 attribute [irreducible] CipherSuite.ty
 
-def cipherSuite.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cipherSuite.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.cipherSuite" [])
 
 attribute [irreducible] cipherSuite.ty
 
-def cipherSuiteTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cipherSuiteTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.cipherSuiteTLS13" [])
 
 attribute [irreducible] cipherSuiteTLS13.ty
 
-def aead.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def aead.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.aead" [])
 
 attribute [irreducible] aead.ty
 
-def prefixNonceAEAD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def prefixNonceAEAD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.prefixNonceAEAD" [])
 
 attribute [irreducible] prefixNonceAEAD.ty
 
-def xorNonceAEAD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def xorNonceAEAD.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.xorNonceAEAD" [])
 
 attribute [irreducible] xorNonceAEAD.ty
 
-def constantTimeHash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def constantTimeHash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.constantTimeHash" [])
 
 attribute [irreducible] constantTimeHash.ty
 
-def cthWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cthWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.cthWrapper" [])
 
 attribute [irreducible] cthWrapper.ty
 
-def recordType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def recordType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.recordType" [])
 
 attribute [irreducible] recordType.ty
 
-def CurveID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CurveID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.CurveID" [])
 
 attribute [irreducible] CurveID.ty
 
-def keyShare.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def keyShare.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.keyShare" [])
 
 attribute [irreducible] keyShare.ty
 
-def pskIdentity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pskIdentity.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.pskIdentity" [])
 
 attribute [irreducible] pskIdentity.ty
 
-def ConnectionState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConnectionState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.ConnectionState" [])
 
 attribute [irreducible] ConnectionState.ty
 
-def ClientAuthType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientAuthType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.ClientAuthType" [])
 
 attribute [irreducible] ClientAuthType.ty
 
-def ClientSessionCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientSessionCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.ClientSessionCache" [])
 
 attribute [irreducible] ClientSessionCache.ty
 
-def SignatureScheme.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SignatureScheme.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.SignatureScheme" [])
 
 attribute [irreducible] SignatureScheme.ty
 
-def ClientHelloInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientHelloInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.ClientHelloInfo" [])
 
 attribute [irreducible] ClientHelloInfo.ty
 
-def CertificateRequestInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CertificateRequestInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.CertificateRequestInfo" [])
 
 attribute [irreducible] CertificateRequestInfo.ty
 
-def RenegotiationSupport.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RenegotiationSupport.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.RenegotiationSupport" [])
 
 attribute [irreducible] RenegotiationSupport.ty
 
-def Config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.Config" [])
 
 attribute [irreducible] Config.ty
 
-def EncryptedClientHelloKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EncryptedClientHelloKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.EncryptedClientHelloKey" [])
 
 attribute [irreducible] EncryptedClientHelloKey.ty
 
-def ticketKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ticketKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.ticketKey" [])
 
 attribute [irreducible] ticketKey.ty
 
-def Certificate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Certificate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.Certificate" [])
 
 attribute [irreducible] Certificate.ty
 
-def handshakeMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def handshakeMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.handshakeMessage" [])
 
 attribute [irreducible] handshakeMessage.ty
 
-def handshakeMessageWithOriginalBytes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def handshakeMessageWithOriginalBytes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.handshakeMessageWithOriginalBytes" [])
 
 attribute [irreducible] handshakeMessageWithOriginalBytes.ty
 
-def lruSessionCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lruSessionCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.lruSessionCache" [])
 
 attribute [irreducible] lruSessionCache.ty
 
-def lruSessionCacheEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lruSessionCacheEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.lruSessionCacheEntry" [])
 
 attribute [irreducible] lruSessionCacheEntry.ty
 
-def CertificateVerificationError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CertificateVerificationError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.CertificateVerificationError" [])
 
 attribute [irreducible] CertificateVerificationError.ty
 
-def Conn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Conn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.Conn" [])
 
 attribute [irreducible] Conn.ty
 
-def halfConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def halfConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.halfConn" [])
 
 attribute [irreducible] halfConn.ty
 
-def permanentError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def permanentError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.permanentError" [])
 
 attribute [irreducible] permanentError.ty
 
-def cbcMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cbcMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.cbcMode" [])
 
 attribute [irreducible] cbcMode.ty
 
-def RecordHeaderError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RecordHeaderError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.RecordHeaderError" [])
 
 attribute [irreducible] RecordHeaderError.ty
 
-def echCipher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def echCipher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.echCipher" [])
 
 attribute [irreducible] echCipher.ty
 
-def echExtension.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def echExtension.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.echExtension" [])
 
 attribute [irreducible] echExtension.ty
 
-def echConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def echConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.echConfig" [])
 
 attribute [irreducible] echConfig.ty
 
-def echConfigErr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def echConfigErr.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.echConfigErr" [])
 
 attribute [irreducible] echConfigErr.ty
 
-def rawExtension.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rawExtension.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.rawExtension" [])
 
 attribute [irreducible] rawExtension.ty
 
-def ECHRejectionError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ECHRejectionError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.ECHRejectionError" [])
 
 attribute [irreducible] ECHRejectionError.ty
 
-def echExtType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def echExtType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.echExtType" [])
 
 attribute [irreducible] echExtType.ty
 
-def clientHandshakeState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientHandshakeState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.clientHandshakeState" [])
 
 attribute [irreducible] clientHandshakeState.ty
 
-def echClientContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def echClientContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.echClientContext" [])
 
 attribute [irreducible] echClientContext.ty
 
-def clientHandshakeStateTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientHandshakeStateTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.clientHandshakeStateTLS13" [])
 
 attribute [irreducible] clientHandshakeStateTLS13.ty
 
-def marshalingFunction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def marshalingFunction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.marshalingFunction" [])
 
 attribute [irreducible] marshalingFunction.ty
 
-def clientHelloMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientHelloMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.clientHelloMsg" [])
 
 attribute [irreducible] clientHelloMsg.ty
 
-def serverHelloMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverHelloMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.serverHelloMsg" [])
 
 attribute [irreducible] serverHelloMsg.ty
 
-def encryptedExtensionsMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encryptedExtensionsMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.encryptedExtensionsMsg" [])
 
 attribute [irreducible] encryptedExtensionsMsg.ty
 
-def endOfEarlyDataMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def endOfEarlyDataMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.endOfEarlyDataMsg" [])
 
 attribute [irreducible] endOfEarlyDataMsg.ty
 
-def keyUpdateMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def keyUpdateMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.keyUpdateMsg" [])
 
 attribute [irreducible] keyUpdateMsg.ty
 
-def newSessionTicketMsgTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def newSessionTicketMsgTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.newSessionTicketMsgTLS13" [])
 
 attribute [irreducible] newSessionTicketMsgTLS13.ty
 
-def certificateRequestMsgTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def certificateRequestMsgTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.certificateRequestMsgTLS13" [])
 
 attribute [irreducible] certificateRequestMsgTLS13.ty
 
-def certificateMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def certificateMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.certificateMsg" [])
 
 attribute [irreducible] certificateMsg.ty
 
-def certificateMsgTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def certificateMsgTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.certificateMsgTLS13" [])
 
 attribute [irreducible] certificateMsgTLS13.ty
 
-def serverKeyExchangeMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverKeyExchangeMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.serverKeyExchangeMsg" [])
 
 attribute [irreducible] serverKeyExchangeMsg.ty
 
-def certificateStatusMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def certificateStatusMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.certificateStatusMsg" [])
 
 attribute [irreducible] certificateStatusMsg.ty
 
-def serverHelloDoneMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverHelloDoneMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.serverHelloDoneMsg" [])
 
 attribute [irreducible] serverHelloDoneMsg.ty
 
-def clientKeyExchangeMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientKeyExchangeMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.clientKeyExchangeMsg" [])
 
 attribute [irreducible] clientKeyExchangeMsg.ty
 
-def finishedMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def finishedMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.finishedMsg" [])
 
 attribute [irreducible] finishedMsg.ty
 
-def certificateRequestMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def certificateRequestMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.certificateRequestMsg" [])
 
 attribute [irreducible] certificateRequestMsg.ty
 
-def certificateVerifyMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def certificateVerifyMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.certificateVerifyMsg" [])
 
 attribute [irreducible] certificateVerifyMsg.ty
 
-def newSessionTicketMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def newSessionTicketMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.newSessionTicketMsg" [])
 
 attribute [irreducible] newSessionTicketMsg.ty
 
-def helloRequestMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def helloRequestMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.helloRequestMsg" [])
 
 attribute [irreducible] helloRequestMsg.ty
 
-def transcriptHash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def transcriptHash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.transcriptHash" [])
 
 attribute [irreducible] transcriptHash.ty
 
-def serverHandshakeState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverHandshakeState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.serverHandshakeState" [])
 
 attribute [irreducible] serverHandshakeState.ty
 
-def echServerContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def echServerContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.echServerContext" [])
 
 attribute [irreducible] echServerContext.ty
 
-def serverHandshakeStateTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverHandshakeStateTLS13.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.serverHandshakeStateTLS13" [])
 
 attribute [irreducible] serverHandshakeStateTLS13.ty
 
-def keyAgreement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def keyAgreement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.keyAgreement" [])
 
 attribute [irreducible] keyAgreement.ty
 
-def rsaKeyAgreement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rsaKeyAgreement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.rsaKeyAgreement" [])
 
 attribute [irreducible] rsaKeyAgreement.ty
 
-def ecdheKeyAgreement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ecdheKeyAgreement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.ecdheKeyAgreement" [])
 
 attribute [irreducible] ecdheKeyAgreement.ty
 
-def keySharePrivateKeys.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def keySharePrivateKeys.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.keySharePrivateKeys" [])
 
 attribute [irreducible] keySharePrivateKeys.ty
 
-def keyExchange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def keyExchange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.keyExchange" [])
 
 attribute [irreducible] keyExchange.ty
 
-def mlkem1024KeyExchange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mlkem1024KeyExchange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.mlkem1024KeyExchange" [])
 
 attribute [irreducible] mlkem1024KeyExchange.ty
 
-def ecdhKeyExchange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ecdhKeyExchange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.ecdhKeyExchange" [])
 
 attribute [irreducible] ecdhKeyExchange.ty
 
-def hybridKeyExchange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def hybridKeyExchange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.hybridKeyExchange" [])
 
 attribute [irreducible] hybridKeyExchange.ty
 
-def prfFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def prfFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.prfFunc" [])
 
 attribute [irreducible] prfFunc.ty
 
-def finishedHash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def finishedHash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.finishedHash" [])
 
 attribute [irreducible] finishedHash.ty
 
-def QUICEncryptionLevel.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def QUICEncryptionLevel.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.QUICEncryptionLevel" [])
 
 attribute [irreducible] QUICEncryptionLevel.ty
 
-def QUICConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def QUICConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.QUICConn" [])
 
 attribute [irreducible] QUICConn.ty
 
-def QUICConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def QUICConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.QUICConfig" [])
 
 attribute [irreducible] QUICConfig.ty
 
-def QUICEventKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def QUICEventKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.QUICEventKind" [])
 
 attribute [irreducible] QUICEventKind.ty
 
-def QUICEvent.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def QUICEvent.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.QUICEvent" [])
 
 attribute [irreducible] QUICEvent.ty
 
-def quicState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def quicState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.quicState" [])
 
 attribute [irreducible] quicState.ty
 
-def QUICSessionTicketOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def QUICSessionTicketOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.QUICSessionTicketOptions" [])
 
 attribute [irreducible] QUICSessionTicketOptions.ty
 
-def SessionState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SessionState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.SessionState" [])
 
 attribute [irreducible] SessionState.ty
 
-def ClientSessionState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientSessionState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.ClientSessionState" [])
 
 attribute [irreducible] ClientSessionState.ty
 
-def listener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.listener" [])
 
 attribute [irreducible] listener.ty
 
-def timeoutError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timeoutError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.timeoutError" [])
 
 attribute [irreducible] timeoutError.ty
 
-def Dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"crypto/tls.Dialer" [])
 
 attribute [irreducible] Dialer.ty
@@ -1623,7 +1622,7 @@ noncomputable def X509KeyPair [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def parsePrivateKey [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"crypto/tls.parsePrivateKey"
 
-instance info' : PkgInfo pkg_id.crypto.tls where
+noncomputable instance info' : PkgInfo pkg_id.crypto.tls where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -1784,7 +1783,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev AlertError [FfiSyntax] : Type := w8
 
-@[reducible] def AlertError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AlertError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint8
 
 class AlertError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1794,7 +1793,7 @@ attribute [instance] AlertError.TypeAssumptions.underlying
 
 abbrev alert [FfiSyntax] : Type := w8
 
-@[reducible] def alert.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def alert.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint8
 
 class alert.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1822,23 +1821,23 @@ structure CipherSuite [FfiSyntax] where
   SupportedVersions' : GoSlice
   Insecure' : Bool
 
-instance CipherSuite.zero_val [FfiSyntax] : ZeroVal CipherSuite :=
+noncomputable instance CipherSuite.zero_val [FfiSyntax] : ZeroVal CipherSuite :=
   ⟨CipherSuite.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def CipherSuite.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CipherSuite.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ID" go.uint16),
 (go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"SupportedVersions" (go.GoType.SliceType go.uint16)),
 (go.field_decl.FieldDecl go!"Insecure" go.bool)]
 
-@[irreducible] def CipherSuite.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CipherSuite.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   CipherSuite.fieldsUnsealed
 
-instance equals_unfold_CipherSuite [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CipherSuite [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold CipherSuite.fields CipherSuite.fieldsUnsealed :=
   ⟨by unfold CipherSuite.fields; rfl⟩
 
-@[reducible] def CipherSuite.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CipherSuite.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CipherSuite.fields)
 
 class CipherSuite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1946,20 +1945,20 @@ structure cthWrapper [FfiSyntax] where
   mk ::
   h' : constantTimeHash
 
-instance cthWrapper.zero_val [FfiSyntax] : ZeroVal cthWrapper :=
+noncomputable instance cthWrapper.zero_val [FfiSyntax] : ZeroVal cthWrapper :=
   ⟨cthWrapper.mk zeroValDef⟩
 
-@[reducible] def cthWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def cthWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"h" constantTimeHash.ty)]
 
-@[irreducible] def cthWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def cthWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   cthWrapper.fieldsUnsealed
 
-instance equals_unfold_cthWrapper [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_cthWrapper [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold cthWrapper.fields cthWrapper.fieldsUnsealed :=
   ⟨by unfold cthWrapper.fields; rfl⟩
 
-@[reducible] def cthWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def cthWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType cthWrapper.fields)
 
 class cthWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1975,7 +1974,7 @@ attribute [instance] cthWrapper.TypeAssumptions.type_repr
 
 abbrev recordType [FfiSyntax] : Type := w8
 
-@[reducible] def recordType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def recordType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint8
 
 class recordType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1985,7 +1984,7 @@ attribute [instance] recordType.TypeAssumptions.underlying
 
 abbrev CurveID [FfiSyntax] : Type := w16
 
-@[reducible] def CurveID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CurveID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint16
 
 class CurveID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1998,21 +1997,21 @@ structure keyShare [FfiSyntax] where
   group' : CurveID
   data' : GoSlice
 
-instance keyShare.zero_val [FfiSyntax] : ZeroVal keyShare :=
+noncomputable instance keyShare.zero_val [FfiSyntax] : ZeroVal keyShare :=
   ⟨keyShare.mk zeroValDef zeroValDef⟩
 
-@[reducible] def keyShare.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def keyShare.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"group" CurveID.ty),
 (go.field_decl.FieldDecl go!"data" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def keyShare.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def keyShare.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   keyShare.fieldsUnsealed
 
-instance equals_unfold_keyShare [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_keyShare [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold keyShare.fields keyShare.fieldsUnsealed :=
   ⟨by unfold keyShare.fields; rfl⟩
 
-@[reducible] def keyShare.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def keyShare.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType keyShare.fields)
 
 class keyShare.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2035,21 +2034,21 @@ structure pskIdentity [FfiSyntax] where
   label' : GoSlice
   obfuscatedTicketAge' : w32
 
-instance pskIdentity.zero_val [FfiSyntax] : ZeroVal pskIdentity :=
+noncomputable instance pskIdentity.zero_val [FfiSyntax] : ZeroVal pskIdentity :=
   ⟨pskIdentity.mk zeroValDef zeroValDef⟩
 
-@[reducible] def pskIdentity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def pskIdentity.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"label" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"obfuscatedTicketAge" go.uint32)]
 
-@[irreducible] def pskIdentity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def pskIdentity.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   pskIdentity.fieldsUnsealed
 
-instance equals_unfold_pskIdentity [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_pskIdentity [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold pskIdentity.fields pskIdentity.fieldsUnsealed :=
   ⟨by unfold pskIdentity.fields; rfl⟩
 
-@[reducible] def pskIdentity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def pskIdentity.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType pskIdentity.fields)
 
 class pskIdentity.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2082,7 +2081,7 @@ attribute [instance] ConnectionState.TypeAssumptions.type_repr
 
 abbrev ClientAuthType [FfiSyntax] : Type := w64
 
-@[reducible] def ClientAuthType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClientAuthType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class ClientAuthType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2092,7 +2091,7 @@ attribute [instance] ClientAuthType.TypeAssumptions.underlying
 
 abbrev ClientSessionCache [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ClientSessionCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClientSessionCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [go.string] false [(go.GoType.PointerType ClientSessionState.ty), go.bool])), (go.InterfaceElem.MethodElem go!"Put" (go.signature.Signature [go.string, (go.GoType.PointerType ClientSessionState.ty)] false []))])
 
 class ClientSessionCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2102,7 +2101,7 @@ attribute [instance] ClientSessionCache.TypeAssumptions.underlying
 
 abbrev SignatureScheme [FfiSyntax] : Type := w16
 
-@[reducible] def SignatureScheme.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SignatureScheme.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint16
 
 class SignatureScheme.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2138,7 +2137,7 @@ attribute [instance] CertificateRequestInfo.TypeAssumptions.type_repr
 
 abbrev RenegotiationSupport [FfiSyntax] : Type := w64
 
-@[reducible] def RenegotiationSupport.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RenegotiationSupport.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class RenegotiationSupport.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2165,22 +2164,22 @@ structure EncryptedClientHelloKey [FfiSyntax] where
   PrivateKey' : GoSlice
   SendAsRetry' : Bool
 
-instance EncryptedClientHelloKey.zero_val [FfiSyntax] : ZeroVal EncryptedClientHelloKey :=
+noncomputable instance EncryptedClientHelloKey.zero_val [FfiSyntax] : ZeroVal EncryptedClientHelloKey :=
   ⟨EncryptedClientHelloKey.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def EncryptedClientHelloKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EncryptedClientHelloKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Config" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"PrivateKey" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"SendAsRetry" go.bool)]
 
-@[irreducible] def EncryptedClientHelloKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EncryptedClientHelloKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   EncryptedClientHelloKey.fieldsUnsealed
 
-instance equals_unfold_EncryptedClientHelloKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EncryptedClientHelloKey [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold EncryptedClientHelloKey.fields EncryptedClientHelloKey.fieldsUnsealed :=
   ⟨by unfold EncryptedClientHelloKey.fields; rfl⟩
 
-@[reducible] def EncryptedClientHelloKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EncryptedClientHelloKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EncryptedClientHelloKey.fields)
 
 class EncryptedClientHelloKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2230,7 +2229,7 @@ attribute [instance] Certificate.TypeAssumptions.type_repr
 
 abbrev handshakeMessage [FfiSyntax] : Type := GoInterface
 
-@[reducible] def handshakeMessage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def handshakeMessage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"marshal" (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])), (go.InterfaceElem.MethodElem go!"unmarshal" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool]))])
 
 class handshakeMessage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2240,7 +2239,7 @@ attribute [instance] handshakeMessage.TypeAssumptions.underlying
 
 abbrev handshakeMessageWithOriginalBytes [FfiSyntax] : Type := GoInterface
 
-@[reducible] def handshakeMessageWithOriginalBytes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def handshakeMessageWithOriginalBytes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"originalBytes" (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm handshakeMessage.ty)])])
 
 class handshakeMessageWithOriginalBytes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2266,21 +2265,21 @@ structure lruSessionCacheEntry [FfiSyntax] where
   sessionKey' : GoString
   state' : Loc
 
-instance lruSessionCacheEntry.zero_val [FfiSyntax] : ZeroVal lruSessionCacheEntry :=
+noncomputable instance lruSessionCacheEntry.zero_val [FfiSyntax] : ZeroVal lruSessionCacheEntry :=
   ⟨lruSessionCacheEntry.mk zeroValDef zeroValDef⟩
 
-@[reducible] def lruSessionCacheEntry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def lruSessionCacheEntry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"sessionKey" go.string),
 (go.field_decl.FieldDecl go!"state" (go.GoType.PointerType ClientSessionState.ty))]
 
-@[irreducible] def lruSessionCacheEntry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def lruSessionCacheEntry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   lruSessionCacheEntry.fieldsUnsealed
 
-instance equals_unfold_lruSessionCacheEntry [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_lruSessionCacheEntry [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold lruSessionCacheEntry.fields lruSessionCacheEntry.fieldsUnsealed :=
   ⟨by unfold lruSessionCacheEntry.fields; rfl⟩
 
-@[reducible] def lruSessionCacheEntry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def lruSessionCacheEntry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType lruSessionCacheEntry.fields)
 
 class lruSessionCacheEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2381,21 +2380,21 @@ structure echCipher [FfiSyntax] where
   KDFID' : w16
   AEADID' : w16
 
-instance echCipher.zero_val [FfiSyntax] : ZeroVal echCipher :=
+noncomputable instance echCipher.zero_val [FfiSyntax] : ZeroVal echCipher :=
   ⟨echCipher.mk zeroValDef zeroValDef⟩
 
-@[reducible] def echCipher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def echCipher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"KDFID" go.uint16),
 (go.field_decl.FieldDecl go!"AEADID" go.uint16)]
 
-@[irreducible] def echCipher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def echCipher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   echCipher.fieldsUnsealed
 
-instance equals_unfold_echCipher [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_echCipher [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold echCipher.fields echCipher.fieldsUnsealed :=
   ⟨by unfold echCipher.fields; rfl⟩
 
-@[reducible] def echCipher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def echCipher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType echCipher.fields)
 
 class echCipher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2418,21 +2417,21 @@ structure echExtension [FfiSyntax] where
   Type' : w16
   Data' : GoSlice
 
-instance echExtension.zero_val [FfiSyntax] : ZeroVal echExtension :=
+noncomputable instance echExtension.zero_val [FfiSyntax] : ZeroVal echExtension :=
   ⟨echExtension.mk zeroValDef zeroValDef⟩
 
-@[reducible] def echExtension.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def echExtension.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Type" go.uint16),
 (go.field_decl.FieldDecl go!"Data" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def echExtension.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def echExtension.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   echExtension.fieldsUnsealed
 
-instance equals_unfold_echExtension [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_echExtension [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold echExtension.fields echExtension.fieldsUnsealed :=
   ⟨by unfold echExtension.fields; rfl⟩
 
-@[reducible] def echExtension.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def echExtension.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType echExtension.fields)
 
 class echExtension.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2463,10 +2462,10 @@ structure echConfig [FfiSyntax] where
   PublicName' : GoSlice
   Extensions' : GoSlice
 
-instance echConfig.zero_val [FfiSyntax] : ZeroVal echConfig :=
+noncomputable instance echConfig.zero_val [FfiSyntax] : ZeroVal echConfig :=
   ⟨echConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def echConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def echConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"raw" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Version" go.uint16),
 (go.field_decl.FieldDecl go!"Length" go.uint16),
@@ -2478,14 +2477,14 @@ instance echConfig.zero_val [FfiSyntax] : ZeroVal echConfig :=
 (go.field_decl.FieldDecl go!"PublicName" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Extensions" (go.GoType.SliceType echExtension.ty))]
 
-@[irreducible] def echConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def echConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   echConfig.fieldsUnsealed
 
-instance equals_unfold_echConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_echConfig [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold echConfig.fields echConfig.fieldsUnsealed :=
   ⟨by unfold echConfig.fields; rfl⟩
 
-@[reducible] def echConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def echConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType echConfig.fields)
 
 class echConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2539,20 +2538,20 @@ structure echConfigErr [FfiSyntax] where
   mk ::
   field' : GoString
 
-instance echConfigErr.zero_val [FfiSyntax] : ZeroVal echConfigErr :=
+noncomputable instance echConfigErr.zero_val [FfiSyntax] : ZeroVal echConfigErr :=
   ⟨echConfigErr.mk zeroValDef⟩
 
-@[reducible] def echConfigErr.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def echConfigErr.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"field" go.string)]
 
-@[irreducible] def echConfigErr.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def echConfigErr.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   echConfigErr.fieldsUnsealed
 
-instance equals_unfold_echConfigErr [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_echConfigErr [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold echConfigErr.fields echConfigErr.fieldsUnsealed :=
   ⟨by unfold echConfigErr.fields; rfl⟩
 
-@[reducible] def echConfigErr.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def echConfigErr.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType echConfigErr.fields)
 
 class echConfigErr.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2571,21 +2570,21 @@ structure rawExtension [FfiSyntax] where
   extType' : w16
   data' : GoSlice
 
-instance rawExtension.zero_val [FfiSyntax] : ZeroVal rawExtension :=
+noncomputable instance rawExtension.zero_val [FfiSyntax] : ZeroVal rawExtension :=
   ⟨rawExtension.mk zeroValDef zeroValDef⟩
 
-@[reducible] def rawExtension.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def rawExtension.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"extType" go.uint16),
 (go.field_decl.FieldDecl go!"data" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def rawExtension.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def rawExtension.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   rawExtension.fieldsUnsealed
 
-instance equals_unfold_rawExtension [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_rawExtension [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold rawExtension.fields rawExtension.fieldsUnsealed :=
   ⟨by unfold rawExtension.fields; rfl⟩
 
-@[reducible] def rawExtension.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def rawExtension.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType rawExtension.fields)
 
 class rawExtension.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2607,20 +2606,20 @@ structure ECHRejectionError [FfiSyntax] where
   mk ::
   RetryConfigList' : GoSlice
 
-instance ECHRejectionError.zero_val [FfiSyntax] : ZeroVal ECHRejectionError :=
+noncomputable instance ECHRejectionError.zero_val [FfiSyntax] : ZeroVal ECHRejectionError :=
   ⟨ECHRejectionError.mk zeroValDef⟩
 
-@[reducible] def ECHRejectionError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ECHRejectionError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"RetryConfigList" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def ECHRejectionError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ECHRejectionError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ECHRejectionError.fieldsUnsealed
 
-instance equals_unfold_ECHRejectionError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ECHRejectionError [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ECHRejectionError.fields ECHRejectionError.fieldsUnsealed :=
   ⟨by unfold ECHRejectionError.fields; rfl⟩
 
-@[reducible] def ECHRejectionError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ECHRejectionError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ECHRejectionError.fields)
 
 class ECHRejectionError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2636,7 +2635,7 @@ attribute [instance] ECHRejectionError.TypeAssumptions.type_repr
 
 abbrev echExtType [FfiSyntax] : Type := w8
 
-@[reducible] def echExtType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def echExtType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint8
 
 class echExtType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2728,10 +2727,10 @@ structure clientHelloMsg [FfiSyntax] where
   encryptedClientHello' : GoSlice
   extensions' : GoSlice
 
-instance clientHelloMsg.zero_val [FfiSyntax] : ZeroVal clientHelloMsg :=
+noncomputable instance clientHelloMsg.zero_val [FfiSyntax] : ZeroVal clientHelloMsg :=
   ⟨clientHelloMsg.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def clientHelloMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def clientHelloMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"original" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"vers" go.uint16),
 (go.field_decl.FieldDecl go!"random" (go.GoType.SliceType go.byte)),
@@ -2762,14 +2761,14 @@ instance clientHelloMsg.zero_val [FfiSyntax] : ZeroVal clientHelloMsg :=
 (go.field_decl.FieldDecl go!"encryptedClientHello" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"extensions" (go.GoType.SliceType go.uint16))]
 
-@[irreducible] def clientHelloMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def clientHelloMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   clientHelloMsg.fieldsUnsealed
 
-instance equals_unfold_clientHelloMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_clientHelloMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold clientHelloMsg.fields clientHelloMsg.fieldsUnsealed :=
   ⟨by unfold clientHelloMsg.fields; rfl⟩
 
-@[reducible] def clientHelloMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def clientHelloMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType clientHelloMsg.fields)
 
 class clientHelloMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2920,10 +2919,10 @@ structure serverHelloMsg [FfiSyntax] where
   cookie' : GoSlice
   selectedGroup' : CurveID
 
-instance serverHelloMsg.zero_val [FfiSyntax] : ZeroVal serverHelloMsg :=
+noncomputable instance serverHelloMsg.zero_val [FfiSyntax] : ZeroVal serverHelloMsg :=
   ⟨serverHelloMsg.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def serverHelloMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def serverHelloMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"original" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"vers" go.uint16),
 (go.field_decl.FieldDecl go!"random" (go.GoType.SliceType go.byte)),
@@ -2947,14 +2946,14 @@ instance serverHelloMsg.zero_val [FfiSyntax] : ZeroVal serverHelloMsg :=
 (go.field_decl.FieldDecl go!"cookie" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"selectedGroup" CurveID.ty)]
 
-@[irreducible] def serverHelloMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def serverHelloMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   serverHelloMsg.fieldsUnsealed
 
-instance equals_unfold_serverHelloMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_serverHelloMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold serverHelloMsg.fields serverHelloMsg.fieldsUnsealed :=
   ⟨by unfold serverHelloMsg.fields; rfl⟩
 
-@[reducible] def serverHelloMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serverHelloMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType serverHelloMsg.fields)
 
 class serverHelloMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3060,24 +3059,24 @@ structure encryptedExtensionsMsg [FfiSyntax] where
   echRetryConfigs' : GoSlice
   serverNameAck' : Bool
 
-instance encryptedExtensionsMsg.zero_val [FfiSyntax] : ZeroVal encryptedExtensionsMsg :=
+noncomputable instance encryptedExtensionsMsg.zero_val [FfiSyntax] : ZeroVal encryptedExtensionsMsg :=
   ⟨encryptedExtensionsMsg.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def encryptedExtensionsMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def encryptedExtensionsMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"alpnProtocol" go.string),
 (go.field_decl.FieldDecl go!"quicTransportParameters" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"earlyData" go.bool),
 (go.field_decl.FieldDecl go!"echRetryConfigs" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"serverNameAck" go.bool)]
 
-@[irreducible] def encryptedExtensionsMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def encryptedExtensionsMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   encryptedExtensionsMsg.fieldsUnsealed
 
-instance equals_unfold_encryptedExtensionsMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_encryptedExtensionsMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold encryptedExtensionsMsg.fields encryptedExtensionsMsg.fieldsUnsealed :=
   ⟨by unfold encryptedExtensionsMsg.fields; rfl⟩
 
-@[reducible] def encryptedExtensionsMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def encryptedExtensionsMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType encryptedExtensionsMsg.fields)
 
 class encryptedExtensionsMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3110,20 +3109,20 @@ attribute [instance] encryptedExtensionsMsg.TypeAssumptions.type_repr
 structure endOfEarlyDataMsg [FfiSyntax] where
   mk ::
 
-instance endOfEarlyDataMsg.zero_val [FfiSyntax] : ZeroVal endOfEarlyDataMsg :=
+noncomputable instance endOfEarlyDataMsg.zero_val [FfiSyntax] : ZeroVal endOfEarlyDataMsg :=
   ⟨endOfEarlyDataMsg.mk⟩
 
-@[reducible] def endOfEarlyDataMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def endOfEarlyDataMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def endOfEarlyDataMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def endOfEarlyDataMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   endOfEarlyDataMsg.fieldsUnsealed
 
-instance equals_unfold_endOfEarlyDataMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_endOfEarlyDataMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold endOfEarlyDataMsg.fields endOfEarlyDataMsg.fieldsUnsealed :=
   ⟨by unfold endOfEarlyDataMsg.fields; rfl⟩
 
-@[reducible] def endOfEarlyDataMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def endOfEarlyDataMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType endOfEarlyDataMsg.fields)
 
 class endOfEarlyDataMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3137,20 +3136,20 @@ structure keyUpdateMsg [FfiSyntax] where
   mk ::
   updateRequested' : Bool
 
-instance keyUpdateMsg.zero_val [FfiSyntax] : ZeroVal keyUpdateMsg :=
+noncomputable instance keyUpdateMsg.zero_val [FfiSyntax] : ZeroVal keyUpdateMsg :=
   ⟨keyUpdateMsg.mk zeroValDef⟩
 
-@[reducible] def keyUpdateMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def keyUpdateMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"updateRequested" go.bool)]
 
-@[irreducible] def keyUpdateMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def keyUpdateMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   keyUpdateMsg.fieldsUnsealed
 
-instance equals_unfold_keyUpdateMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_keyUpdateMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold keyUpdateMsg.fields keyUpdateMsg.fieldsUnsealed :=
   ⟨by unfold keyUpdateMsg.fields; rfl⟩
 
-@[reducible] def keyUpdateMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def keyUpdateMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType keyUpdateMsg.fields)
 
 class keyUpdateMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3172,24 +3171,24 @@ structure newSessionTicketMsgTLS13 [FfiSyntax] where
   label' : GoSlice
   maxEarlyData' : w32
 
-instance newSessionTicketMsgTLS13.zero_val [FfiSyntax] : ZeroVal newSessionTicketMsgTLS13 :=
+noncomputable instance newSessionTicketMsgTLS13.zero_val [FfiSyntax] : ZeroVal newSessionTicketMsgTLS13 :=
   ⟨newSessionTicketMsgTLS13.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def newSessionTicketMsgTLS13.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def newSessionTicketMsgTLS13.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lifetime" go.uint32),
 (go.field_decl.FieldDecl go!"ageAdd" go.uint32),
 (go.field_decl.FieldDecl go!"nonce" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"label" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"maxEarlyData" go.uint32)]
 
-@[irreducible] def newSessionTicketMsgTLS13.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def newSessionTicketMsgTLS13.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   newSessionTicketMsgTLS13.fieldsUnsealed
 
-instance equals_unfold_newSessionTicketMsgTLS13 [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_newSessionTicketMsgTLS13 [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold newSessionTicketMsgTLS13.fields newSessionTicketMsgTLS13.fieldsUnsealed :=
   ⟨by unfold newSessionTicketMsgTLS13.fields; rfl⟩
 
-@[reducible] def newSessionTicketMsgTLS13.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def newSessionTicketMsgTLS13.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType newSessionTicketMsgTLS13.fields)
 
 class newSessionTicketMsgTLS13.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3227,24 +3226,24 @@ structure certificateRequestMsgTLS13 [FfiSyntax] where
   supportedSignatureAlgorithmsCert' : GoSlice
   certificateAuthorities' : GoSlice
 
-instance certificateRequestMsgTLS13.zero_val [FfiSyntax] : ZeroVal certificateRequestMsgTLS13 :=
+noncomputable instance certificateRequestMsgTLS13.zero_val [FfiSyntax] : ZeroVal certificateRequestMsgTLS13 :=
   ⟨certificateRequestMsgTLS13.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def certificateRequestMsgTLS13.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def certificateRequestMsgTLS13.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ocspStapling" go.bool),
 (go.field_decl.FieldDecl go!"scts" go.bool),
 (go.field_decl.FieldDecl go!"supportedSignatureAlgorithms" (go.GoType.SliceType SignatureScheme.ty)),
 (go.field_decl.FieldDecl go!"supportedSignatureAlgorithmsCert" (go.GoType.SliceType SignatureScheme.ty)),
 (go.field_decl.FieldDecl go!"certificateAuthorities" (go.GoType.SliceType (go.GoType.SliceType go.byte)))]
 
-@[irreducible] def certificateRequestMsgTLS13.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def certificateRequestMsgTLS13.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   certificateRequestMsgTLS13.fieldsUnsealed
 
-instance equals_unfold_certificateRequestMsgTLS13 [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_certificateRequestMsgTLS13 [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold certificateRequestMsgTLS13.fields certificateRequestMsgTLS13.fieldsUnsealed :=
   ⟨by unfold certificateRequestMsgTLS13.fields; rfl⟩
 
-@[reducible] def certificateRequestMsgTLS13.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def certificateRequestMsgTLS13.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType certificateRequestMsgTLS13.fields)
 
 class certificateRequestMsgTLS13.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3278,20 +3277,20 @@ structure certificateMsg [FfiSyntax] where
   mk ::
   certificates' : GoSlice
 
-instance certificateMsg.zero_val [FfiSyntax] : ZeroVal certificateMsg :=
+noncomputable instance certificateMsg.zero_val [FfiSyntax] : ZeroVal certificateMsg :=
   ⟨certificateMsg.mk zeroValDef⟩
 
-@[reducible] def certificateMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def certificateMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"certificates" (go.GoType.SliceType (go.GoType.SliceType go.byte)))]
 
-@[irreducible] def certificateMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def certificateMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   certificateMsg.fieldsUnsealed
 
-instance equals_unfold_certificateMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_certificateMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold certificateMsg.fields certificateMsg.fieldsUnsealed :=
   ⟨by unfold certificateMsg.fields; rfl⟩
 
-@[reducible] def certificateMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def certificateMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType certificateMsg.fields)
 
 class certificateMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3311,22 +3310,22 @@ structure certificateMsgTLS13 [FfiSyntax] where
   ocspStapling' : Bool
   scts' : Bool
 
-instance certificateMsgTLS13.zero_val [FfiSyntax] : ZeroVal certificateMsgTLS13 :=
+noncomputable instance certificateMsgTLS13.zero_val [FfiSyntax] : ZeroVal certificateMsgTLS13 :=
   ⟨certificateMsgTLS13.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def certificateMsgTLS13.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def certificateMsgTLS13.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"certificate" Certificate.ty),
 (go.field_decl.FieldDecl go!"ocspStapling" go.bool),
 (go.field_decl.FieldDecl go!"scts" go.bool)]
 
-@[irreducible] def certificateMsgTLS13.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def certificateMsgTLS13.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   certificateMsgTLS13.fieldsUnsealed
 
-instance equals_unfold_certificateMsgTLS13 [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_certificateMsgTLS13 [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold certificateMsgTLS13.fields certificateMsgTLS13.fieldsUnsealed :=
   ⟨by unfold certificateMsgTLS13.fields; rfl⟩
 
-@[reducible] def certificateMsgTLS13.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def certificateMsgTLS13.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType certificateMsgTLS13.fields)
 
 class certificateMsgTLS13.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3352,20 +3351,20 @@ structure serverKeyExchangeMsg [FfiSyntax] where
   mk ::
   key' : GoSlice
 
-instance serverKeyExchangeMsg.zero_val [FfiSyntax] : ZeroVal serverKeyExchangeMsg :=
+noncomputable instance serverKeyExchangeMsg.zero_val [FfiSyntax] : ZeroVal serverKeyExchangeMsg :=
   ⟨serverKeyExchangeMsg.mk zeroValDef⟩
 
-@[reducible] def serverKeyExchangeMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def serverKeyExchangeMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"key" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def serverKeyExchangeMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def serverKeyExchangeMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   serverKeyExchangeMsg.fieldsUnsealed
 
-instance equals_unfold_serverKeyExchangeMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_serverKeyExchangeMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold serverKeyExchangeMsg.fields serverKeyExchangeMsg.fieldsUnsealed :=
   ⟨by unfold serverKeyExchangeMsg.fields; rfl⟩
 
-@[reducible] def serverKeyExchangeMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serverKeyExchangeMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType serverKeyExchangeMsg.fields)
 
 class serverKeyExchangeMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3383,20 +3382,20 @@ structure certificateStatusMsg [FfiSyntax] where
   mk ::
   response' : GoSlice
 
-instance certificateStatusMsg.zero_val [FfiSyntax] : ZeroVal certificateStatusMsg :=
+noncomputable instance certificateStatusMsg.zero_val [FfiSyntax] : ZeroVal certificateStatusMsg :=
   ⟨certificateStatusMsg.mk zeroValDef⟩
 
-@[reducible] def certificateStatusMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def certificateStatusMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"response" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def certificateStatusMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def certificateStatusMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   certificateStatusMsg.fieldsUnsealed
 
-instance equals_unfold_certificateStatusMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_certificateStatusMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold certificateStatusMsg.fields certificateStatusMsg.fieldsUnsealed :=
   ⟨by unfold certificateStatusMsg.fields; rfl⟩
 
-@[reducible] def certificateStatusMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def certificateStatusMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType certificateStatusMsg.fields)
 
 class certificateStatusMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3413,20 +3412,20 @@ attribute [instance] certificateStatusMsg.TypeAssumptions.type_repr
 structure serverHelloDoneMsg [FfiSyntax] where
   mk ::
 
-instance serverHelloDoneMsg.zero_val [FfiSyntax] : ZeroVal serverHelloDoneMsg :=
+noncomputable instance serverHelloDoneMsg.zero_val [FfiSyntax] : ZeroVal serverHelloDoneMsg :=
   ⟨serverHelloDoneMsg.mk⟩
 
-@[reducible] def serverHelloDoneMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def serverHelloDoneMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def serverHelloDoneMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def serverHelloDoneMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   serverHelloDoneMsg.fieldsUnsealed
 
-instance equals_unfold_serverHelloDoneMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_serverHelloDoneMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold serverHelloDoneMsg.fields serverHelloDoneMsg.fieldsUnsealed :=
   ⟨by unfold serverHelloDoneMsg.fields; rfl⟩
 
-@[reducible] def serverHelloDoneMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serverHelloDoneMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType serverHelloDoneMsg.fields)
 
 class serverHelloDoneMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3440,20 +3439,20 @@ structure clientKeyExchangeMsg [FfiSyntax] where
   mk ::
   ciphertext' : GoSlice
 
-instance clientKeyExchangeMsg.zero_val [FfiSyntax] : ZeroVal clientKeyExchangeMsg :=
+noncomputable instance clientKeyExchangeMsg.zero_val [FfiSyntax] : ZeroVal clientKeyExchangeMsg :=
   ⟨clientKeyExchangeMsg.mk zeroValDef⟩
 
-@[reducible] def clientKeyExchangeMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def clientKeyExchangeMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ciphertext" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def clientKeyExchangeMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def clientKeyExchangeMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   clientKeyExchangeMsg.fieldsUnsealed
 
-instance equals_unfold_clientKeyExchangeMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_clientKeyExchangeMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold clientKeyExchangeMsg.fields clientKeyExchangeMsg.fieldsUnsealed :=
   ⟨by unfold clientKeyExchangeMsg.fields; rfl⟩
 
-@[reducible] def clientKeyExchangeMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def clientKeyExchangeMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType clientKeyExchangeMsg.fields)
 
 class clientKeyExchangeMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3471,20 +3470,20 @@ structure finishedMsg [FfiSyntax] where
   mk ::
   verifyData' : GoSlice
 
-instance finishedMsg.zero_val [FfiSyntax] : ZeroVal finishedMsg :=
+noncomputable instance finishedMsg.zero_val [FfiSyntax] : ZeroVal finishedMsg :=
   ⟨finishedMsg.mk zeroValDef⟩
 
-@[reducible] def finishedMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def finishedMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"verifyData" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def finishedMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def finishedMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   finishedMsg.fieldsUnsealed
 
-instance equals_unfold_finishedMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_finishedMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold finishedMsg.fields finishedMsg.fieldsUnsealed :=
   ⟨by unfold finishedMsg.fields; rfl⟩
 
-@[reducible] def finishedMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def finishedMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType finishedMsg.fields)
 
 class finishedMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3505,23 +3504,23 @@ structure certificateRequestMsg [FfiSyntax] where
   supportedSignatureAlgorithms' : GoSlice
   certificateAuthorities' : GoSlice
 
-instance certificateRequestMsg.zero_val [FfiSyntax] : ZeroVal certificateRequestMsg :=
+noncomputable instance certificateRequestMsg.zero_val [FfiSyntax] : ZeroVal certificateRequestMsg :=
   ⟨certificateRequestMsg.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def certificateRequestMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def certificateRequestMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"hasSignatureAlgorithm" go.bool),
 (go.field_decl.FieldDecl go!"certificateTypes" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"supportedSignatureAlgorithms" (go.GoType.SliceType SignatureScheme.ty)),
 (go.field_decl.FieldDecl go!"certificateAuthorities" (go.GoType.SliceType (go.GoType.SliceType go.byte)))]
 
-@[irreducible] def certificateRequestMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def certificateRequestMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   certificateRequestMsg.fieldsUnsealed
 
-instance equals_unfold_certificateRequestMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_certificateRequestMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold certificateRequestMsg.fields certificateRequestMsg.fieldsUnsealed :=
   ⟨by unfold certificateRequestMsg.fields; rfl⟩
 
-@[reducible] def certificateRequestMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def certificateRequestMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType certificateRequestMsg.fields)
 
 class certificateRequestMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3553,22 +3552,22 @@ structure certificateVerifyMsg [FfiSyntax] where
   signatureAlgorithm' : SignatureScheme
   signature' : GoSlice
 
-instance certificateVerifyMsg.zero_val [FfiSyntax] : ZeroVal certificateVerifyMsg :=
+noncomputable instance certificateVerifyMsg.zero_val [FfiSyntax] : ZeroVal certificateVerifyMsg :=
   ⟨certificateVerifyMsg.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def certificateVerifyMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def certificateVerifyMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"hasSignatureAlgorithm" go.bool),
 (go.field_decl.FieldDecl go!"signatureAlgorithm" SignatureScheme.ty),
 (go.field_decl.FieldDecl go!"signature" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def certificateVerifyMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def certificateVerifyMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   certificateVerifyMsg.fieldsUnsealed
 
-instance equals_unfold_certificateVerifyMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_certificateVerifyMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold certificateVerifyMsg.fields certificateVerifyMsg.fieldsUnsealed :=
   ⟨by unfold certificateVerifyMsg.fields; rfl⟩
 
-@[reducible] def certificateVerifyMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def certificateVerifyMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType certificateVerifyMsg.fields)
 
 class certificateVerifyMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3594,20 +3593,20 @@ structure newSessionTicketMsg [FfiSyntax] where
   mk ::
   ticket' : GoSlice
 
-instance newSessionTicketMsg.zero_val [FfiSyntax] : ZeroVal newSessionTicketMsg :=
+noncomputable instance newSessionTicketMsg.zero_val [FfiSyntax] : ZeroVal newSessionTicketMsg :=
   ⟨newSessionTicketMsg.mk zeroValDef⟩
 
-@[reducible] def newSessionTicketMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def newSessionTicketMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ticket" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def newSessionTicketMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def newSessionTicketMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   newSessionTicketMsg.fieldsUnsealed
 
-instance equals_unfold_newSessionTicketMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_newSessionTicketMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold newSessionTicketMsg.fields newSessionTicketMsg.fieldsUnsealed :=
   ⟨by unfold newSessionTicketMsg.fields; rfl⟩
 
-@[reducible] def newSessionTicketMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def newSessionTicketMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType newSessionTicketMsg.fields)
 
 class newSessionTicketMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3624,20 +3623,20 @@ attribute [instance] newSessionTicketMsg.TypeAssumptions.type_repr
 structure helloRequestMsg [FfiSyntax] where
   mk ::
 
-instance helloRequestMsg.zero_val [FfiSyntax] : ZeroVal helloRequestMsg :=
+noncomputable instance helloRequestMsg.zero_val [FfiSyntax] : ZeroVal helloRequestMsg :=
   ⟨helloRequestMsg.mk⟩
 
-@[reducible] def helloRequestMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def helloRequestMsg.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def helloRequestMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def helloRequestMsg.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   helloRequestMsg.fieldsUnsealed
 
-instance equals_unfold_helloRequestMsg [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_helloRequestMsg [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold helloRequestMsg.fields helloRequestMsg.fieldsUnsealed :=
   ⟨by unfold helloRequestMsg.fields; rfl⟩
 
-@[reducible] def helloRequestMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def helloRequestMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType helloRequestMsg.fields)
 
 class helloRequestMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3649,7 +3648,7 @@ attribute [instance] helloRequestMsg.TypeAssumptions.type_repr
 
 abbrev transcriptHash [FfiSyntax] : Type := GoInterface
 
-@[reducible] def transcriptHash.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def transcriptHash.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))])
 
 class transcriptHash.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3712,20 +3711,20 @@ attribute [instance] keyAgreement.TypeAssumptions.type_repr
 structure rsaKeyAgreement [FfiSyntax] where
   mk ::
 
-instance rsaKeyAgreement.zero_val [FfiSyntax] : ZeroVal rsaKeyAgreement :=
+noncomputable instance rsaKeyAgreement.zero_val [FfiSyntax] : ZeroVal rsaKeyAgreement :=
   ⟨rsaKeyAgreement.mk⟩
 
-@[reducible] def rsaKeyAgreement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def rsaKeyAgreement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def rsaKeyAgreement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def rsaKeyAgreement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   rsaKeyAgreement.fieldsUnsealed
 
-instance equals_unfold_rsaKeyAgreement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_rsaKeyAgreement [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold rsaKeyAgreement.fields rsaKeyAgreement.fieldsUnsealed :=
   ⟨by unfold rsaKeyAgreement.fields; rfl⟩
 
-@[reducible] def rsaKeyAgreement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def rsaKeyAgreement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType rsaKeyAgreement.fields)
 
 class rsaKeyAgreement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3777,20 +3776,20 @@ attribute [instance] keyExchange.TypeAssumptions.type_repr
 structure mlkem1024KeyExchange [FfiSyntax] where
   mk ::
 
-instance mlkem1024KeyExchange.zero_val [FfiSyntax] : ZeroVal mlkem1024KeyExchange :=
+noncomputable instance mlkem1024KeyExchange.zero_val [FfiSyntax] : ZeroVal mlkem1024KeyExchange :=
   ⟨mlkem1024KeyExchange.mk⟩
 
-@[reducible] def mlkem1024KeyExchange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def mlkem1024KeyExchange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def mlkem1024KeyExchange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def mlkem1024KeyExchange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   mlkem1024KeyExchange.fieldsUnsealed
 
-instance equals_unfold_mlkem1024KeyExchange [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_mlkem1024KeyExchange [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold mlkem1024KeyExchange.fields mlkem1024KeyExchange.fieldsUnsealed :=
   ⟨by unfold mlkem1024KeyExchange.fields; rfl⟩
 
-@[reducible] def mlkem1024KeyExchange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def mlkem1024KeyExchange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType mlkem1024KeyExchange.fields)
 
 class mlkem1024KeyExchange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3828,7 +3827,7 @@ attribute [instance] hybridKeyExchange.TypeAssumptions.type_repr
 
 abbrev prfFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def prfFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def prfFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), go.string, (go.GoType.SliceType go.byte), go.int] false [(go.GoType.SliceType go.byte)]))
 
 class prfFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3851,7 +3850,7 @@ attribute [instance] finishedHash.TypeAssumptions.type_repr
 
 abbrev QUICEncryptionLevel [FfiSyntax] : Type := w64
 
-@[reducible] def QUICEncryptionLevel.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def QUICEncryptionLevel.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class QUICEncryptionLevel.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3864,21 +3863,21 @@ structure QUICConn [FfiSyntax] where
   conn' : Loc
   sessionTicketSent' : Bool
 
-instance QUICConn.zero_val [FfiSyntax] : ZeroVal QUICConn :=
+noncomputable instance QUICConn.zero_val [FfiSyntax] : ZeroVal QUICConn :=
   ⟨QUICConn.mk zeroValDef zeroValDef⟩
 
-@[reducible] def QUICConn.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def QUICConn.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"conn" (go.GoType.PointerType Conn.ty)),
 (go.field_decl.FieldDecl go!"sessionTicketSent" go.bool)]
 
-@[irreducible] def QUICConn.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def QUICConn.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   QUICConn.fieldsUnsealed
 
-instance equals_unfold_QUICConn [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_QUICConn [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold QUICConn.fields QUICConn.fieldsUnsealed :=
   ⟨by unfold QUICConn.fields; rfl⟩
 
-@[reducible] def QUICConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def QUICConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType QUICConn.fields)
 
 class QUICConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3911,7 +3910,7 @@ attribute [instance] QUICConfig.TypeAssumptions.type_repr
 
 abbrev QUICEventKind [FfiSyntax] : Type := w64
 
-@[reducible] def QUICEventKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def QUICEventKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class QUICEventKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3928,10 +3927,10 @@ structure QUICEvent [FfiSyntax] where
   SessionState' : Loc
   Err' : GoError
 
-instance QUICEvent.zero_val [FfiSyntax] : ZeroVal QUICEvent :=
+noncomputable instance QUICEvent.zero_val [FfiSyntax] : ZeroVal QUICEvent :=
   ⟨QUICEvent.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def QUICEvent.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def QUICEvent.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Kind" QUICEventKind.ty),
 (go.field_decl.FieldDecl go!"Level" QUICEncryptionLevel.ty),
 (go.field_decl.FieldDecl go!"Data" (go.GoType.SliceType go.byte)),
@@ -3939,14 +3938,14 @@ instance QUICEvent.zero_val [FfiSyntax] : ZeroVal QUICEvent :=
 (go.field_decl.FieldDecl go!"SessionState" (go.GoType.PointerType SessionState.ty)),
 (go.field_decl.FieldDecl go!"Err" go.error)]
 
-@[irreducible] def QUICEvent.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def QUICEvent.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   QUICEvent.fieldsUnsealed
 
-instance equals_unfold_QUICEvent [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_QUICEvent [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold QUICEvent.fields QUICEvent.fieldsUnsealed :=
   ⟨by unfold QUICEvent.fields; rfl⟩
 
-@[reducible] def QUICEvent.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def QUICEvent.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType QUICEvent.fields)
 
 class QUICEvent.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3998,21 +3997,21 @@ structure QUICSessionTicketOptions [FfiSyntax] where
   EarlyData' : Bool
   Extra' : GoSlice
 
-instance QUICSessionTicketOptions.zero_val [FfiSyntax] : ZeroVal QUICSessionTicketOptions :=
+noncomputable instance QUICSessionTicketOptions.zero_val [FfiSyntax] : ZeroVal QUICSessionTicketOptions :=
   ⟨QUICSessionTicketOptions.mk zeroValDef zeroValDef⟩
 
-@[reducible] def QUICSessionTicketOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def QUICSessionTicketOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"EarlyData" go.bool),
 (go.field_decl.FieldDecl go!"Extra" (go.GoType.SliceType (go.GoType.SliceType go.byte)))]
 
-@[irreducible] def QUICSessionTicketOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def QUICSessionTicketOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   QUICSessionTicketOptions.fieldsUnsealed
 
-instance equals_unfold_QUICSessionTicketOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_QUICSessionTicketOptions [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold QUICSessionTicketOptions.fields QUICSessionTicketOptions.fieldsUnsealed :=
   ⟨by unfold QUICSessionTicketOptions.fields; rfl⟩
 
-@[reducible] def QUICSessionTicketOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def QUICSessionTicketOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType QUICSessionTicketOptions.fields)
 
 class QUICSessionTicketOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4047,20 +4046,20 @@ structure ClientSessionState [FfiSyntax] where
   mk ::
   session' : Loc
 
-instance ClientSessionState.zero_val [FfiSyntax] : ZeroVal ClientSessionState :=
+noncomputable instance ClientSessionState.zero_val [FfiSyntax] : ZeroVal ClientSessionState :=
   ⟨ClientSessionState.mk zeroValDef⟩
 
-@[reducible] def ClientSessionState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ClientSessionState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"session" (go.GoType.PointerType SessionState.ty))]
 
-@[irreducible] def ClientSessionState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ClientSessionState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ClientSessionState.fieldsUnsealed
 
-instance equals_unfold_ClientSessionState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ClientSessionState [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ClientSessionState.fields ClientSessionState.fieldsUnsealed :=
   ⟨by unfold ClientSessionState.fields; rfl⟩
 
-@[reducible] def ClientSessionState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClientSessionState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClientSessionState.fields)
 
 class ClientSessionState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4090,20 +4089,20 @@ attribute [instance] listener.TypeAssumptions.type_repr
 structure timeoutError [FfiSyntax] where
   mk ::
 
-instance timeoutError.zero_val [FfiSyntax] : ZeroVal timeoutError :=
+noncomputable instance timeoutError.zero_val [FfiSyntax] : ZeroVal timeoutError :=
   ⟨timeoutError.mk⟩
 
-@[reducible] def timeoutError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def timeoutError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def timeoutError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def timeoutError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   timeoutError.fieldsUnsealed
 
-instance equals_unfold_timeoutError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_timeoutError [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold timeoutError.fields timeoutError.fieldsUnsealed :=
   ⟨by unfold timeoutError.fields; rfl⟩
 
-@[reducible] def timeoutError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def timeoutError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType timeoutError.fields)
 
 class timeoutError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

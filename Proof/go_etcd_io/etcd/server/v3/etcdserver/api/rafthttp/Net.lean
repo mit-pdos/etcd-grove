@@ -83,7 +83,7 @@ instance : Pos.Countable StreamTy :=
 /-- **A stream connection's ghost names**: the reader's tokens `γw`, the type and the reader. -/
 abbrev StreamKey := GName × StreamTy × w64
 
-/-- **A network's names** (see the file header). (2026-10-23, rafthttp stage 6a, D34) `reg`: the
+/-- **A network's names** (see the file header). (2026-10-23, rafthttp stage 6a, D39) `reg`: the
 streams' registry (`Stream.lean`'s `streamRegInv`), one for the network, so that a member's
 stream reader and its peer's stream handler agree on a connection. -/
 structure NetNames (GF : BundledGFunctors) [FfiSyntax] where
@@ -104,7 +104,7 @@ def wireEq (st st' : MsgSt) : Prop :=
 
 /-- **A message handed to `Send`**, with its bundle: read-only for good (the transport's writer
 goroutines marshal it after `Send` returns), its persistent part and its one-shot part; (D22 S-i)
-not a `MsgSnap`, which goes by `SendSnapshot` (`netSnapBundle`). (2026-10-22, D33a) With no
+not a `MsgSnap`, which goes by `SendSnapshot` (`netSnapBundle`). (2026-10-22, D38a) With no
 responses: what marshals (`MsgMarshals`), so that the receiver's copy has none either (`netRecv`).
 (2026-10-24, rafthttp stage 6d) Of the sender `lid`: a `MsgApp` of raft's shape (`AppShape`) from
 `lid`, what rafthttp's msgappv2 stream carries whole (raft's `isRaftMsg` says both of its messages). -/
@@ -161,7 +161,7 @@ instance netSnapRecv_persistent (γd : GName) (st : MsgSt) :
 
 /-- **A message received by member `id`** at `ml`: a fresh copy, owned with its entries' slots
 and capacity, of a message `st` sent into the network to `id`, with its bundle; (D22 S-i) a
-`MsgSnap`'s database saved in `id`'s snapshot directory `γd` (`netSnapRecv`). (2026-10-22, D33a)
+`MsgSnap`'s database saved in `id`'s snapshot directory `γd` (`netSnapRecv`). (2026-10-22, D38a)
 Unmarshalled from the wire, the copy has no responses (the wire carries none: `MsgMarshals`). -/
 def netRecv (γn : NetNames GF) (id : w64) (γd : GName) (ml : Loc) : IProp GF :=
   iprop(∃ st st' : MsgSt, msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st' ∗

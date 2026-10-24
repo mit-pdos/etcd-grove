@@ -1,6 +1,6 @@
 /-
 `newSnapshotSender(tr, picker, to, status)` (`snapshot_sender.go`, untranslated; rafthttp stage 6b):
-the trust boundary (D34, the snapshot stream an axiom at its own functions). Lean-first.
+the trust boundary (D39, the snapshot stream an axiom at its own functions). Lean-first.
 -/
 module
 

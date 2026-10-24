@@ -28,7 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- `t.UnsafePut(bucket, key, value)` under the lock: bbolt's writer and the write buffer get the
 entry (a key of `1..MaxKeySize` bytes, read-only for good: both keep the slices; in a safe-range
 bucket, a key above the writer's contents; a hook's own key (`P.hk`) with the client's half of them, `hkPut`, which it
-gives back updated). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
+gives back updated; a tracked bucket (`P.RB`, D22, 2026-10-23) with the client's half of the
+tracked buckets, `rbPut`, likewise). A value above `MaxValueSize` makes bbolt fail and the backend's `lg.Fatal`
 exit: the call does not return (`issues/etcd-backend-put-value-too-large-fatal.md`). A key may be put
 again in one session: the write-back keeps the last value (the fork's fix, etcd-io/etcd#21987;
 until 2026-10-18 the premise `kb ∉ … ∨ wbDupOk st bi.id` excluded it,
@@ -38,9 +39,10 @@ abbrev backend.batchTxBuffered.UnsafePut.spec : Prop :=
   P.has bi → 0 < kb.length → kb.length ≤ maxKeySize →
   sint.Z st.pend + 1 < 2 ^ 58 →
   (P.SB bi.name = true → ∀ kc vc, (bktOf st.S bi.name).lookup kc = some vc → strLt kc kb) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb ∗ hkPut γ P bi.name kb st.S }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb ∗ hkPut γ P bi.name kb st.S ∗ rbPut γ P bi.name st.S }}
     (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafePut")) (Val #bk)) (Val #key)) (Val #value))
-  {{ RET #(); batchLocked γ P b (st.put bi kb vb false) ∗ hkPut γ P bi.name kb (st.put bi kb vb false).S }}
+  {{ RET #(); batchLocked γ P b (st.put bi kb vb false) ∗ hkPut γ P bi.name kb (st.put bi kb vb false).S ∗
+      rbPut γ P bi.name (st.put bi kb vb false).S }}
 
 end spec
 

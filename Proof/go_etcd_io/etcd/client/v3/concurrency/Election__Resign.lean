@@ -24,10 +24,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-theorem deleteOp_txnOpOf (key : GoString) :
-    txnOpOf (opDeleteModel key []) = some (.delete (opDeleteModel key [])) := by
-  simp [opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero, txnOpOf]
-
 theorem resignTxn_under (pfx key : GoString) (rev : w64) (hk : pfx <+: key) :
     (resignTxn key rev).Under pfx := by
   refine ⟨?_, ?_, ?_⟩

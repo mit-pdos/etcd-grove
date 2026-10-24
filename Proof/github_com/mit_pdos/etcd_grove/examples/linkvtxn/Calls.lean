@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # linkvtxn: `call`'s client calls (linkv-txn stage F)
 
 `call`'s calls through `New`'s client of the members `ms` (since 2026-10-21, failover, D27: each
-attempt to one of them; `client/v3/Failover.lean`; the updates one per member, `[∧ list]`) are
+attempt to one of them; `client/v3/Results.lean`'s `_any` results; the updates one per member, `[∧ list]`) are
 the client package's (`client/v3/ClientPutGet.lean`, since 2026-10-22, D31: `client_Get_st`,
 `client_Put_st`, `client_Delete_st`, `client_Txn_st`). This file has the two that speak of the
 model's operations, each stated with the state `σ` its update fired at and the reply's fields as
@@ -14,8 +14,7 @@ functions of `σ` (what `Reply.lean`'s outputs take):
   reply's key-values the state's of the range, its header revision `σ`'s;
 - `txn_Commit_st`: a transaction the builder holds as the model's (`clientTxn`), with an update
   fired at most once (writing) or a read update or none (read-only): the reply's verdict, its
-  responses and revision the server's run at `σ` (`client.client_txn_value`,
-  `client.client_txn_value_ro`).
+  responses and revision the server's run at `σ` (from `txnReplied`).
 
 Each also bounds `σ`'s revision below `2^63` (the replies' logs are below it).
 `callUpd`/`callRes`: the update a call of the model input `i` takes, and the result it gives.
@@ -25,7 +24,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Reply
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.Link
-public import Proof.go_etcd_io.etcd.client.v3.Failover
+public import Proof.go_etcd_io.etcd.client.v3.Results
 
 @[expose] public section
 
@@ -90,8 +89,7 @@ theorem txnNoZeroEnd_txnOf (cs : List (linkv.MCmp GoString GoString))
     | cons op ops ih =>
       simp only [List.map_cons, txnOpsNoZeroEnd]
       refine ⟨?_, ih⟩
-      cases op <;> simp [linkv.tOpOf, txnOpNoZeroEnd, txn.rangeOpOf, txn.deleteOpOf, OpFull.newOp,
-        OpModel.zero]
+      cases op <;> simp [linkv.tOpOf, txnOpNoZeroEnd, txn.rangeOpOf, txn.deleteOpOf, op_simps]
   refine ⟨?_, hops t, hops e⟩
   intro c hc
   simp only [linkv.txnOf, List.mem_map] at hc
@@ -134,7 +132,7 @@ theorem txnModelIn_txnOf (cs : List (linkv.MCmp GoString GoString))
   · cases m <;> simp only [linkv.tOpOf, reduceCtorEq, TxnOp.get.injEq] at hm
     subst hm
     refine ⟨rfl, ?_⟩
-    simp [txn.cutEarly, OpFull.effSortOrder, txn.rangeOpOf, OpFull.newOp, OpModel.zero]
+    simp [txn.cutEarly, OpFull.effSortOrder, txn.rangeOpOf, op_simps]
 
 /-- **An input `Gen` may return** (`ValidIn`), its transactions not empty: a transaction with no
 operations is served without a linearizable read (`issues/etcd-txn-empty-serializable.md`). -/
@@ -152,7 +150,7 @@ theorem txnSerializable_txnOf (cs : List (linkv.MCmp GoString GoString))
     | cons op ops =>
       simp only [List.map_cons, List.all_cons, Bool.and_eq_false_iff]
       left
-      cases op <;> simp [linkv.tOpOf, txn.opIsSerGet, txn.rangeOpOf, OpFull.newOp, OpModel.zero]
+      cases op <;> simp [linkv.tOpOf, txn.opIsSerGet, txn.rangeOpOf, op_simps]
   simp only [txn.txnSerializable, linkv.txnOf, List.all_append, Bool.and_eq_false_iff]
   cases t with
   | nil =>
@@ -222,7 +220,10 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
+-- (2026-10-22) the client's and the server's package assumptions, not linkvtxn's: any caller of
+-- `New`'s client uses these calls (also `client/v3/kubernetes`)
+variable [go_etcd_io.etcd.client.v3.Assumptions]
+variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `cli.Get(ctx, listFrom, WithRange(listTo))` by `New`'s client of the members `ms`, with a read
 update or none (see the file header). -/
@@ -261,7 +262,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   wp_pures
   wp_auto
   wp_apply (client.client_range_any api ms (W64 0) ci cd listFrom sl [withRangeM listTo]
-      iprop(True) Q) $$ [] as %resp %err ⟨-, Hout⟩
+      iprop(True) Q []) $$ [] as %resp %err ⟨-, Hout⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel listFrom [withRangeM listTo]).base.sortSet = false from rfl]
@@ -269,7 +270,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     ipureintro
     first
       | rfl
-      | (refine ⟨?_, rfl⟩; simp [opGetPanics, opFold, OpFull.newOp, withRangeM])
+      | (refine ⟨?_, rfl⟩; simp [opGetPanics, op_simps])
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, -⟩)
   · ileft
@@ -283,7 +284,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     ipureintro
     exact ⟨(srvRangeOk_list _ _ _ hsel).1, hrev, hb⟩
   · iright
-    ipureintro; exact Herr
+    ipureintro; exact Herr.1
 
 /-- **`Commit()` of the model's transaction** through a client of the members `ms` (see the file
 header): its update by its kind, one per member. -/
@@ -310,7 +311,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
             m.hdr.revision = W64 ((if (linkv.MIn.txn cs t e).isWrite then
               (kvOpStep (opIn (.txn cs t e)) σ).rev else σ.rev : Nat) : Int) ∧
             σ.rev + 3 < 2 ^ 63⌝) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
   have hw : txnWireOf b.model = linkv.txnOf cs t e := by rw [hb, txnWireOf_clientTxn]
   have hp : client.TxnModel.plain b.model := by rw [hb]; exact clientTxn_plain cs t e
@@ -339,13 +340,12 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         BigAndL.bigAndL_persistent fun {_ _} _ => inferInstance
       exact intuitionistic_alias.trans (intuitionistically_mono (BigAndL.bigAndL_mono hm))
     ihave #Hau' := hbox $$ Hau
-    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q hp hin) $$ [Hobj] as %resp %err Hout
+    wp_apply (client.client_txn_any tp ms client.SrvAt.γr (W64 0) ci cd b Q [] hp hin) $$ [Hobj]
+      as %resp %err Hout
     · iframe Hobj
       iframe #
-      ileft
-      ipureintro; rw [hw]; exact hro
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
+    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, #Hke⟩)
     · ileft
       isplitl []
       · ipureintro; exact Herr
@@ -369,7 +369,9 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         omega
       · unfold kvStateOf; simp only; omega
     · iright
-      ipureintro; exact Herr
+      isplitl
+      · ipureintro; first | exact Herr | exact Herr.1
+      · iexact Hke
   · -- writing
     simp only [↓reduceIte]
     simp only [hwr, Bool.not_true] at hro
@@ -386,7 +388,8 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         rw [hw]
         iExactEq H; rfl
     ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
-    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q hp hin) $$ [Hobj Hau' Hone]
+    wp_apply (client.client_txn_any tp ms client.SrvAt.γr (W64 0) ci cd b Q [] hp hin)
+      $$ [Hobj Hau' Hone]
       as %resp %err Hout
     · iframe Hobj
       iframe #
@@ -394,7 +397,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       iframe Hone
       iexact Hau'
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
+    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, #Hke⟩)
     · ileft
       isplitl []
       · ipureintro; exact Herr
@@ -416,7 +419,9 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         rw [kvOpStep_txnOf_eq, hrev, ← hs, client.kvStateOf_commit_rev _ _ hlen, hs, hr]
       · unfold kvStateOf; simp only; omega
     · iright
-      ipureintro; exact Herr
+      isplitl
+      · ipureintro; first | exact Herr | exact Herr.1
+      · iexact Hke
 
 /-- `opRespsMsg` element by element. -/
 theorem opRespsMsg_getElem (ps : List Loc) (ms : List OpRespM) :

@@ -20,7 +20,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Trust boundary** (rafthttp stage 6c, D34, the user's choice: the prober an axiom):
+/-- **Trust boundary** (rafthttp stage 6c, D39, the user's choice: the prober an axiom):
 `probing.NewHandler()` (`server.go`) returns an `*httpHealth` as an `http.Handler`. Its
 `ServeHTTP(w, r)` reads nothing of the request, sets no header and JSON-encodes
 `Health{OK: true, Now: time.Now()}` to `w` (`json.NewEncoder(w).Encode`): the first write commits

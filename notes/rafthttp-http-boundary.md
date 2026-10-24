@@ -1,6 +1,6 @@
 # rafthttp stage 2: the HTTP boundary (design; reviewed by the user 2026-10-22)
 
-D33 (A), `notes/rafthttp-plan.md` stage 2. Drafted and reviewed 2026-10-22 (decisions at the end);
+D38 (A), `notes/rafthttp-plan.md` stage 2. Drafted and reviewed 2026-10-22 (decisions at the end);
 the Lean statements follow it.
 
 ## What the translated code calls
@@ -96,7 +96,7 @@ mailbox and the protocols.
   program's peer addresses are its own (`netAddrFree`) and only its own clients talk to them.
 - The protocols move only **persistent** knowledge across the wire: what a sender proved of bytes
   it sent, which stays true. Nothing exclusive crosses: the mailbox moves exclusive resources, in
-  the program's own ghost state. That is D33's (A), as approved. (B) would let a request carry
+  the program's own ghost state. That is D38's (A), as approved. (B) would let a request carry
   exclusive resources, which is not something Go's HTTP does.
 - Compared with today: the five `Transport` axioms, `RaftHandler`'s and `Serve`'s current spec
   (which names the raft network and states delivery to `Process`) are replaced by statements about

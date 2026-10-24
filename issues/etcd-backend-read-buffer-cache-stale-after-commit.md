@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/etcd#17331 issue closed: related, not this bug (ConcurrentReadTx's stale-cache path copies the buffer redundantly; closed not planned)
   - etcd-io/etcd#12933 pr merged: introduced the read-buffer cache and bufVersion (9c82e8c72, v3.5); origin of the bug
@@ -9,7 +9,11 @@ candidate: issues/upstream/etcd-backend-read-buffer-cache-stale-after-commit/
 
 # `ConcurrentReadTx` reuses a read-buffer copy from before a commit: deleted keys come back, old values return
 
-- **Status**: open (not filed).
+- **Status**: a latent bug of the backend API, not reachable through etcd (investigated
+  2026-10-23, below): `ConcurrentReadTx` breaks its own contract (deterministically, at upstream
+  `main` 3aaab3479 and on `release-3.5`/`release-3.6`), but its only caller, mvcc's `store.Read`,
+  cannot observe it, so no client or server sees a wrong result. Worth fixing as hardening (a
+  one-line fix) before a new caller depends on the cache.
 - **Where**: `server/storage/backend/backend.go` at the etcd pin of `etc/goose.py` (`bc8b52a50`):
   `backend.ConcurrentReadTx` (the `txReadBufferCache`, keyed by `txReadBuffer.bufVersion`),
   `batchTxBuffered.Unlock` (`writeback` under `readTx.Lock`, then `readTx.Unlock`, then
@@ -308,3 +312,42 @@ candidate: issues/upstream/etcd-backend-read-buffer-cache-stale-after-commit/
   critical section.
 - **Found**: 2026-10-12, designing the backend's read-side invariant for its proof (the cache's
   invariant failed across `Unlock`).
+- **Investigation, 2026-10-23** (is it reachable through etcd?). At upstream `main` 3aaab3479
+  (`server/storage/backend` unchanged since 22cc5d9ac) the third reproduction still fails
+  (`cache_range_dup_test.go:36: range returned 2 keys (["k1" "k1"]), want 1`); `readTx.reset`
+  is the same on `release-3.5` and `release-3.6`. Through etcd it is not observable:
+  - The only caller of `ConcurrentReadTx` in the repository (non-test) is mvcc's `store.Read`
+    (`kvstore_txn.go:55`), used by `etcdserver/txn` (Range, read-only Txn) and `kv_view.go`
+    (the lessor's view). A `TxnRead` exposes only `Range`, which reads the backend only by
+    `UnsafeRange(schema.Key, revBytes, nil, 0)`, one revision key at a time (`kvstore_txn.go:126`):
+    no range read, no other bucket (`Meta`, where the hook writes, is never read this way; auth,
+    lease, membership, alarm and the meta readers use `BatchTx`/`ReadTx`, whose buffer `reset`
+    empties under `readTx.Lock` together with the new bbolt transaction).
+  - A stale copy is a copy of the read buffer from before a commit, so it holds only keys that
+    were written back, are now in bbolt (the reader's pinned transaction), or were deleted. In
+    the `Key` bucket a revision key is written once and never overwritten (a tombstone is another
+    key), so a single-key read of a revision in the stale copy returns bbolt's value: only the
+    duplicate of a range read differs, and mvcc makes none.
+  - The only deletes in `Key` are compaction's, and none can be in a stale copy, which corrects
+    "the stale copy keeps compacted revisions" above: `updateCompactRev` (`kvstore.go`), under
+    `s.revMu` exclusive, writes the scheduled-compact mark (a write-back, so the version moves)
+    and then `ForceCommit`s, so every revision at or below the compaction revision is in bbolt
+    and out of the read buffer before any reader (which takes `s.revMu` shared) can cache it;
+    the puts written back after it have higher revisions, which compaction keeps. Every older
+    cached copy is at an older version. Of the racy first reproduction's window, mvcc's writers
+    hold `s.revMu` exclusive over the batch `Unlock`, and compaction's window only lets a reader
+    cache revisions above the compaction revision (duplicates again).
+  - mvcc-level tests (scratch, `server/storage/mvcc/stale_cache_investigate_test.go` off
+    3aaab3479, not kept): `TestInvestigateStaleCacheMvccDeterministic` (a `Put`, a
+    `ConcurrentReadTxMode` read, `ForceCommit`) passes: the backend's `ConcurrentReadTx` is stale
+    (`backend Key-bucket range through ConcurrentReadTx: 1 entries before the commit, 2 after`),
+    and mvcc's `Range("foo")`, `Range("a","z")` at revisions 0 and 2 return 1 kv, count 1, at
+    revision 1 none. `TestInvestigateStaleCacheMvccCompaction` (three puts, four concurrent
+    `ConcurrentReadTxMode` readers checking every result, `Compact` to the latest revision,
+    2000 trials) passes: `0 of 2000 trials left the compacted revision readable through the
+    backend's ConcurrentReadTx; 0 wrong mvcc results`, as the argument above predicts.
+  So no end-to-end reproduction through an etcd API exists: what would make it observable is
+  a new `ConcurrentReadTx` caller that range-reads `Key` (it would get a revision twice: a
+  duplicate kv or a wrong count), reads a key that is overwritten (the hook's consistent index
+  and term in `Meta`: an old value), or reads a key deleted without a preceding commit (any
+  other bucket).

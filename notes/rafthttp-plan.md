@@ -1,6 +1,6 @@
 # Plan: rafthttp verified, the trust boundary pushed down to HTTP
 
-Stage 0 (scoping) of 2026-10-22, at `lean` `a00708b853`; D33 (`notes/decisions.md`; (A) approved
+Stage 0 (scoping) of 2026-10-22, at `lean` `a00708b853`; D38 (`notes/decisions.md`; (A) approved
 by the user, 2026-10-22). Nothing proved yet. The inventory below is of the etcd pin
 (`upamanyus/etcd` `188113160d`; `server/etcdserver/api/rafthttp`, test files excluded; the fork has
 no commits in the package: `CutPeer`/`MendPeer` are upstream's test hooks).
@@ -55,7 +55,7 @@ About 2,600 lines without metrics (`stream.go` 607, `http.go` 417, `transport.go
   lost, no order), so nothing is lost by not proving FIFO.
 - **`CutPeer`/`MendPeer`** pause/resume the peer (drop outgoing, drop stream-inbound after
   decoding; pipeline and snapshot inbound still processed) or stop/start a remote's pipeline
-  (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`, with the race noted 2026-10-22).
+  (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`, with the race noted 2026-10-22).
 
 External calls: `net/http` (`RoundTripper.RoundTrip`, `NewRequest`, `Request.WithContext`, headers,
 `Response.StatusCode`/`Body`, `ResponseWriter.Header/WriteHeader/Write`, `http.Flusher`,
@@ -65,7 +65,7 @@ External calls: `net/http` (`RoundTripper.RoundTrip`, `NewRequest`, `Request.Wit
 `client/pkg/v3/{transport,types}`; `pkg/v3/{pbutil,ioutil,httputil}`; raftpb and `proto`;
 `snap`; `v2stats`.
 
-## The proposed boundary (D33)
+## The proposed boundary (D38)
 
 **HTTP at the level of bytes**, true of `net/http` over TCP, with the closed-world facts the
 current specs already make (`netAddrFree`, `netListenerAt`: the program's peer addresses are its
@@ -110,7 +110,7 @@ trust-boundary spec.
 
 ## Stages
 
-0. **(this) Scoping**: the inventory, the boundary, D33 drafted. Stop for approval.
+0. **(this) Scoping**: the inventory, the boundary, D38 drafted. Stop for approval.
 1. **Translation.** rafthttp's message path with bodies (`transport.go`, `peer.go`, `stream.go`,
    `pipeline.go`, `remote.go`, `http.go`'s pipeline and stream handlers, `msg_codec.go`,
    `msgappv2_codec.go`, `urlpick.go`, `peer_status.go`, `util.go`'s request helpers); metrics,
@@ -154,7 +154,7 @@ trust-boundary spec.
    `Write` of a `uint64` and of a `uint8`-kind value and `Read` into a `*uint64`, stated over
    the writer's `Write` and the reader's `ReadFull` (Go's fast path; `uint64OfBE` opaque).
    The whole boundary is drafted; still statements only, for the user's review. (Stage 3 moved
-   the `encoding/binary` statements to `Spec/encoding/binary/`, corrected: D33a.)
+   the `encoding/binary` statements to `Spec/encoding/binary/`, corrected: D38a.)
 3. **Codecs.** `messageEncoder`/`Decoder` and the msgappv2 pair: decoding the bytes of an
    encoding gives a message equal on the wire (`wireEq`). **Risk**: the msgappv2 decoder rebuilds
    only From, To, Term, LogTerm, Index, Entries and Commit of an AppEntries frame; `wireEq`
@@ -162,11 +162,11 @@ trust-boundary spec.
    decoder's defaults. Either raft's MsgApps satisfy that (a fact from raft's side, of the kind
    `SentMsgOk` states), or `wireEq` is weakened to the fields `Process` reads (a change to
    `Net.lean`'s interface, then checked against the server's proof), or it is a finding.
-   **The risk resolved, 2026-10-22, (a) chosen by the user** (D33a): raft's one `MsgApp`
+   **The risk resolved, 2026-10-22, (a) chosen by the user** (D38a): raft's one `MsgApp`
    constructor sets only the fields the short frame carries (plus `From` = itself), so the shape
    goes into the sender's promise (`SentMsgOk`, `netBundle`); `wireEq` stays.
    **Done 2026-10-22, the simple codec** (`msg_codec.go`): `messageEncoder.encode` and
-   `messageDecoder.decodeLimit` proved, over the generic protobuf specs (D33a: `PbType`,
+   `messageDecoder.decodeLimit` proved, over the generic protobuf specs (D38a: `PbType`,
    `proto.{Size,Marshal,Unmarshal}Pb`, the instance `pbMessage`), `pbutil.MustMarshalMessage`
    (translated with its body, proved), `encoding/binary`'s `Write`/`Read` of an integer
    (`Spec/encoding/binary/`), and contracts of the writer and the reader (`rafthttp/Codec.lean`:
@@ -179,10 +179,10 @@ trust-boundary spec.
    (`ErrExceedSizeLimit = errors.New(...)`), which every result reaching rafthttp's package
    initializer does: the baseline 540 -> 541 (the eight example collections +1). `decode` (the limit `readBytesLimit`, an untranslated variable)
    waits for the package variables' values.
-   **Done 2026-10-22, the `MsgApp` shape in `SentMsgOk`** (D33a): `AppShape`, a premise of
+   **Done 2026-10-22, the `MsgApp` shape in `SentMsgOk`** (D38a): `AppShape`, a premise of
    `raft.send` (`maybeSendAppend` proves it), carried to `netBundle` by the server's payload; no
    closed statement changed, trust base unchanged.
-   **Done 2026-10-22, the msgappv2 pair** (`msgappv2_codec.go`, D33a): `msgAppV2Encoder.encode`
+   **Done 2026-10-22, the msgappv2 pair** (`msgappv2_codec.go`, D38a): `msgAppV2Encoder.encode`
    and `msgAppV2Decoder.decode` proved over a pure model of the stream's frames
    (`rafthttp/MsgAppV2.lean`: `V2St`, the codec state; `V2Frame frm to cs w bs cs'`, the
    heartbeat, AppEntries and App frames; frames self-delimiting, `V2Frame.unique`). The encoder
@@ -199,7 +199,7 @@ trust-boundary spec.
    (a no-op, as the metrics), and rafthttp's `linkHeartbeatMessage_init` (the heartbeat
    variable's untranslated initializer, `gen-init.py`'s custom kind); only the last is reached by
    a linked result yet (the baseline 541 -> 542).
-   **Done 2026-10-22, what the encoders need of a sent message** (D33a, "The sent messages'
+   **Done 2026-10-22, what the encoders need of a sent message** (D38a, "The sent messages'
    facts"): no responses, for every message raft queues in every mode (`XfOk`, `isRaftMsg`; a
    forwarded request's from `raft.Step`, `NetMsgOk`, `fwdP`), and a `MsgApp` from its sender
    (`AppFrom id`, with the node's id in `XfOk`, `isRaftMsg` and `NodeNames`). `MsgMarshals` is now
@@ -252,7 +252,7 @@ trust-boundary spec.
    crossing the wire a receiver cannot show no other delivery withdrew the same message's one-shot
    part. Go delivers a POST at most once (the client never replays one: `Request.isReplayable` is
    false for a `POST` without an `Idempotency-Key`; the server runs one handler per request read),
-   so the boundary says so: **a request ticket** (the user's choice, 2026-10-23; D33b). The steps:
+   so the boundary says so: **a request ticket** (the user's choice, 2026-10-23; D38b). The steps:
    - 4a. The boundary revised: `RoundTrip` takes a fresh exclusive ghost ticket (`reqTicket γk`)
      and the handler receives it; the protocols are indexed by the ticket's name; the handler's
      contract is a WP whose postcondition also covers a panic (`Serve` recovers one) and lends each
@@ -309,7 +309,7 @@ trust-boundary spec.
    `checkClusterCompatibilityFromHeader` (their proofs need `http.StatusText`, untranslated,
    `version.MinClusterVersion`'s initializer, `strings.TrimSuffix`, and the `fmt.Errorf` errors'
    distinctness from `errMemberRemoved`).
-   **Done 2026-10-23: 4e** (D33c, for the user's review). An address's protocol is registered
+   **Done 2026-10-23: 4e** (D38c, for the user's review). An address's protocol is registered
    once, from its listener (`http.register`: `httpListenerAt`, which `Serve` takes, and
    `httpProtoAt`, which `RoundTrip` asks of a request's host), so the specs stated for any `HttpNet`
    are sound; the sender gets its peer's hosts' registration (`pipeReg`, for stage 6 to establish).
@@ -335,7 +335,7 @@ trust-boundary spec.
    The hardest stage.
    **Scoped 2026-10-23** (the user: "start stage 5"). Everything is translated with its body
    (`stream.go`, `streamHandler`, `closeNotifier`, `peer.attachOutgoingConn`, `util.go`'s helpers).
-   The design (D33d, drafted for review):
+   The design (D38d, drafted for review):
    - **One-shot parts over a stream.** A stream carries many messages per request, so the pipeline's
      deposit per ticket does not do: the reader B withdraws the `i`-th frame's deposit with a token
      of its own, `i ↪[γw] ()` of a ghost map `γw` it owns the authority of (B reads frames in order,
@@ -520,7 +520,7 @@ trust-boundary spec.
      (`srvKeys`: `Date`, `Content-Type`, `Content-Length`, `Transfer-Encoding`, `Connection`,
      `X-Content-Type-Options`, which `http.Error` sets): `RoundTrip`'s response's header map
      `hc` has some `hs` with `rhdr R hs` and `hdrGet hc k = hdrGet hs k` off `srvKeys`.
-   * A handler returns its response writer, committed (the D33 review's open item: Go's "A
+   * A handler returns its response writer, committed (the D38 review's open item: Go's "A
      ResponseWriter may not be used after the Handler.ServeHTTP method has returned"); the
      stream handler gets it back from the writer when the connection closes (`closeNotifier`).
    * raftProto's `rhdr`: `X-Server-Version` is unset or parses (`semver`); rafthttp's handlers
@@ -602,7 +602,7 @@ trust-boundary spec.
      handler: `netTransport`'s `Send`/`Stop`/`SendSnapshot`, `Process` only with messages sent to
      the member, nothing on `ErrorC`), `AddPeer`, `AddRemote`, `CutPeer`, `MendPeer`,
      `EtcdServer.RaftHandler` (`Handler()`'s mux), and D21 M5's `net/http.Serve` of a raft handler
-     (`Spec/net/http/Serve.lean`), replaced by the HTTP boundary's `Serve_spec` (D33) and
+     (`Spec/net/http/Serve.lean`), replaced by the HTTP boundary's `Serve_spec` (D38) and
      `register`. The opaque `transportLive`, `transportRemotes` and `raftHandlerOf` become
      definitions over the transport's fields (`t.mu` guarding `peers`/`remotes`, the stats, the
      round trippers, the network's `RaftHttp`).
@@ -629,7 +629,7 @@ trust-boundary spec.
    in its spec (Go's behavior), which the writer's goroutine may, instead of a physical bound on a
    message's size; (4) **the prober** (`addPeerToProber`, `probing`, untranslated): a
    trust-boundary axiom (it only measures round trips and logs).
-   **6a, first part (2026-10-23; D34, `notes/decisions.md`).** D34a (accepted by the user): an
+   **6a, first part (2026-10-23; D39, `notes/decisions.md`).** D39a (accepted by the user): an
    address's protocol fixed before its listener (`httpProtoFree` from program start, `http.reserve`,
    `register` with its token). `NetNames.reg`, the streams' registry, allocated by
    `netNames_alloc`; `netRh γn` (`netOwner`: a host's owner from the directory,
@@ -650,7 +650,7 @@ trust-boundary spec.
    `http://host:port`, `types.plainPeerURL`, decidable: their parses, no error),
    `rate.NewLimiter`, `v2stats.LeaderStats.Follower`, `newSnapshotSender`, `snapshotSender.stop`
    (the snapshot axiom cut at its functions). Next: `peer.send` (its message `peerMsg`: what
-   `Send`'s bundle will carry, the sender's id and raft's shape: D33a's deferred step), `Pause`,
+   `Send`'s bundle will carry, the sender's id and raft's shape: D38a's deferred step), `Pause`,
    `Resume`, `stop`; `startRemote`; the transport.
    **6b done (2026-10-23).** The peer: `startPeer`, `peer.send` (over `peerMsg`, its message:
    marshalable, for the peer, not a snapshot, no responses, a `MsgApp` of raft's shape from the
@@ -688,7 +688,7 @@ trust-boundary spec.
    variable's cell), the probers' `RemoveAll`, the round trippers' `CloseIdleConnections` if
    `*http.Transport`, the maps `nil`, the flag set; a second `Stop` finds empty maps). For review:
    the `addPeerToProber` axiom, `zap.Strings`, rafthttp's `rttSec` init fact (`rttSec_init`;
-   baseline 550 -> 552 with D34a's `httpProtoFree`, which the baseline had missed),
+   baseline 550 -> 552 with D39a's `httpProtoFree`, which the baseline had missed),
    `http.CloseIdleConnections_ok` (an axiom: a `*http.Transport` round tripper of `roundTripperOk`
    is a pointer, and closing its idle connections returns) and `probing.proberOk` (a definition:
    the prober's `RemoveAll` returns; `NewProber`'s spec will give it). Left in 6c: `Start` (its
@@ -734,7 +734,7 @@ trust-boundary spec.
 
    **6d, first and second parts (2026-10-24).** (1) `ProbingPrefix`, `RaftStreamPrefix` and
    `RaftSnapshotPrefix` translated (`path.Join(RaftPrefix, ...)`, through `path.Join`'s proof in
-   rafthttp's init), their values in `rafthttpInit`; no axiom. (2) D35 (`notes/decisions.md`): the
+   rafthttp's init), their values in `rafthttpInit`; no axiom. (2) D40 (`notes/decisions.md`): the
    handlers' `AddRemote` is dead: the lock records the peers' ids and covers them
    (`AddRemote_frozen`), the protocol carries the sender (`RaftHttp.member`, `fromOkAt` in
    `pipeReq`, the reader in `streamReq`), `addRemoteFromRequest` proved, `trAddRemote_of_frozen`
@@ -771,14 +771,14 @@ trust-boundary spec.
    facts in raft's invariants (stage 3's `isRaftMsg`), to be carried into `netBundle` or a
    per-sender bundle.
 
-   **6d, fourth part (2026-10-24; D36, `notes/decisions.md`).** The user's decisions: the `2^50`
+   **6d, fourth part (2026-10-24; D41, `notes/decisions.md`).** The user's decisions: the `2^50`
    physical assumption (`swMsgBound_phys`), `netBundle` carrying raft's facts and the sender. The
    transport's specs restated over its state (`Start`, `AddPeer`, `AddRemote`, `CutPeer`, `MendPeer`,
    and `Handler` new), each proved over its callees' (`TransportSpecs.lean`), axioms until 6f;
    `Start`'s post gives, once frozen, `netTransport` and `isTransporter` (`trFrozen_net`, over
    `SendSnapshot` and `ActiveSince`, two new boundary specs, reached once 6f links `Start`).
    `netHttpOk` relative to the member. `EtcdServer.RaftHandler` translated and proved; D21 M5's
-   `net/http.Serve` axiom replaced by `http.Serve_ok` (D33's `Serve_spec`). `NewServer` over the new
+   `net/http.Serve` axiom replaced by `http.Serve_ok` (D38's `Serve_spec`). `NewServer` over the new
    specs: every other member added (eight `lgMu` readers each), the transport frozen, the raft
    loop's key to a reader token (`srvTrKey`), the member's tokens out (`srvTrTok`, `srvServeRes`);
    its premises: `netDirOk`, `netHttpOk`, and `bootstrap`'s contract saying `Members()` is raft's

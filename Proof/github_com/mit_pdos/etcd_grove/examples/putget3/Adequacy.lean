@@ -9,7 +9,7 @@ of `k`, and a panic unless the `Get` returned `v` -- started from a fresh state 
 initialized, one thread): for every real execution of `n` steps, the main thread's result, if it
 has one, is `#()`, no thread is stuck, and no thread has ended in a panic.
 
-It follows from `EtcdGrove.goose_adequacy_start` with the read package's two metric names and the
+It follows from `EtcdGrove.goose_adequacy_start` (through `common/Adequacy.lean`'s `etcd_adequate`) with the read package's two metric names and the
 four addresses (the three peer addresses and the first member's client address), over the
 ghost-state bundle `putget3GF` (putget's), from `putget3`'s `wp_initialize'` (over the program's
 package table `PkgTable.lean`) and `putget3_Main` (`Results.lean`).
@@ -29,6 +29,7 @@ package table `PkgTable.lean`) and `putget3_Main` (`Results.lean`).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.PkgTable
 public import Proof.runtime.Start
@@ -117,6 +118,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [ErrorStringLeaf] [ErrorStringNotWriter] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
     [context.DeadlineExceededIsError] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putget3GF, ContextReadErrs (GF := putget3GF) (hG := heapAt3 hG lctx))
+    (Hcec : ∀ hG : HeapGS .hasLC putget3GF, ContextErrsClient (GF := putget3GF) (hG := heapAt3 hG lctx))
     (Hms : v3rpc.ServerMethodSets)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : putget3.BootFacts id₁ id₂ id₃ bootLog)
@@ -135,49 +137,19 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  suffices H : (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
-    refine ⟨H.1, H.2.1, fun v hv => ?_⟩
-    cases h : v.isPanic
-    · rfl
-    · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
-      exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
-  refine goose_adequacy_start (GF := putget3GF) (n + 1) (n + 2) putget3Program σ g
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial
-    putget3Names putget3Addrs (by decide) (by decide) HNs HAs ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
-  intro hG HN HT HL
-  have Hprem0 := Hprem hG
-  have Hctx0 := Hctx hG
-  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
-  subst Hlctx
-  subst HL
-  letI : HeapGS .hasLC putget3GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
-  haveI := Hctx0
-  unfold IsInit at Hinit
-  rw [Hinit]
-  iintro _ _ Hgs Htok Hrights
-  ihave Hown : ownInitializing
-      (github_com.mit_pdos.etcd_grove.examples.putget3.getIsPkgInit (GF := putget3GF)) $$ [Hgs]
-  · rw [ownInitializing_unseal]
-    unfold ownInitializingDef
-    iexists ∅
-    iframe Hgs
-    imodintro
-    iapply BigSepM.bigSepM_empty.2
-    itrivial
-  iunfold startRights at Hrights
-  simp only [putget3Names, putget3Addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩, ⟨Hf₁, Hf₂, Hf₃, -, -⟩⟩
-  ihave #Hprem' := Hprem0
-  imodintro
-  unfold putget3Program
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.putget3.wp_initialize' _
-      github_com.mit_pdos.etcd_grove.examples.putget3.getIsPkgInit_wf) $$ [Hown Hn1 Hn2]
-    as ⟨_, #Hinit⟩
-  · iframe Hown
-    iunfold read.readRegPerm
-    iframe
+  refine etcd_adequate (GF := putget3GF) github_com.mit_pdos.etcd_grove.examples.putget3.initialize'
+    ((@! github_com.mit_pdos.etcd_grove.examples.putget3.Main) #())
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) σ g trivial trivial Hlctx Hinit Hthreads HNs HAs
+    n κs t2 σ2 Hsteps fun hG HN HT => ?_
+  letI : HeapGS .hasLC putget3GF := heapAt3 hG lctx
+  haveI := Hctx hG
+  haveI := Hcec hG
+  unfold progOk
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.putget3.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.putget3.getIsPkgInit_wf, ?_⟩
+  ihave #Hprem' := Hprem hG
+  iintro #Hinit Htok Has
+  simp only [putget3Addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+  icases Has with ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩
   have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ bootLog Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
   wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Hf₁ Hf₂ Hf₃ Htok]

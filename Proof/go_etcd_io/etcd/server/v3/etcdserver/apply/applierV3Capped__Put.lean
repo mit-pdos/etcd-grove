@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3Capped.Put.wp_proof :
     apply.applierV3Capped.Put.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq o log F Pre Q Post
+  intro E c inner p r rq o log F Pre Q Post info
   wp_start as ⟨-, -, Hpre, #HF⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -42,6 +42,8 @@ theorem apply.applierV3Capped.Put.wp_proof :
   isplitl
   rotate_left
   · iapply apply.traceRes_null
+  ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.capped c) rq (.rejected .noSpace) $$ []
+  · iapply apply.chainClass_capped_rejected
   iunfold apply.kvPostF
   iexists (.rejected .noSpace)
   isplitr
@@ -49,7 +51,7 @@ theorem apply.applierV3Capped.Put.wp_proof :
     refine ⟨?_, fun _ _ h => by cases h⟩
     simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
   simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
-  iframe Hkv Hres
+  iframe Hkv Hres Hcls
   isplitl []
   · isplitl []
     · ipureintro; trivial

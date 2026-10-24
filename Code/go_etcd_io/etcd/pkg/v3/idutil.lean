@@ -11,20 +11,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.idutil : GoString := go!"go.etcd.io/etcd/pkg/v3/idutil"
+noncomputable def go_etcd_io.etcd.pkg.v3.idutil : GoString := go!"go.etcd.io/etcd/pkg/v3/idutil"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.idutil
 
-def Generator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Generator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/idutil.Generator" [])
 
 attribute [irreducible] Generator.ty
@@ -108,7 +107,7 @@ noncomputable def lowbit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.math.MaxUint64)) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (GoOp GoSub go.uint))) (Pair (Val #(W64 64)) (App (Val (GoInstruction (GoLoad go.uint))) (Var "n")))))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.idutil where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.idutil where
   pkgImportedPkgs := [pkg_id.math, pkg_id.sync.atomic, pkg_id.time]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -131,21 +130,21 @@ structure Generator [FfiSyntax] where
   prefix' : w64
   suffix' : w64
 
-instance Generator.zero_val [FfiSyntax] : ZeroVal Generator :=
+noncomputable instance Generator.zero_val [FfiSyntax] : ZeroVal Generator :=
   ⟨Generator.mk zeroValDef zeroValDef⟩
 
-@[reducible] def Generator.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Generator.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"prefix" go.uint64),
 (go.field_decl.FieldDecl go!"suffix" go.uint64)]
 
-@[irreducible] def Generator.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Generator.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Generator.fieldsUnsealed
 
-instance equals_unfold_Generator [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Generator [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Generator.fields Generator.fieldsUnsealed :=
   ⟨by unfold Generator.fields; rfl⟩
 
-@[reducible] def Generator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Generator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Generator.fields)
 
 class Generator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

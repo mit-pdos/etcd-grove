@@ -1,5 +1,5 @@
 /-
-**The stream writer** (rafthttp stage 5b; `notes/rafthttp-plan.md`, D33d). Lean-first.
+**The stream writer** (rafthttp stage 5b; `notes/rafthttp-plan.md`, D38d). Lean-first.
 
 A `streamWriter` of type `ty` (msgappv2 or message) from the local member `lid` to the peer `pid`
 has a long-running goroutine (`run`) that takes the connections the stream handler attaches

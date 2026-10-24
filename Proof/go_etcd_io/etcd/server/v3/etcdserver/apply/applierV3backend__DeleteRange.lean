@@ -32,7 +32,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hDel : txn.DeleteRange.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro E p r rq o log F Pre Q Post
+  intro E p r rq o log F Pre Q Post info
   wp_start as ⟨#Hb, Hpre, #HF⟩
   iunfold apply.deletePre at Hpre
   iunfold apply.mPre at Hpre
@@ -68,7 +68,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   isplitr [Htrc]
   rotate_left
   · iunfold apply.traceRes; iright; iexact Htrc
-  iunfold apply.kvPostF
+  iapply apply.kvPostF_backend
   icases Hout with (⟨%Herr, #Hresp, Hhdr, Hsw, %Hst⟩ | ⟨%Herr, Hsw⟩)
   · -- the delete committed
     iexists (.applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false)

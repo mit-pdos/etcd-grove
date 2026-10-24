@@ -11,9 +11,8 @@ public import Code.github_com.mit_pdos.etcd_grove.third_party.bridge
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -28,7 +27,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
-instance bridge_typed_pointsto :
+noncomputable instance bridge_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.third_party.bridge.bridge where
   typedPointstoDef l v dq := iprop(
     "dialer" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"dialer" l) v.dialer' dq ∗
@@ -44,11 +43,11 @@ instance bridge_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance bridge_into_val_typed :
+noncomputable instance bridge_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.third_party.bridge.bridge github_com.mit_pdos.etcd_grove.third_party.bridge.bridge.underlying := by
   solve_into_val_typed_struct
 
-instance bridge_access_load_dialer (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
+noncomputable instance bridge_access_load_dialer (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"dialer" l) v.dialer' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"dialer" l) v.dialer' dq)
@@ -56,7 +55,7 @@ instance bridge_access_load_dialer (l : Loc) (v : github_com.mit_pdos.etcd_grove
  by
   solve_pointsto_access_struct
 
-instance bridge_access_store_dialer (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dialer' : github_com.mit_pdos.etcd_grove.third_party.bridge.Dialer) :
+noncomputable instance bridge_access_store_dialer (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dialer' : github_com.mit_pdos.etcd_grove.third_party.bridge.Dialer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"dialer" l) v.dialer' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"dialer" l) dialer' (DFrac.own 1))
@@ -64,7 +63,7 @@ instance bridge_access_store_dialer (l : Loc) (v : github_com.mit_pdos.etcd_grov
  by
   solve_pointsto_access_struct
 
-instance bridge_access_load_l (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
+noncomputable instance bridge_access_load_l (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"l" l) v.l' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"l" l) v.l' dq)
@@ -72,7 +71,7 @@ instance bridge_access_load_l (l : Loc) (v : github_com.mit_pdos.etcd_grove.thir
  by
   solve_pointsto_access_struct
 
-instance bridge_access_store_l (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (l' : net.Listener) :
+noncomputable instance bridge_access_store_l (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (l' : net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"l" l) v.l' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"l" l) l' (DFrac.own 1))
@@ -80,7 +79,7 @@ instance bridge_access_store_l (l : Loc) (v : github_com.mit_pdos.etcd_grove.thi
  by
   solve_pointsto_access_struct
 
-instance bridge_access_load_conns (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
+noncomputable instance bridge_access_load_conns (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"conns" l) v.conns' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"conns" l) v.conns' dq)
@@ -88,7 +87,7 @@ instance bridge_access_load_conns (l : Loc) (v : github_com.mit_pdos.etcd_grove.
  by
   solve_pointsto_access_struct
 
-instance bridge_access_store_conns (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (conns' : GoMap) :
+noncomputable instance bridge_access_store_conns (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (conns' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"conns" l) v.conns' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"conns" l) conns' (DFrac.own 1))
@@ -96,7 +95,7 @@ instance bridge_access_store_conns (l : Loc) (v : github_com.mit_pdos.etcd_grove
  by
   solve_pointsto_access_struct
 
-instance bridge_access_load_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
+noncomputable instance bridge_access_load_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"stopc" l) v.stopc' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"stopc" l) v.stopc' dq)
@@ -104,7 +103,7 @@ instance bridge_access_load_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove.
  by
   solve_pointsto_access_struct
 
-instance bridge_access_store_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (stopc' : GoChan) :
+noncomputable instance bridge_access_store_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (stopc' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"stopc" l) v.stopc' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"stopc" l) stopc' (DFrac.own 1))
@@ -112,7 +111,7 @@ instance bridge_access_store_stopc (l : Loc) (v : github_com.mit_pdos.etcd_grove
  by
   solve_pointsto_access_struct
 
-instance bridge_access_load_pausec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
+noncomputable instance bridge_access_load_pausec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"pausec" l) v.pausec' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"pausec" l) v.pausec' dq)
@@ -120,7 +119,7 @@ instance bridge_access_load_pausec (l : Loc) (v : github_com.mit_pdos.etcd_grove
  by
   solve_pointsto_access_struct
 
-instance bridge_access_store_pausec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (pausec' : GoChan) :
+noncomputable instance bridge_access_store_pausec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (pausec' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"pausec" l) v.pausec' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"pausec" l) pausec' (DFrac.own 1))
@@ -128,7 +127,7 @@ instance bridge_access_store_pausec (l : Loc) (v : github_com.mit_pdos.etcd_grov
  by
   solve_pointsto_access_struct
 
-instance bridge_access_load_blackholec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
+noncomputable instance bridge_access_load_blackholec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"blackholec" l) v.blackholec' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"blackholec" l) v.blackholec' dq)
@@ -136,7 +135,7 @@ instance bridge_access_load_blackholec (l : Loc) (v : github_com.mit_pdos.etcd_g
  by
   solve_pointsto_access_struct
 
-instance bridge_access_store_blackholec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (blackholec' : GoChan) :
+noncomputable instance bridge_access_store_blackholec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (blackholec' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"blackholec" l) v.blackholec' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"blackholec" l) blackholec' (DFrac.own 1))
@@ -144,7 +143,7 @@ instance bridge_access_store_blackholec (l : Loc) (v : github_com.mit_pdos.etcd_
  by
   solve_pointsto_access_struct
 
-instance bridge_access_load_wg (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
+noncomputable instance bridge_access_load_wg (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"wg" l) v.wg' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"wg" l) v.wg' dq)
@@ -152,7 +151,7 @@ instance bridge_access_load_wg (l : Loc) (v : github_com.mit_pdos.etcd_grove.thi
  by
   solve_pointsto_access_struct
 
-instance bridge_access_store_wg (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (wg' : sync.WaitGroup) :
+noncomputable instance bridge_access_store_wg (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (wg' : sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"wg" l) wg' (DFrac.own 1))
@@ -160,7 +159,7 @@ instance bridge_access_store_wg (l : Loc) (v : github_com.mit_pdos.etcd_grove.th
  by
   solve_pointsto_access_struct
 
-instance bridge_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
+noncomputable instance bridge_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"mu" l) v.mu' dq)
@@ -168,7 +167,7 @@ instance bridge_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.thi
  by
   solve_pointsto_access_struct
 
-instance bridge_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (mu' : sync.Mutex) :
+noncomputable instance bridge_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridge) (mu' : sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridge go!"mu" l) mu' (DFrac.own 1))
@@ -187,7 +186,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
-instance bridgeConn_typed_pointsto :
+noncomputable instance bridgeConn_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn where
   typedPointstoDef l v dq := iprop(
     "in'" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"in" l) v.in' dq ∗
@@ -198,11 +197,11 @@ instance bridgeConn_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance bridgeConn_into_val_typed :
+noncomputable instance bridgeConn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn.underlying := by
   solve_into_val_typed_struct
 
-instance bridgeConn_access_load_in (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (dq : DFrac) :
+noncomputable instance bridgeConn_access_load_in (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"in" l) v.in' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"in" l) v.in' dq)
@@ -210,7 +209,7 @@ instance bridgeConn_access_load_in (l : Loc) (v : github_com.mit_pdos.etcd_grove
  by
   solve_pointsto_access_struct
 
-instance bridgeConn_access_store_in (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (in' : net.Conn) :
+noncomputable instance bridgeConn_access_store_in (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (in' : net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"in" l) v.in' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"in" l) in' (DFrac.own 1))
@@ -218,7 +217,7 @@ instance bridgeConn_access_store_in (l : Loc) (v : github_com.mit_pdos.etcd_grov
  by
   solve_pointsto_access_struct
 
-instance bridgeConn_access_load_out (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (dq : DFrac) :
+noncomputable instance bridgeConn_access_load_out (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"out" l) v.out' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"out" l) v.out' dq)
@@ -226,7 +225,7 @@ instance bridgeConn_access_load_out (l : Loc) (v : github_com.mit_pdos.etcd_grov
  by
   solve_pointsto_access_struct
 
-instance bridgeConn_access_store_out (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (out' : net.Conn) :
+noncomputable instance bridgeConn_access_store_out (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (out' : net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"out" l) v.out' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"out" l) out' (DFrac.own 1))
@@ -234,7 +233,7 @@ instance bridgeConn_access_store_out (l : Loc) (v : github_com.mit_pdos.etcd_gro
  by
   solve_pointsto_access_struct
 
-instance bridgeConn_access_load_donec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (dq : DFrac) :
+noncomputable instance bridgeConn_access_load_donec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"donec" l) v.donec' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"donec" l) v.donec' dq)
@@ -242,7 +241,7 @@ instance bridgeConn_access_load_donec (l : Loc) (v : github_com.mit_pdos.etcd_gr
  by
   solve_pointsto_access_struct
 
-instance bridgeConn_access_store_donec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (donec' : GoChan) :
+noncomputable instance bridgeConn_access_store_donec (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn) (donec' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"donec" l) v.donec' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.bridgeConn go!"donec" l) donec' (DFrac.own 1))
@@ -261,7 +260,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
-instance dialer_typed_pointsto :
+noncomputable instance dialer_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.third_party.bridge.dialer where
   typedPointstoDef l v dq := iprop(
     "network" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.dialer go!"network" l) v.network' dq ∗
@@ -271,11 +270,11 @@ instance dialer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance dialer_into_val_typed :
+noncomputable instance dialer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.third_party.bridge.dialer github_com.mit_pdos.etcd_grove.third_party.bridge.dialer.underlying := by
   solve_into_val_typed_struct
 
-instance dialer_access_load_network (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.dialer) (dq : DFrac) :
+noncomputable instance dialer_access_load_network (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.dialer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.dialer go!"network" l) v.network' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.dialer go!"network" l) v.network' dq)
@@ -283,7 +282,7 @@ instance dialer_access_load_network (l : Loc) (v : github_com.mit_pdos.etcd_grov
  by
   solve_pointsto_access_struct
 
-instance dialer_access_store_network (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.dialer) (network' : GoString) :
+noncomputable instance dialer_access_store_network (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.dialer) (network' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.dialer go!"network" l) v.network' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.dialer go!"network" l) network' (DFrac.own 1))
@@ -291,7 +290,7 @@ instance dialer_access_store_network (l : Loc) (v : github_com.mit_pdos.etcd_gro
  by
   solve_pointsto_access_struct
 
-instance dialer_access_load_addr (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.dialer) (dq : DFrac) :
+noncomputable instance dialer_access_load_addr (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.dialer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.dialer go!"addr" l) v.addr' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.dialer go!"addr" l) v.addr' dq)
@@ -299,7 +298,7 @@ instance dialer_access_load_addr (l : Loc) (v : github_com.mit_pdos.etcd_grove.t
  by
   solve_pointsto_access_struct
 
-instance dialer_access_store_addr (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.dialer) (addr' : GoString) :
+noncomputable instance dialer_access_store_addr (l : Loc) (v : github_com.mit_pdos.etcd_grove.third_party.bridge.dialer) (addr' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.dialer go!"addr" l) v.addr' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.third_party.bridge.dialer go!"addr" l) addr' (DFrac.own 1))

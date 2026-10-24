@@ -1,8 +1,8 @@
 /-
-The trust base of every proved result of the interval tree (`pkg/v3/adt`) so far:
-`#print axioms` of each theorem of `Link.lean`. The tree's contract (`NewIntervalTree` and the
-`intervalTree` methods) is pending: specified over the opaque `ownIvt`, proved in unit 4 of the
-watchable store; no result here reaches it. Built with the rest; read its output to check it.
+The trust base of the interval tree's results (`pkg/v3/adt`): `#print axioms` of the exported
+theorems of `Link.lean` (the tree's contract over string-affine keys, the watchable store's, and
+over bytes-affine keys, the auth store's: instances of the generic proofs, the auth plan's S2b)
+and of the model's lemmas they rest on. Built with the rest; read its output to check it.
 -/
 module
 
@@ -21,6 +21,31 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.adt.Interval.wp_Compare
 #print axioms Perennial.EtcdGrove.adt.wp_NewStringAffineInterval
 #print axioms Perennial.EtcdGrove.adt.wp_NewStringAffinePoint
+/-! The tree's contract over string-affine keys (the watchable store's). -/
+#print axioms Perennial.EtcdGrove.adt.wp_NewIntervalTree
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Insert
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Delete
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Find
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Intersects
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Visit
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Stab
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Contains
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Union
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Len
+#print axioms Perennial.EtcdGrove.adt.wp_ownIvt_split
+
+/-! The bytes-affine comparison (the auth plan's S2, 2026-10-23), the tree's contract over
+bytes-affine keys (the auth store's permission cache: the generic proofs instantiated, the auth
+plan's S2b; until then axioms of `BytesIvl.lean`), the pure meaning of the coverage queries over
+the model (`Contains.lean`) and the bytes-affine tree's other facts (`BytesIvl.lean`). -/
+#print axioms Perennial.EtcdGrove.adt.BytesAffineComparable.wp_Compare
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Insert_bytes
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Intersects_bytes
+#print axioms Perennial.EtcdGrove.adt.intervalTree.wp_Contains_bytes
+#print axioms Perennial.EtcdGrove.adt.stab_point_iff
+#print axioms Perennial.EtcdGrove.adt.containsRes_iff
+#print axioms Perennial.EtcdGrove.adt.ownIvtB_of_empty
+#print axioms Perennial.EtcdGrove.adt.ownIvtB_persist
 
 /-! The model's lemmas `Insert`'s contract rests on (`Model.lean`). -/
 #print axioms Perennial.EtcdGrove.adt.ivtInsert_sorted

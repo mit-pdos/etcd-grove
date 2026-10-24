@@ -41,9 +41,8 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.c
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI

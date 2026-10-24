@@ -1,4 +1,4 @@
-# Names only (D33, rafthttp's stage 1): what rafthttp's message path calls.
+# Names only (D38, rafthttp's stage 1): what rafthttp's message path calls.
 translate = ["!*"]
 imports = ["!*", "io", "net/http"]
 

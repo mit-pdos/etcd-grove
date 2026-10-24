@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.quotaApplierV3.Txn.wp_proof :
     apply.quotaApplierV3.Txn.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r skip rq t log F Pre Q Post
+  intro E c inner p r skip rq t log F Pre Q Post info
   wp_start as ⟨#Hq, #Hin, Hpre, #HF⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
@@ -54,7 +54,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
   wp_auto
   wp_apply HAvail $$ %_ %r [] as %ok %Hok
   · ipureintro; exact Or.inr (Or.inl rfl)
-  ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ Hf Hres
+  ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ Hf Hres
   wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.txnPre
     iunfold apply.mPre
@@ -62,9 +62,10 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     iframe #
     ipureintro; exact Hk
   iunfold apply.kvPostF at Hpost
-  icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP⟩
+  icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP, #Hcls⟩
   obtain ⟨Hst, Hfl⟩ := Hst0
-  ihave Hres := apply.chainRes_quota_in c p (.ok bi) $$ Hf Hres
+  ihave Hres := apply.chainRes_quota_in c p (.ok bi) info $$ Hf Hres
+  ihave #Hcls := apply.chainClass_quota E.authMode info c rq oc $$ Hcls
   have hq : apply.quotaChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   rcases err with e | _
   · -- an error: passed on
@@ -75,7 +76,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     · iexact Htrc
     iunfold apply.kvPostF
     iexists oc
-    iframe HR Hkv HPP Hres
+    iframe HR Hkv HPP Hres Hcls
     ipureintro
     simp only [apply.chainStep]
     exact ⟨Hst, Hfl⟩
@@ -93,7 +94,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
       · iexact Htrc
       iunfold apply.kvPostF
       iexists (.applied log' false)
-      iframe HR Hkv HPP Hres
+      iframe HR Hkv HPP Hres Hcls
       ipureintro
       simp only [apply.chainStep]
       exact ⟨Hst, Hfl⟩

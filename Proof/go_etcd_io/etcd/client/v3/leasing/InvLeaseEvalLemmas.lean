@@ -33,14 +33,6 @@ theorem decide_w64_eq_zero (r : w64) : decide (r = W64 0) = (sint.Z r == 0) := b
   · have h' : sint.Z r ≠ 0 := fun h0 => h (by word)
     rw [decide_eq_false h]; exact (beq_eq_false_iff_ne.mpr h').symm
 
-/-- A list with done elements and the rest zero, set at the first zero. -/
-theorem set_done_replicate {A : Type} (done : List A) (k : Nat) (z p : A) (hk : 0 < k) :
-    (done ++ List.replicate k z).set done.length p = (done ++ [p]) ++ List.replicate (k - 1) z := by
-  obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
-  rw [List.set_append_right _ _ (Nat.le_refl _), Nat.sub_self, List.replicate_succ,
-    List.set_cons_zero, List.append_assoc]
-  rfl
-
 theorem leaseEvalOk_false (st : LeaseCacheSt) (os : List OpFull) (n : Nat) (o : OpFull)
     (ho : os[n]? = some o)
     (hf : (decide (o.t = W64 1) && !isBadOpM o && (st.entries !! o.key).isSome) = false) :

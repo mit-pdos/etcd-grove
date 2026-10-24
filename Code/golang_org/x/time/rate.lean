@@ -8,35 +8,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def golang_org.x.time.rate : GoString := go!"golang.org/x/time/rate"
+noncomputable def golang_org.x.time.rate : GoString := go!"golang.org/x/time/rate"
 end pkg_id
 
 namespace golang_org.x.time.rate
 
-def Limit.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Limit.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Limit" [])
 
 attribute [irreducible] Limit.ty
 
-def Limiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Limiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Limiter" [])
 
 attribute [irreducible] Limiter.ty
 
-def Reservation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Reservation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Reservation" [])
 
 attribute [irreducible] Reservation.ty
 
-def Sometimes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Sometimes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Sometimes" [])
 
 attribute [irreducible] Sometimes.ty
@@ -57,7 +56,7 @@ noncomputable def Every [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"golang.org/x/time/rate.NewLimiter"
 
-instance info' : PkgInfo pkg_id.golang_org.x.time.rate where
+noncomputable instance info' : PkgInfo pkg_id.golang_org.x.time.rate where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -71,7 +70,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Limit [FfiSyntax] : Type := w64
 
-@[reducible] def Limit.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Limit.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.float64
 
 class Limit.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

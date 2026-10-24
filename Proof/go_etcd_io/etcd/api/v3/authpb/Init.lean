@@ -10,6 +10,8 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untrans
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
+public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -81,6 +83,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (_root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk Permission_Type_name.init (by mem_tac))
   wp_apply (opaqueInitsOk Permission_Type_value.init (by mem_tac))
   wp_apply (opaqueInitsOk file_auth_proto_enumTypes.init (by mem_tac))

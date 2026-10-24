@@ -1,4 +1,4 @@
-// Package linkv3p is linkv3 (examples/linkv3) under network partitions: three etcd members started
+// Package linkv3p is linkv3 (examples/linkv3, retired) under network partitions: three etcd members started
 // in-process as examples/putget3 starts them, each serving its raft handler on its own peer
 // listener and etcd's gRPC API on its own client listener, a client connected to each member,
 // a partitioner goroutine that cuts and mends the links between members, and between each client
@@ -29,7 +29,6 @@ package linkv3p
 import (
 	"context"
 	"net"
-	"net/http"
 	"sync"
 	"time"
 
@@ -39,14 +38,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
-	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/server/v3/config"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
-	"go.etcd.io/etcd/server/v3/features"
 
+	"github.com/mit-pdos/etcd-grove/examples/common"
 	"github.com/mit-pdos/etcd-grove/examples/linkvtxn"
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 	"github.com/mit-pdos/etcd-grove/third_party/bridge"
@@ -96,43 +93,16 @@ type Step struct {
 }
 
 // startMember starts member name of the new cluster cluster, whose peer URLs are peer (the one
-// URL http://peerAddr): the server (configured as putget3's, with linkv3p's cluster token), its
-// raft handler served on a listener at peerAddr, the server started, and its gRPC server served
-// on a listener at client.
+// URL http://peerAddr): the server and its raft handler served on a listener at peerAddr (the
+// examples' shared NewMember, with linkv3p's cluster token), the server started, and its gRPC
+// server served on a listener at client.
 func startMember(name string, peer types.URLs, peerAddr string, client string,
 	cluster types.URLsMap, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
-	cfg := config.ServerConfig{
-		Name:    name,
-		DataDir: name + ".etcd",
-		// the three members: a new cluster
-		InitialPeerURLsMap:  cluster,
-		PeerURLs:            peer,
-		ClientURLs:          types.URLs{{Scheme: "http", Host: client}},
-		InitialClusterToken: "linkv3p",
-		NewCluster:          true,
-		// as putget3: raft's clock, etcd's default snapshot count, the catch-up entries past
-		// the theorem's step bound (NewServer's run bound, D21 M3), etcd's default request
-		// limits
-		TickMs:                 100,
-		ElectionTicks:          10,
-		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: 1 << 48,
-		MaxTxnOps:              128,
-		MaxRequestBytes:        1536 * 1024,
-		// NewServer's premises, as putget3
-		Logger:            lg,
-		ServerFeatureGate: features.NewDefaultServerFeatureGate(name, lg),
-	}
-	s, err := etcdserver.NewServer(cfg)
+	// the server (configured as putget3's, with linkv3p's cluster token) and its raft handler
+	s, err := common.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", lg)
 	if err != nil {
 		return nil, err
 	}
-	// the member's peer URL is served by its own transport (D21b's deployment fact)
-	l, err := net.Listen("tcp", peerAddr)
-	if err != nil {
-		return nil, err
-	}
-	go http.Serve(l, s.RaftHandler())
 	// the member's client address, before the server starts (an error leaves nothing running)
 	cl, err := net.Listen("tcp", client)
 	if err != nil {
@@ -179,7 +149,7 @@ func peerStep(srvs []*etcdserver.EtcdServer, kind int, a int, b int) {
 // clientStep applies a client step to member a's bridge (brs[a]), as etcd's integration tests
 // do (Member.Bridge().Blackhole(), ...); holed[a] says whether that bridge is blackholed. A
 // blackhole of a blackholed bridge does nothing: the bridge's Blackhole closes its channel
-// unguarded, so a second one would panic (issues/etcd-bridge-blackhole-twice-panic.md).
+// unguarded, so a second one would panic (issues/nonissues/etcd-bridge-blackhole-twice-panic.md).
 func clientStep(brs []bridge.Bridge, holed []bool, kind int, a int) {
 	if a < 0 || a >= len(brs) {
 		return
@@ -227,23 +197,6 @@ func Check(clis []*clientv3.Client, clients int, ops int, timeout time.Duration)
 		timeout)
 }
 
-// newClient connects a client with the default retries to the members (through their bridges)
-// at eps, each attempt to one of them: a read that fails with Unavailable is retried, on the next
-// member; a write is retried only after a refusal (a learner's, an authentication error), which
-// these members never send, so it is sent at most once (notes/read-retry-plan.md). Keepalive
-// closes a connection that stops answering (notes/keepalive-plan.md).
-func newClient(eps []string, lg *zap.Logger) (*clientv3.Client, error) {
-	return clientv3.New(clientv3.Config{
-		Endpoints: eps,
-		Logger:    lg,
-		// keepalive pings every 10s (grpc's floor) while calls are in flight; a ping not answered
-		// within 2s closes the connection, so a silently cut member's calls fail and the balancer
-		// moves on (production values are larger: Kubernetes' API server uses 30s and 10s)
-		DialKeepAliveTime:    10 * time.Second,
-		DialKeepAliveTimeout: 2 * time.Second,
-	})
-}
-
 // startCluster starts the three members of a new cluster, a bridge to each member's client
 // address, and three clients, each of every bridge (failover). It returns the members, the
 // bridges and the clients, and false if a step failed (the specs allow every step to fail).
@@ -282,17 +235,21 @@ func startCluster(lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.Bridge, []
 	}
 	brs := []bridge.Bridge{br1, br2, br3}
 
-	// every client has every member's bridge: an attempt goes to one of them (failover)
+	// every client has every member's bridge: an attempt goes to one of them (failover); the
+	// examples' client configuration (common.NewClients: etcdctl's timeouts and keepalive, the
+	// default retries -- a write is sent at most once, these members sending no refusal,
+	// notes/read-retry-plan.md; keepalive closes a connection that stops answering,
+	// notes/keepalive-plan.md)
 	eps := []string{bridgeAddr1, bridgeAddr2, bridgeAddr3}
-	cli1, err := newClient(eps, lg)
+	cli1, err := common.NewClients(eps, lg)
 	if err != nil {
 		return nil, nil, nil, false
 	}
-	cli2, err := newClient(eps, lg)
+	cli2, err := common.NewClients(eps, lg)
 	if err != nil {
 		return nil, nil, nil, false
 	}
-	cli3, err := newClient(eps, lg)
+	cli3, err := common.NewClients(eps, lg)
 	if err != nil {
 		return nil, nil, nil, false
 	}
@@ -320,7 +277,7 @@ func Main(clients int, ops int, sched []Step) porcupine.CheckResult {
 // writers put random keys under wprefix, each put through a client picked at random; a watch of
 // the prefix from revision 1, through the first client, opened before any write and kept across
 // cuts (the client re-opens its stream at a reachable member and resumes it); then the check that
-// the watch reported exactly the writes (checkWatch, watchkv's check).
+// the watch reported exactly the writes (common.Check, watchkv's check).
 
 // The prefix every writer's key is under, and the one the watch covers.
 const wprefix = "wk/"
@@ -333,145 +290,20 @@ const (
 	WatchEnded  = 2
 )
 
-// A kv is a key and a value.
-type kv struct {
-	key string
-	val string
-}
-
-// A putRec is a put that returned no error: its reply's header revision, its key and value.
-type putRec struct {
-	rev int64
-	key string
-	val string
-}
-
-// An event is a watched event: its revision (its key-value's mod revision), key, value, and
-// whether it is a put.
-type event struct {
-	rev int64
-	key string
-	val string
-	put bool
-}
-
-// The writers' log: every put that returned no error.
-type writes struct {
-	mu sync.Mutex
-	ok []putRec
-}
-
-// genPut picks a key under the prefix and a value, from a small set.
-func genPut() kv {
-	keys := []string{"wk/k0", "wk/k1", "wk/k2"}
-	vals := []string{"a", "b", "c", "d"}
-	n := primitive.RandomUint64()
-	k := keys[n%uint64(len(keys))]
-	n = n / uint64(len(keys))
-	return kv{key: k, val: vals[n%uint64(len(vals))]}
-}
-
-// genAll picks n puts (genPut): the writers' puts, writer i's at [i*nops, (i+1)*nops).
-func genAll(n int) []kv {
-	var all []kv
-	for i := 0; i < n; i++ {
-		all = append(all, genPut())
-	}
-	return all
-}
-
 // writer does the puts tried[lo:hi] in order, each through a client of clis picked at random,
 // logging in w each that returned no error, with its reply's revision.
-func writer(clis []*clientv3.Client, w *writes, tried []kv, lo int, hi int) {
-	ctx := context.Background()
+func writer(clis []*clientv3.Client, w *common.Writes, tried []common.KV, lo int, hi int) {
 	for k := lo; k < hi; k++ {
 		p := tried[k]
 		cli := clis[primitive.RandomUint64()%uint64(len(clis))]
-		resp, err := cli.Put(ctx, p.key, p.val)
+		// each Put in a context with the examples' request timeout, cancelled after the call
+		ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+		resp, err := cli.Put(ctx, p.Key, p.Val)
+		cancel()
 		if err == nil {
-			w.mu.Lock()
-			w.ok = append(w.ok, putRec{rev: resp.Header.Revision, key: p.key, val: p.val})
-			w.mu.Unlock()
-		}
-	}
-}
-
-// maxRev is the highest revision of the successful puts oks (0 if there is none).
-func maxRev(oks []putRec) int64 {
-	var m int64
-	for _, p := range oks {
-		if p.rev > m {
-			m = p.rev
-		}
-	}
-	return m
-}
-
-// collect reads the watch channel wch until an event at revision upTo or above (at once if
-// upTo is 0), returning the events read and true; false if the channel closed, or a response
-// reported an error, before.
-func collect(wch clientv3.WatchChan, upTo int64) ([]event, bool) {
-	var evs []event
-	var last int64 // the last event's revision
-	if upTo == 0 {
-		return evs, true
-	}
-	for wresp := range wch {
-		if wresp.Err() != nil {
-			return evs, false
-		}
-		// Gooseable: mvccpb.Event rather than its alias clientv3.Event (the same type)
-		var es []*mvccpb.Event = wresp.Events
-		for _, e := range es {
-			evs = append(evs, event{rev: e.Kv.ModRevision, key: string(e.Kv.Key),
-				val: string(e.Kv.Value), put: e.Type == mvccpb.Event_PUT})
-			last = e.Kv.ModRevision
-		}
-		if len(evs) > 0 && last >= upTo {
-			return evs, true
-		}
-	}
-	return evs, false
-}
-
-// attempted reports whether (key, val) is one of the puts tried.
-func attempted(tried []kv, key string, val string) bool {
-	for _, p := range tried {
-		if p.key == key && p.val == val {
-			return true
-		}
-	}
-	return false
-}
-
-// checkWatch panics unless the events evs are the writes: all puts, at strictly increasing
-// revisions, gap-free from revision 2, each a put some writer attempted (tried), and every
-// successful put (oks) the event at its revision with its key and value.
-func checkWatch(evs []event, tried []kv, oks []putRec) {
-	var prev int64 // the previous event's revision
-	for i, e := range evs {
-		if !e.put {
-			panic("linkv3p: a watched event is not a put")
-		}
-		if i > 0 && e.rev <= prev {
-			panic("linkv3p: the watched revisions do not increase")
-		}
-		if e.rev != int64(i)+2 {
-			panic("linkv3p: the watched revisions are not those from 2 on, without a gap")
-		}
-		if !attempted(tried, e.key, e.val) {
-			panic("linkv3p: a watched put no writer attempted")
-		}
-		prev = e.rev
-	}
-	for _, p := range oks {
-		i := p.rev - 2
-		if i < 0 || i >= int64(len(evs)) {
-			panic("linkv3p: a successful put's revision was not watched")
-		}
-		e := evs[i]
-		if e.key != p.key || e.val != p.val {
-			panic("linkv3p: the event at a successful put's revision is not that put")
+			w.Mu.Lock()
+			w.Ok = append(w.Ok, common.PutRec{Rev: resp.Header.Revision, Key: p.Key, Val: p.Val})
+			w.Mu.Unlock()
 		}
 	}
 }
@@ -481,7 +313,7 @@ func checkWatch(evs []event, tried []kv, oks []putRec) {
 // writers of nops puts each, then reads the watch and checks it against the writes.
 func MainWatch(nw int, nops int, sched []Step) int {
 	// The writers' puts, picked before the members start (the puts attempted).
-	tried := genAll(nw * nops)
+	tried := common.GenAll(nw*nops, []string{"wk/k0", "wk/k1", "wk/k2"})
 
 	srvs, brs, clis, ok := startCluster(zap.NewNop())
 	if !ok {
@@ -494,7 +326,7 @@ func MainWatch(nw int, nops int, sched []Step) int {
 		clientv3.WithProgressNotify(), clientv3.WithCreatedNotify())
 
 	go partitioner(srvs, brs, sched)
-	w := &writes{}
+	w := &common.Writes{}
 	var wg sync.WaitGroup
 	for i := 0; i < nw; i++ {
 		lo := i * nops
@@ -507,15 +339,15 @@ func MainWatch(nw int, nops int, sched []Step) int {
 	wg.Wait()
 
 	// The successful puts, taken out of the log.
-	w.mu.Lock()
-	oks := w.ok
-	w.ok = nil
-	w.mu.Unlock()
-	evs, ok2 := collect(wch, maxRev(oks))
+	w.Mu.Lock()
+	oks := w.Ok
+	w.Ok = nil
+	w.Mu.Unlock()
+	evs, ok2 := common.Collect(wch, common.MaxRev(oks))
 	cancel()
 	if !ok2 {
 		return WatchEnded
 	}
-	checkWatch(evs, tried, oks)
+	common.Check("linkv3p", "put", evs, tried, oks)
 	return WatchOk
 }

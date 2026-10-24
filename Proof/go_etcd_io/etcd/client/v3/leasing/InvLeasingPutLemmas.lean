@@ -67,12 +67,11 @@ theorem applyTxnOp_put_kind (r : w64) (s : List EtcdKv) (top : TxnOp) (h : putKi
 /-- `OpPut(lkey, "REVOKE", WithIgnoreLease())` keeps the key's lease. -/
 theorem revokeOp_txnOpOf (lkey : GoString) :
     txnOpOf (opPutModel lkey go!"REVOKE" [withIgnoreLeaseM]) = some (.putKeep lkey go!"REVOKE") := by
-  simp [opPutModel, opFold, withIgnoreLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero, txnOpOf]
+  simp [op_simps]
 
 theorem revokeOp_not_panics (lkey : GoString) :
     ¬ (opPutModel lkey go!"REVOKE" [withIgnoreLeaseM]).putPanics := by
-  simp [opPutModel, opFold, withIgnoreLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero,
-    OpFull.putPanics]
+  simp [op_simps, OpFull.putPanics]
 
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

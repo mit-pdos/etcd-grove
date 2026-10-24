@@ -36,10 +36,14 @@ axiom api.IsCapabilityEnabled.wp_proof
 axiom attribute.Bool.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
+axiom backend.isDB
 axiom backend.optsAt
+axiom backend.ownDB
+axiom backend.ownWTx
 axiom backend.rBkt
 axiom backend.rtxSnap
 axiom backend.rtxStats
+axiom backend.txDB
 axiom backend.txLive
 axiom context.WithCancelValCtx.wp_proof
 axiom errors.IsCtxErr.wp_proof

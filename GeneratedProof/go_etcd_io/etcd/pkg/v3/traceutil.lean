@@ -11,9 +11,8 @@ public import Code.go_etcd_io.etcd.pkg.v3.traceutil
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -28,7 +27,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-instance TraceKey_typed_pointsto :
+noncomputable instance TraceKey_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.TraceKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -36,7 +35,7 @@ instance TraceKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance TraceKey_into_val_typed :
+noncomputable instance TraceKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.TraceKey go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.underlying := by
   solve_into_val_typed_struct
 
@@ -51,7 +50,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-instance StartTimeKey_typed_pointsto :
+noncomputable instance StartTimeKey_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -59,7 +58,7 @@ instance StartTimeKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance StartTimeKey_into_val_typed :
+noncomputable instance StartTimeKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.underlying := by
   solve_into_val_typed_struct
 
@@ -74,7 +73,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-instance Field_typed_pointsto :
+noncomputable instance Field_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.Field where
   typedPointstoDef l v dq := iprop(
     "Key" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Key" l) v.Key' dq ∗
@@ -84,11 +83,11 @@ instance Field_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Field_into_val_typed :
+noncomputable instance Field_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.Field go_etcd_io.etcd.pkg.v3.traceutil.Field.underlying := by
   solve_into_val_typed_struct
 
-instance Field_access_load_Key (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (dq : DFrac) :
+noncomputable instance Field_access_load_Key (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Key" l) v.Key' dq)
@@ -96,7 +95,7 @@ instance Field_access_load_Key (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.F
  by
   solve_pointsto_access_struct
 
-instance Field_access_store_Key (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (Key' : GoString) :
+noncomputable instance Field_access_store_Key (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (Key' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Key" l) Key' (DFrac.own 1))
@@ -104,7 +103,7 @@ instance Field_access_store_Key (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.
  by
   solve_pointsto_access_struct
 
-instance Field_access_load_Value (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (dq : DFrac) :
+noncomputable instance Field_access_load_Value (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Value" l) v.Value' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Value" l) v.Value' dq)
@@ -112,7 +111,7 @@ instance Field_access_load_Value (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil
  by
   solve_pointsto_access_struct
 
-instance Field_access_store_Value (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (Value' : GoInterface) :
+noncomputable instance Field_access_store_Value (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Field) (Value' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Field go!"Value" l) Value' (DFrac.own 1))
@@ -131,7 +130,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-instance Trace_typed_pointsto :
+noncomputable instance Trace_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.Trace where
   typedPointstoDef l v dq := iprop(
     "operation" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) v.operation' dq ∗
@@ -146,11 +145,11 @@ instance Trace_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Trace_into_val_typed :
+noncomputable instance Trace_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.Trace go_etcd_io.etcd.pkg.v3.traceutil.Trace.underlying := by
   solve_into_val_typed_struct
 
-instance Trace_access_load_operation (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+noncomputable instance Trace_access_load_operation (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) v.operation' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) v.operation' dq)
@@ -158,7 +157,7 @@ instance Trace_access_load_operation (l : Loc) (v : go_etcd_io.etcd.pkg.v3.trace
  by
   solve_pointsto_access_struct
 
-instance Trace_access_store_operation (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (operation' : GoString) :
+noncomputable instance Trace_access_store_operation (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (operation' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) v.operation' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) operation' (DFrac.own 1))
@@ -166,7 +165,7 @@ instance Trace_access_store_operation (l : Loc) (v : go_etcd_io.etcd.pkg.v3.trac
  by
   solve_pointsto_access_struct
 
-instance Trace_access_load_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+noncomputable instance Trace_access_load_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"lg" l) v.lg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"lg" l) v.lg' dq)
@@ -174,7 +173,7 @@ instance Trace_access_load_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Tr
  by
   solve_pointsto_access_struct
 
-instance Trace_access_store_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (lg' : Loc) :
+noncomputable instance Trace_access_store_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (lg' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"lg" l) lg' (DFrac.own 1))
@@ -182,7 +181,7 @@ instance Trace_access_store_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.T
  by
   solve_pointsto_access_struct
 
-instance Trace_access_load_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+noncomputable instance Trace_access_load_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"fields" l) v.fields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"fields" l) v.fields' dq)
@@ -190,7 +189,7 @@ instance Trace_access_load_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceuti
  by
   solve_pointsto_access_struct
 
-instance Trace_access_store_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (fields' : GoSlice) :
+noncomputable instance Trace_access_store_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (fields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"fields" l) v.fields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"fields" l) fields' (DFrac.own 1))
@@ -198,7 +197,7 @@ instance Trace_access_store_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceut
  by
   solve_pointsto_access_struct
 
-instance Trace_access_load_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+noncomputable instance Trace_access_load_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) v.startTime' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) v.startTime' dq)
@@ -206,7 +205,7 @@ instance Trace_access_load_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.trace
  by
   solve_pointsto_access_struct
 
-instance Trace_access_store_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (startTime' : time.Time) :
+noncomputable instance Trace_access_store_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (startTime' : time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) v.startTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) startTime' (DFrac.own 1))
@@ -214,7 +213,7 @@ instance Trace_access_store_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.trac
  by
   solve_pointsto_access_struct
 
-instance Trace_access_load_steps (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+noncomputable instance Trace_access_load_steps (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"steps" l) v.steps' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"steps" l) v.steps' dq)
@@ -222,7 +221,7 @@ instance Trace_access_load_steps (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil
  by
   solve_pointsto_access_struct
 
-instance Trace_access_store_steps (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (steps' : GoSlice) :
+noncomputable instance Trace_access_store_steps (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (steps' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"steps" l) v.steps' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"steps" l) steps' (DFrac.own 1))
@@ -230,7 +229,7 @@ instance Trace_access_store_steps (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceuti
  by
   solve_pointsto_access_struct
 
-instance Trace_access_load_stepDisabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+noncomputable instance Trace_access_load_stepDisabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"stepDisabled" l) v.stepDisabled' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"stepDisabled" l) v.stepDisabled' dq)
@@ -238,7 +237,7 @@ instance Trace_access_load_stepDisabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.tr
  by
   solve_pointsto_access_struct
 
-instance Trace_access_store_stepDisabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (stepDisabled' : Bool) :
+noncomputable instance Trace_access_store_stepDisabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (stepDisabled' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"stepDisabled" l) v.stepDisabled' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"stepDisabled" l) stepDisabled' (DFrac.own 1))
@@ -246,7 +245,7 @@ instance Trace_access_store_stepDisabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.t
  by
   solve_pointsto_access_struct
 
-instance Trace_access_load_isEmpty (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+noncomputable instance Trace_access_load_isEmpty (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"isEmpty" l) v.isEmpty' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"isEmpty" l) v.isEmpty' dq)
@@ -254,7 +253,7 @@ instance Trace_access_load_isEmpty (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceut
  by
   solve_pointsto_access_struct
 
-instance Trace_access_store_isEmpty (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (isEmpty' : Bool) :
+noncomputable instance Trace_access_store_isEmpty (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (isEmpty' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"isEmpty" l) v.isEmpty' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"isEmpty" l) isEmpty' (DFrac.own 1))
@@ -273,7 +272,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-instance step_typed_pointsto :
+noncomputable instance step_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.step where
   typedPointstoDef l v dq := iprop(
     "time" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) v.time' dq ∗
@@ -286,11 +285,11 @@ instance step_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance step_into_val_typed :
+noncomputable instance step_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.step go_etcd_io.etcd.pkg.v3.traceutil.step.underlying := by
   solve_into_val_typed_struct
 
-instance step_access_load_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+noncomputable instance step_access_load_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) v.time' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) v.time' dq)
@@ -298,7 +297,7 @@ instance step_access_load_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.s
  by
   solve_pointsto_access_struct
 
-instance step_access_store_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (time' : time.Time) :
+noncomputable instance step_access_store_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (time' : time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) v.time' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) time' (DFrac.own 1))
@@ -306,7 +305,7 @@ instance step_access_store_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.
  by
   solve_pointsto_access_struct
 
-instance step_access_load_msg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+noncomputable instance step_access_load_msg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"msg" l) v.msg' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"msg" l) v.msg' dq)
@@ -314,7 +313,7 @@ instance step_access_load_msg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.st
  by
   solve_pointsto_access_struct
 
-instance step_access_store_msg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (msg' : GoString) :
+noncomputable instance step_access_store_msg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (msg' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"msg" l) v.msg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"msg" l) msg' (DFrac.own 1))
@@ -322,7 +321,7 @@ instance step_access_store_msg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.s
  by
   solve_pointsto_access_struct
 
-instance step_access_load_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+noncomputable instance step_access_load_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"fields" l) v.fields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"fields" l) v.fields' dq)
@@ -330,7 +329,7 @@ instance step_access_load_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil
  by
   solve_pointsto_access_struct
 
-instance step_access_store_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (fields' : GoSlice) :
+noncomputable instance step_access_store_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (fields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"fields" l) v.fields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"fields" l) fields' (DFrac.own 1))
@@ -338,7 +337,7 @@ instance step_access_store_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceuti
  by
   solve_pointsto_access_struct
 
-instance step_access_load_isSubTraceStart (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+noncomputable instance step_access_load_isSubTraceStart (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceStart" l) v.isSubTraceStart' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceStart" l) v.isSubTraceStart' dq)
@@ -346,7 +345,7 @@ instance step_access_load_isSubTraceStart (l : Loc) (v : go_etcd_io.etcd.pkg.v3.
  by
   solve_pointsto_access_struct
 
-instance step_access_store_isSubTraceStart (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (isSubTraceStart' : Bool) :
+noncomputable instance step_access_store_isSubTraceStart (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (isSubTraceStart' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceStart" l) v.isSubTraceStart' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceStart" l) isSubTraceStart' (DFrac.own 1))
@@ -354,7 +353,7 @@ instance step_access_store_isSubTraceStart (l : Loc) (v : go_etcd_io.etcd.pkg.v3
  by
   solve_pointsto_access_struct
 
-instance step_access_load_isSubTraceEnd (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+noncomputable instance step_access_load_isSubTraceEnd (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceEnd" l) v.isSubTraceEnd' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceEnd" l) v.isSubTraceEnd' dq)
@@ -362,7 +361,7 @@ instance step_access_load_isSubTraceEnd (l : Loc) (v : go_etcd_io.etcd.pkg.v3.tr
  by
   solve_pointsto_access_struct
 
-instance step_access_store_isSubTraceEnd (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (isSubTraceEnd' : Bool) :
+noncomputable instance step_access_store_isSubTraceEnd (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (isSubTraceEnd' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceEnd" l) v.isSubTraceEnd' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceEnd" l) isSubTraceEnd' (DFrac.own 1))

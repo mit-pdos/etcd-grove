@@ -32,7 +32,8 @@ def mvcc.ownKeys (keys : GoSlice) (ks : List GoString) : IProp GF :=
 index (`idxKnows`: a committed log's certificate, or the writer's handle; its log `kn.log`) and
 `atRev` below its length: the keys of `[key, end)` (the one `key` if
 `end == nil`) with a revision at `atRev` in `log`, in key order, with their modified and
-created revisions and versions, at most `limit` of them if positive (`rangeTaken`), and the
+created revisions (their main revisions: the model leaves the sub-revisions out, `Gen`) and
+versions, at most `limit` of them if positive (`rangeTaken`), and the
 count (`rangeTotal`: all of them if `withTotalCount`, else at most `limit`). The reader holds a part of the compaction revision `c`'s authority (`crevUB`, given back),
 at or below `atRev`: every key's compaction level is at most `c` (`idxLockInv`). -/
 abbrev mvcc.treeIndex.Range.spec : Prop :=
@@ -45,7 +46,7 @@ abbrev mvcc.treeIndex.Range.spec : Prop :=
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e0 }}
     (App (App (App (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Range"))
       (Val #key)) (Val #endk)) (Val #atRev)) (Val #limit)) (Val #withTotal))
-  {{ (keys modifies creates vers : GoSlice) (total : w64),
+  {{ (keys modifies creates vers : GoSlice) (total : w64) (cl : List Revision),
       RET (PairV (PairV (PairV (PairV #keys #modifies) #creates) #vers) #total);
       mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q c ∗
       mvcc.ownKeys keys ((mvcc.rangeTaken kn.log (decide (endk = slice.nil)) k e atRev limit).map
@@ -53,13 +54,14 @@ abbrev mvcc.treeIndex.Range.spec : Prop :=
       modifies ↦* ((mvcc.rangeTaken kn.log (decide (endk = slice.nil)) k e atRev limit).map
         fun x => mvcc.revVal x.2.1) ∗
       ownSliceCap Revision modifies (DFrac.own 1) ∗
-      creates ↦* ((mvcc.rangeTaken kn.log (decide (endk = slice.nil)) k e atRev limit).map
-        fun x => mvcc.revVal x.2.2.1) ∗
+      creates ↦* cl ∗
       ownSliceCap Revision creates (DFrac.own 1) ∗
       vers ↦* ((mvcc.rangeTaken kn.log (decide (endk = slice.nil)) k e atRev limit).map
         fun x => x.2.2.2) ∗
       ownSliceCap w64 vers (DFrac.own 1) ∗
-      ⌜total = W64 (mvcc.rangeTotal kn.log (decide (endk = slice.nil)) k e atRev limit withTotal)⌝ }}
+      ⌜total = W64 (mvcc.rangeTotal kn.log (decide (endk = slice.nil)) k e atRev limit withTotal) ∧
+        cl.map Revision.Main' =
+          (mvcc.rangeTaken kn.log (decide (endk = slice.nil)) k e atRev limit).map fun x => x.2.2.1⌝ }}
 
 end spec
 
