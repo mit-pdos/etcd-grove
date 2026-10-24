@@ -20,102 +20,6 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section pure
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- What `applyConfChange` did to the node: installed new `Progress` objects (`prs`, records
-`pvs`, each `Match` the old one or `0` at a leader), then `switchToConfig`'s rest
-(`SwitchOk`). -/
-def ApplyCCOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
-  ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
-    (s.role = .leader → MatchKept s.prvals pvs) ∧
-    SwitchOk cfg id { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } s'
-
-/-- The protocol reading of `ApplyCCOk`: one `Step` that receives nothing (at a leader
-`Step.reMatch`, then `Step.commit` if `maybeCommit` moved the commit index, then
-`Step.sendApps`; at a non-leader `Step.refl`), and what is kept of the physical state: the
-role, `r.step`, `r.tick`, the term, pre-vote, the ghost bounds, the log but for a raised
-commit index. -/
-theorem applyCCOk_step {B : Int} (cfg : GSet w64) (hne : cfg ≠ ∅) (id : w64) (s s' : NState)
-    (H : ApplyCCOk cfg id s s') :
-    -- (D19p, 2026-10-18) at the configuration the new progress map tracks (until then `Step cfg`,
-    -- which cannot say where a snapshot goes)
-    StepC (CfgM.simple cfg (domSet s'.progress \ cfg)) id B (toPState s) [] (toPState s') ∧
-    s'.role = s.role ∧ s'.stepfn = s.stepfn ∧ s'.ticking = s.ticking ∧ s'.term = s.term ∧
-    s'.prevote = s.prevote ∧ s'.gh = s.gh ∧
-    s'.logst = { s.logst with committed := s'.logst.committed } ∧
-    uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
-  obtain ⟨prs, pvs, Hmk, Hsw⟩ := H
-  unfold SwitchOk at Hsw
-  by_cases Hl : s.role = .leader
-  · rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState).role = .leader from Hl)]
-      at Hsw
-    obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
-    have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
-    -- the new `Progress` values
-    have H1 : StepC (CfgM.simple cfg (domSet prs \ cfg)) id B (toPState s) []
-        (toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }) := by
-      have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } =
-          { toPState s with matched := prvalsMatch pvs } := by simp [toPState, Hl]
-      rw [e]
-      refine .reMatch _ _ Hpl (fun v i hv => ?_)
-      simp only [prvalsMatch, GMap.lookup_fmap'] at hv
-      cases hp : pvs !! v with
-      | none => rw [hp] at hv; cases hv
-      | some p' =>
-        rw [hp] at hv
-        simp only [Option.map_some, Option.some.injEq] at hv
-        subst hv
-        rcases Hmk Hl v p' hp with h0 | ⟨p, hp0, hm⟩
-        · exact .inl h0
-        · right
-          simp [toPState, Hl, prvalsMatch, hp0, hm]
-    generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState) = s1 at H1 Hc Hms Hmm
-    have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
-    have Hpl1 : (toPState s1).role = .leader := by simp [toPState, Hl1, proleRole]
-    -- the commit
-    have H2 : StepC (CfgM.simple cfg (domSet prs \ cfg)) id B (toPState s1) []
-        (toPState { s1 with logst := { s1.logst with committed := c } }) := by
-      rcases Hc with rfl | ⟨Hlt, Hle, Htm, Hq⟩
-      · have e : ({ s1 with logst := { s1.logst with committed := s1.logst.committed } } : NState)
-            = s1 := by cases s1; rfl
-        rw [e]; exact .refl _
-      · have e : toPState { s1 with logst := { s1.logst with committed := c } } =
-            { toPState s1 with commit := c } := by simp [toPState, Hl1]
-        rw [e]
-        exact .commit _ c Hpl1 Hlt Hle Htm
-          ((JQuorum_of_out (c := CfgM.simple cfg (domSet prs \ cfg)) hne rfl _).2 Hq)
-    generalize Hs2 : ({ s1 with logst := { s1.logst with committed := c } } : NState) = s2
-      at H2 Hms
-    have Hl2 : s2.role = .leader := by rw [← Hs2]; exact Hl1
-    have Hp2 : s2.progress = prs := by rw [← Hs2, ← Hs1]
-    -- the appends
-    have H3 : StepC (CfgM.simple cfg (domSet prs \ cfg)) id B (toPState s2) []
-        (toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' }) := by
-      have e : toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' } =
-          toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl
-      rw [e, toPState_prvals (sendMsgs s2 ms) pvs2 (fun _ => by
-        rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
-      exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk
-        (fun m hm h => by
-          have hd := (Hms m hm).2.2.1 h
-          rw [Hp2] at hd
-          rw [CfgM.voters_simple]
-          show m.dst ∈ cfg ∪ (domSet prs \ cfg)
-          by_cases hc : m.dst ∈ cfg
-          · exact (GMap.elem_of_union _ _ _).2 (Or.inl hc)
-          · exact (GMap.elem_of_union _ _ _).2 (Or.inr ((GMap.elem_of_difference _ _ _).2 ⟨hd, hc⟩)))
-    subst Hs1 Hs2
-    refine ⟨.trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3), ?_⟩
-    refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
-    rcases Hc with rfl | ⟨Hlt, -⟩
-    · exact Int.le_refl _
-    · simp only [toPState] at Hlt; simp only [sendMsgs]; omega
-  · rw [ite_eq_right (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState).role = .leader
-      from Hl)] at Hsw
-    subst Hsw
-    have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } = toPState s := by
-      simp [toPState, Hl]
-    rw [e]
-    exact ⟨.refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
-
 /-- What `applyConfChange` did at a node moved to the configuration `c'` (2026-10-13,
 reconfiguration stage A2): installed new `Progress` objects (`prs`, tracking `c'`'s ids, records
 `pvs`, each `Match` the old one or `0`), then `switchToConfig`'s rest (`SwitchOkC`). -/
@@ -256,7 +160,8 @@ lrn) = some (cfgState cfg lrn')` for the node's learners `lrn = domSet s.progres
 (`ccApplyM_simple`). `ownRaftPhys` stays at `cfg`. Even so the Go code installs new
 `Progress` objects (`checkAndCopy`'s copies, or fresh ones for a peer removed and re-added
 in one change, whose `Match` is `0`), and at a leader commits and sends appends: the result
-is `ApplyCCOk`, a protocol `Step` that receives nothing (`applyCCOk_step`). (Until
+is `ApplyCCOkC` at the simple configuration, a protocol `StepC` that receives nothing
+(`applyCCOkC_step`). (Until
 2026-10-13 it took `id ∈ cfg`, which a leader's `maybeCommit` needs; a leader is a voter by
 `ownRaftPhys` now, and a learner may call this.)
 
@@ -317,9 +222,9 @@ abbrev raft.applyConfChange.specS : Prop :=
       ownCCV2 cc dq ccm ∗
       csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
       ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn'⌝ ∗
-      ⌜ApplyCCOk cfg id s s'⌝ ∗
-      -- (D19p, 2026-10-18) the progress map tracks the new configuration's ids
-      ⌜domSet s'.progress ⊆ cfg ∪ lrn'⌝ }}
+      ⌜ApplyCCOkC (CfgM.simple cfg lrn') id s s'⌝ ∗
+      -- (D19p, 2026-10-18) the learners are the other tracked ids
+      ⌜lrn' = domSet s'.progress \ cfg⌝ }}
 
 
 open Iris.ProofMode in
@@ -343,8 +248,7 @@ theorem raft.applyConfChange.spec_simple
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩
   ihave Hphys := (show ownRaftPhysCV (GF := GF) (cfgState cfg lrn').cfg (cfgState cfg lrn').cfg.voters r id s'
       ⊢ ownRaftPhysC (CfgM.simple cfg lrn') r id s' from .rfl) $$ Hphys
-  icases ownRaftPhysC_dom _ r id s' $$ Hphys with ⟨%Hdom', Hphys⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  icases ownRaftPhysC_simple_toPhys cfg lrn' r id s' $$ Hphys with ⟨Hphys, %Hlrn⟩
   obtain ⟨H1, H2, H3, H4⟩ := Hcs
   have Hos0 : os = [] := perm_elements_empty _ H2
   have Hlns0 : lns = [] := perm_elements_empty _ H4
@@ -354,30 +258,7 @@ theorem raft.applyConfChange.spec_simple
   isplitl [Hcs']
   · simp only [cfgState, cfgM]; iexact Hcs'
   ipureintro
-  obtain ⟨prs, pvs, Hpd, Hmk, Hsw⟩ := Hok
-  refine ⟨⟨H1, H3⟩, ⟨prs, pvs, fun _ => Hmk, ?_⟩, ?_⟩
-  rotate_left
-  · have hv : (CfgM.simple cfg lrn').voters ∪ (CfgM.simple cfg lrn').learners = cfg ∪ lrn' := by
-      rw [CfgM.voters_simple]; rfl
-    rw [← hv]; exact Hdom'
-  · have Hl : learnerOfC (cfgState cfg lrn').cfg id = learnerOf cfg prs id := by
-      unfold learnerOfC learnerOf
-      rw [Hpd, Hids]
-      show decide (id ∈ lrn') = decide (id ∈ cfg ∪ lrn' ∧ id ∉ cfg)
-      by_cases h : id ∈ lrn'
-      · simp [h, GMap.elem_of_union, Hd' id h]
-      · simp [h, GMap.elem_of_union]
-    rw [Hl] at Hsw
-    unfold SwitchOkC at Hsw
-    unfold SwitchOk
-    split
-    · rename_i hl
-      have hin : id ∈ cfg := Hv (by rw [hl]; decide)
-      rw [ite_eq_left hl, ite_eq_left (by rw [Hv']; exact hin)] at Hsw
-      exact Hsw.simple (fun h => by rw [h] at hin; exact GMap.not_elem_of_empty _ hin)
-    · rename_i hl
-      rw [ite_eq_right hl] at Hsw
-      exact Hsw
+  exact ⟨⟨H1, H3⟩, Hok, Hlrn⟩
 
 end spec
 

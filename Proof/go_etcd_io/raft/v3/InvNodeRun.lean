@@ -1173,17 +1173,15 @@ theorem wp_applyConf_dyn
 progress map tracks the voters and some of the old learners. -/
 theorem trackedOk_shrink {γ : RaftNames} {id : w64} {s s' : NState} {lrn' : GSet w64}
     (H : TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id)
-    (Hlp : ∀ k, k ∈ lrn' → k ∈ domSet s.progress) (Hd : domSet s'.progress ⊆ γ.reCfg ∪ lrn') :
+    (Hlp : ∀ k, k ∈ lrn' → k ∈ domSet s.progress) (Hd : lrn' = domSet s'.progress \ γ.reCfg) :
     TrackedOk γ (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id := by
   refine TrackedOk.simple_mono (fun k hk => ?_) H
-  have hk' := ((GMap.elem_of_difference _ _ _).1 hk).1
-  rcases (GMap.elem_of_union _ _ _).1 ((GMap.elem_of_subseteq _ _).1 Hd k hk') with h | h
-  · exact Or.inl h
-  · by_cases hc : k ∈ γ.reCfg
-    · exact Or.inl hc
-    · exact Or.inr ((GMap.elem_of_difference _ _ _).2 ⟨Hlp k h, hc⟩)
+  rw [← Hd] at hk
+  by_cases hc : k ∈ γ.reCfg
+  · exact Or.inl hc
+  · exact Or.inr ((GMap.elem_of_difference _ _ _).2 ⟨Hlp k hk, hc⟩)
 
-/-- After `applyConfChange`: the ghost step its result is (`applyCCOk_step`,
+/-- After `applyConfChange`: the ghost step its result is (`applyCCOkC_step`,
 `ownRaftGhost_step_0`), and `ownRawNode` re-sealed at the same client-facing state. -/
 theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s s' : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
@@ -1196,7 +1194,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s)
-    (Hok : ApplyCCOk γ.reCfg id s s')
+    (Hok : ApplyCCOkC (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id s s')
     -- (D19p, 2026-10-18) the new tracker within the tracked bound
     (Htrk' : TrackedOk γ (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id)
     (Hnl : NsLink γ s) :
@@ -1212,7 +1210,8 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       certLink γ s.logst.storage -∗ £ 1 ={⊤}=∗
       ownRawNode γ rn id rs := by
   obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ :=
-    applyCCOk_step (B := 0) _ γ.reCfg_ne _ _ _ Hok
+    (applyCCOkC_step (B := 0) _ _ _ _ Hok).resolve_right
+      (fun ⟨_, Hv, _⟩ => Hv (by rw [CfgM.voters_simple]; exact Hin))
   have Hprev : s'.logst.prev = s.logst.prev := by rw [Hls]
   have Hstored : s'.logst.stored = s.logst.stored := by rw [Hls]
   have Happ : s'.logst.applying = s.logst.applying := by rw [Hls]
@@ -1277,7 +1276,7 @@ theorem wp_rn_raft_applyConfChange
       s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hli2
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok, %Hdom'⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hok
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan (Hdom' ▸ Hok)
     (trackedOk_shrink Htrk Hlp Hdom') Hnl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hlc with Hrn
   try wp_auto
