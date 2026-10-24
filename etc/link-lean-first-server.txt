@@ -434,7 +434,8 @@ traceutil_Trace__LogWithStepThreshold:
 #
 # Unit P2 (2026-10-14): the auth store's request side (server/v3/auth, proved over `auth.authInv`,
 # InvAuth.lean); adt's bytes-affine intervals are linked in adt's Link.lean (`@`). The trust
-# boundary: metadata.FromIncomingContext, AuthInfoFromTLS, hasRootRole, redactToken, zap.ByteString.
+# boundary: metadata.FromIncomingContext, AuthInfoFromTLS, redactToken, zap.ByteString (hasRootRole
+# proved since S4b, 2026-10-24, over Perennial's sort.SearchStrings).
 zap_ByteString:
 zap_Logger__Error:
 metadata_FromIncomingContext:

@@ -5,8 +5,7 @@
 # `IsAdminPermitted`, and `lockedReadTx`, their read transaction of the current backend
 # under `beMu`; `AuthInfoFromCtx` (with `authInfoFromToken`), and the error variables
 # they return. Names only: `AuthInfoFromTLS` (its peer's `credentials.TLSInfo` and the x509
-# chains are axiomatized types), `hasRootRole` (`u.Roles` of the axiomatized protobuf
-# `authpb.User`), `redactToken` (`crypto/sha256`) and the rest (the admin requests, the token
+# chains are axiomatized types), `redactToken` (`crypto/sha256`) and the rest (the admin requests, the token
 # providers, `NewAuthStore`).
 # AuthStore is an interface (the server's apply package calls its methods, and its value is a
 # field of `ApplierOptions` and of the auth applier), so the packages its methods' signatures
@@ -34,6 +33,9 @@ translate = ["!*", "AuthInfo",
   "authStore.RoleGet", "authStore.RoleList", "authStore.RoleRevokePermission",
   "authStore.RoleDelete", "authStore.RoleAdd", "authStore.RoleGrantPermission",
   "authStore.HasRole", "authStore.commitRevision", "authStore.setRevision",
+  # `hasRootRole` with its body since Perennial's `sort.SearchStrings` spec (beb785eaf, the auth
+  # plan's S4b, 2026-10-24)
+  "hasRootRole",
   "permSlice.Len", "permSlice.Less", "permSlice.Swap", "rootUser", "rootRole",
   "ErrRootUserNotExist", "ErrRootRoleNotExist", "ErrUserAlreadyExist", "ErrRoleAlreadyExist",
   "ErrRoleNotFound", "ErrRoleEmpty", "ErrPermissionNotGiven", "ErrNoPasswordUser",

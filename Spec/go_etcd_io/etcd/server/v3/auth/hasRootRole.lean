@@ -1,8 +1,8 @@
 /-
-`hasRootRole` (`server/auth/store.go`): the trust boundary (names only: it reads `u.Roles` of
-the protobuf `authpb.User`, and `sort.SearchStrings`, which Perennial has no spec of yet,
-`notes/perennial-changes.md`). Lean-first (no Rocq counterpart; unit P2; the auth plan's S3 states
-its result).
+`hasRootRole` (`server/auth/store.go`): `sort.SearchStrings` on the user's roles (proved since
+the auth plan's S4b, 2026-10-24, over Perennial's `sort.wp_SearchStrings`; until then a
+trust-boundary axiom). Lean-first (no Rocq counterpart; unit P2; the auth plan's S3 states its
+result).
 -/
 module
 
