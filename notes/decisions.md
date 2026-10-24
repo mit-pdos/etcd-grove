@@ -17149,3 +17149,34 @@ before and the bytes-affine ones as instances.
   empty tree is converted by `ownIvtB_of_empty` as before). `Find`/`Delete`/`Union`/`Stab` have
   generic results but no bytes-affine instance (nothing needs one; a bytes-affine `Find`/`Delete`
   is the wrapper `Insert_bytes` is). No Perennial change was needed.
+
+## The static `ownRaftPhys` as an alias of `ownRaftPhysC` (2026-10-24 · branch `cleanup/2026-10-24`)
+
+Until now the static `ownRaftPhys cfg r id s` was a sealed predicate of its own, `ownRaftPhysG
+(ownTracker cfg) ownRaftLog cfg` (`ownRaftPhysDef`), beside `ownRaftPhysCV c V` (stage A1's one body
+over two tracker predicates), with conversions both ways (`ownRaftPhys_toC`, `ownRaftPhysC_toPhys`
+through `ownTracker_toC`/`ownTrackerC_toSimple`) and its own interface (`ownRaftPhys_intro`, the
+`iNamed_phys`/`reseal` macros, a static copy of every accessor's proof).
+
+- **The alias.** `ownRaftPhys cfg r id s` is now the sealed alias of `ownRaftPhysC (CfgM.simple cfg
+  (domSet s.progress \ cfg)) r id s` (`InvRaftPhys.lean`; `ownRaftPhys_toC`/`ownRaftPhys_ofC`). The
+  learners are the tracked ids outside `cfg`, so the alias is a function of the state, as the old
+  predicate was. Every static accessor keeps its statement and is a corollary of its `C`
+  counterpart; `ownRaftPhysDef`, `ownRaftPhys_intro` (callers seal at `C` and convert),
+  `ownRaftPhys_tracker` and the static macros are gone.
+- **No second tracker predicate.** `ownTracker cfg` (`InvTracker.lean`) went with its lemmas and
+  the conversions: the static tracker is `ownTrackerC` at the simple configuration
+  (`ownTrackerC_resimple`: a non-joint tracker is at its simple configuration;
+  `ownTrackerC_empty` for `newRaft`). `ownRaftPhys_tracker_same`/`ownRaftPhys_intro_trk`
+  (intermediate) hand out and take `ownTrackerC (CfgM.simple cfg (domSet prs \ cfg))`.
+- **One conf-change result.** `raft.applyConfChange.specS` (the static derivation three callers
+  share) returns `ApplyCCOkC (CfgM.simple cfg lrn') id s s'` with `lrn' = domSet s'.progress \ cfg`
+  (was `ApplyCCOk cfg id s s'` with `domSet s'.progress ⊆ cfg ∪ lrn'`), read by `applyCCOkC_step`;
+  the static `ApplyCCOk`/`applyCCOk_step` (a 90-line second proof of the same protocol step),
+  `SwitchOk`, `LeaderSwitch`, `CommitOk` are gone.
+- **What is left static**: `ownRaftPhys` itself, the static callers' view (`rawNodeFresh`,
+  `newRaft.spec`, `raft.loadState.spec`, `RestartNode`, `RawNode.Bootstrap`,
+  `ownRawNode_static_open`); it goes with the static mode (`notes/STATUS.md`, "Clean-up: unused
+  declarations removed, ...", the server's static mode). No exported result's statement reached
+  `ownRaftPhys`, `ownTracker`, `ApplyCCOk`, `SwitchOk` or `CommitOk` (`.lake/tcb.json`), so no
+  top-level statement changed.
