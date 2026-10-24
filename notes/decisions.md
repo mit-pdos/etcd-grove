@@ -17673,6 +17673,56 @@ writes cannot use. Go's decoder allocates a fresh message for the caller.
   write contract has `GetUser` but no `GetRole`), `UserList`/`RoleList` (no backend `UnsafeForEach`
   spec).
 
+
+## E1 of the auth plan: the token binding at the server's guards over the bound store contract; `NewAuthStore` not proved (2026-10-24 · `notes/auth-plan.md`, branch `auth-e1`)
+
+**Problem.** S5 stated the request side with the token binding (`isReqAuthBound`) and derived it
+of the real store (`isReqAuthBound_of_authInv`), but the server's store comes from `NewAuthStore`'s
+axiom, whose post names only the unbound `isReqAuth`: the binding could not reach A2's guards or
+A4's watch check (S5b's "Not finished"). E1 was to prove `NewAuthStore` (removing the axiom), then
+thread the binding and the admin side's authority to the server.
+
+**What was done: the guards' bound variants, over the bound contract as a premise.** A persistent
+`srvAuthBound s E` (the server's `authStore` field's store satisfies `isReqAuthBound` in the
+server's mode) is a premise of a bound variant of each guard, stated beside the guard's spec as a
+`boundSpec` and proved over the same callees (`etcdserver/AuthBound.lean`,
+`v3rpc/GuardBound.lean`, `v3rpc/WatchBound.lean`; restated in the two `Results.lean` with
+`#print axioms`, no `sorry`):
+- `EtcdServer.AuthInfoFromCtx`: the auth info is bound to the request's token or came from the
+  TLS fallback (`ctxBoundOrTLS`: `auth.ctxBound`, or `ClientCertAuthEnabled` is `true`). The server
+  falls back to `AuthInfoFromTLS` when the token path gives no auth info, and TLS identity is out of
+  the plan's scope (D-AU6), so the statement names that disjunct rather than binding it.
+- `checkMembershipOperationPermission`, `AuthAdmin.isPermitted` (the admin guards): `adminOutB`,
+  `adminOut` whose auth info is moreover a bound principal (`principalBound`: none, or a user to
+  whom some token was issued, `auth.tokOk`, or the TLS fallback); `adminOut_of_adminOutB` drops it.
+- `EtcdServer.requireAuthInfo`, `AuthAdmin.requireAuthInfo`, the maintenance server's
+  `requireAuthInfo` (the authenticated-user guards): `authedOutB`, likewise.
+- `isWatchPermitted` (A4's check): the principal checked is the anonymous one (the check's
+  `&auth.AuthInfo{}` when the context has none: the zero string user), or a bound one
+  (`principalBoundI`).
+Once `NewAuthStore` gives `isReqAuthBound` of the server's store, `srvAuthBound` is derivable and
+these become unconditional; the guarded entry points' specs (A2's twelve) can then take the bound
+variants mechanically.
+
+**Why not `NewAuthStore`.** Its axiom (`Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean`)
+covers more than the auth package: proving it needs (1) schema's auth write side over the backend:
+`authBackend.CreateAuthBuckets` (`LockOutsideApply`, three `UnsafeCreateBucket`s, `Unlock`),
+`BatchTx`, `ForceCommit`, `authBatchTx.Lock` (`LockInsideApply`, the post-lock hook) / `Unlock`
+(`Unlock` then `Commit`) / `UnsafeReadAuthEnabled` / `UnsafeReadAuthRevision`, with D22's tracked
+buckets (`rbOwn`), the write-back tokens and the hook, which is also the derivation of S4's write
+contract (`authWBackendOk`, `authBatchTxLk`) from the real code; that needs an abstraction from the
+auth buckets' tracked contents to `AuthState` (S1's encoding, `auth/Buckets.lean`) under the batch
+lock, in the backend's D22 machinery that another session is changing; (2) the allocation of
+`authInv` (the three locks `enabledMu`/`rangePermCacheMu`/`beMu` with the reader slots, the history
+and the latest-state halves, the token and issue-right ghosts); (3) the metrics reporter's package
+variables (`reportCurrentAuthRevMu`, `reportCurrentAuthRev`: package facts in `etc/gen-init.py`);
+(4) the post's `authApplyOk` (`InvBoot.lean`). Each is days; the run did not reach them. The admin
+side's authority to the server (S4's apply part's leftover) waits on the same: only `NewAuthStore`
+can hand the apply thread `authOwn`.
+
+**Trust base.** Unchanged (696 axioms, 4 sorries); no axiom or hypothesis added beyond the premise
+`srvAuthBound`.
+
 ## S4b of the auth plan: the pin at Perennial's sort specs, `hasRootRole`, the revocations and `RoleDelete` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4b`)
 
 **Problem.** S4 left five admin operations unproved (they sort or loop over records) and S3 left
