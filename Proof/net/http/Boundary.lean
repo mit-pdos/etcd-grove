@@ -791,6 +791,35 @@ def ReadAll_resp_spec (H : HttpNet GF) : Prop :=
       {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
           ∃ bs : List w8, sl ↦* bs ∗ respReader H rd R γk st bs ∗ errStrOk err }}
 
+/-- `respReadAny`'s fact, raw (opaque). -/
+opaque respReadAnyRaw (rd : GoInterface) : IProp GF
+
+/-- **A response body read without a guarantee** (persistent; 2026-10-24, rafthttp stage 7d): its
+reads, from any goroutine, return any bytes. Two goroutines reading one body (the snapshot sender's
+`io.ReadAll` and its timer's `GracefulClose`, which drains the body after a timeout) may each take
+bytes the other would have read, so neither read is a prefix of what the handler wrote; Go's
+response body serializes its reads, so they are safe. What a reader of the body becomes by giving
+up its guarantee (`respReadAny_of_spec`). -/
+def respReadAny (rd : GoInterface) : IProp GF := iprop(□ respReadAnyRaw rd)
+
+instance respReadAny_persistent (rd : GoInterface) : Persistent (respReadAny (GF := GF) rd) := by
+  unfold respReadAny; infer_instance
+
+/-- **A response body's reader gives up its guarantee** (stage 7d): its reads from then on are
+`respReadAny`'s. -/
+def respReadAny_of_spec (H : HttpNet GF) : Prop :=
+  ∀ (rd : GoInterface) (R : HReq) (γk : GName) (st : w64) (r : List w8),
+    respReader H rd R γk st r ⊢ respReadAny rd
+
+/-- `io.ReadAll(rd)` of a response body read without a guarantee (stage 7d): some bytes and an
+error whose `Error()` returns. -/
+def ReadAll_any_spec : Prop :=
+  ∀ (rd : GoInterface),
+    ⊢ {{ respReadAny (GF := GF) rd }}
+        (App (Val (@! _root_.Perennial.io.ReadAll)) (Val #rd))
+      {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
+          ∃ bs : List w8, sl ↦* bs ∗ errStrOk err }}
+
 /-- A response body's `Close()` with its closer right, from any goroutine, any number of times:
 some error, whose `Error()` returns. -/
 def RespCloseAny_spec : Prop :=

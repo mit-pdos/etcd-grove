@@ -23,7 +23,8 @@ variable [sem : go.Semantics]
 /-- **Trust boundary** (rafthttp stage 5e-3): etcd's `GracefulClose` (`pkg/httputil/httputil.go`)
 is `io.Copy(io.Discard, resp.Body)` (reads to the end, any error ignored) then `resp.Body.Close()`
 (an error ignored): a response body's reads and close, which the HTTP boundary allows of its
-reader (`respRead_spec`, `RespClose_spec`). -/
+reader (`respRead_spec`, `RespClose_spec`); (2026-10-24, stage 7d) of a body read without a
+guarantee (`respReadAny`), whose reads return any bytes. -/
 axiom httputil.GracefulClose.wp_proof : httputil.GracefulClose.spec (GF := GF) (hG := hG)
 
 end proof

@@ -10,6 +10,10 @@ the plan: `notes/rafthttp-plan.md`, stage 3.
   stage 5b: the stream writer logs it) (the storage backend's `writerOk` with a permission: a
   response stream's writer may write only what the response protocol allows,
   `Proof/net/http/Boundary.lean`).
+* `writerAtF nf wi Wr A` (persistent; 2026-10-24, rafthttp stage 7d): `writerAt`'s contract, and
+  when `nf` (never fails) every error `nil`: a `bytes.Buffer`'s `Write`, the snapshot sender's
+  envelope (`createSnapBody`: its `lg.Panic` on an encoding error is then unreachable).
+  `writerAt` is `writerAtF false` (`writerAt_F`).
 * `readFullAt r Rd B` (persistent): the contract of `io.ReadFull` of the reader `r` the decoder
   reads from, by `Rd rs`, the bytes `rs` read so far, and what is known of them, `B`: `ReadFull`
   into a slice of `xs.length` bytes reads `ys`, all of them unless the error is non-nil, and
@@ -55,6 +59,33 @@ def writerAt (wi : GoInterfaceOk) (Wr A : List w8 → IProp GF) : IProp GF :=
 instance writerAt_persistent (wi : GoInterfaceOk) (Wr A : List w8 → IProp GF) :
     Persistent (writerAt wi Wr A) := by
   unfold writerAt; infer_instance
+
+/-- **The `io.Writer` `wi`'s contract with the permission `A`, never failing if `nf`**
+(persistent; see the file header). -/
+def writerAtF (nf : Bool) (wi : GoInterfaceOk) (Wr A : List w8 → IProp GF) : IProp GF :=
+  iprop(□ ∀ (p : GoSlice) (dq : DFrac) (chunk bs : List w8),
+    {{ p ↦*{dq} chunk ∗ Wr bs ∗ □ A (bs ++ chunk) }}
+      (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+        ∃ k : Nat, p ↦*{dq} chunk ∗ Wr (bs ++ chunk.take k) ∗
+          ⌜sint.Z n = k ∧ k ≤ chunk.length ∧ (err = GoInterface.nil → k = chunk.length)⌝ ∗
+          http.errStrOk err ∗ ⌜nf = true → err = GoInterface.nil⌝ }})
+
+instance writerAtF_persistent (nf : Bool) (wi : GoInterfaceOk) (Wr A : List w8 → IProp GF) :
+    Persistent (writerAtF nf wi Wr A) := by
+  unfold writerAtF; infer_instance
+
+/-- A writer's contract is that of one that may fail. -/
+theorem writerAt_F (wi : GoInterfaceOk) (Wr A : List w8 → IProp GF) :
+    writerAt (GF := GF) wi Wr A ⊢ writerAtF false wi Wr A := by
+  unfold writerAt writerAtF
+  iintro #Hw !> %p %dq %chunk %bs %Φ !> Hpre HΦ
+  wp_apply Hw $$ [$Hpre] as %n %err ⟨%k, Hp, HWr, %Hk, #Herr⟩
+  iapply HΦ
+  iexists k
+  iframe; iframe #
+  ipureintro
+  exact ⟨Hk, fun h => absurd h (by decide)⟩
 
 /-- **`io.ReadFull` of the reader `r`'s contract, with what is known of the bytes read, `B`**
 (persistent; see the file header). -/

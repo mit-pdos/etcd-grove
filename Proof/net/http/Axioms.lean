@@ -91,6 +91,12 @@ axiom WithContext_ok : WithContext_spec (GF := GF)
 /-- `io.ReadAll` of a response body (`ReadAll_resp_spec`). -/
 axiom ReadAll_resp_ok (H : HttpNet GF) : ReadAll_resp_spec H
 
+/-- A response body's reader gives up its guarantee (`respReadAny_of_spec`; stage 7d). -/
+axiom respReadAny_of_ok (H : HttpNet GF) : respReadAny_of_spec H
+
+/-- `io.ReadAll` of a response body read without a guarantee (`ReadAll_any_spec`; stage 7d). -/
+axiom ReadAll_any_ok : ReadAll_any_spec (GF := GF)
+
 /-- A response body's `Close` (`RespClose_spec`). -/
 axiom RespClose_ok (H : HttpNet GF) : RespClose_spec H
 

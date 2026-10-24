@@ -202,7 +202,7 @@ theorem rafthttp.pipeline.post.wp_proof
     ipureintro; exact Hrdnn
   -- the member's response is never a `403` (the protocol)
   icases Hrw with ⟨%w, %Hst, -⟩
-  have Hst' : rst ≠ W64 403 := Hst.1 trivial
+  have Hst' : rst ≠ W64 403 := Hst.1 (Or.inl trivial)
   iunfold postErr at Hcerr
   icases Hcerr with ⟨#HcerrS, (%Hcn | ⟨%H403, -⟩ | ⟨%e, %He, #Hne⟩)⟩
   · -- `nil`

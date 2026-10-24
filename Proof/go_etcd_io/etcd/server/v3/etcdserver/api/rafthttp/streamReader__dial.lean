@@ -85,8 +85,9 @@ set_option hygiene false in
 /-- `httputil.GracefulClose(resp)` then `cr.picker.unreachable(u)`. -/
 local macro "close_unreach" : tactic => `(tactic| (
   (try wp_auto)
-  wp_apply hGraceful (raftHttpNet Rh) resp _ rd (fun _ => True) _ γk _ $$ [Hrr]
-  · iframe Hrr
+  ihave #Hany := hAny (raftHttpNet Rh) rd _ γk _ _ $$ Hrr
+  wp_apply hGraceful resp _ rd (fun _ => True) $$ []
+  · iframe #
     iunfold http.respAt
     iframe #
     (try (isplitr; · (iexists rhm, rhs; iframe #)))
@@ -278,6 +279,7 @@ theorem rafthttp.streamReader.dial.wp_proof
     (hCompare : rafthttp.compareMajorMinorVersion.spec (GF := GF) (hG := hG))
     (hCheckSS : rafthttp.checkStreamSupport.spec (GF := GF) (hG := hG))
     (hGraceful : httputil.GracefulClose.spec (GF := GF) (hG := hG))
+    (hAny : ∀ H : http.HttpNet GF, http.respReadAny_of_spec H)
     (hReadAll : ∀ H : http.HttpNet GF, http.ReadAll_resp_spec H)
     (hClose : ∀ H : http.HttpNet GF, http.RespClose_spec H)
     (hTrim : strings.TrimSuffix.spec (GF := GF) (hG := hG))

@@ -210,7 +210,7 @@ theorem rafthttp.startPeer.wp_proof
   wp_apply hStartSW Rh .message lid pid R lg ps fs r γd $$ [HR6] as %cw1 ⟨#Hcw1, Hcw1s⟩
   · iframe #; iframe HR6; ipureintro; exact ⟨Hlgnn, Hfs⟩
   (try wp_auto)
-  wp_apply hNewSnap Rh t lid γd R pk pid ps $$ [] as %sns ⟨#Hsns, Hsnstop⟩
+  wp_apply hNewSnap Rh t lid γd R pk pid ps Hpm (fun h => Hnp h.symm) $$ [] as %sns ⟨#Hsns, Hsnstop⟩
   · iframe #
   (try wp_auto)
   -- the receive channels (bags of received messages) and the stop channel
