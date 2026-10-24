@@ -1114,6 +1114,10 @@ theorem server_membership_guard_bound :
     EtcdServer.checkMembershipOperationPermission.boundSpec (GF := GF) (hG := hG) :=
   EtcdServer.checkMembershipOperationPermission_bound EtcdServer.wp_AuthStore
 
+theorem server_requireAuthInfo_bound :
+    EtcdServer.requireAuthInfo.boundSpec (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo_bound EtcdServer.wp_AuthStore
+
 theorem apply_UserGrantRole_step :
     EtcdGrove.apply.applierV3backend.UserGrantRole.stepSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserGrantRole.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
@@ -1144,6 +1148,7 @@ end backend
 #print axioms Perennial.EtcdGrove.apply_RoleAdd_step
 #print axioms Perennial.EtcdGrove.server_AuthInfoFromCtx_bound
 #print axioms Perennial.EtcdGrove.server_membership_guard_bound
+#print axioms Perennial.EtcdGrove.server_requireAuthInfo_bound
 #print axioms Perennial.EtcdGrove.apply_UserGrantRole_step
 #print axioms Perennial.EtcdGrove.apply_UserRevokeRole_step
 #print axioms Perennial.EtcdGrove.apply_RoleRevokePermission_step
