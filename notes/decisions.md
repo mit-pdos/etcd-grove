@@ -18169,3 +18169,52 @@ appends the permission and sorts the permissions by key (`sort.Sort(permSlice(..
 at the apply layer: `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`,
 `UserGrantRole`, `UserRevokeRole`, `RoleAdd`, `RoleDelete`, `RoleGrantPermission`,
 `RoleRevokePermission`. Trust base unchanged.
+
+## A3c of the auth plan: Lock and Election, the servers over the server's client as a contract (2026-10-24 · `notes/auth-plan.md`, branch `auth-a3c`)
+
+**Problem.** The matrix's Lock and Election rows (`Lock`, `Unlock`, `Campaign`, `Proclaim`,
+`Leader`, `Observe`, `Resign`) were neither translated nor stated. Their servers
+(`server/etcdserver/api/v3lock/lock.go`, `v3election/election.go`) check nothing themselves: they
+hold a `*clientv3.Client`, in etcd the in-process client `v3client.New(s)`, and call the client's
+`concurrency` package (proved for the client) on it, with the request's context. So their class is
+that of the requests those calls send, which the server's own handlers check (A1, A2).
+
+**Decision.** Translate the two servers with bodies and their protobuf messages as data
+(`Code/.../api/v3lock.toml`, `v3election.toml`, `v3lock/v3lockpb.toml`, `v3election/v3electionpb.toml`;
+`etc/goose.py`'s etcd project), and prove each handler over the `concurrency` specs (linked as `@`
+callees of two new link modes, `--v3lock` and `--v3election`) and the server's client as a
+**hypothesis**, not an axiom: `v3lock.lockClientOk c` (the session's client contract
+`isEtcdSessionClient` and, for every prefix, the mutex's and election's `isEtcdMutexClient`) and
+`v3lock.unlockKVOk c` (the client's `KV.Delete` on one key, with a readable response header and
+`deleteResult`). `v3client.New(s)` is not translated: deriving these contracts from the in-process
+adapters (`KvServerToKvClient` over `NewQuotaKVServer(s)`, ...) is the next step, and it is where
+the class becomes the server's handlers' checks. The statements per handler:
+
+- `Lock`: a session over the request's lease (`NewSession`, `WithLease`, `WithContext(ctx)`,
+  `Orphan`) and a mutex on the request's name (`NewMutex`, `Mutex.Lock(ctx)`); the response holds a
+  lock key under `name/` (`lockedAt`, or `keyRecreated`). `Unlock`: one `Delete(ctx, key)` of the
+  request's key, with its `deleteResult`. Note that `Unlock` deletes whatever key the caller names
+  (the lock key is the lock's identity): its class is a delete of that key, as the caller.
+- `session`: the orphaned session (its lease the request's, if it names one). `Campaign`: the
+  campaign's key under `name/` with the value (`keyValAt`) and its outcome (`leaderAt` or
+  `campaignLost`). `Leader`: the leader's key-value (`leaderKvAt`) under `name/`.
+  `Proclaim`/`Resign`: `ErrMissingLeaderKey` for a request without a leader; otherwise the
+  proclamation (`proclaimedAt`, at the session's lease) or the resignation (`notLeaderAt`) of the
+  request's leader key, whatever key the caller names (its class: the write of that key).
+- `ResumeElection` keeps the prefix as given (no `/` appended, unlike `NewElection`), and its spec
+  requires a non-empty prefix: `Proclaim`'s and `Resign`'s specs take a non-empty leader name as a
+  premise. That is the spec's limit, not Go's (the prefix is unused by `Proclaim` and `Resign`).
+- `Observe` (a gRPC stream over the election's `Observe` channel, a `select` loop on the stream's
+  context) is translated and not proved.
+
+**Initialization.** The two servers are roots of `etc/gen-init.py`; their packages' facts are in
+`api/v3lock/Base.lean` and `api/v3election/Base.lean`. Doing so brings the client's `concurrency`
+package into the initializer closure for the first time: its five `errors.New` variables are
+translated and proved with Perennial's `context.wp_New_errorString` (a `SPECIAL` entry, as the k8s
+driver's); `ErrMissingLeaderKey` the same (the fact: a fixed non-nil error). The protobuf packages'
+initializers take `opaqueInitsOk` and `initFuncsOk`, as authpb's; no linked result reaches them, so
+the trust base is unchanged (696 axioms, 4 sorries).
+
+**Also.** `concurrency.sessionOptSpec` (a `□`) has no `Persistent` instance; v3lock's `Defs.lean`
+adds one locally (`sessionOptSpec_persistent'`), to be moved next to the definition.
+

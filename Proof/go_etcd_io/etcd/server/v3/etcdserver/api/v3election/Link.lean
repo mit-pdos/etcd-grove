@@ -9,6 +9,9 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer__Campaign
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer__Leader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer__Proclaim
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer__Resign
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer__session
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Link
 
@@ -49,6 +52,18 @@ theorem electionServer.wp_session :
 theorem electionServer.wp_Campaign :
     EtcdGrove.v3election.electionServer.Campaign.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3election.electionServer.Campaign.wp_proof electionServer.wp_session concurrency.wp_NewElection concurrency.Election.wp_Campaign concurrency.Election.wp_Header concurrency.Election.wp_Key concurrency.Election.wp_Rev concurrency.Session.wp_Lease
+
+theorem electionServer.wp_Leader :
+    EtcdGrove.v3election.electionServer.Leader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3election.electionServer.Leader.wp_proof electionServer.wp_session concurrency.wp_NewElection concurrency.Election.wp_Leader
+
+theorem electionServer.wp_Proclaim :
+    EtcdGrove.v3election.electionServer.Proclaim.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3election.electionServer.Proclaim.wp_proof electionServer.wp_session concurrency.wp_ResumeElection concurrency.Election.wp_Proclaim concurrency.Election.wp_Header
+
+theorem electionServer.wp_Resign :
+    EtcdGrove.v3election.electionServer.Resign.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3election.electionServer.Resign.wp_proof electionServer.wp_session concurrency.wp_ResumeElection concurrency.Election.wp_Resign concurrency.Election.wp_Header
 
 end links_hasLC
 

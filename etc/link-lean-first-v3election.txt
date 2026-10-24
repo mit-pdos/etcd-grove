@@ -15,5 +15,12 @@ Election__Campaign: @
 Election__Header: @
 Election__Key: @
 Election__Rev: @
+Election__Proclaim: @
+Election__Resign: @
+Election__Leader: @
+ResumeElection: @
 electionServer__session: NewSession WithLease WithContext Session__Orphan
 electionServer__Campaign: electionServer__session NewElection Election__Campaign Election__Header Election__Key Election__Rev Session__Lease
+electionServer__Proclaim: electionServer__session ResumeElection Election__Proclaim Election__Header
+electionServer__Resign: electionServer__session ResumeElection Election__Resign Election__Header
+electionServer__Leader: electionServer__session NewElection Election__Leader

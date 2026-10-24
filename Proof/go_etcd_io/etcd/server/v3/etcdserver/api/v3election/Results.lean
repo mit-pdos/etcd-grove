@@ -15,6 +15,9 @@ namespace v3election
 
 #print axioms electionServer.wp_session
 #print axioms electionServer.wp_Campaign
+#print axioms electionServer.wp_Proclaim
+#print axioms electionServer.wp_Resign
+#print axioms electionServer.wp_Leader
 
 end v3election
 end EtcdGrove

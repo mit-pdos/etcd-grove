@@ -260,3 +260,15 @@ fallback's), over the store's bound contract as a premise (`srvAuthBound`; `note
 (`auth/authStore__RoleGrantPermission.lean`, `apply_RoleGrantPermission_step`): every admin
 operation of the store is a proved step. Its spec takes the read-only ownership of
 `authpb.Permission_Type_name` (an untranslated initializer) as a premise (`auth.typeNamesOk`).
+
+## What is proved of the table (A3c, Lock and Election, 2026-10-24)
+
+The Lock and Election rows at the server (`notes/decisions.md`, "A3c of the auth plan: Lock and
+Election"; `api/v3lock/Results.lean`, `api/v3election/Results.lean`): each handler makes only the
+client calls the table names, with the request's context, over the server's client as a contract
+(`lockClientOk`, `unlockKVOk`, hypotheses). `Lock`: a session over the request's lease and a mutex
+on `name/`; `Unlock`: the delete of the request's key; `Campaign` and `Leader`: an election on
+`name/`; `Proclaim` and `Resign`: the request's leader key (any key the caller names). `Observe` is
+translated, not proved. The class becomes the server's handlers' checks once the in-process client
+(`v3client.New(s)`) is shown to meet the contract (not translated yet).
+
