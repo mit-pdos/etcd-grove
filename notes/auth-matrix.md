@@ -219,3 +219,12 @@ row: the store's `Authenticate` is proved (a token issued to the user, the user 
 latest state, auth enabled at a recorded state); the server's entry point and `CheckPassword` are
 not. No real token provider is proved to meet the contract yet (the no-op one does); the rows'
 statements of A2 and A4 still name the unbound info (`isReqAuth`).
+
+## What is proved of the table (S4b, 2026-10-24)
+
+The store's `UserRevokeRole`, `RoleRevokePermission` and `RoleDelete` perform the model's step
+(`auth/Steps.lean`), and `applierV3backend`'s three perform it at the apply layer
+(`apply/AuthSteps.lean`, `apply_*_step` in `etcdserver/Results.lean`); `hasRootRole` (every check's
+root shortcut) is proved. Left: `UserGrantRole`, `RoleGrantPermission` (they write into the
+messages the read contract gives read-only: `notes/decisions.md`, "S4b of the auth plan").
+

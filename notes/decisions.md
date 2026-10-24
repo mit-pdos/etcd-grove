@@ -17615,3 +17615,44 @@ a contract of the gRPC peer), `CheckPassword` (bcrypt), `NewAuthStore` (an axiom
 spec), `EtcdServer.Authenticate` (it needs the server's store contract to have `CheckPassword` and
 `GenTokenPrefix`, and the read-index wait), and threading `isReqAuthBound` into A2's guards and A4's
 watch registrations (their statements still name the info `isReqAuth` gives).
+
+## S4b of the auth plan: the pin at Perennial's sort specs, `hasRootRole`, the revocations and `RoleDelete` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4b`)
+
+**Problem.** S4 left five admin operations unproved (they sort or loop over records) and S3 left
+`hasRootRole` an axiom, both waiting for Perennial's `sort.SearchStrings`/`sort.Strings`.
+
+**Decision.**
+- **The pin** moves to Perennial `beb785eaf` (the two specs; `notes/perennial-changes.md`). No
+  translation changed; the examples' package tables follow `sort`'s new dependency on `slices`
+  (`etc/gen-init.py`). The lakefile's `require` (left at `c25bef57e` by the previous bump) is set to
+  the pin too, which silences Lake's "manifest out of date" warning.
+- **`hasRootRole`** is translated and proved: `SearchStrings` on the user's roles, sorted strictly
+  ascending (S1's `userOut`), and the bounds-checked index decide membership
+  (`auth.mem_iff_search`). S3's axiom is a theorem; its spec is unchanged.
+- **`UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`** perform `Steps.lean`'s steps, in the
+  shape of S4's operations. Their loops build new messages: the roles but the revoked one
+  (`List.filter`, so the roles stay sorted); the permission messages not on `[key, rangeEnd)`
+  (`bytes.Equal` on both), whose model permissions are the model's filtered
+  (`auth.filterMap_filter_keepW`: a wire permission of an unknown type is no model permission);
+  `RoleDelete`'s loop over `UnsafeGetAllUsers` puts back every user who had the role without it
+  and leaves the others, so after the k-th user the users are the first k names' roles filtered
+  (`auth.usersAfter`) and at the end `delRole`'s `GMap.fmap`. Premises as S4's: the record-size
+  fatal behind `stepOk`, the name bound of the put (the revoked user's name; `RoleDelete`: every
+  stored user's name, since it puts back any of them; `issues/etcd-auth-useradd-long-name-fatal.md`).
+- **The requests as data.** `AuthUserRevokeRoleRequest`, `AuthRoleRevokePermissionRequest` and
+  `AuthRoleDeleteRequest` are translated (`etcdserverpb.toml`): names-only, their field instances
+  were `sorry`'d, and a proof reading a field inherited `sorryAx` with no warning (found by
+  `#print axioms`, then by cutting the proof at points and closing it with a local axiom).
+- **The apply layer** (A5's `apply.isAuthSteps`): the three appended, with step triples for
+  `applierV3backend.{UserRevokeRole, RoleRevokePermission, RoleDelete}`, restated in
+  `etcdserver/Results.lean`.
+
+**Not done.** `UserGrantRole` and `RoleGrantPermission` keep their contract clauses: both write
+into the message the read side returned (`append(user.Roles, r.Role)`, which may write past the
+slice's length into its capacity; `role.KeyPermission[idx].PermType = ...` into a permission
+message), and `userOut`/`roleOut` give those messages read-only (`↦*□`, `ownPermW`'s `↦□`) and
+without the capacity. Proving them needs the read side to return owned messages with their
+capacity: a strengthening of S1's `proto.UnmarshalUser`/`UnmarshalRole` axioms (the messages are
+fresh, so it is true of Go) and of the batch transaction's read contract, an assumption change,
+so not made here. The reads (`UserGet`, `RoleGet`, `HasRole`, the lists) are S5's or open.
+

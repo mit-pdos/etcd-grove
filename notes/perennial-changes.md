@@ -17,22 +17,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### Specs: `sort.SearchStrings`
-
-- **Missing.** A spec of `sort.SearchStrings(a, x)` (Perennial translates `sort`, `Perennial/Code/
-  sort.lean`, but has no `wp_SearchStrings`): for a sorted slice, the least index whose string is
-  not below `x` (the binary search's contract), the slice kept.
-- **Needed by.** `auth.hasRootRole` (`server/auth/store.go`: `sort.SearchStrings(u.Roles, rootRole)`
-  then a bounds-checked index), the root-role shortcut of every permission check and of
-  `IsAdminPermitted` (the auth plan's S3, 2026-10-24).
-- **Workaround here.** `hasRootRole` stays names only, a trust-boundary axiom restated to return
-  `decide (isRoot ur.roles)` of a user message with sorted roles (`Spec/go_etcd_io/etcd/server/v3/
-  auth/hasRootRole.lean`; S1's `userOut` gives the sorting, which `UserGrantRole` maintains).
-- **Proposed change.** `sort.wp_SearchStrings` in Perennial's `Proof/sort` (as `slices.BinarySearch`'s
-  shape if it has one; else over `GoStringLt` with `Pairwise`), general; then `hasRootRole` is
-  translated with its body and proved here, and the axiom goes.
-- **Status.** Open.
-
 ### Tactics: `word`'s caches shared between parallel declarations
 
 - **Missing.** Deterministic elaboration under a parallel build. `word`'s caches
@@ -322,6 +306,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Status.** Not started (found 2026-10-23).
 
 ## Landed
+
+### Specs: `sort.SearchStrings`, `sort.Strings`
+
+- **Was missing.** A spec of `sort.SearchStrings(a, x)` (the least index whose string is not below
+  `x`, on a sorted slice) and of `sort.Strings` (Perennial translated `sort.Search` and the pdqsort,
+  not these two wrappers).
+- **Needed by.** `auth.hasRootRole` (`sort.SearchStrings(u.Roles, rootRole)`), the root-role
+  shortcut of every permission check and of `IsAdminPermitted`; `UserGrantRole` (`sort.Strings`).
+- **Landed.** Perennial `beb785eaf` (2026-10-24, branch `sort-strings`): both translated and proved
+  (`sort.wp_SearchStrings` over `ListSorted go.GoStringLe`, `sort.wp_Strings` a sorted
+  permutation), `cmp.Less` at `string`. The pin moved to it (the auth plan's S4b), `hasRootRole`
+  is translated and proved (`Proof/go_etcd_io/etcd/server/v3/auth/hasRootRole.lean`), and S3's
+  axiom is gone. `UserGrantRole` still is not proved: it appends to the message `UnsafeGetUser`
+  returned, which the read contract gives read-only (`notes/decisions.md`, "S4b of the auth plan").
 
 ### Specs: `context.WithTimeout`/`WithDeadline` of `Background()`
 

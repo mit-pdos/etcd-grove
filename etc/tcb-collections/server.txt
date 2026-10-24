@@ -47,7 +47,6 @@ axiom auth.NewAuthStore.wp_proof
 axiom auth.NewTokenProvider.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.authStore.selectPassword.wp_proof
-axiom auth.hasRootRole.wp_proof
 axiom auth.redactToken.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
