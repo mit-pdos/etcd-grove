@@ -211,7 +211,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       | none => rfl
       | some _ =>
         obtain ⟨j, B', hj, hB', hk'⟩ := Hn.2.2.2 k (by rw [hn]; rfl)
-        have := Hone j (sint.nat n) B' _ k hB' HB hk' (by rw [GMap.lookup_fmap]; cases h : PB !! k <;> simp_all)
+        have := Hone j (sint.nat n) B' _ k hB' HB hk' (by rw [GMap.lookup_fmap]; simpa using hk)
         omega
     wp_func_lits
     wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -428,7 +428,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       intro k hk
       rw [show ((GMap.size (GMap.fmap Prod.fst PB) : Int)).toNat = keys.length by rw [Hklen]; simp,
         List.take_length, Hkset, GMap.lookup_fmap]
-      cases h : PB !! k <;> simp_all
+      simpa using hk
     -- the lock and `revMu`
     wp_auto
     wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hwl, HP⟩
