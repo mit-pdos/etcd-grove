@@ -17456,3 +17456,68 @@ and the step relations are in `Steps.lean`); the apply layer: `apply.isAuthStore
 `isAuthStoreAdmin` are unchanged, because stating them as steps needs the authority `authOwn` in the
 apply environment (a resource of the server's apply thread, beside `RW`), which is the next step on
 the A side; the derivation of the write contract from the real backend.
+
+## S5 of the auth plan, in part: the token binding over the provider's contract, `Authenticate` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s5`)
+
+**Problem.** The request side's principal (`AuthInfoFromCtx`) came from the token provider's
+`info`, a contract that returned some auth info: nothing said whose. So every statement over "the
+request's principal" (A1's class, A2's guards, A3's `principalOf rq` at apply, A4's watchers) was
+over a user the code was given, not one that authenticated. And `Authenticate`, which issues the
+tokens, was names only.
+
+**Decision.**
+- **The binding is ghost state named by the mode.** `AuthNames` gains a third name, `tok`
+  (`Model.lean`; `authHist_alloc` takes it, the provider allocates it, `tokAlloc`). Under it, a
+  ghost map from (token, user) pairs to unit whose persistent elements are `tokIssued γa token
+  user` (`auth/Tokens.lean`). The key is the pair, not the token: the simple provider's
+  `disable()` clears its map, so a token string may be issued again, possibly to another user;
+  the binding only says "this token was issued to this user at some point", which is what the
+  checks need. `tokAuth` is the provider's authority, every issued element kept persistent so that
+  issuing one twice is allowed (`tokIssue`). `tokOk M token user` is `tokIssued` in `on γa`,
+  nothing in `off`/`any` (as the verdicts, A0).
+- **The provider's contract carries it** (`InvAuth.lean`, `tokenProviderOk tp M`, now in the
+  mode): `info` returning `true` gives an auth info bound to the token (`infoBound`: not nil, its
+  user one the token was issued to); `assign` (appended) returns a token issued to the user, or an
+  error. `authInv` holds the contract in its mode. The S4 proofs that destructure the contract take
+  one more `-`.
+- **`authInfoFromToken` and `AuthInfoFromCtx` pass it on**: their posts gain `infoBound`/`ctxBound`
+  (`ctxBound M a`: nil, or bound to some token). On the server, `isReqAuthBound st RD M`
+  (`etcdserver/AuthReqDerive.lean`) is `isReqAuth`'s `AuthInfoFromCtx` clause with the binding,
+  derived from the real store (`isReqAuthBound_of_authInv`) and giving the old clause back
+  (`isReqAuthBound_ctx`). It is stated beside `isReqAuth`, not in it: `isReqAuth` is in the post of
+  the `NewAuthStore` axiom and in the request path's statements, and strengthening it would
+  strengthen that axiom.
+- **`Authenticate` is proved** (`authStore__Authenticate.lean`) in the apply thread's resources (S4's
+  `authOwn`/`authWR`, the critical-section contract), over the write side's `GetUser`, appended to
+  `authWBackendOk` (schema's `GetUser` is the batch transaction's `Lock`, `UnsafeGetUser`, `Unlock`:
+  a contract, as S4's write side). Its outcome (`authenticated`): an error and no response; or a
+  response holding a token issued to the user, auth enabled at a recorded state, the user present
+  in the latest state. It does not check the password: the API layer did (`CheckPassword`, before
+  proposing), which stays names only (bcrypt).
+- **The no-op provider meets the contract** in every mode (`TokenNop.lean`): it accepts and issues
+  nothing. The contract's sanity check.
+- **The contract keeps `True` as its precondition.** A proof of the simple provider needs a context
+  premise (its `info` waits on the context's `Done()`, its `assign` reads two context values and
+  panics without the prefix: `issues/etcd-auth-simple-token-assign-prefix-panic.md`), and
+  Perennial's contexts (`mvcc.txnCtx`, `context.isContext`) are stated with later credits, which
+  `InvAuth.lean` is generic over. Adding the premise is part of proving the simple provider.
+
+*Rejected:* the token as the ghost map's key (a token reissued after `disable()` to another user
+would contradict the persistent element); the binding in `isReqAuth` itself (it strengthens the
+`NewAuthStore` axiom); `Authenticate` with the password check (the Go code has none: it trusts the
+API layer's).
+
+**Trust base: +2 axioms on purpose** (616 to 618): `zap.Logger.Check` and
+`zapcore.CheckedEntry.Write`, logging, as zap's other specs. zap's and zapcore's `DebugLevel`
+constants are now translated (`Code/go_uber_org/zap.toml`, `zap/zapcore.toml`): an untranslated
+constant is a value of unknown shape, which a proof cannot step past (the same reason S4 translated
+`rootUser`/`rootRole`).
+
+**Not finished:** the simple provider (`info`, `assign`, `invalidateUser`, `enable`/`disable` with
+the TTL keeper's goroutine, and the context premise above), the JWT provider (its binding is the
+signature's: a trust-boundary contract), `AuthInfoFromTLS`'s binding (the certificate's common name,
+a contract of the gRPC peer), `CheckPassword` (bcrypt), `NewAuthStore` (an axiom since unit N4),
+`WithRoot`, the reads (`UserGet`, `RoleGet`, `HasRole`; the lists need a backend `UnsafeForEach`
+spec), `EtcdServer.Authenticate` (it needs the server's store contract to have `CheckPassword` and
+`GenTokenPrefix`, and the read-index wait), and threading `isReqAuthBound` into A2's guards and A4's
+watch registrations (their statements still name the info `isReqAuth` gives).

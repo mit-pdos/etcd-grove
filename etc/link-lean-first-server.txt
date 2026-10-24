@@ -479,6 +479,13 @@ auth_authStore__IsDeleteRangePermitted: auth_authStore__isOpPermitted
 auth_authStore__IsAdminPermitted: auth_authStore__IsAuthEnabled auth_authStore__lockedReadTx auth_hasRootRole
 auth_authStore__authInfoFromToken: auth_authStore__Revision
 auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromIncomingContext auth_authStore__authInfoFromToken auth_redactToken zap_String zap_Logger__Warn
+# The token binding (the auth plan's S5, 2026-10-24): `Authenticate`, over the token provider's
+# contract (`InvAuth.lean`, `tokenProviderOk`: an issued token's binding, `Tokens.lean`) and the
+# write side's `GetUser`. The trust boundary: zap's `Logger.Check` and zapcore's
+# `CheckedEntry.Write` (logging).
+zap_Logger__Check:
+zapcore_CheckedEntry__Write:
+auth_authStore__Authenticate: auth_authStore__IsAuthEnabled auth_authStore__Revision auth_redactToken zap_String zap_Logger__Check zapcore_CheckedEntry__Write
 # The raft wrapper's construction (raft.go, bootstrap.go; stage R8b-C of the raft v3.7 retarget,
 # 2026-10-16): `newRaftNode` (its callees are contracts in its spec and Perennial's `time.Now`),
 # and the new cluster's `bootstrappedRaft.newRaftNode` over raft's `StartNode` (`@`: proved and

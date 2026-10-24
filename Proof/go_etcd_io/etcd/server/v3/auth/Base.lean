@@ -10,7 +10,7 @@ The others are the cache's (`cache/v3/Base.lean`: `zap`, `authpb`, `etcdserverpb
 As in those, the package facts are assumptions about package initialization, not proved from
 `initialize'`: `authInit` states what the proved methods read: the error variables they return
 (`ErrUserEmpty`, `ErrUserNotFound`, `ErrPermissionDenied`, `ErrAuthOldRevision`,
-`ErrInvalidAuthToken`, and the admin side's eleven, S4: `errors.New(...)`, each a fixed leaf pointer error whose `Error()`
+`ErrInvalidAuthToken`, the admin side's eleven, S4, and S5's `ErrAuthFailed`, `ErrAuthNotEnabled`: `errors.New(...)`, each a fixed leaf pointer error whose `Error()`
 returns, `authErrVar`, the shape of the apply package's `errVarLeaf`), and the two token keys of
 `rpctypes` that `AuthInfoFromCtx` looks up (`TokenFieldNameGRPC`, `TokenFieldNameSwagger`:
 fixed read-only strings), stated here as the txn package states its foreign errors.
@@ -77,7 +77,9 @@ abbrev authInit : IProp GF :=
     authErrVar ErrUserAlreadyExist ∗ authErrVar ErrRoleAlreadyExist ∗ authErrVar ErrRoleNotFound ∗
     authErrVar ErrRoleEmpty ∗ authErrVar ErrPermissionNotGiven ∗ authErrVar ErrNoPasswordUser ∗
     authErrVar ErrRoleNotGranted ∗ authErrVar ErrPermissionNotGranted ∗
-    authErrVar ErrInvalidAuthMgmt)
+    authErrVar ErrInvalidAuthMgmt ∗
+    -- the token binding's (the auth plan's S5, 2026-10-24), appended
+    authErrVar ErrAuthFailed ∗ authErrVar ErrAuthNotEnabled)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
   define_is_pkg_init authInit

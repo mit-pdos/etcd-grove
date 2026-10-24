@@ -144,6 +144,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthDisable
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthEnable
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Authenticate
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsDeleteRangePermitted
@@ -339,11 +340,13 @@ public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Wait
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Trigger
 public import Proof.go_uber_org.zap.ByteString
+public import Proof.go_uber_org.zap.Logger__Check
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Strings
 public import Proof.go_uber_org.zap.Uint64
+public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.context.Link
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
@@ -749,6 +752,18 @@ theorem auth.authStore.wp_AuthInfoFromCtx :
 theorem auth.authStore.wp_AuthInfoFromTLS :
     auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
   auth.authStore.AuthInfoFromTLS.wp_proof
+
+theorem zap.Logger.wp_Check :
+    zap.Logger.Check.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Check.wp_proof
+
+theorem zapcore.CheckedEntry.wp_Write :
+    zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
+  zapcore.CheckedEntry.Write.wp_proof
+
+theorem auth.authStore.wp_Authenticate :
+    auth.authStore.Authenticate.spec (GF := GF) (hG := hG) :=
+  auth.authStore.Authenticate.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write
 
 theorem auth.authStore.wp_lockedReadTx :
     auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG) :=

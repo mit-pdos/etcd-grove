@@ -48,7 +48,7 @@ theorem auth.authStore.UserDelete.wp_proof
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
   iunfold tokenProviderOk at Htpok
-  icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval⟩
+  icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval, -⟩
   subst Htpi
   iunfold userDeleteReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
@@ -58,7 +58,7 @@ theorem auth.authStore.UserDelete.wp_proof
   icases Hen with ⟨%en, Hen, #Hev⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
-  icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
+  icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
   subst Hbi
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

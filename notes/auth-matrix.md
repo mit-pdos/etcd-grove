@@ -199,3 +199,14 @@ needs the authority in the apply environment); `UserGrantRole`, `UserRevokeRole`
 `RoleGrantPermission`, `RoleRevokePermission`, `UserGet`, `RoleGet`, `UserList`, `RoleList` are
 translated, not proved.
 
+
+## What is proved of the table (S5 in part, the token binding, 2026-10-24)
+
+Every row's principal at the API layer is `AuthInfoFromCtx`'s, and since S5 it is bound to the
+request's token in the mode (`auth.ctxBound`: in `on γa`, its user is one the token was issued to,
+`tokIssued`), over the token provider's contract (`tokenProviderOk`); the server's
+`isReqAuthBound` states it of the real store (`etcdserver/AuthReqDerive.lean`). The `Authenticate`
+row: the store's `Authenticate` is proved (a token issued to the user, the user present in the
+latest state, auth enabled at a recorded state); the server's entry point and `CheckPassword` are
+not. No real token provider is proved to meet the contract yet (the no-op one does); the rows'
+statements of A2 and A4 still name the unbound info (`isReqAuth`).

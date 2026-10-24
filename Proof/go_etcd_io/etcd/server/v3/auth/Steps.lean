@@ -54,6 +54,8 @@ inductive AuthErr where
   | roleAlreadyExist | roleNotFound | roleEmpty | permissionNotGiven | noPasswordUser
   | permissionDenied | roleNotGranted | permissionNotGranted | authOldRevision
   | invalidAuthToken | invalidAuthMgmt
+  -- `Authenticate`'s (the auth plan's S5), appended
+  | authFailed | authNotEnabled
   deriving DecidableEq, Inhabited
 
 /-- The Go variable's name. -/
@@ -74,6 +76,8 @@ def AuthErr.var [FfiSyntax] [GoGlobalContext] : AuthErr → GoString
   | .authOldRevision => go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision
   | .invalidAuthToken => go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken
   | .invalidAuthMgmt => go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthMgmt
+  | .authFailed => go_etcd_io.etcd.server.v3.auth.ErrAuthFailed
+  | .authNotEnabled => go_etcd_io.etcd.server.v3.auth.ErrAuthNotEnabled
 
 /-! ## The steps -/
 

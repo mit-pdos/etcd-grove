@@ -48,7 +48,7 @@ theorem auth.authStore.AuthEnable.wp_proof
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, #Hguard, -⟩
   iunfold tokenProviderOk at Htpok
-  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -⟩
+  icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
   subst Htpi
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
@@ -56,7 +56,7 @@ theorem auth.authStore.AuthEnable.wp_proof
   icases Hen with ⟨%en, Hen, #Hev⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
-  icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
+  icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
   subst Hbi
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

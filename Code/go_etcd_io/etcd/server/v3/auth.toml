@@ -37,7 +37,13 @@ translate = ["!*", "AuthInfo",
   "permSlice.Len", "permSlice.Less", "permSlice.Swap", "rootUser", "rootRole",
   "ErrRootUserNotExist", "ErrRootRoleNotExist", "ErrUserAlreadyExist", "ErrRoleAlreadyExist",
   "ErrRoleNotFound", "ErrRoleEmpty", "ErrPermissionNotGiven", "ErrNoPasswordUser",
-  "ErrRoleNotGranted", "ErrPermissionNotGranted", "ErrInvalidAuthMgmt"]
+  "ErrRoleNotGranted", "ErrPermissionNotGranted", "ErrInvalidAuthMgmt",
+  # The token binding (the auth plan's S5, 2026-10-24): `Authenticate` (its token from the
+  # provider's `assign`) and the error variables it returns; the no-op provider (`nop.go`);
+  # `CheckPassword` stays names only (bcrypt), as do the simple and JWT providers.
+  "authStore.Authenticate", "ErrAuthFailed", "ErrAuthNotEnabled",
+  "tokenNop.enable", "tokenNop.disable", "tokenNop.invalidateUser", "tokenNop.genTokenPrefix",
+  "tokenNop.info", "tokenNop.assign"]
 imports = ["!*", "bytes", "context", "errors", "sort", "strings", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",

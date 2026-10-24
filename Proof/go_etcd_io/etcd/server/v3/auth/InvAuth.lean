@@ -65,6 +65,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
 public import Proof.go_etcd_io.etcd.server.v3.auth.Steps
 public import Proof.go_etcd_io.etcd.server.v3.auth.Requests
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.auth.Tokens
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 
@@ -388,23 +389,57 @@ instance authBackendOk_persistent (be : GoInterface) (R : IProp GF) (M : AuthMod
     Persistent (authBackendOk (GF := GF) be R M) := by
   unfold authBackendOk; infer_instance
 
-/-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract): `info(ctx, token,
-rev)` returns an auth info (`authInfoRO`) and a boolean; `enable()`, `disable()` and
-`invalidateUser(name)` return (the admin side, S4; the simple token provider's are proved in
-S5). -/
-def tokenProviderOk (tp : GoInterface) : IProp GF :=
+/-- **An auth info bound to the token `token`** in the mode `M` (persistent; the auth plan's S5):
+not nil, its user (read-only) one the token was issued to (`tokOk`: in `on γa`, `tokIssued`). -/
+def infoBound (M : AuthMode) (token : GoString) (a : Loc) : IProp GF :=
+  iprop(⌜a ≠ null⌝ ∗ ∃ user : GoString, aiF go!"Username" a ↦□ user ∗ tokOk M token user)
+
+instance infoBound_persistent (M : AuthMode) (token : GoString) (a : Loc) :
+    Persistent (infoBound (GF := GF) M token a) := by
+  unfold infoBound; infer_instance
+
+/-- **The auth info a request's context gives** in the mode `M` (persistent; S5): `nil`, or one
+bound to some token (`infoBound`). -/
+def ctxBound (M : AuthMode) (a : Loc) : IProp GF :=
+  iprop(⌜a = null⌝ ∨ ∃ token : GoString, infoBound M token a)
+
+instance ctxBound_persistent (M : AuthMode) (a : Loc) : Persistent (ctxBound (GF := GF) M a) := by
+  unfold ctxBound; infer_instance
+
+/-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract) in the mode `M`:
+- `info(ctx, token, rev)` returns an auth info (`authInfoRO`) and a
+  boolean; when the boolean is true, the info is bound to the token (`infoBound`: in `on γa`, its
+  user is one the token was issued to; the auth plan's S5, 2026-10-24);
+- `enable()`, `disable()` and `invalidateUser(name)` return (the admin side, S4);
+- `assign(ctx, username, rev)` (appended, S5) returns a token and an error; with no error the
+  token was issued to `username` (`tokOk`).
+No real provider is proved to meet it yet (`notes/decisions.md`, "S5 of the auth plan"): the
+simple provider's `info` waits on the raft index its token names and on the context's `Done()`,
+and its `assign` reads the index and the token's prefix from the context's values (it panics
+without the prefix), so a proof of it needs a context premise here, which this module (generic in
+the later credits, Perennial's contexts are not) cannot state; the JWT provider's binding is its
+signature's. -/
+def tokenProviderOk (tp : GoInterface) (M : AuthMode) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗
     □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
       {{ True }}
-        (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #ctx)) (Val #token)) (Val #rev))
-      {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a }}) ∗
+        (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #ctx))
+          (Val #token)) (Val #rev))
+      {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
+          (if ok then infoBound M token a else iprop(True)) }}) ∗
     □ ({{ True }} (App (Val #(methods ti.ty go!"enable" ti.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ti.ty go!"disable" ti.v)) (Val #())) {{ RET #(); True }}) ∗
     □ (∀ name : GoString,
-      {{ True }} (App (Val #(methods ti.ty go!"invalidateUser" ti.v)) (Val #name)) {{ RET #(); True }}))
+      {{ True }} (App (Val #(methods ti.ty go!"invalidateUser" ti.v)) (Val #name)) {{ RET #(); True }}) ∗
+    □ (∀ (ctx : GoInterface) (user : GoString) (rev : w64),
+      {{ True }}
+        (App (App (App (Val #(methods ti.ty go!"assign" ti.v)) (Val #ctx))
+          (Val #user)) (Val #rev))
+      {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
+          ⌜err ≠ GoInterface.nil⌝ ∨ tokOk M t user }}))
 
-instance tokenProviderOk_persistent (tp : GoInterface) :
-    Persistent (tokenProviderOk (GF := GF) tp) := by
+instance tokenProviderOk_persistent (tp : GoInterface) (M : AuthMode) :
+    Persistent (tokenProviderOk (GF := GF) tp M) := by
   unfold tokenProviderOk; infer_instance
 
 /-- What `beMu` guards at `q`: the backend `be` at half the fraction, with its contract
@@ -445,7 +480,7 @@ def authInv (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(⌜st ≠ null⌝ ∗ inv (nroot.@"authRev") (revInv st M) ∗
     (∃ lg : Loc, aF go!"lg" st ↦□ lg ∗ ⌜lg ≠ null⌝) ∗
     sync.isRWMutexGuard (aF go!"beMu" st) (beP st R M) ∗
-    (∃ tp : TokenProvider, aF go!"tokenProvider" st ↦□ tp ∗ tokenProviderOk tp) ∗
+    (∃ tp : TokenProvider, aF go!"tokenProvider" st ↦□ tp ∗ tokenProviderOk tp M) ∗
     sync.isRWMutexGuard (aF go!"enabledMu" st) (enabledP st M) ∗
     sync.isRWMutexGuard (aF go!"rangePermCacheMu" st) (cacheP st M))
 
@@ -531,7 +566,15 @@ def authWBackendOk (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : val) (T
   iprop(∃ bi : GoInterfaceOk, ⌜be = GoInterface.ok bi⌝ ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
       {{ (tx : GoInterface), RET #tx; authBatchTxOk tx M P f T }}) ∗
-    □ ({{ T }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #())) {{ RET #(); T }}))
+    □ ({{ T }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #())) {{ RET #(); T }}) ∗
+    -- `GetUser(name)` (appended; the auth plan's S5): schema's is the batch transaction's `Lock`
+    -- (the hook run under the critical-section contract), `UnsafeGetUser`, `Unlock`: the user of
+    -- the state the transaction finds, the latest (`histLast`)
+    □ (∀ (hs : List AuthState) (Pre Q Post : IProp GF) (name : GoString),
+      {{ mvcc.csContract P f Pre Q Post ∗ T ∗ authOwn M hs }}
+        (App (Val #(methods bi.ty go!"GetUser" bi.v)) (Val #name))
+      {{ (u : Loc), RET #u; Post ∗ T ∗ authOwn M hs ∗
+          ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ userOut u sta name }}))
 
 instance authWBackendOk_persistent (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : val)
     (T : IProp GF) : Persistent (authWBackendOk be M P f T) := by
@@ -822,7 +865,7 @@ theorem authErrVar_of_init (e : AuthErr) :
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨#H1, #H2, #H3, #H4, #H5, -, -, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14,
-    #H15, #H16⟩
+    #H15, #H16, #H17, #H18⟩
   cases e <;> simp only [AuthErr.var] <;>
     first
     | (iunfold authErrVar at H1; icases H1 with ⟨%x, #Hx, -⟩; iexists x; iexact Hx)
@@ -841,6 +884,8 @@ theorem authErrVar_of_init (e : AuthErr) :
     | (iunfold authErrVar at H14; icases H14 with ⟨%x, #Hx, -⟩; iexists x; iexact Hx)
     | (iunfold authErrVar at H15; icases H15 with ⟨%x, #Hx, -⟩; iexists x; iexact Hx)
     | (iunfold authErrVar at H16; icases H16 with ⟨%x, #Hx, -⟩; iexists x; iexact Hx)
+    | (iunfold authErrVar at H17; icases H17 with ⟨%x, #Hx, -⟩; iexists x; iexact Hx)
+    | (iunfold authErrVar at H18; icases H18 with ⟨%x, #Hx, -⟩; iexists x; iexact Hx)
 
 theorem authErrOf_intro (e : AuthErr) (ei : GoInterfaceOk) :
     globalAddr e.var ↦□ GoInterface.ok ei ⊢ authErrOf (GF := GF) e (GoInterface.ok ei) := by
@@ -865,6 +910,18 @@ def beRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
 /-- **A permission check's reader resource**: a slot of each lock and the backend's `R`. -/
 def authRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(enabledRd st M ∗ cacheRd st M ∗ beRd st R M ∗ R)
+
+/-- **What `Authenticate` returns** for `username` with the admin side's authority `hs`, in the
+mode `M` (the auth plan's S5): an error and no response; or no error and a response holding a token
+issued to `username` (`tokOk`), auth enabled at some recorded state, and the user present in the
+latest state (`histLast`). (`Authenticate` does not check the password: the server's API layer
+did, `CheckPassword`, before proposing the request.) -/
+def authenticated (M : AuthMode) (hs : List AuthState) (username : GoString) (resp : Loc)
+    (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ (tok : GoString) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse),
+      resp ↦ v ∗ ⌜v.Token' = tok⌝ ∗ tokOk M tok username ∗ enabledVerdict M true ∗
+      ⌜∃ sta : AuthState, histLast M hs sta ∧ (sta.users.lookup username).isSome⌝))
 
 /-- `err` is `nil` or one of the error variables the request side returns. -/
 def authErrIs (err : GoInterface) : IProp GF :=

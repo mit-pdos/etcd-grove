@@ -47,7 +47,7 @@ theorem auth.authStore.RoleAdd.wp_proof
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
-  icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
+  icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
   subst Hbi
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

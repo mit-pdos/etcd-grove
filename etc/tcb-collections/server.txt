@@ -201,6 +201,7 @@ axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
 axiom zap.Int64.wp_proof
+axiom zap.Logger.Check.wp_proof
 axiom zap.Logger.Debug.wp_proof
 axiom zap.Logger.Error.wp_proof
 axiom zap.Logger.Fatal.wp_proof
@@ -213,3 +214,4 @@ axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint64.wp_proof
+axiom zapcore.CheckedEntry.Write.wp_proof

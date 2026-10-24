@@ -226,8 +226,6 @@ noncomputable def ErrPermissionNotGiven [FfiSyntax] [GoGlobalContext] : GoString
 noncomputable def ErrAuthFailed [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrAuthFailed"
 
-axiom ErrAuthFailed.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def ErrNoPasswordUser [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrNoPasswordUser"
 
@@ -242,8 +240,6 @@ noncomputable def ErrPermissionNotGranted [FfiSyntax] [GoGlobalContext] : GoStri
 
 noncomputable def ErrAuthNotEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrAuthNotEnabled"
-
-axiom ErrAuthNotEnabled.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def ErrAuthOldRevision [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrAuthOldRevision"
@@ -320,6 +316,70 @@ noncomputable def NewTokenProvider [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def redactToken [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.redactToken"
+
+/-- go: nop.go:23:20 -/
+noncomputable def tokenNop.enable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenNop.ty)))) (Var "t"))
+  (App (Val doReturn)
+  (Val #()))))))
+
+/-- go: nop.go:24:20 -/
+noncomputable def tokenNop.disable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenNop.ty)))) (Var "t"))
+  (App (Val doReturn)
+  (Val #()))))))
+
+/-- go: nop.go:25:20 -/
+noncomputable def tokenNop.invalidateUser.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenNop.ty)))) (Var "t"))
+  (App (Val doReturn)
+  (Val #()))))))
+
+/-- go: nop.go:26:20 -/
+noncomputable def tokenNop.genTokenPrefix.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenNop.ty)))) (Var "t"))
+  (App (Val doReturn)
+  (Pair (Val #(go!"")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))))
+
+/-- go: nop.go:27:20 -/
+noncomputable def tokenNop.info.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "ctx"
+  (Lam "token"
+  (Lam "rev"
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenNop.ty)))) (Var "t"))
+  (Let "rev" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "rev"))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType AuthInfo.ty)))) (Val UntypedNil)) (Val #false))))))))))))
+
+/-- go: nop.go:31:20 -/
+noncomputable def tokenNop.assign.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "ctx"
+  (Lam "username"
+  (Lam "revision"
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType tokenNop.ty)))) (Var "t"))
+  (Let "revision" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "revision"))
+  (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (Val doReturn)
+  (Pair (Val #(go!"")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrAuthFailed))) (Val #()))))))))))))))
 
 /-- go: range_perm_cache.go:24:6 -/
 noncomputable def getMergedPerms.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -877,6 +937,93 @@ noncomputable def authStore.AuthDisable.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"enabledMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #()))))))))))
+
+/-- go: store.go:337:22 -/
+noncomputable def authStore.Authenticate.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "as"
+  (Lam "ctx"
+  (Lam "username"
+  (Lam "password"
+  (App (Val exceptionDo)
+  (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (Var "as"))
+  (Let "password" (App (Val (GoInstruction (GoAlloc go.string))) (Var "password"))
+  (Let "username" (App (Val (GoInstruction (GoAlloc go.string))) (Var "username"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
+  (App (App (Val (GoInstruction (MethodResolve AuthBackend.ty go!"GetUser"))) (App (Val (GoInstruction (GoLoad AuthBackend.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Var "$a0")))
+  (Let "user" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
+  (Let "$a2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #()))
+  (App (App (App (App (Val (GoInstruction (MethodResolve TokenProvider.ty go!"assign"))) (App (Val (GoInstruction (GoLoad TokenProvider.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"tokenProvider"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Token")) (ElementExpression go.string (Var "$v0")))])))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (Val _root_.Perennial.go_uber_org.zap.DebugLevel)
+  (Let "$a1" (Val #(go!"authenticated a user"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Check"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Var "ce")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (Val (GoInstruction (FuncResolve redactToken []))) (Val #())) (Var "$a0")))
+  (Let "tokenFingerprint" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (Let "$a0" (Val #(go!"user-name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "username"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"token-fingerprint"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "tokenFingerprint"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.zapcore.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.zapcore.Field.ty (Var "$sl1")))]))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Var "ce"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tokenFingerprint") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)))) (Pair (Var "ce") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "token") (Var "$r0"))))))))))))))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty go!"Options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "user")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions.ty go!"NoPassword"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty go!"Options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "user")))))) (Val #false))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrAuthFailed))) (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Var "user")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrAuthFailed))) (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)))) (Pair (Var "user") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"IsAuthEnabled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #())))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrAuthNotEnabled))) (Val #())))))
+  (App (Val doExecute)
+  (Val #())))))))))))))
 
 /-- go: store.go:399:22 -/
 noncomputable def authStore.Recover.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -2613,6 +2760,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"auth: root user does not exist"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2640,6 +2789,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Val #(go!"auth: permission not given"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"auth: authentication failed, invalid user ID or password"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"auth: authentication failed, password was given for no password user"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
@@ -2653,6 +2804,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Val #(go!"auth: permission is not granted to the role"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"auth: authentication is not enabled"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"auth: revision in header is old"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
@@ -2687,7 +2840,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrAuthOldRevision))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrAuthNotEnabled.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrAuthNotEnabled))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrPermissionNotGranted))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2697,7 +2850,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrNoPasswordUser))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrAuthFailed.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrAuthFailed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrPermissionNotGiven))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2777,6 +2930,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrPermissionNotGiven go.error)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrAuthFailed go.error)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrNoPasswordUser go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrPermissionDenied go.error)) (Val #()))))))
@@ -2784,6 +2939,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc ErrRoleNotGranted go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrPermissionNotGranted go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrAuthNotEnabled go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrAuthOldRevision go.error)) (Val #()))))))
   (App (Val doExecute)
@@ -2826,9 +2983,21 @@ noncomputable instance equals_unfold_tokenNop [FfiSyntax] [GoGlobalContext] :
 class tokenNop.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tokenNop.underlying tokenNop
   underlying : go.UnderlyingDirectedEq tokenNop.ty tokenNop.underlying
+  ptr_assign_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"assign" tokenNop.assign.impl
+  ptr_disable_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"disable" tokenNop.disable.impl
+  ptr_enable_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"enable" tokenNop.enable.impl
+  ptr_genTokenPrefix_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"genTokenPrefix" tokenNop.genTokenPrefix.impl
+  ptr_info_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"info" tokenNop.info.impl
+  ptr_invalidateUser_unfold : MethodUnfold (go.GoType.PointerType tokenNop.ty) go!"invalidateUser" tokenNop.invalidateUser.impl
 
 attribute [instance] tokenNop.TypeAssumptions.type_repr
   tokenNop.TypeAssumptions.underlying
+  tokenNop.TypeAssumptions.ptr_assign_unfold
+  tokenNop.TypeAssumptions.ptr_disable_unfold
+  tokenNop.TypeAssumptions.ptr_enable_unfold
+  tokenNop.TypeAssumptions.ptr_genTokenPrefix_unfold
+  tokenNop.TypeAssumptions.ptr_info_unfold
+  tokenNop.TypeAssumptions.ptr_invalidateUser_unfold
 
 axiom jwtOptions : Type
 axiom jwtOptions.zero_val : ZeroVal jwtOptions
@@ -3139,6 +3308,7 @@ class authStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthDisable" authStore.AuthDisable.impl
   ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthEnable" authStore.AuthEnable.impl
   ptr_AuthInfoFromCtx_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthInfoFromCtx" authStore.AuthInfoFromCtx.impl
+  ptr_Authenticate_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"Authenticate" authStore.Authenticate.impl
   ptr_HasRole_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"HasRole" authStore.HasRole.impl
   ptr_IsAdminPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAdminPermitted" authStore.IsAdminPermitted.impl
   ptr_IsAuthEnabled_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAuthEnabled" authStore.IsAuthEnabled.impl
@@ -3193,6 +3363,7 @@ attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.ptr_AuthDisable_unfold
   authStore.TypeAssumptions.ptr_AuthEnable_unfold
   authStore.TypeAssumptions.ptr_AuthInfoFromCtx_unfold
+  authStore.TypeAssumptions.ptr_Authenticate_unfold
   authStore.TypeAssumptions.ptr_HasRole_unfold
   authStore.TypeAssumptions.ptr_IsAdminPermitted_unfold
   authStore.TypeAssumptions.ptr_IsAuthEnabled_unfold

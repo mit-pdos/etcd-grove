@@ -325,10 +325,13 @@ instance AuthState.countable : Pos.Countable AuthState :=
 the ghost variable of its latest state (`cur`; the auth plan's S4, 2026-10-24): the admin side's
 authority (`authOwn`, `Steps.lean`) holds one half, the store's revision invariant the other
 (`revInv`, `InvAuth.lean`), so that `commitRevision`'s atomic add is to the latest state's
-revision and the step it records is the model's. -/
+revision and the step it records is the model's; and the token providers' issued tokens (`tok`;
+the auth plan's S5, 2026-10-24: `tokIssued`, `Tokens.lean`), a ghost map whose persistent
+elements say which user a token was issued to. -/
 structure AuthNames where
   hist : GName
   cur : GName
+  tok : GName
 
 /-- **A contract's mode** (see the file header). -/
 inductive AuthMode where
@@ -409,16 +412,21 @@ theorem authHist_lookup (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : 
   iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
   iapply (mono_list_auth_idx_lookup γa.hist 1 hs i st) $$ H1 H2
 
-/-- A history and its latest state's ghost variable, both halves. -/
-theorem authHist_alloc (hs : List AuthState) (cur : AuthState) (hk : ∀ st ∈ hs, permKeysOk st) :
-    ⊢ |==> ∃ γa : AuthNames, authHist (GF := GF) γa hs ∗ authCurHalf γa cur ∗ authCurHalf γa cur := by
+/-- A history and its latest state's ghost variable, both halves, with the token providers'
+issued tokens under `γt` (allocated with the provider, `tokAlloc`, `Tokens.lean`). -/
+theorem authHist_alloc (γt : GName) (hs : List AuthState) (cur : AuthState)
+    (hk : ∀ st ∈ hs, permKeysOk st) :
+    ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt⌝ ∗ authHist (GF := GF) γa hs ∗ authCurHalf γa cur ∗
+      authCurHalf γa cur := by
   unfold authHist authCurHalf
   iintro
   imod (mono_list_own_alloc (GF := GF) hs) with ⟨%γ, H, -⟩
   imod (ghostVar_alloc (GF := GF) cur) with ⟨%γc, Hc⟩
   imodintro
-  iexists ⟨γ, γc⟩
+  iexists ⟨γ, γc, γt⟩
   iframe H
+  isplitr
+  · ipureintro; rfl
   isplitr
   · ipureintro; exact hk
   · iapply (ghostVar_split_half γc 1 cur).1 $$ Hc
