@@ -8,7 +8,7 @@ by one entry set, inserted or dropped (`toRole_set_*`); the order `permSlice.Les
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
+public import Proof.go_etcd_io.etcd.server.v3.auth.Steps
 public import Perennial.Proof.slices.SortBasics
 
 @[expose] public section
@@ -98,6 +98,111 @@ theorem permOfWire_key (w : PermW) (p : Perm) (h : permOfWire w = some p) :
   by_cases h2 : w.ty = W32 2
   · rw [if_pos h2] at h; cases h; exact ⟨rfl, rfl⟩
   rw [if_neg h2] at h; cases h
+
+theorem zip_set_left {α β : Type} (l : List α) (l' : List β) (i : Nat) (a : α) (b : β)
+    (ha : l[i]? = some a) : (l.zip l').set i (a, b) = l.zip (l'.set i b) := by
+  have hil : i < l.length := (List.getElem?_eq_some_iff.mp ha).1
+  have hia : l[i] = a := (List.getElem?_eq_some_iff.mp ha).2
+  apply List.ext_getElem
+  · simp
+  · intro n h1 h2
+    simp only [List.getElem_set, List.getElem_zip]
+    by_cases hn : i = n
+    · subst hn; simp [hia]
+    · simp [hn]
+
+theorem mem_filterMap_set {α β : Type} (f : α → Option β) (l : List α) (i : Nat) (x : α) (p : β)
+    (h : p ∈ (l.set i x).filterMap f) : p ∈ l.filterMap f ∨ f x = some p := by
+  rw [List.mem_filterMap] at h
+  obtain ⟨a, ha, hfa⟩ := h
+  rcases List.mem_or_eq_of_mem_set ha with h' | h'
+  · left; exact List.mem_filterMap.mpr ⟨a, h', hfa⟩
+  · subst h'; right; exact hfa
+
+/-- **The update case**: the entry at `idx` of the same key and range end as `w` gets `w`. -/
+theorem grant_update (name : GoString) (st0 : AuthState) (rr : RoleRec) (ps : Role) (idx : Nat)
+    (q w : PermW) (hlook : st0.roles !! name = some ps) (hrr : rr.toRole = ps)
+    (hq : rr.perms[idx]? = some q) (hk : q.key = w.key) (hre : q.rangeEnd = w.rangeEnd)
+    (hvalid : rangeValid w.key w.rangeEnd) :
+    roleGrantPermissionR name (some w) st0
+      (.next (bump (putRole st0 name ({ rr with perms := rr.perms.set idx w } : RoleRec).toRole))) := by
+  have hlt : idx < rr.perms.length := (List.getElem?_eq_some_iff.mp hq).1
+  have hqi : rr.perms[idx] = q := (List.getElem?_eq_some_iff.mp hq).2
+  simp only [roleGrantPermissionR, hvalid, not_true_eq_false, ↓reduceIte, hlook]
+  unfold RoleRec.toRole at hrr ⊢
+  simp only
+  cases hw : permOfWire w with
+  | some perm =>
+    cases hq' : permOfWire q with
+    | some p =>
+      obtain ⟨i, hi, hset⟩ := toRole_set_known rr.perms idx hlt w p perm (by rw [hqi]; exact hq') hw
+      refine ⟨_, Or.inr ⟨i, p, by rw [← hrr]; exact hi, ?_, by rw [hset, hrr]⟩, rfl⟩
+      obtain ⟨h1, h2⟩ := permOfWire_key q p hq'
+      exact ⟨h1.trans hk, h2.trans hre⟩
+    | none =>
+      refine ⟨_, Or.inl ?_, rfl⟩
+      rw [← hrr]
+      exact toRole_set_unknown_known rr.perms idx hlt w perm (by rw [hqi]; exact hq') hw
+  | none =>
+    refine ⟨_, _, ?_, List.Perm.refl _, rfl⟩
+    rw [← hrr]
+    exact toRole_set_unknown rr.perms idx hlt w hw
+
+/-- **The insert case**: `w` appended and the pairs permuted (sorted). -/
+theorem grant_insert (name : GoString) (st0 : AuthState) (rr : RoleRec) (ps : Role) (w : PermW)
+    (locs : List Loc) (np : Loc) (xs' : List (Loc × PermW))
+    (hlook : st0.roles !! name = some ps) (hrr : rr.toRole = ps)
+    (hzl : locs.length = rr.perms.length)
+    (hperm : (locs.zip rr.perms ++ [(np, w)]).Perm xs')
+    (hvalid : rangeValid w.key w.rangeEnd) :
+    roleGrantPermissionR name (some w) st0
+      (.next (bump (putRole st0 name ({ rr with perms := xs'.map Prod.snd } : RoleRec).toRole))) := by
+  have hsnd : (locs.zip rr.perms ++ [(np, w)]).map Prod.snd = rr.perms ++ [w] := by
+    rw [List.map_append, List.map_snd_zip (by omega)]; rfl
+  have hp : (xs'.map Prod.snd).filterMap permOfWire |>.Perm ((rr.perms ++ [w]).filterMap permOfWire) := by
+    rw [← hsnd]; exact ((hperm.map Prod.snd).filterMap permOfWire).symm
+  simp only [roleGrantPermissionR, hvalid, not_true_eq_false, ↓reduceIte, hlook]
+  unfold RoleRec.toRole at hrr ⊢
+  simp only
+  rw [List.filterMap_append] at hp
+  cases hw : permOfWire w with
+  | some perm =>
+    refine ⟨_, Or.inl ?_, rfl⟩
+    rw [← hrr]; simpa [hw] using hp
+  | none =>
+    refine ⟨_, _, List.Sublist.refl _, ?_, rfl⟩
+    rw [← hrr]; simpa [hw] using hp
+
+/-- The keys of the role after the grant are non-empty, if the role's were and `w`'s is. -/
+theorem grant_keys_update (rr : RoleRec) (idx : Nat) (w : PermW) (hw : w.key ≠ [])
+    (hold : ∀ p ∈ rr.toRole, p.key ≠ []) :
+    ∀ p ∈ ({ rr with perms := rr.perms.set idx w } : RoleRec).toRole, p.key ≠ [] := by
+  intro p hp
+  unfold RoleRec.toRole at hp hold
+  rcases mem_filterMap_set permOfWire rr.perms idx w p hp with h | h
+  · exact hold p h
+  · rw [(permOfWire_key w p h).1]; exact hw
+
+theorem grant_keys_insert (rr : RoleRec) (w : PermW) (locs : List Loc) (np : Loc)
+    (xs' : List (Loc × PermW)) (hzl : locs.length = rr.perms.length)
+    (hperm : (locs.zip rr.perms ++ [(np, w)]).Perm xs') (hw : w.key ≠ [])
+    (hold : ∀ p ∈ rr.toRole, p.key ≠ []) :
+    ∀ p ∈ ({ rr with perms := xs'.map Prod.snd } : RoleRec).toRole, p.key ≠ [] := by
+  intro p hp
+  unfold RoleRec.toRole at hp hold
+  simp only at hp
+  have hsnd : (locs.zip rr.perms ++ [(np, w)]).map Prod.snd = rr.perms ++ [w] := by
+    rw [List.map_append, List.map_snd_zip (by omega)]; rfl
+  have hp' := ((hperm.map Prod.snd).filterMap permOfWire).symm.subset hp
+  rw [hsnd, List.filterMap_append] at hp'
+  rcases List.mem_append.mp hp' with h | h
+  · exact hold p h
+  · simp only [List.filterMap_cons, List.filterMap_nil] at h
+    cases hw' : permOfWire w with
+    | none => rw [hw'] at h; simp at h
+    | some q =>
+      rw [hw'] at h; simp at h; subst h
+      rw [(permOfWire_key w _ hw').1]; exact hw
 
 end auth
 end EtcdGrove

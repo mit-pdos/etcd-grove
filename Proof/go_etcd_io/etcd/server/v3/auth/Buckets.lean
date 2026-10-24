@@ -160,7 +160,10 @@ def ownPermX (p : Loc) (w : PermW) : IProp GF :=
 
 /-- The `*authpb.Role` at `p` as `proto.Unmarshal` returns it: as `ownRole`, but its
 `KeyPermission` slice owned with its capacity and its permission messages owned
-(`RoleGrantPermission` appends to the slice, sorts it, and writes an entry). -/
+(`RoleGrantPermission` appends to the slice, sorts it, and writes an entry). Fewer than `2^62`
+permissions (the auth plan's S4d, 2026-10-24: `sort.Sort`'s bound, after the append): each
+permission of the encoding is a length-delimited field, at least a tag byte and a length byte, and
+the encoding is a Go slice, below `2^63` bytes; so a decoded record holds fewer than `2^62`. -/
 def ownRoleX (p : Loc) (r : RoleRec) : IProp GF :=
   iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (name kp : GoSlice)
     (ps : List Loc) (uf : GoSlice) (sc : w32),
@@ -168,7 +171,7 @@ def ownRoleX (p : Loc) (r : RoleRec) : IProp GF :=
       state' := st, Name' := name, KeyPermission' := kp, unknownFields' := uf,
       sizeCache' := sc } : authpb.Role) ∗
     name ↦*□ r.name ∗ kp ↦* ps ∗ ownSliceCap Loc kp (DFrac.own 1) ∗
-    ⌜ps.length = r.perms.length⌝ ∗
+    ⌜ps.length = r.perms.length ∧ r.perms.length < 2 ^ 62⌝ ∗
     [∗list] x ∈ ps.zip r.perms, ownPermX x.1 x.2)
 
 theorem ownPermX_persist (p : Loc) (w : PermW) : ownPermX (GF := GF) p w ⊢ |==> ownPermW p w := by
@@ -200,7 +203,7 @@ theorem ownRoleX_persist (p : Loc) (r : RoleRec) : ownRoleX (GF := GF) p r ⊢ |
   imodintro
   iexists st, name, kp, ps, uf, sc
   iframe Hm Hn Hkp Hps'
-  ipureintro; exact Hlen
+  ipureintro; exact Hlen.1
 
 /-! ## What the backend's reads return of a state -/
 
