@@ -1,0 +1,18 @@
+=== RUN   TestPR21397TombstoneKeyNeverDeleted
+    compaction_pr21397_bug_test.go:76: remaining keys in schema.Key after compact(4): [rev=3.0(len=18,tombstone=true) rev=4.0(len=17,tombstone=false)]
+    compaction_pr21397_bug_test.go:78: BUG (PR #21397): superseded tombstone key at rev 3 (18 bytes ending in 't') was NOT deleted by scheduleCompaction; remaining keys: [rev=3.0(len=18,tombstone=true) rev=4.0(len=17,tombstone=false)]
+--- FAIL: TestPR21397TombstoneKeyNeverDeleted (0.01s)
+=== RUN   TestPR21397ReadBufferSkipsCommittedKeysAndCorruptsHash
+    compaction_pr21397_bug_test.go:141: scheduleCompaction hash=3562080347, wantHash(hashByRev)=1968211745
+    compaction_pr21397_bug_test.go:142: remaining revisions in schema.Key after scheduleCompaction(18, 0): [5 6 7 8 9 10 11 12 13 14 15 16 18] (want only [18])
+    compaction_pr21397_bug_test.go:145: BUG (PR #21397): ReadTx.UnsafeRange skipped committed bbolt revisions 5..16! gotHash=3562080347 (want 1968211745), remainingRevs=[5 6 7 8 9 10 11 12 13 14 15 16 18] (want [18])
+--- FAIL: TestPR21397ReadBufferSkipsCommittedKeysAndCorruptsHash (0.00s)
+=== RUN   TestPR21397StopcGoroutineLeak
+    compaction_pr21397_bug_test.go:181: scheduleCompaction returned expected stop error: interrupted due to stop signal
+    compaction_pr21397_bug_test.go:186: goroutines before=4, after=5
+    compaction_pr21397_bug_test.go:188: BUG (PR #21397): producer goroutine leaked after scheduleCompaction returned on <-s.stopc (goroutines before=4, after=5)
+--- FAIL: TestPR21397StopcGoroutineLeak (0.10s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.132s
+?   	go.etcd.io/etcd/server/v3/storage/mvcc/testutil	[no test files]
+FAIL

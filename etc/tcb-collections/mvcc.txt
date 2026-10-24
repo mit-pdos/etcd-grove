@@ -23,6 +23,7 @@ axiom mvcc.kbNoCmp_metaNone
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
+axiom mvcc.pr21397_scheduleCompaction_buggy_body
 axiom mvcc.store.Restore.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof

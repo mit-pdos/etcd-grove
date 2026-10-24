@@ -3638,6 +3638,7 @@ noncomputable def store.scheduleCompaction.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "end" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "hash" (App (Val (GoInstruction (GoAlloc KeyValueHash.ty))) (App (Val (GoInstruction (GoZeroVal KeyValueHash.ty))) (Val #())))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef StoreConfig.ty go!"CompactionBatchLimit"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))))
   (Let "batchNum" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3650,21 +3651,26 @@ noncomputable def store.scheduleCompaction.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 17)))
   (Let "last" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv Revision.ty)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "batchNum")))
+  (Let "toDelRevsChan" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv Revision.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv Revision.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (Let "rev" (App (Val (GoInstruction (GoAlloc Revision.ty))) (App (Val (GoInstruction (GoZeroVal Revision.ty))) (Val #())))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
-  (Let "start" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"BatchTx"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))
-  (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Val #())))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"ReadTx"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))
+  (Let "rtx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Key))) (Val #())))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "last"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end"))
   (Let "$a3" (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "batchNum")))
-  (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafeRange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"UnsafeRange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Var "rtx"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -3681,37 +3687,99 @@ noncomputable def store.scheduleCompaction.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (CompositeLiteral Revision.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Main")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Sub")) (ElementExpression go.int64 (Var "$v1")))]))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "last"))
   (App (App (App (Val (GoInstruction (FuncResolve RevToBytes []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$ch0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef StoreConfig.ty go!"CompactionSleepInterval"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
-  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef store.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))
-  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch0")) (Lam "$recvVal"
   (App (Val doExecute)
-  (Val #())))),
-  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (CompositeLiteral KeyValueHash.ty))) (LiteralValue [])) (Let "$a0" (Val #(go!"interrupted due to stop signal"))
-  (Let "$a1" (Val #slice.nil)
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))]))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Since []))) (Val #())) (Var "$a0"))) (Val _root_.Perennial.time.Millisecond))))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty go!"Observe"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr dbCompactionPauseMs))) (Val #())))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"ForceCommit"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "last") (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "last") (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "batchNum")))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvHasher.ty) go!"Hash"))) (Var "h")) (Val #()))
-  (Let "hash" (App (Val (GoInstruction (GoAlloc KeyValueHash.ty))) (App (Val (GoInstruction (GoZeroVal KeyValueHash.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doBreak) (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv Revision.ty)))) (Var "toDelRevsChan"))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv Revision.ty)]))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"finished hash computation"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"compact-revision"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "compactMainRev"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"took"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "totalStart"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Since []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"hash"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint32))) (App (Val (GoInstruction (StructFieldRef KeyValueHash.ty go!"Hash"))) (Var "hash")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint32 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef store.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KeyValueHash.ty))) (Pair (Var "hash") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.SliceType go.byte))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (Val (GoInstruction (FuncResolve BytesToRev []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "values")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvHasher.ty) go!"WriteKeyValue"))) (Var "h")) (Var "$a0")) (Var "$a1")))))))
+  (Let "__p" (App (App (Val (map.lookup2 Revision.ty (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType Revision.ty (go.GoType.StructType []))))) (Var "keep"))) (App (Val (GoInstruction (GoLoad Revision.ty))) (Var "rev")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv Revision.ty)))) (Var "toDelRevsChan"))
+  (Let "$v" (App (Val (GoInstruction (GoLoad Revision.ty))) (Var "rev"))
+  (App (App (Val (chan.send Revision.ty)) (Var "$chan")) (Var "$v")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Revision.ty))) (Pair (Var "rev") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RUnlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Var "rtx"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "values") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "keys") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Var "rtx"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Pair (Var "rtx") (Var "$r0"))))))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"BatchTx"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))
+  (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "start" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (Let "completed" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"Size"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))
   (Let "$r1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"SizeInUse"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))
@@ -3758,8 +3826,6 @@ noncomputable def store.scheduleCompaction.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "size") (Var "$r0")))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore KeyValueHash.ty))) (Pair (Var "hash") (Var "$r0")))))))))
-  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Since []))) (Val #())) (Var "$a0"))) (Val _root_.Perennial.time.Millisecond))))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty go!"Observe"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr dbCompactionPauseMs))) (Val #())))) (Var "$a0")))))))
@@ -3768,67 +3834,100 @@ noncomputable def store.scheduleCompaction.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "compactMainRev"))
-  (App (App (App (Val (GoInstruction (FuncResolve UnsafeSetFinishedCompact []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys"))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val (slice.forRange (go.GoType.SliceType go.byte))) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (App (App (Val (GoInstruction (FuncResolve BytesToRev []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "values")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvHasher.ty) go!"WriteKeyValue"))) (Var "h")) (Var "$a0")) (Var "$a1")))))))
-  (Let "__p" (App (App (Val (map.lookup2 Revision.ty (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType Revision.ty (go.GoType.StructType []))))) (Var "keep"))) (App (Val (GoInstruction (GoLoad Revision.ty))) (Var "rev")))
+  (App (App (App (Val (GoInstruction (FuncResolve UnsafeSetFinishedCompact []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "completed"))))) (Lam BAnon
+  (App (Val catchBreak) (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv Revision.ty)))) (Var "toDelRevsChan"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase Revision.ty (Var "$ch0")) (Lam "$recvVal"
+  (Let "__p" (Var "$recvVal")
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "rev" (App (Val (GoInstruction (GoAlloc Revision.ty))) (App (Val (GoInstruction (GoZeroVal Revision.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "keyCompactions")) (App (Val (GoInstruction (GoLoad go.int))) (Var "batchNum")))) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"BatchTx"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "keyCompactions") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "keyCompactions")) (Val #(W64 1)))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "start") (Var "$r0")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Key))) (Val #())))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafeDelete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Var "$a0")) (Var "$a1"))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"LockOutsideApply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))
+  (Let "$ch0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef StoreConfig.ty go!"CompactionSleepInterval"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef store.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch0")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (CompositeLiteral KeyValueHash.ty))) (LiteralValue [])) (Let "$a0" (Val #(go!"interrupted due to stop signal"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))])))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Since []))) (Val #())) (Var "$a0"))) (Val _root_.Perennial.time.Millisecond))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty go!"Observe"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr dbCompactionPauseMs))) (Val #())))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"ForceCommit"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Val #()))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "keyCompactions") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "keyCompactions")) (Val #(W64 1))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.Key))) (Val #())))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad Revision.ty))) (Var "rev"))
+  (Let "$a1" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 17)))
+  (App (App (App (Val (GoInstruction (FuncResolve RevToBytes []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"UnsafeDelete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doBreak) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "completed") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore Revision.ty))) (Pair (Var "rev") (Var "$r0"))))))))))))))]))))))
+  (Lam BAnon
+  (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Revision.ty))) (Pair (Var "rev") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "completed") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "values") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "keys") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "start") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"LockOutsideApply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "start") (Var "$r0"))))))))))
-  (Lam BAnon
-  (Val #())))))
+  (Fork
+  (App (Var "$go") (Val #()))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv Revision.ty)))) (Pair (Var "toDelRevsChan") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "last") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore kvHasher.ty))) (Pair (Var "h") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "batchNum") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "batchNum") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "compactMainRev")) (Val #(W64 1)))))

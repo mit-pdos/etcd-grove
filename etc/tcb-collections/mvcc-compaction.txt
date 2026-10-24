@@ -27,6 +27,7 @@ axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
+axiom mvcc.pr21397_scheduleCompaction_buggy_body
 axiom time.Time.Unix.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof

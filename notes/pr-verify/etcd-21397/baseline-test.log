@@ -1,0 +1,14 @@
+=== RUN   TestPR21397TombstoneKeyNeverDeleted
+    compaction_pr21397_bug_test.go:76: remaining keys in schema.Key after compact(4): [rev=4.0(len=17,tombstone=false)]
+--- PASS: TestPR21397TombstoneKeyNeverDeleted (0.01s)
+=== RUN   TestPR21397ReadBufferSkipsCommittedKeysAndCorruptsHash
+    compaction_pr21397_bug_test.go:141: scheduleCompaction hash=1968211745, wantHash(hashByRev)=1968211745
+    compaction_pr21397_bug_test.go:142: remaining revisions in schema.Key after scheduleCompaction(18, 0): [18] (want only [18])
+--- PASS: TestPR21397ReadBufferSkipsCommittedKeysAndCorruptsHash (0.01s)
+=== RUN   TestPR21397StopcGoroutineLeak
+    compaction_pr21397_bug_test.go:181: scheduleCompaction returned expected stop error: interrupted due to stop signal
+    compaction_pr21397_bug_test.go:186: goroutines before=5, after=4
+--- PASS: TestPR21397StopcGoroutineLeak (0.10s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.137s
+?   	go.etcd.io/etcd/server/v3/storage/mvcc/testutil	[no test files]
