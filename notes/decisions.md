@@ -17616,6 +17616,63 @@ spec), `EtcdServer.Authenticate` (it needs the server's store contract to have `
 `GenTokenPrefix`, and the read-index wait), and threading `isReqAuthBound` into A2's guards and A4's
 watch registrations (their statements still name the info `isReqAuth` gives).
 
+## S4c of the auth plan: the decoded messages are the caller's; `UserGrantRole` and `HasRole` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4c`)
+
+**Problem.** S4b left the two grants: `UserGrantRole` appends to the `Roles` of the user message
+the batch transaction's `UnsafeGetUser` returned and sorts it in place (`sort.Strings`);
+`RoleGrantPermission` appends to the role message's `KeyPermission`, sorts it (`sort.Sort` of a
+`permSlice`) or writes an existing entry's `PermType`. S1's two `proto.Unmarshal` axioms gave the
+decoded message read-only (`ownUser`/`ownRole`: its slices `↦*□`, without capacity), which the
+writes cannot use. Go's decoder allocates a fresh message for the caller.
+
+**Decision.**
+- **The axioms' posts restated, no axiom added.** `proto.UnmarshalUser`/`UnmarshalRole` return
+  `auth.ownUserX`/`ownRoleX` (`auth/Buckets.lean`): the message the caller owns, as before, its
+  `Roles`/`KeyPermission` slice owned with its capacity (`↦*` and `ownSliceCap`, Perennial's idiom
+  for a freshly allocated slice), a role's permission messages owned (`ownPermX`). This is what Go
+  does (the decoder's allocation), so the restatement is more faithful, not stronger than the code.
+  `ownUserX_persist`/`ownRoleX_persist` (a basic update) give back the read-only forms.
+- **Where the read-only form is recovered.** Schema's `unsafeGetUser`/`unsafeGetRole` and the read
+  transaction's `UnsafeGetUser`/`UnsafeGetRole` return the owned forms (`schema.userOutDX`,
+  `roleOutDX`, `etcdserver/InvAuthBackend.lean`); `authBackend.GetUser`/`GetRole` persist them after
+  the read (the read transaction's are tail calls, whose post is the caller's: an update cannot be
+  taken there). `authReaderOk` (the read contract) keeps the read-only `userOut`/`roleOut`, so S2's
+  cache, S3's checks and S4's operations are unchanged.
+- **The batch transaction's write-side reads** (`auth.authBatchTxLk`, a contract): two clauses
+  appended, `UnsafeGetUser`/`UnsafeGetRole` with the owned message (`userOutX`/`roleOutX`), what
+  schema's read now gives (so the contract stays derivable from schema's real `authBatchTx`). The
+  ten destructurings of the contract take two more `-`.
+- **`UserGrantRole`** (`authStore__UserGrantRole.lean`) performs `Steps.lean`'s
+  `userGrantRoleR` or returns the model's error, in every mode: the user from the owned read; a
+  role other than `root` must exist (`ErrRoleNotFound`); the binary search over the sorted roles
+  (`sort.wp_SearchStrings`, `mem_iff_search`); a role the user has is "ignored" (`.same`); else the
+  append (`wp_slice_append` over the owned slice and its capacity) and `sort.Strings`, whose
+  sorted (`≤`) permutation of a list without duplicates is sorted strictly
+  (`pairwise_lt_of_sorted_perm`, `GrantLemmas.lean`), the message put back (`typedPointsto_combine`,
+  the roles slice persisted for the put contract's `ownUser`). Premises as S4's: the user name
+  within bbolt's key bound (the put), and the user's roles in the latest state fewer than `2^62`
+  (`sort.Strings`' bound after the append). The proof splits on the `root` comparison with the
+  literal turned into a variable first (`wp_if_destruct` substitutes `rn = "root"`, which would
+  make the two branches' goals differ; it keeps an equation between two variables), so both
+  branches share the tail (`all_goals`). At the apply layer, `apply.isAuthSteps` gains the
+  `UserGrantRole` clause (appended: the nine step proofs take one more `-`),
+  `isAuthSteps_of_authInv` its case, and `applierV3backend.UserGrantRole.wp_step`
+  (`apply_UserGrantRole_step` in `etcdserver/Results.lean`).
+- **`HasRole`** (`authStore__HasRole.lean`), with the admin side's authority (it takes the batch
+  transaction's lock): whether the latest state's user has the role, false for a user the state
+  lacks; the loop returns at the first equal role.
+
+**Not finished.**
+- `RoleGrantPermission`: the owned role message is in place, but the proof needs a sorter instance
+  of `permSlice` over owned permission messages (`isSorter` with `Less` by `bytes.Compare` of the
+  keys: a strict weak order pulled back along the key), `sort.Search` with a closure over the
+  role's permissions, and, for the in-place update of an existing entry, the correspondence
+  between the wire list's index and the model's (`RoleRec.toRole` drops entries of an unknown
+  type). It keeps its contract clause.
+- `UserGet`, `RoleGet` (its `root` case answers `rootPerm`, a package variable; the backend's
+  write contract has `GetUser` but no `GetRole`), `UserList`/`RoleList` (no backend `UnsafeForEach`
+  spec).
+
 ## S4b of the auth plan: the pin at Perennial's sort specs, `hasRootRole`, the revocations and `RoleDelete` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4b`)
 
 **Problem.** S4 left five admin operations unproved (they sort or loop over records) and S3 left

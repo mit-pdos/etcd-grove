@@ -228,3 +228,10 @@ The store's `UserRevokeRole`, `RoleRevokePermission` and `RoleDelete` perform th
 root shortcut) is proved. Left: `UserGrantRole`, `RoleGrantPermission` (they write into the
 messages the read contract gives read-only: `notes/decisions.md`, "S4b of the auth plan").
 
+## What is proved of the table (S4c, 2026-10-24)
+
+`UserGrantRole` performs the model's step at the store and at the apply layer
+(`apply_UserGrantRole_step`), from the user message the decoder gives the caller (the two
+`proto.Unmarshal` axioms' posts restated: `notes/decisions.md`, "S4c of the auth plan"). The
+store's `HasRole` answers the latest state's (with the admin side's authority). Left:
+`RoleGrantPermission` (its contract clause), `UserGet`, `RoleGet`, `UserList`, `RoleList`.
