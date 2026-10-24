@@ -7,7 +7,7 @@ drop the connections of member `A`'s bridge in `brs`, a second blackhole skipped
 any other kind does nothing. Lean-first (no Rocq counterpart).
 
 **The triple:** over the read-only slices of servers `ss`, each a member of the network `γn` with
-one of its transport's reader tokens (`srvPeerCtl`; 2026-10-24, rafthttp stage 6d), of bridges `bs`, each owned and not blackholed (`ownBridge`), and of steps: it
+one of its transport's reader tokens (`common.srvPeerCtl`; 2026-10-24, rafthttp stage 6d), of bridges `bs`, each owned and not blackholed (`ownBridge`), and of steps: it
 returns. Nothing is assumed of the schedule: the theorem that runs it (`Main`) quantifies over
 every one.
 -/
@@ -39,7 +39,7 @@ abbrev partitioner.spec : Prop :=
     (steps : List github_com.mit_pdos.etcd_grove.examples.linkv3p.Step),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
       srvs ↦*□ ss ∗ brs ↦*□ bs ∗ sched ↦*□ steps ∗
-      ([∗list] s ∈ ss, ∃ id : w64, srvPeerCtl γn s id) ∗
+      ([∗list] s ∈ ss, ∃ id : w64, common.srvPeerCtl γn s id) ∗
       ([∗list] br ∈ bs, ∃ addr : GoString, bridge.ownBridge br addr false) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner))
       (Val #srvs)) (Val #brs)) (Val #sched))

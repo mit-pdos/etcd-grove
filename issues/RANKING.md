@@ -297,6 +297,7 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-token-md-empty](etcd-auth-token-md-empty.md),
+  [etcd-auth-simple-token-assign-prefix-panic](etcd-auth-simple-token-assign-prefix-panic.md),
   [etcd-stream-interceptor-err-before-done](etcd-stream-interceptor-err-before-done.md).
 - **Raft-library edge cases unreachable from etcd as configured**:
   [raft-remove-last-voter-panic](raft-remove-last-voter-panic.md) (`stepLeader` does not

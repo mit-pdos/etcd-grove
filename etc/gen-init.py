@@ -742,14 +742,16 @@ runs their translated initializers.''',
 
 _AUTH_ERRS = ['ErrRootUserNotExist', 'ErrRootRoleNotExist', 'ErrUserAlreadyExist', 'ErrUserEmpty',
               'ErrUserNotFound', 'ErrRoleAlreadyExist', 'ErrRoleNotFound', 'ErrRoleEmpty',
-              'ErrPermissionNotGiven', 'ErrNoPasswordUser', 'ErrPermissionDenied', 'ErrRoleNotGranted',
-              'ErrPermissionNotGranted', 'ErrAuthOldRevision', 'ErrInvalidAuthToken', 'ErrInvalidAuthMgmt']
+              'ErrPermissionNotGiven', 'ErrAuthFailed', 'ErrNoPasswordUser', 'ErrPermissionDenied',
+              'ErrRoleNotGranted', 'ErrPermissionNotGranted', 'ErrAuthNotEnabled', 'ErrAuthOldRevision',
+              'ErrInvalidAuthToken', 'ErrInvalidAuthMgmt']
 def _auth_news(names):
     return [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{n} #M{n}' for n in names]
 SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
     doc='''Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
 `ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`, and the admin side's eleven
-(the auth plan's S4, 2026-10-24: `ErrRootUserNotExist`, ..., `ErrInvalidAuthMgmt`; translated
+(the auth plan's S4, 2026-10-24: `ErrRootUserNotExist`, ..., `ErrInvalidAuthMgmt`), and S5's two
+(`ErrAuthFailed`, `ErrAuthNotEnabled`; translated
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).''',
@@ -759,10 +761,8 @@ initializers are untranslated (`opaqueInitsOk`).''',
     before={
         # the recipes run before the next untranslated variable's initializer, consuming the
         # translated `errors.New` calls that precede it in `store.go`'s order
-        'ErrAuthFailed': _auth_news(_AUTH_ERRS[0:9]),
-        'ErrAuthNotEnabled': _auth_news(_AUTH_ERRS[9:13]),
-        'ErrInvalidAuthOpts': _auth_news(_AUTH_ERRS[13:15]),
-        'ErrInvalidAuthMethod': _auth_news(_AUTH_ERRS[15:16]),
+        'ErrInvalidAuthOpts': _auth_news(_AUTH_ERRS[0:17]),
+        'ErrInvalidAuthMethod': _auth_news(_AUTH_ERRS[17:18]),
     },
     finish=[f'ipersist H{n}' for n in _AUTH_ERRS] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [

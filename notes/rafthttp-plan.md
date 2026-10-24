@@ -826,6 +826,11 @@ trust-boundary spec.
    (`Request.TypeAssumptions.type_repr`), at the named and the struct type, no axiom
    (`notes/perennial-changes.md`). Trust check: no axiom added, the six gone, the 71 boundary items
    accepted at stages 1 to 6e reached; baseline 555 -> 620, 0 `sorry`s; the collections updated.
+- **Merged into `lean` (2026-10-24).** Decisions D33-D36 of this plan are D38-D41 since (lean's
+   D33-D37 were taken meanwhile). On `lean`'s shared example start-up (`examples/common`), the
+   members carry 6d's resources; `path` is translated with its bodies (the etcd project's) and the
+   k8s store's `path.Join(["/", p])` is a theorem over it (`Proof/path/CleanAbs.lean`, with
+   `PathCleanAbs` bounded below `2^60`). Baseline at the merge: 696 axioms, 4 `sorry`s (k8s's).
 
 ## Costs and risks
 

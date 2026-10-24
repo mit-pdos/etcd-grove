@@ -255,7 +255,8 @@ axiom _loggerWriterDepth [FfiSyntax] [GoGlobalContext] : val
 
 axiom _programmerErrorTemplate [FfiSyntax] [GoGlobalContext] : val
 
-axiom DebugLevel [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DebugLevel [FfiSyntax] [GoGlobalContext] : val :=
+  #(W8 (-1))
 
 axiom InfoLevel [FfiSyntax] [GoGlobalContext] : val
 

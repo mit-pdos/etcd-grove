@@ -20,6 +20,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClients
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Alloc3
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Alloc
 
 @[expose] public section
 
@@ -260,7 +261,7 @@ theorem startCluster.wp_proof
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
   have hpl : plainEndpoints [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] := by
     refine ⟨by simp, fun e he => ?_⟩
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at he
+    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at he
     rcases he with rfl | rfl | rfl <;> (unfold plainEndpoint; decide)
   wp_apply (wp_NewClients _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
       (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) (by omega) Hlg hpl) $$ [] as %cl₁ %cerr₁ Hcl₁

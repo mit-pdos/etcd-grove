@@ -60,7 +60,9 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     iframe
     isplitr
     · iunfold authInfoRO; ileft; ipureintro; rfl
-    iunfold authErrIs; ileft; ipureintro; rfl
+    isplitr
+    · iunfold authErrIs; ileft; ipureintro; rfl
+    iunfold ctxBound; ileft; ipureintro; rfl
   wp_auto
   wp_apply h_FromIncomingContext as %md %ok Hmd
   icases Hmd with (%Hok | ⟨%m, Hm, Hvals⟩)
@@ -70,14 +72,18 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     iframe
     isplitr
     · iunfold authInfoRO; ileft; ipureintro; rfl
-    iunfold authErrIs; ileft; ipureintro; rfl
+    isplitr
+    · iunfold authErrIs; ileft; ipureintro; rfl
+    iunfold ctxBound; ileft; ipureintro; rfl
   cases ok
   · wp_auto
     iapply HΦ
     iframe
     isplitr
     · iunfold authInfoRO; ileft; ipureintro; rfl
-    iunfold authErrIs; ileft; ipureintro; rfl
+    isplitr
+    · iunfold authErrIs; ileft; ipureintro; rfl
+    iunfold ctxBound; ileft; ipureintro; rfl
   wp_auto
   wp_apply wp_map_lookup2 go.string _ md m s1 $$ Hm as Hm
   cases h1 : m !! s1 with
@@ -104,7 +110,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     · iframe Hts; ipureintro; exact hv0
     wp_apply strings.wp_TrimPrefix
     (try wp_auto)
-    wp_apply (h_authInfoFromToken st R M) $$ [$Hinv] as %ai %uok Hai
+    wp_apply (h_authInfoFromToken st R M) $$ [$Hinv] as %ai %uok ⟨#Hai, #Hb⟩
     cases uok
     · (try wp_auto)
       wp_apply h_redactToken _ as %fp -
@@ -123,17 +129,25 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
       iframe
       isplitr
       · iunfold authInfoRO; ileft; ipureintro; rfl
-      iunfold authErrIs
-      iright
-      iexists ErrInvalidAuthToken, eIT
-      iframe HeITa
-      ipureintro; simp
+      isplitr
+      · iunfold authErrIs
+        iright
+        iexists ErrInvalidAuthToken, eIT
+        iframe HeITa
+        ipureintro; simp
+      iunfold ctxBound; ileft; ipureintro; rfl
     · (try wp_auto)
       iapply HΦ
       iframe
-      iunfold authErrIs; ileft; ipureintro; rfl
+      isplitr
+      · iexact Hai
+      isplitr
+      · iunfold authErrIs; ileft; ipureintro; rfl
+      iunfold ctxBound; iright; iexists (strings.trimPrefix v0 [66#8, 101#8, 97#8, 114#8, 101#8, 114#8, 32#8])
+      iExactEq Hb
+      simp
   | none =>
-    simp only [Option.isSome_none, decide_false, Option.getD_none]
+    simp only [Option.isSome_none, Option.getD_none]
     wp_auto
     wp_apply wp_map_lookup2 go.string _ md m s2 $$ Hm as Hm
     cases h2 : m !! s2 with
@@ -160,7 +174,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
       · iframe Hts; ipureintro; exact hv0
       wp_apply strings.wp_TrimPrefix
       (try wp_auto)
-      wp_apply (h_authInfoFromToken st R M) $$ [$Hinv] as %ai %uok Hai
+      wp_apply (h_authInfoFromToken st R M) $$ [$Hinv] as %ai %uok ⟨#Hai, #Hb⟩
       cases uok
       · (try wp_auto)
         wp_apply h_redactToken _ as %fp -
@@ -179,23 +193,33 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
         iframe
         isplitr
         · iunfold authInfoRO; ileft; ipureintro; rfl
-        iunfold authErrIs
-        iright
-        iexists ErrInvalidAuthToken, eIT
-        iframe HeITa
-        ipureintro; simp
+        isplitr
+        · iunfold authErrIs
+          iright
+          iexists ErrInvalidAuthToken, eIT
+          iframe HeITa
+          ipureintro; simp
+        iunfold ctxBound; ileft; ipureintro; rfl
       · (try wp_auto)
         iapply HΦ
         iframe
-        iunfold authErrIs; ileft; ipureintro; rfl
+        isplitr
+        · iexact Hai
+        isplitr
+        · iunfold authErrIs; ileft; ipureintro; rfl
+        iunfold ctxBound; iright; iexists (strings.trimPrefix v0 [66#8, 101#8, 97#8, 114#8, 101#8, 114#8, 32#8])
+        iExactEq Hb
+        simp
     | none =>
-      simp only [Option.isSome_none, decide_false, Option.getD_none]
+      simp only [Option.isSome_none, Option.getD_none]
       wp_auto
       iapply HΦ
       iframe
       isplitr
       · iunfold authInfoRO; ileft; ipureintro; rfl
-      iunfold authErrIs; ileft; ipureintro; rfl
+      isplitr
+      · iunfold authErrIs; ileft; ipureintro; rfl
+      iunfold ctxBound; ileft; ipureintro; rfl
 
 end proof
 

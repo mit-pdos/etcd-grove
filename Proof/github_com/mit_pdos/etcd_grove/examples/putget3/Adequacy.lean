@@ -147,9 +147,10 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.putget3.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.putget3.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok Has
+  iintro #Hinit Htok ⟨Has, Hps⟩
   simp only [putget3Addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Has with ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩
+  icases Hps with ⟨Hf₁, Hf₂, Hf₃, -, -⟩
   have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ bootLog Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
   wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Hf₁ Hf₂ Hf₃ Htok]

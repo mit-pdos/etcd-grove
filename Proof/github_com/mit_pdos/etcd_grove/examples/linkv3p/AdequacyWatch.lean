@@ -109,9 +109,10 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.linkv3p.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.linkv3p.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok Has
+  iintro #Hinit Htok ⟨Has, Hps⟩
   simp only [linkv3pAddrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   icases Has with ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, -⟩
+  icases Hps with ⟨Hf₁, Hf₂, Hf₃, -⟩
   -- the schedule's slice literal: the array of an abstract list takes one pure step
   -- (`pure_wp_array_lit_full`, before the generic automation unfolds it), then the slice over it
   -- (`wp_slice_literal`)

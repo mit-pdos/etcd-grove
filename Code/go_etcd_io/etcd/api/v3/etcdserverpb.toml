@@ -53,6 +53,8 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # A3, the API layer (2026-10-24): the requests whose fields the server's Authenticate and
   # UserChangePassword read and write (the name and the passwords)
   "AuthUserDeleteRequest", "AuthUserChangePasswordRequest", "AuthenticateRequest",
+  # the auth plan's S4b (2026-10-24): the requests of the revocations and of RoleDelete
+  "AuthUserRevokeRoleRequest", "AuthRoleRevokePermissionRequest", "AuthRoleDeleteRequest",
   # the server's RaftKV interface names the stream of RangeStream (an alias of a generic grpc
   # interface: an untranslated alias is emitted without the `.ty` its users name)
   "KV_RangeStreamServer",

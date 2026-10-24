@@ -208,3 +208,23 @@ translated, not proved.
 `adminPass`, an applied one is a step of the history made by an admin. The other admin rows at
 apply (`UserGrantRole`, `UserRevokeRole`, `RoleDelete`, `RoleGrantPermission`,
 `RoleRevokePermission`, the reads) keep the contract clause.
+
+## What is proved of the table (S5 in part, the token binding, 2026-10-24)
+
+Every row's principal at the API layer is `AuthInfoFromCtx`'s, and since S5 it is bound to the
+request's token in the mode (`auth.ctxBound`: in `on γa`, its user is one the token was issued to,
+`tokIssued`), over the token provider's contract (`tokenProviderOk`); the server's
+`isReqAuthBound` states it of the real store (`etcdserver/AuthReqDerive.lean`). The `Authenticate`
+row: the store's `Authenticate` is proved (a token issued to the user, the user present in the
+latest state, auth enabled at a recorded state); the server's entry point and `CheckPassword` are
+not. No real token provider is proved to meet the contract yet (the no-op one does); the rows'
+statements of A2 and A4 still name the unbound info (`isReqAuth`).
+
+## What is proved of the table (S4b, 2026-10-24)
+
+The store's `UserRevokeRole`, `RoleRevokePermission` and `RoleDelete` perform the model's step
+(`auth/Steps.lean`), and `applierV3backend`'s three perform it at the apply layer
+(`apply/AuthSteps.lean`, `apply_*_step` in `etcdserver/Results.lean`); `hasRootRole` (every check's
+root shortcut) is proved. Left: `UserGrantRole`, `RoleGrantPermission` (they write into the
+messages the read contract gives read-only: `notes/decisions.md`, "S4b of the auth plan").
+
