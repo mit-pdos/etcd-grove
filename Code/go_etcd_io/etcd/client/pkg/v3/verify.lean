@@ -8,25 +8,24 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.client.pkg.v3.verify : GoString := go!"go.etcd.io/etcd/client/pkg/v3/verify"
+noncomputable def go_etcd_io.etcd.client.pkg.v3.verify : GoString := go!"go.etcd.io/etcd/client/pkg/v3/verify"
 end pkg_id
 
 namespace go_etcd_io.etcd.client.pkg.v3.verify
 
-def VerificationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VerificationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/verify.VerificationType" [])
 
 attribute [irreducible] VerificationType.ty
 
-def VerifyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VerifyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/verify.VerifyFunc" [])
 
 attribute [irreducible] VerifyFunc.ty
@@ -61,7 +60,7 @@ noncomputable def verifier [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Assert [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.Assert"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.verify where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.verify where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -75,7 +74,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev VerificationType [FfiSyntax] : Type := GoString
 
-@[reducible] def VerificationType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VerificationType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class VerificationType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -85,7 +84,7 @@ attribute [instance] VerificationType.TypeAssumptions.underlying
 
 abbrev VerifyFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def VerifyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VerifyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false [go.bool, (go.GoType.MapType go.string go.any)]))
 
 class VerifyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

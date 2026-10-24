@@ -529,10 +529,10 @@ theorem NewServer.wp_proof
   icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, -⟩
   wp_apply (lc := 2) (server_kv_watchable_of h26 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73
       h74 h75 h76 h77 h46 h47 h48 cfg.Logger' (lease.lessorIface lp) _ d HbP E₀.γ.bucket γl
-      (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok Hcbl Hrb)
+      (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok .off Hcbl Hrb)
     $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok]
     as %ws ⟨%kst, %γw, %Hγw, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
-      Hwrds, Hwcl⟩
+      Hwrds, Hwcl, #Htag⟩
   · iframe #
     iframe Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok
   -- (D19g (b)) the store's reader slots for request goroutines
@@ -559,8 +559,8 @@ theorem NewServer.wp_proof
   icases Hkvw with ⟨Hkvw0, Hkvw1, Hfrag0⟩
   iunfold mvcc.writerFrag at Hfrag0
   icases Hfrag0 with ⟨%ow, Hpinw⟩
-  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc1 Hs Hpinw HwrSV with ⟨HrtSV, Hpinw⟩
-  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc2 Hs Hpinw HwrA with ⟨HrtA, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc1 Hs Hpinw HwrSV with ⟨HrtSV, -, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc2 Hs Hpinw HwrA with ⟨HrtA, HtrA, Hpinw⟩
   ihave Hkvw : txn.kvWriter kst γw.st [[], []] $$ [Hkvw0 Hkvw1 Hpinw]
   · iunfold txn.kvWriter; iframe Hkvw0 Hkvw1; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
   -- (D22 receiver epochs, S7b) the current backend's ghost variable, at the real backend: half
@@ -1098,9 +1098,9 @@ theorem NewServer.wp_proof
       64 $$ [Hwrx]
   · unfold srvWatchReaders
     iexists ws, γw
+    simp only
     iframe #
     iframe Hwrx
-    ipureintro; rfl
   imodintro
   iapply HΦ
   iright
@@ -1116,8 +1116,8 @@ theorem NewServer.wp_proof
   isplitr
   · unfold srvWatchBuilt
     iexists ws, γw
+    simp only
     iframe #
-    ipureintro; rfl
   isplitl [Hwcl]
   · -- (D22 S-g) the KV's closer, kept (until then dropped here)
     unfold srvKVCloser
@@ -1461,8 +1461,8 @@ theorem NewServer.wp_proof
   isplitl [Huo]
   · iExactEq Huo; rfl
   iunfold apply.kvOwn
-  ihave HwoA : mvcc.writerOwn γw.st $$ [HrtA]
-  · iunfold mvcc.writerOwn; iexact HrtA
+  ihave HwoA : mvcc.writerOwn γw.st $$ [HrtA HtrA]
+  · iunfold mvcc.writerOwn; iframe HrtA HtrA
   iframe Hsrd Hkvw HRD2 HwoA
   iunfold apply.leasesLive
   iexists []

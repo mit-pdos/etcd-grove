@@ -8,9 +8,8 @@ public import Code.net.url
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.url.Assumptions]
 
-instance Error_typed_pointsto :
+noncomputable instance Error_typed_pointsto :
     TypedPointsto (GF := GF) net.url.Error where
   typedPointstoDef l v dq := iprop(
     "Op" ∷ typedPointsto (structFieldRef net.url.Error go!"Op" l) v.Op' dq ∗
@@ -36,11 +35,11 @@ instance Error_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Error_into_val_typed :
+noncomputable instance Error_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.url.Error net.url.Error.underlying := by
   solve_into_val_typed_struct
 
-instance Error_access_load_Op (l : Loc) (v : net.url.Error) (dq : DFrac) :
+noncomputable instance Error_access_load_Op (l : Loc) (v : net.url.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Error go!"Op" l) v.Op' dq)
       (typedPointsto (structFieldRef net.url.Error go!"Op" l) v.Op' dq)
@@ -48,7 +47,7 @@ instance Error_access_load_Op (l : Loc) (v : net.url.Error) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance Error_access_store_Op (l : Loc) (v : net.url.Error) (Op' : GoString) :
+noncomputable instance Error_access_store_Op (l : Loc) (v : net.url.Error) (Op' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Error go!"Op" l) v.Op' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.Error go!"Op" l) Op' (DFrac.own 1))
@@ -56,7 +55,7 @@ instance Error_access_store_Op (l : Loc) (v : net.url.Error) (Op' : GoString) :
  by
   solve_pointsto_access_struct
 
-instance Error_access_load_URL (l : Loc) (v : net.url.Error) (dq : DFrac) :
+noncomputable instance Error_access_load_URL (l : Loc) (v : net.url.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Error go!"URL" l) v.URL' dq)
       (typedPointsto (structFieldRef net.url.Error go!"URL" l) v.URL' dq)
@@ -64,7 +63,7 @@ instance Error_access_load_URL (l : Loc) (v : net.url.Error) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance Error_access_store_URL (l : Loc) (v : net.url.Error) (URL' : GoString) :
+noncomputable instance Error_access_store_URL (l : Loc) (v : net.url.Error) (URL' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Error go!"URL" l) v.URL' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.Error go!"URL" l) URL' (DFrac.own 1))
@@ -72,7 +71,7 @@ instance Error_access_store_URL (l : Loc) (v : net.url.Error) (URL' : GoString) 
  by
   solve_pointsto_access_struct
 
-instance Error_access_load_Err (l : Loc) (v : net.url.Error) (dq : DFrac) :
+noncomputable instance Error_access_load_Err (l : Loc) (v : net.url.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Error go!"Err" l) v.Err' dq)
       (typedPointsto (structFieldRef net.url.Error go!"Err" l) v.Err' dq)
@@ -80,7 +79,7 @@ instance Error_access_load_Err (l : Loc) (v : net.url.Error) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance Error_access_store_Err (l : Loc) (v : net.url.Error) (Err' : GoError) :
+noncomputable instance Error_access_store_Err (l : Loc) (v : net.url.Error) (Err' : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Error go!"Err" l) v.Err' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.Error go!"Err" l) Err' (DFrac.own 1))
@@ -99,7 +98,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.url.Assumptions]
 
-instance URL_typed_pointsto :
+noncomputable instance URL_typed_pointsto :
     TypedPointsto (GF := GF) net.url.URL where
   typedPointstoDef l v dq := iprop(
     "Scheme" ∷ typedPointsto (structFieldRef net.url.URL go!"Scheme" l) v.Scheme' dq ∗
@@ -118,11 +117,11 @@ instance URL_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance URL_into_val_typed :
+noncomputable instance URL_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.url.URL net.url.URL.underlying := by
   solve_into_val_typed_struct
 
-instance URL_access_load_Scheme (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_Scheme (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Scheme" l) v.Scheme' dq)
       (typedPointsto (structFieldRef net.url.URL go!"Scheme" l) v.Scheme' dq)
@@ -130,7 +129,7 @@ instance URL_access_load_Scheme (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_Scheme (l : Loc) (v : net.url.URL) (Scheme' : GoString) :
+noncomputable instance URL_access_store_Scheme (l : Loc) (v : net.url.URL) (Scheme' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Scheme" l) v.Scheme' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"Scheme" l) Scheme' (DFrac.own 1))
@@ -138,7 +137,7 @@ instance URL_access_store_Scheme (l : Loc) (v : net.url.URL) (Scheme' : GoString
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_Opaque (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_Opaque (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Opaque" l) v.Opaque' dq)
       (typedPointsto (structFieldRef net.url.URL go!"Opaque" l) v.Opaque' dq)
@@ -146,7 +145,7 @@ instance URL_access_load_Opaque (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_Opaque (l : Loc) (v : net.url.URL) (Opaque' : GoString) :
+noncomputable instance URL_access_store_Opaque (l : Loc) (v : net.url.URL) (Opaque' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Opaque" l) v.Opaque' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"Opaque" l) Opaque' (DFrac.own 1))
@@ -154,7 +153,7 @@ instance URL_access_store_Opaque (l : Loc) (v : net.url.URL) (Opaque' : GoString
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_User (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_User (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"User" l) v.User' dq)
       (typedPointsto (structFieldRef net.url.URL go!"User" l) v.User' dq)
@@ -162,7 +161,7 @@ instance URL_access_load_User (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_User (l : Loc) (v : net.url.URL) (User' : Loc) :
+noncomputable instance URL_access_store_User (l : Loc) (v : net.url.URL) (User' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"User" l) v.User' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"User" l) User' (DFrac.own 1))
@@ -170,7 +169,7 @@ instance URL_access_store_User (l : Loc) (v : net.url.URL) (User' : Loc) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_Host (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_Host (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Host" l) v.Host' dq)
       (typedPointsto (structFieldRef net.url.URL go!"Host" l) v.Host' dq)
@@ -178,7 +177,7 @@ instance URL_access_load_Host (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_Host (l : Loc) (v : net.url.URL) (Host' : GoString) :
+noncomputable instance URL_access_store_Host (l : Loc) (v : net.url.URL) (Host' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Host" l) v.Host' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"Host" l) Host' (DFrac.own 1))
@@ -186,7 +185,7 @@ instance URL_access_store_Host (l : Loc) (v : net.url.URL) (Host' : GoString) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_Path (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_Path (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Path" l) v.Path' dq)
       (typedPointsto (structFieldRef net.url.URL go!"Path" l) v.Path' dq)
@@ -194,7 +193,7 @@ instance URL_access_load_Path (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_Path (l : Loc) (v : net.url.URL) (Path' : GoString) :
+noncomputable instance URL_access_store_Path (l : Loc) (v : net.url.URL) (Path' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Path" l) v.Path' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"Path" l) Path' (DFrac.own 1))
@@ -202,7 +201,7 @@ instance URL_access_store_Path (l : Loc) (v : net.url.URL) (Path' : GoString) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_Fragment (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_Fragment (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Fragment" l) v.Fragment' dq)
       (typedPointsto (structFieldRef net.url.URL go!"Fragment" l) v.Fragment' dq)
@@ -210,7 +209,7 @@ instance URL_access_load_Fragment (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_Fragment (l : Loc) (v : net.url.URL) (Fragment' : GoString) :
+noncomputable instance URL_access_store_Fragment (l : Loc) (v : net.url.URL) (Fragment' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"Fragment" l) v.Fragment' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"Fragment" l) Fragment' (DFrac.own 1))
@@ -218,7 +217,7 @@ instance URL_access_store_Fragment (l : Loc) (v : net.url.URL) (Fragment' : GoSt
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_RawQuery (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_RawQuery (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"RawQuery" l) v.RawQuery' dq)
       (typedPointsto (structFieldRef net.url.URL go!"RawQuery" l) v.RawQuery' dq)
@@ -226,7 +225,7 @@ instance URL_access_load_RawQuery (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_RawQuery (l : Loc) (v : net.url.URL) (RawQuery' : GoString) :
+noncomputable instance URL_access_store_RawQuery (l : Loc) (v : net.url.URL) (RawQuery' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"RawQuery" l) v.RawQuery' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"RawQuery" l) RawQuery' (DFrac.own 1))
@@ -234,7 +233,7 @@ instance URL_access_store_RawQuery (l : Loc) (v : net.url.URL) (RawQuery' : GoSt
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_RawPath (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_RawPath (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"RawPath" l) v.RawPath' dq)
       (typedPointsto (structFieldRef net.url.URL go!"RawPath" l) v.RawPath' dq)
@@ -242,7 +241,7 @@ instance URL_access_load_RawPath (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_RawPath (l : Loc) (v : net.url.URL) (RawPath' : GoString) :
+noncomputable instance URL_access_store_RawPath (l : Loc) (v : net.url.URL) (RawPath' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"RawPath" l) v.RawPath' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"RawPath" l) RawPath' (DFrac.own 1))
@@ -250,7 +249,7 @@ instance URL_access_store_RawPath (l : Loc) (v : net.url.URL) (RawPath' : GoStri
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_RawFragment (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_RawFragment (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"RawFragment" l) v.RawFragment' dq)
       (typedPointsto (structFieldRef net.url.URL go!"RawFragment" l) v.RawFragment' dq)
@@ -258,7 +257,7 @@ instance URL_access_load_RawFragment (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_RawFragment (l : Loc) (v : net.url.URL) (RawFragment' : GoString) :
+noncomputable instance URL_access_store_RawFragment (l : Loc) (v : net.url.URL) (RawFragment' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"RawFragment" l) v.RawFragment' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"RawFragment" l) RawFragment' (DFrac.own 1))
@@ -266,7 +265,7 @@ instance URL_access_store_RawFragment (l : Loc) (v : net.url.URL) (RawFragment' 
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_ForceQuery (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_ForceQuery (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"ForceQuery" l) v.ForceQuery' dq)
       (typedPointsto (structFieldRef net.url.URL go!"ForceQuery" l) v.ForceQuery' dq)
@@ -274,7 +273,7 @@ instance URL_access_load_ForceQuery (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_ForceQuery (l : Loc) (v : net.url.URL) (ForceQuery' : Bool) :
+noncomputable instance URL_access_store_ForceQuery (l : Loc) (v : net.url.URL) (ForceQuery' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"ForceQuery" l) v.ForceQuery' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"ForceQuery" l) ForceQuery' (DFrac.own 1))
@@ -282,7 +281,7 @@ instance URL_access_store_ForceQuery (l : Loc) (v : net.url.URL) (ForceQuery' : 
  by
   solve_pointsto_access_struct
 
-instance URL_access_load_OmitHost (l : Loc) (v : net.url.URL) (dq : DFrac) :
+noncomputable instance URL_access_load_OmitHost (l : Loc) (v : net.url.URL) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"OmitHost" l) v.OmitHost' dq)
       (typedPointsto (structFieldRef net.url.URL go!"OmitHost" l) v.OmitHost' dq)
@@ -290,7 +289,7 @@ instance URL_access_load_OmitHost (l : Loc) (v : net.url.URL) (dq : DFrac) :
  by
   solve_pointsto_access_struct
 
-instance URL_access_store_OmitHost (l : Loc) (v : net.url.URL) (OmitHost' : Bool) :
+noncomputable instance URL_access_store_OmitHost (l : Loc) (v : net.url.URL) (OmitHost' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.URL go!"OmitHost" l) v.OmitHost' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.URL go!"OmitHost" l) OmitHost' (DFrac.own 1))
@@ -309,7 +308,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.url.Assumptions]
 
-instance Userinfo_typed_pointsto :
+noncomputable instance Userinfo_typed_pointsto :
     TypedPointsto (GF := GF) net.url.Userinfo where
   typedPointstoDef l v dq := iprop(
     "username" ∷ typedPointsto (structFieldRef net.url.Userinfo go!"username" l) v.username' dq ∗
@@ -320,11 +319,11 @@ instance Userinfo_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Userinfo_into_val_typed :
+noncomputable instance Userinfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.url.Userinfo net.url.Userinfo.underlying := by
   solve_into_val_typed_struct
 
-instance Userinfo_access_load_username (l : Loc) (v : net.url.Userinfo) (dq : DFrac) :
+noncomputable instance Userinfo_access_load_username (l : Loc) (v : net.url.Userinfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Userinfo go!"username" l) v.username' dq)
       (typedPointsto (structFieldRef net.url.Userinfo go!"username" l) v.username' dq)
@@ -332,7 +331,7 @@ instance Userinfo_access_load_username (l : Loc) (v : net.url.Userinfo) (dq : DF
  by
   solve_pointsto_access_struct
 
-instance Userinfo_access_store_username (l : Loc) (v : net.url.Userinfo) (username' : GoString) :
+noncomputable instance Userinfo_access_store_username (l : Loc) (v : net.url.Userinfo) (username' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Userinfo go!"username" l) v.username' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.Userinfo go!"username" l) username' (DFrac.own 1))
@@ -340,7 +339,7 @@ instance Userinfo_access_store_username (l : Loc) (v : net.url.Userinfo) (userna
  by
   solve_pointsto_access_struct
 
-instance Userinfo_access_load_password (l : Loc) (v : net.url.Userinfo) (dq : DFrac) :
+noncomputable instance Userinfo_access_load_password (l : Loc) (v : net.url.Userinfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Userinfo go!"password" l) v.password' dq)
       (typedPointsto (structFieldRef net.url.Userinfo go!"password" l) v.password' dq)
@@ -348,7 +347,7 @@ instance Userinfo_access_load_password (l : Loc) (v : net.url.Userinfo) (dq : DF
  by
   solve_pointsto_access_struct
 
-instance Userinfo_access_store_password (l : Loc) (v : net.url.Userinfo) (password' : GoString) :
+noncomputable instance Userinfo_access_store_password (l : Loc) (v : net.url.Userinfo) (password' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Userinfo go!"password" l) v.password' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.Userinfo go!"password" l) password' (DFrac.own 1))
@@ -356,7 +355,7 @@ instance Userinfo_access_store_password (l : Loc) (v : net.url.Userinfo) (passwo
  by
   solve_pointsto_access_struct
 
-instance Userinfo_access_load_passwordSet (l : Loc) (v : net.url.Userinfo) (dq : DFrac) :
+noncomputable instance Userinfo_access_load_passwordSet (l : Loc) (v : net.url.Userinfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Userinfo go!"passwordSet" l) v.passwordSet' dq)
       (typedPointsto (structFieldRef net.url.Userinfo go!"passwordSet" l) v.passwordSet' dq)
@@ -364,7 +363,7 @@ instance Userinfo_access_load_passwordSet (l : Loc) (v : net.url.Userinfo) (dq :
  by
   solve_pointsto_access_struct
 
-instance Userinfo_access_store_passwordSet (l : Loc) (v : net.url.Userinfo) (passwordSet' : Bool) :
+noncomputable instance Userinfo_access_store_passwordSet (l : Loc) (v : net.url.Userinfo) (passwordSet' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.url.Userinfo go!"passwordSet" l) v.passwordSet' (DFrac.own 1))
       (typedPointsto (structFieldRef net.url.Userinfo go!"passwordSet" l) passwordSet' (DFrac.own 1))

@@ -8,9 +8,8 @@ public import Code.google_golang_org.grpc.grpclog
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.grpclog.Assumptions]
 
-instance componentData_typed_pointsto :
+noncomputable instance componentData_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.componentData where
   typedPointstoDef l v dq := iprop(
     "name" ∷ typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) v.name' dq ∗
@@ -34,11 +33,11 @@ instance componentData_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance componentData_into_val_typed :
+noncomputable instance componentData_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.componentData google_golang_org.grpc.grpclog.componentData.underlying := by
   solve_into_val_typed_struct
 
-instance componentData_access_load_name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (dq : DFrac) :
+noncomputable instance componentData_access_load_name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) v.name' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) v.name' dq)
@@ -46,7 +45,7 @@ instance componentData_access_load_name (l : Loc) (v : google_golang_org.grpc.gr
  by
   solve_pointsto_access_struct
 
-instance componentData_access_store_name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (name' : GoString) :
+noncomputable instance componentData_access_store_name (l : Loc) (v : google_golang_org.grpc.grpclog.componentData) (name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) v.name' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.componentData go!"name" l) name' (DFrac.own 1))
@@ -65,11 +64,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.grpclog.Assumptions]
 
-instance Logger_typed_pointsto :
+noncomputable instance Logger_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.Logger :=
   sorry -- axiomatized type
 
-instance Logger_into_val_typed :
+noncomputable instance Logger_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.Logger google_golang_org.grpc.grpclog.Logger.underlying :=
   sorry -- axiomatized type
 
@@ -84,11 +83,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.grpclog.Assumptions]
 
-instance LoggerV2_typed_pointsto :
+noncomputable instance LoggerV2_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.LoggerV2 :=
   sorry -- axiomatized type
 
-instance LoggerV2_into_val_typed :
+noncomputable instance LoggerV2_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.LoggerV2 google_golang_org.grpc.grpclog.LoggerV2.underlying :=
   sorry -- axiomatized type
 
@@ -103,11 +102,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.grpclog.Assumptions]
 
-instance DepthLoggerV2_typed_pointsto :
+noncomputable instance DepthLoggerV2_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.DepthLoggerV2 :=
   sorry -- axiomatized type
 
-instance DepthLoggerV2_into_val_typed :
+noncomputable instance DepthLoggerV2_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.DepthLoggerV2 google_golang_org.grpc.grpclog.DepthLoggerV2.underlying :=
   sorry -- axiomatized type
 

@@ -8,13 +8,16 @@ pool (`mvcc.watchTokPool γw`, allocated by `NewServer` from `New`'s tokens). `s
 right to close that watchable store (`mvcc.wsCloser`, with the inner store's `storeCloser`: its
 scheduler's stop token), which `NewServer` keeps for the snapshot path (D22 S-g, D22d (A)). The part of the watch
 server's contract (`v3rpc.watchSrvOk`) the construction gives; the rest (`raftStatusOk`, the auth
-store's, `watchVars`) is item 9's point 7.
+store's, `watchVars`) is item 9's point 7. Both hold the auth mode's tag at the store's names
+(`auth.modeTag γw.tag E.authMode`, the auth plan's A4, 2026-10-24: `mvcc.New` takes the name,
+`NewServer` tags it with its mode).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBuild
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Proof.go_etcd_io.etcd.server.v3.auth.ModeTag
 
 @[expose] public section
 
@@ -38,7 +41,8 @@ def srvWatchBuilt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ (wsl : Loc) (γw : mvcc.WsNames),
     srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-    mvcc.isWatchableStore wsl E.s γw ∗ ⌜γw.st = E.γ⌝ ∗ mvcc.watchTokPool γw)
+    mvcc.isWatchableStore wsl E.s γw ∗ ⌜γw.st = E.γ⌝ ∗ mvcc.watchTokPool γw ∗
+    auth.modeTag γw.tag E.authMode)
 
 instance srvWatchBuilt_persistent (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvWatchBuilt (GF := GF) s E) := by
@@ -53,6 +57,7 @@ def srvWatchReaders (s : Loc) (E : apply.AEnv GF) (n : Nat) : IProp GF :=
     srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
     mvcc.isWatchableStore wsl E.s γw ∗ ⌜γw.st = E.γ⌝ ∗ mvcc.watchTokPool γw ∗
+    auth.modeTag γw.tag E.authMode ∗
     [∗list] _x ∈ List.replicate n (), mvcc.watchReader wsl E.s γw)
 
 /-- **The KV's closer, kept** (D22 S-g, 2026-10-19, D22d (A); until then `NewServer` dropped it, D19m

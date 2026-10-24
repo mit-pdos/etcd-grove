@@ -10,9 +10,8 @@ public import Code.google_golang_org.grpc.peer
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -27,7 +26,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.peer.Assumptions]
 
-instance Peer_typed_pointsto :
+noncomputable instance Peer_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.peer.Peer where
   typedPointstoDef l v dq := iprop(
     "Addr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' dq ∗
@@ -38,11 +37,11 @@ instance Peer_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Peer_into_val_typed :
+noncomputable instance Peer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.peer.Peer google_golang_org.grpc.peer.Peer.underlying := by
   solve_into_val_typed_struct
 
-instance Peer_access_load_Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (dq : DFrac) :
+noncomputable instance Peer_access_load_Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' dq)
@@ -50,7 +49,7 @@ instance Peer_access_load_Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer) 
  by
   solve_pointsto_access_struct
 
-instance Peer_access_store_Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (Addr' : net.Addr) :
+noncomputable instance Peer_access_store_Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (Addr' : net.Addr) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) Addr' (DFrac.own 1))
@@ -58,7 +57,7 @@ instance Peer_access_store_Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer)
  by
   solve_pointsto_access_struct
 
-instance Peer_access_load_LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (dq : DFrac) :
+noncomputable instance Peer_access_load_LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' dq)
@@ -66,7 +65,7 @@ instance Peer_access_load_LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.P
  by
   solve_pointsto_access_struct
 
-instance Peer_access_store_LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (LocalAddr' : net.Addr) :
+noncomputable instance Peer_access_store_LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (LocalAddr' : net.Addr) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) LocalAddr' (DFrac.own 1))
@@ -74,7 +73,7 @@ instance Peer_access_store_LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.
  by
   solve_pointsto_access_struct
 
-instance Peer_access_load_AuthInfo (l : Loc) (v : google_golang_org.grpc.peer.Peer) (dq : DFrac) :
+noncomputable instance Peer_access_load_AuthInfo (l : Loc) (v : google_golang_org.grpc.peer.Peer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' dq)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' dq)
@@ -82,7 +81,7 @@ instance Peer_access_load_AuthInfo (l : Loc) (v : google_golang_org.grpc.peer.Pe
  by
   solve_pointsto_access_struct
 
-instance Peer_access_store_AuthInfo (l : Loc) (v : google_golang_org.grpc.peer.Peer) (AuthInfo' : google_golang_org.grpc.credentials.AuthInfo) :
+noncomputable instance Peer_access_store_AuthInfo (l : Loc) (v : google_golang_org.grpc.peer.Peer) (AuthInfo' : google_golang_org.grpc.credentials.AuthInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) AuthInfo' (DFrac.own 1))
@@ -101,7 +100,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.peer.Assumptions]
 
-instance peerKey_typed_pointsto :
+noncomputable instance peerKey_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.grpc.peer.peerKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -109,7 +108,7 @@ instance peerKey_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance peerKey_into_val_typed :
+noncomputable instance peerKey_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.peer.peerKey google_golang_org.grpc.peer.peerKey.underlying := by
   solve_into_val_typed_struct
 

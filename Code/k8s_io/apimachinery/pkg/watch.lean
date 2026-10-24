@@ -8,110 +8,109 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.watch : GoString := go!"k8s.io/apimachinery/pkg/watch"
+noncomputable def k8s_io.apimachinery.pkg.watch : GoString := go!"k8s.io/apimachinery/pkg/watch"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.watch
 
-def FilterFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FilterFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.FilterFunc" [])
 
 attribute [irreducible] FilterFunc.ty
 
-def filteredWatch.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def filteredWatch.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.filteredWatch" [])
 
 attribute [irreducible] filteredWatch.ty
 
-def Recorder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Recorder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Recorder" [])
 
 attribute [irreducible] Recorder.ty
 
-def FullChannelBehavior.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FullChannelBehavior.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.FullChannelBehavior" [])
 
 attribute [irreducible] FullChannelBehavior.ty
 
-def Broadcaster.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Broadcaster.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Broadcaster" [])
 
 attribute [irreducible] Broadcaster.ty
 
-def functionFakeRuntimeObject.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def functionFakeRuntimeObject.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.functionFakeRuntimeObject" [])
 
 attribute [irreducible] functionFakeRuntimeObject.ty
 
-def broadcasterWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def broadcasterWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.broadcasterWatcher" [])
 
 attribute [irreducible] broadcasterWatcher.ty
 
-def Decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Decoder" [])
 
 attribute [irreducible] Decoder.ty
 
-def Reporter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Reporter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Reporter" [])
 
 attribute [irreducible] Reporter.ty
 
-def StreamWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StreamWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.StreamWatcher" [])
 
 attribute [irreducible] StreamWatcher.ty
 
-def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" [])
 
 attribute [irreducible] Interface.ty
 
-def EventType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.EventType" [])
 
 attribute [irreducible] EventType.ty
 
-def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Event" [])
 
 attribute [irreducible] Event.ty
 
-def emptyWatch.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def emptyWatch.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.emptyWatch" [])
 
 attribute [irreducible] emptyWatch.ty
 
-def FakeWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FakeWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.FakeWatcher" [])
 
 attribute [irreducible] FakeWatcher.ty
 
-def FakeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FakeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.FakeOptions" [])
 
 attribute [irreducible] FakeOptions.ty
 
-def RaceFreeFakeWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaceFreeFakeWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.RaceFreeFakeWatcher" [])
 
 attribute [irreducible] RaceFreeFakeWatcher.ty
 
-def ProxyWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProxyWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.ProxyWatcher" [])
 
 attribute [irreducible] ProxyWatcher.ty
 
-def MockWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MockWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.MockWatcher" [])
 
 attribute [irreducible] MockWatcher.ty
@@ -200,7 +199,7 @@ noncomputable def NewRaceFreeFakeWithLogger [FfiSyntax] [GoGlobalContext] : GoSt
 noncomputable def NewProxyWatcher [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/watch.NewProxyWatcher"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.watch where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.watch where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -229,7 +228,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev FilterFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def FilterFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FilterFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [Event.ty] false [Event.ty, go.bool]))
 
 class FilterFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -239,7 +238,7 @@ attribute [instance] FilterFunc.TypeAssumptions.underlying
 
 abbrev Interface [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ResultChan" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false []))])
 
 class Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -253,22 +252,22 @@ structure filteredWatch [FfiSyntax] where
   result' : GoChan
   f' : FilterFunc
 
-instance filteredWatch.zero_val [FfiSyntax] : ZeroVal filteredWatch :=
+noncomputable instance filteredWatch.zero_val [FfiSyntax] : ZeroVal filteredWatch :=
   ⟨filteredWatch.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def filteredWatch.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def filteredWatch.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"incoming" Interface.ty),
 (go.field_decl.FieldDecl go!"result" (go.GoType.ChannelType go.ChanDir.sendrecv Event.ty)),
 (go.field_decl.FieldDecl go!"f" FilterFunc.ty)]
 
-@[irreducible] def filteredWatch.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def filteredWatch.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   filteredWatch.fieldsUnsealed
 
-instance equals_unfold_filteredWatch [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_filteredWatch [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold filteredWatch.fields filteredWatch.fieldsUnsealed :=
   ⟨by unfold filteredWatch.fields; rfl⟩
 
-@[reducible] def filteredWatch.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def filteredWatch.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType filteredWatch.fields)
 
 class filteredWatch.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -305,7 +304,7 @@ attribute [instance] Recorder.TypeAssumptions.type_repr
 
 abbrev FullChannelBehavior [FfiSyntax] : Type := w64
 
-@[reducible] def FullChannelBehavior.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FullChannelBehavior.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class FullChannelBehavior.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -328,7 +327,7 @@ attribute [instance] Broadcaster.TypeAssumptions.type_repr
 
 abbrev functionFakeRuntimeObject [FfiSyntax] : Type := GoFunc
 
-@[reducible] def functionFakeRuntimeObject.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def functionFakeRuntimeObject.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false []))
 
 class functionFakeRuntimeObject.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -390,7 +389,7 @@ attribute [instance] StreamWatcher.TypeAssumptions.type_repr
 
 abbrev EventType [FfiSyntax] : Type := GoString
 
-@[reducible] def EventType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class EventType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -413,7 +412,7 @@ attribute [instance] Event.TypeAssumptions.type_repr
 
 abbrev emptyWatch [FfiSyntax] : Type := GoChan
 
-@[reducible] def emptyWatch.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def emptyWatch.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.ChannelType go.ChanDir.sendrecv Event.ty)
 
 class emptyWatch.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -478,21 +477,21 @@ structure MockWatcher [FfiSyntax] where
   StopFunc' : GoFunc
   ResultChanFunc' : GoFunc
 
-instance MockWatcher.zero_val [FfiSyntax] : ZeroVal MockWatcher :=
+noncomputable instance MockWatcher.zero_val [FfiSyntax] : ZeroVal MockWatcher :=
   ⟨MockWatcher.mk zeroValDef zeroValDef⟩
 
-@[reducible] def MockWatcher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MockWatcher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"StopFunc" (go.GoType.FunctionType (go.signature.Signature [] false []))),
 (go.field_decl.FieldDecl go!"ResultChanFunc" (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)])))]
 
-@[irreducible] def MockWatcher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MockWatcher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   MockWatcher.fieldsUnsealed
 
-instance equals_unfold_MockWatcher [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MockWatcher [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold MockWatcher.fields MockWatcher.fieldsUnsealed :=
   ⟨by unfold MockWatcher.fields; rfl⟩
 
-@[reducible] def MockWatcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MockWatcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MockWatcher.fields)
 
 class MockWatcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

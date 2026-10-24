@@ -8,60 +8,59 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.conversion : GoString := go!"k8s.io/apimachinery/pkg/conversion"
+noncomputable def k8s_io.apimachinery.pkg.conversion : GoString := go!"k8s.io/apimachinery/pkg/conversion"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.conversion
 
-def typePair.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def typePair.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.typePair" [])
 
 attribute [irreducible] typePair.ty
 
-def NameFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NameFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.NameFunc" [])
 
 attribute [irreducible] NameFunc.ty
 
-def ConversionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConversionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.ConversionFunc" [])
 
 attribute [irreducible] ConversionFunc.ty
 
-def Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.Converter" [])
 
 attribute [irreducible] Converter.ty
 
-def Scope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Scope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.Scope" [])
 
 attribute [irreducible] Scope.ty
 
-def ConversionFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConversionFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.ConversionFuncs" [])
 
 attribute [irreducible] ConversionFuncs.ty
 
-def Meta.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Meta.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.Meta" [])
 
 attribute [irreducible] Meta.ty
 
-def scope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def scope.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.scope" [])
 
 attribute [irreducible] scope.ty
 
-def Equalities.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Equalities.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/conversion.Equalities" [])
 
 attribute [irreducible] Equalities.ty
@@ -92,7 +91,7 @@ noncomputable def EqualitiesOrDie [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def EnforcePtr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/conversion.EnforcePtr"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.conversion where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.conversion where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -132,7 +131,7 @@ attribute [instance] NameFunc.TypeAssumptions.type_repr
 
 abbrev ConversionFunc [FfiSyntax] : Type := GoFunc
 
-@[reducible] def ConversionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConversionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), Scope.ty] false [go.error]))
 
 class ConversionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -144,20 +143,20 @@ structure ConversionFuncs [FfiSyntax] where
   mk ::
   untyped' : GoMap
 
-instance ConversionFuncs.zero_val [FfiSyntax] : ZeroVal ConversionFuncs :=
+noncomputable instance ConversionFuncs.zero_val [FfiSyntax] : ZeroVal ConversionFuncs :=
   ⟨ConversionFuncs.mk zeroValDef⟩
 
-@[reducible] def ConversionFuncs.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConversionFuncs.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"untyped" (go.GoType.MapType typePair.ty ConversionFunc.ty))]
 
-@[irreducible] def ConversionFuncs.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConversionFuncs.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ConversionFuncs.fieldsUnsealed
 
-instance equals_unfold_ConversionFuncs [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConversionFuncs [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ConversionFuncs.fields ConversionFuncs.fieldsUnsealed :=
   ⟨by unfold ConversionFuncs.fields; rfl⟩
 
-@[reducible] def ConversionFuncs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConversionFuncs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConversionFuncs.fields)
 
 class ConversionFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,22 +176,22 @@ structure Converter [FfiSyntax] where
   generatedConversionFuncs' : ConversionFuncs
   ignoredUntypedConversions' : GoMap
 
-instance Converter.zero_val [FfiSyntax] : ZeroVal Converter :=
+noncomputable instance Converter.zero_val [FfiSyntax] : ZeroVal Converter :=
   ⟨Converter.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Converter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Converter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"conversionFuncs" ConversionFuncs.ty),
 (go.field_decl.FieldDecl go!"generatedConversionFuncs" ConversionFuncs.ty),
 (go.field_decl.FieldDecl go!"ignoredUntypedConversions" (go.GoType.MapType typePair.ty (go.GoType.StructType [])))]
 
-@[irreducible] def Converter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Converter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Converter.fieldsUnsealed
 
-instance equals_unfold_Converter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Converter [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Converter.fields Converter.fieldsUnsealed :=
   ⟨by unfold Converter.fields; rfl⟩
 
-@[reducible] def Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Converter.fields)
 
 class Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -216,7 +215,7 @@ attribute [instance] Converter.TypeAssumptions.type_repr
 
 abbrev Scope [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Scope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Scope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Convert" (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"Meta" (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)]))])
 
 class Scope.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -228,20 +227,20 @@ structure Meta [FfiSyntax] where
   mk ::
   Context' : GoInterface
 
-instance Meta.zero_val [FfiSyntax] : ZeroVal Meta :=
+noncomputable instance Meta.zero_val [FfiSyntax] : ZeroVal Meta :=
   ⟨Meta.mk zeroValDef⟩
 
-@[reducible] def Meta.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Meta.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Context" (go.GoType.InterfaceType []))]
 
-@[irreducible] def Meta.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Meta.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Meta.fieldsUnsealed
 
-instance equals_unfold_Meta [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Meta [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Meta.fields Meta.fieldsUnsealed :=
   ⟨by unfold Meta.fields; rfl⟩
 
-@[reducible] def Meta.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Meta.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Meta.fields)
 
 class Meta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -260,21 +259,21 @@ structure scope [FfiSyntax] where
   converter' : Loc
   meta' : Loc
 
-instance scope.zero_val [FfiSyntax] : ZeroVal scope :=
+noncomputable instance scope.zero_val [FfiSyntax] : ZeroVal scope :=
   ⟨scope.mk zeroValDef zeroValDef⟩
 
-@[reducible] def scope.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def scope.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"converter" (go.GoType.PointerType Converter.ty)),
 (go.field_decl.FieldDecl go!"meta" (go.GoType.PointerType Meta.ty))]
 
-@[irreducible] def scope.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def scope.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   scope.fieldsUnsealed
 
-instance equals_unfold_scope [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_scope [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold scope.fields scope.fieldsUnsealed :=
   ⟨by unfold scope.fields; rfl⟩
 
-@[reducible] def scope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def scope.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType scope.fields)
 
 class scope.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

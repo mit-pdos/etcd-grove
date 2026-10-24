@@ -8,15 +8,14 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.api.validate.content : GoString := go!"k8s.io/apimachinery/pkg/api/validate/content"
+noncomputable def k8s_io.apimachinery.pkg.api.validate.content : GoString := go!"k8s.io/apimachinery/pkg/api/validate/content"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.api.validate.content
@@ -170,7 +169,7 @@ noncomputable def IsPathSegmentName [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def IsPathSegmentPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsPathSegmentPrefix"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.validate.content where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.validate.content where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

@@ -16,20 +16,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.config : GoString := go!"go.etcd.io/etcd/server/v3/config"
+noncomputable def go_etcd_io.etcd.server.v3.config : GoString := go!"go.etcd.io/etcd/server/v3/config"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.config
 
-def ServerConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/config.ServerConfig" [])
 
 attribute [irreducible] ServerConfig.ty
@@ -69,7 +68,7 @@ noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [FfiSyntax] [GoG
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoPlus go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"MaxRequestBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint))) (Val grpcOverheadBytes)))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.config where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.config where
   pkgImportedPkgs := [pkg_id.time, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -162,10 +161,10 @@ structure ServerConfig [FfiSyntax] where
   ServerFeatureGate' : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate
   Metrics' : GoString
 
-instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
+noncomputable instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
   ⟨ServerConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ServerConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServerConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"DiscoveryCfg" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.ty),
 (go.field_decl.FieldDecl go!"ClientURLs" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty),
@@ -224,14 +223,14 @@ instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
 (go.field_decl.FieldDecl go!"ServerFeatureGate" _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty),
 (go.field_decl.FieldDecl go!"Metrics" go.string)]
 
-@[irreducible] def ServerConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServerConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ServerConfig.fieldsUnsealed
 
-instance equals_unfold_ServerConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServerConfig [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ServerConfig.fields ServerConfig.fieldsUnsealed :=
   ⟨by unfold ServerConfig.fields; rfl⟩
 
-@[reducible] def ServerConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServerConfig.fields)
 
 class ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -50,7 +50,14 @@ translate = ["!*",
   "authMaintenanceServer.Defragment", "authMaintenanceServer.Snapshot",
   "authMaintenanceServer.Hash", "authMaintenanceServer.HashKV", "authMaintenanceServer.Alarm",
   "authMaintenanceServer.Status", "authMaintenanceServer.MoveLeader",
-  "authMaintenanceServer.Downgrade"]
+  "authMaintenanceServer.Downgrade",
+  # the auth plan's A3, the API layer (2026-10-24): auth.go's AuthServer wrappers (each calls
+  # the server's method of the same name through the Authenticator interface, then togRPCError)
+  "AuthServer.AuthEnable", "AuthServer.AuthDisable", "AuthServer.AuthStatus",
+  "AuthServer.Authenticate", "AuthServer.RoleAdd", "AuthServer.RoleDelete", "AuthServer.RoleGet",
+  "AuthServer.RoleList", "AuthServer.RoleRevokePermission", "AuthServer.RoleGrantPermission",
+  "AuthServer.UserAdd", "AuthServer.UserDelete", "AuthServer.UserGet", "AuthServer.UserList",
+  "AuthServer.UserGrantRole", "AuthServer.UserRevokeRole", "AuthServer.UserChangePassword"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",

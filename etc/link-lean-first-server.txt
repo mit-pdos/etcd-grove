@@ -274,6 +274,25 @@ EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
 EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
 EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
+# the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
+# `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`
+# (`reqPropOk` has no auth request), so they have no callee. Authenticate (auth's
+# `ErrAuthNotEnabled`, not in the package's fact) is translated but not proved; UserAdd and
+# UserChangePassword are names only (they hash the password: bcrypt, base64).
+EtcdServer__AuthEnable:
+EtcdServer__AuthDisable:
+EtcdServer__AuthStatus:
+EtcdServer__UserDelete:
+EtcdServer__UserGrantRole:
+EtcdServer__UserGet:
+EtcdServer__UserList:
+EtcdServer__UserRevokeRole:
+EtcdServer__RoleAdd:
+EtcdServer__RoleGrantPermission:
+EtcdServer__RoleGet:
+EtcdServer__RoleList:
+EtcdServer__RoleRevokePermission:
+EtcdServer__RoleDelete:
 EtcdServer__parseProposeCtxErr: errors_IsCtxErr time_Time__After EtcdServer__getLead EtcdServer__MemberID RaftCluster__Members etcdserver_isConnectedToQuorumSince etcdserver_isConnectedSince
 EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr context_ErrDone strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
 EtcdServer__raftRequest: EtcdServer__processInternalRaftRequestOnce trace_SpanFromContext context_ValueStartTime traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong

@@ -12,9 +12,8 @@ public import Code.github_com.mit_pdos.etcd_grove.examples.lintest.counter
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -29,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
 
-instance Counter_typed_pointsto :
+noncomputable instance Counter_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter go!"mu" l) v.mu' dq ∗
@@ -39,11 +38,11 @@ instance Counter_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Counter_into_val_typed :
+noncomputable instance Counter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter.underlying := by
   solve_into_val_typed_struct
 
-instance Counter_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter) (dq : DFrac) :
+noncomputable instance Counter_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter go!"mu" l) v.mu' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter go!"mu" l) v.mu' dq)
@@ -51,7 +50,7 @@ instance Counter_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance Counter_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter) (mu' : sync.Mutex) :
+noncomputable instance Counter_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter) (mu' : sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter go!"mu" l) mu' (DFrac.own 1))
@@ -59,7 +58,7 @@ instance Counter_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
-instance Counter_access_load_n (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter) (dq : DFrac) :
+noncomputable instance Counter_access_load_n (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter go!"n" l) v.n' dq)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter go!"n" l) v.n' dq)
@@ -67,7 +66,7 @@ instance Counter_access_load_n (l : Loc) (v : github_com.mit_pdos.etcd_grove.exa
  by
   solve_pointsto_access_struct
 
-instance Counter_access_store_n (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter) (n' : w64) :
+noncomputable instance Counter_access_store_n (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter) (n' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter go!"n" l) v.n' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter go!"n" l) n' (DFrac.own 1))

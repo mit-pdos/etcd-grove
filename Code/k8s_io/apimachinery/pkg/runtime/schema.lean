@@ -8,55 +8,54 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.runtime.schema : GoString := go!"k8s.io/apimachinery/pkg/runtime/schema"
+noncomputable def k8s_io.apimachinery.pkg.runtime.schema : GoString := go!"k8s.io/apimachinery/pkg/runtime/schema"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.runtime.schema
 
-def GroupResource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GroupResource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupResource" [])
 
 attribute [irreducible] GroupResource.ty
 
-def GroupVersionResource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GroupVersionResource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])
 
 attribute [irreducible] GroupVersionResource.ty
 
-def GroupKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GroupKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupKind" [])
 
 attribute [irreducible] GroupKind.ty
 
-def GroupVersionKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GroupVersionKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionKind" [])
 
 attribute [irreducible] GroupVersionKind.ty
 
-def GroupVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GroupVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersion" [])
 
 attribute [irreducible] GroupVersion.ty
 
-def GroupVersions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GroupVersions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersions" [])
 
 attribute [irreducible] GroupVersions.ty
 
-def ObjectKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObjectKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])
 
 attribute [irreducible] ObjectKind.ty
 
-def emptyObjectKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def emptyObjectKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.emptyObjectKind" [])
 
 attribute [irreducible] emptyObjectKind.ty
@@ -87,7 +86,7 @@ noncomputable def bestMatch [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def FromAPIVersionAndKind [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime/schema.FromAPIVersionAndKind"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.runtime.schema where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.runtime.schema where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -104,21 +103,21 @@ structure GroupResource [FfiSyntax] where
   Group' : GoString
   Resource' : GoString
 
-instance GroupResource.zero_val [FfiSyntax] : ZeroVal GroupResource :=
+noncomputable instance GroupResource.zero_val [FfiSyntax] : ZeroVal GroupResource :=
   ⟨GroupResource.mk zeroValDef zeroValDef⟩
 
-@[reducible] def GroupResource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GroupResource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Group" go.string),
 (go.field_decl.FieldDecl go!"Resource" go.string)]
 
-@[irreducible] def GroupResource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GroupResource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   GroupResource.fieldsUnsealed
 
-instance equals_unfold_GroupResource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GroupResource [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold GroupResource.fields GroupResource.fieldsUnsealed :=
   ⟨by unfold GroupResource.fields; rfl⟩
 
-@[reducible] def GroupResource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GroupResource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GroupResource.fields)
 
 class GroupResource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -142,22 +141,22 @@ structure GroupVersionResource [FfiSyntax] where
   Version' : GoString
   Resource' : GoString
 
-instance GroupVersionResource.zero_val [FfiSyntax] : ZeroVal GroupVersionResource :=
+noncomputable instance GroupVersionResource.zero_val [FfiSyntax] : ZeroVal GroupVersionResource :=
   ⟨GroupVersionResource.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def GroupVersionResource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GroupVersionResource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Group" go.string),
 (go.field_decl.FieldDecl go!"Version" go.string),
 (go.field_decl.FieldDecl go!"Resource" go.string)]
 
-@[irreducible] def GroupVersionResource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GroupVersionResource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   GroupVersionResource.fieldsUnsealed
 
-instance equals_unfold_GroupVersionResource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GroupVersionResource [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold GroupVersionResource.fields GroupVersionResource.fieldsUnsealed :=
   ⟨by unfold GroupVersionResource.fields; rfl⟩
 
-@[reducible] def GroupVersionResource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GroupVersionResource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GroupVersionResource.fields)
 
 class GroupVersionResource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -184,21 +183,21 @@ structure GroupKind [FfiSyntax] where
   Group' : GoString
   Kind' : GoString
 
-instance GroupKind.zero_val [FfiSyntax] : ZeroVal GroupKind :=
+noncomputable instance GroupKind.zero_val [FfiSyntax] : ZeroVal GroupKind :=
   ⟨GroupKind.mk zeroValDef zeroValDef⟩
 
-@[reducible] def GroupKind.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GroupKind.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Group" go.string),
 (go.field_decl.FieldDecl go!"Kind" go.string)]
 
-@[irreducible] def GroupKind.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GroupKind.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   GroupKind.fieldsUnsealed
 
-instance equals_unfold_GroupKind [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GroupKind [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold GroupKind.fields GroupKind.fieldsUnsealed :=
   ⟨by unfold GroupKind.fields; rfl⟩
 
-@[reducible] def GroupKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GroupKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GroupKind.fields)
 
 class GroupKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -222,22 +221,22 @@ structure GroupVersionKind [FfiSyntax] where
   Version' : GoString
   Kind' : GoString
 
-instance GroupVersionKind.zero_val [FfiSyntax] : ZeroVal GroupVersionKind :=
+noncomputable instance GroupVersionKind.zero_val [FfiSyntax] : ZeroVal GroupVersionKind :=
   ⟨GroupVersionKind.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def GroupVersionKind.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GroupVersionKind.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Group" go.string),
 (go.field_decl.FieldDecl go!"Version" go.string),
 (go.field_decl.FieldDecl go!"Kind" go.string)]
 
-@[irreducible] def GroupVersionKind.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GroupVersionKind.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   GroupVersionKind.fieldsUnsealed
 
-instance equals_unfold_GroupVersionKind [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GroupVersionKind [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold GroupVersionKind.fields GroupVersionKind.fieldsUnsealed :=
   ⟨by unfold GroupVersionKind.fields; rfl⟩
 
-@[reducible] def GroupVersionKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GroupVersionKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GroupVersionKind.fields)
 
 class GroupVersionKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -264,21 +263,21 @@ structure GroupVersion [FfiSyntax] where
   Group' : GoString
   Version' : GoString
 
-instance GroupVersion.zero_val [FfiSyntax] : ZeroVal GroupVersion :=
+noncomputable instance GroupVersion.zero_val [FfiSyntax] : ZeroVal GroupVersion :=
   ⟨GroupVersion.mk zeroValDef zeroValDef⟩
 
-@[reducible] def GroupVersion.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GroupVersion.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Group" go.string),
 (go.field_decl.FieldDecl go!"Version" go.string)]
 
-@[irreducible] def GroupVersion.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GroupVersion.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   GroupVersion.fieldsUnsealed
 
-instance equals_unfold_GroupVersion [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GroupVersion [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold GroupVersion.fields GroupVersion.fieldsUnsealed :=
   ⟨by unfold GroupVersion.fields; rfl⟩
 
-@[reducible] def GroupVersion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GroupVersion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GroupVersion.fields)
 
 class GroupVersion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -298,7 +297,7 @@ attribute [instance] GroupVersion.TypeAssumptions.type_repr
 
 abbrev GroupVersions [FfiSyntax] : Type := GoSlice
 
-@[reducible] def GroupVersions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GroupVersions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType GroupVersion.ty)
 
 class GroupVersions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -308,7 +307,7 @@ attribute [instance] GroupVersions.TypeAssumptions.underlying
 
 abbrev ObjectKind [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ObjectKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ObjectKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GroupVersionKind" (go.signature.Signature [] false [GroupVersionKind.ty])), (go.InterfaceElem.MethodElem go!"SetGroupVersionKind" (go.signature.Signature [GroupVersionKind.ty] false []))])
 
 class ObjectKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -319,20 +318,20 @@ attribute [instance] ObjectKind.TypeAssumptions.underlying
 structure emptyObjectKind [FfiSyntax] where
   mk ::
 
-instance emptyObjectKind.zero_val [FfiSyntax] : ZeroVal emptyObjectKind :=
+noncomputable instance emptyObjectKind.zero_val [FfiSyntax] : ZeroVal emptyObjectKind :=
   ⟨emptyObjectKind.mk⟩
 
-@[reducible] def emptyObjectKind.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def emptyObjectKind.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def emptyObjectKind.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def emptyObjectKind.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   emptyObjectKind.fieldsUnsealed
 
-instance equals_unfold_emptyObjectKind [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_emptyObjectKind [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold emptyObjectKind.fields emptyObjectKind.fieldsUnsealed :=
   ⟨by unfold emptyObjectKind.fields; rfl⟩
 
-@[reducible] def emptyObjectKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def emptyObjectKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType emptyObjectKind.fields)
 
 class emptyObjectKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -9,20 +9,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def container.heap : GoString := go!"container/heap"
+noncomputable def container.heap : GoString := go!"container/heap"
 end pkg_id
 
 namespace container.heap
 
-def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"container/heap.Interface" [])
 
 attribute [irreducible] Interface.ty
@@ -48,7 +47,7 @@ noncomputable def up [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def down [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"container/heap.down"
 
-instance info' : PkgInfo pkg_id.container.heap where
+noncomputable instance info' : PkgInfo pkg_id.container.heap where
   pkgImportedPkgs := [pkg_id.sort]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -62,7 +61,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Interface [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Pop" (go.signature.Signature [] false [go.any])), (go.InterfaceElem.MethodElem go!"Push" (go.signature.Signature [go.any] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.sort.Interface.ty)])])
 
 class Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

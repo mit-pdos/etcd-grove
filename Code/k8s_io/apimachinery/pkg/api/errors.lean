@@ -8,35 +8,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.api.errors : GoString := go!"k8s.io/apimachinery/pkg/api/errors"
+noncomputable def k8s_io.apimachinery.pkg.api.errors : GoString := go!"k8s.io/apimachinery/pkg/api/errors"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.api.errors
 
-def StatusError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StatusError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/errors.StatusError" [])
 
 attribute [irreducible] StatusError.ty
 
-def APIStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def APIStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/errors.APIStatus" [])
 
 attribute [irreducible] APIStatus.ty
 
-def UnexpectedObjectError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnexpectedObjectError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/errors.UnexpectedObjectError" [])
 
 attribute [irreducible] UnexpectedObjectError.ty
 
-def ErrorReporter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ErrorReporter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/errors.ErrorReporter" [])
 
 attribute [irreducible] ErrorReporter.ty
@@ -199,7 +198,7 @@ noncomputable def reasonAndCodeForError [FfiSyntax] [GoGlobalContext] : GoString
 noncomputable def NewClientErrorReporter [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.NewClientErrorReporter"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.errors where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.errors where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -259,22 +258,22 @@ structure ErrorReporter [FfiSyntax] where
   verb' : GoString
   reason' : GoString
 
-instance ErrorReporter.zero_val [FfiSyntax] : ZeroVal ErrorReporter :=
+noncomputable instance ErrorReporter.zero_val [FfiSyntax] : ZeroVal ErrorReporter :=
   ⟨ErrorReporter.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ErrorReporter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ErrorReporter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"code" go.int),
 (go.field_decl.FieldDecl go!"verb" go.string),
 (go.field_decl.FieldDecl go!"reason" go.string)]
 
-@[irreducible] def ErrorReporter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ErrorReporter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ErrorReporter.fieldsUnsealed
 
-instance equals_unfold_ErrorReporter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ErrorReporter [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ErrorReporter.fields ErrorReporter.fieldsUnsealed :=
   ⟨by unfold ErrorReporter.fields; rfl⟩
 
-@[reducible] def ErrorReporter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ErrorReporter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ErrorReporter.fields)
 
 class ErrorReporter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

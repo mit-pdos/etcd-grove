@@ -9,30 +9,29 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.api.v3.mvccpb : GoString := go!"go.etcd.io/etcd/api/v3/mvccpb"
+noncomputable def go_etcd_io.etcd.api.v3.mvccpb : GoString := go!"go.etcd.io/etcd/api/v3/mvccpb"
 end pkg_id
 
 namespace go_etcd_io.etcd.api.v3.mvccpb
 
-def Event_EventType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event_EventType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType" [])
 
 attribute [irreducible] Event_EventType.ty
 
-def KeyValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeyValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/mvccpb.KeyValue" [])
 
 attribute [irreducible] KeyValue.ty
 
-def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/mvccpb.Event" [])
 
 attribute [irreducible] Event.ty
@@ -97,7 +96,7 @@ noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def file_kv_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_init"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.mvccpb where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.mvccpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -132,7 +131,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Event_EventType [FfiSyntax] : Type := w32
 
-@[reducible] def Event_EventType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event_EventType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
 class Event_EventType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -152,10 +151,10 @@ structure KeyValue [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance KeyValue.zero_val [FfiSyntax] : ZeroVal KeyValue :=
+noncomputable instance KeyValue.zero_val [FfiSyntax] : ZeroVal KeyValue :=
   ⟨KeyValue.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def KeyValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def KeyValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"CreateRevision" go.int64),
@@ -166,14 +165,14 @@ instance KeyValue.zero_val [FfiSyntax] : ZeroVal KeyValue :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def KeyValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def KeyValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   KeyValue.fieldsUnsealed
 
-instance equals_unfold_KeyValue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_KeyValue [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold KeyValue.fields KeyValue.fieldsUnsealed :=
   ⟨by unfold KeyValue.fields; rfl⟩
 
-@[reducible] def KeyValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def KeyValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType KeyValue.fields)
 
 class KeyValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -228,10 +227,10 @@ structure Event [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
+noncomputable instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
   ⟨Event.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Event.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Event.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Type" Event_EventType.ty),
 (go.field_decl.FieldDecl go!"Kv" (go.GoType.PointerType KeyValue.ty)),
@@ -239,14 +238,14 @@ instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def Event.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Event.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Event.fieldsUnsealed
 
-instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Event.fields Event.fieldsUnsealed :=
   ⟨by unfold Event.fields; rfl⟩
 
-@[reducible] def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Event.fields)
 
 class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

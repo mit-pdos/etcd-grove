@@ -8,65 +8,64 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.utils.clock : GoString := go!"k8s.io/utils/clock"
+noncomputable def k8s_io.utils.clock : GoString := go!"k8s.io/utils/clock"
 end pkg_id
 
 namespace k8s_io.utils.clock
 
-def PassiveClock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PassiveClock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.PassiveClock" [])
 
 attribute [irreducible] PassiveClock.ty
 
-def Clock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Clock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.Clock" [])
 
 attribute [irreducible] Clock.ty
 
-def WithTicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WithTicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.WithTicker" [])
 
 attribute [irreducible] WithTicker.ty
 
-def WithDelayedExecution.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WithDelayedExecution.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.WithDelayedExecution" [])
 
 attribute [irreducible] WithDelayedExecution.ty
 
-def WithTickerAndDelayedExecution.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WithTickerAndDelayedExecution.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.WithTickerAndDelayedExecution" [])
 
 attribute [irreducible] WithTickerAndDelayedExecution.ty
 
-def Ticker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Ticker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.Ticker" [])
 
 attribute [irreducible] Ticker.ty
 
-def RealClock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RealClock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.RealClock" [])
 
 attribute [irreducible] RealClock.ty
 
-def Timer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Timer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.Timer" [])
 
 attribute [irreducible] Timer.ty
 
-def realTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def realTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.realTimer" [])
 
 attribute [irreducible] realTimer.ty
 
-def realTicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def realTicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.realTicker" [])
 
 attribute [irreducible] realTicker.ty
@@ -89,7 +88,7 @@ axiom realTimer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom realTicker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-instance info' : PkgInfo pkg_id.k8s_io.utils.clock where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.clock where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -185,20 +184,20 @@ attribute [instance] Ticker.TypeAssumptions.type_repr
 structure RealClock [FfiSyntax] where
   mk ::
 
-instance RealClock.zero_val [FfiSyntax] : ZeroVal RealClock :=
+noncomputable instance RealClock.zero_val [FfiSyntax] : ZeroVal RealClock :=
   ⟨RealClock.mk⟩
 
-@[reducible] def RealClock.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RealClock.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def RealClock.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RealClock.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   RealClock.fieldsUnsealed
 
-instance equals_unfold_RealClock [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RealClock [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold RealClock.fields RealClock.fieldsUnsealed :=
   ⟨by unfold RealClock.fields; rfl⟩
 
-@[reducible] def RealClock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RealClock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RealClock.fields)
 
 class RealClock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

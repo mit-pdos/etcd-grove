@@ -11,9 +11,8 @@ public import Code.k8s_io.apiserver.pkg.storage.feature
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -28,11 +27,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.feature.Assumptions]
 
-instance FeatureSupportChecker_typed_pointsto :
+noncomputable instance FeatureSupportChecker_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker :=
   sorry -- axiomatized type
 
-instance FeatureSupportChecker_into_val_typed :
+noncomputable instance FeatureSupportChecker_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker.underlying :=
   sorry -- axiomatized type
 
@@ -47,11 +46,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.feature.Assumptions]
 
-instance defaultFeatureSupportChecker_typed_pointsto :
+noncomputable instance defaultFeatureSupportChecker_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker :=
   sorry -- axiomatized type
 
-instance defaultFeatureSupportChecker_into_val_typed :
+noncomputable instance defaultFeatureSupportChecker_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker.underlying :=
   sorry -- axiomatized type
 

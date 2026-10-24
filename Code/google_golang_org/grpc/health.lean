@@ -8,30 +8,29 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.grpc.health : GoString := go!"google.golang.org/grpc/health"
+noncomputable def google_golang_org.grpc.health : GoString := go!"google.golang.org/grpc/health"
 end pkg_id
 
 namespace google_golang_org.grpc.health
 
-def producerBuilder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def producerBuilder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health.producerBuilder" [])
 
 attribute [irreducible] producerBuilder.ty
 
-def healthServiceProducer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def healthServiceProducer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health.healthServiceProducer" [])
 
 attribute [irreducible] healthServiceProducer.ty
 
-def Server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health.Server" [])
 
 attribute [irreducible] Server.ty
@@ -79,7 +78,7 @@ noncomputable def registerClientSideHealthCheckListener [FfiSyntax] [GoGlobalCon
 noncomputable def NewServer [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.NewServer"
 
-instance info' : PkgInfo pkg_id.google_golang_org.grpc.health where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

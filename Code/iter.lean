@@ -8,30 +8,29 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def iter : GoString := go!"iter"
+noncomputable def iter : GoString := go!"iter"
 end pkg_id
 
 namespace iter
 
-def Seq'.ty [FfiSyntax] [GoGlobalContext] (V : go.GoType) : go.GoType :=
+noncomputable def Seq'.ty [FfiSyntax] [GoGlobalContext] (V : go.GoType) : go.GoType :=
   (go.GoType.Named go!"iter.Seq" [V])
 
 attribute [irreducible] Seq'.ty
 
-def Seq2.ty [FfiSyntax] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
+noncomputable def Seq2.ty [FfiSyntax] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
   (go.GoType.Named go!"iter.Seq2" [K, V])
 
 attribute [irreducible] Seq2.ty
 
-def coro.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def coro.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"iter.coro" [])
 
 attribute [irreducible] coro.ty
@@ -53,7 +52,7 @@ noncomputable def Pull [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Pull2 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"iter.Pull2"
 
-instance info' : PkgInfo pkg_id.iter where
+noncomputable instance info' : PkgInfo pkg_id.iter where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -67,7 +66,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Seq' [FfiSyntax] (V : Type) : Type := GoFunc
 
-@[reducible] def Seq'.underlying [FfiSyntax] [GoGlobalContext] (V : go.GoType) : go.GoType :=
+@[reducible] noncomputable def Seq'.underlying [FfiSyntax] [GoGlobalContext] (V : go.GoType) : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [V] false [go.bool]))] false []))
 
 class Seq.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -77,7 +76,7 @@ attribute [instance] Seq.TypeAssumptions.underlying
 
 abbrev Seq2 [FfiSyntax] (K V : Type) : Type := GoFunc
 
-@[reducible] def Seq2.underlying [FfiSyntax] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
+@[reducible] noncomputable def Seq2.underlying [FfiSyntax] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [K, V] false [go.bool]))] false []))
 
 class Seq2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -88,20 +87,20 @@ attribute [instance] Seq2.TypeAssumptions.underlying
 structure coro [FfiSyntax] where
   mk ::
 
-instance coro.zero_val [FfiSyntax] : ZeroVal coro :=
+noncomputable instance coro.zero_val [FfiSyntax] : ZeroVal coro :=
   ⟨coro.mk⟩
 
-@[reducible] def coro.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def coro.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def coro.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def coro.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   coro.fieldsUnsealed
 
-instance equals_unfold_coro [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_coro [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold coro.fields coro.fieldsUnsealed :=
   ⟨by unfold coro.fields; rfl⟩
 
-@[reducible] def coro.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def coro.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType coro.fields)
 
 class coro.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

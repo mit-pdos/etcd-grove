@@ -93,8 +93,10 @@ local macro "bu_commit" vw:term:max pf:term:max : tactic => `(tactic| (
       unfold payIn
       rw [if_neg (by decide), if_neg (by decide), if_neg (by decide)]
       isplitr
-      · ipureintro
-        rfl
+      · isplitr
+        · ipureintro
+          rfl
+        iapply monoNatLbOwn_le 1 (by omega) $$ Hlb1
       isplitr
       · itrivial
       iapply commitReq_true
@@ -168,7 +170,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       unfold wbTok
       icombine Ha Htok gives %Hle
       imod ownTokAuth_sub 1 γ.wb n $$ Ha Htok with Ha
-      imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, -⟩
+      imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, #Hlb1⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
       have hbb := bgOk_bufBound HP Hwf Hbg
       wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
@@ -213,7 +215,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       unfold wbTok
       icombine Ha Htok gives %Hle
       imod ownTokAuth_sub 1 γ.wb n $$ Ha Htok with Ha
-      imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, -⟩
+      imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, #Hlb1⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
       have hbb := bgOk_bufBound HP Hwf Hbg
       wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]

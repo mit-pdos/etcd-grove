@@ -8,9 +8,8 @@ public import Code.go_etcd_io.etcd.server.v3.storage.wal
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-instance Decoder_typed_pointsto :
+noncomputable instance Decoder_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.Decoder :=
   sorry -- axiomatized type
 
-instance Decoder_into_val_typed :
+noncomputable instance Decoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.Decoder go_etcd_io.etcd.server.v3.storage.wal.Decoder.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-instance decoder_typed_pointsto :
+noncomputable instance decoder_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.decoder :=
   sorry -- axiomatized type
 
-instance decoder_into_val_typed :
+noncomputable instance decoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.decoder go_etcd_io.etcd.server.v3.storage.wal.decoder.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-instance encoder_typed_pointsto :
+noncomputable instance encoder_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.encoder :=
   sorry -- axiomatized type
 
-instance encoder_into_val_typed :
+noncomputable instance encoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.encoder go_etcd_io.etcd.server.v3.storage.wal.encoder.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-instance filePipeline_typed_pointsto :
+noncomputable instance filePipeline_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.filePipeline :=
   sorry -- axiomatized type
 
-instance filePipeline_into_val_typed :
+noncomputable instance filePipeline_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.filePipeline go_etcd_io.etcd.server.v3.storage.wal.filePipeline.underlying :=
   sorry -- axiomatized type
 
@@ -101,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-instance Version_typed_pointsto :
+noncomputable instance Version_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.Version :=
   sorry -- axiomatized type
 
-instance Version_into_val_typed :
+noncomputable instance Version_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.Version go_etcd_io.etcd.server.v3.storage.wal.Version.underlying :=
   sorry -- axiomatized type
 
@@ -120,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-instance walVersion_typed_pointsto :
+noncomputable instance walVersion_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walVersion :=
   sorry -- axiomatized type
 
-instance walVersion_into_val_typed :
+noncomputable instance walVersion_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walVersion go_etcd_io.etcd.server.v3.storage.wal.walVersion.underlying :=
   sorry -- axiomatized type
 
@@ -139,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-instance Visitor_typed_pointsto :
+noncomputable instance Visitor_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.Visitor :=
   sorry -- axiomatized type
 
-instance Visitor_into_val_typed :
+noncomputable instance Visitor_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.Visitor go_etcd_io.etcd.server.v3.storage.wal.Visitor.underlying :=
   sorry -- axiomatized type
 
@@ -158,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-instance WAL_typed_pointsto :
+noncomputable instance WAL_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.WAL :=
   sorry -- axiomatized type
 
-instance WAL_into_val_typed :
+noncomputable instance WAL_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.WAL go_etcd_io.etcd.server.v3.storage.wal.WAL.underlying :=
   sorry -- axiomatized type
 

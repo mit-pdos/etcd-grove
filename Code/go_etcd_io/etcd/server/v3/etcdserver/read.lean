@@ -19,35 +19,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.read : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/read"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.read : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/read"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.read
 
-def Read.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Read.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/read.Read" [])
 
 attribute [irreducible] Read.ty
 
-def server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/read.server" [])
 
 attribute [irreducible] server.ty
 
-def raftInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def raftInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/read.raftInterface" [])
 
 attribute [irreducible] raftInterface.ty
 
-def notifier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def notifier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/read.notifier" [])
 
 attribute [irreducible] notifier.ty
@@ -653,7 +652,7 @@ noncomputable def notifier.notify.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (StructFieldRef notifier.ty go!"err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType notifier.ty)))) (Var "nc"))) (Var "$r0"))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read where
   pkgImportedPkgs := [pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.context, pkg_id.encoding.binary, pkg_id.errors, pkg_id.strconv, pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.raft.v3]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -729,7 +728,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev server [FfiSyntax] : Type := GoInterface
 
-@[reducible] def server.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def server.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AppliedIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"ApplyWait" (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"Done" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"FirstCommitInTermNotify" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"LeaderChanged" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"Logger" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)])), (go.InterfaceElem.MethodElem go!"NextRequestID" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"RequestTimeout" (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])), (go.InterfaceElem.MethodElem go!"Stopping" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))])
 
 class server.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -739,7 +738,7 @@ attribute [instance] server.TypeAssumptions.underlying
 
 abbrev raftInterface [FfiSyntax] : Type := GoInterface
 
-@[reducible] def raftInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def raftInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ReadIndex" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"ReadState" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)]))])
 
 class raftInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -755,24 +754,24 @@ structure Read [FfiSyntax] where
   waitC' : GoChan
   notifier' : Loc
 
-instance Read.zero_val [FfiSyntax] : ZeroVal Read :=
+noncomputable instance Read.zero_val [FfiSyntax] : ZeroVal Read :=
   ⟨Read.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Read.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Read.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"server" server.ty),
 (go.field_decl.FieldDecl go!"raft" raftInterface.ty),
 (go.field_decl.FieldDecl go!"mux" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"waitC" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"notifier" (go.GoType.PointerType notifier.ty))]
 
-@[irreducible] def Read.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Read.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Read.fieldsUnsealed
 
-instance equals_unfold_Read [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Read [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Read.fields Read.fieldsUnsealed :=
   ⟨by unfold Read.fields; rfl⟩
 
-@[reducible] def Read.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Read.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Read.fields)
 
 class Read.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -815,21 +814,21 @@ structure notifier [FfiSyntax] where
   c' : GoChan
   err' : GoError
 
-instance notifier.zero_val [FfiSyntax] : ZeroVal notifier :=
+noncomputable instance notifier.zero_val [FfiSyntax] : ZeroVal notifier :=
   ⟨notifier.mk zeroValDef zeroValDef⟩
 
-@[reducible] def notifier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def notifier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"c" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] def notifier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def notifier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   notifier.fieldsUnsealed
 
-instance equals_unfold_notifier [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_notifier [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold notifier.fields notifier.fieldsUnsealed :=
   ⟨by unfold notifier.fields; rfl⟩
 
-@[reducible] def notifier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def notifier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType notifier.fields)
 
 class notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

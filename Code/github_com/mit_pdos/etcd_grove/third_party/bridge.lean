@@ -11,40 +11,39 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def github_com.mit_pdos.etcd_grove.third_party.bridge : GoString := go!"github.com/mit-pdos/etcd-grove/third_party/bridge"
+noncomputable def github_com.mit_pdos.etcd_grove.third_party.bridge : GoString := go!"github.com/mit-pdos/etcd-grove/third_party/bridge"
 end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.third_party.bridge
 
-def Dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.Dialer" [])
 
 attribute [irreducible] Dialer.ty
 
-def Bridge.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Bridge.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.Bridge" [])
 
 attribute [irreducible] Bridge.ty
 
-def bridge.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bridge.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.bridge" [])
 
 attribute [irreducible] bridge.ty
 
-def bridgeConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bridgeConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.bridgeConn" [])
 
 attribute [irreducible] bridgeConn.ty
 
-def dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.dialer" [])
 
 attribute [irreducible] dialer.ty
@@ -622,7 +621,7 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "l"))
   (App (App (App (Val (GoInstruction (FuncResolve newBridge []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
 
-instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge where
+noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge where
   pkgImportedPkgs := [pkg_id.io, pkg_id.net, pkg_id.sync]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -640,7 +639,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Dialer [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Dialer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Dialer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Dial" (go.signature.Signature [] false [_root_.Perennial.net.Conn.ty, go.error]))])
 
 class Dialer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -650,7 +649,7 @@ attribute [instance] Dialer.TypeAssumptions.underlying
 
 abbrev Bridge [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Bridge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Bridge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Blackhole" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"DropConnections" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"PauseConnections" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Unblackhole" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UnpauseConnections" (go.signature.Signature [] false []))])
 
 class Bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -669,10 +668,10 @@ structure bridge [FfiSyntax] where
   wg' : _root_.Perennial.sync.WaitGroup
   mu' : _root_.Perennial.sync.Mutex
 
-instance bridge.zero_val [FfiSyntax] : ZeroVal bridge :=
+noncomputable instance bridge.zero_val [FfiSyntax] : ZeroVal bridge :=
   ⟨bridge.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def bridge.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bridge.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"dialer" Dialer.ty),
 (go.field_decl.FieldDecl go!"l" _root_.Perennial.net.Listener.ty),
 (go.field_decl.FieldDecl go!"conns" (go.GoType.MapType (go.GoType.PointerType bridgeConn.ty) (go.GoType.StructType []))),
@@ -682,14 +681,14 @@ instance bridge.zero_val [FfiSyntax] : ZeroVal bridge :=
 (go.field_decl.FieldDecl go!"wg" _root_.Perennial.sync.WaitGroup.ty),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty)]
 
-@[irreducible] def bridge.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bridge.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   bridge.fieldsUnsealed
 
-instance equals_unfold_bridge [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bridge [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold bridge.fields bridge.fieldsUnsealed :=
   ⟨by unfold bridge.fields; rfl⟩
 
-@[reducible] def bridge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bridge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bridge.fields)
 
 class bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -755,22 +754,22 @@ structure bridgeConn [FfiSyntax] where
   out' : _root_.Perennial.net.Conn
   donec' : GoChan
 
-instance bridgeConn.zero_val [FfiSyntax] : ZeroVal bridgeConn :=
+noncomputable instance bridgeConn.zero_val [FfiSyntax] : ZeroVal bridgeConn :=
   ⟨bridgeConn.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def bridgeConn.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bridgeConn.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"in" _root_.Perennial.net.Conn.ty),
 (go.field_decl.FieldDecl go!"out" _root_.Perennial.net.Conn.ty),
 (go.field_decl.FieldDecl go!"donec" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] def bridgeConn.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bridgeConn.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   bridgeConn.fieldsUnsealed
 
-instance equals_unfold_bridgeConn [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bridgeConn [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold bridgeConn.fields bridgeConn.fieldsUnsealed :=
   ⟨by unfold bridgeConn.fields; rfl⟩
 
-@[reducible] def bridgeConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bridgeConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bridgeConn.fields)
 
 class bridgeConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -801,21 +800,21 @@ structure dialer [FfiSyntax] where
   network' : GoString
   addr' : GoString
 
-instance dialer.zero_val [FfiSyntax] : ZeroVal dialer :=
+noncomputable instance dialer.zero_val [FfiSyntax] : ZeroVal dialer :=
   ⟨dialer.mk zeroValDef zeroValDef⟩
 
-@[reducible] def dialer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def dialer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"network" go.string),
 (go.field_decl.FieldDecl go!"addr" go.string)]
 
-@[irreducible] def dialer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def dialer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   dialer.fieldsUnsealed
 
-instance equals_unfold_dialer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_dialer [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold dialer.fields dialer.fieldsUnsealed :=
   ⟨by unfold dialer.fields; rfl⟩
 
-@[reducible] def dialer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def dialer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType dialer.fields)
 
 class dialer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -10,100 +10,99 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def google_golang_org.grpc.credentials : GoString := go!"google.golang.org/grpc/credentials"
+noncomputable def google_golang_org.grpc.credentials : GoString := go!"google.golang.org/grpc/credentials"
 end pkg_id
 
 namespace google_golang_org.grpc.credentials
 
-def PerRPCCredentials.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PerRPCCredentials.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.PerRPCCredentials" [])
 
 attribute [irreducible] PerRPCCredentials.ty
 
-def SecurityLevel.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SecurityLevel.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.SecurityLevel" [])
 
 attribute [irreducible] SecurityLevel.ty
 
-def CommonAuthInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CommonAuthInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.CommonAuthInfo" [])
 
 attribute [irreducible] CommonAuthInfo.ty
 
-def ProtocolInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProtocolInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.ProtocolInfo" [])
 
 attribute [irreducible] ProtocolInfo.ty
 
-def AuthInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AuthInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.AuthInfo" [])
 
 attribute [irreducible] AuthInfo.ty
 
-def AuthorityValidator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AuthorityValidator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.AuthorityValidator" [])
 
 attribute [irreducible] AuthorityValidator.ty
 
-def TransportCredentials.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TransportCredentials.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" [])
 
 attribute [irreducible] TransportCredentials.ty
 
-def Bundle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Bundle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.Bundle" [])
 
 attribute [irreducible] Bundle.ty
 
-def RequestInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.RequestInfo" [])
 
 attribute [irreducible] RequestInfo.ty
 
-def requestInfoKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def requestInfoKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.requestInfoKey" [])
 
 attribute [irreducible] requestInfoKey.ty
 
-def ClientHandshakeInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientHandshakeInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.ClientHandshakeInfo" [])
 
 attribute [irreducible] ClientHandshakeInfo.ty
 
-def ChannelzSecurityInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ChannelzSecurityInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.ChannelzSecurityInfo" [])
 
 attribute [irreducible] ChannelzSecurityInfo.ty
 
-def ChannelzSecurityValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ChannelzSecurityValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.ChannelzSecurityValue" [])
 
 attribute [irreducible] ChannelzSecurityValue.ty
 
-def OtherChannelzSecurityValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OtherChannelzSecurityValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.OtherChannelzSecurityValue" [])
 
 attribute [irreducible] OtherChannelzSecurityValue.ty
 
-def TLSInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TLSInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.TLSInfo" [])
 
 attribute [irreducible] TLSInfo.ty
 
-def tlsCreds.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tlsCreds.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.tlsCreds" [])
 
 attribute [irreducible] tlsCreds.ty
 
-def TLSChannelzSecurityValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TLSChannelzSecurityValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials.TLSChannelzSecurityValue" [])
 
 attribute [irreducible] TLSChannelzSecurityValue.ty
@@ -174,7 +173,7 @@ noncomputable def NewServerTLSFromCert [FfiSyntax] [GoGlobalContext] : GoString 
 noncomputable def NewServerTLSFromFile [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.NewServerTLSFromFile"
 
-instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials where
+noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials where
   pkgImportedPkgs := [pkg_id.context, pkg_id.net]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -200,7 +199,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev PerRPCCredentials [FfiSyntax] : Type := GoInterface
 
-@[reducible] def PerRPCCredentials.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PerRPCCredentials.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetRequestMetadata" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] true [(go.GoType.MapType go.string go.string), go.error])), (go.InterfaceElem.MethodElem go!"RequireTransportSecurity" (go.signature.Signature [] false [go.bool]))])
 
 class PerRPCCredentials.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -210,7 +209,7 @@ attribute [instance] PerRPCCredentials.TypeAssumptions.underlying
 
 abbrev SecurityLevel [FfiSyntax] : Type := w64
 
-@[reducible] def SecurityLevel.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SecurityLevel.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class SecurityLevel.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -222,20 +221,20 @@ structure CommonAuthInfo [FfiSyntax] where
   mk ::
   SecurityLevel' : SecurityLevel
 
-instance CommonAuthInfo.zero_val [FfiSyntax] : ZeroVal CommonAuthInfo :=
+noncomputable instance CommonAuthInfo.zero_val [FfiSyntax] : ZeroVal CommonAuthInfo :=
   ⟨CommonAuthInfo.mk zeroValDef⟩
 
-@[reducible] def CommonAuthInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CommonAuthInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"SecurityLevel" SecurityLevel.ty)]
 
-@[irreducible] def CommonAuthInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CommonAuthInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   CommonAuthInfo.fieldsUnsealed
 
-instance equals_unfold_CommonAuthInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CommonAuthInfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold CommonAuthInfo.fields CommonAuthInfo.fieldsUnsealed :=
   ⟨by unfold CommonAuthInfo.fields; rfl⟩
 
-@[reducible] def CommonAuthInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CommonAuthInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CommonAuthInfo.fields)
 
 class CommonAuthInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -256,23 +255,23 @@ structure ProtocolInfo [FfiSyntax] where
   SecurityVersion' : GoString
   ServerName' : GoString
 
-instance ProtocolInfo.zero_val [FfiSyntax] : ZeroVal ProtocolInfo :=
+noncomputable instance ProtocolInfo.zero_val [FfiSyntax] : ZeroVal ProtocolInfo :=
   ⟨ProtocolInfo.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def ProtocolInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ProtocolInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ProtocolVersion" go.string),
 (go.field_decl.FieldDecl go!"SecurityProtocol" go.string),
 (go.field_decl.FieldDecl go!"SecurityVersion" go.string),
 (go.field_decl.FieldDecl go!"ServerName" go.string)]
 
-@[irreducible] def ProtocolInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ProtocolInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   ProtocolInfo.fieldsUnsealed
 
-instance equals_unfold_ProtocolInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ProtocolInfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold ProtocolInfo.fields ProtocolInfo.fieldsUnsealed :=
   ⟨by unfold ProtocolInfo.fields; rfl⟩
 
-@[reducible] def ProtocolInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ProtocolInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ProtocolInfo.fields)
 
 class ProtocolInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -300,7 +299,7 @@ attribute [instance] ProtocolInfo.TypeAssumptions.type_repr
 
 abbrev AuthInfo [FfiSyntax] : Type := GoInterface
 
-@[reducible] def AuthInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AuthInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AuthType" (go.signature.Signature [] false [go.string]))])
 
 class AuthInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -310,7 +309,7 @@ attribute [instance] AuthInfo.TypeAssumptions.underlying
 
 abbrev AuthorityValidator [FfiSyntax] : Type := GoInterface
 
-@[reducible] def AuthorityValidator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AuthorityValidator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ValidateAuthority" (go.signature.Signature [go.string] false [go.error]))])
 
 class AuthorityValidator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -320,7 +319,7 @@ attribute [instance] AuthorityValidator.TypeAssumptions.underlying
 
 abbrev TransportCredentials [FfiSyntax] : Type := GoInterface
 
-@[reducible] def TransportCredentials.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TransportCredentials.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ClientHandshake" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.net.Conn.ty] false [_root_.Perennial.net.Conn.ty, AuthInfo.ty, go.error])), (go.InterfaceElem.MethodElem go!"Clone" (go.signature.Signature [] false [TransportCredentials.ty])), (go.InterfaceElem.MethodElem go!"Info" (go.signature.Signature [] false [ProtocolInfo.ty])), (go.InterfaceElem.MethodElem go!"OverrideServerName" (go.signature.Signature [go.string] false [go.error])), (go.InterfaceElem.MethodElem go!"ServerHandshake" (go.signature.Signature [_root_.Perennial.net.Conn.ty] false [_root_.Perennial.net.Conn.ty, AuthInfo.ty, go.error]))])
 
 class TransportCredentials.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -330,7 +329,7 @@ attribute [instance] TransportCredentials.TypeAssumptions.underlying
 
 abbrev Bundle [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Bundle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Bundle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NewWithMode" (go.signature.Signature [go.string] false [Bundle.ty, go.error])), (go.InterfaceElem.MethodElem go!"PerRPCCredentials" (go.signature.Signature [] false [PerRPCCredentials.ty])), (go.InterfaceElem.MethodElem go!"TransportCredentials" (go.signature.Signature [] false [TransportCredentials.ty]))])
 
 class Bundle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -343,21 +342,21 @@ structure RequestInfo [FfiSyntax] where
   Method' : GoString
   AuthInfo' : AuthInfo
 
-instance RequestInfo.zero_val [FfiSyntax] : ZeroVal RequestInfo :=
+noncomputable instance RequestInfo.zero_val [FfiSyntax] : ZeroVal RequestInfo :=
   ⟨RequestInfo.mk zeroValDef zeroValDef⟩
 
-@[reducible] def RequestInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RequestInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Method" go.string),
 (go.field_decl.FieldDecl go!"AuthInfo" AuthInfo.ty)]
 
-@[irreducible] def RequestInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RequestInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   RequestInfo.fieldsUnsealed
 
-instance equals_unfold_RequestInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RequestInfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold RequestInfo.fields RequestInfo.fieldsUnsealed :=
   ⟨by unfold RequestInfo.fields; rfl⟩
 
-@[reducible] def RequestInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RequestInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RequestInfo.fields)
 
 class RequestInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -378,20 +377,20 @@ attribute [instance] RequestInfo.TypeAssumptions.type_repr
 structure requestInfoKey [FfiSyntax] where
   mk ::
 
-instance requestInfoKey.zero_val [FfiSyntax] : ZeroVal requestInfoKey :=
+noncomputable instance requestInfoKey.zero_val [FfiSyntax] : ZeroVal requestInfoKey :=
   ⟨requestInfoKey.mk⟩
 
-@[reducible] def requestInfoKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def requestInfoKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] def requestInfoKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def requestInfoKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   requestInfoKey.fieldsUnsealed
 
-instance equals_unfold_requestInfoKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_requestInfoKey [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold requestInfoKey.fields requestInfoKey.fieldsUnsealed :=
   ⟨by unfold requestInfoKey.fields; rfl⟩
 
-@[reducible] def requestInfoKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def requestInfoKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType requestInfoKey.fields)
 
 class requestInfoKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -416,7 +415,7 @@ attribute [instance] ClientHandshakeInfo.TypeAssumptions.type_repr
 
 abbrev ChannelzSecurityInfo [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ChannelzSecurityInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ChannelzSecurityInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetSecurityValue" (go.signature.Signature [] false [ChannelzSecurityValue.ty]))])
 
 class ChannelzSecurityInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -426,7 +425,7 @@ attribute [instance] ChannelzSecurityInfo.TypeAssumptions.underlying
 
 abbrev ChannelzSecurityValue [FfiSyntax] : Type := GoInterface
 
-@[reducible] def ChannelzSecurityValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ChannelzSecurityValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"isChannelzSecurityValue" (go.signature.Signature [] false []))])
 
 class ChannelzSecurityValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -480,23 +479,23 @@ structure TLSChannelzSecurityValue [FfiSyntax] where
   LocalCertificate' : GoSlice
   RemoteCertificate' : GoSlice
 
-instance TLSChannelzSecurityValue.zero_val [FfiSyntax] : ZeroVal TLSChannelzSecurityValue :=
+noncomputable instance TLSChannelzSecurityValue.zero_val [FfiSyntax] : ZeroVal TLSChannelzSecurityValue :=
   ⟨TLSChannelzSecurityValue.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def TLSChannelzSecurityValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TLSChannelzSecurityValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ChannelzSecurityValue" ChannelzSecurityValue.ty),
 (go.field_decl.FieldDecl go!"StandardName" go.string),
 (go.field_decl.FieldDecl go!"LocalCertificate" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"RemoteCertificate" (go.GoType.SliceType go.byte))]
 
-@[irreducible] def TLSChannelzSecurityValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TLSChannelzSecurityValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   TLSChannelzSecurityValue.fieldsUnsealed
 
-instance equals_unfold_TLSChannelzSecurityValue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TLSChannelzSecurityValue [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold TLSChannelzSecurityValue.fields TLSChannelzSecurityValue.fieldsUnsealed :=
   ⟨by unfold TLSChannelzSecurityValue.fields; rfl⟩
 
-@[reducible] def TLSChannelzSecurityValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TLSChannelzSecurityValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TLSChannelzSecurityValue.fields)
 
 class TLSChannelzSecurityValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

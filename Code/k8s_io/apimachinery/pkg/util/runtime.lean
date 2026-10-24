@@ -8,25 +8,24 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.apimachinery.pkg.util.runtime : GoString := go!"k8s.io/apimachinery/pkg/util/runtime"
+noncomputable def k8s_io.apimachinery.pkg.util.runtime : GoString := go!"k8s.io/apimachinery/pkg/util/runtime"
 end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.runtime
 
-def ErrorHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ErrorHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/runtime.ErrorHandler" [])
 
 attribute [irreducible] ErrorHandler.ty
 
-def rudimentaryErrorBackoff.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rudimentaryErrorBackoff.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/runtime.rudimentaryErrorBackoff" [])
 
 attribute [irreducible] rudimentaryErrorBackoff.ty
@@ -95,7 +94,7 @@ noncomputable def RecoverFromPanic [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Must [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.Must"
 
-instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.runtime where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.runtime where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

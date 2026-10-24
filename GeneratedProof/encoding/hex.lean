@@ -8,9 +8,8 @@ public import Code.encoding.hex
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.hex.Assumptions]
 
-instance encoder_typed_pointsto :
+noncomputable instance encoder_typed_pointsto :
     TypedPointsto (GF := GF) encoding.hex.encoder :=
   sorry -- axiomatized type
 
-instance encoder_into_val_typed :
+noncomputable instance encoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.hex.encoder encoding.hex.encoder.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.hex.Assumptions]
 
-instance decoder_typed_pointsto :
+noncomputable instance decoder_typed_pointsto :
     TypedPointsto (GF := GF) encoding.hex.decoder :=
   sorry -- axiomatized type
 
-instance decoder_into_val_typed :
+noncomputable instance decoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.hex.decoder encoding.hex.decoder.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.hex.Assumptions]
 
-instance dumper_typed_pointsto :
+noncomputable instance dumper_typed_pointsto :
     TypedPointsto (GF := GF) encoding.hex.dumper :=
   sorry -- axiomatized type
 
-instance dumper_into_val_typed :
+noncomputable instance dumper_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.hex.dumper encoding.hex.dumper.underlying :=
   sorry -- axiomatized type
 

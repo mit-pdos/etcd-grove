@@ -122,11 +122,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 `confState` put (`hookSaveStep`). -/
 def saveSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (ix : GoInterfaceOk) :
     IProp GF :=
-  iprop(□ ∀ st : BSess,
-    {{ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ }}
+  iprop(□ ∀ (st : BSess) (stop : Bool) (m u : Nat),
+    {{ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ ∗ payIn γ st stop m u }}
       (App (Val #(methods ix.ty go!"UnsafeSave" ix.v))
         (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) #t)))
-    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookSaveStep P st st'⌝ }})
+    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ payIn γ st stop m u ∗
+        ⌜hookSaveStep P st st'⌝ }})
 
 instance saveSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
     (ix : GoInterfaceOk) : Persistent (saveSpec γ P Pk b t ix) := by
@@ -136,11 +137,12 @@ instance saveSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : 
 2026-10-23; `backend.hooksReq`'s shape): `saveSpec` with a frame the save transforms. -/
 def saveReq (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (ix : GoInterfaceOk)
     (X Y : IProp GF) : IProp GF :=
-  iprop(□ ∀ st : BSess,
-    {{ batchLocked γ P b st ∗ Pk ∗ X ∗ ⌜hookPre P st⌝ }}
+  iprop(□ ∀ (st : BSess) (stop : Bool) (m u : Nat),
+    {{ batchLocked γ P b st ∗ Pk ∗ X ∗ ⌜hookPre P st⌝ ∗ payIn γ st stop m u }}
       (App (Val #(methods ix.ty go!"UnsafeSave" ix.v))
         (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) #t)))
-    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ Y ∗ ⌜hookSaveStep P st st'⌝ }})
+    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ Y ∗ payIn γ st stop m u ∗
+        ⌜hookSaveStep P st st'⌝ }})
 
 instance saveReq_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
     (ix : GoInterfaceOk) (X Y : IProp GF) : Persistent (saveReq γ P Pk b t ix X Y) := by
@@ -152,16 +154,14 @@ theorem saveReq_of_saveSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : L
     saveSpec γ P Pk b t ix ⊢ saveReq γ P Pk b t ix iprop(True) iprop(True) := by
   iintro #Hs
   unfold saveSpec saveReq
-  iintro !> %st %Φ !> ⟨Hl, HPk, -, %Hpre⟩ HΦ
-  iapply Hs $$ %st [Hl HPk]
-  · iframe Hl HPk
+  iintro !> %st %stop %m %u %Φ !> ⟨Hl, HPk, -, %Hpre, Hpay⟩ HΦ
+  iapply Hs $$ %st %stop %m %u [Hl HPk Hpay]
+  · iframe Hl HPk Hpay
     ipureintro; exact Hpre
-  iintro !> ⟨%st', Hl, HPk, %Hst⟩
+  iintro !> ⟨%st', Hl, HPk, Hpay, %Hst⟩
   iapply HΦ
   iexists st'
-  iframe Hl HPk
-  isplitr
-  · itrivial
+  iframe Hl HPk Hpay
   ipureintro; exact Hst
 
 /-- What `confStateLock` guards: the `confState` pointer and its dirty flag. -/

@@ -8,50 +8,49 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def net.url : GoString := go!"net/url"
+noncomputable def net.url : GoString := go!"net/url"
 end pkg_id
 
 namespace net.url
 
-def encoding.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encoding.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.encoding" [])
 
 attribute [irreducible] encoding.ty
 
-def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.Error" [])
 
 attribute [irreducible] Error.ty
 
-def EscapeError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EscapeError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.EscapeError" [])
 
 attribute [irreducible] EscapeError.ty
 
-def InvalidHostError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidHostError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.InvalidHostError" [])
 
 attribute [irreducible] InvalidHostError.ty
 
-def URL.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def URL.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.URL" [])
 
 attribute [irreducible] URL.ty
 
-def Userinfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Userinfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.Userinfo" [])
 
 attribute [irreducible] Userinfo.ty
 
-def Values.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Values.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.Values" [])
 
 attribute [irreducible] Values.ty
@@ -175,7 +174,7 @@ noncomputable def stringContainsCTLByte [FfiSyntax] [GoGlobalContext] : GoString
 noncomputable def JoinPath [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"net/url.JoinPath"
 
-instance info' : PkgInfo pkg_id.net.url where
+noncomputable instance info' : PkgInfo pkg_id.net.url where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -195,7 +194,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev encoding [FfiSyntax] : Type := w8
 
-@[reducible] def encoding.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def encoding.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.uint8
 
 class encoding.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -209,22 +208,22 @@ structure Error [FfiSyntax] where
   URL' : GoString
   Err' : GoError
 
-instance Error.zero_val [FfiSyntax] : ZeroVal Error :=
+noncomputable instance Error.zero_val [FfiSyntax] : ZeroVal Error :=
   ⟨Error.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Error.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Error.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Op" go.string),
 (go.field_decl.FieldDecl go!"URL" go.string),
 (go.field_decl.FieldDecl go!"Err" go.error)]
 
-@[irreducible] def Error.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Error.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Error.fieldsUnsealed
 
-instance equals_unfold_Error [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Error [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Error.fields Error.fieldsUnsealed :=
   ⟨by unfold Error.fields; rfl⟩
 
-@[reducible] def Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Error.fields)
 
 class Error.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -248,7 +247,7 @@ attribute [instance] Error.TypeAssumptions.type_repr
 
 abbrev EscapeError [FfiSyntax] : Type := GoString
 
-@[reducible] def EscapeError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EscapeError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class EscapeError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -258,7 +257,7 @@ attribute [instance] EscapeError.TypeAssumptions.underlying
 
 abbrev InvalidHostError [FfiSyntax] : Type := GoString
 
-@[reducible] def InvalidHostError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidHostError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class InvalidHostError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -280,10 +279,10 @@ structure URL [FfiSyntax] where
   ForceQuery' : Bool
   OmitHost' : Bool
 
-instance URL.zero_val [FfiSyntax] : ZeroVal URL :=
+noncomputable instance URL.zero_val [FfiSyntax] : ZeroVal URL :=
   ⟨URL.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def URL.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def URL.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Scheme" go.string),
 (go.field_decl.FieldDecl go!"Opaque" go.string),
 (go.field_decl.FieldDecl go!"User" (go.GoType.PointerType Userinfo.ty)),
@@ -296,14 +295,14 @@ instance URL.zero_val [FfiSyntax] : ZeroVal URL :=
 (go.field_decl.FieldDecl go!"ForceQuery" go.bool),
 (go.field_decl.FieldDecl go!"OmitHost" go.bool)]
 
-@[irreducible] def URL.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def URL.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   URL.fieldsUnsealed
 
-instance equals_unfold_URL [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_URL [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold URL.fields URL.fieldsUnsealed :=
   ⟨by unfold URL.fields; rfl⟩
 
-@[reducible] def URL.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def URL.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType URL.fields)
 
 class URL.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -363,22 +362,22 @@ structure Userinfo [FfiSyntax] where
   password' : GoString
   passwordSet' : Bool
 
-instance Userinfo.zero_val [FfiSyntax] : ZeroVal Userinfo :=
+noncomputable instance Userinfo.zero_val [FfiSyntax] : ZeroVal Userinfo :=
   ⟨Userinfo.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Userinfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Userinfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"username" go.string),
 (go.field_decl.FieldDecl go!"password" go.string),
 (go.field_decl.FieldDecl go!"passwordSet" go.bool)]
 
-@[irreducible] def Userinfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Userinfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Userinfo.fieldsUnsealed
 
-instance equals_unfold_Userinfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Userinfo [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Userinfo.fields Userinfo.fieldsUnsealed :=
   ⟨by unfold Userinfo.fields; rfl⟩
 
-@[reducible] def Userinfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Userinfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Userinfo.fields)
 
 class Userinfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -402,7 +401,7 @@ attribute [instance] Userinfo.TypeAssumptions.type_repr
 
 abbrev Values [FfiSyntax] : Type := GoMap
 
-@[reducible] def Values.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Values.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string (go.GoType.SliceType go.string))
 
 class Values.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

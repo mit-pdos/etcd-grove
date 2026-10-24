@@ -24,35 +24,34 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def github_com.mit_pdos.etcd_grove.examples.common : GoString := go!"github.com/mit-pdos/etcd-grove/examples/common"
+noncomputable def github_com.mit_pdos.etcd_grove.examples.common : GoString := go!"github.com/mit-pdos/etcd-grove/examples/common"
 end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.common
 
-def KV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.KV" [])
 
 attribute [irreducible] KV.ty
 
-def PutRec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PutRec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.PutRec" [])
 
 attribute [irreducible] PutRec.ty
 
-def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.Event" [])
 
 attribute [irreducible] Event.ty
 
-def Writes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Writes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.Writes" [])
 
 attribute [irreducible] Writes.ty
@@ -834,7 +833,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Event.ty))) (Pair (Var "e") (Var "$value")))))))))))))))))))))))))
 
-instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.common where
+noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.common where
   pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.context, pkg_id.sync, pkg_id.github_com.goose_lang.primitive, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -894,21 +893,21 @@ structure KV [FfiSyntax] where
   Key' : GoString
   Val' : GoString
 
-instance KV.zero_val [FfiSyntax] : ZeroVal KV :=
+noncomputable instance KV.zero_val [FfiSyntax] : ZeroVal KV :=
   ⟨KV.mk zeroValDef zeroValDef⟩
 
-@[reducible] def KV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def KV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Val" go.string)]
 
-@[irreducible] def KV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def KV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   KV.fieldsUnsealed
 
-instance equals_unfold_KV [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_KV [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold KV.fields KV.fieldsUnsealed :=
   ⟨by unfold KV.fields; rfl⟩
 
-@[reducible] def KV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def KV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType KV.fields)
 
 class KV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -932,22 +931,22 @@ structure PutRec [FfiSyntax] where
   Key' : GoString
   Val' : GoString
 
-instance PutRec.zero_val [FfiSyntax] : ZeroVal PutRec :=
+noncomputable instance PutRec.zero_val [FfiSyntax] : ZeroVal PutRec :=
   ⟨PutRec.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def PutRec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PutRec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Rev" go.int64),
 (go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Val" go.string)]
 
-@[irreducible] def PutRec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PutRec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   PutRec.fieldsUnsealed
 
-instance equals_unfold_PutRec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PutRec [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold PutRec.fields PutRec.fieldsUnsealed :=
   ⟨by unfold PutRec.fields; rfl⟩
 
-@[reducible] def PutRec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PutRec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PutRec.fields)
 
 class PutRec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -976,23 +975,23 @@ structure Event [FfiSyntax] where
   Val' : GoString
   Put' : Bool
 
-instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
+noncomputable instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
   ⟨Event.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Event.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Event.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Rev" go.int64),
 (go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Val" go.string),
 (go.field_decl.FieldDecl go!"Put" go.bool)]
 
-@[irreducible] def Event.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Event.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Event.fieldsUnsealed
 
-instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Event.fields Event.fieldsUnsealed :=
   ⟨by unfold Event.fields; rfl⟩
 
-@[reducible] def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Event.fields)
 
 class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1023,21 +1022,21 @@ structure Writes [FfiSyntax] where
   Mu' : _root_.Perennial.sync.Mutex
   Ok' : GoSlice
 
-instance Writes.zero_val [FfiSyntax] : ZeroVal Writes :=
+noncomputable instance Writes.zero_val [FfiSyntax] : ZeroVal Writes :=
   ⟨Writes.mk zeroValDef zeroValDef⟩
 
-@[reducible] def Writes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Writes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"Ok" (go.GoType.SliceType PutRec.ty))]
 
-@[irreducible] def Writes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Writes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Writes.fieldsUnsealed
 
-instance equals_unfold_Writes [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Writes [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Writes.fields Writes.fieldsUnsealed :=
   ⟨by unfold Writes.fields; rfl⟩
 
-@[reducible] def Writes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Writes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Writes.fields)
 
 class Writes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

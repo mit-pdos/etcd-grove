@@ -10,9 +10,8 @@ public import Code.google_golang_org.protobuf.proto
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -27,11 +26,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
 
-instance UnmarshalOptions_typed_pointsto :
+noncomputable instance UnmarshalOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.proto.UnmarshalOptions :=
   sorry -- axiomatized type
 
-instance UnmarshalOptions_into_val_typed :
+noncomputable instance UnmarshalOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.UnmarshalOptions google_golang_org.protobuf.proto.UnmarshalOptions.underlying :=
   sorry -- axiomatized type
 
@@ -46,11 +45,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
 
-instance MarshalOptions_typed_pointsto :
+noncomputable instance MarshalOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.proto.MarshalOptions :=
   sorry -- axiomatized type
 
-instance MarshalOptions_into_val_typed :
+noncomputable instance MarshalOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.MarshalOptions google_golang_org.protobuf.proto.MarshalOptions.underlying :=
   sorry -- axiomatized type
 
@@ -65,7 +64,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
 
-instance mergeOptions_typed_pointsto :
+noncomputable instance mergeOptions_typed_pointsto :
     TypedPointsto (GF := GF) google_golang_org.protobuf.proto.mergeOptions where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -73,7 +72,7 @@ instance mergeOptions_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance mergeOptions_into_val_typed :
+noncomputable instance mergeOptions_into_val_typed :
     IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.mergeOptions google_golang_org.protobuf.proto.mergeOptions.underlying := by
   solve_into_val_typed_struct
 

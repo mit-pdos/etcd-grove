@@ -11,25 +11,24 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.api : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.api : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api
 
-def Capability.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Capability.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api.Capability" [])
 
 attribute [irreducible] Capability.ty
 
-def Cluster.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Cluster.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api.Cluster" [])
 
 attribute [irreducible] Cluster.ty
@@ -65,7 +64,7 @@ noncomputable def IsCapabilityEnabled [FfiSyntax] [GoGlobalContext] : GoString :
 noncomputable def EnableCapability [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.EnableCapability"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api where
   pkgImportedPkgs := [pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -91,7 +90,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Capability [FfiSyntax] : Type := GoString
 
-@[reducible] def Capability.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Capability.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class Capability.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -101,7 +100,7 @@ attribute [instance] Capability.TypeAssumptions.underlying
 
 abbrev Cluster [FfiSyntax] : Type := GoInterface
 
-@[reducible] def Cluster.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Cluster.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ClientURLs" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"ID" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty])), (go.InterfaceElem.MethodElem go!"Member" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)])), (go.InterfaceElem.MethodElem go!"Members" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))])), (go.InterfaceElem.MethodElem go!"Version" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))])
 
 class Cluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

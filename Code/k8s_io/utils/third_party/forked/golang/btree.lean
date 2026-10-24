@@ -11,70 +11,69 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.utils.third_party.forked.golang.btree : GoString := go!"k8s.io/utils/third_party/forked/golang/btree"
+noncomputable def k8s_io.utils.third_party.forked.golang.btree : GoString := go!"k8s.io/utils/third_party/forked/golang/btree"
 end pkg_id
 
 namespace k8s_io.utils.third_party.forked.golang.btree
 
-def FreeList.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def FreeList.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.FreeList" [T])
 
 attribute [irreducible] FreeList.ty
 
-def ItemIterator.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def ItemIterator.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.ItemIterator" [T])
 
 attribute [irreducible] ItemIterator.ty
 
-def items.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def items.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.items" [T])
 
 attribute [irreducible] items.ty
 
-def node.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def node.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.node" [T])
 
 attribute [irreducible] node.ty
 
-def toRemove.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def toRemove.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.toRemove" [])
 
 attribute [irreducible] toRemove.ty
 
-def direction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def direction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.direction" [])
 
 attribute [irreducible] direction.ty
 
-def optionalItem.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def optionalItem.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.optionalItem" [T])
 
 attribute [irreducible] optionalItem.ty
 
-def BTree.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def BTree.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.BTree" [T])
 
 attribute [irreducible] BTree.ty
 
-def LessFunc.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def LessFunc.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.LessFunc" [T])
 
 attribute [irreducible] LessFunc.ty
 
-def copyOnWriteContext.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def copyOnWriteContext.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.copyOnWriteContext" [T])
 
 attribute [irreducible] copyOnWriteContext.ty
 
-def freeType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def freeType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/third_party/forked/golang/btree.freeType" [])
 
 attribute [irreducible] freeType.ty
@@ -2245,7 +2244,7 @@ noncomputable def node.reset.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType (node.ty T))))) (Pair (Var "child") (Var "$value"))))))))))))))))
 
-instance info' : PkgInfo pkg_id.k8s_io.utils.third_party.forked.golang.btree where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.third_party.forked.golang.btree where
   pkgImportedPkgs := [pkg_id.cmp, pkg_id.sort, pkg_id.sync]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -2266,21 +2265,21 @@ structure FreeList [FfiSyntax] (T : Type) where
   mu' : _root_.Perennial.sync.Mutex
   freelist' : GoSlice
 
-instance FreeList.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (FreeList T) :=
+noncomputable instance FreeList.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (FreeList T) :=
   ⟨FreeList.mk zeroValDef zeroValDef⟩
 
-@[reducible] def FreeList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def FreeList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"freelist" (go.GoType.SliceType (go.GoType.PointerType (node.ty T))))]
 
-@[irreducible] def FreeList.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def FreeList.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (FreeList.fieldsUnsealed T)
 
-instance equals_unfold_FreeList [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_FreeList [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (FreeList.fields T) (FreeList.fieldsUnsealed T) :=
   ⟨by unfold FreeList.fields; rfl⟩
 
-@[reducible] def FreeList.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def FreeList.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (FreeList.fields T))
 
 class FreeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2304,7 +2303,7 @@ attribute [instance] FreeList.TypeAssumptions.type_repr
 
 abbrev ItemIterator [FfiSyntax] (T : Type) : Type := GoFunc
 
-@[reducible] def ItemIterator.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def ItemIterator.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [T] false [go.bool]))
 
 class ItemIterator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2314,7 +2313,7 @@ attribute [instance] ItemIterator.TypeAssumptions.underlying
 
 abbrev items [FfiSyntax] (T : Type) : Type := GoSlice
 
-@[reducible] def items.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def items.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.SliceType T)
 
 class items.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2341,22 +2340,22 @@ structure node [FfiSyntax] (T : Type) where
   children' : (items Loc)
   cow' : Loc
 
-instance node.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (node T) :=
+noncomputable instance node.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (node T) :=
   ⟨node.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def node.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def node.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"items" (items.ty T)),
 (go.field_decl.FieldDecl go!"children" (items.ty (go.GoType.PointerType (node.ty T)))),
 (go.field_decl.FieldDecl go!"cow" (go.GoType.PointerType (copyOnWriteContext.ty T)))]
 
-@[irreducible] def node.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def node.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (node.fieldsUnsealed T)
 
-instance equals_unfold_node [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_node [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (node.fields T) (node.fieldsUnsealed T) :=
   ⟨by unfold node.fields; rfl⟩
 
-@[reducible] def node.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def node.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (node.fields T))
 
 class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2400,7 +2399,7 @@ attribute [instance] node.TypeAssumptions.type_repr
 
 abbrev toRemove [FfiSyntax] : Type := w64
 
-@[reducible] def toRemove.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def toRemove.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class toRemove.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2410,7 +2409,7 @@ attribute [instance] toRemove.TypeAssumptions.underlying
 
 abbrev direction [FfiSyntax] : Type := w64
 
-@[reducible] def direction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def direction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class direction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2423,21 +2422,21 @@ structure optionalItem [FfiSyntax] (T : Type) where
   item' : T
   valid' : Bool
 
-instance optionalItem.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (optionalItem T) :=
+noncomputable instance optionalItem.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (optionalItem T) :=
   ⟨optionalItem.mk zeroValDef zeroValDef⟩
 
-@[reducible] def optionalItem.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def optionalItem.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"item" T),
 (go.field_decl.FieldDecl go!"valid" go.bool)]
 
-@[irreducible] def optionalItem.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def optionalItem.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (optionalItem.fieldsUnsealed T)
 
-instance equals_unfold_optionalItem [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_optionalItem [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (optionalItem.fields T) (optionalItem.fieldsUnsealed T) :=
   ⟨by unfold optionalItem.fields; rfl⟩
 
-@[reducible] def optionalItem.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def optionalItem.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (optionalItem.fields T))
 
 class optionalItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2462,23 +2461,23 @@ structure BTree [FfiSyntax] (T : Type) where
   root' : Loc
   cow' : Loc
 
-instance BTree.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (BTree T) :=
+noncomputable instance BTree.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (BTree T) :=
   ⟨BTree.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def BTree.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def BTree.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"degree" go.int),
 (go.field_decl.FieldDecl go!"length" go.int),
 (go.field_decl.FieldDecl go!"root" (go.GoType.PointerType (node.ty T))),
 (go.field_decl.FieldDecl go!"cow" (go.GoType.PointerType (copyOnWriteContext.ty T)))]
 
-@[irreducible] def BTree.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def BTree.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (BTree.fieldsUnsealed T)
 
-instance equals_unfold_BTree [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_BTree [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (BTree.fields T) (BTree.fieldsUnsealed T) :=
   ⟨by unfold BTree.fields; rfl⟩
 
-@[reducible] def BTree.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def BTree.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (BTree.fields T))
 
 class BTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2550,7 +2549,7 @@ attribute [instance] BTree.TypeAssumptions.type_repr
 
 abbrev LessFunc [FfiSyntax] (T : Type) : Type := GoFunc
 
-@[reducible] def LessFunc.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def LessFunc.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))
 
 class LessFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2563,21 +2562,21 @@ structure copyOnWriteContext [FfiSyntax] (T : Type) where
   freelist' : Loc
   less' : (LessFunc T)
 
-instance copyOnWriteContext.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (copyOnWriteContext T) :=
+noncomputable instance copyOnWriteContext.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (copyOnWriteContext T) :=
   ⟨copyOnWriteContext.mk zeroValDef zeroValDef⟩
 
-@[reducible] def copyOnWriteContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def copyOnWriteContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"freelist" (go.GoType.PointerType (FreeList.ty T))),
 (go.field_decl.FieldDecl go!"less" (LessFunc.ty T))]
 
-@[irreducible] def copyOnWriteContext.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def copyOnWriteContext.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (copyOnWriteContext.fieldsUnsealed T)
 
-instance equals_unfold_copyOnWriteContext [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_copyOnWriteContext [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (copyOnWriteContext.fields T) (copyOnWriteContext.fieldsUnsealed T) :=
   ⟨by unfold copyOnWriteContext.fields; rfl⟩
 
-@[reducible] def copyOnWriteContext.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def copyOnWriteContext.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (copyOnWriteContext.fields T))
 
 class copyOnWriteContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2601,7 +2600,7 @@ attribute [instance] copyOnWriteContext.TypeAssumptions.type_repr
 
 abbrev freeType [FfiSyntax] : Type := w64
 
-@[reducible] def freeType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def freeType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int
 
 class freeType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

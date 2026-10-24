@@ -9,9 +9,8 @@ public import Code.go_etcd_io.etcd.api.v3.mvccpb
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -26,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.mvccpb.Assumptions]
 
-instance KeyValue_typed_pointsto :
+noncomputable instance KeyValue_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.mvccpb.KeyValue where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"state" l) v.state' dq ∗
@@ -43,11 +42,11 @@ instance KeyValue_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance KeyValue_into_val_typed :
+noncomputable instance KeyValue_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.mvccpb.KeyValue go_etcd_io.etcd.api.v3.mvccpb.KeyValue.underlying := by
   solve_into_val_typed_struct
 
-instance KeyValue_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"state" l) v.state' dq)
@@ -55,7 +54,7 @@ instance KeyValue_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance KeyValue_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"state" l) state' (DFrac.own 1))
@@ -63,7 +62,7 @@ instance KeyValue_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccp
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_load_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Key" l) v.Key' dq)
@@ -71,7 +70,7 @@ instance KeyValue_access_load_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.K
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Key' : GoSlice) :
+noncomputable instance KeyValue_access_store_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Key' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Key" l) Key' (DFrac.own 1))
@@ -79,7 +78,7 @@ instance KeyValue_access_store_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_load_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"CreateRevision" l) v.CreateRevision' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"CreateRevision" l) v.CreateRevision' dq)
@@ -87,7 +86,7 @@ instance KeyValue_access_load_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (CreateRevision' : w64) :
+noncomputable instance KeyValue_access_store_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (CreateRevision' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"CreateRevision" l) v.CreateRevision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"CreateRevision" l) CreateRevision' (DFrac.own 1))
@@ -95,7 +94,7 @@ instance KeyValue_access_store_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_load_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"ModRevision" l) v.ModRevision' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"ModRevision" l) v.ModRevision' dq)
@@ -103,7 +102,7 @@ instance KeyValue_access_load_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (ModRevision' : w64) :
+noncomputable instance KeyValue_access_store_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (ModRevision' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"ModRevision" l) v.ModRevision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"ModRevision" l) ModRevision' (DFrac.own 1))
@@ -111,7 +110,7 @@ instance KeyValue_access_store_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_load_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Version" l) v.Version' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Version" l) v.Version' dq)
@@ -119,7 +118,7 @@ instance KeyValue_access_load_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.mvcc
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Version' : w64) :
+noncomputable instance KeyValue_access_store_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Version' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Version" l) v.Version' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Version" l) Version' (DFrac.own 1))
@@ -127,7 +126,7 @@ instance KeyValue_access_store_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.mvc
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_load_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Value" l) v.Value' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Value" l) v.Value' dq)
@@ -135,7 +134,7 @@ instance KeyValue_access_load_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Value' : GoSlice) :
+noncomputable instance KeyValue_access_store_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Value' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Value" l) Value' (DFrac.own 1))
@@ -143,7 +142,7 @@ instance KeyValue_access_store_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccp
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_load_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Lease" l) v.Lease' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Lease" l) v.Lease' dq)
@@ -151,7 +150,7 @@ instance KeyValue_access_load_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Lease' : w64) :
+noncomputable instance KeyValue_access_store_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Lease' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Lease" l) v.Lease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Lease" l) Lease' (DFrac.own 1))
@@ -159,7 +158,7 @@ instance KeyValue_access_store_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccp
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"unknownFields" l) v.unknownFields' dq)
@@ -167,7 +166,7 @@ instance KeyValue_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (unknownFields' : GoSlice) :
+noncomputable instance KeyValue_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -175,7 +174,7 @@ instance KeyValue_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"sizeCache" l) v.sizeCache' dq)
@@ -183,7 +182,7 @@ instance KeyValue_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mv
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (sizeCache' : w32) :
+noncomputable instance KeyValue_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"sizeCache" l) sizeCache' (DFrac.own 1))
@@ -202,7 +201,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.mvccpb.Assumptions]
 
-instance Event_typed_pointsto :
+noncomputable instance Event_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.mvccpb.Event where
   typedPointstoDef l v dq := iprop(
     "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" l) v.state' dq ∗
@@ -216,11 +215,11 @@ instance Event_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Event_into_val_typed :
+noncomputable instance Event_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.mvccpb.Event go_etcd_io.etcd.api.v3.mvccpb.Event.underlying := by
   solve_into_val_typed_struct
 
-instance Event_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
+noncomputable instance Event_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" l) v.state' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" l) v.state' dq)
@@ -228,7 +227,7 @@ instance Event_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Ev
  by
   solve_pointsto_access_struct
 
-instance Event_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Event_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" l) state' (DFrac.own 1))
@@ -236,7 +235,7 @@ instance Event_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.E
  by
   solve_pointsto_access_struct
 
-instance Event_access_load_Type (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
+noncomputable instance Event_access_load_Type (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Type" l) v.Type' dq)
@@ -244,7 +243,7 @@ instance Event_access_load_Type (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Eve
  by
   solve_pointsto_access_struct
 
-instance Event_access_store_Type (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (Type' : go_etcd_io.etcd.api.v3.mvccpb.Event_EventType) :
+noncomputable instance Event_access_store_Type (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (Type' : go_etcd_io.etcd.api.v3.mvccpb.Event_EventType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Type" l) Type' (DFrac.own 1))
@@ -252,7 +251,7 @@ instance Event_access_store_Type (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Ev
  by
   solve_pointsto_access_struct
 
-instance Event_access_load_Kv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
+noncomputable instance Event_access_load_Kv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Kv" l) v.Kv' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Kv" l) v.Kv' dq)
@@ -260,7 +259,7 @@ instance Event_access_load_Kv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event
  by
   solve_pointsto_access_struct
 
-instance Event_access_store_Kv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (Kv' : Loc) :
+noncomputable instance Event_access_store_Kv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (Kv' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Kv" l) v.Kv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Kv" l) Kv' (DFrac.own 1))
@@ -268,7 +267,7 @@ instance Event_access_store_Kv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Even
  by
   solve_pointsto_access_struct
 
-instance Event_access_load_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
+noncomputable instance Event_access_load_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"PrevKv" l) v.PrevKv' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"PrevKv" l) v.PrevKv' dq)
@@ -276,7 +275,7 @@ instance Event_access_load_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.E
  by
   solve_pointsto_access_struct
 
-instance Event_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (PrevKv' : Loc) :
+noncomputable instance Event_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (PrevKv' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"PrevKv" l) v.PrevKv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"PrevKv" l) PrevKv' (DFrac.own 1))
@@ -284,7 +283,7 @@ instance Event_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.
  by
   solve_pointsto_access_struct
 
-instance Event_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
+noncomputable instance Event_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"unknownFields" l) v.unknownFields' dq)
@@ -292,7 +291,7 @@ instance Event_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.m
  by
   solve_pointsto_access_struct
 
-instance Event_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (unknownFields' : GoSlice) :
+noncomputable instance Event_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -300,7 +299,7 @@ instance Event_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.
  by
   solve_pointsto_access_struct
 
-instance Event_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
+noncomputable instance Event_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"sizeCache" l) v.sizeCache' dq)
@@ -308,7 +307,7 @@ instance Event_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccp
  by
   solve_pointsto_access_struct
 
-instance Event_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (sizeCache' : w32) :
+noncomputable instance Event_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"sizeCache" l) sizeCache' (DFrac.own 1))

@@ -17150,6 +17150,247 @@ before and the bytes-affine ones as instances.
   generic results but no bytes-affine instance (nothing needs one; a bytes-affine `Find`/`Delete`
   is the wrapper `Insert_bytes` is). No Perennial change was needed.
 
+## D22 receiver epochs, S8 carried out: no hook on the new backend before `SetBackend`; the future status (2026-10-24, `notes/snapshot-s8-plan.md`)
+
+Stage S8 of the receiver epochs (`applySnapshot`), on branch `worktree-agent-a9a2649236a655331`.
+The plan, with the resolution of S7f's open issue, is `notes/snapshot-s8-plan.md`; each sub-stage a
+commit with a full build.
+
+**The open issue and its resolution.** `OpenSnapshotBackend`'s open asks, in `backend.New`'s ghost
+step, for the new backend's batch-lock resource (`batchLockInv` at the new names, with their
+registration), but the names are registered only at `ci.SetBackend`'s store of 0. A hook in
+between would save the old `ci` into the new backend (Go: `verify` fails under `ETCD_VERIFY`, and
+without it the stored index goes back: a reload re-applies). Go relies on no commit of the new
+backend before `SetBackend` (`backend.go:273-275` sets the hooks after the creation's empty commit;
+`run` commits only with `pending ≠ 0`). The two options S7f named are one mechanism: a future
+status in the protocol is refutable in the hook only with something the hook sees, so the backend's
+contract had to show it. It already has it: every commit is paid (`payIn`: a write-back token, the
+`run` goroutine's write-back witness, `Unlock`'s write-back, or the clients' half of the open token
+at a stop), and the creator holds all of these (`newPost`'s `ownToks γ.wb wbInit`, `bOpen γ 1`).
+Chosen because it keeps every trusted statement true with the least change: no backend client spec
+changes, `bootOk`'s text and meaning of `newPost` stay, `OpenBackend`'s axiom is generalized exactly
+as `backend.New`'s proved spec, which it wraps. Rejected: an axiom that the new backend commits
+nothing (provable, hence not a boundary fact); a "used" flag threaded through every client
+operation (every client spec changes); depositing the rights after `Open` returns (the hook could
+not refute in the window between).
+
+**S8a: the backend, commits pay the hooks.**
+- `payIn` moved to `InvBackend.lean` and framed into the hooks' triples (`hooksSpec`, `hookFnSpec`,
+  `hooksReq`: `∀ st stop m u`, `payIn γ st stop m u` in the precondition and given back), the
+  storage layer's (`saveSpec`, `saveReq`, `BackendHooks.OnPreCommitUnsafe.spec`) and the backend's
+  own `hooks.OnPreCommitUnsafe.spec`; `unsafeCommit` passes its payment to the hook.
+- `payIn`'s `m ≥ 2` case (`Unlock`'s commit) carries the write-back's lower bound
+  (`monoNatLbOwn γ.wbc 1`); `bgOk` gains `w ≤ ver` (the write-backs at most the read buffer's
+  version: both increment at a write-back, `RBuf.reset` keeps the version).
+- `backend.bFresh γ := ownToks γ.wb wbInit ∗ bOpen γ 1` and `hook_fresh_false` (a payment under the
+  batch lock refutes it: a token is one too many for `ver + n + k < 2^40 = wbInit + 1`; a
+  write-back since creation raised `ver` past 0; a stop's clients' half of `γ.opn` is one half too
+  many), `hook_bFresh_false` (any backend names with the same `wb`/`opn`).
+- The creator's batch-lock step receives `bFresh γ` and gives `K γ` back: `openPre cfg h P D W Pk K`,
+  `backend.New.spec`, `newBackend.spec` (`backend_init`), `OpenBackend.spec` (axiom, restated:
+  the same argument, `New`'s), `OpenSnapshotBackend.spec` give `newPostK γ P W Pk K b D`;
+  `newPost_of_K` (`K := bFresh` is `newPost`), `openPre_keep`. `newPost` and `bootOk` unchanged.
+- No axiom added or removed; the hooks' implementers frame the payment (`ci_hookFnSpec`,
+  `ci_saveSpec`, `ci_saveFreeze`, `NewHooks`, `isBackend_backendHooks`, `hooksReq_backendHooks`).
+  Statements changed: the trusted `storage.OpenBackend.spec` (generalized, `K`); intermediate:
+  `backend.New`, `newBackend`, `OpenSnapshotBackend`, `hooks.OnPreCommitUnsafe`,
+  `BackendHooks.OnPreCommitUnsafe`; definitions: `bgOk`, `payIn`, `hooksSpec`, `hookFnSpec`,
+  `hooksReq`, `saveSpec`, `saveReq`, `openPre`. No closed theorem's or exported result's text
+  changed.
+
+**S8b: the apply protocol's future status** (`InvApply.lean`, `InvServer.lean`, `CindexBackend.lean`,
+`BuildLemmas.lean`, `HooksBackend.lean`).
+- `ApplyPhys` gains `bwb`, `bopn`: the backend's write-back and open names (read only by a future
+  backend's hook, to find the rights deposited for *its* backend: the batch lock's resource
+  `batchLockInv γ TM` sees only `γ`, so the link must be in the names; the family of a new
+  backend's resources is `fun γB => batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P)`,
+  `futPhys π0 γB := {π0 with bwb := γB.wb, bopn := γB.opn}`).
+- `ApplyNames.fut` (logical): a monotone list of announced backends with claim tokens;
+  `consRest` holds `futInv` against the registry's list (each entry registered, its claim token
+  deposited, or still future, its deposited `bFresh`: `futStash`).
+- `batchLockInv` and `hookDone` hold `applyRegdF` (`applyRegd ∨ applyFut`); `commit_save_au` keeps
+  `applyRegd`, which a hook gets from `batchLockInv_resolve` (with `regdOrLink γA γB`: registered,
+  or `γB`'s names; for a future entry `fut_resolve` finds it registered since or refutes the commit,
+  `backend.hook_bFresh_false`).
+- `ci_announce` (in the open's batch-lock step: the deposit, the entry, the lock's resource and the
+  claim), `ci_swap_au` restated (from the claim; the deposit back, the entry registered, the
+  invariant's half of the mirror and the read view from the caller), `applyRegd_of_thread`,
+  `consInv_alloc` (with the boot backend's `bwb`/`bopn`, the empty future list).
+- The hooks' contracts: `ci_hook_backend_run`, `ci_hook_backend` take `applyRegd γA`;
+  `ci_hookFnSpec`, `ci_saveSpec`, `backend_server_hooks_of` take `regdOrLink γA γ`;
+  `hooksOk_backendHooks` (storage: the hooks' contract for every backend of a family) and
+  `hooksOk_server_fut` (the server's hooks for the new backend's family, what
+  `OpenSnapshotBackend`'s `openPre` takes).
+- Statements changed: exported results `cindex_hook_backend` (+ `applyRegd γA`),
+  `cindex_hookFnSpec`, `backend_server_hooks`, `server_kv_backend_hooks` (+ `regdOrLink`); the
+  definitions `ApplyPhys`, `ApplyNames`, `consRest`, `batchLockInv`, `hookDone`; `ci_swap_au`
+  (no caller yet). No closed theorem's text changed; `bootOk`'s text unchanged (its
+  `batchLockInv γA` and `consInv γA` hold more: the announced list, empty at boot). No axiom.
+
+**Where S8 stops: S8c/S8d not started.** Going through `applySnapshot`'s callees
+(`notes/snapshot-s8-plan.md`, "S8c/S8d, callee by callee") found four questions whose answers
+decide what the remaining axioms can truthfully say, two in trusted statements other tracks own:
+W1 the snapshot directory's removal fact `Rm` (`snapDirInv`; the `.snap.db` file `OpenSnapshotBackend`
+takes, and `storage.Release`'s removals; with S-j1); W2 `NewAuthStore`'s reader resource `RD`
+(it lends an open share of the construction's backend, while after `authStore.Recover` the
+permission checks read the new one, and `isReqAuth st RD` is persistent: a true `Recover` needs
+`RD` to be a reader of whichever backend is current; the auth track's statement); W3 `AddPeer`
+panics on a stopped transport, and the started transport's contract lets `raftNode.onStop`'s `Stop`
+race with it in the model, which Go excludes by order (`run`'s deferred `sched.Stop()` before
+`s.r.stop()`): an exclusive peers right that `Stop` consumes, threaded from the apply thread to the
+raft node's stop, restating `Transport.Start` and `isRNTransport`; W4 the KV model at the image's
+prefix (`kvApplied` at `A'`, S-j2's item 6). Writing the axioms before these are settled would
+risk false trusted statements or a second restatement; S8a and S8b do not depend on them.
+`applyAll` still calls the empty case (its proof unchanged); the general spec and its wiring wait
+for S8d.
+
+## A4 of the auth plan: the watch service's request shapes, the registered watcher's authorization in the stream specification (2026-10-24 · `notes/auth-plan.md`, branch `auth-a4`)
+
+**Problem.** A1 proved `serverWatchStream.isWatchPermitted` returns, when it passes, the class
+of the read of `[Key, RangeEnd)` for some principal (`apply.classRes`), and `recvLoop`'s proof
+dropped it: nothing said of a registered watcher that its registration was authorized, and
+nothing tied the interval the check saw to the interval mvcc registers -- which is exactly what
+GHSA-xg4h-6gfc-h4m8 broke (the matrix's `Watch` row: `recvLoop` rewrote `RangeEnd = "\x00"` to
+`[]byte{}` *before* the check, and `IsRangePermitted` of an empty range end is the check of the
+point, so a single-key READ grant let a `WithFromKey` watch through). The pinned code checks
+first and rewrites after; the proof is what says it stays so.
+
+**Where the statement can live.** The stream specification (`watchDn γs γ cid mid j m`, the
+content of every response the handler sends, through `ctrlOk`/`ctrlWatcher`) is written over
+the stream's names `γs` and the store's `γ : mvcc.WsNames`, with no auth mode in scope, and its
+arity is fixed by the client's proofs and the examples' definitions (`linkv3p/Defs.lean`,
+`client/v3/*`: about fifteen files). The mode is a field of the apply environment
+(`AEnv.authMode`), which the stream cannot name; a ghost agreement on the mode needs a name tied
+to something the specification already carries. Options weighed: a parameter on
+`ctrlOk`/`watchDn`/`watchStreamSpec` (the fifteen files, the client learning the server's auth
+mode); a name added to the stream's auxiliary list `auxOf` (its twenty-five client-side uses); a
+ghost field in the *watchable store's* names, which `ctrlWatcher` has in scope. The last is the
+change: `mvcc.WsNames.tag`, the **owner's tag**, a ghost name the store's creator passes to
+`newWatchableStore`/`mvcc.New` (a new binder `γtag`, stated as `γ.tag = γtag` in their posts, of
+no meaning to mvcc), and `auth.modeTag γtag M` (`auth/ModeTag.lean`: `dghostVar` at `.discard`,
+persistent, `modeTag_agree`; `AuthMode` made countable) the server's record of its mode under
+it: `server_kv_watchable_of` (`BuildLemmas.lean`) takes the mode, allocates and tags;
+`srvWatchBuilt`/`srvWatchReaders` (`NewServer`'s export) and `v3rpc.watchSrvOk` (the watch
+server's contract) hold `auth.modeTag γ.tag E.authMode`. No arity of the stream specification
+changes; `watchDn` is stronger by one conjunct.
+
+**The statement.** `ctrlWatcher γ γo (.create c) m` (a created, not canceled, response) gains
+`watchAuthed γ c`: for *some* mode `M` tagged at `γ.tag` (the server's, by agreement) and some
+principal `info`, `apply.watchClass M info c.key c.rangeEnd` -- the class
+`[(watchKey c.key, c.rangeEnd, READ)]`, the key normalized (an empty key is `"\x00"`), the range
+end as the request gave it (`apply/AuthClass.lean`) -- and `auth.reqShape (watchKey c.key)
+c.rangeEnd` (a non-empty key; a range that is a point, open-ended or proper: mvcc's `Watch`
+refuses an inverted one, `ErrEmptyWatcherRange`, so `recvLoop` has `e' = [] ∨ k < e'` of the
+rewritten end). `recvLoop`'s proof keeps the check's class (`Hcls`) and `watchSrvOk`'s tag and
+builds the conjunct at the registration. The pure bridge (`v3rpc/WatchClass.lean`):
+`createRangeOk_inRange`, every key the registered range `r` covers (`mvcc.WatchRange.covers`, the
+affine order) is in the model's `[watchKey c.key, c.rangeEnd)` (`auth.inRange`), by cases on the
+request shape (a point: `r.end? = none`, the key itself; `"\x00"`: `r.end? = some []` or, in the
+model only, `none`, every key at or after the key; a proper range: `some c.rangeEnd`); and
+`watch_permitted_covers`, a permitted request's principal may read every covered key at the
+permitting state. The result, `ctrlWatcher_authorized` (restated as
+`Results.lean`'s `watch_registered_authorized`): in the mode `on γa`, a created response's
+watcher `w` of range `r` comes with a principal `info` and a recorded state `st` at which auth
+was disabled, or `info` named a user with the root role, or one whose READ permissions cover
+every key `r` covers. The shapes: `Key` alone (a point), `RangeEnd` (a range), `RangeEnd = "\x00"`
+(`WithFromKey`), `Key = RangeEnd = "\x00"` (all keys: the normalized key `"\x00"` with the
+open end), `WithPrefix` (a range at the server); `ProgressRequest` and `CancelRequest` carry no
+keys and register nothing (`ctrlWatcher` is `True` of them); `Fragment` and the filters change
+no class.
+
+**The principal, per request.** `isWatchPermitted` calls `sws.ag.AuthInfoFromCtx` on the stream's
+context for each create request (the token-to-principal binding, S5's; A2's `authedRes` style:
+stated as "some principal, the context's or the empty one"). A watcher registered under a token
+later revoked keeps delivering: the check is at registration, and nothing re-checks a live
+watcher; the statement says so in that `watchAuthed` names one recorded state (etcd's documented
+behaviour, not a finding: the auth revision rule applies to requests, not to streams).
+
+**Cost.** Mechanical: `WsNames` (one constructor site, `newWatchableStore`), two specs and proofs
+(`newWatchableStore`, `New`), `server_kv_watchable_of` and `NewServer`'s three frames,
+`srvWatchBuilt`/`srvWatchReaders` and `ServeFromStart`'s two destructurings, `watchSrvOk` and one
+destructuring that named its last conjunct (`ServerWatcher.lean`), `ctrlWatcher` and
+`ctrlWatcher_snap`'s pattern, `recvLoop`'s construction. The client's proofs destructure
+`ctrlWatcher` with a trailing `-` and `watchSrvOk` likewise, so they were untouched. No axiom,
+no closed theorem's statement changed (the examples run in `off`, where `watchClass` is `True`).
+
+**Not done.** The statement over `recvLoop`'s own post (its spec returns only the control
+stream's producer token; the registrations are visible through the control responses, which is
+where the statement went); `issues/` has no file for GHSA-xg4h-6gfc-h4m8 (fixed before the pin;
+the matrix's advisory table records it, and `createRangeOk_inRange` is the proof's word that the
+fix holds at the pinned revision). E's closed theorem will consume `watch_registered_authorized`
+through the client's `watchDn` and the server's `watchSrvOk`.
+
+## A3 of the auth plan, the API layer: the Auth service's entry points and wrappers, the proposal as a contract (2026-10-24 · `notes/auth-plan.md`, branch `auth-a3b`)
+
+**Problem.** The Auth service's seventeen methods (`v3rpc/auth.go`'s `AuthServer`, each the
+server's method of the same name through the `Authenticator` interface, its error through
+`togRPCError`; `v3_server.go`'s `EtcdServer.AuthEnable`, ..., `RoleList`, each a `raftRequest`
+on `&pb.InternalRaftRequest{<field>: r}`) were names only. Their class is admin at apply
+(`needAdminPermission`; the apply layer's statement is A3's `adminPass` for the header's
+principal), `Authenticate` and `AuthStatus` are public, `UserGet` is admin or the user itself.
+What the API layer adds is the path from the gRPC handler to the proposal: no check of its own.
+
+**Decisions.**
+
+- **The proposal is a contract** (`etcdserver/AuthEntry.lean`: `authRaftOk s ctx rq T P Q`).
+  `raftRequest`'s spec (`EtcdServer__raftRequest.lean`) takes `reqPropOk`, which admits a request
+  only if `plainCover` does (`KVModelDefs.lean`: the KV writes and the monitors' requests, none
+  with an auth field: the apply thread's generic proofs cover only those kinds, D19k), so it does
+  not apply to an auth request. An entry point's spec takes `raftRequest` on its request as a
+  contract: for a `*pb.InternalRaftRequest` holding the request but for its header
+  (`irrNoHdrIs p rq`, the request `irrAuthEnable`, ..., `irrRoleGet name` as `irrPut`), over the
+  caller's `P`, an error the apply package's facts describe and, on `nil`, a response of the apply
+  package's type for the request (`*pb.AuthEnableResponse`, ..., which the entry point asserts:
+  `resp.(*pb.X)`) with `Q` of it, else `Q null` of the error. The entry point's spec then says it
+  is that call on that request (`authEntryOut Q`). *Rejected:* extending `plainCover`/`reqPropOk`
+  to the auth kinds (the apply thread's generic proofs and the KV model would have to cover their
+  dispatch: S4's apply requests, E); a per-request restatement of `raftRequest.spec`'s post
+  (`appliedOk` says nothing of an auth request's response type, so the type assertion could not
+  be proved from it).
+- **The wrapper's inner call is a contract too** (`v3rpc/InvAuthServer.lean`: `authServerIs p s`,
+  the `*AuthServer` whose `authenticator` is the server, now `NewAuthServer`'s post;
+  `authInnerOk s m ctx r P Q`, the server's method answering as the entry points do;
+  `authWrapOut`: the response with `Q resp nil`, or `nil` and `togRPCError`'s error with `Q null`
+  of the server's), as A2's maintenance wrappers: the gRPC layer's proofs are closed over the
+  server's contract, the entry points' specs are the server's. Seventeen wrappers proved
+  (`Spec/Proof/.../v3rpc/AuthServer__*.lean`).
+- **Fourteen entry points proved, three not** (`Spec/Proof/.../etcdserver/
+  EtcdServer__{AuthEnable, AuthDisable, AuthStatus, UserDelete, UserGrantRole, UserGet, UserList,
+  UserRevokeRole, RoleAdd, RoleGrantPermission, RoleGet, RoleList, RoleRevokePermission,
+  RoleDelete}.lean`; a request with a name field, `UserGet`/`RoleGet`/`RoleAdd`, holds it
+  read-only, `apply.authUserGetIs`, as the proposal's `irrNoHdrIs` wants). `UserAdd` and
+  `UserChangePassword` stay names only: they hash the password (`bcrypt.GenerateFromPassword`)
+  and encode it with `base64.StdEncoding.EncodeToString`, so translating them makes the server
+  import `golang.org/x/crypto/bcrypt` and `encoding/base64`, whose names-only initializers are
+  trust-boundary axioms (`opaqueInitsOk`, `etc/gen-init.py`) that would then sit under every
+  closed theorem (the first attempt did this: one new axiom, base64's in eight more
+  collections), for two methods that still could not be proved: `StdEncoding` is a package
+  variable whose load needs a points-to the names-only package's fact (`True`) does not give (a
+  Perennial model of `encoding/base64`, `notes/perennial-changes.md`, "Standard library").
+  *Rejected:* that axiom for unproved code. `Authenticate` is translated and not proved: it
+  compares its error with `auth.ErrAuthNotEnabled` (`errors.Is`), a variable the auth package's
+  fact (`auth/Base.lean`'s `authInit`) does not hold (an additive clause of the fact and of the
+  initializer's axiom, in S4's files, the store). `AuthenticateRequest` and
+  `AuthUserChangePasswordRequest` are translated as data (`etcdserverpb.toml`) for the next step.
+- **`UserChangePassword` of oneself is not in the pinned code.** `needAdminPermission`
+  (`apply/auth.go`) names `AuthUserChangePassword` unconditionally, so the matrix's "of oneself"
+  for it (the plan's A3 bullet, from the advisory's wording) is wrong at the pin: the request is
+  admin-only at apply (`adminPass`). The matrix row said so already; the plan's bullet is corrected.
+- **Lock and Election: not started.** `v3lock/lock.go` (58 lines) and `v3election/election.go`
+  (136) are the client's `concurrency` package (`NewSession`, `NewMutex`, `Mutex.Lock`,
+  `NewElection`, `Election.Campaign`, ..., proved: `Proof/go_etcd_io/etcd/client/v3/concurrency/`)
+  over the in-process client `v3client.New(s)`. Their statement is the calls they make with the
+  caller's context, under the concurrency specs' client premises (`isEtcdSessionClient`,
+  `isEtcdMutexClient`, which the in-process client would have to meet: the gRPC proxy adapter,
+  not translated); a day or two of translation (two servers, their protobuf packages as data) and
+  proof, left for A3's next step rather than squeezed in here.
+- **Trust base unchanged** (615 axioms, 4 sorries; `etc/tcb-report.py --check`); no closed
+  theorem's statement changes (`NewAuthServer`'s post is stronger, `Server`'s proof drops it).
+
+**Next:** `Authenticate` once `auth.ErrAuthNotEnabled` is in the auth package's fact (S4);
+`UserAdd`/`UserChangePassword` with a model of `encoding/base64`; Lock/Election as above; the matrix's remaining rows (the lease entry points'
+key checks, the member operations that marshal JSON).
+
 ## S4 of the auth plan: the admin side as steps of the model's state (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4`)
 
 **Problem.** The auth store's admin operations (`AuthEnable`, `UserAdd`, ..., `Recover`) were names

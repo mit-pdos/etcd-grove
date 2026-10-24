@@ -8,20 +8,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.contention : GoString := go!"go.etcd.io/etcd/pkg/v3/contention"
+noncomputable def go_etcd_io.etcd.pkg.v3.contention : GoString := go!"go.etcd.io/etcd/pkg/v3/contention"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.contention
 
-def TimeoutDetector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TimeoutDetector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/contention.TimeoutDetector" [])
 
 attribute [irreducible] TimeoutDetector.ty
@@ -31,7 +30,7 @@ axiom TimeoutDetector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 noncomputable def NewTimeoutDetector [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/contention.NewTimeoutDetector"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.contention where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.contention where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

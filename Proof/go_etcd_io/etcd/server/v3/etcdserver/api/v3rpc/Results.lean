@@ -45,6 +45,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClientModel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchClass
 
 @[expose] public section
 
@@ -513,6 +514,29 @@ theorem watch_server : EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := 
 theorem new_watch_server : EtcdGrove.v3rpc.NewWatchServer.spec (GF := GF) (hG := hG) :=
   wp_NewWatchServer
 
+/-- **A registered watcher was authorized** (the auth plan's A4, 2026-10-24; `WatchClass.lean`,
+`ctrlWatcher_authorized`): with the server's auth mode `on γa` (`watchSrvOk`'s tag of the store's
+names, `auth.modeTag γ.tag`), the mvcc watcher a created, not canceled, control response names
+(`watchDn`'s `ctrlOk`, `ctrlWatcher`) has a range every key of which some principal (the stream's
+context's auth info, or the empty one) could read at a recorded state of the auth history: auth
+disabled there, or the principal a user with the root role, or one whose READ permissions cover
+the key. The interval the check saw is the interval mvcc registers for every request shape
+(`createRangeOk_inRange`): the point, the proper range, `WithFromKey`'s `"\x00"` end, the empty
+key. -/
+theorem watch_registered_authorized (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames)
+    (γa : auth.AuthNames) (c : CreateReqM) (m : WatchRespM) (h : m.canceled = false) :
+    auth.modeTag (GF := GF) γ.tag (.on γa) ∗ ctrlWatcher γ γo (.create c) m ⊢
+      ∃ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
+        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (i : Nat) (st : auth.AuthState),
+        ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
+        mvcc.idAssigned γo m.watchId w ∗ auth.authStateAt γa i st ∗
+        ⌜st.enabled = false ∨
+          ((auth.authInfoM info).rev ≠ 0 ∧
+            ∃ u, st.users !! (auth.authInfoM info).user = some u ∧
+              (auth.isRoot u ∨ ∀ x, r.covers x = true →
+                ∃ p ∈ auth.userPerms st u, p.covers .read x))⌝ :=
+  ctrlWatcher_authorized γ γo γa c m h
+
 end watch
 
 /-! ## The watch service on the wire (unit W-W)
@@ -781,6 +805,7 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.revToken_of_put
 #print axioms Perennial.EtcdGrove.v3rpc.watch_server
 #print axioms Perennial.EtcdGrove.v3rpc.new_watch_server
+#print axioms Perennial.EtcdGrove.v3rpc.watch_registered_authorized
 #print axioms Perennial.EtcdGrove.v3rpc.watchStreamSpec_step
 #print axioms Perennial.EtcdGrove.v3rpc.srvStep_of_watch
 #print axioms Perennial.EtcdGrove.v3rpc.watch_handler

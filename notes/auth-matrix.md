@@ -150,6 +150,45 @@ Not stated: `RoleGet`'s "or a role the user has" (`HasRole` has no model in `isA
 `LeaseRevoke`'s keys (the lessor's key model), the server-level statement over the decoded
 entry (`applyEntryNormal`: E).
 
+## What is proved of the table (A4, the watch shapes, 2026-10-24)
+
+The `Watch` row at the API layer, over every request shape (`notes/decisions.md`, "A4 of the
+auth plan"; `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WatchClass.lean`): a created
+control response's watcher (`v3rpc.ctrlWatcher`, the stream specification's) carries
+`v3rpc.watchAuthed`, the class `apply.watchClass M info key rangeEnd` (RBAC read of `[Key,
+RangeEnd)`: the key normalized, `"\x00"` for an empty one; the range end as the request gave it:
+empty, a point; `"\x00"`, from the key on, `WithFromKey`; else the range, `WithPrefix` included)
+in the server's auth mode (named by the watchable store's owner tag, `auth.modeTag`) for the
+principal the check saw; and every key the registered mvcc range covers is in that interval
+(`createRangeOk_inRange`). `watch_registered_authorized` (`v3rpc/Results.lean`): in `on γa`, a
+recorded state at which auth was disabled, or the principal a root user, or one whose READ
+permissions cover every covered key. `ProgressRequest`/`CancelRequest` register nothing;
+`Fragment` and the filters change no class. GHSA-xg4h-6gfc-h4m8 (the advisory table above) is
+the statement's negative: at the pinned revision the check sees the interval mvcc registers.
+Not stated: the token's binding to the principal (S5), a re-check of live watchers (there is
+none: etcd's documented behaviour).
+
+
+## What is proved of the table (A3, the API layer, 2026-10-24)
+
+The Auth service's seventeen rows at the API layer (`notes/decisions.md`, "A3 of the auth plan,
+the API layer"): the gRPC wrappers (`v3rpc/AuthServer__*.lean`) call the server's method and pass
+its error through `togRPCError`; the server's entry points (`etcdserver/EtcdServer__*.lean`) are
+`raftRequest` on the request with the one field, taken as a contract (`authRaftOk`: the proposal
+path's model has no auth request), the response asserted to its type. Nothing of auth is checked
+on this path: the rows' class (admin at apply, `UserGet`'s "or the user itself") is the apply
+layer's statement (`adminPass`, `userGetClass`, above). Fourteen entry points are proved;
+`Authenticate` is translated and not (`auth.ErrAuthNotEnabled` is not in the auth package's
+fact); `UserAdd`, `UserChangePassword` are names only (they hash with bcrypt and base64). The
+"`UserChangePassword` of oneself" exception is not in the pinned code: `needAdminPermission` names
+the request unconditionally (the row above is right).
+
+Stated at the API layer so far: A2's twelve (`Compact`, the eight maintenance wrappers,
+`MemberRemove`, `MemberList`, the lease rows' guard) and these seventeen. Remaining: `Lock`,
+`Unlock`, the five `Election` rows (the client's `concurrency` package over the in-process client),
+the lease rows' key checks (a lessor with a key model), `MemberAdd`/`MemberUpdate`/`MemberPromote`
+(`encoding/json`).
+
 ## What is proved of the table (S4, the store's admin side, 2026-10-24)
 
 The store's `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd` and

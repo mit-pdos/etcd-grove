@@ -8,20 +8,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def path : GoString := go!"path"
+noncomputable def path : GoString := go!"path"
 end pkg_id
 
 namespace path
 
-def lazybuf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazybuf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"path.lazybuf" [])
 
 attribute [irreducible] lazybuf.ty
@@ -64,7 +63,7 @@ noncomputable def IsAbs [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Dir [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"path.Dir"
 
-instance info' : PkgInfo pkg_id.path where
+noncomputable instance info' : PkgInfo pkg_id.path where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -82,22 +81,22 @@ structure lazybuf [FfiSyntax] where
   buf' : GoSlice
   w' : w64
 
-instance lazybuf.zero_val [FfiSyntax] : ZeroVal lazybuf :=
+noncomputable instance lazybuf.zero_val [FfiSyntax] : ZeroVal lazybuf :=
   ⟨lazybuf.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def lazybuf.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def lazybuf.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"s" go.string),
 (go.field_decl.FieldDecl go!"buf" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"w" go.int)]
 
-@[irreducible] def lazybuf.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def lazybuf.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   lazybuf.fieldsUnsealed
 
-instance equals_unfold_lazybuf [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_lazybuf [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold lazybuf.fields lazybuf.fieldsUnsealed :=
   ⟨by unfold lazybuf.fields; rfl⟩
 
-@[reducible] def lazybuf.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def lazybuf.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType lazybuf.fields)
 
 class lazybuf.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

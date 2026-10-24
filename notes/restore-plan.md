@@ -264,8 +264,45 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
   `kbNoCmp_metaNone`'s premise widened to the clean snapshot (`keyReadSnapC`), the same fact. The
   code after the loop is written twice (one per exit: a tactic macro cannot hold Iris's `$$`).
 - **R5d. `newTreeIndex` over the store's names** (not `idxFresh`'s): the variant `Restore` needs.
+  *Done (2026-10-24)*: `newTreeIndex`'s one spec takes the event count's authority at any `n` and
+  the compactor's state (fresh), with lower bounds of the compaction revision and the committed log,
+  and gives the private index, `idxLockG γ n` and the compactor's token; `NewStore` splits its
+  fresh names (`idxFresh_split`), `store.Restore` will make new event-count and compactor names
+  around the store's (`idx_renew`).
 - **R5e. The ghost moves** (the list below) as `InvStore` lemmas.
+  *Done (2026-10-24)*, in `RestoreMoves.lean`: `restore_takeover` (at the first lock of
+  `s.revMu`: its body and the writer's state out, the committed log is the caller's `L`, the
+  committed log, its authority and the history moved to `L'`, `histOf_mono`), `restore_switch` (at
+  `restore`'s unlock: `cur`'s eight parts gathered and moved, the pool refilled, `s.revMu`'s body at
+  the new names, the budget's tokens of `L'`), `restore_finish` (after `restore`: the writer's state
+  at `L'` checked in, the registration pending). What the design needed on the way:
+  - `restore`'s spec: its lock and unlock are the caller's wands (`revLockW`, `revUnlockW`: hidden
+    behind definitions, `wp_auto` cannot work under a WP-shaped premise); the index is published
+    before the unlock, which takes the view, the index's lock with its readers, and the restored
+    log's changes below the receipts' bound (the rebuild's receipts are what certifies `L'`
+    there: `idxCert` needs it, and the unlock is where `s.revMu`'s body at `L'` is made); `restore`
+    keeps its part `q1` of `currentRev` (it reads `currentRev` after the unlock, for the log line)
+    and a part of `compactMainRev`; it takes `idxWriterLb`, not the writer's handle.
+  - The writer's invariant has a third state, `store.Restore`'s (`writerInvBody`): `s.mu`'s whole
+    deposit ghost (no writer checks out) and half the history's authority (no writer checks in;
+    `Restore` keeps the other half, so the history is still `L'` when it checks the state back in),
+    and no eighth of `cur`: `Restore` keeps it, so that holding every other eighth it can tell the
+    state at the switch without reopening the invariant, and after `restore` the new key and view
+    log (whole in its hands) exclude the other two states. (A first design kept the eighth inside;
+    then `Restore` could not exclude a writer's deposit when reopening it, since the deposit ghost
+    was in the state itself.)
+  - The readers' pool counts the retired tickets (`StoreNames.tkr`, `poolBody`'s `r`), and
+    `writerOwn` holds one: so `k + 1 ≤ nReaders`, which the switch needs (the pool's `k` slots are
+    refilled with new backend tokens while `restore` holds one) and the spec's postcondition
+    states. (No other bound exists: the backend's reader tokens are bounded by `rdMax = 2^31 - 2`,
+    above `nReaders`.)
+  - `revMuRest` keeps `compactMainRev` at any value; the switch learns `-1` from a quarter
+    `Restore` keeps out of `restore`'s part.
 - **R5f. `Restore`'s proof** over R5c-R5e; `NewStore` and `watchableStore.Restore` unchanged.
+  *Done (2026-10-24)*: `mvcc.store.Restore.wp_proof` is a theorem (the axiom gone); the link list
+  gives it `Scheduler.Stop`, `newTreeIndex`, `NewFIFOScheduler` and `restore`. `NewStore` changed
+  only for the pool's retired count and `restore`'s receipt bound; `watchableStore.Restore`
+  unchanged.
 
 **R5. `store.Restore`.** The translated body over R4's spec, the ghost moves its spec's "why it is
 true" paragraph lists, as `InvStore` lemmas:

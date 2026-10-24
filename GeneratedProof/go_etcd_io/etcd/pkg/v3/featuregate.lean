@@ -8,9 +8,8 @@ public import Code.go_etcd_io.etcd.pkg.v3.featuregate
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.featuregate.Assumptions]
 
-instance FeatureSpec_typed_pointsto :
+noncomputable instance FeatureSpec_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec where
   typedPointstoDef l v dq := iprop(
     "Default" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) v.Default' dq ∗
@@ -36,11 +35,11 @@ instance FeatureSpec_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance FeatureSpec_into_val_typed :
+noncomputable instance FeatureSpec_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.underlying := by
   solve_into_val_typed_struct
 
-instance FeatureSpec_access_load_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance FeatureSpec_access_load_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) v.Default' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) v.Default' dq)
@@ -48,7 +47,7 @@ instance FeatureSpec_access_load_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.f
  by
   solve_pointsto_access_struct
 
-instance FeatureSpec_access_store_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (Default' : Bool) :
+noncomputable instance FeatureSpec_access_store_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (Default' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) v.Default' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) Default' (DFrac.own 1))
@@ -56,7 +55,7 @@ instance FeatureSpec_access_store_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.
  by
   solve_pointsto_access_struct
 
-instance FeatureSpec_access_load_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance FeatureSpec_access_load_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq)
@@ -64,7 +63,7 @@ instance FeatureSpec_access_load_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pk
  by
   solve_pointsto_access_struct
 
-instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (LockToDefault' : Bool) :
+noncomputable instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (LockToDefault' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) LockToDefault' (DFrac.own 1))
@@ -72,7 +71,7 @@ instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : go_etcd_io.etcd.p
  by
   solve_pointsto_access_struct
 
-instance FeatureSpec_access_load_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance FeatureSpec_access_load_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq)
@@ -80,7 +79,7 @@ instance FeatureSpec_access_load_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v
  by
   solve_pointsto_access_struct
 
-instance FeatureSpec_access_store_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (PreRelease' : go_etcd_io.etcd.pkg.v3.featuregate.prerelease) :
+noncomputable instance FeatureSpec_access_store_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (PreRelease' : go_etcd_io.etcd.pkg.v3.featuregate.prerelease) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) PreRelease' (DFrac.own 1))
@@ -99,11 +98,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.featuregate.Assumptions]
 
-instance MutableFeatureGate_typed_pointsto :
+noncomputable instance MutableFeatureGate_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.MutableFeatureGate :=
   sorry -- axiomatized type
 
-instance MutableFeatureGate_into_val_typed :
+noncomputable instance MutableFeatureGate_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.MutableFeatureGate go_etcd_io.etcd.pkg.v3.featuregate.MutableFeatureGate.underlying :=
   sorry -- axiomatized type
 
@@ -118,11 +117,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.featuregate.Assumptions]
 
-instance featureGate_typed_pointsto :
+noncomputable instance featureGate_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.featureGate :=
   sorry -- axiomatized type
 
-instance featureGate_into_val_typed :
+noncomputable instance featureGate_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.featuregate.featureGate go_etcd_io.etcd.pkg.v3.featuregate.featureGate.underlying :=
   sorry -- axiomatized type
 

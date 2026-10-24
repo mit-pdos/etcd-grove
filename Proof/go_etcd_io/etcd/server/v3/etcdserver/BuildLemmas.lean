@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+public import Proof.go_etcd_io.etcd.server.v3.auth.ModeTag
 
 @[expose] public section
 
@@ -57,7 +58,8 @@ theorem server_kv_watchable_of
     (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
-    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode)
+    (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
@@ -89,14 +91,16 @@ theorem server_kv_watchable_of
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st }} := by
+        mvcc.wsCloser ws st γw.st ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hif, Hok⟩ HΦ
+  -- the auth mode's tag (the auth plan's A4): the store's owner tag names the mode `M`
+  imod auth.modeTag_alloc (GF := GF) M with ⟨%γtag, #Htag⟩
   ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
     hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
-  iapply (hNew lg _ le cfg (some d) γb γl Pk f γi γok hcfg hrb)
+  iapply (hNew lg _ le cfg (some d) γb γl Pk f γi γok γtag hcfg hrb)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd Hif Hok]
   · iframe Hpkg Hle Hif Hok
     isplitr
@@ -111,14 +115,16 @@ theorem server_kv_watchable_of
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
   iintro %ws ⟨%st, %γw, %Hγ, #Hws, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hfrag⟩
-  obtain ⟨hb, hl, hk, hi, hc⟩ := Hγ
+  obtain ⟨hb, hl, hk, hi, hc, ht⟩ := Hγ
   ihave #Hws' := Hws
   iunfold mvcc.isWatchableStore at Hws'
   icases Hws' with ⟨%vc, %stc, %rv, %γv, Hws'⟩
   iNamed Hws'
   iapply HΦ
   iexists st, γw
+  rw [ht]
   iframe Hws Hhk Hwt Hcok Hrds Hcl
+  iframe Htag
   isplitr
   · ipureintro; exact ⟨hb, hl, hk, hi, hc⟩
   isplitr
@@ -171,15 +177,58 @@ theorem backend_server_hooks_of
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ regdOrLink γA γ ⊢
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b := by
-  iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hnh, #Hci, #Hinv⟩
+  iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hnh, #Hci, #Hinv, #Hrl⟩
   iapply isBackend_backendHooks hOn γ P W
     (batchLockInv γA (metaTM γ P)) b bh _ lgh hH
   iframe Hspkg Hbpkg Hsch Hh Hnh
   iintro !> #Hb %t #Ht
   iapply ci_saveSpec hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH
   iframe #
+
+/-- **The physical names of the backend `applySnapshot` opens** (D22 receiver epochs, S8b,
+2026-10-24): the fresh `π0` with the new backend's write-back and open names. -/
+abbrev futPhys (π0 : ApplyPhys) (γB : backend.BNames) : ApplyPhys :=
+  { π0 with bwb := γB.wb, bopn := γB.opn }
+
+/-- **The server's hooks' contract for the backend `applySnapshot` opens** (D22 receiver epochs,
+S8b, 2026-10-24; `OpenSnapshotBackend`'s `openPre`): for the family of batch-lock resources
+`batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P)` (the protocol at the fresh names `π0`
+carrying the new backend's write-back and open names, so a hook of the backend before its names are
+registered finds the payment rights deposited for it: `regdOrLink`'s second case). -/
+theorem hooksOk_server_fut
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (γA : ApplyNames) (π0 : ApplyPhys) (ci : Loc) (P : backend.BParams)
+    (W : backend.BNames → IProp GF) (bh lgh : Loc) (hP : ciKeys P) (hH : storage.hooksParams P) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
+      storage.isBackendHooks bh
+        ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
+          #ci⟩ lgh ∗
+      isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      backend.hooksOk P W (fun γB => batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P))
+        (storage.hooksIface bh) := by
+  iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hci, #Hinv⟩
+  iapply hooksOk_backendHooks hOn P W _ bh _ lgh hH
+  iframe Hspkg Hbpkg Hsch Hh
+  iintro !> %γ %b %t Hb #Ht
+  inext
+  ihave #Hrl : regdOrLink (γA.withPh (futPhys π0 γ)) γ $$ []
+  · iunfold regdOrLink; iright; ipureintro; exact ⟨rfl, rfl⟩
+  iapply ci_saveSpec hSave hPut hUR hID hName hSafe (γA.withPh (futPhys π0 γ)) ci γ P (W γ) _ b t
+    hP hH
+  ihave #Hinv' : inv applyN (consInv (γA.withPh (futPhys π0 γ))) $$ []
+  · rw [show consInv (GF := GF) (γA.withPh (futPhys π0 γ)) = consInv γA from rfl]; iexact Hinv
+  iframe Hbpkg Hsch Hcpkg Hb Ht Hci Hinv' Hrl
 
 end backend
 

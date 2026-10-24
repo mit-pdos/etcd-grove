@@ -9,20 +9,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.notify : GoString := go!"go.etcd.io/etcd/pkg/v3/notify"
+noncomputable def go_etcd_io.etcd.pkg.v3.notify : GoString := go!"go.etcd.io/etcd/pkg/v3/notify"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.notify
 
-def Notifier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Notifier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/notify.Notifier" [])
 
 attribute [irreducible] Notifier.ty
@@ -99,7 +98,7 @@ noncomputable def Notifier.Notify.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "newChannel") (Var "$r0"))))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.notify where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.notify where
   pkgImportedPkgs := [pkg_id.sync]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -116,21 +115,21 @@ structure Notifier [FfiSyntax] where
   mu' : _root_.Perennial.sync.RWMutex
   channel' : GoChan
 
-instance Notifier.zero_val [FfiSyntax] : ZeroVal Notifier :=
+noncomputable instance Notifier.zero_val [FfiSyntax] : ZeroVal Notifier :=
   ⟨Notifier.mk zeroValDef zeroValDef⟩
 
-@[reducible] def Notifier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Notifier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"channel" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] def Notifier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Notifier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Notifier.fieldsUnsealed
 
-instance equals_unfold_Notifier [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Notifier [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Notifier.fields Notifier.fieldsUnsealed :=
   ⟨by unfold Notifier.fields; rfl⟩
 
-@[reducible] def Notifier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Notifier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Notifier.fields)
 
 class Notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

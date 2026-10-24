@@ -8,45 +8,44 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.pkg.v3.featuregate : GoString := go!"go.etcd.io/etcd/pkg/v3/featuregate"
+noncomputable def go_etcd_io.etcd.pkg.v3.featuregate : GoString := go!"go.etcd.io/etcd/pkg/v3/featuregate"
 end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.featuregate
 
-def Feature.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Feature.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/featuregate.Feature" [])
 
 attribute [irreducible] Feature.ty
 
-def FeatureSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FeatureSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/featuregate.FeatureSpec" [])
 
 attribute [irreducible] FeatureSpec.ty
 
-def prerelease.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def prerelease.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/featuregate.prerelease" [])
 
 attribute [irreducible] prerelease.ty
 
-def FeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/featuregate.FeatureGate" [])
 
 attribute [irreducible] FeatureGate.ty
 
-def MutableFeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutableFeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/featuregate.MutableFeatureGate" [])
 
 attribute [irreducible] MutableFeatureGate.ty
 
-def featureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def featureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/featuregate.featureGate" [])
 
 attribute [irreducible] featureGate.ty
@@ -88,7 +87,7 @@ noncomputable def setUnsetBetaGates [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/featuregate.New"
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.featuregate where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.featuregate where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -108,7 +107,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Feature [FfiSyntax] : Type := GoString
 
-@[reducible] def Feature.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Feature.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class Feature.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -118,7 +117,7 @@ attribute [instance] Feature.TypeAssumptions.underlying
 
 abbrev prerelease [FfiSyntax] : Type := GoString
 
-@[reducible] def prerelease.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def prerelease.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.string
 
 class prerelease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -132,22 +131,22 @@ structure FeatureSpec [FfiSyntax] where
   LockToDefault' : Bool
   PreRelease' : prerelease
 
-instance FeatureSpec.zero_val [FfiSyntax] : ZeroVal FeatureSpec :=
+noncomputable instance FeatureSpec.zero_val [FfiSyntax] : ZeroVal FeatureSpec :=
   ⟨FeatureSpec.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def FeatureSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FeatureSpec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Default" go.bool),
 (go.field_decl.FieldDecl go!"LockToDefault" go.bool),
 (go.field_decl.FieldDecl go!"PreRelease" prerelease.ty)]
 
-@[irreducible] def FeatureSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FeatureSpec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   FeatureSpec.fieldsUnsealed
 
-instance equals_unfold_FeatureSpec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FeatureSpec [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold FeatureSpec.fields FeatureSpec.fieldsUnsealed :=
   ⟨by unfold FeatureSpec.fields; rfl⟩
 
-@[reducible] def FeatureSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FeatureSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FeatureSpec.fields)
 
 class FeatureSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -171,7 +170,7 @@ attribute [instance] FeatureSpec.TypeAssumptions.type_repr
 
 abbrev FeatureGate [FfiSyntax] : Type := GoInterface
 
-@[reducible] def FeatureGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FeatureGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeepCopy" (go.signature.Signature [] false [MutableFeatureGate.ty])), (go.InterfaceElem.MethodElem go!"Enabled" (go.signature.Signature [Feature.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"KnownFeatures" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string]))])
 
 class FeatureGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

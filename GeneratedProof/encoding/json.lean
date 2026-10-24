@@ -8,9 +8,8 @@ public import Code.encoding.json
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance UnmarshalTypeError_typed_pointsto :
+noncomputable instance UnmarshalTypeError_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.UnmarshalTypeError :=
   sorry -- axiomatized type
 
-instance UnmarshalTypeError_into_val_typed :
+noncomputable instance UnmarshalTypeError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.UnmarshalTypeError encoding.json.UnmarshalTypeError.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance UnmarshalFieldError_typed_pointsto :
+noncomputable instance UnmarshalFieldError_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.UnmarshalFieldError :=
   sorry -- axiomatized type
 
-instance UnmarshalFieldError_into_val_typed :
+noncomputable instance UnmarshalFieldError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.UnmarshalFieldError encoding.json.UnmarshalFieldError.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance InvalidUnmarshalError_typed_pointsto :
+noncomputable instance InvalidUnmarshalError_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.InvalidUnmarshalError :=
   sorry -- axiomatized type
 
-instance InvalidUnmarshalError_into_val_typed :
+noncomputable instance InvalidUnmarshalError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.InvalidUnmarshalError encoding.json.InvalidUnmarshalError.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance UnsupportedTypeError_typed_pointsto :
+noncomputable instance UnsupportedTypeError_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.UnsupportedTypeError :=
   sorry -- axiomatized type
 
-instance UnsupportedTypeError_into_val_typed :
+noncomputable instance UnsupportedTypeError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.UnsupportedTypeError encoding.json.UnsupportedTypeError.underlying :=
   sorry -- axiomatized type
 
@@ -101,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance UnsupportedValueError_typed_pointsto :
+noncomputable instance UnsupportedValueError_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.UnsupportedValueError :=
   sorry -- axiomatized type
 
-instance UnsupportedValueError_into_val_typed :
+noncomputable instance UnsupportedValueError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.UnsupportedValueError encoding.json.UnsupportedValueError.underlying :=
   sorry -- axiomatized type
 
@@ -120,7 +119,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance InvalidUTF8Error_typed_pointsto :
+noncomputable instance InvalidUTF8Error_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.InvalidUTF8Error where
   typedPointstoDef l v dq := iprop(
     "S" ∷ typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) v.S' dq ∗
@@ -129,11 +128,11 @@ instance InvalidUTF8Error_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance InvalidUTF8Error_into_val_typed :
+noncomputable instance InvalidUTF8Error_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.InvalidUTF8Error encoding.json.InvalidUTF8Error.underlying := by
   solve_into_val_typed_struct
 
-instance InvalidUTF8Error_access_load_S (l : Loc) (v : encoding.json.InvalidUTF8Error) (dq : DFrac) :
+noncomputable instance InvalidUTF8Error_access_load_S (l : Loc) (v : encoding.json.InvalidUTF8Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) v.S' dq)
       (typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) v.S' dq)
@@ -141,7 +140,7 @@ instance InvalidUTF8Error_access_load_S (l : Loc) (v : encoding.json.InvalidUTF8
  by
   solve_pointsto_access_struct
 
-instance InvalidUTF8Error_access_store_S (l : Loc) (v : encoding.json.InvalidUTF8Error) (S' : GoString) :
+noncomputable instance InvalidUTF8Error_access_store_S (l : Loc) (v : encoding.json.InvalidUTF8Error) (S' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) v.S' (DFrac.own 1))
       (typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) S' (DFrac.own 1))
@@ -160,11 +159,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance MarshalerError_typed_pointsto :
+noncomputable instance MarshalerError_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.MarshalerError :=
   sorry -- axiomatized type
 
-instance MarshalerError_into_val_typed :
+noncomputable instance MarshalerError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.MarshalerError encoding.json.MarshalerError.underlying :=
   sorry -- axiomatized type
 
@@ -179,7 +178,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance SyntaxError_typed_pointsto :
+noncomputable instance SyntaxError_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.SyntaxError where
   typedPointstoDef l v dq := iprop(
     "msg" ∷ typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) v.msg' dq ∗
@@ -189,11 +188,11 @@ instance SyntaxError_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance SyntaxError_into_val_typed :
+noncomputable instance SyntaxError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.SyntaxError encoding.json.SyntaxError.underlying := by
   solve_into_val_typed_struct
 
-instance SyntaxError_access_load_msg (l : Loc) (v : encoding.json.SyntaxError) (dq : DFrac) :
+noncomputable instance SyntaxError_access_load_msg (l : Loc) (v : encoding.json.SyntaxError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) v.msg' dq)
       (typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) v.msg' dq)
@@ -201,7 +200,7 @@ instance SyntaxError_access_load_msg (l : Loc) (v : encoding.json.SyntaxError) (
  by
   solve_pointsto_access_struct
 
-instance SyntaxError_access_store_msg (l : Loc) (v : encoding.json.SyntaxError) (msg' : GoString) :
+noncomputable instance SyntaxError_access_store_msg (l : Loc) (v : encoding.json.SyntaxError) (msg' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) v.msg' (DFrac.own 1))
       (typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) msg' (DFrac.own 1))
@@ -209,7 +208,7 @@ instance SyntaxError_access_store_msg (l : Loc) (v : encoding.json.SyntaxError) 
  by
   solve_pointsto_access_struct
 
-instance SyntaxError_access_load_Offset (l : Loc) (v : encoding.json.SyntaxError) (dq : DFrac) :
+noncomputable instance SyntaxError_access_load_Offset (l : Loc) (v : encoding.json.SyntaxError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.json.SyntaxError go!"Offset" l) v.Offset' dq)
       (typedPointsto (structFieldRef encoding.json.SyntaxError go!"Offset" l) v.Offset' dq)
@@ -217,7 +216,7 @@ instance SyntaxError_access_load_Offset (l : Loc) (v : encoding.json.SyntaxError
  by
   solve_pointsto_access_struct
 
-instance SyntaxError_access_store_Offset (l : Loc) (v : encoding.json.SyntaxError) (Offset' : w64) :
+noncomputable instance SyntaxError_access_store_Offset (l : Loc) (v : encoding.json.SyntaxError) (Offset' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.json.SyntaxError go!"Offset" l) v.Offset' (DFrac.own 1))
       (typedPointsto (structFieldRef encoding.json.SyntaxError go!"Offset" l) Offset' (DFrac.own 1))
@@ -236,11 +235,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance Decoder_typed_pointsto :
+noncomputable instance Decoder_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.Decoder :=
   sorry -- axiomatized type
 
-instance Decoder_into_val_typed :
+noncomputable instance Decoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.Decoder encoding.json.Decoder.underlying :=
   sorry -- axiomatized type
 
@@ -255,11 +254,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance Encoder_typed_pointsto :
+noncomputable instance Encoder_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.Encoder :=
   sorry -- axiomatized type
 
-instance Encoder_into_val_typed :
+noncomputable instance Encoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.Encoder encoding.json.Encoder.underlying :=
   sorry -- axiomatized type
 
@@ -274,11 +273,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : encoding.json.Assumptions]
 
-instance Delim_typed_pointsto :
+noncomputable instance Delim_typed_pointsto :
     TypedPointsto (GF := GF) encoding.json.Delim :=
   sorry -- axiomatized type
 
-instance Delim_into_val_typed :
+noncomputable instance Delim_into_val_typed :
     IntoValTypedUnderlying (GF := GF) encoding.json.Delim encoding.json.Delim.underlying :=
   sorry -- axiomatized type
 

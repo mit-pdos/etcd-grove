@@ -14,30 +14,29 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm"
+noncomputable def go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm : GoString := go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm"
 end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
-def BackendGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BackendGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.BackendGetter" [])
 
 attribute [irreducible] BackendGetter.ty
 
-def alarmSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def alarmSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.alarmSet" [])
 
 attribute [irreducible] alarmSet.ty
 
-def AlarmStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AlarmStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.AlarmStore" [])
 
 attribute [irreducible] AlarmStore.ty
@@ -149,7 +148,7 @@ noncomputable def AlarmStore.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a")))) (Val #())))))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
@@ -178,7 +177,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev BackendGetter [FfiSyntax] : Type := GoInterface
 
-@[reducible] def BackendGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BackendGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Backend" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty]))])
 
 class BackendGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -188,7 +187,7 @@ attribute [instance] BackendGetter.TypeAssumptions.underlying
 
 abbrev alarmSet [FfiSyntax] : Type := GoMap
 
-@[reducible] def alarmSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def alarmSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))
 
 class alarmSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -203,23 +202,23 @@ structure AlarmStore [FfiSyntax] where
   types' : GoMap
   be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend
 
-instance AlarmStore.zero_val [FfiSyntax] : ZeroVal AlarmStore :=
+noncomputable instance AlarmStore.zero_val [FfiSyntax] : ZeroVal AlarmStore :=
   ⟨AlarmStore.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def AlarmStore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AlarmStore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"types" (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)),
 (go.field_decl.FieldDecl go!"be" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty)]
 
-@[irreducible] def AlarmStore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AlarmStore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   AlarmStore.fieldsUnsealed
 
-instance equals_unfold_AlarmStore [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AlarmStore [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold AlarmStore.fields AlarmStore.fieldsUnsealed :=
   ⟨by unfold AlarmStore.fields; rfl⟩
 
-@[reducible] def AlarmStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AlarmStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AlarmStore.fields)
 
 class AlarmStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

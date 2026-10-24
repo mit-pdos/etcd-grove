@@ -16,7 +16,10 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetK
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetRangeEnd
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ApplyWait
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthDisable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthEnable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthStatus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Backend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cluster
@@ -48,11 +51,22 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RemoveMembe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportUnreachable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestTimeout
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleAdd
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleDelete
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleGet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleGrantPermission
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RoleRevokePermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Stopping
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__StoppingNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserDelete
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserGet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserGrantRole
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserRevokeRole
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Watchable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__adjustTicks
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__apply
@@ -1079,6 +1093,14 @@ theorem EtcdServer.wp_ApplyWait :
     EtcdServer.ApplyWait.spec (GF := GF) (hG := hG) :=
   EtcdServer.ApplyWait.wp_proof
 
+theorem EtcdServer.wp_AuthDisable :
+    EtcdServer.AuthDisable.spec (GF := GF) (hG := hG) :=
+  EtcdServer.AuthDisable.wp_proof
+
+theorem EtcdServer.wp_AuthEnable :
+    EtcdServer.AuthEnable.spec (GF := GF) (hG := hG) :=
+  EtcdServer.AuthEnable.wp_proof
+
 theorem EtcdServer.wp_AuthStore :
     EtcdServer.AuthStore.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthStore.wp_proof
@@ -1086,6 +1108,10 @@ theorem EtcdServer.wp_AuthStore :
 theorem EtcdServer.wp_AuthInfoFromCtx :
     EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthInfoFromCtx.wp_proof EtcdServer.wp_AuthStore
+
+theorem EtcdServer.wp_AuthStatus :
+    EtcdServer.AuthStatus.spec (GF := GF) (hG := hG) :=
+  EtcdServer.AuthStatus.wp_proof
 
 theorem EtcdServer.wp_Backend :
     EtcdServer.Backend.spec (GF := GF) (hG := hG) :=
@@ -1282,6 +1308,30 @@ theorem EtcdServer.wp_ReportUnreachable :
 theorem EtcdServer.wp_RequestTimeout :
     EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG) :=
   EtcdServer.RequestTimeout.wp_proof config.ServerConfig.wp_ReqTimeout
+
+theorem EtcdServer.wp_RoleAdd :
+    EtcdServer.RoleAdd.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleAdd.wp_proof
+
+theorem EtcdServer.wp_RoleDelete :
+    EtcdServer.RoleDelete.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleDelete.wp_proof
+
+theorem EtcdServer.wp_RoleGet :
+    EtcdServer.RoleGet.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleGet.wp_proof
+
+theorem EtcdServer.wp_RoleGrantPermission :
+    EtcdServer.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleGrantPermission.wp_proof
+
+theorem EtcdServer.wp_RoleList :
+    EtcdServer.RoleList.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleList.wp_proof
+
+theorem EtcdServer.wp_RoleRevokePermission :
+    EtcdServer.RoleRevokePermission.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RoleRevokePermission.wp_proof
 
 theorem wait.list.wp_Register :
     wait.list.Register.spec (GF := GF) (hG := hG) :=
@@ -1510,6 +1560,26 @@ theorem wp_firstOpLease :
 theorem EtcdServer.wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) :=
   EtcdServer.Txn.wp_proof txn.wp_IsTxnReadonly traceutil.Tracer.wp_Start trace.wp_WithAttributes TxnRequest.wp_GetCompare wp_firstCompareKey «attribute».wp_String TxnRequest.wp_GetSuccess wp_firstOpKey wp_firstOpType wp_firstOpLease «attribute».wp_Int64 «attribute».wp_Int TxnRequest.wp_GetFailure «attribute».wp_Bool EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_IsTxnSerializable traceutil.Trace.wp_Step apply.wp_CheckTxnAuth txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn EtcdServer.wp_doSerialize context.wp_WithValue EtcdServer.wp_raftRequest proto.wp_Size
+
+theorem EtcdServer.wp_UserDelete :
+    EtcdServer.UserDelete.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserDelete.wp_proof
+
+theorem EtcdServer.wp_UserGet :
+    EtcdServer.UserGet.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserGet.wp_proof
+
+theorem EtcdServer.wp_UserGrantRole :
+    EtcdServer.UserGrantRole.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserGrantRole.wp_proof
+
+theorem EtcdServer.wp_UserList :
+    EtcdServer.UserList.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserList.wp_proof
+
+theorem EtcdServer.wp_UserRevokeRole :
+    EtcdServer.UserRevokeRole.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserRevokeRole.wp_proof
 
 theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=

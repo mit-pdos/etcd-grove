@@ -13,15 +13,14 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def github_com.mit_pdos.etcd_grove.examples.watchkv : GoString := go!"github.com/mit-pdos/etcd-grove/examples/watchkv"
+noncomputable def github_com.mit_pdos.etcd_grove.examples.watchkv : GoString := go!"github.com/mit-pdos/etcd-grove/examples/watchkv"
 end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.watchkv
@@ -253,7 +252,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.KV.ty)))) (Pair (Var "tried") (Var "$r0"))))))))))))
 
-instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.watchkv where
+noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.watchkv where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=

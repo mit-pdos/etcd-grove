@@ -10,40 +10,39 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def go_etcd_io.etcd.api.v3.authpb : GoString := go!"go.etcd.io/etcd/api/v3/authpb"
+noncomputable def go_etcd_io.etcd.api.v3.authpb : GoString := go!"go.etcd.io/etcd/api/v3/authpb"
 end pkg_id
 
 namespace go_etcd_io.etcd.api.v3.authpb
 
-def Permission_Type.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Permission_Type.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/authpb.Permission_Type" [])
 
 attribute [irreducible] Permission_Type.ty
 
-def UserAddOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UserAddOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/authpb.UserAddOptions" [])
 
 attribute [irreducible] UserAddOptions.ty
 
-def User.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def User.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/authpb.User" [])
 
 attribute [irreducible] User.ty
 
-def Permission.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Permission.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/authpb.Permission" [])
 
 attribute [irreducible] Permission.ty
 
-def Role.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Role.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/authpb.Role" [])
 
 attribute [irreducible] Role.ty
@@ -284,7 +283,7 @@ noncomputable def Role.GetKeyPermission.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (Val #()))))))))
 
-instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.authpb where
+noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.authpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
@@ -320,7 +319,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 
 abbrev Permission_Type [FfiSyntax] : Type := w32
 
-@[reducible] def Permission_Type.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Permission_Type.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   go.int32
 
 class Permission_Type.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -340,23 +339,23 @@ structure UserAddOptions [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance UserAddOptions.zero_val [FfiSyntax] : ZeroVal UserAddOptions :=
+noncomputable instance UserAddOptions.zero_val [FfiSyntax] : ZeroVal UserAddOptions :=
   ⟨UserAddOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def UserAddOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def UserAddOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"NoPassword" go.bool),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def UserAddOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def UserAddOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   UserAddOptions.fieldsUnsealed
 
-instance equals_unfold_UserAddOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_UserAddOptions [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold UserAddOptions.fields UserAddOptions.fieldsUnsealed :=
   ⟨by unfold UserAddOptions.fields; rfl⟩
 
-@[reducible] def UserAddOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UserAddOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType UserAddOptions.fields)
 
 class UserAddOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -394,10 +393,10 @@ structure User [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance User.zero_val [FfiSyntax] : ZeroVal User :=
+noncomputable instance User.zero_val [FfiSyntax] : ZeroVal User :=
   ⟨User.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def User.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def User.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Name" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Password" (go.GoType.SliceType go.byte)),
@@ -406,14 +405,14 @@ instance User.zero_val [FfiSyntax] : ZeroVal User :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def User.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def User.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   User.fieldsUnsealed
 
-instance equals_unfold_User [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_User [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold User.fields User.fieldsUnsealed :=
   ⟨by unfold User.fields; rfl⟩
 
-@[reducible] def User.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def User.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType User.fields)
 
 class User.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -468,10 +467,10 @@ structure Permission [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance Permission.zero_val [FfiSyntax] : ZeroVal Permission :=
+noncomputable instance Permission.zero_val [FfiSyntax] : ZeroVal Permission :=
   ⟨Permission.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Permission.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Permission.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"PermType" Permission_Type.ty),
 (go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
@@ -479,14 +478,14 @@ instance Permission.zero_val [FfiSyntax] : ZeroVal Permission :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def Permission.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Permission.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Permission.fieldsUnsealed
 
-instance equals_unfold_Permission [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Permission [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Permission.fields Permission.fieldsUnsealed :=
   ⟨by unfold Permission.fields; rfl⟩
 
-@[reducible] def Permission.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Permission.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Permission.fields)
 
 class Permission.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -534,24 +533,24 @@ structure Role [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-instance Role.zero_val [FfiSyntax] : ZeroVal Role :=
+noncomputable instance Role.zero_val [FfiSyntax] : ZeroVal Role :=
   ⟨Role.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] def Role.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Role.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Name" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"KeyPermission" (go.GoType.SliceType (go.GoType.PointerType Permission.ty))),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] def Role.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Role.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Role.fieldsUnsealed
 
-instance equals_unfold_Role [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Role [FfiSyntax] [GoGlobalContext] :
     EqualsUnfold Role.fields Role.fieldsUnsealed :=
   ⟨by unfold Role.fields; rfl⟩
 
-@[reducible] def Role.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Role.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Role.fields)
 
 class Role.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

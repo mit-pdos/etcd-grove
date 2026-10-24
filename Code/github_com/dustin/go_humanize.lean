@@ -8,20 +8,19 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def github_com.dustin.go_humanize : GoString := go!"github.com/dustin/go-humanize"
+noncomputable def github_com.dustin.go_humanize : GoString := go!"github.com/dustin/go-humanize"
 end pkg_id
 
 namespace github_com.dustin.go_humanize
 
-def RelTimeMagnitude.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RelTimeMagnitude.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/dustin/go-humanize.RelTimeMagnitude" [])
 
 attribute [irreducible] RelTimeMagnitude.ty
@@ -360,7 +359,7 @@ noncomputable def RelTime [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def CustomRelTime [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.CustomRelTime"
 
-instance info' : PkgInfo pkg_id.github_com.dustin.go_humanize where
+noncomputable instance info' : PkgInfo pkg_id.github_com.dustin.go_humanize where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

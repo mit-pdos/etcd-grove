@@ -8,9 +8,8 @@ public import Code.net
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,11 +24,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance ipAttr_typed_pointsto :
+noncomputable instance ipAttr_typed_pointsto :
     TypedPointsto (GF := GF) net.ipAttr :=
   sorry -- axiomatized type
 
-instance ipAttr_into_val_typed :
+noncomputable instance ipAttr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.ipAttr net.ipAttr.underlying :=
   sorry -- axiomatized type
 
@@ -44,11 +43,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance byRFC6724Info_typed_pointsto :
+noncomputable instance byRFC6724Info_typed_pointsto :
     TypedPointsto (GF := GF) net.byRFC6724Info :=
   sorry -- axiomatized type
 
-instance byRFC6724Info_into_val_typed :
+noncomputable instance byRFC6724Info_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.byRFC6724Info net.byRFC6724Info.underlying :=
   sorry -- axiomatized type
 
@@ -63,11 +62,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance policyTableEntry_typed_pointsto :
+noncomputable instance policyTableEntry_typed_pointsto :
     TypedPointsto (GF := GF) net.policyTableEntry :=
   sorry -- axiomatized type
 
-instance policyTableEntry_into_val_typed :
+noncomputable instance policyTableEntry_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.policyTableEntry net.policyTableEntry.underlying :=
   sorry -- axiomatized type
 
@@ -82,11 +81,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance policyTable_typed_pointsto :
+noncomputable instance policyTable_typed_pointsto :
     TypedPointsto (GF := GF) net.policyTable :=
   sorry -- axiomatized type
 
-instance policyTable_into_val_typed :
+noncomputable instance policyTable_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.policyTable net.policyTable.underlying :=
   sorry -- axiomatized type
 
@@ -101,11 +100,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance scope_typed_pointsto :
+noncomputable instance scope_typed_pointsto :
     TypedPointsto (GF := GF) net.scope :=
   sorry -- axiomatized type
 
-instance scope_into_val_typed :
+noncomputable instance scope_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.scope net.scope.underlying :=
   sorry -- axiomatized type
 
@@ -120,11 +119,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance addrinfoErrno_typed_pointsto :
+noncomputable instance addrinfoErrno_typed_pointsto :
     TypedPointsto (GF := GF) net.addrinfoErrno :=
   sorry -- axiomatized type
 
-instance addrinfoErrno_into_val_typed :
+noncomputable instance addrinfoErrno_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.addrinfoErrno net.addrinfoErrno.underlying :=
   sorry -- axiomatized type
 
@@ -139,11 +138,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance conf_typed_pointsto :
+noncomputable instance conf_typed_pointsto :
     TypedPointsto (GF := GF) net.conf :=
   sorry -- axiomatized type
 
-instance conf_into_val_typed :
+noncomputable instance conf_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.conf net.conf.underlying :=
   sorry -- axiomatized type
 
@@ -158,11 +157,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance mdnsTest_typed_pointsto :
+noncomputable instance mdnsTest_typed_pointsto :
     TypedPointsto (GF := GF) net.mdnsTest :=
   sorry -- axiomatized type
 
-instance mdnsTest_into_val_typed :
+noncomputable instance mdnsTest_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.mdnsTest net.mdnsTest.underlying :=
   sorry -- axiomatized type
 
@@ -177,11 +176,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance mptcpStatusDial_typed_pointsto :
+noncomputable instance mptcpStatusDial_typed_pointsto :
     TypedPointsto (GF := GF) net.mptcpStatusDial :=
   sorry -- axiomatized type
 
-instance mptcpStatusDial_into_val_typed :
+noncomputable instance mptcpStatusDial_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.mptcpStatusDial net.mptcpStatusDial.underlying :=
   sorry -- axiomatized type
 
@@ -196,11 +195,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance mptcpStatusListen_typed_pointsto :
+noncomputable instance mptcpStatusListen_typed_pointsto :
     TypedPointsto (GF := GF) net.mptcpStatusListen :=
   sorry -- axiomatized type
 
-instance mptcpStatusListen_into_val_typed :
+noncomputable instance mptcpStatusListen_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.mptcpStatusListen net.mptcpStatusListen.underlying :=
   sorry -- axiomatized type
 
@@ -215,11 +214,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance Dialer_typed_pointsto :
+noncomputable instance Dialer_typed_pointsto :
     TypedPointsto (GF := GF) net.Dialer :=
   sorry -- axiomatized type
 
-instance Dialer_into_val_typed :
+noncomputable instance Dialer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.Dialer net.Dialer.underlying :=
   sorry -- axiomatized type
 
@@ -234,11 +233,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance sysDialer_typed_pointsto :
+noncomputable instance sysDialer_typed_pointsto :
     TypedPointsto (GF := GF) net.sysDialer :=
   sorry -- axiomatized type
 
-instance sysDialer_into_val_typed :
+noncomputable instance sysDialer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.sysDialer net.sysDialer.underlying :=
   sorry -- axiomatized type
 
@@ -253,11 +252,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance ListenConfig_typed_pointsto :
+noncomputable instance ListenConfig_typed_pointsto :
     TypedPointsto (GF := GF) net.ListenConfig :=
   sorry -- axiomatized type
 
-instance ListenConfig_into_val_typed :
+noncomputable instance ListenConfig_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.ListenConfig net.ListenConfig.underlying :=
   sorry -- axiomatized type
 
@@ -272,11 +271,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance sysListener_typed_pointsto :
+noncomputable instance sysListener_typed_pointsto :
     TypedPointsto (GF := GF) net.sysListener :=
   sorry -- axiomatized type
 
-instance sysListener_into_val_typed :
+noncomputable instance sysListener_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.sysListener net.sysListener.underlying :=
   sorry -- axiomatized type
 
@@ -291,11 +290,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance SRV_typed_pointsto :
+noncomputable instance SRV_typed_pointsto :
     TypedPointsto (GF := GF) net.SRV :=
   sorry -- axiomatized type
 
-instance SRV_into_val_typed :
+noncomputable instance SRV_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.SRV net.SRV.underlying :=
   sorry -- axiomatized type
 
@@ -310,11 +309,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance byPriorityWeight_typed_pointsto :
+noncomputable instance byPriorityWeight_typed_pointsto :
     TypedPointsto (GF := GF) net.byPriorityWeight :=
   sorry -- axiomatized type
 
-instance byPriorityWeight_into_val_typed :
+noncomputable instance byPriorityWeight_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.byPriorityWeight net.byPriorityWeight.underlying :=
   sorry -- axiomatized type
 
@@ -329,11 +328,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance MX_typed_pointsto :
+noncomputable instance MX_typed_pointsto :
     TypedPointsto (GF := GF) net.MX :=
   sorry -- axiomatized type
 
-instance MX_into_val_typed :
+noncomputable instance MX_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.MX net.MX.underlying :=
   sorry -- axiomatized type
 
@@ -348,11 +347,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance byPref_typed_pointsto :
+noncomputable instance byPref_typed_pointsto :
     TypedPointsto (GF := GF) net.byPref :=
   sorry -- axiomatized type
 
-instance byPref_into_val_typed :
+noncomputable instance byPref_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.byPref net.byPref.underlying :=
   sorry -- axiomatized type
 
@@ -367,11 +366,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance NS_typed_pointsto :
+noncomputable instance NS_typed_pointsto :
     TypedPointsto (GF := GF) net.NS :=
   sorry -- axiomatized type
 
-instance NS_into_val_typed :
+noncomputable instance NS_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.NS net.NS.underlying :=
   sorry -- axiomatized type
 
@@ -386,11 +385,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance resolverConfig_typed_pointsto :
+noncomputable instance resolverConfig_typed_pointsto :
     TypedPointsto (GF := GF) net.resolverConfig :=
   sorry -- axiomatized type
 
-instance resolverConfig_into_val_typed :
+noncomputable instance resolverConfig_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.resolverConfig net.resolverConfig.underlying :=
   sorry -- axiomatized type
 
@@ -405,11 +404,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance hostLookupOrder_typed_pointsto :
+noncomputable instance hostLookupOrder_typed_pointsto :
     TypedPointsto (GF := GF) net.hostLookupOrder :=
   sorry -- axiomatized type
 
-instance hostLookupOrder_into_val_typed :
+noncomputable instance hostLookupOrder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.hostLookupOrder net.hostLookupOrder.underlying :=
   sorry -- axiomatized type
 
@@ -424,11 +423,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance dnsConfig_typed_pointsto :
+noncomputable instance dnsConfig_typed_pointsto :
     TypedPointsto (GF := GF) net.dnsConfig :=
   sorry -- axiomatized type
 
-instance dnsConfig_into_val_typed :
+noncomputable instance dnsConfig_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.dnsConfig net.dnsConfig.underlying :=
   sorry -- axiomatized type
 
@@ -443,11 +442,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance netFD_typed_pointsto :
+noncomputable instance netFD_typed_pointsto :
     TypedPointsto (GF := GF) net.netFD :=
   sorry -- axiomatized type
 
-instance netFD_into_val_typed :
+noncomputable instance netFD_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.netFD net.netFD.underlying :=
   sorry -- axiomatized type
 
@@ -462,11 +461,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance fileAddr_typed_pointsto :
+noncomputable instance fileAddr_typed_pointsto :
     TypedPointsto (GF := GF) net.fileAddr :=
   sorry -- axiomatized type
 
-instance fileAddr_into_val_typed :
+noncomputable instance fileAddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.fileAddr net.fileAddr.underlying :=
   sorry -- axiomatized type
 
@@ -481,11 +480,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance byName_typed_pointsto :
+noncomputable instance byName_typed_pointsto :
     TypedPointsto (GF := GF) net.byName :=
   sorry -- axiomatized type
 
-instance byName_into_val_typed :
+noncomputable instance byName_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.byName net.byName.underlying :=
   sorry -- axiomatized type
 
@@ -500,11 +499,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance Interface_typed_pointsto :
+noncomputable instance Interface_typed_pointsto :
     TypedPointsto (GF := GF) net.Interface :=
   sorry -- axiomatized type
 
-instance Interface_into_val_typed :
+noncomputable instance Interface_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.Interface net.Interface.underlying :=
   sorry -- axiomatized type
 
@@ -519,11 +518,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance Flags_typed_pointsto :
+noncomputable instance Flags_typed_pointsto :
     TypedPointsto (GF := GF) net.Flags :=
   sorry -- axiomatized type
 
-instance Flags_into_val_typed :
+noncomputable instance Flags_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.Flags net.Flags.underlying :=
   sorry -- axiomatized type
 
@@ -538,11 +537,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance ipv6ZoneCache_typed_pointsto :
+noncomputable instance ipv6ZoneCache_typed_pointsto :
     TypedPointsto (GF := GF) net.ipv6ZoneCache :=
   sorry -- axiomatized type
 
-instance ipv6ZoneCache_into_val_typed :
+noncomputable instance ipv6ZoneCache_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.ipv6ZoneCache net.ipv6ZoneCache.underlying :=
   sorry -- axiomatized type
 
@@ -557,11 +556,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance IP_typed_pointsto :
+noncomputable instance IP_typed_pointsto :
     TypedPointsto (GF := GF) net.IP :=
   sorry -- axiomatized type
 
-instance IP_into_val_typed :
+noncomputable instance IP_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.IP net.IP.underlying :=
   sorry -- axiomatized type
 
@@ -576,11 +575,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance IPMask_typed_pointsto :
+noncomputable instance IPMask_typed_pointsto :
     TypedPointsto (GF := GF) net.IPMask :=
   sorry -- axiomatized type
 
-instance IPMask_into_val_typed :
+noncomputable instance IPMask_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.IPMask net.IPMask.underlying :=
   sorry -- axiomatized type
 
@@ -595,11 +594,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance IPNet_typed_pointsto :
+noncomputable instance IPNet_typed_pointsto :
     TypedPointsto (GF := GF) net.IPNet :=
   sorry -- axiomatized type
 
-instance IPNet_into_val_typed :
+noncomputable instance IPNet_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.IPNet net.IPNet.underlying :=
   sorry -- axiomatized type
 
@@ -614,11 +613,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance IPAddr_typed_pointsto :
+noncomputable instance IPAddr_typed_pointsto :
     TypedPointsto (GF := GF) net.IPAddr :=
   sorry -- axiomatized type
 
-instance IPAddr_into_val_typed :
+noncomputable instance IPAddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.IPAddr net.IPAddr.underlying :=
   sorry -- axiomatized type
 
@@ -633,11 +632,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance IPConn_typed_pointsto :
+noncomputable instance IPConn_typed_pointsto :
     TypedPointsto (GF := GF) net.IPConn :=
   sorry -- axiomatized type
 
-instance IPConn_into_val_typed :
+noncomputable instance IPConn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.IPConn net.IPConn.underlying :=
   sorry -- axiomatized type
 
@@ -652,11 +651,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance ipStackCapabilities_typed_pointsto :
+noncomputable instance ipStackCapabilities_typed_pointsto :
     TypedPointsto (GF := GF) net.ipStackCapabilities :=
   sorry -- axiomatized type
 
-instance ipStackCapabilities_into_val_typed :
+noncomputable instance ipStackCapabilities_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.ipStackCapabilities net.ipStackCapabilities.underlying :=
   sorry -- axiomatized type
 
@@ -671,11 +670,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance addrList_typed_pointsto :
+noncomputable instance addrList_typed_pointsto :
     TypedPointsto (GF := GF) net.addrList :=
   sorry -- axiomatized type
 
-instance addrList_into_val_typed :
+noncomputable instance addrList_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.addrList net.addrList.underlying :=
   sorry -- axiomatized type
 
@@ -690,11 +689,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance Resolver_typed_pointsto :
+noncomputable instance Resolver_typed_pointsto :
     TypedPointsto (GF := GF) net.Resolver :=
   sorry -- axiomatized type
 
-instance Resolver_into_val_typed :
+noncomputable instance Resolver_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.Resolver net.Resolver.underlying :=
   sorry -- axiomatized type
 
@@ -709,11 +708,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance onlyValuesCtx_typed_pointsto :
+noncomputable instance onlyValuesCtx_typed_pointsto :
     TypedPointsto (GF := GF) net.onlyValuesCtx :=
   sorry -- axiomatized type
 
-instance onlyValuesCtx_into_val_typed :
+noncomputable instance onlyValuesCtx_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.onlyValuesCtx net.onlyValuesCtx.underlying :=
   sorry -- axiomatized type
 
@@ -728,11 +727,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance HardwareAddr_typed_pointsto :
+noncomputable instance HardwareAddr_typed_pointsto :
     TypedPointsto (GF := GF) net.HardwareAddr :=
   sorry -- axiomatized type
 
-instance HardwareAddr_into_val_typed :
+noncomputable instance HardwareAddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.HardwareAddr net.HardwareAddr.underlying :=
   sorry -- axiomatized type
 
@@ -747,11 +746,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance Conn_typed_pointsto :
+noncomputable instance Conn_typed_pointsto :
     TypedPointsto (GF := GF) net.Conn :=
   sorry -- axiomatized type
 
-instance Conn_into_val_typed :
+noncomputable instance Conn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.Conn net.Conn.underlying :=
   sorry -- axiomatized type
 
@@ -766,11 +765,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance conn_typed_pointsto :
+noncomputable instance conn_typed_pointsto :
     TypedPointsto (GF := GF) net.conn :=
   sorry -- axiomatized type
 
-instance conn_into_val_typed :
+noncomputable instance conn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.conn net.conn.underlying :=
   sorry -- axiomatized type
 
@@ -785,11 +784,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance PacketConn_typed_pointsto :
+noncomputable instance PacketConn_typed_pointsto :
     TypedPointsto (GF := GF) net.PacketConn :=
   sorry -- axiomatized type
 
-instance PacketConn_into_val_typed :
+noncomputable instance PacketConn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.PacketConn net.PacketConn.underlying :=
   sorry -- axiomatized type
 
@@ -804,11 +803,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance Error_typed_pointsto :
+noncomputable instance Error_typed_pointsto :
     TypedPointsto (GF := GF) net.Error :=
   sorry -- axiomatized type
 
-instance Error_into_val_typed :
+noncomputable instance Error_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.Error net.Error.underlying :=
   sorry -- axiomatized type
 
@@ -823,11 +822,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance canceledError_typed_pointsto :
+noncomputable instance canceledError_typed_pointsto :
     TypedPointsto (GF := GF) net.canceledError :=
   sorry -- axiomatized type
 
-instance canceledError_into_val_typed :
+noncomputable instance canceledError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.canceledError net.canceledError.underlying :=
   sorry -- axiomatized type
 
@@ -842,11 +841,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance OpError_typed_pointsto :
+noncomputable instance OpError_typed_pointsto :
     TypedPointsto (GF := GF) net.OpError :=
   sorry -- axiomatized type
 
-instance OpError_into_val_typed :
+noncomputable instance OpError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.OpError net.OpError.underlying :=
   sorry -- axiomatized type
 
@@ -861,11 +860,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance timeout_typed_pointsto :
+noncomputable instance timeout_typed_pointsto :
     TypedPointsto (GF := GF) net.timeout :=
   sorry -- axiomatized type
 
-instance timeout_into_val_typed :
+noncomputable instance timeout_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.timeout net.timeout.underlying :=
   sorry -- axiomatized type
 
@@ -880,11 +879,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance temporary_typed_pointsto :
+noncomputable instance temporary_typed_pointsto :
     TypedPointsto (GF := GF) net.temporary :=
   sorry -- axiomatized type
 
-instance temporary_into_val_typed :
+noncomputable instance temporary_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.temporary net.temporary.underlying :=
   sorry -- axiomatized type
 
@@ -899,11 +898,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance ParseError_typed_pointsto :
+noncomputable instance ParseError_typed_pointsto :
     TypedPointsto (GF := GF) net.ParseError :=
   sorry -- axiomatized type
 
-instance ParseError_into_val_typed :
+noncomputable instance ParseError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.ParseError net.ParseError.underlying :=
   sorry -- axiomatized type
 
@@ -918,11 +917,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance AddrError_typed_pointsto :
+noncomputable instance AddrError_typed_pointsto :
     TypedPointsto (GF := GF) net.AddrError :=
   sorry -- axiomatized type
 
-instance AddrError_into_val_typed :
+noncomputable instance AddrError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.AddrError net.AddrError.underlying :=
   sorry -- axiomatized type
 
@@ -937,11 +936,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance UnknownNetworkError_typed_pointsto :
+noncomputable instance UnknownNetworkError_typed_pointsto :
     TypedPointsto (GF := GF) net.UnknownNetworkError :=
   sorry -- axiomatized type
 
-instance UnknownNetworkError_into_val_typed :
+noncomputable instance UnknownNetworkError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.UnknownNetworkError net.UnknownNetworkError.underlying :=
   sorry -- axiomatized type
 
@@ -956,11 +955,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance InvalidAddrError_typed_pointsto :
+noncomputable instance InvalidAddrError_typed_pointsto :
     TypedPointsto (GF := GF) net.InvalidAddrError :=
   sorry -- axiomatized type
 
-instance InvalidAddrError_into_val_typed :
+noncomputable instance InvalidAddrError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.InvalidAddrError net.InvalidAddrError.underlying :=
   sorry -- axiomatized type
 
@@ -975,11 +974,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance timeoutError_typed_pointsto :
+noncomputable instance timeoutError_typed_pointsto :
     TypedPointsto (GF := GF) net.timeoutError :=
   sorry -- axiomatized type
 
-instance timeoutError_into_val_typed :
+noncomputable instance timeoutError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.timeoutError net.timeoutError.underlying :=
   sorry -- axiomatized type
 
@@ -994,11 +993,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance DNSConfigError_typed_pointsto :
+noncomputable instance DNSConfigError_typed_pointsto :
     TypedPointsto (GF := GF) net.DNSConfigError :=
   sorry -- axiomatized type
 
-instance DNSConfigError_into_val_typed :
+noncomputable instance DNSConfigError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.DNSConfigError net.DNSConfigError.underlying :=
   sorry -- axiomatized type
 
@@ -1013,11 +1012,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance notFoundError_typed_pointsto :
+noncomputable instance notFoundError_typed_pointsto :
     TypedPointsto (GF := GF) net.notFoundError :=
   sorry -- axiomatized type
 
-instance notFoundError_into_val_typed :
+noncomputable instance notFoundError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.notFoundError net.notFoundError.underlying :=
   sorry -- axiomatized type
 
@@ -1032,11 +1031,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance temporaryError_typed_pointsto :
+noncomputable instance temporaryError_typed_pointsto :
     TypedPointsto (GF := GF) net.temporaryError :=
   sorry -- axiomatized type
 
-instance temporaryError_into_val_typed :
+noncomputable instance temporaryError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.temporaryError net.temporaryError.underlying :=
   sorry -- axiomatized type
 
@@ -1051,11 +1050,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance DNSError_typed_pointsto :
+noncomputable instance DNSError_typed_pointsto :
     TypedPointsto (GF := GF) net.DNSError :=
   sorry -- axiomatized type
 
-instance DNSError_into_val_typed :
+noncomputable instance DNSError_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.DNSError net.DNSError.underlying :=
   sorry -- axiomatized type
 
@@ -1070,11 +1069,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance noReadFrom_typed_pointsto :
+noncomputable instance noReadFrom_typed_pointsto :
     TypedPointsto (GF := GF) net.noReadFrom :=
   sorry -- axiomatized type
 
-instance noReadFrom_into_val_typed :
+noncomputable instance noReadFrom_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.noReadFrom net.noReadFrom.underlying :=
   sorry -- axiomatized type
 
@@ -1089,11 +1088,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance tcpConnWithoutReadFrom_typed_pointsto :
+noncomputable instance tcpConnWithoutReadFrom_typed_pointsto :
     TypedPointsto (GF := GF) net.tcpConnWithoutReadFrom :=
   sorry -- axiomatized type
 
-instance tcpConnWithoutReadFrom_into_val_typed :
+noncomputable instance tcpConnWithoutReadFrom_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.tcpConnWithoutReadFrom net.tcpConnWithoutReadFrom.underlying :=
   sorry -- axiomatized type
 
@@ -1108,11 +1107,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance noWriteTo_typed_pointsto :
+noncomputable instance noWriteTo_typed_pointsto :
     TypedPointsto (GF := GF) net.noWriteTo :=
   sorry -- axiomatized type
 
-instance noWriteTo_into_val_typed :
+noncomputable instance noWriteTo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.noWriteTo net.noWriteTo.underlying :=
   sorry -- axiomatized type
 
@@ -1127,11 +1126,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance tcpConnWithoutWriteTo_typed_pointsto :
+noncomputable instance tcpConnWithoutWriteTo_typed_pointsto :
     TypedPointsto (GF := GF) net.tcpConnWithoutWriteTo :=
   sorry -- axiomatized type
 
-instance tcpConnWithoutWriteTo_into_val_typed :
+noncomputable instance tcpConnWithoutWriteTo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.tcpConnWithoutWriteTo net.tcpConnWithoutWriteTo.underlying :=
   sorry -- axiomatized type
 
@@ -1146,11 +1145,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance buffersWriter_typed_pointsto :
+noncomputable instance buffersWriter_typed_pointsto :
     TypedPointsto (GF := GF) net.buffersWriter :=
   sorry -- axiomatized type
 
-instance buffersWriter_into_val_typed :
+noncomputable instance buffersWriter_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.buffersWriter net.buffersWriter.underlying :=
   sorry -- axiomatized type
 
@@ -1165,11 +1164,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance Buffers_typed_pointsto :
+noncomputable instance Buffers_typed_pointsto :
     TypedPointsto (GF := GF) net.Buffers :=
   sorry -- axiomatized type
 
-instance Buffers_into_val_typed :
+noncomputable instance Buffers_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.Buffers net.Buffers.underlying :=
   sorry -- axiomatized type
 
@@ -1184,11 +1183,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance nsswitchConfig_typed_pointsto :
+noncomputable instance nsswitchConfig_typed_pointsto :
     TypedPointsto (GF := GF) net.nsswitchConfig :=
   sorry -- axiomatized type
 
-instance nsswitchConfig_into_val_typed :
+noncomputable instance nsswitchConfig_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.nsswitchConfig net.nsswitchConfig.underlying :=
   sorry -- axiomatized type
 
@@ -1203,11 +1202,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance nssConf_typed_pointsto :
+noncomputable instance nssConf_typed_pointsto :
     TypedPointsto (GF := GF) net.nssConf :=
   sorry -- axiomatized type
 
-instance nssConf_into_val_typed :
+noncomputable instance nssConf_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.nssConf net.nssConf.underlying :=
   sorry -- axiomatized type
 
@@ -1222,11 +1221,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance nssSource_typed_pointsto :
+noncomputable instance nssSource_typed_pointsto :
     TypedPointsto (GF := GF) net.nssSource :=
   sorry -- axiomatized type
 
-instance nssSource_into_val_typed :
+noncomputable instance nssSource_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.nssSource net.nssSource.underlying :=
   sorry -- axiomatized type
 
@@ -1241,11 +1240,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance nssCriterion_typed_pointsto :
+noncomputable instance nssCriterion_typed_pointsto :
     TypedPointsto (GF := GF) net.nssCriterion :=
   sorry -- axiomatized type
 
-instance nssCriterion_into_val_typed :
+noncomputable instance nssCriterion_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.nssCriterion net.nssCriterion.underlying :=
   sorry -- axiomatized type
 
@@ -1260,11 +1259,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance file_typed_pointsto :
+noncomputable instance file_typed_pointsto :
     TypedPointsto (GF := GF) net.file :=
   sorry -- axiomatized type
 
-instance file_into_val_typed :
+noncomputable instance file_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.file net.file.underlying :=
   sorry -- axiomatized type
 
@@ -1279,11 +1278,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance pipeDeadline_typed_pointsto :
+noncomputable instance pipeDeadline_typed_pointsto :
     TypedPointsto (GF := GF) net.pipeDeadline :=
   sorry -- axiomatized type
 
-instance pipeDeadline_into_val_typed :
+noncomputable instance pipeDeadline_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.pipeDeadline net.pipeDeadline.underlying :=
   sorry -- axiomatized type
 
@@ -1298,11 +1297,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance pipeAddr_typed_pointsto :
+noncomputable instance pipeAddr_typed_pointsto :
     TypedPointsto (GF := GF) net.pipeAddr :=
   sorry -- axiomatized type
 
-instance pipeAddr_into_val_typed :
+noncomputable instance pipeAddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.pipeAddr net.pipeAddr.underlying :=
   sorry -- axiomatized type
 
@@ -1317,11 +1316,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance pipe_typed_pointsto :
+noncomputable instance pipe_typed_pointsto :
     TypedPointsto (GF := GF) net.pipe :=
   sorry -- axiomatized type
 
-instance pipe_into_val_typed :
+noncomputable instance pipe_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.pipe net.pipe.underlying :=
   sorry -- axiomatized type
 
@@ -1336,11 +1335,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance rawConn_typed_pointsto :
+noncomputable instance rawConn_typed_pointsto :
     TypedPointsto (GF := GF) net.rawConn :=
   sorry -- axiomatized type
 
-instance rawConn_into_val_typed :
+noncomputable instance rawConn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.rawConn net.rawConn.underlying :=
   sorry -- axiomatized type
 
@@ -1355,11 +1354,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance rawListener_typed_pointsto :
+noncomputable instance rawListener_typed_pointsto :
     TypedPointsto (GF := GF) net.rawListener :=
   sorry -- axiomatized type
 
-instance rawListener_into_val_typed :
+noncomputable instance rawListener_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.rawListener net.rawListener.underlying :=
   sorry -- axiomatized type
 
@@ -1374,11 +1373,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance sockaddr_typed_pointsto :
+noncomputable instance sockaddr_typed_pointsto :
     TypedPointsto (GF := GF) net.sockaddr :=
   sorry -- axiomatized type
 
-instance sockaddr_into_val_typed :
+noncomputable instance sockaddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.sockaddr net.sockaddr.underlying :=
   sorry -- axiomatized type
 
@@ -1393,11 +1392,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance TCPAddr_typed_pointsto :
+noncomputable instance TCPAddr_typed_pointsto :
     TypedPointsto (GF := GF) net.TCPAddr :=
   sorry -- axiomatized type
 
-instance TCPAddr_into_val_typed :
+noncomputable instance TCPAddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.TCPAddr net.TCPAddr.underlying :=
   sorry -- axiomatized type
 
@@ -1412,11 +1411,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance TCPConn_typed_pointsto :
+noncomputable instance TCPConn_typed_pointsto :
     TypedPointsto (GF := GF) net.TCPConn :=
   sorry -- axiomatized type
 
-instance TCPConn_into_val_typed :
+noncomputable instance TCPConn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.TCPConn net.TCPConn.underlying :=
   sorry -- axiomatized type
 
@@ -1431,11 +1430,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance KeepAliveConfig_typed_pointsto :
+noncomputable instance KeepAliveConfig_typed_pointsto :
     TypedPointsto (GF := GF) net.KeepAliveConfig :=
   sorry -- axiomatized type
 
-instance KeepAliveConfig_into_val_typed :
+noncomputable instance KeepAliveConfig_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.KeepAliveConfig net.KeepAliveConfig.underlying :=
   sorry -- axiomatized type
 
@@ -1450,11 +1449,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance TCPListener_typed_pointsto :
+noncomputable instance TCPListener_typed_pointsto :
     TypedPointsto (GF := GF) net.TCPListener :=
   sorry -- axiomatized type
 
-instance TCPListener_into_val_typed :
+noncomputable instance TCPListener_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.TCPListener net.TCPListener.underlying :=
   sorry -- axiomatized type
 
@@ -1469,11 +1468,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance UDPAddr_typed_pointsto :
+noncomputable instance UDPAddr_typed_pointsto :
     TypedPointsto (GF := GF) net.UDPAddr :=
   sorry -- axiomatized type
 
-instance UDPAddr_into_val_typed :
+noncomputable instance UDPAddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.UDPAddr net.UDPAddr.underlying :=
   sorry -- axiomatized type
 
@@ -1488,11 +1487,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance addrPortUDPAddr_typed_pointsto :
+noncomputable instance addrPortUDPAddr_typed_pointsto :
     TypedPointsto (GF := GF) net.addrPortUDPAddr :=
   sorry -- axiomatized type
 
-instance addrPortUDPAddr_into_val_typed :
+noncomputable instance addrPortUDPAddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.addrPortUDPAddr net.addrPortUDPAddr.underlying :=
   sorry -- axiomatized type
 
@@ -1507,11 +1506,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance UDPConn_typed_pointsto :
+noncomputable instance UDPConn_typed_pointsto :
     TypedPointsto (GF := GF) net.UDPConn :=
   sorry -- axiomatized type
 
-instance UDPConn_into_val_typed :
+noncomputable instance UDPConn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.UDPConn net.UDPConn.underlying :=
   sorry -- axiomatized type
 
@@ -1526,11 +1525,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance UnixAddr_typed_pointsto :
+noncomputable instance UnixAddr_typed_pointsto :
     TypedPointsto (GF := GF) net.UnixAddr :=
   sorry -- axiomatized type
 
-instance UnixAddr_into_val_typed :
+noncomputable instance UnixAddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.UnixAddr net.UnixAddr.underlying :=
   sorry -- axiomatized type
 
@@ -1545,11 +1544,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance UnixConn_typed_pointsto :
+noncomputable instance UnixConn_typed_pointsto :
     TypedPointsto (GF := GF) net.UnixConn :=
   sorry -- axiomatized type
 
-instance UnixConn_into_val_typed :
+noncomputable instance UnixConn_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.UnixConn net.UnixConn.underlying :=
   sorry -- axiomatized type
 
@@ -1564,11 +1563,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance UnixListener_typed_pointsto :
+noncomputable instance UnixListener_typed_pointsto :
     TypedPointsto (GF := GF) net.UnixListener :=
   sorry -- axiomatized type
 
-instance UnixListener_into_val_typed :
+noncomputable instance UnixListener_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.UnixListener net.UnixListener.underlying :=
   sorry -- axiomatized type
 
@@ -1583,11 +1582,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance __typed_pointsto :
+noncomputable instance __typed_pointsto :
     TypedPointsto (GF := GF) net.«_» :=
   sorry -- axiomatized type
 
-instance __into_val_typed :
+noncomputable instance __into_val_typed :
     IntoValTypedUnderlying (GF := GF) net.«_» net.«_».underlying :=
   sorry -- axiomatized type
 
@@ -1602,11 +1601,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype__GoString__typed_pointsto :
+noncomputable instance _Ctype__GoString__typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype__GoString_ :=
   sorry -- axiomatized type
 
-instance _Ctype__GoString__into_val_typed :
+noncomputable instance _Ctype__GoString__into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype__GoString_ net._Ctype__GoString_.underlying :=
   sorry -- axiomatized type
 
@@ -1621,11 +1620,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_char_typed_pointsto :
+noncomputable instance _Ctype_char_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_char :=
   sorry -- axiomatized type
 
-instance _Ctype_char_into_val_typed :
+noncomputable instance _Ctype_char_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_char net._Ctype_char.underlying :=
   sorry -- axiomatized type
 
@@ -1640,11 +1639,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_int_typed_pointsto :
+noncomputable instance _Ctype_int_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_int :=
   sorry -- axiomatized type
 
-instance _Ctype_int_into_val_typed :
+noncomputable instance _Ctype_int_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_int net._Ctype_int.underlying :=
   sorry -- axiomatized type
 
@@ -1659,11 +1658,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_long_typed_pointsto :
+noncomputable instance _Ctype_long_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_long :=
   sorry -- axiomatized type
 
-instance _Ctype_long_into_val_typed :
+noncomputable instance _Ctype_long_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_long net._Ctype_long.underlying :=
   sorry -- axiomatized type
 
@@ -1678,11 +1677,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_struct_addrinfo_typed_pointsto :
+noncomputable instance _Ctype_struct_addrinfo_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_struct_addrinfo :=
   sorry -- axiomatized type
 
-instance _Ctype_struct_addrinfo_into_val_typed :
+noncomputable instance _Ctype_struct_addrinfo_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_struct_addrinfo net._Ctype_struct_addrinfo.underlying :=
   sorry -- axiomatized type
 
@@ -1697,11 +1696,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_struct_sockaddr_typed_pointsto :
+noncomputable instance _Ctype_struct_sockaddr_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_struct_sockaddr :=
   sorry -- axiomatized type
 
-instance _Ctype_struct_sockaddr_into_val_typed :
+noncomputable instance _Ctype_struct_sockaddr_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_struct_sockaddr net._Ctype_struct_sockaddr.underlying :=
   sorry -- axiomatized type
 
@@ -1716,11 +1715,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_uchar_typed_pointsto :
+noncomputable instance _Ctype_uchar_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_uchar :=
   sorry -- axiomatized type
 
-instance _Ctype_uchar_into_val_typed :
+noncomputable instance _Ctype_uchar_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_uchar net._Ctype_uchar.underlying :=
   sorry -- axiomatized type
 
@@ -1735,11 +1734,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_uint_typed_pointsto :
+noncomputable instance _Ctype_uint_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_uint :=
   sorry -- axiomatized type
 
-instance _Ctype_uint_into_val_typed :
+noncomputable instance _Ctype_uint_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_uint net._Ctype_uint.underlying :=
   sorry -- axiomatized type
 
@@ -1754,11 +1753,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_ulong_typed_pointsto :
+noncomputable instance _Ctype_ulong_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_ulong :=
   sorry -- axiomatized type
 
-instance _Ctype_ulong_into_val_typed :
+noncomputable instance _Ctype_ulong_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_ulong net._Ctype_ulong.underlying :=
   sorry -- axiomatized type
 
@@ -1773,11 +1772,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_ushort_typed_pointsto :
+noncomputable instance _Ctype_ushort_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_ushort :=
   sorry -- axiomatized type
 
-instance _Ctype_ushort_into_val_typed :
+noncomputable instance _Ctype_ushort_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_ushort net._Ctype_ushort.underlying :=
   sorry -- axiomatized type
 
@@ -1792,11 +1791,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-instance _Ctype_void_typed_pointsto :
+noncomputable instance _Ctype_void_typed_pointsto :
     TypedPointsto (GF := GF) net._Ctype_void :=
   sorry -- axiomatized type
 
-instance _Ctype_void_into_val_typed :
+noncomputable instance _Ctype_void_into_val_typed :
     IntoValTypedUnderlying (GF := GF) net._Ctype_void net._Ctype_void.underlying :=
   sorry -- axiomatized type
 

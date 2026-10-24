@@ -8,30 +8,29 @@ public import Perennial.Golang.Defn
 set_option autoImplicit false
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 noncomputable section
 
 namespace pkg_id
-def k8s_io.component_base.tracing : GoString := go!"k8s.io/component-base/tracing"
+noncomputable def k8s_io.component_base.tracing : GoString := go!"k8s.io/component-base/tracing"
 end pkg_id
 
 namespace k8s_io.component_base.tracing
 
-def Span.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Span.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/tracing.Span" [])
 
 attribute [irreducible] Span.ty
 
-def TracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/tracing.TracerProvider" [])
 
 attribute [irreducible] TracerProvider.ty
 
-def noopTracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopTracerProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/tracing.noopTracerProvider" [])
 
 attribute [irreducible] noopTracerProvider.ty
@@ -71,7 +70,7 @@ noncomputable def WrapperFor [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Propagators [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.Propagators"
 
-instance info' : PkgInfo pkg_id.k8s_io.component_base.tracing where
+noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.tracing where
   pkgImportedPkgs := []
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val

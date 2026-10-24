@@ -841,7 +841,7 @@ loops', the right to close it). The index's names `γi` and the map `γok` are t
 theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
-    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
@@ -873,7 +873,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st }} :=
+        mvcc.wsCloser ws st γw.st ∗ auth.modeTag γw.tag M }} :=
   server_kv_watchable_of mvcc.wp_New backend.backend.wp_ConcurrentReadTx
     backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
     backend.backend.wp_Size backend.backend.wp_SizeInUse
@@ -883,7 +883,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok hcfg hrb
+    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok M hcfg hrb
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's
@@ -899,7 +899,7 @@ theorem cindex_hook_backend (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) 
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗
-      inv applyN (consInv γA) ⊢
+      inv applyN (consInv γA) ∗ applyRegd γA ⊢
       {{ backend.batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ ⌜backend.hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
@@ -922,7 +922,7 @@ theorem cindex_hookFnSpec (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗
-      inv applyN (consInv γA) ∗
+      inv applyN (consInv γA) ∗ regdOrLink γA γ ∗
       □ (∀ (v : val) (Ψ : val → IProp GF),
           WP (App (Val (ci @!! go.GoType.PointerType
             go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
@@ -953,7 +953,7 @@ theorem backend_server_hooks (γA : ApplyNames) (ci : Loc) (γ : backend.BNames)
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ regdOrLink γA γ ⊢
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b :=
   backend_server_hooks_of storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave
     backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
@@ -985,7 +985,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
         storage.isBackendHooks bh
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
             #ci⟩ lgh ∗
-        isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ backend.plHookRO d.γB f ∗
+        isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ regdOrLink γA d.γB ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         ownToks d.γB.wb (N + 2) ∗
@@ -1006,10 +1006,10 @@ theorem server_kv_backend_hooks (lg lp : Loc)
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.storeReader s γ) ∗
         txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s γ }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hspkg, #Hcpkg, #Hnh, #Hh, #Hci, #Hinv, #Hhk, #Hsz, Hv, Hncmp, Hrg,
-    Hw, Hrts, #Hlpkg, #Hlinv, Hlrd⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hspkg, #Hcpkg, #Hnh, #Hh, #Hci, #Hinv, #Hrl, #Hhk, #Hsz, Hv,
+    Hncmp, Hrg, Hw, Hrts, #Hlpkg, #Hlinv, Hlrd⟩ HΦ
   ihave #Hb := backend_server_hooks γA ci d.γB d.P (mvcc.lateW d.gx) d.be bh lgh hci hH $$
-    [$Hspkg $Hbpkg $Hsch $Hcpkg $Hh $Hnh $Hci $Hinv]
+    [$Hspkg $Hbpkg $Hsch $Hcpkg $Hh $Hnh $Hci $Hinv $Hrl]
   ihave #Hle := lease.isLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lp γl $$ [$Hlpkg $Hlinv]
   iapply (server_kv_backend lg (lease.lessorIface lp) cfg d hP γb γl

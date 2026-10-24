@@ -8,9 +8,8 @@ public import Code.k8s_io.apimachinery.pkg.runtime.schema
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
 
-instance GroupResource_typed_pointsto :
+noncomputable instance GroupResource_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupResource where
   typedPointstoDef l v dq := iprop(
     "Group" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupResource go!"Group" l) v.Group' dq ∗
@@ -35,11 +34,11 @@ instance GroupResource_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance GroupResource_into_val_typed :
+noncomputable instance GroupResource_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupResource k8s_io.apimachinery.pkg.runtime.schema.GroupResource.underlying := by
   solve_into_val_typed_struct
 
-instance GroupResource_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (dq : DFrac) :
+noncomputable instance GroupResource_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupResource go!"Group" l) v.Group' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupResource go!"Group" l) v.Group' dq)
@@ -47,7 +46,7 @@ instance GroupResource_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance GroupResource_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (Group' : GoString) :
+noncomputable instance GroupResource_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (Group' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupResource go!"Group" l) v.Group' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupResource go!"Group" l) Group' (DFrac.own 1))
@@ -55,7 +54,7 @@ instance GroupResource_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg
  by
   solve_pointsto_access_struct
 
-instance GroupResource_access_load_Resource (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (dq : DFrac) :
+noncomputable instance GroupResource_access_load_Resource (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupResource go!"Resource" l) v.Resource' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupResource go!"Resource" l) v.Resource' dq)
@@ -63,7 +62,7 @@ instance GroupResource_access_load_Resource (l : Loc) (v : k8s_io.apimachinery.p
  by
   solve_pointsto_access_struct
 
-instance GroupResource_access_store_Resource (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (Resource' : GoString) :
+noncomputable instance GroupResource_access_store_Resource (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (Resource' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupResource go!"Resource" l) v.Resource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupResource go!"Resource" l) Resource' (DFrac.own 1))
@@ -82,7 +81,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
 
-instance GroupVersionResource_typed_pointsto :
+noncomputable instance GroupVersionResource_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource where
   typedPointstoDef l v dq := iprop(
     "Group" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Group" l) v.Group' dq ∗
@@ -93,11 +92,11 @@ instance GroupVersionResource_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance GroupVersionResource_into_val_typed :
+noncomputable instance GroupVersionResource_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.underlying := by
   solve_into_val_typed_struct
 
-instance GroupVersionResource_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (dq : DFrac) :
+noncomputable instance GroupVersionResource_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Group" l) v.Group' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Group" l) v.Group' dq)
@@ -105,7 +104,7 @@ instance GroupVersionResource_access_load_Group (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-instance GroupVersionResource_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (Group' : GoString) :
+noncomputable instance GroupVersionResource_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (Group' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Group" l) v.Group' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Group" l) Group' (DFrac.own 1))
@@ -113,7 +112,7 @@ instance GroupVersionResource_access_store_Group (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-instance GroupVersionResource_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (dq : DFrac) :
+noncomputable instance GroupVersionResource_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Version" l) v.Version' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Version" l) v.Version' dq)
@@ -121,7 +120,7 @@ instance GroupVersionResource_access_load_Version (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-instance GroupVersionResource_access_store_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (Version' : GoString) :
+noncomputable instance GroupVersionResource_access_store_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (Version' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Version" l) v.Version' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Version" l) Version' (DFrac.own 1))
@@ -129,7 +128,7 @@ instance GroupVersionResource_access_store_Version (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-instance GroupVersionResource_access_load_Resource (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (dq : DFrac) :
+noncomputable instance GroupVersionResource_access_load_Resource (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Resource" l) v.Resource' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Resource" l) v.Resource' dq)
@@ -137,7 +136,7 @@ instance GroupVersionResource_access_load_Resource (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-instance GroupVersionResource_access_store_Resource (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (Resource' : GoString) :
+noncomputable instance GroupVersionResource_access_store_Resource (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource) (Resource' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Resource" l) v.Resource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource go!"Resource" l) Resource' (DFrac.own 1))
@@ -156,7 +155,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
 
-instance GroupKind_typed_pointsto :
+noncomputable instance GroupKind_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupKind where
   typedPointstoDef l v dq := iprop(
     "Group" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupKind go!"Group" l) v.Group' dq ∗
@@ -166,11 +165,11 @@ instance GroupKind_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance GroupKind_into_val_typed :
+noncomputable instance GroupKind_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupKind k8s_io.apimachinery.pkg.runtime.schema.GroupKind.underlying := by
   solve_into_val_typed_struct
 
-instance GroupKind_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupKind) (dq : DFrac) :
+noncomputable instance GroupKind_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupKind) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupKind go!"Group" l) v.Group' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupKind go!"Group" l) v.Group' dq)
@@ -178,7 +177,7 @@ instance GroupKind_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runt
  by
   solve_pointsto_access_struct
 
-instance GroupKind_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupKind) (Group' : GoString) :
+noncomputable instance GroupKind_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupKind) (Group' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupKind go!"Group" l) v.Group' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupKind go!"Group" l) Group' (DFrac.own 1))
@@ -186,7 +185,7 @@ instance GroupKind_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.run
  by
   solve_pointsto_access_struct
 
-instance GroupKind_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupKind) (dq : DFrac) :
+noncomputable instance GroupKind_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupKind) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupKind go!"Kind" l) v.Kind' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupKind go!"Kind" l) v.Kind' dq)
@@ -194,7 +193,7 @@ instance GroupKind_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runti
  by
   solve_pointsto_access_struct
 
-instance GroupKind_access_store_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupKind) (Kind' : GoString) :
+noncomputable instance GroupKind_access_store_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupKind) (Kind' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupKind go!"Kind" l) v.Kind' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupKind go!"Kind" l) Kind' (DFrac.own 1))
@@ -213,7 +212,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
 
-instance GroupVersionKind_typed_pointsto :
+noncomputable instance GroupVersionKind_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind where
   typedPointstoDef l v dq := iprop(
     "Group" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Group" l) v.Group' dq ∗
@@ -224,11 +223,11 @@ instance GroupVersionKind_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance GroupVersionKind_into_val_typed :
+noncomputable instance GroupVersionKind_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.underlying := by
   solve_into_val_typed_struct
 
-instance GroupVersionKind_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (dq : DFrac) :
+noncomputable instance GroupVersionKind_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Group" l) v.Group' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Group" l) v.Group' dq)
@@ -236,7 +235,7 @@ instance GroupVersionKind_access_load_Group (l : Loc) (v : k8s_io.apimachinery.p
  by
   solve_pointsto_access_struct
 
-instance GroupVersionKind_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (Group' : GoString) :
+noncomputable instance GroupVersionKind_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (Group' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Group" l) v.Group' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Group" l) Group' (DFrac.own 1))
@@ -244,7 +243,7 @@ instance GroupVersionKind_access_store_Group (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-instance GroupVersionKind_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (dq : DFrac) :
+noncomputable instance GroupVersionKind_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Version" l) v.Version' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Version" l) v.Version' dq)
@@ -252,7 +251,7 @@ instance GroupVersionKind_access_load_Version (l : Loc) (v : k8s_io.apimachinery
  by
   solve_pointsto_access_struct
 
-instance GroupVersionKind_access_store_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (Version' : GoString) :
+noncomputable instance GroupVersionKind_access_store_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (Version' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Version" l) v.Version' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Version" l) Version' (DFrac.own 1))
@@ -260,7 +259,7 @@ instance GroupVersionKind_access_store_Version (l : Loc) (v : k8s_io.apimachiner
  by
   solve_pointsto_access_struct
 
-instance GroupVersionKind_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (dq : DFrac) :
+noncomputable instance GroupVersionKind_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Kind" l) v.Kind' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Kind" l) v.Kind' dq)
@@ -268,7 +267,7 @@ instance GroupVersionKind_access_load_Kind (l : Loc) (v : k8s_io.apimachinery.pk
  by
   solve_pointsto_access_struct
 
-instance GroupVersionKind_access_store_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (Kind' : GoString) :
+noncomputable instance GroupVersionKind_access_store_Kind (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) (Kind' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Kind" l) v.Kind' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind go!"Kind" l) Kind' (DFrac.own 1))
@@ -287,7 +286,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
 
-instance GroupVersion_typed_pointsto :
+noncomputable instance GroupVersion_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupVersion where
   typedPointstoDef l v dq := iprop(
     "Group" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersion go!"Group" l) v.Group' dq ∗
@@ -297,11 +296,11 @@ instance GroupVersion_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance GroupVersion_into_val_typed :
+noncomputable instance GroupVersion_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.GroupVersion k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.underlying := by
   solve_into_val_typed_struct
 
-instance GroupVersion_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) (dq : DFrac) :
+noncomputable instance GroupVersion_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersion go!"Group" l) v.Group' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersion go!"Group" l) v.Group' dq)
@@ -309,7 +308,7 @@ instance GroupVersion_access_load_Group (l : Loc) (v : k8s_io.apimachinery.pkg.r
  by
   solve_pointsto_access_struct
 
-instance GroupVersion_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) (Group' : GoString) :
+noncomputable instance GroupVersion_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) (Group' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersion go!"Group" l) v.Group' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersion go!"Group" l) Group' (DFrac.own 1))
@@ -317,7 +316,7 @@ instance GroupVersion_access_store_Group (l : Loc) (v : k8s_io.apimachinery.pkg.
  by
   solve_pointsto_access_struct
 
-instance GroupVersion_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) (dq : DFrac) :
+noncomputable instance GroupVersion_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersion go!"Version" l) v.Version' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersion go!"Version" l) v.Version' dq)
@@ -325,7 +324,7 @@ instance GroupVersion_access_load_Version (l : Loc) (v : k8s_io.apimachinery.pkg
  by
   solve_pointsto_access_struct
 
-instance GroupVersion_access_store_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) (Version' : GoString) :
+noncomputable instance GroupVersion_access_store_Version (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) (Version' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersion go!"Version" l) v.Version' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.schema.GroupVersion go!"Version" l) Version' (DFrac.own 1))
@@ -344,7 +343,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
 
-instance emptyObjectKind_typed_pointsto :
+noncomputable instance emptyObjectKind_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.emptyObjectKind where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -352,7 +351,7 @@ instance emptyObjectKind_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance emptyObjectKind_into_val_typed :
+noncomputable instance emptyObjectKind_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.schema.emptyObjectKind k8s_io.apimachinery.pkg.runtime.schema.emptyObjectKind.underlying := by
   solve_into_val_typed_struct
 

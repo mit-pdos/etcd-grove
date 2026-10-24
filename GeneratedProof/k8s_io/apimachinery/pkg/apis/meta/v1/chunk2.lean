@@ -12,9 +12,8 @@ public import Code.k8s_io.apimachinery.pkg.apis.«meta».v1
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -29,7 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-instance WatchEvent_typed_pointsto :
+noncomputable instance WatchEvent_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent where
   typedPointstoDef l v dq := iprop(
     "Type'" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Type" l) v.Type' dq ∗
@@ -39,11 +38,11 @@ instance WatchEvent_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance WatchEvent_into_val_typed :
+noncomputable instance WatchEvent_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent.underlying := by
   solve_into_val_typed_struct
 
-instance WatchEvent_access_load_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (dq : DFrac) :
+noncomputable instance WatchEvent_access_load_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Type" l) v.Type' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Type" l) v.Type' dq)
@@ -51,7 +50,7 @@ instance WatchEvent_access_load_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis
  by
   solve_pointsto_access_struct
 
-instance WatchEvent_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (Type' : GoString) :
+noncomputable instance WatchEvent_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (Type' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Type" l) Type' (DFrac.own 1))
@@ -59,7 +58,7 @@ instance WatchEvent_access_store_Type (l : Loc) (v : k8s_io.apimachinery.pkg.api
  by
   solve_pointsto_access_struct
 
-instance WatchEvent_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (dq : DFrac) :
+noncomputable instance WatchEvent_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Object" l) v.Object' dq)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Object" l) v.Object' dq)
@@ -67,7 +66,7 @@ instance WatchEvent_access_load_Object (l : Loc) (v : k8s_io.apimachinery.pkg.ap
  by
   solve_pointsto_access_struct
 
-instance WatchEvent_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (Object' : k8s_io.apimachinery.pkg.runtime.RawExtension) :
+noncomputable instance WatchEvent_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (Object' : k8s_io.apimachinery.pkg.runtime.RawExtension) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Object" l) Object' (DFrac.own 1))
@@ -86,11 +85,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-instance InternalEvent_typed_pointsto :
+noncomputable instance InternalEvent_typed_pointsto :
     TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.InternalEvent :=
   sorry -- axiomatized type
 
-instance InternalEvent_into_val_typed :
+noncomputable instance InternalEvent_into_val_typed :
     IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.InternalEvent k8s_io.apimachinery.pkg.apis.«meta».v1.InternalEvent.underlying :=
   sorry -- axiomatized type
 

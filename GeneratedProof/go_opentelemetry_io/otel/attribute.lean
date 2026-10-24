@@ -8,9 +8,8 @@ public import Code.go_opentelemetry_io.otel.«attribute»
 @[expose] public section
 
 set_option autoImplicit false
-set_option linter.unusedVariables false
-set_option linter.iris.style.nameCheck false
-set_option linter.iris.dupNamespace false
+set_option linter.all false
+set_option linter.deprecated true
 
 namespace Perennial
 open Iris Iris.BI
@@ -25,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance EncoderID_typed_pointsto :
+noncomputable instance EncoderID_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».EncoderID where
   typedPointstoDef l v dq := iprop(
     "value" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».EncoderID go!"value" l) v.value' dq ∗
@@ -34,11 +33,11 @@ instance EncoderID_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance EncoderID_into_val_typed :
+noncomputable instance EncoderID_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».EncoderID go_opentelemetry_io.otel.«attribute».EncoderID.underlying := by
   solve_into_val_typed_struct
 
-instance EncoderID_access_load_value (l : Loc) (v : go_opentelemetry_io.otel.«attribute».EncoderID) (dq : DFrac) :
+noncomputable instance EncoderID_access_load_value (l : Loc) (v : go_opentelemetry_io.otel.«attribute».EncoderID) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».EncoderID go!"value" l) v.value' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».EncoderID go!"value" l) v.value' dq)
@@ -46,7 +45,7 @@ instance EncoderID_access_load_value (l : Loc) (v : go_opentelemetry_io.otel.«a
  by
   solve_pointsto_access_struct
 
-instance EncoderID_access_store_value (l : Loc) (v : go_opentelemetry_io.otel.«attribute».EncoderID) (value' : w64) :
+noncomputable instance EncoderID_access_store_value (l : Loc) (v : go_opentelemetry_io.otel.«attribute».EncoderID) (value' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».EncoderID go!"value" l) v.value' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».EncoderID go!"value" l) value' (DFrac.own 1))
@@ -65,11 +64,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance defaultAttrEncoder_typed_pointsto :
+noncomputable instance defaultAttrEncoder_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».defaultAttrEncoder :=
   sorry -- axiomatized type
 
-instance defaultAttrEncoder_into_val_typed :
+noncomputable instance defaultAttrEncoder_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».defaultAttrEncoder go_opentelemetry_io.otel.«attribute».defaultAttrEncoder.underlying :=
   sorry -- axiomatized type
 
@@ -84,11 +83,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance Hasher_typed_pointsto :
+noncomputable instance Hasher_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».Hasher :=
   sorry -- axiomatized type
 
-instance Hasher_into_val_typed :
+noncomputable instance Hasher_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».Hasher go_opentelemetry_io.otel.«attribute».Hasher.underlying :=
   sorry -- axiomatized type
 
@@ -103,7 +102,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance Iterator_typed_pointsto :
+noncomputable instance Iterator_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».Iterator where
   typedPointstoDef l v dq := iprop(
     "storage" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Iterator go!"storage" l) v.storage' dq ∗
@@ -113,11 +112,11 @@ instance Iterator_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Iterator_into_val_typed :
+noncomputable instance Iterator_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».Iterator go_opentelemetry_io.otel.«attribute».Iterator.underlying := by
   solve_into_val_typed_struct
 
-instance Iterator_access_load_storage (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Iterator) (dq : DFrac) :
+noncomputable instance Iterator_access_load_storage (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Iterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Iterator go!"storage" l) v.storage' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Iterator go!"storage" l) v.storage' dq)
@@ -125,7 +124,7 @@ instance Iterator_access_load_storage (l : Loc) (v : go_opentelemetry_io.otel.«
  by
   solve_pointsto_access_struct
 
-instance Iterator_access_store_storage (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Iterator) (storage' : Loc) :
+noncomputable instance Iterator_access_store_storage (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Iterator) (storage' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Iterator go!"storage" l) v.storage' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Iterator go!"storage" l) storage' (DFrac.own 1))
@@ -133,7 +132,7 @@ instance Iterator_access_store_storage (l : Loc) (v : go_opentelemetry_io.otel.�
  by
   solve_pointsto_access_struct
 
-instance Iterator_access_load_idx (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Iterator) (dq : DFrac) :
+noncomputable instance Iterator_access_load_idx (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Iterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Iterator go!"idx" l) v.idx' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Iterator go!"idx" l) v.idx' dq)
@@ -141,7 +140,7 @@ instance Iterator_access_load_idx (l : Loc) (v : go_opentelemetry_io.otel.«attr
  by
   solve_pointsto_access_struct
 
-instance Iterator_access_store_idx (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Iterator) (idx' : w64) :
+noncomputable instance Iterator_access_store_idx (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Iterator) (idx' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Iterator go!"idx" l) v.idx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Iterator go!"idx" l) idx' (DFrac.own 1))
@@ -160,7 +159,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance Value_typed_pointsto :
+noncomputable instance Value_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».Value where
   typedPointstoDef l v dq := iprop(
     "vtype" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"vtype" l) v.vtype' dq ∗
@@ -172,11 +171,11 @@ instance Value_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Value_into_val_typed :
+noncomputable instance Value_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».Value go_opentelemetry_io.otel.«attribute».Value.underlying := by
   solve_into_val_typed_struct
 
-instance Value_access_load_vtype (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (dq : DFrac) :
+noncomputable instance Value_access_load_vtype (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"vtype" l) v.vtype' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"vtype" l) v.vtype' dq)
@@ -184,7 +183,7 @@ instance Value_access_load_vtype (l : Loc) (v : go_opentelemetry_io.otel.«attri
  by
   solve_pointsto_access_struct
 
-instance Value_access_store_vtype (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (vtype' : go_opentelemetry_io.otel.«attribute».Type') :
+noncomputable instance Value_access_store_vtype (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (vtype' : go_opentelemetry_io.otel.«attribute».Type') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"vtype" l) v.vtype' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"vtype" l) vtype' (DFrac.own 1))
@@ -192,7 +191,7 @@ instance Value_access_store_vtype (l : Loc) (v : go_opentelemetry_io.otel.«attr
  by
   solve_pointsto_access_struct
 
-instance Value_access_load_numeric (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (dq : DFrac) :
+noncomputable instance Value_access_load_numeric (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"numeric" l) v.numeric' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"numeric" l) v.numeric' dq)
@@ -200,7 +199,7 @@ instance Value_access_load_numeric (l : Loc) (v : go_opentelemetry_io.otel.«att
  by
   solve_pointsto_access_struct
 
-instance Value_access_store_numeric (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (numeric' : w64) :
+noncomputable instance Value_access_store_numeric (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (numeric' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"numeric" l) v.numeric' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"numeric" l) numeric' (DFrac.own 1))
@@ -208,7 +207,7 @@ instance Value_access_store_numeric (l : Loc) (v : go_opentelemetry_io.otel.«at
  by
   solve_pointsto_access_struct
 
-instance Value_access_load_stringly (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (dq : DFrac) :
+noncomputable instance Value_access_load_stringly (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"stringly" l) v.stringly' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"stringly" l) v.stringly' dq)
@@ -216,7 +215,7 @@ instance Value_access_load_stringly (l : Loc) (v : go_opentelemetry_io.otel.«at
  by
   solve_pointsto_access_struct
 
-instance Value_access_store_stringly (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (stringly' : GoString) :
+noncomputable instance Value_access_store_stringly (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (stringly' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"stringly" l) v.stringly' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"stringly" l) stringly' (DFrac.own 1))
@@ -224,7 +223,7 @@ instance Value_access_store_stringly (l : Loc) (v : go_opentelemetry_io.otel.«a
  by
   solve_pointsto_access_struct
 
-instance Value_access_load_slice (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (dq : DFrac) :
+noncomputable instance Value_access_load_slice (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"slice" l) v.slice' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"slice" l) v.slice' dq)
@@ -232,7 +231,7 @@ instance Value_access_load_slice (l : Loc) (v : go_opentelemetry_io.otel.«attri
  by
   solve_pointsto_access_struct
 
-instance Value_access_store_slice (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (slice' : GoInterface) :
+noncomputable instance Value_access_store_slice (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Value) (slice' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"slice" l) v.slice' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Value go!"slice" l) slice' (DFrac.own 1))
@@ -251,7 +250,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance KeyValue_typed_pointsto :
+noncomputable instance KeyValue_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».KeyValue where
   typedPointstoDef l v dq := iprop(
     "Key" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».KeyValue go!"Key" l) v.Key' dq ∗
@@ -261,11 +260,11 @@ instance KeyValue_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance KeyValue_into_val_typed :
+noncomputable instance KeyValue_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».KeyValue go_opentelemetry_io.otel.«attribute».KeyValue.underlying := by
   solve_into_val_typed_struct
 
-instance KeyValue_access_load_Key (l : Loc) (v : go_opentelemetry_io.otel.«attribute».KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_Key (l : Loc) (v : go_opentelemetry_io.otel.«attribute».KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».KeyValue go!"Key" l) v.Key' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».KeyValue go!"Key" l) v.Key' dq)
@@ -273,7 +272,7 @@ instance KeyValue_access_load_Key (l : Loc) (v : go_opentelemetry_io.otel.«attr
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_Key (l : Loc) (v : go_opentelemetry_io.otel.«attribute».KeyValue) (Key' : go_opentelemetry_io.otel.«attribute».Key) :
+noncomputable instance KeyValue_access_store_Key (l : Loc) (v : go_opentelemetry_io.otel.«attribute».KeyValue) (Key' : go_opentelemetry_io.otel.«attribute».Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».KeyValue go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».KeyValue go!"Key" l) Key' (DFrac.own 1))
@@ -281,7 +280,7 @@ instance KeyValue_access_store_Key (l : Loc) (v : go_opentelemetry_io.otel.«att
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_load_Value (l : Loc) (v : go_opentelemetry_io.otel.«attribute».KeyValue) (dq : DFrac) :
+noncomputable instance KeyValue_access_load_Value (l : Loc) (v : go_opentelemetry_io.otel.«attribute».KeyValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».KeyValue go!"Value" l) v.Value' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».KeyValue go!"Value" l) v.Value' dq)
@@ -289,7 +288,7 @@ instance KeyValue_access_load_Value (l : Loc) (v : go_opentelemetry_io.otel.«at
  by
   solve_pointsto_access_struct
 
-instance KeyValue_access_store_Value (l : Loc) (v : go_opentelemetry_io.otel.«attribute».KeyValue) (Value' : go_opentelemetry_io.otel.«attribute».Value) :
+noncomputable instance KeyValue_access_store_Value (l : Loc) (v : go_opentelemetry_io.otel.«attribute».KeyValue) (Value' : go_opentelemetry_io.otel.«attribute».Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».KeyValue go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».KeyValue go!"Value" l) Value' (DFrac.own 1))
@@ -308,7 +307,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance oneIterator_typed_pointsto :
+noncomputable instance oneIterator_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».oneIterator where
   typedPointstoDef l v dq := iprop(
     "iter" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"iter" l) v.iter' dq ∗
@@ -319,11 +318,11 @@ instance oneIterator_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance oneIterator_into_val_typed :
+noncomputable instance oneIterator_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».oneIterator go_opentelemetry_io.otel.«attribute».oneIterator.underlying := by
   solve_into_val_typed_struct
 
-instance oneIterator_access_load_iter (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (dq : DFrac) :
+noncomputable instance oneIterator_access_load_iter (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"iter" l) v.iter' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"iter" l) v.iter' dq)
@@ -331,7 +330,7 @@ instance oneIterator_access_load_iter (l : Loc) (v : go_opentelemetry_io.otel.«
  by
   solve_pointsto_access_struct
 
-instance oneIterator_access_store_iter (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (iter' : go_opentelemetry_io.otel.«attribute».Iterator) :
+noncomputable instance oneIterator_access_store_iter (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (iter' : go_opentelemetry_io.otel.«attribute».Iterator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"iter" l) v.iter' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"iter" l) iter' (DFrac.own 1))
@@ -339,7 +338,7 @@ instance oneIterator_access_store_iter (l : Loc) (v : go_opentelemetry_io.otel.�
  by
   solve_pointsto_access_struct
 
-instance oneIterator_access_load_done (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (dq : DFrac) :
+noncomputable instance oneIterator_access_load_done (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"done" l) v.done' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"done" l) v.done' dq)
@@ -347,7 +346,7 @@ instance oneIterator_access_load_done (l : Loc) (v : go_opentelemetry_io.otel.«
  by
   solve_pointsto_access_struct
 
-instance oneIterator_access_store_done (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (done' : Bool) :
+noncomputable instance oneIterator_access_store_done (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (done' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"done" l) v.done' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"done" l) done' (DFrac.own 1))
@@ -355,7 +354,7 @@ instance oneIterator_access_store_done (l : Loc) (v : go_opentelemetry_io.otel.�
  by
   solve_pointsto_access_struct
 
-instance oneIterator_access_load_attr (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (dq : DFrac) :
+noncomputable instance oneIterator_access_load_attr (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"attr" l) v.attr' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"attr" l) v.attr' dq)
@@ -363,7 +362,7 @@ instance oneIterator_access_load_attr (l : Loc) (v : go_opentelemetry_io.otel.«
  by
   solve_pointsto_access_struct
 
-instance oneIterator_access_store_attr (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (attr' : go_opentelemetry_io.otel.«attribute».KeyValue) :
+noncomputable instance oneIterator_access_store_attr (l : Loc) (v : go_opentelemetry_io.otel.«attribute».oneIterator) (attr' : go_opentelemetry_io.otel.«attribute».KeyValue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"attr" l) v.attr' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».oneIterator go!"attr" l) attr' (DFrac.own 1))
@@ -382,7 +381,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance MergeIterator_typed_pointsto :
+noncomputable instance MergeIterator_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».MergeIterator where
   typedPointstoDef l v dq := iprop(
     "one" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"one" l) v.one' dq ∗
@@ -393,11 +392,11 @@ instance MergeIterator_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance MergeIterator_into_val_typed :
+noncomputable instance MergeIterator_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».MergeIterator go_opentelemetry_io.otel.«attribute».MergeIterator.underlying := by
   solve_into_val_typed_struct
 
-instance MergeIterator_access_load_one (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (dq : DFrac) :
+noncomputable instance MergeIterator_access_load_one (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"one" l) v.one' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"one" l) v.one' dq)
@@ -405,7 +404,7 @@ instance MergeIterator_access_load_one (l : Loc) (v : go_opentelemetry_io.otel.�
  by
   solve_pointsto_access_struct
 
-instance MergeIterator_access_store_one (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (one' : go_opentelemetry_io.otel.«attribute».oneIterator) :
+noncomputable instance MergeIterator_access_store_one (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (one' : go_opentelemetry_io.otel.«attribute».oneIterator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"one" l) v.one' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"one" l) one' (DFrac.own 1))
@@ -413,7 +412,7 @@ instance MergeIterator_access_store_one (l : Loc) (v : go_opentelemetry_io.otel.
  by
   solve_pointsto_access_struct
 
-instance MergeIterator_access_load_two (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (dq : DFrac) :
+noncomputable instance MergeIterator_access_load_two (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"two" l) v.two' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"two" l) v.two' dq)
@@ -421,7 +420,7 @@ instance MergeIterator_access_load_two (l : Loc) (v : go_opentelemetry_io.otel.�
  by
   solve_pointsto_access_struct
 
-instance MergeIterator_access_store_two (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (two' : go_opentelemetry_io.otel.«attribute».oneIterator) :
+noncomputable instance MergeIterator_access_store_two (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (two' : go_opentelemetry_io.otel.«attribute».oneIterator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"two" l) v.two' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"two" l) two' (DFrac.own 1))
@@ -429,7 +428,7 @@ instance MergeIterator_access_store_two (l : Loc) (v : go_opentelemetry_io.otel.
  by
   solve_pointsto_access_struct
 
-instance MergeIterator_access_load_current (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (dq : DFrac) :
+noncomputable instance MergeIterator_access_load_current (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"current" l) v.current' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"current" l) v.current' dq)
@@ -437,7 +436,7 @@ instance MergeIterator_access_load_current (l : Loc) (v : go_opentelemetry_io.ot
  by
   solve_pointsto_access_struct
 
-instance MergeIterator_access_store_current (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (current' : go_opentelemetry_io.otel.«attribute».KeyValue) :
+noncomputable instance MergeIterator_access_store_current (l : Loc) (v : go_opentelemetry_io.otel.«attribute».MergeIterator) (current' : go_opentelemetry_io.otel.«attribute».KeyValue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"current" l) v.current' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».MergeIterator go!"current" l) current' (DFrac.own 1))
@@ -456,7 +455,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance Set'_typed_pointsto :
+noncomputable instance Set'_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».Set' where
   typedPointstoDef l v dq := iprop(
     "hash" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Set' go!"hash" l) v.hash' dq ∗
@@ -466,11 +465,11 @@ instance Set'_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Set'_into_val_typed :
+noncomputable instance Set'_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».Set' go_opentelemetry_io.otel.«attribute».Set'.underlying := by
   solve_into_val_typed_struct
 
-instance Set'_access_load_hash (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Set') (dq : DFrac) :
+noncomputable instance Set'_access_load_hash (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Set') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Set' go!"hash" l) v.hash' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Set' go!"hash" l) v.hash' dq)
@@ -478,7 +477,7 @@ instance Set'_access_load_hash (l : Loc) (v : go_opentelemetry_io.otel.«attribu
  by
   solve_pointsto_access_struct
 
-instance Set'_access_store_hash (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Set') (hash' : w64) :
+noncomputable instance Set'_access_store_hash (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Set') (hash' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Set' go!"hash" l) v.hash' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Set' go!"hash" l) hash' (DFrac.own 1))
@@ -486,7 +485,7 @@ instance Set'_access_store_hash (l : Loc) (v : go_opentelemetry_io.otel.«attrib
  by
   solve_pointsto_access_struct
 
-instance Set'_access_load_data (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Set') (dq : DFrac) :
+noncomputable instance Set'_access_load_data (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Set') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Set' go!"data" l) v.data' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Set' go!"data" l) v.data' dq)
@@ -494,7 +493,7 @@ instance Set'_access_load_data (l : Loc) (v : go_opentelemetry_io.otel.«attribu
  by
   solve_pointsto_access_struct
 
-instance Set'_access_store_data (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Set') (data' : GoInterface) :
+noncomputable instance Set'_access_store_data (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Set') (data' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Set' go!"data" l) v.data' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Set' go!"data" l) data' (DFrac.own 1))
@@ -513,7 +512,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance Distinct_typed_pointsto :
+noncomputable instance Distinct_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».Distinct where
   typedPointstoDef l v dq := iprop(
     "hash" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Distinct go!"hash" l) v.hash' dq ∗
@@ -522,11 +521,11 @@ instance Distinct_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance Distinct_into_val_typed :
+noncomputable instance Distinct_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».Distinct go_opentelemetry_io.otel.«attribute».Distinct.underlying := by
   solve_into_val_typed_struct
 
-instance Distinct_access_load_hash (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Distinct) (dq : DFrac) :
+noncomputable instance Distinct_access_load_hash (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Distinct) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Distinct go!"hash" l) v.hash' dq)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Distinct go!"hash" l) v.hash' dq)
@@ -534,7 +533,7 @@ instance Distinct_access_load_hash (l : Loc) (v : go_opentelemetry_io.otel.«att
  by
   solve_pointsto_access_struct
 
-instance Distinct_access_store_hash (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Distinct) (hash' : w64) :
+noncomputable instance Distinct_access_store_hash (l : Loc) (v : go_opentelemetry_io.otel.«attribute».Distinct) (hash' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Distinct go!"hash" l) v.hash' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.otel.«attribute».Distinct go!"hash" l) hash' (DFrac.own 1))
@@ -553,7 +552,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_opentelemetry_io.otel.«attribute».Assumptions]
 
-instance unknownValueType_typed_pointsto :
+noncomputable instance unknownValueType_typed_pointsto :
     TypedPointsto (GF := GF) go_opentelemetry_io.otel.«attribute».unknownValueType where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
@@ -561,7 +560,7 @@ instance unknownValueType_typed_pointsto :
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance unknownValueType_into_val_typed :
+noncomputable instance unknownValueType_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.«attribute».unknownValueType go_opentelemetry_io.otel.«attribute».unknownValueType.underlying := by
   solve_into_val_typed_struct
 
