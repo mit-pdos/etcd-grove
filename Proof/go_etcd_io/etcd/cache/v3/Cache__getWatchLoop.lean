@@ -48,6 +48,9 @@ theorem Cache.getWatchLoop.wp_proof
   icases HisICtx with ⟨%ics, #Hctxi, -⟩
   ihave #Hctxi' := Hctxi
   iNamed Hctxi'
+  imod monoNatLbOwn_0 (GF := GF) γr.epoch with #Hlb0
+  ihave #Hlb0' : readyEpochLb γr 0 $$ []
+  · iunfold readyEpochLb; iexact Hlb0
   try wp_auto
   wp_apply wp_defaultConfig
   try ipersist c
@@ -71,7 +74,7 @@ theorem Cache.getWatchLoop.wp_proof
   | nil =>
   wp_auto
   -- `c.getWatch()`
-  wp_apply wp_getWatch c cf γr γd cap c1 $$ [$Hpkg $Hc $Hw $Hrun]
+  wp_apply wp_getWatch c cf γr γd cap 0 c1 $$ [$Hpkg $Hc $Hw $Hrun $Hlb0']
     as %err ⟨%Hne, #HeS, Hrun, %c2, Hw⟩
   obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
     cases err with

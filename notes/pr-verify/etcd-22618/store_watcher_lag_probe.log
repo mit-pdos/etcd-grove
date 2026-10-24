@@ -1,0 +1,8 @@
+=== RUN   TestProbeStoreWatcherLag
+    store_watcher_lag_probe_test.go:49: After stream 1 CreatedNotify: Ready()=true, store.LatestRev()=5
+    store_watcher_lag_probe_test.go:65: Stream 2 opened at rev=6 (d.minRev=7, d.maxRev=8, store.LatestRev()=5, Ready()=false)
+    store_watcher_lag_probe_test.go:75: After stream 2 CreatedNotify + ProgressNotify: Ready()=false, store.LatestRev()=5
+getWatch failed, will retry after 50ms: context canceled
+--- PASS: TestProbeStoreWatcherLag (0.03s)
+PASS
+ok  	go.etcd.io/etcd/cache/v3	1.074s

@@ -367,8 +367,8 @@ theorem Cache.watchEvents.wp_proof
     (wp_Broadcast : demux.Broadcast.spec (GF := GF) (hG := hG))
     (wp_ctxErr : EtcdGrove.context.Err.spec (GF := GF) (hG := hG)) :
     Cache.watchEvents.spec (GF := GF) (hG := hG) := by
-  intro c cf γr γd cap rev aec γa P Ws Wc ro c0
-  wp_start as ⟨#Hc, #Hae, Haec, #Honce, Hw, %Hrev, #Hrd0, #Hk0⟩
+  intro c cf γr γd cap rev aec γa P Ws Wc ro e0 c0
+  wp_start as ⟨#Hc, #Hae, Haec, #Hlb0', #Honce, Hw, %Hrev, #Hrd0, #Hk0⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -378,9 +378,6 @@ theorem Cache.watchEvents.wp_proof
   icases HisICtx with ⟨%ics, #Hctxi, #Hcci⟩
   ihave #Hctxi' := Hctxi
   iNamed Hctxi'
-  imod monoNatLbOwn_0 (GF := GF) γr.epoch with #Hlb0
-  ihave #Hlb0' : readyEpochLb γr 0 $$ []
-  · iunfold readyEpochLb; iexact Hlb0
   wp_auto
   wp_apply wp_WithPrefix as %f1 #Hf1
   wp_apply wp_WithRev rev as %f2 #Hf2
@@ -430,7 +427,8 @@ theorem Cache.watchEvents.wp_proof
       "Hcons" ∷ etcdWatchConsumer γw n k ∗ "Hw" ∷ cacheWriter cf γd cap cc ∗
       "Haec" ∷ handoffConsumer γa false ∗
       "%Hle" ∷ ⌜sint.Z (rev - W64 1) ≤ sint.Z k⌝ ∗ "#Hkc" ∷ CursorOk cf.pfx cc k ∗
-        "#Hk0c" ∷ CursorOk cf.pfx cc (rev - W64 1) : IProp GF)
+        "#Hk0c" ∷ CursorOk cf.pfx cc (rev - W64 1) ∗
+        "#Hrseen" ∷ (⌜n = 0⌝ ∨ readySeen γr e0 true) : IProp GF)
     $$ [Hcons Hw Haec]
   · iexists rev - W64 1, 0, c0
     simp only [named]
@@ -439,7 +437,9 @@ theorem Cache.watchEvents.wp_proof
     · ipureintro; exact Int.le_refl _
     isplitr
     · iexact Hk0
-    iexact Hk0
+    isplitr
+    · iexact Hk0
+    ileft; ipureintro; trivial
   wp_for HI
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone
   wp_auto_lc 2
@@ -454,7 +454,7 @@ theorem Cache.watchEvents.wp_proof
     isplit
     · iapply context.isContextDone_is_chan $$ Hdone
     iapply context.isContextDone_receive _ _ _ _ $$ Hdone
-    iintro -
+    iintro ⟨-, #Hclosed⟩
     wp_auto
     ihave #HErrU := wp_ctxErr _ _ Broadcast.Unknown $$ Hctxi
     wp_apply HErrU as %err - #HcS
@@ -464,7 +464,10 @@ theorem Cache.watchEvents.wp_proof
     iframe Hw
     isplitr
     · iexact Hk0c
-    ileft; iframe Haec; iapply errStrOk_of_ctx; iexact HcS
+    ileft; iframe Haec
+    isplitr
+    · iapply errStrOk_of_ctx; iexact HcS
+    iright; iright; iexists ics; iframe Hctxi Hclosed
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-watchCh`
@@ -489,30 +492,37 @@ theorem Cache.watchEvents.wp_proof
       iframe Hw
       isplitr
       · iexact Hk0c
-      ileft; iframe Haec; iapply errStrOk_nil
+      ileft; iframe Haec
+      isplitr
+      · iapply errStrOk_nil
+      iright; ileft; ipureintro; rfl
     simp only [↓reduceIte]
     imod H with ⟨%r, %k', #Hr, #Hok, Hcons⟩
     wp_auto
-    wp_apply sync.Once.wp_Do ro iprop(True) iprop(True) _ $$ [$Hsync $Honce]
+    wp_apply sync.Once.wp_Do ro (readyEpochLb γr e0) (readySeen γr e0 true) _ $$ [$Hsync $Honce]
+      as #Hrseen1
     · imodintro
-      iintro %Ψ - HΨ
-      wp_apply wp_Set cf.ready γr 0 $$ [$HisReady $Hlb0'] as -
+      iintro %Ψ #Hlb HΨ
+      wp_apply wp_Set cf.ready γr e0 $$ [$HisReady $Hlb] as #Hrseen0
       iapply HΨ
-      itrivial
+      iexact Hrseen0
     ihave #Hcse := watchRespOk_closeErr $$ Hok
     wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp $Hcse] as %err ⟨resp, %Herr, #HwE⟩
     cases err with
     | ok e =>
       -- `resp.Err() != nil`: reset `ready`, return the error
       wp_auto
-      wp_apply wp_Reset cf.ready γr 0 $$ [$HisReady $Hlb0'] as -
+      wp_apply wp_Reset cf.ready γr e0 $$ [$HisReady $Hlb0'] as #Hrreset
       wp_for_post
       iapply HΦ
       iexists cc
       iframe Hw
       isplitr
       · iexact Hk0c
-      ileft; iframe Haec; iapply HwE; iapply errStrOk_of_statusErrOk; iexact Hcse
+      ileft; iframe Haec
+      isplitr
+      · iapply HwE; iapply errStrOk_of_statusErrOk; iexact Hcse
+      ileft; iframe Hrseen1 Hrreset
     | nil =>
     have hnw : ¬ watchErr v := by
       have h := Herr.1 rfl
@@ -533,7 +543,7 @@ theorem Cache.watchEvents.wp_proof
       icases Hb with ⟨Hdw, %Hberr⟩
       obtain ⟨e, rfl⟩ := Hberr
       wp_auto
-      wp_apply wp_Reset cf.ready γr 0 $$ [$HisReady $Hlb0'] as -
+      wp_apply wp_Reset cf.ready γr e0 $$ [$HisReady $Hlb0'] as #Hrreset
       wp_for_post
       iapply HΦ
       iexists cc
@@ -544,7 +554,8 @@ theorem Cache.watchEvents.wp_proof
         iexists B'; iexact Hbd
       isplitr
       · iexact Hk0c
-      ileft; iframe Haec; iexact HbS
+      ileft; iframe Haec HbS
+      ileft; iframe Hrseen1 Hrreset
     | some c' =>
       have hc' : c' = updResp cap cc r := by
         unfold broadcastCore at hb
@@ -573,7 +584,9 @@ theorem Cache.watchEvents.wp_proof
       · ipureintro; exact Hle'
       isplitr
       · iexact Hkc'
-      iexact Hk0c'
+      isplitr
+      · iexact Hk0c'
+      iright; iexact Hrseen1
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-applyErr`: reset `ready`, return what was received
@@ -588,7 +601,7 @@ theorem Cache.watchEvents.wp_proof
     inext
     iintro %v %ok ⟨Haec, Hgot⟩
     wp_auto
-    wp_apply wp_Reset cf.ready γr 0 $$ [$HisReady $Hlb0'] as -
+    wp_apply wp_Reset cf.ready γr e0 $$ [$HisReady $Hlb0'] as #Hrreset
     wp_for_post
     iapply HΦ
     iexists cc
@@ -596,7 +609,7 @@ theorem Cache.watchEvents.wp_proof
     isplitr
     · iexact Hk0c
     iright
-    iframe Haec
+    iframe Haec Hrreset
     cases ok
     · simp only [handoffGot, Bool.false_eq_true, ↓reduceIte]
       icases Hgot with ⟨%Hv, HWc⟩

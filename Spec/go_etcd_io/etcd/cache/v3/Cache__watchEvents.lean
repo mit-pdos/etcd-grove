@@ -28,12 +28,14 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 `c0`, initialized by the caller's `Init(rev)`: the stream continues a watch at `rev - 1`,
 `CursorOk`): it watches the prefix from `rev > 0` (`isEtcdWatcher`: the watch starts at
 `rev - 1`) in the internal context (the watch is not canceled when it returns: an open stream
-until the cache is closed, a resource, not a correctness, matter) and, for each response, sets `ready` once (`readyOnce.Do(c.ready.Set)`), returns `resp.Err()` if it
-is not nil, and broadcasts it (`demux.Broadcast`) — certifying its batches (`respCert`: etcd's
-steps from the watch, chained from the stream's last batch through the writer's knowledge
-`TailOk`) — until the internal context is done (its error), the watch channel is closed (`nil`),
-`Broadcast` fails, or something arrives on `applyErr` (that error); `ready` is reset in the last
-three cases.
+until the cache is closed, a resource, not a correctness, matter) and, for each response, sets
+`ready` once (`readyOnce.Do(c.ready.Set)`, establishing `readySeen γr e0 true` from the caller's
+epoch lower bound `readyEpochLb γr e0`), returns `resp.Err()` if it is not nil, and broadcasts
+it (`demux.Broadcast`) — certifying its batches (`respCert`: etcd's steps from the watch,
+chained from the stream's last batch through the writer's knowledge `TailOk`) — until the
+internal context is done (its error), the watch channel is closed (`nil`), `resp.Err()` is
+non-nil, `Broadcast` fails, or something arrives on `applyErr` (that error); `ready` is reset
+(`readySeen γr e0 false`) in the last three cases.
 
 `applyErr` is a handoff channel (`isHandoff`: values `P v` and `Ws` handed over with a send, `Wc`
 with a close that follows none) of which the caller is the consumer and has taken nothing. The
@@ -45,19 +47,22 @@ response's, or `Broadcast`'s). -/
 abbrev Cache.watchEvents.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (rev : w64) (aec : Loc) (γa : HandoffNames) (P : GoError → IProp GF) (Ws Wc : IProp GF)
-    (ro : Loc) (c0 : DemuxCore),
+    (ro : Loc) (e0 : Nat) (c0 : DemuxCore),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
       isCacheFields c cf γr γd cap ∗
       isHandoff γa aec P Ws Wc ∗ handoffConsumer γa false ∗
-      sync.isOnce ro iprop(True) iprop(True) ∗
+      readyEpochLb γr e0 ∗ sync.isOnce ro (readyEpochLb γr e0) (readySeen γr e0 true) ∗
       cacheWriter cf γd cap c0 ∗ ⌜0 < sint.Z rev⌝ ∗ etcdRead (rev - W64 1) ∗
       CursorOk cf.pfx c0 (rev - W64 1) }}
     (App (App (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"watchEvents")) (Val #rev))
       (Val #aec)) (Val #ro))
   {{ (err : GoInterface), RET #err; ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 ∗
       CursorOk cf.pfx c1 (rev - W64 1) ∗
-      ((handoffConsumer γa false ∗ errStrOk err) ∨
-        (handoffConsumer γa true ∗ ((P err ∗ Ws) ∨ (⌜err = GoInterface.nil⌝ ∗ Wc)))) }}
+      ((handoffConsumer γa false ∗ errStrOk err ∗
+          ((readySeen γr e0 true ∗ readySeen γr e0 false) ∨ ⌜err = GoInterface.nil⌝ ∨
+            ∃ ics, context.isContext cf.ictx ics ∗ context.ContextClosed ics.Done_gn)) ∨
+        (handoffConsumer γa true ∗ readySeen γr e0 false ∗
+          ((P err ∗ Ws) ∨ (⌜err = GoInterface.nil⌝ ∗ Wc)))) }}
 
 end spec
 

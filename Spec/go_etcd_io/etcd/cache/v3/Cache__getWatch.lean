@@ -30,9 +30,10 @@ watch's; its `Error()` returns some string, `errStrOk`), the wait-group token an
 writer, in some state. -/
 abbrev Cache.getWatch.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
-    (c0 : DemuxCore),
+    (e0 : Nat) (c0 : DemuxCore),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgLoopRunning cf }}
+      isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgLoopRunning cf ∗
+      readyEpochLb γr e0 }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"getWatch")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∗
       cacheWgLoopRunning cf ∗ ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 }}

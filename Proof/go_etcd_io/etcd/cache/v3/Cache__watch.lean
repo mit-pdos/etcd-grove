@@ -50,8 +50,8 @@ theorem Cache.watch.wp_proof
     (wp_watchEvents : Cache.watchEvents.spec (GF := GF) (hG := hG))
     (wp_Unregister : demux.Unregister.spec (GF := GF) (hG := hG)) :
     Cache.watch.spec (GF := GF) (hG := hG) := by
-  intro c cf γr γd cap rev R c0
-  wp_start as ⟨#Hc, Hw, Hrun, #HslbR, #HrdR, %Hpre⟩
+  intro c cf γr γd cap rev R e0 c0
+  wp_start as ⟨#Hc, Hw, Hrun, #Hlb0, #HslbR, #HrdR, %Hpre⟩
   ihave #Hrd1 : etcdRead (rev - W64 1) $$ []
   · iapply etcdRead_mono R (rev - W64 1) (by obtain ⟨h1, h2⟩ := Hpre; word) $$ HrdR
   obtain ⟨hrev, hrevR⟩ := Hpre
@@ -71,7 +71,8 @@ theorem Cache.watch.wp_proof
   ihave Hi0 := initCore_ok cf.pfx cap c0 rev Hinv hrev $$ Hwo
   icases Hi0 with ⟨#Hic, #Hiw⟩
   -- `readyOnce := sync.Once{}`
-  imod sync.init_Once readyOnce_ptr iprop(True) iprop(True) ⊤ $$ [$readyOnce] with #Honce
+  imod sync.init_Once readyOnce_ptr (readyEpochLb γr e0) (readySeen γr e0 true) ⊤
+    $$ [$readyOnce $Hlb0] with #Honce
   ipersist c
   ipersist rev
   ihave HI : (∃ (cc : DemuxCore),
@@ -151,7 +152,8 @@ theorem Cache.watch.wp_proof
   -- `err := c.watchEvents(rev, applyErr, &readyOnce)`
   try wp_auto
   wp_apply wp_watchEvents c cf γr γd cap rev ch γa watchP iprop(True) iprop(True)
-    readyOnce_ptr cc $$ [$Hpkg $Hc $Hae $Hcons $Honce $Hrd1 Hcore Hh Hbd] as %err ⟨%c1, Hw, #Hc1, Hho⟩
+    readyOnce_ptr e0 cc $$ [$Hpkg $Hc $Hae $Hcons $Hlb0 $Honce $Hrd1 Hcore Hh Hbd]
+    as %err ⟨%c1, Hw, #Hc1, Hho⟩
   · unfold cacheWriter demuxWriter
     iframe Hcore Hh Hbd
     iframe Hwoc Hi
@@ -160,7 +162,7 @@ theorem Cache.watch.wp_proof
     ipureintro; exact hrev
   ihave #HeW : errStrOk err $$ [Hho]
   · iunfold watchP at Hho
-    icases Hho with (⟨-, #H⟩ | ⟨-, (⟨⟨-, #H⟩, -⟩ | ⟨%Hn, -⟩)⟩)
+    icases Hho with (⟨-, #H, -⟩ | ⟨-, -, (⟨⟨-, #H⟩, -⟩ | ⟨%Hn, -⟩)⟩)
     · iexact H
     · iexact H
     · subst Hn; iapply errStrOk_nil
