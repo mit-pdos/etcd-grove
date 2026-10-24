@@ -1,0 +1,46 @@
+=== RUN   TestCacheReadyAfterCompactionResync
+getWatch failed, will retry after 50ms: etcdserver: mvcc: required revision has been compacted
+    cache_test.go:541: cache not ready after the resync
+getWatch failed, will retry after 50ms: context canceled
+--- FAIL: TestCacheReadyAfterCompactionResync (0.00s)
+=== RUN   TestCacheReadyAfterWatchRetry
+=== RUN   TestCacheReadyAfterWatchRetry/retry_continues_from_the_last_observed_revision
+    watch_retry_test.go:74: Phase 1: initial watch from revision 10
+    watch_retry_test.go:87: Phase 2: the upstream watch fails
+getWatch failed, will retry after 50ms: rpc error: code = FailedPrecondition desc = injected failure
+    watch_retry_test.go:96: Phase 3: the watch is retried from revision 11
+    watch_retry_test.go:110: Phase 4: Cache.Watch serves the event
+getWatch failed, will retry after 50ms: context canceled
+=== RUN   TestCacheReadyAfterWatchRetry/retry_starts_past_the_last_observed_revision
+    watch_retry_test.go:74: Phase 1: initial watch from revision 10
+    watch_retry_test.go:87: Phase 2: the upstream watch fails
+getWatch failed, will retry after 50ms: rpc error: code = FailedPrecondition desc = injected failure
+    watch_retry_test.go:96: Phase 3: the watch is retried from revision 13
+    watch_retry_test.go:108: 
+        	Error Trace:	/root/etcd-pr/etcd-22618/cache/watch_retry_test.go:131
+        	            				/root/etcd-pr/etcd-22618/cache/watch_retry_test.go:108
+        	Error:      	Received unexpected error:
+        	            	context deadline exceeded
+        	Test:       	TestCacheReadyAfterWatchRetry/retry_starts_past_the_last_observed_revision
+        	Messages:   	cache not ready
+getWatch failed, will retry after 50ms: context canceled
+=== RUN   TestCacheReadyAfterWatchRetry/retry_after_a_stream_that_observed_no_events
+    watch_retry_test.go:74: Phase 1: initial watch from revision 10
+    watch_retry_test.go:87: Phase 2: the upstream watch fails
+getWatch failed, will retry after 50ms: rpc error: code = FailedPrecondition desc = injected failure
+    watch_retry_test.go:96: Phase 3: the watch is retried from revision 13
+    watch_retry_test.go:108: 
+        	Error Trace:	/root/etcd-pr/etcd-22618/cache/watch_retry_test.go:131
+        	            				/root/etcd-pr/etcd-22618/cache/watch_retry_test.go:108
+        	Error:      	Received unexpected error:
+        	            	context deadline exceeded
+        	Test:       	TestCacheReadyAfterWatchRetry/retry_after_a_stream_that_observed_no_events
+        	Messages:   	cache not ready
+getWatch failed, will retry after 50ms: context canceled
+--- FAIL: TestCacheReadyAfterWatchRetry (2.92s)
+    --- PASS: TestCacheReadyAfterWatchRetry/retry_continues_from_the_last_observed_revision (0.35s)
+    --- FAIL: TestCacheReadyAfterWatchRetry/retry_starts_past_the_last_observed_revision (1.31s)
+    --- FAIL: TestCacheReadyAfterWatchRetry/retry_after_a_stream_that_observed_no_events (1.26s)
+FAIL
+FAIL	go.etcd.io/etcd/cache/v3	2.965s
+FAIL

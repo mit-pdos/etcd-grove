@@ -1,0 +1,18 @@
+# etcd-io/etcd#22619 (cache: initialize the demux before registering the store watcher),
+# branch pr-verify/etcd-22619: the changed functions `Cache.watch` and
+# `Cache.watchEvents`, their callers `Cache.getWatch`, `Cache.getWatchLoop`,
+# `newCache`, `New`, and the `ready` state transitions (`ready.Set`,
+# `ready.Reset`, `Cache.Ready`, `Cache.WaitReady`).
+# Report: notes/pr-verify/etcd-22619.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22619.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/cache/v3/(Cache__(watch|watchEvents|getWatch|getWatchLoop|Ready|WaitReady)|newCache|New|ready__(Set|Reset))\.lean$
+axiom context.Err.wp_proof
+axiom fmt.Printf.wp_proof
+axiom rpctypes.errDesc_etcdError
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
+axiom time.Duration.String.wp_proof

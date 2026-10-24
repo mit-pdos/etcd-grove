@@ -24,13 +24,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `c.watch(rev)`, by the demux's writer (`cacheWriter`, any state, with the revision bound) in a
-goroutine of the cache's wait group (`cacheWgRunning`), when the store's newest snapshot is at
-least `R` with `0 < rev ≤ R + 1`: it initializes the demux at `rev` (`Init`), then loops: it
-registers a fresh store watcher from `rev` (`newWatcher`, `Register`), adds a goroutine to the wait
-group (`Add(1)`, which may not overflow the counter: Perennial's model assumption) that runs
-`applyStorage` on it and then hands its error over on `applyErr` or closes it, runs `watchEvents`,
-and unregisters the store watcher (which stops it); it returns `watchEvents`'s first non-nil
-error.
+goroutine of the cache's wait group (`cacheWgRunning`), at `ready` epoch at least `e0`
+(`readyEpochLb γr e0`), when the store's newest snapshot is at least `R` with `0 < rev ≤ R + 1`:
+it initializes the demux at `rev` (`Init`) before registering any store watcher, initializes a
+fresh `readyOnce` for epoch `e0` (`sync.isOnce ro (readyEpochLb γr e0) (readySeen γr e0 true)`),
+then loops: it registers a fresh store watcher from `rev` (`newWatcher`, `Register`), adds a
+goroutine to the wait group (`Add(1)`, which may not overflow the counter: Perennial's model
+assumption) that runs `applyStorage` on it and then hands its error over on `applyErr` or closes
+it, runs `watchEvents`, and unregisters the store watcher (which stops it); it returns
+`watchEvents`'s first non-nil error.
 
 It does not wait for the goroutine: a stopped watcher's buffered responses may still be applied
 while the next iteration (or, after `watch` returns, the next `get`'s `Restore`) runs. The store
@@ -42,9 +44,10 @@ It returns a non-nil error (whose `Error()` returns some string, `errStrOk`), th
 token, and the demux's writer, in some state. -/
 abbrev Cache.watch.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
-    (rev R : w64) (c0 : DemuxCore),
+    (rev R : w64) (e0 : Nat) (c0 : DemuxCore),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
       isCacheFields c cf γr γd cap ∗ cacheWriter cf γd cap c0 ∗ cacheWgLoopRunning cf ∗
+      readyEpochLb γr e0 ∗
       storeSnapLb cf.γs R ∗ etcdRead R ∗ ⌜0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z R + 1⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"watch")) (Val #rev))
   {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∗

@@ -30,8 +30,8 @@ theorem Cache.getWatch.wp_proof
     (wp_get : Cache.get.spec (GF := GF) (hG := hG))
     (wp_watch : Cache.watch.spec (GF := GF) (hG := hG)) :
     Cache.getWatch.spec (GF := GF) (hG := hG) := by
-  intro c cf γr γd cap c0
-  wp_start as ⟨#Hc, Hw, Hrun⟩
+  intro c cf γr γd cap e0 c0
+  wp_start as ⟨#Hc, Hw, Hrun, #Hlb0⟩
   ihave #Hc' := Hc
   iunfold isCacheFields at Hc'
   iNamed Hc'
@@ -66,7 +66,7 @@ theorem Cache.getWatch.wp_proof
   icases Hbd with ⟨Ha, #HeR, %HR0⟩
   have hR1 : sint.Z (R + W64 1) = sint.Z R + 1 := by
     have := HRb.2; word
-  wp_apply wp_watch c cf γr γd cap (R + W64 1) R c0 $$ [$Hpkg $Hc Hdw Ha Hrun $Hslb $Hrd]
+  wp_apply wp_watch c cf γr γd cap (R + W64 1) R e0 c0 $$ [$Hpkg $Hc Hdw Ha Hrun $Hlb0 $Hslb $Hrd]
     as %err ⟨%Hne, #HeS, Hrun, %c1, Hw⟩
   · unfold cacheWriter
     iframe Hdw Hrun

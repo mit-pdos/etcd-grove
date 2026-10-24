@@ -95,6 +95,10 @@ for it). -/
 def readySeen (γ : ReadyNames) (e0 : Nat) (b : Bool) : IProp GF :=
   iprop(∃ e, readyEpochLb γ e ∗ ⌜e0 ≤ e ∧ readyParity e = b⌝)
 
+instance readySeen_persistent (γ : ReadyNames) (e0 : Nat) (b : Bool) :
+    Persistent (readySeen (GF := GF) γ e0 b) := by
+  unfold readySeen; infer_instance
+
 /-- The triple of `waitForState`'s `pred` closure: called with the lock held (the caller has
 the `isReady` field), it returns `P b` for the field's value `b`. `WaitReady` passes
 `func() bool { return r.isReady }` (`P = id`), `WaitNotReady` its negation (`P = not`). -/
