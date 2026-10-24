@@ -168,3 +168,23 @@ the statement's negative: at the pinned revision the check sees the interval mvc
 Not stated: the token's binding to the principal (S5), a re-check of live watchers (there is
 none: etcd's documented behaviour).
 
+
+## What is proved of the table (A3, the API layer, 2026-10-24)
+
+The Auth service's seventeen rows at the API layer (`notes/decisions.md`, "A3 of the auth plan,
+the API layer"): the gRPC wrappers (`v3rpc/AuthServer__*.lean`) call the server's method and pass
+its error through `togRPCError`; the server's entry points (`etcdserver/EtcdServer__*.lean`) are
+`raftRequest` on the request with the one field, taken as a contract (`authRaftOk`: the proposal
+path's model has no auth request), the response asserted to its type. Nothing of auth is checked
+on this path: the rows' class (admin at apply, `UserGet`'s "or the user itself") is the apply
+layer's statement (`adminPass`, `userGetClass`, above). Fourteen entry points are proved;
+`Authenticate` is translated and not (`auth.ErrAuthNotEnabled` is not in the auth package's
+fact); `UserAdd`, `UserChangePassword` are names only (they hash with bcrypt and base64). The
+"`UserChangePassword` of oneself" exception is not in the pinned code: `needAdminPermission` names
+the request unconditionally (the row above is right).
+
+Stated at the API layer so far: A2's twelve (`Compact`, the eight maintenance wrappers,
+`MemberRemove`, `MemberList`, the lease rows' guard) and these seventeen. Remaining: `Lock`,
+`Unlock`, the five `Election` rows (the client's `concurrency` package over the in-process client),
+the lease rows' key checks (a lessor with a key model), `MemberAdd`/`MemberUpdate`/`MemberPromote`
+(`encoding/json`).

@@ -928,11 +928,7 @@ axiom AuthDisableRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthStatusRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom AuthenticateRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom AuthUserDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom AuthUserChangePasswordRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthUserGrantRoleRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -5173,9 +5169,33 @@ axiom AuthStatusRequest : Type
 axiom AuthStatusRequest.zero_val : ZeroVal AuthStatusRequest
 attribute [instance] AuthStatusRequest.zero_val
 
-axiom AuthenticateRequest : Type
-axiom AuthenticateRequest.zero_val : ZeroVal AuthenticateRequest
-attribute [instance] AuthenticateRequest.zero_val
+structure AuthenticateRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  Password' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthenticateRequest.zero_val [FfiSyntax] : ZeroVal AuthenticateRequest :=
+  ⟨AuthenticateRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthenticateRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Password" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthenticateRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthenticateRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthenticateRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthenticateRequest.fields AuthenticateRequest.fieldsUnsealed :=
+  ⟨by unfold AuthenticateRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthenticateRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthenticateRequest.fields)
 
 structure AuthUserAddRequest [FfiSyntax] where
   mk ::
@@ -5239,9 +5259,35 @@ axiom AuthUserDeleteRequest : Type
 axiom AuthUserDeleteRequest.zero_val : ZeroVal AuthUserDeleteRequest
 attribute [instance] AuthUserDeleteRequest.zero_val
 
-axiom AuthUserChangePasswordRequest : Type
-axiom AuthUserChangePasswordRequest.zero_val : ZeroVal AuthUserChangePasswordRequest
-attribute [instance] AuthUserChangePasswordRequest.zero_val
+structure AuthUserChangePasswordRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  Password' : GoString
+  HashedPassword' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthUserChangePasswordRequest.zero_val [FfiSyntax] : ZeroVal AuthUserChangePasswordRequest :=
+  ⟨AuthUserChangePasswordRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthUserChangePasswordRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Password" go.string),
+(go.field_decl.FieldDecl go!"HashedPassword" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthUserChangePasswordRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthUserChangePasswordRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthUserChangePasswordRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthUserChangePasswordRequest.fields AuthUserChangePasswordRequest.fieldsUnsealed :=
+  ⟨by unfold AuthUserChangePasswordRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthUserChangePasswordRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthUserChangePasswordRequest.fields)
 
 axiom AuthUserGrantRoleRequest : Type
 axiom AuthUserGrantRoleRequest.zero_val : ZeroVal AuthUserGrantRoleRequest

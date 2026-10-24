@@ -17319,3 +17319,74 @@ where the statement went); `issues/` has no file for GHSA-xg4h-6gfc-h4m8 (fixed 
 the matrix's advisory table records it, and `createRangeOk_inRange` is the proof's word that the
 fix holds at the pinned revision). E's closed theorem will consume `watch_registered_authorized`
 through the client's `watchDn` and the server's `watchSrvOk`.
+
+## A3 of the auth plan, the API layer: the Auth service's entry points and wrappers, the proposal as a contract (2026-10-24 · `notes/auth-plan.md`, branch `auth-a3b`)
+
+**Problem.** The Auth service's seventeen methods (`v3rpc/auth.go`'s `AuthServer`, each the
+server's method of the same name through the `Authenticator` interface, its error through
+`togRPCError`; `v3_server.go`'s `EtcdServer.AuthEnable`, ..., `RoleList`, each a `raftRequest`
+on `&pb.InternalRaftRequest{<field>: r}`) were names only. Their class is admin at apply
+(`needAdminPermission`; the apply layer's statement is A3's `adminPass` for the header's
+principal), `Authenticate` and `AuthStatus` are public, `UserGet` is admin or the user itself.
+What the API layer adds is the path from the gRPC handler to the proposal: no check of its own.
+
+**Decisions.**
+
+- **The proposal is a contract** (`etcdserver/AuthEntry.lean`: `authRaftOk s ctx rq T P Q`).
+  `raftRequest`'s spec (`EtcdServer__raftRequest.lean`) takes `reqPropOk`, which admits a request
+  only if `plainCover` does (`KVModelDefs.lean`: the KV writes and the monitors' requests, none
+  with an auth field: the apply thread's generic proofs cover only those kinds, D19k), so it does
+  not apply to an auth request. An entry point's spec takes `raftRequest` on its request as a
+  contract: for a `*pb.InternalRaftRequest` holding the request but for its header
+  (`irrNoHdrIs p rq`, the request `irrAuthEnable`, ..., `irrRoleGet name` as `irrPut`), over the
+  caller's `P`, an error the apply package's facts describe and, on `nil`, a response of the apply
+  package's type for the request (`*pb.AuthEnableResponse`, ..., which the entry point asserts:
+  `resp.(*pb.X)`) with `Q` of it, else `Q null` of the error. The entry point's spec then says it
+  is that call on that request (`authEntryOut Q`). *Rejected:* extending `plainCover`/`reqPropOk`
+  to the auth kinds (the apply thread's generic proofs and the KV model would have to cover their
+  dispatch: S4's apply requests, E); a per-request restatement of `raftRequest.spec`'s post
+  (`appliedOk` says nothing of an auth request's response type, so the type assertion could not
+  be proved from it).
+- **The wrapper's inner call is a contract too** (`v3rpc/InvAuthServer.lean`: `authServerIs p s`,
+  the `*AuthServer` whose `authenticator` is the server, now `NewAuthServer`'s post;
+  `authInnerOk s m ctx r P Q`, the server's method answering as the entry points do;
+  `authWrapOut`: the response with `Q resp nil`, or `nil` and `togRPCError`'s error with `Q null`
+  of the server's), as A2's maintenance wrappers: the gRPC layer's proofs are closed over the
+  server's contract, the entry points' specs are the server's. Seventeen wrappers proved
+  (`Spec/Proof/.../v3rpc/AuthServer__*.lean`).
+- **Fourteen entry points proved, three not** (`Spec/Proof/.../etcdserver/
+  EtcdServer__{AuthEnable, AuthDisable, AuthStatus, UserDelete, UserGrantRole, UserGet, UserList,
+  UserRevokeRole, RoleAdd, RoleGrantPermission, RoleGet, RoleList, RoleRevokePermission,
+  RoleDelete}.lean`; a request with a name field, `UserGet`/`RoleGet`/`RoleAdd`, holds it
+  read-only, `apply.authUserGetIs`, as the proposal's `irrNoHdrIs` wants). `UserAdd` and
+  `UserChangePassword` stay names only: they hash the password (`bcrypt.GenerateFromPassword`)
+  and encode it with `base64.StdEncoding.EncodeToString`, so translating them makes the server
+  import `golang.org/x/crypto/bcrypt` and `encoding/base64`, whose names-only initializers are
+  trust-boundary axioms (`opaqueInitsOk`, `etc/gen-init.py`) that would then sit under every
+  closed theorem (the first attempt did this: one new axiom, base64's in eight more
+  collections), for two methods that still could not be proved: `StdEncoding` is a package
+  variable whose load needs a points-to the names-only package's fact (`True`) does not give (a
+  Perennial model of `encoding/base64`, `notes/perennial-changes.md`, "Standard library").
+  *Rejected:* that axiom for unproved code. `Authenticate` is translated and not proved: it
+  compares its error with `auth.ErrAuthNotEnabled` (`errors.Is`), a variable the auth package's
+  fact (`auth/Base.lean`'s `authInit`) does not hold (an additive clause of the fact and of the
+  initializer's axiom, in S4's files, the store). `AuthenticateRequest` and
+  `AuthUserChangePasswordRequest` are translated as data (`etcdserverpb.toml`) for the next step.
+- **`UserChangePassword` of oneself is not in the pinned code.** `needAdminPermission`
+  (`apply/auth.go`) names `AuthUserChangePassword` unconditionally, so the matrix's "of oneself"
+  for it (the plan's A3 bullet, from the advisory's wording) is wrong at the pin: the request is
+  admin-only at apply (`adminPass`). The matrix row said so already; the plan's bullet is corrected.
+- **Lock and Election: not started.** `v3lock/lock.go` (58 lines) and `v3election/election.go`
+  (136) are the client's `concurrency` package (`NewSession`, `NewMutex`, `Mutex.Lock`,
+  `NewElection`, `Election.Campaign`, ..., proved: `Proof/go_etcd_io/etcd/client/v3/concurrency/`)
+  over the in-process client `v3client.New(s)`. Their statement is the calls they make with the
+  caller's context, under the concurrency specs' client premises (`isEtcdSessionClient`,
+  `isEtcdMutexClient`, which the in-process client would have to meet: the gRPC proxy adapter,
+  not translated); a day or two of translation (two servers, their protobuf packages as data) and
+  proof, left for A3's next step rather than squeezed in here.
+- **Trust base unchanged** (615 axioms, 4 sorries; `etc/tcb-report.py --check`); no closed
+  theorem's statement changes (`NewAuthServer`'s post is stronger, `Server`'s proof drops it).
+
+**Next:** `Authenticate` once `auth.ErrAuthNotEnabled` is in the auth package's fact (S4);
+`UserAdd`/`UserChangePassword` with a model of `encoding/base64`; Lock/Election as above; the matrix's remaining rows (the lease entry points'
+key checks, the member operations that marshal JSON).

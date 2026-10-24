@@ -10,6 +10,23 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin__isPermitted
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthAdmin__requireAuthInfo
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__AuthDisable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__AuthEnable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__AuthStatus
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__Authenticate
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleAdd
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleDelete
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleGet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleGrantPermission
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__RoleRevokePermission
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserAdd
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserChangePassword
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserDelete
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserGet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserGrantRole
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer__UserRevokeRole
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.FiltersFromRequest
@@ -167,10 +184,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem rand.wp_Int63n :
-    EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.rand.Int63n.wp_proof
-
 theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.Is.wp_proof
@@ -186,6 +199,10 @@ theorem status.wp_Error :
 theorem wp_togRPCError :
     EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.togRPCError.wp_proof errors.wp_Is errors.wp_IsDeadlineExceeded status.wp_Error
+
+theorem rand.wp_Int63n :
+    EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rand.Int63n.wp_proof
 
 theorem header.wp_fillWithoutRevision :
     EtcdGrove.v3rpc.header.fillWithoutRevision.spec (GF := GF) (hG := hG) :=
@@ -357,6 +374,74 @@ theorem AuthAdmin.wp_isPermitted :
 theorem AuthAdmin.wp_requireAuthInfo :
     EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
+
+theorem AuthServer.wp_AuthDisable :
+    EtcdGrove.v3rpc.AuthServer.AuthDisable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.AuthDisable.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_AuthEnable :
+    EtcdGrove.v3rpc.AuthServer.AuthEnable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.AuthEnable.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_AuthStatus :
+    EtcdGrove.v3rpc.AuthServer.AuthStatus.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.AuthStatus.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_Authenticate :
+    EtcdGrove.v3rpc.AuthServer.Authenticate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.Authenticate.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleAdd :
+    EtcdGrove.v3rpc.AuthServer.RoleAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleAdd.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleDelete :
+    EtcdGrove.v3rpc.AuthServer.RoleDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleDelete.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleGet :
+    EtcdGrove.v3rpc.AuthServer.RoleGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleGet.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleGrantPermission :
+    EtcdGrove.v3rpc.AuthServer.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleGrantPermission.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleList :
+    EtcdGrove.v3rpc.AuthServer.RoleList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleList.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_RoleRevokePermission :
+    EtcdGrove.v3rpc.AuthServer.RoleRevokePermission.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.RoleRevokePermission.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserAdd :
+    EtcdGrove.v3rpc.AuthServer.UserAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserAdd.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserChangePassword :
+    EtcdGrove.v3rpc.AuthServer.UserChangePassword.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserChangePassword.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserDelete :
+    EtcdGrove.v3rpc.AuthServer.UserDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserDelete.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserGet :
+    EtcdGrove.v3rpc.AuthServer.UserGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserGet.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserGrantRole :
+    EtcdGrove.v3rpc.AuthServer.UserGrantRole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserGrantRole.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserList :
+    EtcdGrove.v3rpc.AuthServer.UserList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserList.wp_proof wp_togRPCError
+
+theorem AuthServer.wp_UserRevokeRole :
+    EtcdGrove.v3rpc.AuthServer.UserRevokeRole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthServer.UserRevokeRole.wp_proof wp_togRPCError
 
 theorem EtcdServer.wp_IsLearner :
     EtcdGrove.EtcdServer.IsLearner.spec (GF := GF) (hG := hG) :=
