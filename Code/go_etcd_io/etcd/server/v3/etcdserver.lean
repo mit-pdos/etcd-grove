@@ -4172,6 +4172,16 @@ noncomputable def EtcdServer.GoAttach.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"wgMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))))))
 
+/-- go: server.go:2448:22 -/
+noncomputable def EtcdServer.Alarms.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (Let "$a0" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType_NONE)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty) go!"Get"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"alarmStore"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0"))))))))
+
 /-- go: server.go:2471:22 -/
 noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -7474,6 +7484,7 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_forceDiskSnapshot : ∀ (x : EtcdServer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"forceDiskSnapshot") (PairV #x #y) (Val #(({ x with forceDiskSnapshot' := y } : EtcdServer)))
   get_corruptionChecker : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"corruptionChecker") #x (Val #(x.corruptionChecker'))
   set_corruptionChecker : ∀ (x : EtcdServer) (y : CorruptionChecker), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"corruptionChecker") (PairV #x #y) (Val #(({ x with corruptionChecker' := y } : EtcdServer)))
+  ptr_Alarms_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Alarms" EtcdServer.Alarms.impl
   ptr_AppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AppliedIndex" EtcdServer.AppliedIndex.impl
   ptr_ApplyWait_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ApplyWait" EtcdServer.ApplyWait.impl
   ptr_AuthInfoFromCtx_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"AuthInfoFromCtx" EtcdServer.AuthInfoFromCtx.impl
@@ -7643,6 +7654,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.set_forceDiskSnapshot
   EtcdServer.TypeAssumptions.get_corruptionChecker
   EtcdServer.TypeAssumptions.set_corruptionChecker
+  EtcdServer.TypeAssumptions.ptr_Alarms_unfold
   EtcdServer.TypeAssumptions.ptr_AppliedIndex_unfold
   EtcdServer.TypeAssumptions.ptr_ApplyWait_unfold
   EtcdServer.TypeAssumptions.ptr_AuthInfoFromCtx_unfold

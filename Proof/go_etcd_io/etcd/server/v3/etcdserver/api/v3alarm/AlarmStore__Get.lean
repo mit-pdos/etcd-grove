@@ -123,7 +123,7 @@ theorem v3alarm.AlarmStore.Get.wp_proof :
       iframe
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iexists l; iframe Hsl Hcap
   · -- one type: its set, if any
     (try wp_auto)
     wp_apply (wp_map_lookup1 (K := w32) (V := GoMap) _ _ tm gm aty) $$ [$Hm] as Hm
@@ -144,7 +144,7 @@ theorem v3alarm.AlarmStore.Get.wp_proof :
         iframe
       (try wp_auto)
       iapply HΦ
-      itrivial
+      iexists l; iframe Hsl Hcap
     | some tv =>
       simp only [Option.getD_some]
       icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_k : w32) (t : GoMap) =>
@@ -190,7 +190,7 @@ theorem v3alarm.AlarmStore.Get.wp_proof :
         iexists im; iframe Him
       (try wp_auto)
       iapply HΦ
-      itrivial
+      iexists l; iframe Hsl Hcap
 
 end proof
 

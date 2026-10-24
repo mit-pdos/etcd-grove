@@ -14,6 +14,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore_
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetRangeEnd
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Alarms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ApplyWait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
@@ -1011,6 +1012,10 @@ theorem v3alarm.AlarmStore.wp_restore :
 theorem v3alarm.AlarmStore.wp_Recover :
     v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG) :=
   v3alarm.AlarmStore.Recover.wp_proof v3alarm.AlarmStore.wp_restore
+
+theorem EtcdServer.wp_Alarms :
+    EtcdServer.Alarms.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Alarms.wp_proof v3alarm.AlarmStore.wp_Get
 
 theorem EtcdServer.wp_getAppliedIndex :
     EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG) :=

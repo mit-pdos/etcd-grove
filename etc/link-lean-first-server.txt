@@ -139,6 +139,7 @@ AlarmStore__Get:
 # the trust boundary (names-only).
 AlarmStore__restore:
 AlarmStore__Recover: AlarmStore__restore
+EtcdServer__Alarms: AlarmStore__Get
 # (the trust boundary, continued)
 RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
 errors_Is:

@@ -21,14 +21,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `a.Get(aty)` on an alarm store `a` returns some slice of the alarms of type `aty` (of
+/-- `a.Get(aty)` on an alarm store `a` returns an owned slice of the alarms of type `aty` (of
 every type for `AlarmType_NONE`). -/
 abbrev v3alarm.AlarmStore.Get.spec : Prop :=
   ∀ (a : Loc) (aty : w32),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm ∗
       isAlarmStore a }}
     (App (Val (a @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get")) (Val #aty))
-  {{ (sl : GoSlice), RET #sl; True }}
+  {{ (sl : GoSlice), RET #sl; ∃ l : List Loc, sl ↦* l ∗ ownSliceCap Loc sl (DFrac.own 1) }}
 
 end spec
 
