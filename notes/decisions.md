@@ -17391,6 +17391,53 @@ What the API layer adds is the path from the gRPC handler to the proposal: no ch
 `UserAdd`/`UserChangePassword` with a model of `encoding/base64`; Lock/Election as above; the matrix's remaining rows (the lease entry points'
 key checks, the member operations that marshal JSON).
 
+## Restore R4a: `store.restore` takes `s.revMu` as a caller-given lock protocol (2026-10-24 · `notes/restore-plan.md`, R4a, R5e)
+
+**Problem.** `store.restore` locks `s.revMu` once, around its write of `currentRev`, and reads
+`compactMainRev` outside it. Its axiom took `s.revMu ↦ zero_val sync.RWMutex` and gave it back so,
+with both counters as plain points-to. No proof can do that once the mutex has been used as a lock.
+The two callers hold the lock differently. In `NewStore` the store is private memory, and so is
+its `revMu`. In `store.Restore` the lock is live: `hashStorage.HashByRev` reads it without `s.mu`,
+and `Restore` has put it in its restoring mode.
+
+**Decided.** The spec is generic in how its caller holds the lock (`Spec/.../store__restore.lean`,
+the `currentRev` bullet). The caller chooses three propositions: `RevP` before the lock, `RevK`
+while it is held, and `RevQ` after the unlock. It supplies two wands, both in `InvStore.lean`:
+- `revLockW s q2 RevP RevK` is `Lock`'s WP, which gives the lock's part `q2` of `currentRev` at
+  any value, together with `RevK`;
+- `revUnlockW s q2 L' RevK V RevQ` is `Unlock`'s WP, which takes that part at `|L'| - 1`, `RevK`
+  and the unlock's view `V`, and gives `RevQ`.
+`restore` keeps the other part `q1` of `currentRev` and a part of `compactMainRev` at `-1`, which
+are enough for its reads outside the lock. `V` holds whatever the caller needs to rebuild its state
+at the unlock:
+- `restore`'s share of the bucket's view, idle after its `RLock`;
+- the index's lock with every reader's token;
+- the restored log's change count below the time receipts' bound.
+
+Each caller then proves the two wands:
+- `NewStore` proves them over private memory (`PlainRWMutex.lean`'s sequential `Lock`/`Unlock`).
+  `RevP`, `RevK` and `RevQ` carry only the store's own resources.
+- `store.Restore` proves them over the live lock (`Lock_guard`/`Unlock_guard` of `revMuInv`). Its
+  `RevK` holds the restoring mode's state. Its unlock wand runs `restore_switch`
+  (`RestoreMoves.lean`) inside the critical section, which moves the store's current objects to the
+  new backend, index and scheduler and refills the readers' pool from `V`.
+
+R4 first settled the question for `NewStore` alone, with plain memory in and out. R5e generalized
+the spec to these wands so that `Restore` could use the same spec.
+
+*Rejected:*
+- `NewStore` allocating the lock before `restore` and passing it in. This fixes one invariant in
+  the spec, so `Restore`'s restoring mode would need a second spec, or the spec would have to
+  quantify over the invariant, which is what the wands do with less ceremony.
+- A restoring mode inside `revMuInv` that `restore` reads directly. This puts `Restore`'s ghost
+  moves into `restore`'s proof, which then depends on the snapshot path's names.
+
+**What it changed.** `store.restore.spec` is an intermediate spec: `NewStore` and `store.Restore`
+are its only users, and no closed theorem states it. Both functions' axioms are gone.
+`mvcc.store.restore.wp_proof` went at R4 (`a90066a654`), replaced by the narrower trust-boundary
+fact `mvcc.kbNoCmp_metaNone`: the backend's compaction keys read nothing when it records no
+compaction. `mvcc.store.Restore.wp_proof` went at R5f (`ddf5c01a7a`, 615 to 614 axioms).
+
 ## S4 of the auth plan: the admin side as steps of the model's state (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4`)
 
 **Problem.** The auth store's admin operations (`AuthEnable`, `UserAdd`, ..., `Recover`) were names
@@ -17456,6 +17503,53 @@ and the step relations are in `Steps.lean`); the apply layer: `apply.isAuthStore
 `isAuthStoreAdmin` are unchanged, because stating them as steps needs the authority `authOwn` in the
 apply environment (a resource of the server's apply thread, beside `RW`), which is the next step on
 the A side; the derivation of the write contract from the real backend.
+
+## S4's apply part: the six proved admin operations as model steps at the apply layer (2026-10-24 · `notes/auth-plan.md`, branch `auth-a5`)
+
+**Problem.** S4 proved the auth store's `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`,
+`UserChangePassword` and `RoleAdd` to perform a step of the model's state (`auth/Steps.lean`,
+`adminOut`), from the admin side's authority (`auth.authOwn M hs`) and the store's write resource
+(`auth.authWR st M P f T`); the apply package still saw them through `isAuthStore`'s
+critical-section contracts (`authReqContract`: some error, the write right `RW` given back), so
+nothing said an applied admin request performs the model's step.
+
+**Decisions.**
+
+- **A separate persistent fact, not clauses of `isAuthStore`** (`apply.isAuthSteps st P f M W`,
+  `apply/AuthSteps.lean`): the six operations as the store's specs state them, with the store's
+  write resource abstracted as `W` and the errors the apply layer's (`applyErrIs`, from the
+  package's sixteen error variables: `authErrVar_of_pkg`, `adminOut_applyErrIs`). Appending them
+  to `isAuthStore` would add six conjuncts to a contract with 51 users and put in it resources
+  (the authority, `W`) that no environment of a closed theorem holds: the server's admits no auth
+  request (`AEnv.RW = False`), and the examples run in `off`. Of the real store:
+  `isAuthSteps_of_authInv`, restated with the proofs as `auth_apply_steps`
+  (`etcdserver/Results.lean`).
+- **The authority stays the caller's, not a field of `AEnv`**: the apply thread is the store's only
+  writer (raft applies serially), so the authority and `W` are its own resources; the apply-layer
+  statements take them as preconditions and give them back. Adding a field to `AEnv` (the brief's
+  first choice) would change every environment's construction for a resource nothing above the
+  backend applier passes yet; it belongs with E's closed theorem, whose workload admits auth
+  requests and whose server holds the authority from `NewAuthStore` (S5).
+- **A second triple of each `applierV3backend.X`** (`applierV3backend.X.stepSpec`, proved as
+  `wp_step` from `newHeader`'s spec, restated as `apply_X_step`): from the backend's options'
+  `isAuthSteps` (`backendAuthSteps E p W`: the options' points-to, read-only, with the auth store's
+  steps), the authority at `hs` and `W`, the request performs the model's step on the latest
+  recorded state for its arguments or the model's refusal (`adminOut`), the response's header set.
+  The first triple (`applierV3backend.X.spec`, the contract's) stays: the dispatch proofs use it.
+  The step triple takes neither `mvcc.storeWT` nor `RW`: S4's write side is its own contract, the
+  write token inside `authWR`.
+- **Not carried to `uberApplier`**: the chain's dispatch is stated over the contract's triples and
+  A3's `applyAuthRes`; with A3's `adminPass` (the admin check passed for the request's principal
+  before the backend is reached), an applied admin request in `on γa` is a step made by an admin,
+  but stating it through the chain needs the authority threaded through `chainRes` like A3's
+  principal, which waits for an environment that holds it (E).
+
+**Proved** (linked in `etcdserver/Results.lean`, no axiom added): `auth_apply_steps`,
+`apply_AuthEnable_step`, `apply_AuthDisable_step`, `apply_UserAdd_step`, `apply_UserDelete_step`,
+`apply_UserChangePassword_step`, `apply_RoleAdd_step`. **Not done**: the five operations S4 left
+(`UserGrantRole`, `UserRevokeRole`, `RoleDelete`, `RoleGrantPermission`, `RoleRevokePermission`:
+Perennial's `sort` specs) and the reads keep the contract clause; the authority in the server's
+environment and through the chain (E).
 
 ## S5 of the auth plan, in part: the token binding over the provider's contract, `Authenticate` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s5`)
 
