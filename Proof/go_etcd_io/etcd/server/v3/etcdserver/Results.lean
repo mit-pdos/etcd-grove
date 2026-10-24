@@ -1063,7 +1063,8 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
 `apply.isAuthSteps` with its write resource `auth.authWR st M P f T`, from S4's proofs of
 `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd`, and S4b's of
-`UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`, and S4c's of `UserGrantRole`. -/
+`UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`, S4c's of `UserGrantRole` and S4d's of
+`RoleGrantPermission`. -/
 theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val)
     (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
@@ -1071,7 +1072,8 @@ theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IPro
   EtcdGrove.apply.isAuthSteps_of_authInv auth.authStore.wp_AuthEnable auth.authStore.wp_AuthDisable
     auth.authStore.wp_UserAdd auth.authStore.wp_UserDelete auth.authStore.wp_UserChangePassword
     auth.authStore.wp_RoleAdd auth.authStore.wp_UserRevokeRole auth.authStore.wp_RoleRevokePermission
-    auth.authStore.wp_RoleDelete auth.authStore.wp_UserGrantRole st R M P f T
+    auth.authStore.wp_RoleDelete auth.authStore.wp_UserGrantRole auth.authStore.wp_RoleGrantPermission
+    st R M P f T
 
 /-- **The apply layer's admin requests perform the model's step** (`apply/AuthSteps.lean`):
 `applierV3backend.X` from the backend's options' `isAuthSteps`, the admin side's authority and
@@ -1105,6 +1107,10 @@ theorem apply_UserGrantRole_step :
     EtcdGrove.apply.applierV3backend.UserGrantRole.stepSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserGrantRole.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
 
+theorem apply_RoleGrantPermission_step :
+    EtcdGrove.apply.applierV3backend.RoleGrantPermission.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleGrantPermission.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
 theorem apply_UserRevokeRole_step :
     EtcdGrove.apply.applierV3backend.UserRevokeRole.stepSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.UserRevokeRole.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
@@ -1130,6 +1136,7 @@ end backend
 #print axioms Perennial.EtcdGrove.apply_UserChangePassword_step
 #print axioms Perennial.EtcdGrove.apply_RoleAdd_step
 #print axioms Perennial.EtcdGrove.apply_UserGrantRole_step
+#print axioms Perennial.EtcdGrove.apply_RoleGrantPermission_step
 #print axioms Perennial.EtcdGrove.apply_UserRevokeRole_step
 #print axioms Perennial.EtcdGrove.apply_RoleRevokePermission_step
 #print axioms Perennial.EtcdGrove.apply_RoleDelete_step
