@@ -32,10 +32,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 chain's resources `chainRes c a` are those of the applier `Apply` was called on, given back. -/
 abbrev apply.uberApplier.Alarm.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (c : apply.Chain) (a : GoInterface) (r : Loc)
-    (am : apply.AlarmModel) (log : mvcc.Log) (Pre Q Post : IProp GF),
+    (am : apply.AlarmModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
-      apply.alarmRequestIs r am ∗ apply.mPre E c a log Pre Q Post ∗ mvcc.storeWT E.γ ∗
+      apply.alarmRequestIs r am ∗ apply.mPre E c a info log Pre Q Post ∗ mvcc.storeWT E.γ ∗
       apply.ciSplit E Pre ∗ E.RW }}
     (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Alarm")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

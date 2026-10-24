@@ -28,10 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`aa.RoleGet(r)`**: unless the user is an admin or has the role, an empty response with the auth store's error (the `authInfo` reset); else the inner applier's `RoleGet`. -/
 abbrev apply.authApplierV3.RoleGet.spec : Prop :=
-  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
+  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
       ((∃ n : GoString, apply.authRoleGetIs r n) ∗ E.RW) ∗
-      apply.mPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ ∗
+      apply.mPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗
       apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"RoleGet")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Post ∗ applyErrIs err }}

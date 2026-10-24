@@ -29,13 +29,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **`a.ClusterMemberAttrSet(r, shouldApplyV3)`**: the cluster's `UpdateAttributes` with the member's name and client URLs (a critical section, or none). -/
 abbrev apply.applierV3backend.ClusterMemberAttrSet.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
-    (mm : MemberAttrModel) (rs : apply.RestM),
+    (mm : MemberAttrModel) (rs : apply.RestM)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
       apply.memberAttrSetIs r mm ∗
-      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ ∗
+      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗
       E.RO rs }}
     (App (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"ClusterMemberAttrSet")) (Val #r)) (Val #v3))
-  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Post ∗
       E.RO (apply.restUpdateAttrs v3 mm rs) }}
 
 end spec

@@ -80,10 +80,9 @@ the auth plan"):
   class of some auth info (the token's principal, or the empty one);
 - `Watch`: `serverWatchStream.isWatchPermitted` (the read of `[Key, RangeEnd)`).
 
-Not yet: the method-level statement for the principal the request's header names
-(`authApplierV3.Put`/`DeleteRange`/`Txn`/`Range`: the principal is hidden in the chain model's
-auth case), `RangeStream`, the lease rows, and everything outside the KV and watch services (A2,
-A3).
+Not yet (as of A1): the method-level statement for the principal the request's header names
+(done 2026-10-24, below), `RangeStream`, the lease rows, and everything outside the KV and watch
+services (A2, A3).
 
 ## What is proved of the table (A2, 2026-10-23)
 
@@ -112,3 +111,27 @@ check, and with auth off always:
 
 The admin guards take `IsAdminPermitted(nil)` as a premise (`srvAdminNilOk`: the store's spec
 covers a non-`nil` auth info only; track S).
+
+## What is proved of the table (A3, the apply layer, 2026-10-24)
+
+The request's principal (`apply.principalOf rq`: the raft request header's `Username` and
+`AuthRevision`, what `authApplierV3.Apply` puts in its `authInfo`) is an index of the chain's
+resources, and the KV methods' posts state the row's class for it through the whole chain
+(`apply.chainClass`; `notes/decisions.md`, "A3 of the auth plan, the apply layer"):
+
+- `Put`, `DeleteRange`, `Range`, `Txn` at apply: `authApplierV3.{Put, DeleteRange, Range, Txn}`
+  (the auth layer rejected, or `reqClass` of the principal: `putClass`, `deleteClass`,
+  `rangeClass`, `txnClass`), through `quotaApplierV3`, `applierV3Capped`, `applierV3Corrupt`
+  (`Results.lean`: `chain_put`, `chain_deleteRange`, `chain_range`, `chain_txn`: an outcome that
+  passed the auth layer has the class), `uberApplier.dispatch`, `uberApplier.Apply` and the
+  package's `Apply` (`applyAuthRes`: dispatched with `shouldApplyV3`, the class for
+  `principalOf rq`);
+- `AuthEnable`, `AuthDisable`, `UserAdd`, …, `RoleList` (the admin rows at apply):
+  `authApplierV3.Apply`'s admin check passed for `principalOf rq` (`adminPass`: `IsAdminPermitted`'s
+  verdict at `nil`, A0) whenever the `applyFunc` ran, up to the package's `Apply`;
+- `UserGet`: `authApplierV3.UserGet`'s `nil` error says the principal is an admin or the user
+  itself (`userGetClass`; at the method level: the generic triple does not carry it).
+
+Not stated: `RoleGet`'s "or a role the user has" (`HasRole` has no model in `isAuthStore`),
+`LeaseRevoke`'s keys (the lessor's key model), the server-level statement over the decoded
+entry (`applyEntryNormal`: E).

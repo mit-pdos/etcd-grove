@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3Capped.Txn.wp_proof
     (hCost : storage.BackendQuota.Cost.spec (GF := GF) (hG := hG)) :
     apply.applierV3Capped.Txn.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r skip rq t log F Pre Q Post
+  intro E c inner p r skip rq t log F Pre Q Post info
   wp_start as ⟨Hc, #Hin, Hpre, #HF⟩
   iunfold apply.cappedIs at Hc
   ipersist Hc
@@ -63,6 +63,8 @@ theorem apply.applierV3Capped.Txn.wp_proof
     isplitl
     rotate_left
     · iapply apply.traceRes_null
+    ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.capped c) rq (.rejected .noSpace) $$ []
+    · iapply apply.chainClass_capped_rejected
     iunfold apply.kvPostF
     iexists (.rejected .noSpace)
     isplitr
@@ -71,7 +73,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
       simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
       simp
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
-    iframe Hkv Hres
+    iframe Hkv Hres Hcls
     isplitl []
     · isplitl []
       · ipureintro; trivial
@@ -82,7 +84,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
     iright
     iapply apply.csContract_pre $$ Hcs
   · -- the inner applier's `Txn`
-    ihave Hres := apply.chainRes_capped_out c p (.ok bi) $$ Hc Hres
+    ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ Hc Hres
     wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs]
       as %resp %trace %err ⟨Hpost, Htrc⟩
     · iunfold apply.txnPre
@@ -96,17 +98,18 @@ theorem apply.applierV3Capped.Txn.wp_proof
     · iexact Htrc
     iunfold apply.kvPostF at Hpost
     iunfold apply.kvPostF
-    icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP⟩
+    icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP, #Hcls⟩
     obtain ⟨Hst, Hfl⟩ := Hst0
+    ihave #Hcls := apply.chainClass_capped E.authMode info c rq oc $$ Hcls
     iexists oc
-    iframe HR Hkv HPP
+    iframe HR Hkv HPP Hcls
     isplitr
     · ipureintro
       refine ⟨?_, Hfl⟩
       simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
       simp only [Bool.false_eq_true, ↓reduceIte]
       exact Or.inr Hst
-    iapply apply.chainRes_capped_in c p (.ok bi) $$ Hc Hres
+    iapply apply.chainRes_capped_in c p (.ok bi) info $$ Hc Hres
 
 end proof
 

@@ -28,12 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`a.DowngradeInfoSet(r, shouldApplyV3)`**: the cluster's `SetDowngradeInfo` (a critical section, or none). -/
 abbrev apply.applierV3backend.DowngradeInfoSet.spec : Prop :=
-  ∀ (E : AEnv GF) (p r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
+  ∀ (E : AEnv GF) (p r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
       (∃ dm : DowngradeModel, apply.downgradeInfoSetIs r dm) ∗ E.RW ∗
-      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ }}
+      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗ mvcc.storeWT E.γ }}
     (App (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"DowngradeInfoSet")) (Val #r)) (Val #v3))
-  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post }}
+  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Post }}
 
 end spec
 

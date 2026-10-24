@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseCheckpoint.spec (GF := GF) (hG := hG) := by
-  intro E p r log Pre Q Post
+  intro E p r log Pre Q Post info
   wp_start as ⟨#Hb, ⟨⟨%cms, #Hr, %Hlen1⟩, HRW⟩, Hpre, Hwt⟩
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
@@ -120,7 +120,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iunfold apply.mPost
+      iapply apply.mPost_backend
       iunfold apply.kvOwn
       iframe
   · -- the loop is done
@@ -135,7 +135,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iunfold apply.kvOwn
     iframe
 

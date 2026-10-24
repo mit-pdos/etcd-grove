@@ -16890,3 +16890,79 @@ recorded states (an invariant S4 establishes). The trust base grows by the three
 tree axioms until S2b (`etc/tcb-baseline.txt`, the `server` collection); S2b removes them by
 proving the tree once over a comparator and instantiating it twice, and proves `Contains` for
 strings by extending `Visit`'s visitor contract with a stop.
+
+## A3 of the auth plan, the apply layer: the request's principal through the chain, the method-level class statement (2026-10-24 · `notes/auth-plan.md`, branch `auth-a3`)
+
+**Problem.** A1 stated the class a passed check establishes (`checkPutAuth`, `CheckTxnAuth`, the
+API layer's `chk`), but not of *whose* principal at the method level: `authApplierV3.Put`'s post
+was `kvPostF E (.auth E.authOn c) a …`, and the chain model hid the layer's `authInfo` in an
+existential (`chainRes`'s `authInfoOwn p`), so "the request's principal was granted the keys it
+writes" could not be written for `Put`/`DeleteRange`/`Range`/`Txn`, let alone carried to
+`uberApplier.dispatch`, `uberApplier.Apply` and the package's `Apply` that the server calls. The
+plan's A1 asks for both layers' checks covered (the apply-time one is what refuses a write whose
+permissions changed between proposal and apply); the matrix's admin rows at apply
+(`needAdminPermission`) and `UserGet`'s "or the user itself" had no statement at all.
+
+**Decisions.**
+
+- **The principal is an index of the chain's resources** (`Chain.lean`: `chainRes c a info`,
+  `info : auth.AuthInfo`). The outermost auth layer's `authInfo` field holds `info`; below it the
+  inner chain's resources are at *any* principal (`∃ info', chainRes c inner info'`,
+  `chainResAny`), so the index is a phantom for the layers that have no `authInfo` and the real
+  chain (`corrupt (capped (auth (quota backend)))`) has one principal. Every method pre/post
+  (`mPre`, `mPreV`, `kvPost`, `kvPostF`, `putPre`, …, `applierTriples`) takes `info`; the posts of
+  the methods that may *reset* the field (`UserGet`, `RoleGet` clear it when they reject,
+  `auth.go`) give the resources back at some principal (`mPost`: `chainResAny`). *Rejected:* a
+  separate strong spec for the auth layer's methods with the triples' existential kept (it could
+  not reach `dispatch`, where the request's principal is known); a list of principals, one per
+  auth layer (nothing has two).
+- **The mutex holds the zero `AuthInfo`** (`authInfoIdle p`: `authInfo ↦ zeroValDef`), not an
+  existential: `newAuthApplierV3` leaves the field zero, `Apply` resets it before every return
+  (and `UserGet`/`RoleGet` do when they reject, inside an `Apply`). So **`Apply` knows the
+  principal it hands the `applyFunc`**: `principalOf rq` (`AuthClass.lean`), the header's
+  `Username`/`AuthRevision`, or the zero `AuthInfo` when the request has no header (the field is
+  left as it was: zero). `applierTriples`' `Apply` triple gives the `applyFunc` `chainRes c a
+  (principalOf rq)`, takes back `chainResAny`, and its success says **the admin check passed for
+  that principal** (`adminPass M c rq`: for a request `needAdminPermission` names, in a chain
+  with the auth layer enabled, `adminVerdict M (some (principalOf rq)) nil`, A0's verdict). The
+  wrappers' promoted `Apply`s pass it through (`adminPass_wrap`: the same `Chain.authOn`); the
+  backend's is trivial (`adminPass_off`).
+- **The class through the chain** (`chainClass M info c rq oc`, in the KV posts beside the
+  outcome): each wrapper says "if I did not reject (`oc ≠ .rejected .corrupt`, `.noSpace`), what
+  the rest says"; the auth layer says "if I did not reject (`oc ≠ .rejected .auth`), the request's
+  class" (`reqClass`: `putClass`/`deleteClass`/`rangeClass`/`txnClass` of the request's KV
+  field, `True` for the other requests); the quota layer and the backend add nothing. Through the
+  uber-applier's chains, an outcome that passed the auth layer (`authPassed`: applied, or the
+  backend's rejection) has the request's class (`chainClass_alarm`), which `Results.lean`'s
+  `chain_put`/`chain_deleteRange`/`chain_range`/`chain_txn` now state. *Rejected:* the class only
+  at the auth layer's own methods (it would not survive the triples' composition); the class
+  conditioned on `oc` being `applied` (a backend rejection also passed the checks).
+- **Up the stack.** `uberApplier.dispatch`'s post gains `∀ _ : v3 = true, chainClass … info c rq
+  o` (without `shouldApplyV3` the KV requests are not run: the outcome `applied log false` is the
+  model's, no check ran); `uberApplier.Apply` and the package's `Apply` gain `applyAuthRes
+  E.authMode x.chain rq v3 out` (`InvUber.lean`: dispatched, the class for `principalOf rq` and
+  the admin pass; rejected by the admin check or skipped, nothing). `applyEntryNormal` drops it
+  (one `-`): the server-level statement over the decoded entry is the next step (`entryStep`,
+  `kvApplied`), E's business.
+- **The method-level statements.** `authApplierV3.Put`/`DeleteRange`/`Range`/`Txn`'s posts are
+  the chain's (`kvPostF … info`), so they say: the auth layer rejected, or `reqClass E.authMode
+  info rq` for the principal the field holds. `Range` and `DeleteRange` derive their class from
+  the verdicts of `IsRangePermitted`/`IsDeleteRangePermitted` on the request's slices
+  (`rangeClass_of_verdict`, `deleteClass_of_verdicts`, with A1's `authEndOf`); `Put` and `Txn`
+  from A1's check specs. **`UserGet`** gains, at the method level, `∀ _ : err = nil, ∃ n,
+  authUserGetIs r n ∗ userGetClass E.authMode info n` (an admin's verdict at `nil`, or `n` is
+  the principal's name): the matrix's "admin, or the user itself" row. **Not stated:** `RoleGet`'s
+  "or a role the user has" (`isAuthStore`'s `HasRole` clause has no model: S3/S4); `LeaseRevoke`'s
+  keys (`checkLeasePuts`, the lessor's key model: the leases unit; its `reqClass` is `True`);
+  `UserGet`'s class through the generic `respMethods` triple (the method's own spec has it; the
+  triple's post would need a per-method class, left for A3 proper).
+- **Trust base unchanged** (`etc/tcb-report.py --check`); no closed theorem's statement changes
+  (the examples see `apply.Apply.spec` through `applyEntryNormal`, whose statement is unchanged).
+  Proof changes: 27 backend proofs route their posts through `kvPostF_backend`/`mPost_backend`
+  (the trivial class and the phantom index); the layers' and constructors' proofs thread `info`;
+  the dispatch proof's `fin_same`/`fin_kv` macros prove the class (`chainClass_nonKV` from the
+  request kind, or the method's).
+
+**Next:** A3 proper (the Auth service's methods, `RoleGet` with `HasRole`'s model), the
+server-level statement in `applyEntryNormal`/`entryStep` for E, S4's admin requests as model
+steps (then `adminPass`'s verdict composes with the state change).

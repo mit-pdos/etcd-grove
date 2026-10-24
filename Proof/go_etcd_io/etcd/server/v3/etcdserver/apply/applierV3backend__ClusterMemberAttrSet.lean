@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3backend.ClusterMemberAttrSet.wp_proof :
     apply.applierV3backend.ClusterMemberAttrSet.spec (GF := GF) (hG := hG) := by
-  intro E p r v3 log Pre Q Post mm rs
+  intro E p r v3 log Pre Q Post mm rs info
   wp_start as ⟨#Hb, #Hr, Hpre, Hwt, HRO⟩
   iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩

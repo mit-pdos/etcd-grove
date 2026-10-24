@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3Capped.LeaseGrant.wp_proof :
     apply.applierV3Capped.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r log Pre Q Post
+  intro E c inner p r log Pre Q Post info
   wp_start as ⟨-, -, -, Hpre, -⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -40,6 +40,7 @@ theorem apply.applierV3Capped.LeaseGrant.wp_proof :
   iapply HΦ
   iframe HeI
   iunfold apply.mPost
+  ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
   iframe Hkv Hres
   iright
   iapply apply.csContract_pre $$ Hcs

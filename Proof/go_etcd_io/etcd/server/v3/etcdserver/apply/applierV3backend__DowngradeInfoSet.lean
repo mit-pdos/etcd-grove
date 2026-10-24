@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3backend.DowngradeInfoSet.wp_proof :
     apply.applierV3backend.DowngradeInfoSet.spec (GF := GF) (hG := hG) := by
-  intro E p r v3 log Pre Q Post
+  intro E p r v3 log Pre Q Post info
   wp_start as ⟨#Hb, ⟨%dm, #Hr⟩, HRW, Hpre, Hwt⟩
   iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
