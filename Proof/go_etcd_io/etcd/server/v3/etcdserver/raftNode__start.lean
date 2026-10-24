@@ -446,7 +446,13 @@ theorem raftNode.start.wp_proof
         -- bundles went to the transport)
         all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
         · wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
-          wp_apply HSend $$ [$HS $Hout $Houtok] as HS
+          -- (`wp_apply HSend` here trips over an unknown free variable inside the join's case)
+          wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
+          iapply HSend $$ [Hout Houtok HS]
+          · iframe
+          inext
+          iintro HS
+          (try wp_auto)
           wp_join_done
           all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
         -- `if !raft.IsEmptySnap(raftSnap)`: the snapshot is nil
@@ -534,7 +540,12 @@ theorem raftNode.start.wp_proof
           wp_apply wp_bag_send γnc nc () (fun _ => iprop(True)) $$ [$Hncb]
           cases cc
           · wp_auto
-            wp_apply HSend $$ [$HS $Hout $Houtok] as HS
+            wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
+            iapply HSend $$ [Hout Houtok HS]
+            · iframe
+            inext
+            iintro HS
+            (try wp_auto)
             -- `r.Advance()`: the driver moves to `L' ++ ce`
             rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
             wp_auto
@@ -575,7 +586,12 @@ theorem raftNode.start.wp_proof
               · itrivial
               inext
               wp_auto
-              wp_apply HSend $$ [$HS $Hout $Houtok] as HS
+              wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
+              iapply HSend $$ [Hout Houtok HS]
+              · iframe
+              inext
+              iintro HS
+              (try wp_auto)
               -- `r.Advance()`: the driver moves to `L' ++ ce`
               rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
               wp_auto

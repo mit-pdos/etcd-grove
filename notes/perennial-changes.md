@@ -254,3 +254,11 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   `default`): the bag idiom (`Idioms/Bag.lean`) has the blocking send only. Workaround:
   `rafthttp/Reader.lean`'s `bag_nonblocking_send_au` (`bag_send_au` without the waiting case).
   Proposed change: the lemma beside `bag_send_au`. Not yet proposed.
+- (2026-10-24, rafthttp stage 6d) **`wp_apply` aborts silently inside a `wp_join` case**: in
+  `raftNode.start`'s loop, `wp_apply HSend $$ [...]` of the transport's `Send` (an interface method,
+  its spec a hypothesis whose precondition now holds the loop's `E.S`) throws "unknown free
+  variable" (visible with `+noauto`) and, without `+noauto`, an abort that leaves the case's goal
+  admitted with no error: the module builds with a `sorry` only `#print axioms` and
+  `etc/tcb-report.py` see. Workaround here: `wp_bind` the call and `iapply` the hypothesis
+  (`raftNode__start.lean`). Proposed change: find the escaping free variable (probably the case's
+  generalized context) and make `wp_apply` report it as an error. Not yet proposed.

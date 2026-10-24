@@ -198,7 +198,7 @@ transport's read lock needs one of the mutex's reader tokens (the server's raft 
 def netTransport (γn : NetNames GF) (tr : GoInterface) (T : IProp GF) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
-      {{ T ∗ sl ↦* msL ∗ [∗list] m ∈ msL, netBundle γn.N m }}
+      {{ sl ↦* msL ∗ ([∗list] m ∈ msL, netBundle γn.N m) ∗ T }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
       {{ RET #(); T }}) ∗
     □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}) ∗

@@ -646,7 +646,7 @@ raft may send, borrowing `E.S` (2026-10-24); `Stop` returns. -/
 def isRNTransport (E : RNEnv GF) (tr : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
-      {{ E.S ∗ sl ↦* msL ∗ [∗list] m ∈ msL, rnMsgOk E m }}
+      {{ sl ↦* msL ∗ ([∗list] m ∈ msL, rnMsgOk E m) ∗ E.S }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
       {{ RET #(); E.S }}) ∗
     □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}))

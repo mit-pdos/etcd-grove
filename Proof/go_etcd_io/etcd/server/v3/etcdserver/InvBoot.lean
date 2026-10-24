@@ -402,7 +402,7 @@ theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterfac
   · ipureintro; exact Hti
   isplitr
   · imodintro
-    iintro %sl %msL %Φ !> ⟨HS, Hsl, Hms⟩ HΦ
+    iintro %sl %msL %Φ !> ⟨Hsl, Hms, HS⟩ HΦ
     wp_apply Hsend $$ [HS Hsl Hms] as HS
     · iframe HS Hsl
       iapply BigSepL.bigSepL_impl $$ Hms
