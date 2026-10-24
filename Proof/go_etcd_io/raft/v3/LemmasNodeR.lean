@@ -101,7 +101,7 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iexists DFrac.own 1, st
     iframe Hm
     isplitr
-    · ipureintro; rw [Hty]; decide
+    · ipureintro; rw [Hty.1]; decide
     iintro Hm
     iright
     iunfold fwdP

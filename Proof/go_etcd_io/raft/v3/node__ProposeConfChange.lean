@@ -41,7 +41,7 @@ theorem node.ProposeConfChange.wp_proof
     iexists ⟨propMsgM, [ccEntryM (some o) bs], none, [], []⟩
     iframe Hm
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · unfold isMessage absMsg absMsgFrom
       isplitr

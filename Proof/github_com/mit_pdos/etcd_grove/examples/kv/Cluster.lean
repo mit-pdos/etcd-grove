@@ -34,7 +34,7 @@ raft's `Node`, connected in process by `deliver`, each node driven by a `tick` g
   mutex-protected counter (`transfers`, `transfersInv`: one credit per count) and passes a
   `MsgTimeoutNow` on only while one is left (`transfers.take`), as `tick` bounds a node's
   ticks; `Main` allocates them with the budget.
-* **The peers** (`peerOk`): the node a peer table maps an id to is that id's, of the
+* **The peers** (`kvPeerOk`): the node a peer table maps an id to is that id's, of the
   cluster's raft ghost state and term budget (persistent).
 -/
 module
@@ -104,16 +104,16 @@ variable [StorageModel GF]
 
 /-- The node `nd` is node `id` of the cluster's raft ghost state `γ` and term budget `bud`
 (persistent). -/
-def peerOk (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) : IProp GF :=
+def kvPeerOk (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) : IProp GF :=
   iprop(∃ (γn : NodeNames) (n : Loc),
     ⌜γn.raft = γ ∧ γn.bud = bud ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n ∧
       -- (D22 S-r) a node that takes snapshots (`NodeNames.snapIn`): the transport delivers them
       γn.snapIn = true⌝ ∗
     isNode γn id n)
 
-instance peerOk_persistent (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) :
-    Persistent (peerOk (GF := GF) γ bud id nd) := by
-  unfold peerOk; infer_instance
+instance kvPeerOk_persistent (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) :
+    Persistent (kvPeerOk (GF := GF) γ bud id nd) := by
+  unfold kvPeerOk; infer_instance
 
 /-- The transfer budget's lock invariant (see the file header): the number of `MsgTimeoutNow`s
 the transport may still pass on (D19b, 2026-10-18: until then with one tick credit each; `take`
@@ -154,8 +154,8 @@ theorem deliverable_mtype (st : MsgSt) (Hd : Deliverable st) :
 
 /-- What `Ready` says of a deliverable message holding `st`: its abstraction sent (none for a
 `MsgTimeoutNow`, which carries nothing; D22 S-r: but a snapshot's, `raftMsg_snap`). -/
-theorem raftMsg_deliverable (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) :
-    isRaftMsg (GF := GF) γ st ⊢
+theorem raftMsg_deliverable (γ : RaftNames) (sid : w64) (st : MsgSt) (Hd : Deliverable st) :
+    isRaftMsg (GF := GF) γ sid st ⊢
       □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
         isMessage γ (absMsg ty st.msg st.ents st.ctx)) := by
   rcases deliverable_mtype st Hd with Htn | Hsn | ⟨ty0, Hty0, Hns⟩
@@ -211,8 +211,8 @@ theorem msgPtsC_snap_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
 /-- (D22 S-r) What `Ready` says of a deliverable `MsgSnap` holding `st`: its snapshot, of an
 index below `2^61` (`Deliverable`), its abstraction certified (`isMessageC`) and its data
 certificate (`msgDat`): `netP`'s snapshot facts. -/
-theorem raftMsg_snap (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) :
-    isRaftMsg (GF := GF) γ st ⊢
+theorem raftMsg_snap (γ : RaftNames) (sid : w64) (st : MsgSt) (Hd : Deliverable st) :
+    isRaftMsg (GF := GF) γ sid st ⊢
       □ (⌜st.msg.Type' = MsgSnap⌝ -∗
          ∃ (sv : SnapshotM) (scfg : CSLists),
            ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
@@ -221,7 +221,7 @@ theorem raftMsg_snap (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) :
   iintro #Hm
   imodintro
   iintro %Hty
-  ihave #Hdat := isRaftMsg_dat γ st $$ Hm
+  ihave #Hdat := isRaftMsg_dat γ sid st $$ Hm
   unfold isRaftMsg
   icases Hm with ⟨-, -, ⟨%a, %Habs, #Hl⟩, -⟩
   unfold msgAbs at Habs
@@ -264,7 +264,7 @@ theorem deliverable_not_prevote (st : MsgSt) (Hd : Deliverable st) : st.msg.Type
 /-- A deliverable message other than a proposal, addressed to `id`, is what `RawNode.Step`
 takes from the network (`NetMsgOk`). -/
 theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
-    (Hnp : st.msg.Type' ≠ MsgProp) (Hto : st.msg.To' = id) :
+    (Hnp : st.msg.Type' ≠ MsgProp) (Hto : st.msg.To' = id) (Hr : st.resps = []) :
     NetMsgOk id st := by
   obtain ⟨Hty, HF, HFT, -⟩ := Hd
   have HF' : st.msg.From' ≠ id := Hto ▸ HFT
@@ -285,11 +285,11 @@ theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
        st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap → st.msg.From' ≠ id) ∧
     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
     (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
-    (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id)
+    (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id) ∧ st.resps = []
   rcases Hty with h | ⟨Hri, Ht0⟩ | ⟨Hn, Ht⟩ | ⟨Htn, Ht, -⟩ | ⟨Hsn, Ht, -⟩
   · exact absurd h Hnp
   · refine ⟨by rw [Hri]; simp [netStepTypes], fun h => absurd (.inl Hri) h, fun _ => Ht0,
-      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF'⟩
+      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF', Hr⟩
   · have Hun : ¬ UnstampedType st.msg.Type' := by
       simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
       rcases Hn with h | h | h | h | h | h | h <;> rw [h] <;>
@@ -301,19 +301,19 @@ theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
       simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false]
       rcases Hn with h | h | h | h | h | h | h <;> simp [h]
     exact ⟨Hnet, fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun, fun _ => HF', fun _ _ => HF',
-      fun h => absurd h Hntl, fun _ => HF'⟩
+      fun h => absurd h Hntl, fun _ => HF', Hr⟩
   · have Hun : ¬ UnstampedType st.msg.Type' := by
       rw [Htn]
       simp [UnstampedType, MsgTimeoutNow, MsgReadIndex, MsgTransferLeader, MsgForgetLeader,
         MsgUnreachable, MsgSnapStatus]
     exact ⟨by rw [Htn]; simp [netStepTypes], fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun,
-      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF'⟩
+      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF', Hr⟩
   · have Hun : ¬ UnstampedType st.msg.Type' := by
       rw [Hsn]
       simp [UnstampedType, MsgSnap, MsgReadIndex, MsgTransferLeader, MsgForgetLeader,
         MsgUnreachable, MsgSnapStatus]
     exact ⟨by rw [Hsn]; simp [netStepTypes], fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun,
-      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF'⟩
+      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF', Hr⟩
 
 /-- A deliverable message holding `st` at `l`, owned with its entries slice fresh (the elements
 at `1`, the capacity: `deliver`'s copy, `msgPtsC_store_Entries`), with its read credit and its
@@ -323,7 +323,9 @@ network message (`netP`, the entries frozen). -/
 theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     (Hd : Deliverable st) (Hto : st.msg.To' = id)
     -- (D22 S-r) a snapshot only to a node that takes one
-    (Hsi : st.msg.Type' = MsgSnap → γn.snapIn = true) :
+    (Hsi : st.msg.Type' = MsgSnap → γn.snapIn = true)
+    -- (2026-10-22, D38a) no responses (`deliver`'s copy has none)
+    (Hr : st.resps = []) :
     ⊢ □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
           isMessage (GF := GF) γn.raft (absMsg ty st.msg st.ents st.ctx)) -∗
       -- (D22 S-r) a snapshot's facts and certificates (`raftMsg_snap`)
@@ -354,7 +356,7 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     isplitl [Hm]
     · iapply msgPtsC_cap_any $$ Hm
     isplitr
-    · ipureintro; exact Hp
+    · ipureintro; exact ⟨Hp, Hr⟩
     isplitr
     · ihave #H := Hmsg $$ %MsgType.propose %(by rw [Hp]; exact mtypeOf_MsgProp) %(by decide)
       iExactEq H
@@ -370,7 +372,7 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     isplitl [Hm]
     · iapply msgPtsC_cap_any $$ Hm
     isplitr
-    · ipureintro; exact deliverable_netMsgOk id st Hd Hp Hto
+    · ipureintro; exact deliverable_netMsgOk id st Hd Hp Hto Hr
     isplitr
     · ipureintro
       refine ⟨fun h => (deliverable_not_prevote st Hd h).elim, fun h => ?_, Hsi⟩

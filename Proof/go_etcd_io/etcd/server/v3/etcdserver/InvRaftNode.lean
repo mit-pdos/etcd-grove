@@ -145,6 +145,9 @@ structure RNEnv (GF : BundledGFunctors) where
   T : IProp GF
   γr : ReadNames
   RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF
+  /-- (2026-10-24, rafthttp stage 6d) what the transport's `Send` borrows, which the loop holds
+  (for the server, a reader's token of the transport's lock). -/
+  S : IProp GF
 
 /-- A message the node handed out, as the wrapper reads and forwards it: its destination and
 type read-only, and `E.M m`. (2026-10-19, D21 stage M1: owned, no longer persistent, so that
@@ -159,7 +162,7 @@ writes its `Snapshot` field (`createMergedSnapshotMessage`), so it is not persis
 its tickets none (`stTks`: a `MsgProp`'s only), so `isRaftMsg` and `termLB` are all it carries. -/
 def rnSnapMsg (γ : NodeNames) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgSnap⌝ ∗
-    isRaftMsg γ.raft st ∗ termLB γ.bud st.msg.Term')
+    isRaftMsg γ.raft γ.id st ∗ termLB γ.bud st.msg.Term')
 
 /-- (D22 S-l sender) **A message of a `Ready`, as the server receives it**: any but a `MsgSnap`
 read-only with `E.M` (`rnMsgOk`'s, with its type not `MsgSnap`), a `MsgSnap` owned
@@ -267,7 +270,7 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
       γ.node.raft.reNoSnap = true⌝ ∗
     -- (2026-10-19, D21 M3) the storage's cap at least `1` (`compactRaftLog`'s compaction at `1`)
     ⌜1 ≤ γ.γs.cap⌝ ∗
-    □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
+    □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft γ.node.id st ∗
         termLB γ.node.bud st.msg.Term' ∗
         rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
         stTks γ.node.raft st -∗ E.M m) ∗
@@ -427,11 +430,11 @@ stage M1), persisted; (D22 S-l sender, 2026-10-22) but a `MsgSnap`, kept owned (
 `readyDq` hands it out whole). -/
 theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
     ∀ ms : List QMsg,
-      ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
+      ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft γ.node.id st ∗
           termLB γ.node.bud st.msg.Term' ∗
           rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
           stTks γ.node.raft st -∗ E.M m) -∗
-        ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.node.raft q.st ∗
+        ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.node.raft γ.node.id q.st ∗
           termLB γ.node.bud q.st.msg.Term') -∗
         ([∗list] q ∈ ms, rdCred γ.node.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) -∗
         ([∗list] q ∈ ms, stTks γ.node.raft q.st)
@@ -446,7 +449,7 @@ theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
   | q :: ms => by
     iintro #HM H Hc Htk
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => iprop(msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗
-      isRaftMsg γ.node.raft q.st ∗ termLB γ.node.bud q.st.msg.Term'))).1 $$ H with ⟨⟨Hm, #Hrm, #Htl⟩, Hrest⟩
+      isRaftMsg γ.node.raft γ.node.id q.st ∗ termLB γ.node.bud q.st.msg.Term'))).1 $$ H with ⟨⟨Hm, #Hrm, #Htl⟩, Hrest⟩
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => rdCred (GF := GF) γ.node.raft
       (if q.st.msg.Type' = MsgReadIndex then 1 else 0))).1 $$ Hc with ⟨Hc1, Hcrest⟩
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => stTks (GF := GF) γ.node.raft q.st)).1
@@ -674,14 +677,14 @@ def isRNWal (st : GoInterface) : IProp GF :=
 instance isRNWal_persistent (st : GoInterface) : Persistent (isRNWal (GF := GF) st) := by
   unfold isRNWal; infer_instance
 
-/-- **The transport `tr`** (`rafthttp.Transporter`, trust boundary: names-only): `Send` takes
-the slice of messages, each one raft may send; `Stop` returns. -/
+/-- **The transport `tr`** (`rafthttp.Transporter`): `Send` takes the slice of messages, each one
+raft may send, borrowing `E.S` (2026-10-24); `Stop` returns. -/
 def isRNTransport (E : RNEnv GF) (tr : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
-      {{ sl ↦* msL ∗ [∗list] m ∈ msL, rnMsgOk E m }}
+      {{ sl ↦* msL ∗ ([∗list] m ∈ msL, rnMsgOk E m) ∗ E.S }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
-      {{ RET #(); True }}) ∗
+      {{ RET #(); E.S }}) ∗
     □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}))
 
 instance isRNTransport_persistent (E : RNEnv GF) (tr : GoInterface) :

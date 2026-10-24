@@ -61,8 +61,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- A message raft sent, not a snapshot: every abstraction of its type is sent (`isMessage`). -/
-theorem isRaftMsg_isMessages (γ : RaftNames) (st : MsgSt) (Hns : st.msg.Type' ≠ MsgSnap) :
-    isRaftMsg (GF := GF) γ st ⊢
+theorem isRaftMsg_isMessages (γ : RaftNames) (sid : w64) (st : MsgSt) (Hns : st.msg.Type' ≠ MsgSnap) :
+    isRaftMsg (GF := GF) γ sid st ⊢
       □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
         isMessage γ (absMsg ty st.msg st.ents st.ctx)) := by
   iintro #Hr
@@ -86,22 +86,22 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     -- (2026-10-19, D22 S-a) `SentMsgOk` is of the no-transfer mode (D22 S-a to S-c: of both)
     (hnx : γ.node.raft.reNoXfer = true) {γd : GName} (ml : Loc) :
     netRecv (GF := GF) γn γ.id γd ml ⊢ |==> stepP γ.node γ.id ml := by
-  obtain ⟨N, g, dir⟩ := γn
+  obtain ⟨N, g, dir, r⟩ := γn
   simp only at HN
   subst HN
   iintro Hr
   iunfold netRecv at Hr
   simp only [srvNet]
   icases Hr with ⟨%st, %st', Hm, %Hw, #HP, ⟨HO, Htk⟩, -⟩
-  obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx⟩, Hto⟩ := Hw
-  icases HP with ⟨#Hrm, #Htl⟩
-  ihave %Hns := isRaftMsg_not_snap γ.node.raft hns st $$ Hrm
+  obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx⟩, Hto, Hrs'⟩ := Hw
+  icases HP with ⟨⟨%sid, #Hrm⟩, #Htl⟩
+  ihave %Hns := isRaftMsg_not_snap γ.node.raft hns sid st $$ Hrm
   ihave #Hrm' := Hrm
   iunfold isRaftMsg at Hrm'
   icases Hrm' with ⟨-, %Hsent0, -⟩
   have Hsent := Hsent0 hnx
   have Htn := SentMsgOk.ne_timeoutNow Hsent
-  ihave #Hmsgs := isRaftMsg_isMessages γ.node.raft st Hns $$ Hrm
+  ihave #Hmsgs := isRaftMsg_isMessages γ.node.raft sid st Hns $$ Hrm
   -- the copy's state is the message's but for its responses
   have Hst' : st' = { st with resps := st'.resps } := by
     cases st; cases st'; simp_all
@@ -116,7 +116,7 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     isplitl [Hm]
     · rw [← Hst']; iapply msgPtsC_cap_any $$ Hm
     isplitr
-    · ipureintro; exact Hp
+    · ipureintro; exact ⟨Hp, Hrs'⟩
     isplitr
     · ihave #H := Hmsgs $$ %MsgType.propose %(by rw [Hp]; exact mtypeOf_MsgProp)
       -- a proposal's protocol fact ignores the context (raft's `isMessage_propose_ctx`, stated
@@ -138,10 +138,16 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     · rw [← Hst']; iapply msgPtsC_cap_any $$ Hm
     isplitr
     · ipureintro
-      exact NetMsgOk.of_sent Hsent Hto Hp
+      -- (D38a) the copy is the message: it has no responses, nor had the message
+      have Hn := NetMsgOk.of_sent Hsent Hto Hp
+      have Hsr : st.resps = [] := by unfold SentMsgOk at Hsent; exact Hsent.2.2.2.2.2.2
+      have Hcopy : ({ st with resps := st'.resps } : MsgSt) = st := by
+        rw [Hrs']; cases st; simp only at Hsr ⊢; rw [Hsr]
+      rw [Hcopy]; exact Hn
     isplitr
     · ipureintro
-      exact ⟨fun _ => hboot, fun h => absurd h (SentMsgOk.ne_transferLeader Hsent),
+      have Htl := SentMsgOk.ne_transferLeader Hsent
+      exact ⟨fun _ => hboot, fun h => absurd h Htl,
         fun h => absurd h Hns⟩
     -- (D22 S-d4) a network message's abstraction (`netP`'s, but a snapshot's), and no snapshot
     isplitr

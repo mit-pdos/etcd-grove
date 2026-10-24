@@ -1,5 +1,6 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
+# Types and names only: function and method bodies are axiomatized, but (rafthttp stage 6e,
+# 2026-10-24) `URLs.Len`, which `rafthttp.setPeerURLsHeader` calls.
+translate = ["!*", "URLs.Len"]
 # (unit N4, 2026-10-17: `net/url`, so that `URLs` is translated)
 imports = ["!*", "net/url"]
 

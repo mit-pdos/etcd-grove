@@ -33,44 +33,53 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 
-/-- The member id of a server of the list, and its place in the network. -/
-theorem srvNetMember_lookup (γn : NetNames GF) (ss : List Loc) (k : Nat) (s : Loc)
+/-- A server of the list, its place in the network with a reader's token, lent (2026-10-24, rafthttp
+stage 6d: until then its place in the network, persistent). -/
+theorem srvPeerCtl_acc (γn : NetNames GF) (ss : List Loc) (k : Nat) (s : Loc)
     (hk : ss[k]? = some s) :
-    ([∗list] s ∈ ss, ∃ id : w64, srvNetMember γn s id) ⊢ ∃ id : w64, srvNetMember γn s id := by
-  iintro Hmem
-  ihave H := (BigSepL.bigSepL_lookup
-    (Φ := fun _ s => iprop(∃ id : w64, srvNetMember (GF := GF) γn s id)) hk) $$ Hmem
-  iexact H
+    ([∗list] s ∈ ss, ∃ id : w64, common.srvPeerCtl γn s id) ⊢
+      (∃ id : w64, common.srvPeerCtl γn s id) ∗
+        ((∃ id : w64, common.srvPeerCtl γn s id) -∗ [∗list] s ∈ ss, ∃ id : w64, common.srvPeerCtl γn s id) := by
+  obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 hk
+  have hset : ss.set k s = ss := by rw [← hget]; exact List.set_getElem_self hlt
+  iintro H
+  ihave ⟨Hx, Hc⟩ := (BigSepL.bigSepL_lookup_acc
+    (Φ := fun _ s => iprop(∃ id : w64, common.srvPeerCtl (GF := GF) γn s id)) hk).1 $$ H
+  iframe Hx
+  iintro Hx
+  ihave Hl := Hc $$ %s Hx
+  rw [hset]
+  iexact Hl
 
 theorem peerStep.wp_proof
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (wp_CutPeer : EtcdServer.CutPeer.spec (GF := GF) (hG := hG))
     (wp_MendPeer : EtcdServer.MendPeer.spec (GF := GF) (hG := hG)) :
     peerStep.spec (GF := GF) (hG := hG) := by
-  intro γn srvs ss kind a b
-  wp_start as ⟨#Hsrvs, #Hmem⟩
+  intro hpp γn srvs ss kind a b
+  wp_start as ⟨#Hsrvs, Hmem⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   ihave %Hsl := ownSlice_len $$ Hsrvs
   wp_auto
   wp_if_destruct
-  · iapply HΦ; itrivial
+  · iapply HΦ; iexact Hmem
   have hA0 := Hif
   (try wp_auto)
   wp_if_destruct
-  · iapply HΦ; itrivial
+  · iapply HΦ; iexact Hmem
   have hAn := Hif
   (try wp_auto)
   wp_if_destruct
-  · iapply HΦ; itrivial
+  · iapply HΦ; iexact Hmem
   have hB0 := Hif
   (try wp_auto)
   wp_if_destruct
-  · iapply HΦ; itrivial
+  · iapply HΦ; iexact Hmem
   have hBn := Hif
   (try wp_auto)
   wp_if_destruct
-  · iapply HΦ; itrivial
+  · iapply HΦ; iexact Hmem
   have hAB := Hif
   (try wp_auto)
   -- in range: the two servers out of the slice, their members
@@ -90,11 +99,19 @@ theorem peerStep.wp_proof
   wp_apply wp_load_slice_index _ (sint.Z b) ss _ sb hB.1 $$ [] as -
   · iframe #; ipureintro; exact Hsb_lookup
   (try wp_auto)
-  ihave #Hma := srvNetMember_lookup γn ss _ sa Hsa_lookup $$ Hmem
-  icases Hma with ⟨%ida, #Hma⟩
-  ihave #Hmb := srvNetMember_lookup γn ss _ sb Hsb_lookup $$ Hmem
-  icases Hmb with ⟨%idb, #Hmb⟩
-  -- the member ids (`srvProcOk`'s)
+  -- the two servers' places in the network, each borrowed for its member id (`srvProcOk`'s)
+  ihave ⟨Ha, Hclose⟩ := srvPeerCtl_acc γn ss _ sa Hsa_lookup $$ Hmem
+  icases Ha with ⟨%ida, Ha⟩
+  iunfold common.srvPeerCtl at Ha
+  icases Ha with ⟨%τa, #Hma, Htka⟩
+  ihave Hmem := Hclose $$ [Htka]
+  · iexists ida; iunfold common.srvPeerCtl; iexists τa; iframe Htka; iexact Hma
+  ihave ⟨Hb, Hclose⟩ := srvPeerCtl_acc γn ss _ sb Hsb_lookup $$ Hmem
+  icases Hb with ⟨%idb, Hb⟩
+  iunfold common.srvPeerCtl at Hb
+  icases Hb with ⟨%τb, #Hmb, Htkb⟩
+  ihave Hmem := Hclose $$ [Htkb]
+  · iexists idb; iunfold common.srvPeerCtl; iexists τb; iframe Htkb; iexact Hmb
   ihave #Hida : srvMemberIDAddr sa ↦□ ida $$ []
   · iunfold srvNetMember at Hma
     icases Hma with ⟨#Hp, -⟩
@@ -112,29 +129,53 @@ theorem peerStep.wp_proof
   · wp_apply (wp_MemberID sb idb) $$ []
     · iframe #
     (try wp_auto)
-    wp_apply (wp_CutPeer γn sa ida idb) $$ []
-    · iframe #
+    ihave ⟨Hx, Hclose⟩ := srvPeerCtl_acc γn ss _ sa Hsa_lookup $$ Hmem
+    icases Hx with ⟨%idx, Hx⟩
+    iunfold common.srvPeerCtl at Hx
+    icases Hx with ⟨%τx, #Hmx, Htkx⟩
+    wp_apply (wp_CutPeer hpp γn sa idx idb τx) $$ [Htkx] as Htkx
+    · iframe; iframe #
+    ihave Hmem := Hclose $$ [Htkx]
+    · iexists idx; iunfold common.srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
     (try wp_auto)
     wp_apply (wp_MemberID sa ida) $$ []
     · iframe #
     (try wp_auto)
-    wp_apply (wp_CutPeer γn sb idb ida) $$ []
-    · iframe #
+    ihave ⟨Hx, Hclose⟩ := srvPeerCtl_acc γn ss _ sb Hsb_lookup $$ Hmem
+    icases Hx with ⟨%idx, Hx⟩
+    iunfold common.srvPeerCtl at Hx
+    icases Hx with ⟨%τx, #Hmx, Htkx⟩
+    wp_apply (wp_CutPeer hpp γn sb idx ida τx) $$ [Htkx] as Htkx
+    · iframe; iframe #
+    ihave Hmem := Hclose $$ [Htkx]
+    · iexists idx; iunfold common.srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
     (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iexact Hmem
   · wp_apply (wp_MemberID sb idb) $$ []
     · iframe #
     (try wp_auto)
-    wp_apply (wp_MendPeer γn sa ida idb) $$ []
-    · iframe #
+    ihave ⟨Hx, Hclose⟩ := srvPeerCtl_acc γn ss _ sa Hsa_lookup $$ Hmem
+    icases Hx with ⟨%idx, Hx⟩
+    iunfold common.srvPeerCtl at Hx
+    icases Hx with ⟨%τx, #Hmx, Htkx⟩
+    wp_apply (wp_MendPeer hpp γn sa idx idb τx) $$ [Htkx] as Htkx
+    · iframe; iframe #
+    ihave Hmem := Hclose $$ [Htkx]
+    · iexists idx; iunfold common.srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
     (try wp_auto)
     wp_apply (wp_MemberID sa ida) $$ []
     · iframe #
     (try wp_auto)
-    wp_apply (wp_MendPeer γn sb idb ida) $$ []
-    · iframe #
+    ihave ⟨Hx, Hclose⟩ := srvPeerCtl_acc γn ss _ sb Hsb_lookup $$ Hmem
+    icases Hx with ⟨%idx, Hx⟩
+    iunfold common.srvPeerCtl at Hx
+    icases Hx with ⟨%τx, #Hmx, Htkx⟩
+    wp_apply (wp_MendPeer hpp γn sb idx ida τx) $$ [Htkx] as Htkx
+    · iframe; iframe #
+    ihave Hmem := Hclose $$ [Htkx]
+    · iexists idx; iunfold common.srvPeerCtl; iexists τx; iframe Htkx; iexact Hmx
     (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iexact Hmem
 
 end proof
 

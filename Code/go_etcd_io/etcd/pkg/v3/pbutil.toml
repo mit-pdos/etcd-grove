@@ -1,5 +1,6 @@
-# `MustUnmarshalMessage` with its body (the apply thread calls it); the rest names only.
-translate = ["!*", "MustUnmarshalMessage"]
+# `MustUnmarshalMessage` (the apply thread) and `MustMarshalMessage` (rafthttp's message encoder)
+# with their bodies; the rest names only.
+translate = ["!*", "MustUnmarshalMessage", "MustMarshalMessage"]
 imports = ["!*", "fmt", "google.golang.org/protobuf/proto"]
 
 # translate the definitions of all type declarations goose supports

@@ -17656,6 +17656,321 @@ capacity: a strengthening of S1's `proto.UnmarshalUser`/`UnmarshalRole` axioms (
 fresh, so it is true of Go) and of the batch transaction's read contract, an assumption change,
 so not made here. The reads (`UserGet`, `RoleGet`, `HasRole`, the lists) are S5's or open.
 
+## D38: rafthttp verified over a bytes-level HTTP boundary (2026-10-22 · (A) approved by the user; `notes/rafthttp-plan.md`)
+
+(D38–D41 were D33–D36 on the branch `rafthttp-plan` until its merge into `lean`, 2026-10-24, whose
+D33–D37 were taken meanwhile.)
+
+**Context.** D21b (A) kept `rafthttp` names-only behind a trusted network contract (`Net.lean`:
+`netBundle`, `netRecv`, `netRaftOk`, the five `Transport` axioms, `RaftHandler`'s and
+`net/http.Serve`'s specs), noting (B) "verify rafthttp over a network model" as very large. The
+user asked (2026-10-22) to push the boundary down below the network contract.
+
+**Decision proposed.** Translate rafthttp's message path (not metrics, probing, nor the snapshot
+stream) and prove `Net.lean`'s contract from trust-boundary specs of `net/http` at the level of
+bytes: routing of a request to the handler served at its address, the request body and a
+response stream each a prefix of the bytes sent (the latter of those written and flushed, from any
+goroutine), connections failing at any time, cancellation, recovered handler panics. Ghost state
+moves through a **mailbox** invariant keyed by a message's wire content (a multiset), with a
+per-connection stream invariant relating a stream's bytes to its messages' encodings; the server
+and example proofs keep `Net.lean`'s contract as their interface.
+
+- **(A, recommended)** the bytes-level boundary above, with the mailbox.
+- **(B)** a resource-passing HTTP boundary (requests and flushed writes carry resources): simpler
+  proofs, a stronger and less standard trust statement.
+- **(C)** keep D21b (A) (today's contract assumed).
+
+**Stays assumed.** `netProcSlots` (as today), no-op specs of zap, prometheus and the probes,
+`rate.Limiter.Wait`, the version checks as arbitrary, `proto` and `encoding/binary`'s existing or
+new boundary specs, and the snapshot stream (`SendSnapshot`'s `netSnapBundle` contract, the D22
+owner's area). **Stages** and risks (the msgappv2 delta codec against `wireEq`, the stream writer)
+in the plan.
+
+## D38a: protobuf at the bytes, as grpc's messages are specified; msgappv2's MsgApp shape from raft's side (2026-10-22 · the user: "(a), add the protobuf specs", "do the same thing we did for protobuf specs for grpc")
+
+**Context.** rafthttp's codecs marshal and unmarshal raft's messages to bytes (`msg_codec.go`,
+`msgappv2_codec.go`). The protobuf specs here were per type and per caller (`proto.Marshal.spec`
+of an `mvccpb.KeyValue`, `MarshalIRR`, `MarshalConfChange`, `SizeMessage`, ...); grpc's are generic
+(`ProtoMsg`, `InvGrpc.lean`): one spec per function for every message type, a record per Go type
+whose instance is a trusted wire model.
+
+**Decision.** The same for protobuf at the bytes (`Proof/google_golang_org/protobuf/proto/
+InvProto.lean`): `PbType` (the Go type, the model `M`, `ro` (read-only for good, persistent),
+`marshals`, `wire m bs`, `blank`, `dec`) and one generic spec each of `proto.Size`
+(`SizePb`), `proto.Marshal` (`MarshalPb`) and `proto.Unmarshal` (`UnmarshalPb`). `Size` and
+`Marshal` of one message agree through `pbEnc T.ty l`, the encoding as a function of the address,
+sound because `ro` is read-only for good (nothing can change the message); `Size` also gives the
+encoding's `wire` fact, since the encoder writes the length before it marshals. The instance for
+`*raftpb.Message` (`pbMessage`, `rafthttp/PbMessage.lean`): `ro` is a frozen message (`msgOwn` at
+`□`); `marshals` is no `responses` and every enum known (proto2's closed enums: an unknown value
+decodes into the unknown fields); `wire` is `msgDecode bs = some (wireOf st)` with `msgDecode`
+opaque, so two messages with one encoding agree on the wire (`pbMessage_wire_eq`, `wireEq`) with no
+axiom; `dec` is an owned message with its capacity, `netRecv`'s. The trust is in the instance
+(read it against `raft.proto`) and in the three generic axioms. The older per-type specs predate
+the vocabulary and stay; moving them onto it is a later clean-up.
+
+Also: `encoding/binary`'s `Write` of a `uint64`/`uint8` and `Read` into a `*uint64` moved from the
+HTTP boundary draft to `Spec/encoding/binary/` as axioms, corrected on review: the draft dropped
+the relation between `binary.Write`'s error and its inner `Write`'s (Go returns the latter), and
+typed `binary.BigEndian` as an interface global (it is an empty struct, loaded without a points-to:
+`bigEndianOrder`). rafthttp's package fact gains `ErrExceedSizeLimit` (`errors.New`, by
+`gen-init.py`'s `errorsNewVarsInit`, the errors packages' axiom kind).
+
+**msgappv2 (option (a), chosen by the user).** The short AppEntries frame rebuilds `From`/`To`
+from the connection and `Term`/`LogTerm`/`Index` from the decoder's state, the rest at defaults. A
+sent `MsgApp` must therefore have `From` = the sender and default `Vote`, `Reject`, `RejectHint`,
+snapshot and context; raft's one `MsgApp` constructor (`maybeSendAppend`, plus `send`) does. That
+goes into the sender's promise, the receiver's guarantee (`wireEq`) unchanged. **Done 2026-10-22**:
+`SentMsgOk` has a sixth clause, `MsgApp → AppShape st` (`InvRaftPhys.lean`: `Vote`, `Reject`,
+`RejectHint` zero, no snapshot, no context, no responses); `raft.send` takes it of its message as a
+premise (`m.Type' = MsgApp → AppShape ⟨m, ents, sn, ctx, rs⟩`), which `maybeSendAppend` proves from
+its literal and every other caller from its type; `send` stamps only `From` and `Term`. It reaches
+`netBundle` through the server's payload (`isRaftMsg`, in the no-transfer mode). `SentMsgOk` now
+reads `snap` and `resps`, so a copy with other responses (the received message, `InvNet.lean`) or
+another snapshot (the merged `MsgSnap`, `SnapSendBundle.lean`) no longer has it by definitional
+unfolding: `SentMsgOk.of_msg` (not a `MsgApp`), and `NetMsgOk` still reads the scalars only. No
+statement of a closed theorem changed, trust base unchanged. *Still open:* `From` = the sending
+member's id (`send` sets it; the transport side needs it against its local id), and `MsgMarshals`
+for every sent message (no responses, known enums: the entries' types, a log-wide fact), which the
+encoder's spec takes.
+*Rejected:* (b) weakening `wireEq` to the fields `Process` reads (a change to `Net.lean`'s
+interface and the server proofs).
+
+**The msgappv2 pair (2026-10-22).** The stream's frames as a pure relation (`V2Frame`, in
+`rafthttp/MsgAppV2.lean`) of the codec state, the wire content carried, the bytes and the next state,
+rather than an encoding function: protobuf's encoding is a relation here (`wire`, an encoding up to
+unknown fields), and the relation is all both sides need. The decoder's spec is stated against what
+it can know of the stream, that the bytes it reads are compatible with some frame (`V2Compat`), not
+against a whole stream: a stream reader (stage 5) gets that from the response protocol and the
+frames it has already read (`V2Frame.unique`). Unlike `messageDecoder`, the msgappv2 decoder panics
+(`MustUnmarshalMessage`) on bytes that are not an encoding, so its proof needs this knowledge for
+each entry, not only at the end: `V2Compat.short_len`, `short_ent`, `short_end`. *Rejected:* a
+`Clone`-free heartbeat branch (the code clones `linkHeartbeatMessage`; a generic `proto.Clone` spec
+with `PbType.eqv`, and the variable's initializer as a package fact, are the honest statement).
+
+**The sent messages' facts: no responses, `From`, open enums (2026-10-22; the user: "do the From =
+sender id and MsgMarshals facts", then "Drop enum bounds").** *Open enums.* `MsgMarshals` asked
+every enum to be a declared value (`MessageType` `0`-`23`, the entries' `EntryType` `0`-`2`), on the
+proto2 spec's closed enums. Proving the entries' bound would have needed a log-wide invariant
+(every entry raft makes, receives or restores is of a declared type; a premise on the WAL's
+entries). A Go test on the pinned raftpb showed protobuf-go keeps undeclared values (types `99`, `5`,
+`-3` round-trip, no unknown fields; `notes/rafthttp-plan.md`, "Open enums"), so the bounds were
+stronger than the code needs: dropped, with the user's agreement. `MsgMarshals` is "no responses",
+`EntWireOk` the decoding alone, `pbEntry.marshals` `True`. The accepted axioms (`pbEnc_ok`, the
+generic `proto` specs) keep their names and now cover more messages, which the test supports.
+*Rejected:* the entry-type invariant (unneeded), and keeping the bounds (a model stricter than Go).
+*No responses.* `SentMsgOk` gains `st.resps = []` and `raft.send` the premise `rs = []`: raft builds
+every message without responses, and forwards three it received (`stepFollower`'s `MsgProp`,
+`MsgReadIndex`, `MsgTransferLeader`), so `raft.Step` takes `Hnors` (in its `"Hm"`, for those types)
+and `stepFollower` the premise; `NetMsgOk` and `fwdP` say a network message has none (the transport's
+`netRecv`: a copy unmarshalled from an encoding of a message with none), the local ones are built
+without. The outbox invariant `XfOk` records it for every queued message in every mode (not only
+`SentMsgOk`'s no-transfer mode: the kv example runs with transfer on), and `isRaftMsg` hands it out.
+The transport's boundary: `netBundle` and `netSnapBundle` (what `Send`/`SendSnapshot` take) require
+no responses, and `netRecv` gives the copy none, consistently (the `Transport.Start` axiom asks more
+and promises more; it holds of rafthttp since the wire carries no responses; **accepted by the user**,
+2026-10-23); stage 6 will need
+`pbMessage`'s decoding to say that a decoded message has none. *`From`.* `AppFrom id st` (`MsgApp →
+From = id`): `send` stamps `From = r.id` but on a forwarded read-index or transfer request, never a
+`MsgApp`. It needs the node's id where the queues and the `Ready`s' messages are described: `XfOk`
+and `isRaftMsg` take it, and `NodeNames` has the node's `id` (`isNode`'s `⌜γ.id = id⌝`, set by
+`StartNode`/`RestartNode`) so that `readyData` states `isRaftMsg γ.raft γ.id`. *Deferred:* the
+server's payload keeps the sender existential (`srvMsgNet`, `srvNet.P`: `∃ sid, isRaftMsg γ sid st`);
+tying `sid` to the transport's local id needs the server's raft environment `srvEr` indexed by the
+member id and `γ.node.id = γ.id`, which `Send`'s spec will ask for in stage 6. No axiom added or
+removed (542); no exported result's statement changed; internal specs changed (`raft.send`,
+`raft.Step`, `stepFollower`, the `Ready` specs, the kv example's `deliver`).
+
+## D38c: an address's protocol registered once; the boundary's statements as axioms (2026-10-23 · rafthttp stage 4e; the user: "do 4e", "follow your recommendations"; accepted by the user 2026-10-23)
+
+**Context.** The HTTP boundary (`Proof/net/http/Boundary.lean`) states its specs over an
+`HttpNet H`, every address's protocol. As axioms stated for any `H`, a client could send under
+one protocol to a server serving under another, and the handler would receive facts nobody
+proved (a server started with a request protocol of `False` could do anything). The draft (D38,
+the boundary note's point 1) said the protocols are ghost facts fixed per address, but its
+statements did not say so. (The request tickets of D38b, the user's choice of 2026-10-23, are in
+`notes/rafthttp-plan.md`, stage 4.)
+
+**Decision.** As grpc's `grpc.serve` ties a method's handler to the address (`grpcServes`):
+`http.register` (an axiom, `Proof/net/http/Axioms.lean`) turns the address's listener
+`netListenerAt l a` (one per address in a run) into `httpListenerAt l a P`, which `Serve` takes,
+and the persistent `httpProtoAt a P`, which `RoundTrip` asks of a request's host. A model: a
+global ghost map from addresses to saved protocols, the entry for `a` set once with the listener;
+so the two sides of an address agree on its protocol. The specs stated for any `H` are then sound:
+their writers and readers come only from `Serve` and `RoundTrip`. rafthttp's sender gets the
+registration of its peer's hosts (`pipeReg Rh to`, in `pipeSenderOk`): stage 6 must establish it
+for the addresses the network's owner map gives to each member (an owner map giving unknown hosts
+no member).
+
+Then the specs the proofs use became axioms (`Axioms.lean`: `bodyRead_ok`, `respWriteHeader_ok`,
+`HeaderSet_ok`, `RespHeader_ok`, `ReadAll_ok`, `Flush_ok`, `Error_ok`, `NewBuffer_ok`,
+`WithContext_ok`, `ReadAll_resp_ok`, `RespClose_ok`); the others stay statements until used.
+Reviewing them as axioms found three over-claims in the draft, fixed:
+- `NewRequest_spec` claimed no error for any host; Go's `NewRequest` fails for a URL whose host
+  `url.Parse` rejects (a Go test: `"a b"`, `"a:b:c"`, `"a/b"`). It now asks `urlHostOk host` (an
+  opaque predicate: a host `url.Parse` accepted, as rafthttp's peer URLs are, `types.NewURLs`),
+  carried by `urlPlain`.
+- `respWriteHeader_spec` and `Error_spec` took any status; Go's `WriteHeader` panics outside
+  `100`-`999` and does not set an informational `1xx` status. Both now ask `200 ≤ st ≤ 999`.
+*Known imprecision, left:* `RespHeader_spec` gives `∃ hs, hdrOwn hm hs` at each call of
+`w.Header()`, which returns the same map each time, so two `hdrOwn` of one map may coexist. Nothing
+reads a response's headers through `hdrOwn` (the client sees them unconstrained) and no axiom makes
+`hdrOwn` exclusive, so no result depends on it; a writer tracking its header map would remove it.
+*Rejected:* one global `httpNetIs H` fact (the protocols fixed for every address at once): it needs
+the whole cluster's addresses before any listener, where the per-address registration needs only
+the listener, as grpc's.
+
+## D38d: the streams' protocol: per-connection tokens registered under the ticket (2026-10-23 · rafthttp stage 5a; the user: "start stage 5", "carry on with 5a"; accepted by the user 2026-10-23)
+
+**Context.** A stream request carries many messages in its one response, each with a one-shot
+part that cannot cross the wire. The pipeline's deposit per request (D38b: `inv (O ∨ ticket)`,
+withdrawn by the ticket's holder) does not do: the ticket goes to the writer's handler, and the
+reader, which must withdraw, holds nothing exclusive of the connection.
+
+**Decision.** The reader owns the authority of a ghost map `γw` of frame indices and withdraws
+the `i`-th frame's deposit (`inv (O st ∨ i ↪[γw] ())`) with the token it inserts for `i` (it reads
+frames in order). The writer learns `γw`, and the reader that the writer's deposits are for its
+`γw`, through a registry: a ghost map from ticket names to `(γw, stream type, reader)`, its
+authority in an invariant, filled by the reader when it allocates the ticket, fresh for the map's
+finite domain (`dghostVar_alloc_strong`), so a ticket's entry is unique. What the writer writes is
+a prefix of a chain of its codec's frames, each a link heartbeat or a message to the reader with
+`□ P` and its deposit; frames are self-delimiting, so the reader's `i`-th decoded frame is the
+chain's `i`-th. All of it is this repository's ghost state and pure Lean: no trust.
+*Rejected:* a resource-carrying response (D38's (B), rejected then); per-frame tickets from the
+client (the client's ticket is consumed by `RoundTrip`); a protocol state machine as raft's (the
+property is per connection, with no order claimed).
+
+## D39: rafthttp's transport proved: the network's two layers joined (2026-10-23 · rafthttp stage 6; the user: "start stage 6", the four stage-6 choices; "accept D39a and the R re-budget, start 6a")
+
+**Context.** Stage 6 proves `rafthttp.Transport` (`Start`, `AddPeer`, `AddRemote`, `Send`,
+`CutPeer`, `MendPeer`, `Handler`) and so removes the trust-boundary axioms that state D21 M2's
+network contract about it, and `EtcdServer.RaftHandler`'s and D21 M5's `net/http.Serve`. The
+stage-5 proofs are over D38's HTTP boundary (`raftProto`, `RaftHttp`); the server's over D21's
+network (`NetNames`: payload, slots, directory). Scoping found what joining them needs.
+
+**Decisions** (`notes/rafthttp-plan.md`, stage 6, for the four choices made at scoping: the
+snapshot stream a smaller axiom, no `410`, `Counter.Add` may panic, the prober an axiom):
+- **D39a, an address's protocol fixed before its listener** (a trust change, accepted by the
+  user). A member starts its transport and adds its peers before they listen (linkv3's members
+  start one after the other), and its sends need `httpProtoAt` of their addresses (`RoundTrip`),
+  which D38c gave only with the listener. Program start (`goose_adequacy_start`, D19d) now also
+  gives `httpProtoFree a` for each of its addresses (exclusive, purely ghost); `http.reserve`
+  turns it into `httpProtoAt a P` and `httpProtoOwn a P`, which `http.register` takes with the
+  listener. The model is D38c's, a global ghost map from addresses to saved protocols set once,
+  now set by `reserve`. A request to a reserved address with no listener yet fails ("connection
+  refused"), an error `RoundTrip`'s spec allows.
+- **The `R` re-budget** (our specs only, accepted by the user). Each call into the server's `Raft`
+  borrows one of `lgMu`'s reader slots (`R`). `Start` took `2^29` of them for every call the
+  transport would make; proved, the calls are the handlers' (one per invocation, given by `Serve`)
+  and each peer's two receiving goroutines' (one each, for good). So `NewServer` gives out `2^29`
+  slots for `Serve` (through `RaftHandler`'s caller) and `AddPeer` takes two per peer from its
+  remaining ones (Go's limit is `2^30` readers); done with 6d, when `Start`'s and `AddPeer`'s
+  axioms go (restated before, they would claim calls with no slot).
+- **`RaftHttp` from `NetNames`** (no trust). `NetNames` gains the streams' registry (`reg`,
+  allocated with its invariant by `netNames_alloc`), so a member's stream reader and its peer's
+  handler agree on a connection; `netRh γn` takes a host's owner from the directory (`netOwner`:
+  the member one of whose URLs is `http://h`, `0` for none), which needs the directory's hosts
+  distinct (`dirHostsDistinct`, a premise where the cluster's directory is chosen).
+- **No `410`** (no trust; the user's choice at scoping). `netRaftOk`'s `IsIDRemoved` returns
+  `false` (the server's proved spec already says so: static membership), so `raftProto` says a
+  member's response is never `410`, the stream handler proves it, and `dial`'s report on
+  `errorc` is dead: `Start`'s "nothing on `ErrorC`" holds of the code.
+*Rejected:* deriving a protocol right from `netAddrFree` (two reservations of an address with
+different protocols would be possible); weakening `RoundTrip` to unregistered hosts (a request to
+an address whose protocol is unknown could not be tied to the handler that later serves it).
+
+## D40: the handlers' `AddRemote` is dead: a request's sender is a peer (2026-10-24 · rafthttp stage 6d; the user: "carry on with 6d")
+
+**Context.** Every raft handler calls `AddRemote` of the request's sender: the pipeline and
+snapshot handlers through `addRemoteFromRequest` (`X-Server-From`, `X-PeerURLs`), the stream
+handler for a reader it has no peer of. They do so at any time, after the transport is given up
+for `Serve`, without `transportLive`'s exclusive half that `AddRemote_core` needs, and with URLs
+from the request's headers. A remote added there would get messages `Send` routes to it, posted
+to URLs no one checked, and `CutPeer`'s premise (`id` not among the remotes' ids) would no longer
+be stable. In Go, `AddRemote` returns at once for a stopped transport or an id that is already a
+peer, and in a static cluster every member adds every other one as a peer before it serves
+(`NewServer`'s `AddPeer` loop, `server.go:437-441`).
+
+**Decision** (no trust; our specs only):
+- the lock's ghost record `γr` also holds the ids `AddPeer` was called for (`trIds`: the remotes'
+  and the peers'), and the lock covers them: while `remotes` is not `nil`, each is a key of
+  `peers` (`trLockP`); `AddPeer` adds its id, `Stop` empties the maps with `remotes` `nil`. After
+  the freeze (`trRemotesFrozen`), `AddRemote` of a recorded peer returns at once
+  (`AddRemote_frozen`), with no `R` and no ghost step;
+- the protocol carries the sender: `RaftHttp.member` (the network's: members are those with peer
+  URLs, `netRh`), a pipeline request's `X-Server-From` is another member's id (`fromOkAt`, in
+  `pipeReq`; `createPostRequest`'s spec states the header), a stream request's reader is another
+  member (`streamReq`). The sending transport's member is a member (`trFixed`), its peers and
+  remotes others (`AddPeer_core`/`AddRemote_core`'s `lid ≠ id`, through `startPeer`,
+  `startRemote`, the pipeline and the stream reader);
+- the handlers' premises take a sender other than their member (`pipeHandlerOk`,
+  `streamHandlerOk`, `newSnapshotHandler`'s axiom), `addRemoteFromRequest` is proved over it, and
+  `trAddRemote_of_frozen` discharges them from the frozen state and the caller's coverage: every
+  other member among the recorded peers (`NewServer`'s, 6d).
+*Note for D22 S-j (the snapshot receiver, the D22 owner's):* `applySnapshot` calls
+`RemoveAllPeers` and then `AddPeer` for every member after the transport is serving; between the
+two a handler's `AddRemote` would add a remote (Go's behavior). The coverage invariant above does
+not hold through that window; S-j must state it differently (e.g. `RemoveAllPeers` keeping the
+recorded ids, and the window's remotes stopped by the re-add, or a premise).
+*Rejected:* a premise that the handlers' `AddRemote` returns (it is the code's behavior and
+provable); letting the handlers add remotes (their URLs come from the request).
+
+## D41: the transport's axioms restated over its proved state; the server and the examples over them (2026-10-24 · rafthttp stage 6d, fourth part; the user: "use the 2^50 physical assumption, carry netBundle's facts, continue 6d")
+
+**The two decisions** (blocked in the third part):
+* `swMsgBound` is a physical assumption, `swMsgBound_phys` (`rafthttp/Transport.lean`): the
+  encoding of a read-only message is below `2^50` bytes. Stated on `msgOwn` at the discarded
+  fraction (a message that can no longer change), used where the network's bundle becomes what
+  `Send` takes (`sendMsg_of_netBundle`). Not derivable: the logic can allocate a slice of any
+  `w64` length; `pbEnc_ok`'s `2^63` is Go's semantics (`Size` returns an `int`).
+* `netBundle` carries raft's facts and its sender: `netBundle N lid m` asks of a `MsgApp` raft's
+  shape (`AppShape`) and `From = lid`; `netTransport γn lid tr T` is of the member `lid`. The
+  server's messages give them from `isRaftMsg` (`AppFrom` of the node's id, `SentMsgOk` in the
+  no-transfer mode), `srvMsgNet` now of the sender `id` (`srvMsgNet_bundle`); raft's node names'
+  id is the configuration's (`NodeStart`'s post, from `isNode`).
+
+**The transport's specs** (`Spec/.../rafthttp/Transport__*.lean`): `Start`, `AddPeer`,
+`AddRemote`, `CutPeer`, `MendPeer` restated over the transport's state (`trLive`, `trFrozen`,
+`trTok`) and `Handler` added; each proved over its callees' specs (`TransportSpecs.lean`), an
+axiom until 6f links rafthttp. `Start`'s post also gives, once frozen, the network's transport
+(`netTransport`, its `Send` borrowing a reader's token) and `isTransporter` (`trFrozen_net`).
+Two new trust-boundary axioms there: `Transport.SendSnapshot` (untranslated, D22's contract, cut
+out of `Start`'s as the stage-6 choice (1) said) and `Transport.ActiveSince` (translated; its
+read lock taken with no reader token: the server's request path calls it from any goroutine, at
+most `2^30 - 1` at once, physically). Gone: the opaque `transportLive`, `transportStarted`,
+`transportRemotes`, `raftHandlerOf`; `netSlot` is no longer used by the server (kept in
+`Net.lean`, D22's interface). `CutPeer`/`MendPeer` take `PeerPausable` as a premise (the link
+cannot supply a class), and the examples that reach them (linkv3p) as an instance.
+
+**The HTTP side**: `netHttpOk γn lid` is of the member: the other members' hosts registered (a
+member never adds itself as a peer); `pipeReg` only for members (`trFixed`'s), and the directory
+gives no member `0` (an unknown host's owner). `netHttpOk_of_dir`, `netHttpOk_single` (a
+one-member network registers nothing), `netHttp_reserve3` (the program start's rights of three
+peer addresses reserved). `http.Serve_ok` (the HTTP boundary's `Serve_spec`, D38) replaces D21
+M5's `net/http.Serve` axiom; `EtcdServer.RaftHandler` is translated and proved over `Handler`.
+
+**The server** (`NewServer.spec`): takes `netHttpOk γn id` (not the member's slot) and
+`netDirOk dir` (no member `0`, distinct hosts, plain URLs); `bootstrap`'s contract (a premise)
+says more: `Members()` returns raft's peers in order, the directory's members are raft's peers,
+at most `2^20` of them (`bootOk`'s `Hmembers`, `Hdirps`; both true of Go: `Members()` and the
+peers are sorted by id, and the examples' directories are exact). `NewServer` adds every other
+member as a peer, eight of `lgMu`'s readers each, then freezes the transport; returns the member
+(`srvNetMember γn s id τ`: the transport frozen, every other member a peer), one reader token
+(`srvTrTok`, for `CutPeer`/`MendPeer`) and `httpProcSlots` copies of `srvServeRes` (an `R` and a
+token, for `Serve`). The raft loop's `S` (`srvEr`'s new argument) is a key (`srvTrKey`) to a
+reader token of the transport, fixed under a ghost name allocated before the raft node, since the
+node's environment is built before the transport (`netTransport_of_key`).
+
+**The examples**: the one-member examples' directories exact (`dirOne`, until then every id's,
+which the stronger contract would have made false); the three-member examples reserve their peer
+addresses at program start (`httpProtoFree`, D39a), register each member's listener and serve
+its handler with `Serve_ok`; linkv3p's partitioner holds each member's reader token
+(`srvPeerCtl`) and takes `PeerPausable`.
+
+**Lean**: `(netRh γn).owner h` against `netOwner γn.dir h` exceeds the default recursion depth by
+`rfl` (the check unfolds `netOwner`'s classical `if` over the `go!` byte literal); `netRh_owner`,
+proved by `simp only [netRh]`, is the rewrite.
+
 ## S5b of the auth plan, in part: the simple provider's `info` and `assign` keep the token binding (2026-10-24 · `notes/auth-plan.md`, branch `auth-s5b`)
 
 **Problem.** S5 stated the token binding over the provider's contract (`tokenProviderOk`) and proved

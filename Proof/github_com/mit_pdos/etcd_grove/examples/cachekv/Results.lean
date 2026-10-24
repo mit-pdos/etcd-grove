@@ -42,7 +42,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.cachekv.Assumpti
 
 /-- **`Main` does not panic** (`Link.lean`'s `cachekv.wp_Main`). -/
 theorem cachekv_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf] :
     cachekv.Main.spec (GF := GF) (hG := hG) :=
   cachekv.wp_Main
 

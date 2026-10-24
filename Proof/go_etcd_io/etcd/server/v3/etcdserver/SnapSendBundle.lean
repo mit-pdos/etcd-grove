@@ -68,7 +68,7 @@ instance rnRtBound_persistent (γ : RaftNames) (rt ai : w64) :
   unfold rnRtBound; infer_instance
 
 /-- **The merged snapshot is the network's snapshot bundle** (see the file header). -/
-theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : Loc) (st : MsgSt)
+theorem srvMergedBundle (γ : RaftNames) (sid : w64) (bud : BudgetNames) (E : CoPset) (ml : Loc) (st : MsgSt)
     (sn0 : SnapshotM) (c : ConfStateM) (ai at_ : w64) (A : List EntryM) (rc : GoInterface)
     (D : backend.Data)
     (HE : ↑raftLogN ⊆ E) (Hty : st.msg.Type' = MsgSnap) (Hsn : st.snap = some sn0)
@@ -77,7 +77,7 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
     -- (D22 S-r, 2026-10-21) the cluster admits the merged snapshot's (empty) data at `A`: its
     -- content is the backend's (D22c); the servers' cluster admits every data
     (Hsok : γ.reSnapOk A []) :
-    ⊢ raftCommitInv (GF := GF) γ -∗ isRaftMsg γ st -∗ termLB bud st.msg.Term' -∗
+    ⊢ raftCommitInv (GF := GF) γ -∗ isRaftMsg γ sid st -∗ termLB bud st.msg.Term' -∗
       rnRtBound γ st.msg.Term' ai -∗ isCommitted γ A -∗
       -- (D22 S-b′3, 2026-10-20) the merged content's configuration certificate (S-l mints it
       -- from `ep.confState`'s content: `raftSnapCert_empty`, `raftSnapCert_static`)
@@ -87,7 +87,7 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
       netSnapBundle (srvNet γ bud) ml rc := by
   iintro #Hinv #Hrm #Htlb #Hbnd #HA #Hcc #Hml Hrs #Himg
   iunfold isRaftMsg at Hrm
-  icases Hrm with ⟨%Hns, %Hsent, ⟨%a, %Habs, #Hmsgs⟩, -⟩
+  icases Hrm with ⟨%Hns, %Hsent, ⟨%a, %Habs, #Hmsgs⟩, -, %Hra⟩
   -- the abstraction of raft's `MsgSnap`
   have Ha : a = some (absSnap st.msg sn0 sn0.Metadata'.ConfState'.lists) := by
     rcases Habs with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv, -, Hsv, rfl⟩
@@ -119,15 +119,20 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
     imodintro
     simp only [srvNet]
     isplitr
-    · iunfold isRaftMsg
+    · iexists sid
+      iunfold isRaftMsg
       isplitr
       · ipureintro; exact Hns
       isplitr
       · -- `SentMsgOk` reads only the message, which the merge keeps (D22 S-c: under the
         -- no-transfer mode alone, `MsgSnap` included)
         ipureintro
-        exact Hsent
+        exact fun h => (Hsent h).of_msg rfl Hra.1 (by rw [Hty]; simp [MsgSnap, MsgApp])
       isplitr
+      rotate_left
+      isplitr
+      rotate_left
+      · ipureintro; exact Hra
       rotate_left
       · -- (D22 S-r) the merged snapshot's data certificate: the committed prefix `A`
         unfold msgDat
@@ -173,7 +178,7 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
     rw [if_neg h2]
     iempintro
   isplitr
-  · ipureintro; exact ⟨Hty, rfl⟩
+  · ipureintro; exact ⟨Hty, rfl, Hra.1⟩
   simp only [srvNet]
   iexact Himg
 

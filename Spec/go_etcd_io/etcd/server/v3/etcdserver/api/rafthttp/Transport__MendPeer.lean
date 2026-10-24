@@ -1,54 +1,40 @@
 /-
-`(*rafthttp.Transport).MendPeer(id)` (`transport.go`): names-only. Lean-first (no Rocq counterpart);
-the partition plan's stage S1 (2026-10-20, `notes/partition-plan.md`), an axiom at the trust
-boundary, why it is true of the Go code below.
+`(*rafthttp.Transport).MendPeer(id)` (`transport.go`). Lean-first; the partition plan's S2
+(2026-10-20), an axiom to rafthttp stage 6d (2026-10-24), which restated it over the transport's
+state and proved it over its callees' specs (`rafthttp.Transport.MendPeer_ok`, `TransportSpecs.lean`;
+linked in stage 6f).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`t.MendPeer(id)`** on a started transport: it returns. From then on the transport no longer
-drops the messages to and from member `id` that `CutPeer` made it drop (etcd's partition
-recovery, used by its integration tests: `tests/framework/integration/cluster.go`,
-`RecoverPartition`).
-
-Why it is true of the Go code (`transport.go`, `peer.go`, `stream.go` at the etcd pin):
-`MendPeer` takes the transport's read lock and looks `id` up in its peers and remotes (both
-maps exist once `Start` ran; a missing entry does nothing). `id` is no remote (`transportRemotes
-t rs`, `id ∉ rs`; a remote's `Resume` would start its pipeline's goroutines again, a leak but no
-panic: the same premise as `CutPeer`'s, so that the two are used together), so only the peer's
-branch runs. On the peer it calls `Resume`
-(`peer.go`): under the peer's lock it clears `paused` and resumes the peer's two stream readers
-(`stream.go`, `streamReader.resume`), so `send` sends again and `decodeLoop` hands what it decodes
-to `Raft.Process` again. `Resume` is idempotent on a peer. Nothing dropped while paused is
-resent. So the call changes nothing the network model describes (the messages sent from now on
-reach `Process` or are lost, as `Transport.Start`'s axiom says of every message): this axiom
-adds no assumption about delivery, only that the call returns without a panic. -/
+/-- **`t.MendPeer(id)`** on a frozen transport with one of its lock's reader tokens, `id` no
+remote: it returns the token. It resumes the peer of `id` (`peer.Resume`, if one is added): the transport
+delivers again (until the next `CutPeer`); a dropped message is one the network may lose. `id` is no remote: a remote's `Pause` stops
+its pipeline, a second one panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
+method set's premise `PeerPausable` (`*peer` implements `Pausable`). -/
 abbrev rafthttp.Transport.MendPeer.spec : Prop :=
-  ∀ (γn : NetNames GF) (t : Loc) (id : w64) (rs : List w64),
+  PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64),
+  id ∉ rs.1 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      transportStarted γn t ∗ transportRemotes t rs ∗ ⌜id ∉ rs⌝ }}
-    (App (Val (t @!! go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))
-  {{ RET #(); True }}
+      trFrozen γn t c rs ∗ trTok γn t c }}
+    (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))
+  {{ RET #(); trTok γn t c }}
 
 end spec
 

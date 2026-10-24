@@ -37,7 +37,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putget3.Assumpti
 /-- **putget3's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/putget3/Main.lean`), under the semantic premises of
 its callees' linked results (putget's). -/
-theorem putget3.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem putget3.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ErrorStringLeaf]
+    [ErrorStringNotWriter] :
     putget3.Main.spec (GF := GF) (hG := hG) :=
   putget3.Main.wp_proof zap.NewNop.wp_proof common.wp_StartMember common.wp_Serve
     common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof

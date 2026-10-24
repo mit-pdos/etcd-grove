@@ -84,7 +84,7 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
       -- (2026-10-16, stage R5, D8) the messages handed out, a response at half
       "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-      "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ q.st) ∗
+      "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       -- (2026-10-17; until then at most `rs.term`) within the term ceiling (a granted pre-vote)
       "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
       "Habandon" ∷ (rd.Messages' ↦* ms.map QMsg.loc -∗

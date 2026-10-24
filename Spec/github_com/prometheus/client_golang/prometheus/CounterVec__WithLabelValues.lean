@@ -25,9 +25,13 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- A prometheus `Counter`: `Inc()` returns (persistent). -/
+/-- A prometheus `Counter`: `Inc()` returns, and (2026-10-23, rafthttp stage 4) `Add(x)` of a
+non-negative integer converted to a float (persistent). -/
 def prometheus.counterSpec (c : GoInterfaceOk) : IProp GF :=
-  iprop(□ ({{ True }} (App (Val #(methods c.ty go!"Inc" c.v)) (Val #())) {{ RET #(); True }}))
+  iprop(□ ({{ True }} (App (Val #(methods c.ty go!"Inc" c.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ (∀ n : w64, ⌜0 ≤ sint.Z n⌝ →
+      {{ True }} (App (Val #(methods c.ty go!"Add" c.v)) (Val #(int64ToFloat64 n)))
+      {{ RET #(); True }}))
 
 instance prometheus.counterSpec_persistent (c : GoInterfaceOk) :
     Persistent (prometheus.counterSpec (GF := GF) c) := by

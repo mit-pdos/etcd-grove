@@ -649,7 +649,7 @@ theorem RawNode.acceptReady.wp_proof
   -- is closed: `Hself` is about `ms2`)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
   ihave Hps := self_pending γ id s.term s.outbox ms1 ms2 Houtbox ms2 Hsub2 HmsgsAA_ok Hnsout
-    (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout Hqc Hself
+    (fun h => (Hxf.2.1 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) Hxf.2.2 $$ Hout Hqc Hself
   -- (D22 S-d3a) the log after the `Ready`: what it keeps of `ls0` and `s.logst`
   have Haf := accept_fields ls0 ce sz
   have Hsip00 : s.logst.sip = false := by
@@ -734,7 +734,7 @@ theorem RawNode.acceptReady.wp_proof
       by rw [a4, Hf_cm]; exact Int.le_refl _⟩, fun _ h => by cases h⟩
   · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable, HlL]; exact Int.le_refl _
   · ipureintro
-    exact XfOk.nil (fun h => (Hxf.1 h).1) (fun h => (Hxf.2 h).1)
+    exact XfOk.nil (fun h => (Hxf.1 h).1) (fun h => (Hxf.2.1 h).1)
   · rw [List.append_nil]; iapply qSrcs_nil
   -- the node after `Ready`
   have Hlogst : (readyNstate s L ce sz).logst = logAcceptApplying (logAcceptUnstable ls0) ce sz := by

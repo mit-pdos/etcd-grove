@@ -66,7 +66,7 @@ theorem node.TransferLeadership.wp_proof
     · iapply isHandshake_isChan $$ Hrecvc
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
       $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
-    · iapply netP_local γ id _ _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) rfl rfl rfl
+    · iapply netP_local γ id _ _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) rfl rfl rfl rfl
         (fun _ => Hns) $$ Hmsg Hlb Hcr Htc
     inext
     iintro -

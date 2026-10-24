@@ -219,7 +219,7 @@ theorem RestartNode.wp_proof
   unfold newNodeChans
   icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
     #Hcc, Hoc, #Hccs, Hocs, #Hcrd, Hord, #Hca, Hoa, #Hct, Hot, #Hcd, Hod, #Hcs, Hos, #Hcst, Host⟩
-  let γn : NodeNames := { raft := γ, bud := bud, stor := interface.ok si, propc := γp,
+  let γn : NodeNames := { raft := γ, id := cv.ID', bud := bud, stor := interface.ok si, propc := γp,
                           recvc := γr, confc := γc, confstatec := γcs, readyc := γrd, advancec := γa, tick := γt,
                           done := γd, stop := γs, status := γst, dlv := γdlv, rof := γrof,
                           mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq,
@@ -249,6 +249,7 @@ theorem RestartNode.wp_proof
     simp only [named]
     rw [Hnvrn]
     iframe #
+    ipureintro; rfl
   -- `go n.run()`
   wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
   · wp_apply wp_node_run γn cv.ID' n_ptr $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]

@@ -253,6 +253,9 @@ theorem google_golang_org.protobuf.proto.wp_initialize'
   iframe Hown
   iintro Hown
   wp_auto
+  -- (2026-10-22) `internal/pragma`, which `MarshalOptions` (translated since) names
+  wp_apply google_golang_org.protobuf.internal.pragma.wp_initialize' _ Hinit.2.2.1 $$ Hown
+    as ⟨Hown, #H0⟩
   wp_apply google_golang_org.protobuf.reflect.protoreflect.wp_initialize' _ Hinit.2.1 $$ Hown
     as ⟨Hown, #H1⟩
   -- errUnknown, errDecode, errRecursionDepth, wireTypes: their trusted initializers do nothing

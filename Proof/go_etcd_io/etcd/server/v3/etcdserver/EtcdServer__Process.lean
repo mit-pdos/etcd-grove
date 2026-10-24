@@ -69,7 +69,7 @@ theorem EtcdServer.Process.wp_proof
   · iPkgInit
   iunfold netRecv at Hrecv
   icases Hrecv with ⟨%sm, %sm', Hm, %Hw, #HP, HO, #HS⟩
-  obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, Hto⟩ := Hw
+  obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, Hto, Hrs'⟩ := Hw
   wp_auto
   wp_apply wp_Logger s l $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
@@ -112,7 +112,7 @@ theorem EtcdServer.Process.wp_proof
       iexists sm, sm'
       iframe Hm HO HP HS
       ipureintro
-      exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto⟩
+      exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto, Hrs'⟩
     imod (stepP_of_recv γn γ HNe hns hboot hnx ml) $$ Hrecv with Hstep
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
@@ -124,11 +124,11 @@ theorem EtcdServer.Process.wp_proof
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Step")]
     wp_pures
     (try wp_auto)
-    wp_apply HStep $$ %ctx %cd %ml [Hstep] as %err -
+    wp_apply HStep $$ %ctx %cd %ml [Hstep] as %err #Herr
     · iframe Hctx Hstep
     (try wp_auto)
     iapply HΦ
-    iexact Hlr
+    iframe Hlr Herr
   · (try wp_auto)
     -- `s.r.Step(ctx, m)`: raft's, of what the network delivered
     ihave Hrecv : netRecv γn γ.id γd ml $$ [Hm HO]
@@ -136,7 +136,7 @@ theorem EtcdServer.Process.wp_proof
       iexists sm, sm'
       iframe Hm HO HP HS
       ipureintro
-      exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto⟩
+      exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto, Hrs'⟩
     imod (stepP_of_recv γn γ HNe hns hboot hnx ml) $$ Hrecv with Hstep
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
@@ -148,11 +148,11 @@ theorem EtcdServer.Process.wp_proof
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Step")]
     wp_pures
     (try wp_auto)
-    wp_apply HStep $$ %ctx %cd %ml [Hstep] as %err -
+    wp_apply HStep $$ %ctx %cd %ml [Hstep] as %err #Herr
     · iframe Hctx Hstep
     (try wp_auto)
     iapply HΦ
-    iexact Hlr
+    iframe Hlr Herr
 
 end proof
 

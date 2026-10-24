@@ -510,7 +510,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
     (rs : List Loc) (Φ : val → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgReadIndex)
-    (Hterm : m.Term' = W64 0) :
+    (Hterm : m.Term' = W64 0) (Hnors : rs = []) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -546,7 +546,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
       ipureintro; intro _; exact H1
     · ipureintro; exact fun h => absurd h hl
   ihave %Hlrd := Hlrd_lem $$ Hghost
-  wp_apply (wp_Step_MsgReadIndex P Q c r id s ml m sn ctx rs ents Hty Hterm Hne Hlok Hlrd Hwf)
+  wp_apply (wp_Step_MsgReadIndex P Q c r id s ml m sn ctx rs ents Hty Hterm Hne Hlok Hlrd Hwf Hnors)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hlen, Hstep⟩ := Hst
   -- the request's credit goes with it, if it was received
@@ -674,7 +674,7 @@ theorem raft.Step.wp_proof
   -- below read) and the rest
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
-  icases Hm with ⟨Hmi, Hents, %Hpents, %Happly, #Hmsg0⟩
+  icases Hm with ⟨Hmi, Hents, %Hpents, %Hnors, %Happly, #Hmsg0⟩
   iapply wp_fupd
   by_cases Hty : m.Type' = MsgProp
   · -- MsgProp: forward, append or drop (`proof_raft__Step_MsgProp.v`). The node's own
@@ -709,7 +709,7 @@ theorem raft.Step.wp_proof
     ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
     imod lastRec_receipt γ _ $$ Hlr with #Hrc0
     wp_apply (wp_Step_MsgProp P Q c r id s ml m sn ctx rs ents cs _ Hty Hterm Hfrom Hne Hlen Hlok
-      Hlnz Hwf HL)
+      Hlnz Hwf HL (Hnors (.inl Hty)))
       $$ [$Hphys $Hmi $Hcc $Hrc0] as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hfr, %Hst, Herr⟩
     obtain ⟨recv, Hrecv, Hrl, Hstep⟩ := Hst
     -- the receipt of the bound: the last index's, or the appended batch's
@@ -1052,6 +1052,7 @@ theorem raft.Step.wp_proof
     ihave #Hm' := Hmsgc $$ %MsgType.readIndex %(by rw [Hty]; rfl)
     rw [ite_eq_left Hty]
     iapply dispatch_ReadIndex P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hri Hty)
+      (Hnors (.inr (.inl Hty)))
       $$ Hinit Hphys Hghost Hrest Hmi Hm' Hcred HΦ
   by_cases Hty : m.Type' = MsgReadIndexResp
   · -- MsgReadIndexResp (2026-10-13): `dispatch_ReadIndexResp`.
@@ -1083,7 +1084,8 @@ theorem raft.Step.wp_proof
       rw [← toPState_lead_nonpre s (by rw [Hf]; decide)]
       apply Hlok0
       rw [toPState_role, Hf]; decide
-    wp_apply (wp_Step_MsgTransferLeader P PB c r id s ml m ents sn ctx rs Hty Hent Hctx0 Hxo Htr Hlok Hwf) $$ [$Hphys $Hmi]
+    wp_apply (wp_Step_MsgTransferLeader P PB c r id s ml m ents sn ctx rs Hty Hent Hctx0 Hxo Htr Hlok Hwf
+      (Hnors (.inr (.inr Hty)))) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep

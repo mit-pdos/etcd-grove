@@ -157,6 +157,10 @@ SEM_PREMISES = [
     # `(*Client).dialWithBalancer`'s body, which the translator cannot produce
     # (`Proof/go_etcd_io/etcd/client/v3/DialWithBalancerBody.lean`)
     "go_etcd_io.etcd.client.v3.DialWithBalancerBody",
+    # (rafthttp stage 6f) `*errors.errorString` a leaf error without `Is` (`Proof/errors/NewVar.lean`)
+    "EtcdGrove.ErrorStringLeaf",
+    # (rafthttp stage 6f) a `*errorString` not a `writerToResponse` (`rafthttp/Pipe.lean`)
+    "EtcdGrove.ErrorStringNotWriter",
 ]
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
@@ -359,7 +363,13 @@ NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "co
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
-EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"]}
+EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"],
+                 # (rafthttp stage 6f) the HTTP boundary's axioms and Perennial's linked results
+                 # rafthttp's proofs take as terms (`=` callees)
+                 "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
+                              "Perennial.Proof.sync.Link", "Perennial.Proof.context.Link",
+                              "Perennial.Proof.strings.Link",
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas"]}
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes"}
@@ -582,6 +592,8 @@ def visit(fn):
         return
     seen.add(fn)
     for c in callees[fn]:
+        if c.startswith("="):
+            continue
         visit(c)
     order.append(fn)
 
@@ -632,6 +644,10 @@ variable [package_sem : {assumptions}]
         return "h_" + fn
 
     def arg(fn, c):
+        if c.startswith("="):
+            # a term given as is (`=http.respWrite_ok`): a boundary statement's axiom, or another
+            # library's linked result, which no spec file of a mode names
+            return c[1:]
         if c in pending:
             return hyp(c)
         if c in blocked:

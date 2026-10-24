@@ -95,6 +95,9 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   # (notes/partition-plan.md, S0, 2026-10-20) etcd's partition hooks, which its integration tests
   # use: pause/resume the transport's peer (rafthttp's `CutPeer`/`MendPeer`, names-only)
   "EtcdServer.CutPeer", "EtcdServer.MendPeer",
+  # (rafthttp stage 6d, 2026-10-24) the member's raft handler, `s.r.transport.Handler()`, over
+  # rafthttp's proved `Transport.Handler`
+  "EtcdServer.RaftHandler",
   # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go): the merged
   # message, its reader goroutine over the backend snapshot and `io.Pipe`, and its send with the
   # in-flight count released by a `GoAttach` goroutine

@@ -90,7 +90,7 @@ theorem node.ReadIndex.wp_proof
     isplitr
     · ipureintro
       refine ⟨by simp [netStepTypes, MsgReadIndex], fun h => absurd (.inl hR) h, fun _ => rfl,
-        fun h => ?_, fun h => ?_, fun h => ?_, fun h => ?_⟩
+        fun h => ?_, fun h => ?_, fun h => ?_, fun h => ?_, rfl⟩
       · exfalso
         rcases h with h | h | h | h | h <;>
           simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at h

@@ -284,6 +284,67 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
   provable); then this repository's `hash` translation goes.
 
+### `encoding/binary`'s `Write`/`Read`, and protobuf at the bytes (2026-10-22, rafthttp stage 3, branch `rafthttp-plan`)
+
+- **Missing.** Perennial translates `encoding/binary`'s byte orders but not `Write`/`Read`
+  (names-only: they go through `reflect`); and `google.golang.org/protobuf` is names-only, so its
+  `Size`/`Marshal`/`Unmarshal` have no spec there.
+- **Needed by.** rafthttp's message codecs (`messageEncoder.encode`, `messageDecoder.decodeLimit`,
+  the msgappv2 pair next): a length prefix written with `binary.Write` and read with `binary.Read`,
+  and raft's messages marshalled.
+- **Workaround here.** Trust-boundary axioms: `Spec/encoding/binary/{WriteUint64,WriteUint8,
+  ReadUint64}.lean` (Go's fast path of an integer, stated over the writer's `Write` / the reader's
+  `io.ReadFull`), and generic protobuf specs over a per-type wire model (D38a:
+  `Proof/google_golang_org/protobuf/proto/InvProto.lean`'s `PbType`, `Spec/google_golang_org/
+  protobuf/proto/{Size,Marshal,Unmarshal}Pb.lean`).
+- **Proposed.** Specs of `binary.Write`/`Read` of fixed-size integers in Perennial (or a trusted
+  model of their fast path); and, if the generic vocabulary proves itself across the codecs and
+  the older per-type specs move onto it, `PbType` and its three specs as Perennial's protobuf
+  boundary.
+- **Status.** Not started.
+
+### The `WaitGroup` join idiom's `Add(n)`, and `Sprintf` of a `Stringer` (2026-10-23, rafthttp stage 4d, branch `rafthttp-plan`)
+
+- **Missing.** (1) `sync.join.WaitGroup.wp_Add_of` (and `sync.tokJoin`'s) covers `Add(1)` only,
+  though `sync.WaitGroup.Add.spec` takes any delta. (2) `fmt.wp_Sprintf` admits arguments of
+  predeclared basic types only (`fmt.ArgsWf`): an argument with a `String` method (a
+  `types.ID`) is outside it, though Go's formatting then only calls that method.
+- **Needed by.** (1) rafthttp's `pipeline.start`, `p.wg.Add(connPerPipeline)` (`4`). (2) rafthttp's
+  `peerStatus.deactivate`, `Sprintf("failed to %s %s on %s (%s)", action, s.id, source, reason)`.
+- **Workaround here.** (1) `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/
+  WaitGroupAdd.lean`, `wgJoin_wp_Add4_of` (`wp_Add_of`'s proof with four ghost steps; proved, no
+  trust). (2) `Spec/fmt/SprintfID.lean`, a trust-boundary axiom for `types.ID` arguments (as
+  `SprintfNamed`, `SprintfClientPtr`).
+- **Proposed.** (1) `wp_Add_of` for a delta `n` (`0 < n`, the bound `num_added + n < 2^31`),
+  giving `n` `ownDone`s (a `[∗list]` over `List.replicate n`); the `Add(1)` statement derived.
+  (2) `wp_Sprintf` over arguments whose `String`/`Error` method has a given spec (a WP returning
+  some string), covering `Stringer`s generally.
+- **Status.** Not started.
+
+### `fmt.Errorf`'s result: a fresh pointer error (2026-10-23, rafthttp stage 4e, branch `rafthttp-plan`)
+
+- **Missing.** `fmt.Errorf.spec` gives only that the error's `Error()` returns some string; it does
+  not say the error is a fresh pointer (`*fmt.wrapError` or `*errors.errorString`: `IsPointerError`,
+  as `errors.New.spec` says), so a caller cannot show it differs from a package's error variable.
+- **Needed by.** rafthttp's `checkPostResponse`, whose `fmt.Errorf` errors must not be
+  `errMemberRemoved` (`postErr`: `pipeline.post`'s caller reports only that one on `errorc`).
+- **Workaround here.** None yet: `checkPostResponse` is a spec only. (Stage 5e-3) The stream
+  reader's `dial` uses a local trust-boundary spec, `Spec/fmt/ErrorfPlain.lean`: with no `%w` the
+  error is an `*errors.errorString` (Go's `Errorf` returns `errors.New(s)`), whose `Error()`
+  returns the message, so a leaf of an error tree (`errors.Is` of it, in `run`).
+- **Proposed.** `fmt.Errorf.spec`'s postcondition with `IsPointerError err` (for a format without
+  `%w`), as `errors.New`'s; or the `*errors.errorString` form above.
+- **Status.** Not started.
+
+### `strings.TrimSuffix` without a spec (2026-10-23, rafthttp stage 5e-3, branch `rafthttp-plan`)
+
+- **Missing.** Perennial translates `strings.TrimSuffix` names-only and has no spec for it
+  (`TrimPrefix` has one).
+- **Needed by.** rafthttp's `streamReader.dial` (a `412`'s body, `TrimSuffix(string(b), "\n")`).
+- **Workaround here.** `Spec/strings/TrimSuffix.lean`, a trust-boundary axiom: some string.
+- **Proposed.** A translation or model of `TrimSuffix` with a spec (the string without the suffix,
+  if it ends with it), as `TrimPrefix`'s.
+- **Status.** Not started.
 ### Tactics: framing up to the projections of a structure instance
 
 - **Missing.** The proof mode's matching of a hypothesis against a goal (`iframe`, the `$$`
@@ -418,6 +479,46 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Status.** Landed 2026-10-22: Perennial `lean` `537c426e0` (`3c3e83e2c`, `9e52da638`,
   `537c426e0`), the pin since; the local copies are deleted (etcd-grove branch `perennial-idioms`).
 
+### Small gaps met by rafthttp's stream writer (stage 5b, 2026-10-23)
+
+- **Missing.** (1) A typed points-to's halves: `typedPointsto l v (own 1) ⊣⊢ half ∗ half` is
+  proved only in an example (`goose/testdata/examples/channel/etcd_session/Base.lean`,
+  `pointsto_halves`), not the library. (2) `len(ch)` of a channel: `wp_auto` does not unfold
+  `functions go.len [chan]` (`FuncUnfold`'s `len_chan`) to `Channel.Len`, so `chan.wp_Len` applies
+  only after `wp_func_call; wp_call`. (3) `make([]T, n)` of a large concrete `n` (rafthttp's 1 MiB
+  `msgAppV2BufSize`): `wp_slice_make2`'s postcondition names `List.replicate n zero`, which the kernel
+  unfolds when a proof frames it (a deterministic timeout); a spec with the contents abstracted
+  (`∃ zs, sl ↦* zs ∗ ⌜zs.length = n⌝`) avoids it.
+- **Needed by.** `streamWriter.close` (the writer's fields split between its goroutine and its
+  lock), `streamWriter.closeUnlocked` (`len(cw.msgc)`), `newMsgAppV2Encoder` (its buffer).
+- **Workaround here.** `rafthttp/Writer.lean`'s `typedPointsto_halves` and
+  `typedPointsto_combine_halves`; `wp_func_call; wp_call` before `wp_Len`;
+  `newMsgAppV2Encoder.lean`'s `wp_make_bytes_abs`.
+- **Proposed change.** (1) The halves lemma in `Golang/Theory/PostLifting.lean`; (2) `len_chan`'s
+  unfolding in `wp_auto`'s simp set; (3) `wp_slice_make2_abs`/`make3_abs` beside the existing specs.
+  Not yet proposed.
+- (2026-10-23, rafthttp stage 5c) **A non-blocking send on a bag channel** (`select` with a
+  `default`): the bag idiom (`Idioms/Bag.lean`) has the blocking send only. Workaround:
+  `rafthttp/Reader.lean`'s `bag_nonblocking_send_au` (`bag_send_au` without the waiting case).
+  Proposed change: the lemma beside `bag_send_au`. Not yet proposed.
+- (2026-10-24, rafthttp stage 6d) **`wp_apply` aborts silently inside a `wp_join` case**: in
+  `raftNode.start`'s loop, `wp_apply HSend $$ [...]` of the transport's `Send` (an interface method,
+  its spec a hypothesis whose precondition now holds the loop's `E.S`) throws "unknown free
+  variable" (visible with `+noauto`) and, without `+noauto`, an abort that leaves the case's goal
+  admitted with no error: the module builds with a `sorry` only `#print axioms` and
+  `etc/tcb-report.py` see. Workaround here: `wp_bind` the call and `iapply` the hypothesis
+  (`raftNode__start.lean`). Proposed change: find the escaping free variable (probably the case's
+  generalized context) and make `wp_apply` report it as an error. Not yet proposed.
+- (2026-10-24, rafthttp stage 6f) **An axiomatized type's `sorry` instances shadow its `TypeRepr`**:
+  for a type Goose cannot translate (`net/http`'s `Request`, `Response`) the generated proof has
+  `X_typed_pointsto`/`X_into_val_typed` as `sorry -- axiomatized type`, and instance search takes
+  `TypeRepr X.underlying X` from them (`IntoValTyped.type_repr`) although the translation's
+  `X.TypeAssumptions.type_repr` gives it: a field reference (`StructFieldRef`, `req.Header`)
+  then reaches the `sorry` (`etc/tcb-report.py`), with no load or store of the whole value.
+  Workaround here: `Proof/net/http/Boundary.lean`'s `Request_typeRepr`,
+  `Request_underlying_typeRepr` (and `Response`'s), high-priority instances from the type
+  assumptions. Proposed change: Goose emits no `IntoValTyped` instance for an axiomatized type
+  (or one of low priority), so its `TypeRepr` comes from the type assumptions. Not yet proposed.
 ### `wp_apply`'s frame list can admit a goal silently
 
 - **Missing.** In `mvcc.restoreChunk.wp_proof` (2026-10-23), `wp_apply (wp_spsc_send …) $$
