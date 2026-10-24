@@ -1,0 +1,43 @@
+=== RUN   TestSetFlagsFromEnv
+    logger.go:146: 2026-10-24T06:54:27.023-0400	INFO	recognized and used environment variable	{"variable-name": "ETCD_A", "variable-value": "foo"}
+--- PASS: TestSetFlagsFromEnv (0.00s)
+=== RUN   TestSetFlagsFromEnvBad
+--- PASS: TestSetFlagsFromEnvBad (0.00s)
+=== RUN   TestSetFlagsFromEnvParsingError
+--- PASS: TestSetFlagsFromEnvParsingError (0.00s)
+=== RUN   TestSelectiveStringValue
+--- PASS: TestSelectiveStringValue (0.00s)
+=== RUN   TestSelectiveStringsValue
+--- PASS: TestSelectiveStringsValue (0.00s)
+=== RUN   TestStringsValue
+--- PASS: TestStringsValue (0.00s)
+=== RUN   TestUint32Value
+=== RUN   TestUint32Value/normal_uint32_value
+=== RUN   TestUint32Value/zero_value
+=== RUN   TestUint32Value/negative_int_value
+=== RUN   TestUint32Value/invalid_integer_value
+--- PASS: TestUint32Value (0.00s)
+    --- PASS: TestUint32Value/normal_uint32_value (0.00s)
+    --- PASS: TestUint32Value/zero_value (0.00s)
+    --- PASS: TestUint32Value/negative_int_value (0.00s)
+    --- PASS: TestUint32Value/invalid_integer_value (0.00s)
+=== RUN   TestUint32FromFlag
+=== RUN   TestUint32FromFlag/only_default_value
+=== RUN   TestUint32FromFlag/argument_has_different_value_from_the_default_one
+=== RUN   TestUint32FromFlag/argument_has_the_same_value_from_the_default_one
+--- PASS: TestUint32FromFlag (0.00s)
+    --- PASS: TestUint32FromFlag/only_default_value (0.00s)
+    --- PASS: TestUint32FromFlag/argument_has_different_value_from_the_default_one (0.00s)
+    --- PASS: TestUint32FromFlag/argument_has_the_same_value_from_the_default_one (0.00s)
+=== RUN   TestNewUniqueStrings
+--- PASS: TestNewUniqueStrings (0.00s)
+=== RUN   TestNewUniqueURLsWithExceptions
+--- PASS: TestNewUniqueURLsWithExceptions (0.00s)
+=== RUN   TestUniqueURLsFromFlag
+--- PASS: TestUniqueURLsFromFlag (0.00s)
+=== RUN   TestValidateURLsValueBad
+--- PASS: TestValidateURLsValueBad (0.00s)
+=== RUN   TestNewURLsValue
+--- PASS: TestNewURLsValue (0.00s)
+PASS
+ok  	go.etcd.io/etcd/pkg/v3/flags	1.028s

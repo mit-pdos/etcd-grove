@@ -299,8 +299,8 @@ noncomputable def NewTimeList.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc timeList.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral timeList.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"m")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))) (Var "$v0")))])))))))
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType timeList.ty) WaitTime.ty))) (App (Val (GoInstruction (GoAlloc timeList.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral timeList.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"m")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))) (Var "$v0")))]))))))))
 
 /-- go: wait_time.go:42:21 -/
 noncomputable def timeList.Wait.impl [FfiSyntax] [GoGlobalContext] : val :=
