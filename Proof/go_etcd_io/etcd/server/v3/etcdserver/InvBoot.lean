@@ -383,7 +383,7 @@ header): `Send` puts each message, with its bundle, into the network (D21 M2, 20
 then it took the messages of any environment and promised nothing of them); `Stop` returns;
 `ActiveSince` (`rafthttp.isTransporter`). -/
 def transportStarted (γn : NetNames GF) (t : Loc) : IProp GF :=
-  iprop(netTransport γn (transportIface t) ∗ rafthttp.isTransporter (transportIface t))
+  iprop(netTransport γn (transportIface t) iprop(True) ∗ rafthttp.isTransporter (transportIface t))
 
 instance transportStarted_persistent (γn : NetNames GF) (t : Loc) :
     Persistent (transportStarted (GF := GF) γn t) := by
@@ -392,7 +392,7 @@ instance transportStarted_persistent (γn : NetNames GF) (t : Loc) :
 /-- **The raft wrapper's transport from the network's** (D21 M2): an environment whose messages
 carry their bundle (`E.M m` gives `netBundle`) can send them through it. -/
 theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterface) :
-    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N m) -∗ netTransport γn tr -∗ isRNTransport E tr := by
+    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N m) -∗ netTransport γn tr E.S -∗ isRNTransport E tr := by
   iintro #HM #Htr
   iunfold netTransport at Htr
   icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, -⟩
@@ -402,9 +402,9 @@ theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterfac
   · ipureintro; exact Hti
   isplitr
   · imodintro
-    iintro %sl %msL %Φ !> ⟨Hsl, Hms⟩ HΦ
-    wp_apply Hsend $$ [Hsl Hms]
-    · iframe Hsl
+    iintro %sl %msL %Φ !> ⟨HS, Hsl, Hms⟩ HΦ
+    wp_apply Hsend $$ [HS Hsl Hms] as HS
+    · iframe HS Hsl
       iapply BigSepL.bigSepL_impl $$ Hms
       imodintro
       iintro %k %m %_ Hm
@@ -412,7 +412,7 @@ theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterfac
       icases Hm with ⟨%to, %ty, -, HEM⟩
       iapply HM $$ HEM
     iapply HΦ
-    itrivial
+    iexact HS
   · iexact Hstop
 
 /-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the

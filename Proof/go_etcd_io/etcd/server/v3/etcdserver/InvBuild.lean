@@ -165,7 +165,7 @@ registrations. -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) : RNEnv GF :=
   ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud m ∗ srvMsgNoSnap m), iprop(True),
-    ρ.rd, srvRQ ρ.rd.raft⟩
+    ρ.rd, srvRQ ρ.rd.raft, iprop(True)⟩
 
 /-- **A cluster in the no-snapshot mode sends no snapshot** (D21 M3, 2026-10-19; `isRaftMsg`'s
 clause, from raft's invariant `LogNsOk`). Until then (D19p) of a one-member cluster: with raft's
@@ -293,7 +293,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    "Hloop" ∷ rnLoopTok γn [] ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗

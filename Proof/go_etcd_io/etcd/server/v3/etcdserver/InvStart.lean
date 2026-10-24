@@ -226,7 +226,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- the request path's read names (2026-10-14, unit C2a)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
-    "Hloop" ∷ rnLoopTok γn [] ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     -- the names-only parts' contracts and the packages' ghost facts
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗

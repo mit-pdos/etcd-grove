@@ -145,6 +145,9 @@ structure RNEnv (GF : BundledGFunctors) where
   T : IProp GF
   γr : ReadNames
   RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF
+  /-- (2026-10-24, rafthttp stage 6d) what the transport's `Send` borrows, which the loop holds
+  (for the server, a reader's token of the transport's lock). -/
+  S : IProp GF
 
 /-- A message the node handed out, as the wrapper reads and forwards it: its destination and
 type read-only, and `E.M m`. (2026-10-19, D21 stage M1: owned, no longer persistent, so that
@@ -638,14 +641,14 @@ def isRNWal (st : GoInterface) : IProp GF :=
 instance isRNWal_persistent (st : GoInterface) : Persistent (isRNWal (GF := GF) st) := by
   unfold isRNWal; infer_instance
 
-/-- **The transport `tr`** (`rafthttp.Transporter`, trust boundary: names-only): `Send` takes
-the slice of messages, each one raft may send; `Stop` returns. -/
+/-- **The transport `tr`** (`rafthttp.Transporter`): `Send` takes the slice of messages, each one
+raft may send, borrowing `E.S` (2026-10-24); `Stop` returns. -/
 def isRNTransport (E : RNEnv GF) (tr : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
-      {{ sl ↦* msL ∗ [∗list] m ∈ msL, rnMsgOk E m }}
+      {{ E.S ∗ sl ↦* msL ∗ [∗list] m ∈ msL, rnMsgOk E m }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
-      {{ RET #(); True }}) ∗
+      {{ RET #(); E.S }}) ∗
     □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}))
 
 instance isRNTransport_persistent (E : RNEnv GF) (tr : GoInterface) :

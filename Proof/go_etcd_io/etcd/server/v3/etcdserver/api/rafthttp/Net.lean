@@ -192,21 +192,23 @@ the transport puts into the network (delivered to the slot holder of its `To`, p
 `Stop` returns; (D22 S-i) `SendSnapshot` takes a merged snapshot message (`snap.msgIs m ml rc`)
 with its bundle (`netSnapBundle`), which the transport streams to the slot holder of its `To`
 (possibly lost), closing the message (`CloseWithError`: its reader closed, one value on its
-`closeC`) when done, or at once with `errMemberNotFound` if no peer is added for `To`. -/
-def netTransport (γn : NetNames GF) (tr : GoInterface) : IProp GF :=
+`closeC`) when done, or at once with `errMemberNotFound` if no peer is added for `To`.
+(2026-10-24, rafthttp stage 6d, the user's choice) `Send` borrows `T`, its caller's resource: the
+transport's read lock needs one of the mutex's reader tokens (the server's raft loop holds one). -/
+def netTransport (γn : NetNames GF) (tr : GoInterface) (T : IProp GF) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
-      {{ sl ↦* msL ∗ [∗list] m ∈ msL, netBundle γn.N m }}
+      {{ T ∗ sl ↦* msL ∗ [∗list] m ∈ msL, netBundle γn.N m }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
-      {{ RET #(); True }}) ∗
+      {{ RET #(); T }}) ∗
     □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}) ∗
     □ (∀ (m ml : Loc) (rc : GoInterface),
       {{ snap.msgIs m ml rc ∗ netSnapBundle γn.N ml rc }}
         (App (Val #(methods ti.ty go!"SendSnapshot" ti.v)) (Val #m))
       {{ RET #(); True }}))
 
-instance netTransport_persistent (γn : NetNames GF) (tr : GoInterface) :
-    Persistent (netTransport γn tr) := by
+instance netTransport_persistent (γn : NetNames GF) (tr : GoInterface) (T : IProp GF) :
+    Persistent (netTransport γn tr T) := by
   unfold netTransport; infer_instance
 
 /-- **The transport's concurrency bound** (D21 M2, the user's (A)): at most `2 ^ 29` calls

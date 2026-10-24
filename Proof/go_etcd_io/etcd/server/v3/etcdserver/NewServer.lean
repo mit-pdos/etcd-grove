@@ -891,7 +891,10 @@ theorem NewServer.wp_proof
   · iexact Htrf
   · iexact HlatestTs
   · -- (D21 M2) the raft wrapper's messages carry their bundle into the network
-    iapply isRNTransport_of_net γn $$ [] Htrall
+    ihave #Htrall' : netTransport γn (transportIface t) (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud).S $$ []
+    · rw [show (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud).S = iprop(True) from rfl]
+      iexact Htrall
+    iapply isRNTransport_of_net γn $$ [] Htrall'
     iintro !> %m HM
     simp only [srvEr]
     rw [Hγn.1, ← hργ]
@@ -1109,6 +1112,8 @@ theorem NewServer.wp_proof
     exact (srvC_agree ρ _ E₀ (W64 0) (W64 0) bootKV hγs).symm
   isplitr
   · ipureintro; rfl
+  isplitr
+  · simp only [srvEr]; itrivial
   isplitl [w]
   · iexists _; iexact w
   isplitl [applyWait]
