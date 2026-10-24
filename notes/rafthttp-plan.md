@@ -732,6 +732,18 @@ trust-boundary spec.
    static cluster every sender is a peer by the time the handler serves, so `AddRemote` returns
    early, which 6d must show (the peers' keys cover the directory when `Serve` starts).
 
+   **6d, first and second parts (2026-10-24).** (1) `ProbingPrefix`, `RaftStreamPrefix` and
+   `RaftSnapshotPrefix` translated (`path.Join(RaftPrefix, ...)`, through `path.Join`'s proof in
+   rafthttp's init), their values in `rafthttpInit`; no axiom. (2) D35 (`notes/decisions.md`): the
+   handlers' `AddRemote` is dead: the lock records the peers' ids and covers them
+   (`AddRemote_frozen`), the protocol carries the sender (`RaftHttp.member`, `fromOkAt` in
+   `pipeReq`, the reader in `streamReq`), `addRemoteFromRequest` proved, `trAddRemote_of_frozen`
+   gives the handlers' premises from the frozen state and the caller's coverage (every other
+   member a recorded peer). Next: the reader's token for `Send` (and `SendSnapshot`): `Send`
+   takes the transport's read lock, so its caller needs one of the mutex's reader tokens, which
+   `netTransport`'s `Send` (persistent, token-free; `Net.lean`, shared with D22) does not carry:
+   a decision for the user.
+
 ## Costs and risks
 
 - Several weeks, comparable to the watch client. Stage 5 carries most of the risk (a goroutine
