@@ -163,10 +163,32 @@ def netRaftOk (γn : NetNames GF) (id : w64) (γd : GName) (R : IProp GF) (r : G
       (App (App (Val #(methods ri.ty go!"ReportSnapshot" ri.v)) (Val #x)) (Val #s))
       {{ RET #(); R }}))
 
+/-- **The peers right of member `id`'s transport** (opaque, exclusive; D22 receiver epochs, S8c,
+2026-10-24): `Transport.Start`'s, for the member `id` it is started for; the transport's `Stop`
+takes it (`netTransport`), so its holder knows the transport is not stopped, which `AddPeer` needs
+(it panics on a stopped transport, `transport.go:300-302`). The server's apply thread holds it
+(`applySnapshot`'s `AddPeer` loop), and gives it to the raft node's stop when `run` returns
+(`raftNode.stop`, through the `stopped` channel, to `onStop`'s `Stop`). -/
+opaque netPeers (γn : NetNames GF) (id : w64) : IProp GF
+
+/-- The opaque core of `netTrIs`. -/
+opaque netTrIsCore (γn : NetNames GF) (id : w64) (tr : GoInterface) : IProp GF
+
+/-- **`tr` is the transport started for member `id`** (persistent, opaque; S8c): only
+`Transport.Start`'s axiom gives it, once per transport (it consumes the member's `netSlot`), so
+the `id` is the transport's own. -/
+def netTrIs (γn : NetNames GF) (id : w64) (tr : GoInterface) : IProp GF :=
+  iprop(□ netTrIsCore γn id tr)
+
+instance netTrIs_persistent (γn : NetNames GF) (id : w64) (tr : GoInterface) :
+    Persistent (netTrIs (GF := GF) γn id tr) := by
+  unfold netTrIs; infer_instance
+
 /-- **A started transport `tr` of the network `γn`** (persistent; the started transport's part of
 `Transport.Start`'s axiom, D21 M2): `Send` takes the slice of messages, each with its bundle, which
 the transport puts into the network (delivered to the slot holder of its `To`, possibly lost);
-`Stop` returns; (D22 S-i) `SendSnapshot` takes a merged snapshot message (`snap.msgIs m ml rc`)
+`Stop` returns, taking the transport's peers right (D22 receiver epochs, S8c, 2026-10-24: until then
+it took nothing; `netPeers`); (D22 S-i) `SendSnapshot` takes a merged snapshot message (`snap.msgIs m ml rc`)
 with its bundle (`netSnapBundle`), which the transport streams to the slot holder of its `To`
 (possibly lost), closing the message (`CloseWithError`: its reader closed, one value on its
 `closeC`) when done, or at once with `errMemberNotFound` if no peer is added for `To`. -/
@@ -176,7 +198,8 @@ def netTransport (γn : NetNames GF) (tr : GoInterface) : IProp GF :=
       {{ sl ↦* msL ∗ [∗list] m ∈ msL, netBundle γn.N m }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
       {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ (∀ id : w64, {{ netPeers γn id ∗ netTrIs γn id tr }}
+      (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}) ∗
     □ (∀ (m ml : Loc) (rc : GoInterface),
       {{ snap.msgIs m ml rc ∗ netSnapBundle γn.N ml rc }}
         (App (Val #(methods ti.ty go!"SendSnapshot" ti.v)) (Val #m))

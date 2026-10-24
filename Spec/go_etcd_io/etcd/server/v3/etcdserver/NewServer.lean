@@ -198,7 +198,7 @@ abbrev NewServer.spec : Prop :=
       "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗
+      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud (netPeers γn id)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       "#Hstop" ∷ rnStopOkStarted ∗
       -- the packages' init facts `start` needs
@@ -215,7 +215,7 @@ abbrev NewServer.spec : Prop :=
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
           -- `applySnapshot`'s `OpenSnapshotBackend`
           backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
-          srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn b (W64 0)
+          srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud (netPeers γn id)) γrn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
           srvBuildGap srv γrn (W64 0) (W64 0) ∗

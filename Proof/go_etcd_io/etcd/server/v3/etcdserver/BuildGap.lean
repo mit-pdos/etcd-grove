@@ -119,7 +119,7 @@ its bundle (`srvMsgNet`, D21 stage M1), a committed log's `E.C` from the
 KV invariant's indices (a committed log is a prefix of the KV invariant's, `srvIdxOkW`, and its
 next index fits), the workload clause's `logShape` and `batchWaitOk`, and back from `srvC`. -/
 theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (bud : BudgetNames) (γw : RNNames)
+    (x₀ : apply.ApplyKV) (bud : BudgetNames) (TS : IProp GF) (γw : RNNames)
     (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     (hmode : γw.node.mode = RNMode.static) (hstor : γw.node.stor = memStorIface γw.ms)
@@ -129,7 +129,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     -- (D21 M3) the storage's cap at least `1`
     (hcap : 1 ≤ γw.γs.cap) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
-      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ bud) γw := by
+      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ bud TS) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvEr
   simp only

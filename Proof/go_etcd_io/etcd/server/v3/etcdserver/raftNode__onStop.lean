@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
   intro E γ r
-  wp_start as ⟨#Hr, Hdone⟩
+  wp_start as ⟨#Hr, Hdone, HTS⟩
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
@@ -53,7 +53,7 @@ theorem raftNode.onStop.wp_proof :
   wp_auto
   wp_apply HStop
   wp_apply HtkStop
-  wp_apply HTrStop
+  wp_apply HTrStop $$ [$HTS]
   wp_apply HClose
   wp_apply wp_broadcast_chan_close dnc γ.done iprop(True) $$ [$Hbc]
   · imodintro; itrivial

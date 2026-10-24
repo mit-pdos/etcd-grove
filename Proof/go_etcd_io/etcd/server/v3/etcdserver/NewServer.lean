@@ -342,7 +342,7 @@ theorem NewServer.wp_proof
   -- (D22 S-b′3) the storage's certificate link: the no-snapshot mode's
   ihave #Hclk : certLink (GF := GF) γ (memStorIface bv.storage') $$ []
   · iapply certLink_noSnap; exact Hnosnap.1
-  wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γ bud bs.raft' bs.ss' bw.w' bc.cl'
+  wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud (netPeers γn id)) γ bud bs.raft' bs.ss' bw.w' bc.cl'
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
     Hrbok (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
@@ -831,9 +831,12 @@ theorem NewServer.wp_proof
       iexists n + W64 1, _
       iframe
       ipureintro; constructor <;> word
-    · wp_apply (h41 γn t px.2 mpu (DFrac.own 1) mpus []) $$ [Htlive Hmpus] as ⟨Htlive, Hmpus⟩
-      · iframe #; iframe Htlive Hmpus; ipureintro
+    · wp_apply (h41 γn t px.2 mpu (DFrac.own 1) mpus [] true) $$ [Htlive Hmpus] as ⟨Htlive, Hmpus⟩
+      · iframe #; iframe Hmpus
+        unfold transportAddRight; simp only [↓reduceIte]
+        iframe Htlive; ipureintro
         exact ⟨Hmok.1, by rw [Hγn.2]; exact Hmok.2.symm⟩
+      unfold transportAddRight; simp only [↓reduceIte]
       (try wp_auto)
       ihave Hmso : iprop([∗list] p ∈ mps, memberDirIs (GF := GF) dir p.1 p.2)
           $$ [Hmso Hmid Hmpu Hmil Hmnm Hmcu Hmpus Hmcus]
@@ -871,7 +874,11 @@ theorem NewServer.wp_proof
     ⟨Hγw.2.2.2.1, Hγw.2.2.2.2, rfl⟩
   -- the transport, started
   ispecialize Htstart $$ %([] : List w64) Htlive
-  icases Htstart with ⟨#Hts, #Hrem0⟩
+  icases Htstart with ⟨#Hts, #Hrem0, Hnpeers, #Htris⟩
+  -- (D22 receiver epochs, S8c) the transport's peers right, of the member `id`: its `Stop` is the
+  -- raft node's (`srvEr`'s `TS`); kept for `applySnapshot` once S8d threads it to `run`
+  ihave #Htris' : netTrIs γn id (transportIface t) $$ [Htris]
+  · rw [← Hid]; iexact Htris
   iunfold transportStarted at Hts
   icases Hts with ⟨#Htrall, #Htrr⟩
   -- the read names
@@ -932,8 +939,8 @@ theorem NewServer.wp_proof
   -- (D19i part 2) the storage version monitor's
   icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨HbmSV, -⟩
   -- the raft node, its transport installed
-  ihave #Henv : rnEnvOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn $$ []
-  · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud γrn
+  ihave #Henv : rnEnvOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud (netPeers γn id)) γrn $$ []
+  · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud (netPeers γn id) γrn
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
       Hrn4 (by rw [Hrn3, Hrn7]) Hrn2
@@ -950,7 +957,7 @@ theorem NewServer.wp_proof
   · iexact Htrf
   · iexact HlatestTs
   · -- (D21 M2) the raft wrapper's messages carry their bundle into the network
-    iapply isRNTransport_of_net γn $$ [] Htrall
+    iapply isRNTransport_of_net γn _ _ id rfl $$ [] Htrall Htris'
     iintro !> %m HM
     simp only [srvEr]
     rw [Hγn.1, ← hργ]

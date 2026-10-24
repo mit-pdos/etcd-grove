@@ -461,11 +461,27 @@ instance transportStarted_persistent (γn : NetNames GF) (t : Loc) :
     Persistent (transportStarted (GF := GF) γn t) := by
   unfold transportStarted; infer_instance
 
+/-- **The right to change the started transport `t`'s peers** (D22 receiver epochs, S8c,
+2026-10-24): its peers right (`netPeers`, of the member `id` it was started for: `netTrIs`), which
+its `Stop` takes, so its holder knows it is not stopped (`AddPeer` panics on a stopped transport). -/
+def transportPeers (γn : NetNames GF) (t : Loc) : IProp GF :=
+  iprop(∃ id : w64, netPeers γn id ∗ netTrIs γn id (transportIface t))
+
+/-- **What `AddPeer` needs of the transport `t`** (S8c): live (`live`: before `Start`'s
+conversion gives it up, with its remotes `rs`; `NewServer`'s), or started with its peers right
+(`applySnapshot`'s `AddPeer` loop). -/
+def transportAddRight (γn : NetNames GF) (t : Loc) (rs : List w64) (live : Bool) : IProp GF :=
+  if live then transportLive γn t rs else iprop(transportPeers γn t ∗ transportStarted γn t)
+
 /-- **The raft wrapper's transport from the network's** (D21 M2): an environment whose messages
-carry their bundle (`E.M m` gives `netBundle`) can send them through it. -/
-theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterface) :
-    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N m) -∗ netTransport γn tr -∗ isRNTransport E tr := by
-  iintro #HM #Htr
+carry their bundle (`E.M m` gives `netBundle`) can send them through it; (D22 receiver epochs, S8c,
+2026-10-24) and whose transport-stop resource is the peers right of the member `id` the transport
+was started for can stop it. -/
+theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterface) (id : w64)
+    (hTS : E.TS = netPeers γn id) :
+    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N m) -∗ netTransport γn tr -∗ netTrIs γn id tr -∗
+      isRNTransport E tr := by
+  iintro #HM #Htr #Htris
   iunfold netTransport at Htr
   icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, -⟩
   iunfold isRNTransport
@@ -485,7 +501,11 @@ theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterfac
       iapply HM $$ HEM
     iapply HΦ
     itrivial
-  · iexact Hstop
+  · rw [hTS]
+    imodintro
+    iintro %Φ !> HTS HΦ
+    iapply Hstop $$ %id [HTS] HΦ
+    iframe HTS Htris
 
 /-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the
 checkpointer an opaque value (the lessor calls it later, outside the model: `NewServer`'s

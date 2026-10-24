@@ -155,11 +155,12 @@ theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
 hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's
 contract, `rafthttp.Transport`, asking nothing of them) with its bundle (`srvMsgNet`, D21 stage
 M1), a tick's resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's read
-registrations. -/
+registrations, and (D22 receiver epochs, S8c, 2026-10-24) what the transport's `Stop` takes `TS`
+(the server's: its transport's peers right, `netPeers γn id`). -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (bud : BudgetNames) : RNEnv GF :=
+    (bud : BudgetNames) (TS : IProp GF) : RNEnv GF :=
   ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud m ∗ srvMsgNoSnap m), iprop(True),
-    ρ.rd, srvRQ ρ.rd.raft⟩
+    ρ.rd, srvRQ ρ.rd.raft, TS⟩
 
 /-- **A cluster in the no-snapshot mode sends no snapshot** (D21 M3, 2026-10-19; `isRaftMsg`'s
 clause, from raft's invariant `LogNsOk`). Until then (D19p) of a one-member cluster: with raft's

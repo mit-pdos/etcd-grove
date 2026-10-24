@@ -25,10 +25,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`t.AddPeer(id, us)`** on a live transport, the URLs parsing: it returns.
+/-- **`t.AddPeer(id, us)`** on a live transport, or (D22 receiver epochs, S8c, 2026-10-24) a
+started one with its peers right (`transportAddRight`), the URLs parsing: it returns.
 
 Why it is true of the Go code (`transport.go` at the etcd pin): `AddPeer` takes the transport's lock;
-it panics if the transport stopped (`transportLive` excludes it), returns for a known peer;
+it panics if the transport stopped (`transportLive` excludes it, and so does the peers right:
+`Stop` takes it), returns for a known peer;
 `types.NewURLs(us)` succeeds (`peerURLsOk`: otherwise `Logger.Panic`); `LeaderStats.Follower`
 (the stats set at `Start`), `startPeer` starts the peer's goroutines (their calls into the server: `Start`'s axiom), the
 probers add it; it logs and returns. It only reads `us` (the parsed `types.URLs` are
@@ -38,13 +40,13 @@ network's directory (`γn.dir id`): what makes `Send`'s messages for `id` reach 
 plan's S1, 2026-10-20) A peer is not a remote: the live transport's list of remotes is unchanged. -/
 abbrev rafthttp.Transport.AddPeer.spec : Prop :=
   ∀ (γn : NetNames GF) (t : Loc) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString)
-    (rs : List w64),
+    (rs : List w64) (live : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      transportLive γn t rs ∗ us ↦*{dq} ss ∗ ⌜membership.peerURLsOk ss ∧ γn.dir id = ss⌝ }}
+      transportAddRight γn t rs live ∗ us ↦*{dq} ss ∗ ⌜membership.peerURLsOk ss ∧ γn.dir id = ss⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
       (Val #us))
-  {{ RET #(); transportLive γn t rs ∗ us ↦*{dq} ss }}
+  {{ RET #(); transportAddRight γn t rs live ∗ us ↦*{dq} ss }}
 
 end spec
 

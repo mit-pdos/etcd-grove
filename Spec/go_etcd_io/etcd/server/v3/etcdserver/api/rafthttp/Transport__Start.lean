@@ -53,7 +53,10 @@ the snapshotter `tv.Snapshotter` kept for the snapshot handler):
   member answers -- none is removed (static membership) and no message reaches the wrong member
   (`issues/etcd-rafthttp-misaddressed-403-member-removed.md`, excluded by the directory).
 `Send` after `Stop` finds no peer and returns; `AddPeer` after `Stop` panics, hence the exclusive
-`transportLive`, given up for `Stop`.
+`transportLive`, given up for `Stop`; (D22 receiver epochs, S8c, 2026-10-24) and then the exclusive
+peers right (`transportPeers`: `netPeers` of the member `tv.ID`, with `netTrIs`, the fact that the
+started transport is `tv.ID`'s, given once since `Start` takes the member's `netSlot`), which
+`Stop` takes (`netTransport`), so `AddPeer` with it finds the transport not stopped.
 
 **The snapshot stream** (D22 S-i, 2026-10-19; `Net.lean`'s header). The started transport's
 `SendSnapshot` (`netTransport`) and the snapshot handler, given the snapshotter `tv.Snapshotter`
@@ -107,7 +110,8 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       ⌜err ≠ GoInterface.nil⌝ ∨
       ⌜err = GoInterface.nil⌝ ∗ transportLive γn t [] ∗
-        (∀ rs : List w64, transportLive γn t rs -∗ transportStarted γn t ∗ transportRemotes t rs) }}
+        (∀ rs : List w64, transportLive γn t rs -∗ transportStarted γn t ∗ transportRemotes t rs ∗
+          netPeers γn tv.ID' ∗ netTrIs γn tv.ID' (transportIface t)) }}
 
 end spec
 

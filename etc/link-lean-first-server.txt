@@ -492,6 +492,9 @@ v3alarm_NewAlarmStore:
 rafthttp_Transport__Start:
 rafthttp_Transport__AddRemote:
 rafthttp_Transport__AddPeer:
+# (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s transport reset, an axiom true of the Go
+# code (its spec's docstring).
+rafthttp_Transport__RemoveAllPeers:
 apply_NewUberApplier: @
 # (D21 M2, 2026-10-19) the inbound path from the transport (`rafthttp.Raft`, NetBridge.lean):
 # `Process` and the reports with their bodies, raft's node methods linked in raft's Link (`@`),

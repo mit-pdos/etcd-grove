@@ -149,6 +149,7 @@ axiom rafthttp.Transport.AddPeer.wp_proof
 axiom rafthttp.Transport.AddRemote.wp_proof
 axiom rafthttp.Transport.CutPeer.wp_proof
 axiom rafthttp.Transport.MendPeer.wp_proof
+axiom rafthttp.Transport.RemoveAllPeers.wp_proof
 axiom rafthttp.Transport.Start.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom reflect.ValueOf.wp_proof

@@ -17264,3 +17264,62 @@ code's proofs):
 - **W4.** Designed and done here (`kvApplied` at the image's prefix through `kvInv`, the committed
   prefix's certificate); raft-side facts only S-j1 can give become premises of `applySnapshot.spec`,
   listed for S-j1.
+
+## D22 receiver epochs, S8c carried out (2026-10-24)
+
+The callees' trust boundary for `applySnapshot` (`notes/snapshot-s8-plan.md`, items 1-17), with the
+four questions as decided above. Each commit a full build.
+
+**W3, the transport's peers right** (`Net.lean`, `InvBoot.lean`, `InvRaftNode.lean`,
+`InvNodeStart.lean`, `InvBuild.lean`, `NewServer.lean`, `raftNode.{start,stop,onStop}`,
+`newRaftNode`).
+- `netPeers γn id` (opaque, exclusive): member `id`'s transport's peers right; `netTrIs γn id tr`
+  (persistent, `□` of an opaque core): `tr` is the transport started for `id`.
+  `Transport.Start`'s axiom gives both (restated: the conversion of `transportLive` gives them
+  besides `transportStarted` and `transportRemotes`; true: ghost resources minted once per start,
+  which takes the member's `netSlot`); `netTransport`'s `Stop` takes them (restated: weaker).
+- `AddPeer`'s axiom (restated) takes `transportAddRight γn t rs live`: `transportLive` (`live`,
+  `NewServer`'s) or `transportPeers γn t ∗ transportStarted γn t` (`applySnapshot`'s); true since
+  `Stop`, the only way to a stopped transport, takes the right. `RemoveAllPeers`, a new axiom over
+  `transportStarted` (no panic on a stopped transport).
+- `RNEnv.TS`, what the transport's `Stop` takes (`isRNTransport`); the `stopped` channel carries it
+  (`rnStopBag`: `raftNode.stop` sends it, `start`'s loop receives it for `onStop`); `srvEr` takes it
+  (`netPeers γn id`); `isRNTransport_of_net` with `netTrIs`. `NewServer` gets the right from
+  `Start` and keeps it for `applySnapshot` (to be threaded to `run` with S8d); `run` never returns
+  in the runs covered, so the raft node's stop is not reached, but its spec now asks for the right.
+- Statements changed: trusted `Transport.Start`, `Transport.AddPeer` (restated), new axiom
+  `Transport.RemoveAllPeers`; definitions `netTransport`, `isRNTransport`, `RNEnv`, `srvEr`
+  (+ `TS`), `rnParts`, `isRaftNode`; intermediate specs `raftNode.stop`, `raftNode.onStop`,
+  `NewServer` (`srvEr … (netPeers γn id)`); the examples' `memberBuilt` (the same). No closed
+  theorem's text changed.
+- Found on the way: `issues/etcd-rafthttp-leaderstats-followers-race.md` (`removePeer` writes the
+  leader stats' map without its lock, `JSON` marshals it unlocked).
+
+**W2, the auth store across `Recover`: no restatement of `NewAuthStore` needed.** The server's auth
+store is in mode `.off` for its whole life (`E.authOn = false`, `authApplyOk … .off`: `AuthEnable`
+only at `on = true`), and with auth disabled the permission checks return before reading the
+backend (`IsPutPermitted` and the others: `if !as.IsAuthEnabled() { return nil }`); so `RD`, which
+the checks borrow, is used only for `enabledMu`'s read and never names a backend's read rights:
+it stays a valid reader resource after `Recover` moves the store, as `isReqAuth st RD` (persistent)
+and `authApplyOk stl RD` (for whichever backend `authBeOn` names, S7c) need. The decided
+restatement is thus a docstring clarification (`NewAuthStore`'s `RD`, backend-independent in mode
+`.off`), and `authStore.Recover`'s axiom is stated in mode `.off`, over an image whose auth buckets
+are the boot ones (the workload: `bkRestAt_boot`). A server with auth on would need `RD` to carry
+the current backend's read rights and the old backend's `Close` to wait for in-flight readers
+(Go's `Close` does, bbolt's `db.Close` waits for read transactions; the backend's `Close` spec takes
+all of `bOpen`): not needed for the runs covered.
+
+**W1, the snapshot directory's `Rm`: the decided form is not establishable at `Release`.** With
+`Rm j := snapTaken j ∨ appliedAtLeast γr (j + 1)`, `storage.Release(snap)` (called inside
+`applySnapshot(i)` after the open, the fork fix) removes every `.snap.db` file `j < i`, including
+files of snapshots saved by the transport but never applied (raft took a later one; or `j ≤ a0`,
+the index applied by entries), and at that point nothing has published `appliedAtLeast γr (j + 1)`
+(the applied index moves to `i` only after `applySnapshot` returns, `applyAll`'s
+`setAppliedIndex`/`Trigger`), nor was `j` taken. So the removal would need `Rm j` that no one can
+show. A form that works: a monotone counter of the highest snapshot index opened, `Rm j :=
+snapTakenLb γt j` (some snapshot at index `≥ j` was opened), whose authority the apply thread keeps
+at most its applied index: at `applySnapshot(i)`'s start `Rm i` is refuted (opened ≤ applied `< i`),
+the open raises it to `i` (minting `Rm i`), and `Release(i)`'s removals `j < i` follow from `Rm i`.
+Per the decision ("stop and say why"), `storage.Release`'s axiom is not written over the decided
+`Rm`; S8d takes the file in its precondition regardless, and the counter variant is proposed for
+the orchestrator's confirmation (it needs no claim from raft's hand-off).
