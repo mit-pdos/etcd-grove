@@ -625,11 +625,17 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
       hookFnSpec γ P (batchLockInv γA (metaTM γ P)) b t f := by
   iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv, #Hf⟩
   unfold hookFnSpec
-  iintro !> %st %Φ !> Hpre HΦ
+  iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, %Hpre, Hpay⟩ HΦ
   iapply Hf
   iapply (ci_hook_backend hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
-    [] Hpre HΦ
-  iframe #
+    [] [Hl Hbl]
+  · iframe #
+  · iframe Hl Hbl; ipureintro; exact Hpre
+  iintro !> ⟨%st', Hl, Hbl, %Hs⟩
+  iapply HΦ
+  iexists st'
+  iframe Hl Hbl Hpay
+  ipureintro; exact Hs
 
 /-- A run of the consistent index's hook leaves what the server's hook's `confState` put needs
 (`storage.hookSaveStep`): a third put's room (`hookMax ≥ 3`). -/
@@ -662,14 +668,14 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
         ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ := by
   iintro #H
   unfold storage.saveSpec
-  iintro !> %st %Φ !> ⟨Hl, Hbl, %Hpre⟩ HΦ
+  iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, %Hpre, Hpay⟩ HΦ
   iapply (ci_hook_backend_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ H
     [Hl Hbl]
   · iframe Hl Hbl; ipureintro; exact Hpre
   iintro !> ⟨%st', %ui, %ut, Hl, Hbl, %Hr⟩
   iapply HΦ
   iexists st'
-  iframe Hl Hbl
+  iframe Hl Hbl Hpay
   ipureintro; exact hookSaveStep_of_run hH Hr
 
 /-- **The consistent index's save opening the stored-index window** (D22 the stored-index window,
@@ -757,14 +763,14 @@ theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
         ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ (applyThread γA s) (freezeY γA s) := by
   iintro #H
   unfold storage.saveReq
-  iintro !> %st %Φ !> ⟨Hl, Hbl, Hst, %Hpre⟩ HΦ
+  iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, Hst, %Hpre, Hpay⟩ HΦ
   iapply (ci_hook_freeze_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hk0 hps)
     $$ H [Hl Hbl Hst]
   · iframe Hl Hbl Hst; ipureintro; exact Hpre
   iintro !> ⟨%st', %ui, %ut, Hl, Hbl, HY, %Hr⟩
   iapply HΦ
   iexists st'
-  iframe Hl Hbl HY
+  iframe Hl Hbl HY Hpay
   ipureintro; exact hookSaveStep_of_run hH Hr
 
 end hook

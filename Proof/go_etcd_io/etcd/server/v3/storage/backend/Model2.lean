@@ -288,7 +288,9 @@ commit, until the next write-back, the read buffer is empty). A commit
 does not write the write buffer back: the hook's puts stay in it (at most `hookMax` a commit,
 `c` of them since the last write-back); its other entries since the last write-back are puts
 (`pend - p0`). `free`: the lock is free (every session's puts written back: `p0 = pend`; a
-pending operation means a write-back since `run`'s last unpaid commit). -/
+pending operation means a write-back since `run`'s last unpaid commit). (D22 receiver epochs,
+S8a, 2026-10-24) The write-backs are at most the read buffer's version (each increments both), so
+a write-back since the backend was made means a write-back token spent (`hook_fresh_false`). -/
 def bgOk (P : BParams) (st : BSess) (free : Bool) (n w u : Nat) : Prop :=
   uint.Z st.R.ver + n + st.cnt.k < 2 ^ 40 ∧ u ≤ w ∧
   st.cnt.c ≤ st.cnt.k + 1 + (if u = w then 1 else 0) ∧
@@ -299,7 +301,8 @@ def bgOk (P : BParams) (st : BSess) (free : Bool) (n w u : Nat) : Prop :=
     (bkOf st.R.bks i).length ≤ st.cnt.p0 + st.cnt.e) ∧
   (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false →
     (bkOf st.W.bks i).length ≤ sint.nat st.pend - st.cnt.p0) ∧
-  (free = true → st.cnt.p0 = sint.nat st.pend ∧ (st.pend ≠ W64 0 → u < w))
+  (free = true → st.cnt.p0 = sint.nat st.pend ∧ (st.pend ≠ W64 0 → u < w)) ∧
+  (w : Int) ≤ uint.Z st.R.ver
 
 end backend
 end EtcdGrove

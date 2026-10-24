@@ -69,7 +69,7 @@ theorem st0_freeOk (P : BParams) (D : Data) (tx : Loc) (hP : P.Wf) : freeOk P (s
   · intro n i _ _; rfl
 
 theorem st0_bgOk (P : BParams) (D : Data) (tx : Loc) : bgOk P (st0 D tx) true wbInit 0 0 := by
-  refine ⟨?_, Nat.le_refl 0, ?_, ?_, ⟨Or.inl rfl, Or.inl rfl⟩, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, Nat.le_refl 0, ?_, ?_, ⟨Or.inl rfl, Or.inl rfl⟩, ?_, ?_, ?_, ?_, ?_⟩
   · simp only [st0, rb0, wbInit]; word
   · simp [st0]
   · simp [st0]
@@ -77,6 +77,7 @@ theorem st0_bgOk (P : BParams) (D : Data) (tx : Loc) : bgOk P (st0 D tx) true wb
   · intro i; simp [st0, rb0, bkOf_empty]
   · intro nm i _ _; simp [st0, bkOf_empty]
   · intro _; simp only [st0]; refine ⟨by word, fun h => absurd rfl h⟩
+  · simp only [st0, rb0]; word
 
 /-! ## The invariants -/
 
@@ -421,12 +422,13 @@ set_option maxRecDepth 100000 in
 has begun bbolt's transactions (`wtx` writing, `rtx` reading, both over `D`) and the backend's
 fields are set: the backend (`isBackend`, its hooks' contract from `hooksOk`), its stop channels,
 the clients' shares (`newPost`) and the `run` goroutine's (its spec's premises). The batch lock's
-resources are the creator's, made from the client's half of the hook's own keys (`Hmk`). -/
-theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface)
+resources are the creator's, made from the client's half of the hook's own keys (`Hmk`) and (D22
+receiver epochs, S8a, 2026-10-24) the fresh backend's payment rights (`bFresh`), traded for `K γ`. -/
+theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterface)
     (b t rt tm wg db lg wtx rtx : Loc) (m cm : GoMap) (γd : DBNames)
     (γrw : sync.rwmutex.RWMutexNames) (D : Data) (sc dc : GoChan) (γsc γdc : ChanNames)
     (hP : P.Wf) (hlg : lg ≠ Loc.null) :
-    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ) ∗
+    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
     bF go!"lg" b ↦□ lg ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗ rtmuOf (baseOf rt) ↦□ tm ∗
     bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗ metricsInv b ∗
@@ -449,7 +451,7 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
     tm ↦ (zero_val sync.RWMutex) ∗
     cmuOf b ↦ (false : Bool) ∗ cbufOf b ↦ Loc.null ∗ cverOf b ↦ (W64 0) ∗
     isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ⊢
-    |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ newPost γ P W Pk b D ∗ isStopChansAt γ b sc dc γsc γdc ∗
+    |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ newPostK γ P W Pk K b D ∗ isStopChansAt γ b sc dc γsc γdc ∗
       ownBroadcastChan dc γdc iprop(True) .Pending ∗ runTok γ ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ghostVar γ.used (1 : Qp).half 0 := by
   iintro ⟨#Hhk, Hmk, #Ht, #Hrt, #Hlim, #Hlg, #Hh, #Hbe, #Htm, #Hsc, #Hdc, #Hmi, #Hmug, Hmus,
@@ -542,8 +544,10 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
   -- the batch lock
   ihave Hko : hkOwn γ (hkData P D) $$ [Hhkdc]
   · unfold hkOwn; iexact Hhkdc
-  ispecialize Hmk $$ %γ Hko
-  imod Hmk with ⟨HW, HPk⟩
+  ihave Hfr : bFresh γ $$ [Hwbt Hopnc Hcls]
+  · unfold bFresh bOpen; iframe Hwbt Hopnc Hcls
+  ispecialize Hmk $$ %γ [$Hko $Hfr]
+  imod Hmk with ⟨HW, HPk, HK⟩
   imod sync.init_Mutex (batchFree γ P (W γ) (Pk γ) b t) ⊤ (muOf t) $$ [Hmx]
     [Htxf Hpend Hdel Hwb Hphk Hhookb Hown Hwtx Hmus Hviewb Hrvsb Hwba Hwbc Husedb Hopnb Hhkdb Hrbkb HW
       HPk]
@@ -589,17 +593,16 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
   iexists γ
   isplitr
   · ipureintro; rfl
-  isplitl [Hopnc Hcls Hviewc Hcvwc Hclnc Hhookc Hwbt Hrbkc Hrds]
-  · unfold newPost
+  isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds]
+  · unfold newPostK
     isplitr
     · iexact Hb
     isplitr
     · unfold isStopChans
       iexists sc, dc, γsc, γdc
       iexact Hstop
-    isplitl [Hopnc Hcls]
-    · unfold bOpen
-      iframe Hopnc Hcls
+    isplitl [HK]
+    · iexact HK
     isplitl [Hviewc Hcvwc Hclnc]
     · unfold bViewC
       simp only [rv0, rb0]
@@ -607,8 +610,6 @@ theorem backend_init (P : BParams) (W Pk : BNames → IProp GF) (h : GoInterface
     isplitl [Hhookc]
     · unfold plHook plHookAt
       iexact Hhookc
-    isplitl [Hwbt]
-    · iexact Hwbt
     isplitl [Hrbkc]
     · unfold rbOwn; iexact Hrbkc
     iexact Hrds

@@ -28,10 +28,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 theorem backend.New.wp_proof
     (hNB : backend.newBackend.spec (GF := GF) (hG := hG)) :
     backend.New.spec (GF := GF) (hG := hG) := by
-  intro cfg P D W Pk
+  intro cfg P D W Pk K
   wp_start as ⟨Hfile, %HP, #Hhk, Hmk⟩
   wp_auto
-  wp_apply (hNB cfg P D W Pk) $$ [Hfile Hmk] as %r Hr
+  wp_apply (hNB cfg P D W Pk K) $$ [Hfile Hmk] as %r Hr
   · iframe
     iframe #
     ipureintro; exact HP

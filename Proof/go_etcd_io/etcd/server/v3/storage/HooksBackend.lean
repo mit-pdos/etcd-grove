@@ -53,20 +53,18 @@ theorem isBackend_backendHooks
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty, #bh⟩
   isplitr
   · ipureintro; rfl
-  iintro !> %st %Φ !> ⟨Hl, HPk, %Hpre⟩ HΦ
+  iintro !> %st %stop %m %u %Φ !> ⟨Hl, HPk, %Hpre, Hpay⟩ HΦ
   ihave Hs : ▷ saveReq γ P Pk b t ix iprop(True) iprop(True) $$ []
   · inext
     iapply saveReq_of_saveSpec
     iapply Hsv $$ Hb Ht
-  iapply (hOn γ P W Pk b t bh ix lg st iprop(True) iprop(True) hH) $$ [Hl HPk Hs]
-  · iframe Hspkg Hbpkg Hsch Hh Hs Hb Ht Hl HPk
-    isplitr
-    · itrivial
+  iapply (hOn γ P W Pk b t bh ix lg st iprop(True) iprop(True) stop m u hH) $$ [Hl HPk Hs Hpay]
+  · iframe Hspkg Hbpkg Hsch Hh Hs Hb Ht Hl HPk Hpay
     ipureintro; exact Hpre
-  iintro !> ⟨%st', Hl, HPk, -, %Hst⟩
+  iintro !> ⟨%st', Hl, HPk, -, Hpay, %Hst⟩
   iapply HΦ
   iexists st'
-  iframe Hl HPk
+  iframe Hl HPk Hpay
   ipureintro; exact Hst
 
 /-- **The server's hooks serve a commit's request** (D22 the stored-index window, 2026-10-23): the
@@ -87,9 +85,9 @@ theorem hooksReq_backendHooks
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty, #bh⟩
   isplitr
   · ipureintro; rfl
-  iintro !> %st %Φ !> ⟨Hl, HPk, HX, %Hpre⟩ HΦ
-  iapply (hOn γ P W Pk b t bh ix lg st X Y hH) $$ [Hl HPk HX] HΦ
-  iframe Hspkg Hbpkg Hsch Hh Hsv Hb Ht Hl HPk HX
+  iintro !> %st %stop %m %u %Φ !> ⟨Hl, HPk, HX, %Hpre, Hpay⟩ HΦ
+  iapply (hOn γ P W Pk b t bh ix lg st X Y stop m u hH) $$ [Hl HPk HX Hpay] HΦ
+  iframe Hspkg Hbpkg Hsch Hh Hsv Hb Ht Hl HPk HX Hpay
   ipureintro; exact Hpre
 
 end proof
