@@ -17456,3 +17456,50 @@ and the step relations are in `Steps.lean`); the apply layer: `apply.isAuthStore
 `isAuthStoreAdmin` are unchanged, because stating them as steps needs the authority `authOwn` in the
 apply environment (a resource of the server's apply thread, beside `RW`), which is the next step on
 the A side; the derivation of the write contract from the real backend.
+
+## S4's apply part: the six proved admin operations as model steps at the apply layer (2026-10-24 · `notes/auth-plan.md`, branch `auth-a5`)
+
+**Problem.** S4 proved the auth store's `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`,
+`UserChangePassword` and `RoleAdd` to perform a step of the model's state (`auth/Steps.lean`,
+`adminOut`), from the admin side's authority (`auth.authOwn M hs`) and the store's write resource
+(`auth.authWR st M P f T`); the apply package still saw them through `isAuthStore`'s
+critical-section contracts (`authReqContract`: some error, the write right `RW` given back), so
+nothing said an applied admin request performs the model's step.
+
+**Decisions.**
+
+- **A separate persistent fact, not clauses of `isAuthStore`** (`apply.isAuthSteps st P f M W`,
+  `apply/AuthSteps.lean`): the six operations as the store's specs state them, with the store's
+  write resource abstracted as `W` and the errors the apply layer's (`applyErrIs`, from the
+  package's sixteen error variables: `authErrVar_of_pkg`, `adminOut_applyErrIs`). Appending them
+  to `isAuthStore` would add six conjuncts to a contract with 51 users and put in it resources
+  (the authority, `W`) that no environment of a closed theorem holds: the server's admits no auth
+  request (`AEnv.RW = False`), and the examples run in `off`. Of the real store:
+  `isAuthSteps_of_authInv`, restated with the proofs as `auth_apply_steps`
+  (`etcdserver/Results.lean`).
+- **The authority stays the caller's, not a field of `AEnv`**: the apply thread is the store's only
+  writer (raft applies serially), so the authority and `W` are its own resources; the apply-layer
+  statements take them as preconditions and give them back. Adding a field to `AEnv` (the brief's
+  first choice) would change every environment's construction for a resource nothing above the
+  backend applier passes yet; it belongs with E's closed theorem, whose workload admits auth
+  requests and whose server holds the authority from `NewAuthStore` (S5).
+- **A second triple of each `applierV3backend.X`** (`applierV3backend.X.stepSpec`, proved as
+  `wp_step` from `newHeader`'s spec, restated as `apply_X_step`): from the backend's options'
+  `isAuthSteps` (`backendAuthSteps E p W`: the options' points-to, read-only, with the auth store's
+  steps), the authority at `hs` and `W`, the request performs the model's step on the latest
+  recorded state for its arguments or the model's refusal (`adminOut`), the response's header set.
+  The first triple (`applierV3backend.X.spec`, the contract's) stays: the dispatch proofs use it.
+  The step triple takes neither `mvcc.storeWT` nor `RW`: S4's write side is its own contract, the
+  write token inside `authWR`.
+- **Not carried to `uberApplier`**: the chain's dispatch is stated over the contract's triples and
+  A3's `applyAuthRes`; with A3's `adminPass` (the admin check passed for the request's principal
+  before the backend is reached), an applied admin request in `on γa` is a step made by an admin,
+  but stating it through the chain needs the authority threaded through `chainRes` like A3's
+  principal, which waits for an environment that holds it (E).
+
+**Proved** (linked in `etcdserver/Results.lean`, no axiom added): `auth_apply_steps`,
+`apply_AuthEnable_step`, `apply_AuthDisable_step`, `apply_UserAdd_step`, `apply_UserDelete_step`,
+`apply_UserChangePassword_step`, `apply_RoleAdd_step`. **Not done**: the five operations S4 left
+(`UserGrantRole`, `UserRevokeRole`, `RoleDelete`, `RoleGrantPermission`, `RoleRevokePermission`:
+Perennial's `sort` specs) and the reads keep the contract clause; the authority in the server's
+environment and through the chain (E).
