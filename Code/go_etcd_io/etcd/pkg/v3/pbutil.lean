@@ -54,19 +54,18 @@ noncomputable def GetBool [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Boolp [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/pbutil.Boolp"
 
-/-- go: pbutil.go:61:6 -/
-noncomputable def MustUnmarshalMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+/-- go: pbutil.go:40:6 -/
+noncomputable def MustUnmarshal.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "um"
   (Lam "data"
   (App (Val exceptionDo)
   (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
-  (Let "um" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "um"))
+  (Let "um" (App (Val (GoInstruction (GoAlloc Unmarshaler.ty))) (Var "um"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "um"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Unmarshal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val (GoInstruction (MethodResolve Unmarshaler.ty go!"Unmarshal"))) (App (Val (GoInstruction (GoLoad Unmarshaler.ty))) (Var "um"))) (Var "$a0")))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -119,13 +118,13 @@ attribute [instance] Unmarshaler.TypeAssumptions.underlying
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Marshaler_instance : Marshaler.TypeAssumptions
   Unmarshaler_instance : Unmarshaler.TypeAssumptions
-  MustUnmarshalMessage_unfold : FuncUnfold MustUnmarshalMessage [] MustUnmarshalMessage.impl
+  MustUnmarshal_unfold : FuncUnfold MustUnmarshal [] MustUnmarshal.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
 
 attribute [instance] Assumptions.Marshaler_instance
   Assumptions.Unmarshaler_instance
-  Assumptions.MustUnmarshalMessage_unfold
+  Assumptions.MustUnmarshal_unfold
   Assumptions.import_fmt_Assumption
   Assumptions.import_proto_Assumption
 

@@ -57,41 +57,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
 
 /-! ## The request, purely -/
 
-/-- The request with nothing set (`&pb.InternalRaftRequest{}`). -/
-def apply.irrEmpty : apply.IRRModel where
-  id := W64 0
-  header := none
-  range := none
-  put := none
-  deleteRange := none
-  txn := none
-  compaction := none
-  leaseGrant := none
-  leaseRevoke := none
-  alarm := none
-  leaseCheckpoint := none
-  authEnable := false
-  authDisable := false
-  authStatus := false
-  authenticate := none
-  authUserAdd := none
-  authUserDelete := false
-  authUserGet := none
-  authUserChangePassword := false
-  authUserGrantRole := false
-  authUserRevokeRole := false
-  authUserList := false
-  authRoleList := false
-  authRoleAdd := none
-  authRoleDelete := false
-  authRoleGet := none
-  authRoleGrantPermission := false
-  authRoleRevokePermission := false
-  clusterVersionSet := none
-  clusterMemberAttrSet := none
-  downgradeInfoSet := none
-  downgradeVersionTest := false
-
 /-- `&pb.InternalRaftRequest{Put: r}` for `r` holding `op`. -/
 def irrPut (op : OpFull) : apply.IRRModel := { apply.irrEmpty with put := some op }
 /-- `&pb.InternalRaftRequest{DeleteRange: r}`. -/

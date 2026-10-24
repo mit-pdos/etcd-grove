@@ -1,5 +1,5 @@
-# `MustUnmarshalMessage` with its body (the apply thread calls it); the rest names only.
-translate = ["!*", "MustUnmarshalMessage"]
+# `MustUnmarshal` with its body (`apply.Apply` calls it on `*requestV2`); the rest names only.
+translate = ["!*", "MustUnmarshal"]
 imports = ["!*", "fmt", "google.golang.org/protobuf/proto"]
 
 # translate the definitions of all type declarations goose supports

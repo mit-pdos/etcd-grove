@@ -365,7 +365,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         isplitr
         · itrivial
         iframe Hcx
-        ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk⟩
+        ipureintro; exact ⟨apply.entryDecode_of_irrDecode hdec, hid, hrq, HaOn ▸ hdk⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
@@ -565,7 +565,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
             · iunfold batchLockInv; iexists mm; iframe; iexact Hreg
             iexact Hst
         · iframe Hst Happ Hbe HcF
-          ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk⟩
+          ipureintro; exact ⟨hpre, apply.entryDecode_of_irrDecode hdec, hid, hrq, HaOn ▸ hdk⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1

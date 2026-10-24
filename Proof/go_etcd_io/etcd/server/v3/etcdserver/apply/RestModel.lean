@@ -109,6 +109,14 @@ theorem restAfter_other [FfiSyntax] (rq : IRRModel) (v3 : Bool) (r : RestM)
     restAfter rq v3 r = r := by
   unfold restAfter; rw [h1, h2]
 
+theorem restAfter_legacyClusterVersionIRR [FfiSyntax] (id : w64) (ver : GoString) (v3 : Bool)
+    (r : RestM) :
+    restAfter (legacyClusterVersionIRR id ver) v3 r = restSetVersion v3 ver r := rfl
+
+theorem restAfter_legacyMemberAttrIRR [FfiSyntax] (reqID : w64) (m : MemberAttrModel) (v3 : Bool)
+    (r : RestM) :
+    restAfter (legacyMemberAttrIRR reqID m) v3 r = restUpdateAttrs v3 m r := rfl
+
 /-- **A cluster method's request** (`ClusterVersionSet`, `ClusterMemberAttrSet`,
 `DowngradeInfoSet`), as a value. -/
 inductive ClusterReq where

@@ -7,7 +7,19 @@
 # the raft status, the snapshot server, the consistent indexer, the wait: Contracts.lean; the
 # alarm store's and the cluster's methods, names-only struct pointers: Contracts.lean too) are
 # not listed.
-pbutil_MustUnmarshalMessage:
+proto_UnmarshalIRR:
+protowire_ConsumeTag:
+protowire_ConsumeVarint:
+protowire_ConsumeBytes:
+protowire_ConsumeFieldValue:
+protowire_ParseError:
+fmt_ErrorfNamed:
+regexp_Regexp__MatchString:
+path_Dir:
+membership_StoreClusterVersionKey:
+membership_MustParseMemberIDFromKey:
+json_UnmarshalAttributes:
+pbutil_MustUnmarshal:
 MustParse:
 Version__LessThan:
 Version__String:
@@ -114,4 +126,7 @@ NewUberApplier: newApplierV3 uberApplier__restoreAlarms
 uberApplier__Alarm: uberApplier__restoreAlarms
 uberApplier__dispatch: errors_Is txn_ApplySecObserve txn_WarnOfExpensiveRequest txn_WarnOfFailedRequest uberApplier__Alarm
 uberApplier__Apply: uberApplier__dispatch
-Apply: pbutil_MustUnmarshalMessage zap_Stringer zap_Logger__Debug noSideEffect uberApplier__Apply
+requestV2__String:
+requestV2__Unmarshal: protowire_ConsumeTag protowire_ConsumeVarint protowire_ConsumeBytes protowire_ConsumeFieldValue protowire_ParseError fmt_ErrorfNamed
+requestV2__toInternalRaftRequest: regexp_Regexp__MatchString membership_StoreClusterVersionKey path_Dir membership_MustParseMemberIDFromKey json_UnmarshalAttributes
+Apply: proto_UnmarshalIRR pbutil_MustUnmarshal requestV2__Unmarshal requestV2__toInternalRaftRequest zap_Stringer zap_Logger__Debug noSideEffect uberApplier__Apply

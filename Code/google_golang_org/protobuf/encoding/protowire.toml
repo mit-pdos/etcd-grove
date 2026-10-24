@@ -1,0 +1,7 @@
+# Types and names only, with the wire-type constants (`apply.requestV2.Unmarshal` compares with
+# `VarintType` and `BytesType`).
+translate = ["!*", "VarintType", "BytesType", "Fixed32Type", "Fixed64Type", "StartGroupType", "EndGroupType"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

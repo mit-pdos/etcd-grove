@@ -930,7 +930,7 @@ def errLeafFrom(pkg, X, msg, hd, tag):
 
 def _noSpaceApart():
     """D19k: `ErrNoSpace` apart from the backend's errors (`applyErrVars`' last four), from the
-    message cells of `etcdserver/errors`' (`Hd19`), `lease`'s (`CLNF`) and `mvcc`'s (`CMC`, `CMF`)."""
+    message cells of `etcdserver/errors`' (`{Hd:go_etcd_io.etcd.server.v3.etcdserver.errors}`), `lease`'s (`CLNF`) and `mvcc`'s (`CMC`, `CMF`)."""
     E = 'go_etcd_io.etcd.server.v3.etcdserver.errors'
     def cell(X, msg, tag):
         return (f'ihave #C{tag} := EtcdGrove.errVarCells_mem (X := {E}.{X}) (m := go!"{msg}")'
@@ -939,7 +939,7 @@ def _noSpaceApart():
         return (f'ihave #A{tag} := EtcdGrove.errVarApart_of {E}.ErrNoSpace {h} go!"etcdserver: no space"'
                 f' go!"{mh}" (by decide) $$ CNSP C{tag}')
     return [f'ihave HeiE : ({E}.errorsInit : IProp GF) $$ []',
-            '· iapply isPkgInit_access $$ Hd19',
+            '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.etcdserver.errors}',
             'icases HeiE with ⟨-, -, #HcE⟩',
             cell('ErrNoSpace', 'etcdserver: no space', 'NSP'),
             cell('ErrKeyNotFound', 'etcdserver: key not found', 'KNF'),
@@ -952,24 +952,32 @@ def _noSpaceApart():
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.apply'] = dict(
     doc="""Its fact (`applyInit`, `Base.lean`): its gauge vector `alarms` with its label names
-(`metrics.go`, untranslated: the trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
+(`metrics.go`, untranslated: the trust-boundary axiom `alarms_init`), `memberAttributePathRegexp`
+(`legacy_request.go`, untranslated: the trust-boundary axiom `memberAttributePathRegexp_init`),
+and the error variables it returns or compares with
 (`applyErrVars`), from their packages' facts (`etcdserver/errors`', `lease`'s, `mvcc`'s), leaf
 errors by the premise `EtcdGrove.ErrorStringLeaf`.""",
-    custom={'alarms': promvec('alarms', 'Gauge', ['server_id', 'alarm_type'])},
+    custom={
+        'alarms': promvec('alarms', 'Gauge', ['server_id', 'alarm_type']),
+        'memberAttributePathRegexp': dict(
+            doc='/-- `memberAttributePathRegexp = regexp.MustCompile(path.Join(membership.StoreMembersPrefix, "[[:xdigit:]]{1,16}", "attributes"))`\n(`legacy_request.go`): a compiled `*regexp.Regexp` for that pattern (`isRegex`). -/',
+            post='∃ v : Loc, globalAddr memberAttributePathRegexp ↦ v ∗ ⌜v ≠ Loc.null ∧ EtcdGrove.regexp.isRegex v go!"/0/members/[[:xdigit:]]{1,16}/attributes"⌝',
+            pat='⟨%v@, H@, #L@⟩'),
+    },
     pre=_ERRLEAF_PRE,
-    finish=(['ipersist Halarms'] +
-            errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrCorrupt', 'etcdserver: corrupt cluster', 'Hd19', 'COR') +
-            errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrNoSpace', 'etcdserver: no space', 'Hd19', 'NSP') +
-            errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', 'Hd19', 'KNF') +
+    finish=(['ipersist Halarms', 'ipersist HmemberAttributePathRegexp'] +
+            errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrCorrupt', 'etcdserver: corrupt cluster', '{Hd:go_etcd_io.etcd.server.v3.etcdserver.errors}', 'COR') +
+            errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrNoSpace', 'etcdserver: no space', '{Hd:go_etcd_io.etcd.server.v3.etcdserver.errors}', 'NSP') +
+            errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', '{Hd:go_etcd_io.etcd.server.v3.etcdserver.errors}', 'KNF') +
             ['ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd10',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.lease}',
              'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF⟩',
              'ihave #LLNF : (EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk',
              '  iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0',
              '  iexact HLNF0',
              'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd18',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.storage.mvcc}',
              'icases Hmi with ⟨' + '-, ' * 30 + '#NMC, #NMF, -, -, #CMC, #CMF, -⟩',
              'ihave #LMC := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMC',
              'ihave #LMF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMF'] +

@@ -1,0 +1,31 @@
+=== RUN   TestFinding1_UnanchoredMemberAttributePathRegexp
+=== RUN   TestFinding1_UnanchoredMemberAttributePathRegexp/1a_PrefixAndSuffixAcceptedAsMemberAttrSet
+{"level":"debug","msg":"Apply","raftReq":"header:{ID:101} cluster_member_attr_set:{member_ID:6699 member_attributes:{name:\"node1\" client_urls:\"http://127.0.0.1:2379\"}}"}
+    repro_test.go:68: disallowed path "/prefix/0/members/1a2b/attributes" was silently accepted by apply.Apply (id=101) -> ClusterMemberAttrSet{Member_ID: 0x1a2b, Name: "node1"}
+{"level":"debug","msg":"Apply","raftReq":"header:{ID:101} cluster_member_attr_set:{member_ID:6699 member_attributes:{name:\"node1\" client_urls:\"http://127.0.0.1:2379\"}}"}
+    repro_test.go:68: disallowed path "/0/members/1a2b/attributes_extra" was silently accepted by apply.Apply (id=101) -> ClusterMemberAttrSet{Member_ID: 0x1a2b, Name: "node1"}
+=== RUN   TestFinding1_UnanchoredMemberAttributePathRegexp/1b_TrailingSegmentsParseWrongMemberID
+{"level":"debug","msg":"Apply","raftReq":"header:{ID:102} cluster_member_attr_set:{member_ID:3735928559 member_attributes:{name:\"node1\" client_urls:\"http://127.0.0.1:2379\"}}"}
+    repro_test.go:89: disallowed path "/0/members/1a2b/attributes/deadbeef/subkey" was silently accepted (id=102) with WRONG Member_ID=0xdeadbeef (instead of 0x1a2b)!
+=== RUN   TestFinding1_UnanchoredMemberAttributePathRegexp/1c_SingleTrailingSegmentPanicsInParseUint
+{"level":"panic","msg":"failed to parse member id from key","error":"strconv.ParseUint: parsing \"attributes\": invalid syntax"}
+    repro_test.go:108: disallowed path "/0/members/1a2b/attributes/extra" bypassed the v2 WAL guard and panicked inside MustParseMemberIDFromKey: failed to parse member id from key
+--- PASS: TestFinding1_UnanchoredMemberAttributePathRegexp (0.00s)
+    --- PASS: TestFinding1_UnanchoredMemberAttributePathRegexp/1a_PrefixAndSuffixAcceptedAsMemberAttrSet (0.00s)
+    --- PASS: TestFinding1_UnanchoredMemberAttributePathRegexp/1b_TrailingSegmentsParseWrongMemberID (0.00s)
+    --- PASS: TestFinding1_UnanchoredMemberAttributePathRegexp/1c_SingleTrailingSegmentPanicsInParseUint (0.00s)
+=== RUN   TestFinding2_ProtoUnmarshalWireOverlapBypass
+=== RUN   TestFinding2_ProtoUnmarshalWireOverlapBypass/2a_LegacyRequestBytesWithEmptyPathAndVal
+{"level":"debug","msg":"Apply","raftReq":"ID:42 range:{} put:{} 2:\"DELETE\""}
+    repro_test.go:145: legacyRequestBytes(42, "DELETE", "", "") succeeded in proto.Unmarshal (err == nil), bypassed legacy v2 check, and dispatched as v3 InternalRaftRequest{ID: 42, Range: , Put: }!
+=== RUN   TestFinding2_ProtoUnmarshalWireOverlapBypass/2b_InternalRaftRequestWrappingV2InField2
+{"level":"debug","msg":"Apply","raftReq":"header:{ID:77} 2:\"\\x08M\\x12\\x03PUT\\x1a\\n/0/version\\\"\\x053.6.0\""}
+    repro_test.go:172: InternalRaftRequest with field 2 (V2) succeeded in proto.Unmarshal (err == nil), dropped field 2, and dispatched empty InternalRaftRequest (Header.ID=77, ClusterVersionSet=<nil>)!
+--- PASS: TestFinding2_ProtoUnmarshalWireOverlapBypass (0.00s)
+    --- PASS: TestFinding2_ProtoUnmarshalWireOverlapBypass/2a_LegacyRequestBytesWithEmptyPathAndVal (0.00s)
+    --- PASS: TestFinding2_ProtoUnmarshalWireOverlapBypass/2b_InternalRaftRequestWrappingV2InField2 (0.00s)
+=== RUN   TestFinding3_WALMinimalEtcdVersionPanicsOnLegacyV2Entries
+    repro_test.go:198: wal.MinimalEtcdVersion panicked on valid legacy v2 `/0/version` entry: proto: cannot parse invalid wire-format data
+--- PASS: TestFinding3_WALMinimalEtcdVersionPanicsOnLegacyV2Entries (0.00s)
+PASS
+ok  	etcd22634repro	0.020s

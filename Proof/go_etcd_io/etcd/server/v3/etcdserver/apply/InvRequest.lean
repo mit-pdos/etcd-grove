@@ -39,9 +39,30 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+
+namespace protowire
+
+/-- **`protowire.ConsumeTag(b)`**: the field number, wire type, and positive byte count `n`
+(`1 ≤ n ≤ b.length`), or `none` on a negative error code (`n < 0`). -/
+opaque consumeTag : List w8 → Option (w32 × w8 × Nat)
+
+/-- **`protowire.ConsumeVarint(b)`**: the `uint64` value and byte count `n` (`0 ≤ n ≤ b.length`),
+or `none` on a negative error code (`n < 0`). -/
+opaque consumeVarint : List w8 → Option (w64 × Nat)
+
+/-- **`protowire.ConsumeBytes(b)`**: the byte slice value and total byte count `n`
+(`0 ≤ n ≤ b.length`), or `none` on a negative error code (`n < 0`). -/
+opaque consumeBytes : List w8 → Option (List w8 × Nat)
+
+/-- **`protowire.ConsumeFieldValue(num, typ, b)`**: the byte count `n` (`0 ≤ n ≤ b.length`),
+or `none` on a negative error code (`n < 0`). -/
+opaque consumeFieldValue : w32 → w8 → List w8 → Option Nat
+
+end protowire
+
 namespace apply
 
-open Iris Iris.BI go_etcd_io.etcd.api.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 
 /-! ## The request, purely -/
 
@@ -137,6 +158,165 @@ it): `semver.MustParse` returns a version for it, and panics otherwise (its axio
 `ClusterVersionSet` request (its `Ver` parses: the server proposes only versions it parsed). -/
 opaque semverValid : GoString → Prop
 
+/-- The request with nothing set (`&pb.InternalRaftRequest{}`). -/
+def irrEmpty : IRRModel where
+  id := W64 0
+  header := none
+  range := none
+  put := none
+  deleteRange := none
+  txn := none
+  compaction := none
+  leaseGrant := none
+  leaseRevoke := none
+  alarm := none
+  leaseCheckpoint := none
+  authEnable := false
+  authDisable := false
+  authStatus := false
+  authenticate := none
+  authUserAdd := none
+  authUserDelete := false
+  authUserGet := none
+  authUserChangePassword := false
+  authUserGrantRole := false
+  authUserRevokeRole := false
+  authUserList := false
+  authRoleList := false
+  authRoleAdd := none
+  authRoleDelete := false
+  authRoleGet := none
+  authRoleGrantPermission := false
+  authRoleRevokePermission := false
+  clusterVersionSet := none
+  clusterMemberAttrSet := none
+  downgradeInfoSet := none
+  downgradeVersionTest := false
+
+/-- **`requestV2.Unmarshal`'s wire loop** (`legacy_request.go`): consumes tag-value pairs from `bs`
+using the four `protowire` primitives (`consumeTag`, `consumeVarint`, `consumeBytes`,
+`consumeFieldValue`), updating `req` on fields `1` (`ID`, varint), `2` (`Method`, bytes),
+`3` (`Path`, bytes), and `4` (`Val`, bytes), skipping other fields via `consumeFieldValue`, and
+returning `none` on any wire-type mismatch or negative `protowire` return code. -/
+def v2UnmarshalLoop [FfiSyntax] (bs : List w8)
+    (req : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) :
+    Option go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 :=
+  if _hbs : bs = [] then some req
+  else
+    match protowire.consumeTag bs with
+    | none => none
+    | some (num, typ, nt) =>
+      if _hnt : 1 ≤ nt then
+        let bs1 := bs.drop nt
+        if num = W32 1 then
+          if typ ≠ W8 0 then none
+          else
+            match protowire.consumeVarint bs1 with
+            | none => none
+            | some (v, nv) =>
+              v2UnmarshalLoop (bs1.drop nv) { req with ID' := v }
+        else if num = W32 4 ∨ num = W32 3 ∨ num = W32 2 then
+          if typ ≠ W8 2 then none
+          else
+            match protowire.consumeBytes bs1 with
+            | none => none
+            | some (v, nv) =>
+              let req' :=
+                if num = W32 2 then { req with Method' := v }
+                else if num = W32 3 then { req with Path' := v }
+                else if num = W32 4 then { req with Val' := v }
+                else req
+              v2UnmarshalLoop (bs1.drop nv) req'
+        else
+          match protowire.consumeFieldValue num typ bs1 with
+          | none => none
+          | some nv =>
+            v2UnmarshalLoop (bs1.drop nv) req
+      else none
+termination_by bs.length
+decreasing_by
+  all_goals
+    have : bs.length ≠ 0 := by cases bs; exact absurd rfl _hbs; simp
+    simp only [List.length_drop]
+    omega
+
+/-- **`requestV2.Unmarshal(data)`**: `v2UnmarshalLoop` starting from `requestV2{}`. -/
+def v2Decode [FfiSyntax] (bs : List w8) :
+    Option go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 :=
+  v2UnmarshalLoop bs zeroValDef
+
+/-- **`re.MatchString(s)`** for a compiled `*regexp.Regexp` of pattern `pat`. -/
+opaque regexpMatch : GoString → GoString → Bool
+
+/-- **`path.Dir(p)`**. -/
+opaque pathDir : GoString → GoString
+
+/-- **`membership.MustParseMemberIDFromKey(lg, key)`**: the parsed `types.ID` (`uint64`), or `none`
+when `MustParseMemberIDFromKey` panics. -/
+opaque parseMemberIDFromKey : GoString → Option w64
+
+/-- **`json.Unmarshal([]byte(s), &attributes)`** into a `membership.Attributes`: `(Name, ClientURLs)`
+on `nil` error, `none` on error (`toInternalRaftRequest` panics). -/
+opaque jsonDecodeAttributes : GoString → Option (GoString × List GoString)
+
+/-- `membership.StoreClusterVersionKey()`: `"/0/version"`. -/
+def storeClusterVersionKey [FfiSyntax] : GoString := go!"/0/version"
+
+/-- The pattern of `memberAttributePathRegexp` (`legacy_request.go`):
+`path.Join(membership.StoreMembersPrefix, "[[:xdigit:]]{1,16}", "attributes")`. -/
+def memberAttrPat [FfiSyntax] : GoString := go!"/0/members/[[:xdigit:]]{1,16}/attributes"
+
+/-- The `InternalRaftRequest` that `requestV2.toInternalRaftRequest` builds for a legacy cluster
+version update (`/0/version`). -/
+def legacyClusterVersionIRR (id : w64) (ver : GoString) : IRRModel :=
+  { irrEmpty with
+    header := some { id := id, username := go!"", authRevision := W64 0 }
+    clusterVersionSet := some ver }
+
+/-- The `InternalRaftRequest` that `requestV2.toInternalRaftRequest` builds for a legacy member
+attributes update (`/0/members/<hex>/attributes`). -/
+def legacyMemberAttrIRR (reqID : w64) (m : MemberAttrModel) : IRRModel :=
+  { irrEmpty with
+    header := some { id := reqID, username := go!"", authRevision := W64 0 }
+    clusterMemberAttrSet := some m }
+
+/-- **`requestV2.toInternalRaftRequest(lg)`**: converts a legacy v2 `PUT` request on a member
+attributes path or `/0/version` into the corresponding v3 `InternalRaftRequest`, or returns `none`
+when `toInternalRaftRequest` panics. -/
+def legacyToIRR [FfiSyntax]
+    (r : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) : Option IRRModel :=
+  if r.Method' ≠ go!"PUT" then none
+  else if regexpMatch memberAttrPat r.Path' then
+    match parseMemberIDFromKey (pathDir r.Path') with
+    | none => none
+    | some mid =>
+      match jsonDecodeAttributes r.Val' with
+      | none => none
+      | some (name, urls) =>
+        some (legacyMemberAttrIRR r.ID' { memberID := mid, name := name, clientURLs := urls })
+  else if r.Path' = storeClusterVersionKey then
+    some (legacyClusterVersionIRR r.ID' r.Val')
+  else none
+
+/-- **What `apply.Apply` decodes from a committed normal entry's bytes `bs`** (`etcd#22634`):
+first `proto.Unmarshal(e.Data, &raftReq)` (`irrDecode bs`), and on error
+`pbutil.MustUnmarshal(&legacyReq, e.Data)` (`v2Decode bs`) followed by
+`legacyReq.toInternalRaftRequest(lg)` (`legacyToIRR`). -/
+def entryDecode [FfiSyntax] (bs : List w8) : Option IRRModel :=
+  match irrDecode bs with
+  | some rq => some rq
+  | none => (v2Decode bs).bind legacyToIRR
+
+theorem entryDecode_of_irrDecode [FfiSyntax] {bs : List w8} {rq : IRRModel}
+    (h : irrDecode bs = some rq) : entryDecode bs = some rq := by
+  simp [entryDecode, h]
+
+theorem entryDecode_of_legacy [FfiSyntax] {bs : List w8}
+    {r : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2} {rq : IRRModel}
+    (h1 : irrDecode bs = none) (h2 : v2Decode bs = some r) (h3 : legacyToIRR r = some rq) :
+    entryDecode bs = some rq := by
+  simp [entryDecode, h1, h2, h3]
+
 /-- The request's id as `apply.Apply` computes it: `ID`, or the header's if `ID` is 0; `none`
 if neither (`Apply` panics: a pre-3.0 entry without a header). -/
 def irrId (rq : IRRModel) : Option w64 :=
@@ -206,6 +386,38 @@ def needAdminPermission (rq : IRRModel) : Bool :=
 def isKVKind : ReqKind → Bool
   | .range | .put | .deleteRange | .txn => true
   | _ => false
+
+theorem irrId_legacyClusterVersionIRR (id : w64) (ver : GoString) :
+    irrId (legacyClusterVersionIRR id ver) = some id := by
+  simp [irrId, legacyClusterVersionIRR, irrEmpty]
+
+theorem dispatchKind_legacyClusterVersionIRR (id : w64) (ver : GoString) :
+    dispatchKind (legacyClusterVersionIRR id ver) = .clusterVersionSet := by
+  simp [dispatchKind, legacyClusterVersionIRR]
+
+theorem noSideEffect_legacyClusterVersionIRR (id : w64) (ver : GoString) :
+    noSideEffect (legacyClusterVersionIRR id ver) = false := by
+  simp [noSideEffect, legacyClusterVersionIRR, irrEmpty]
+
+theorem needAdminPermission_legacyClusterVersionIRR (id : w64) (ver : GoString) :
+    needAdminPermission (legacyClusterVersionIRR id ver) = false := by
+  simp [needAdminPermission, legacyClusterVersionIRR, irrEmpty]
+
+theorem irrId_legacyMemberAttrIRR (reqID : w64) (m : MemberAttrModel) :
+    irrId (legacyMemberAttrIRR reqID m) = some reqID := by
+  simp [irrId, legacyMemberAttrIRR, irrEmpty]
+
+theorem dispatchKind_legacyMemberAttrIRR (reqID : w64) (m : MemberAttrModel) :
+    dispatchKind (legacyMemberAttrIRR reqID m) = .clusterMemberAttrSet := by
+  simp [dispatchKind, legacyMemberAttrIRR, irrEmpty]
+
+theorem noSideEffect_legacyMemberAttrIRR (reqID : w64) (m : MemberAttrModel) :
+    noSideEffect (legacyMemberAttrIRR reqID m) = false := by
+  simp [noSideEffect, legacyMemberAttrIRR, irrEmpty]
+
+theorem needAdminPermission_legacyMemberAttrIRR (reqID : w64) (m : MemberAttrModel) :
+    needAdminPermission (legacyMemberAttrIRR reqID m) = false := by
+  simp [needAdminPermission, legacyMemberAttrIRR, irrEmpty]
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -435,7 +647,113 @@ instance irrWrapperIs_persistent (r : Loc) (rq : IRRModel) (skip : Bool) :
     Persistent (irrWrapperIs (GF := GF) r rq skip) := by
   unfold irrWrapperIs; infer_instance
 
+/-- **An `etcdserverpb.InternalRaftRequest` struct value `v` holds `rq`**: every pointer field
+holds its read-only sub-struct (as in `internalRaftRequestIs`, before `v` is stored into `raftReq`). -/
+def internalRaftRequestValIs (v : etcdserverpb.InternalRaftRequest) (rq : IRRModel) : IProp GF :=
+  iprop(⌜v.ID' = rq.id⌝ ∗
+    optReqIs v.Header' rq.header headerIs ∗
+    optReqIs v.Range' rq.range txn.rangeRequestIs ∗
+    optReqIs v.Put' rq.put txn.putRequestIs ∗
+    optReqIs v.DeleteRange' rq.deleteRange txn.deleteRangeRequestIs ∗
+    optReqIs v.Txn' rq.txn txn.txnRequestIs ∗
+    optReqIs v.Compaction' rq.compaction compactionIs ∗
+    optReqIs v.LeaseGrant' rq.leaseGrant leaseGrantIs ∗
+    optReqIs v.LeaseRevoke' rq.leaseRevoke leaseRevokeIs ∗
+    optReqIs v.Alarm' rq.alarm alarmRequestIs ∗
+    optReqIs v.LeaseCheckpoint' rq.leaseCheckpoint leaseCheckpointIs ∗
+    presentIs v.AuthEnable' rq.authEnable ∗
+    presentIs v.AuthDisable' rq.authDisable ∗
+    presentIs v.AuthStatus' rq.authStatus ∗
+    optReqIs v.Authenticate' rq.authenticate authenticateIs ∗
+    optReqIs v.AuthUserAdd' rq.authUserAdd authUserAddIs ∗
+    presentIs v.AuthUserDelete' rq.authUserDelete ∗
+    optReqIs v.AuthUserGet' rq.authUserGet authUserGetIs ∗
+    presentIs v.AuthUserChangePassword' rq.authUserChangePassword ∗
+    presentIs v.AuthUserGrantRole' rq.authUserGrantRole ∗
+    presentIs v.AuthUserRevokeRole' rq.authUserRevokeRole ∗
+    presentIs v.AuthUserList' rq.authUserList ∗
+    presentIs v.AuthRoleList' rq.authRoleList ∗
+    optReqIs v.AuthRoleAdd' rq.authRoleAdd authRoleAddIs ∗
+    presentIs v.AuthRoleDelete' rq.authRoleDelete ∗
+    optReqIs v.AuthRoleGet' rq.authRoleGet authRoleGetIs ∗
+    presentIs v.AuthRoleGrantPermission' rq.authRoleGrantPermission ∗
+    presentIs v.AuthRoleRevokePermission' rq.authRoleRevokePermission ∗
+    optReqIs v.ClusterVersionSet' rq.clusterVersionSet clusterVersionSetIs ∗
+    optReqIs v.ClusterMemberAttrSet' rq.clusterMemberAttrSet memberAttrSetIs ∗
+    optReqIs v.DowngradeInfoSet' rq.downgradeInfoSet downgradeInfoSetIs ∗
+    presentIs v.DowngradeVersionTest' rq.downgradeVersionTest)
+
+instance internalRaftRequestValIs_persistent (v : etcdserverpb.InternalRaftRequest)
+    (rq : IRRModel) :
+    Persistent (internalRaftRequestValIs (GF := GF) v rq) := by
+  unfold internalRaftRequestValIs headerIs compactionIs leaseGrantIs leaseRevokeIs alarmRequestIs
+    leaseCheckpointIs checkpointIs authenticateIs authUserGetIs authRoleGetIs authUserAddIs
+    authRoleAddIs clusterVersionSetIs memberAttrSetIs downgradeInfoSetIs
+  infer_instance
+
 end defs
+
+section valToHeap
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+/-- Persisting all fields of `p ↦ v` when `v` satisfies `internalRaftRequestValIs v rq` yields
+`internalRaftRequestIs p rq`. -/
+theorem internalRaftRequestIs_of_val (p : Loc) (v : etcdserverpb.InternalRaftRequest)
+    (rq : IRRModel) :
+    iprop(p ↦ v ∗ internalRaftRequestValIs (GF := GF) v rq) ⊢ |==> internalRaftRequestIs p rq := by
+  iintro ⟨Hp, #Hval⟩
+  ihave ⟨Hp, %Hpn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hp
+  iStructNamed Hp
+  ipersist ID
+  ipersist Header
+  ipersist Range
+  ipersist Put
+  ipersist DeleteRange
+  ipersist Txn
+  ipersist Compaction
+  ipersist LeaseGrant
+  ipersist LeaseRevoke
+  ipersist Alarm
+  ipersist LeaseCheckpoint
+  ipersist AuthEnable
+  ipersist AuthDisable
+  ipersist AuthStatus
+  ipersist Authenticate
+  ipersist AuthUserAdd
+  ipersist AuthUserDelete
+  ipersist AuthUserGet
+  ipersist AuthUserChangePassword
+  ipersist AuthUserGrantRole
+  ipersist AuthUserRevokeRole
+  ipersist AuthUserList
+  ipersist AuthRoleList
+  ipersist AuthRoleAdd
+  ipersist AuthRoleDelete
+  ipersist AuthRoleGet
+  ipersist AuthRoleGrantPermission
+  ipersist AuthRoleRevokePermission
+  ipersist ClusterVersionSet
+  ipersist ClusterMemberAttrSet
+  ipersist DowngradeInfoSet
+  ipersist DowngradeVersionTest
+  iunfold internalRaftRequestValIs at Hval
+  icases Hval with ⟨%hID, #H0, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12,
+    #H13, #H14, #H15, #H16, #H17, #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27,
+    #H28, #H29, #H30⟩
+  imodintro
+  iunfold internalRaftRequestIs
+  rw [hID]
+  isplitr
+  · ipureintro; exact Hpn
+  iframe #
+  repeat (isplitr; · iexists _; iframe #)
+  iexists _; iframe #
+
+end valToHeap
 
 end apply
 end EtcdGrove

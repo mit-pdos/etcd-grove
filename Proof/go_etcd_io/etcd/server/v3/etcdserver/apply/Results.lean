@@ -592,6 +592,9 @@ theorem apply_no_v3_no_write (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut)
     simp_all [Outcome.logAfter]
 
 #print axioms Perennial.EtcdGrove.apply.wp_Apply
+#print axioms Perennial.EtcdGrove.apply.requestV2.wp_String
+#print axioms Perennial.EtcdGrove.apply.requestV2.wp_Unmarshal
+#print axioms Perennial.EtcdGrove.apply.requestV2.wp_toInternalRaftRequest
 #print axioms Perennial.EtcdGrove.apply.wp_NewUberApplier
 #print axioms Perennial.EtcdGrove.apply.uberApplier.wp_dispatch
 #print axioms Perennial.EtcdGrove.apply.apply_kv
@@ -601,7 +604,9 @@ theorem apply_no_v3_no_write (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut)
 
 /-! ## Unit 0: the trust boundary and the callees linked elsewhere -/
 
-#print axioms Perennial.EtcdGrove.apply.pbutil.wp_MustUnmarshalMessage
+#print axioms Perennial.EtcdGrove.apply.pbutil.wp_MustUnmarshal
+#print axioms Perennial.EtcdGrove.apply.proto.wp_UnmarshalIRR
+#print axioms Perennial.EtcdGrove.apply.json.wp_UnmarshalAttributes
 #print axioms Perennial.EtcdGrove.apply.semver.wp_MustParse
 #print axioms Perennial.EtcdGrove.mvcc.store.wp_Rev
 #print axioms Perennial.EtcdGrove.txn.wp_Txn

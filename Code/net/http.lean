@@ -870,7 +870,8 @@ axiom MethodHead [FfiSyntax] [GoGlobalContext] : val
 
 axiom MethodPost [FfiSyntax] [GoGlobalContext] : val
 
-axiom MethodPut [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MethodPut [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"PUT")
 
 axiom MethodPatch [FfiSyntax] [GoGlobalContext] : val
 

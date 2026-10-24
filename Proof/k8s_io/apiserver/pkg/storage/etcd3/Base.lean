@@ -187,19 +187,7 @@ instance encoding_base64_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.encoding.base64 :=
   build_get_is_pkg_init_wf
 
-instance encoding_json_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.encoding.json :=
-  define_is_pkg_init iprop(True)
-instance encoding_json_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
-  build_get_is_pkg_init_wf
-
-instance path_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.path :=
-  define_is_pkg_init iprop(True)
-instance path_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.path :=
-  build_get_is_pkg_init_wf
+-- `encoding/json` and `path`: `etcdserver/apply/Base.lean` (imported through `BaseApply.lean`).
 
 instance k8s_io_apimachinery_pkg_fields_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.fields :=

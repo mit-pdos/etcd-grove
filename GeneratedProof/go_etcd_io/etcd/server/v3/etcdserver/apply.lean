@@ -3,7 +3,9 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.encoding.json
 public import Perennial.GeneratedProof.errors
+public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.github_com.Masterminds.semver.v3
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
@@ -26,7 +28,11 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.google_golang_org.protobuf.encoding.protowire
 public import GeneratedProof.google_golang_org.protobuf.proto
+public import GeneratedProof.net.http
+public import GeneratedProof.path
+public import GeneratedProof.regexp
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
@@ -680,6 +686,97 @@ instance Result_access_store_Trace (l : Loc) (v : go_etcd_io.etcd.server.v3.etcd
 
 end def_
 end Result
+
+namespace requestV2
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+
+instance requestV2_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 where
+  typedPointstoDef l v dq := iprop(
+    "ID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"ID" l) v.ID' dq ∗
+    "Method" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Method" l) v.Method' dq ∗
+    "Path" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Path" l) v.Path' dq ∗
+    "Val" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Val" l) v.Val' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance requestV2_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2.underlying := by
+  solve_into_val_typed_struct
+
+instance requestV2_access_load_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"ID" l) v.ID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance requestV2_access_store_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (ID' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"ID" l) v.ID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"ID" l) ID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance requestV2_access_load_Method (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Method" l) v.Method' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Method" l) v.Method' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance requestV2_access_store_Method (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (Method' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Method" l) v.Method' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Method" l) Method' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Method' := Method' } : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance requestV2_access_load_Path (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Path" l) v.Path' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Path" l) v.Path' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance requestV2_access_store_Path (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (Path' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Path" l) v.Path' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Path" l) Path' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := Path' } : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance requestV2_access_load_Val (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Val" l) v.Val' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Val" l) v.Val' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance requestV2_access_store_Val (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (Val' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Val" l) v.Val' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2 go!"Val" l) Val' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Val' := Val' } : go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end requestV2
 
 namespace quotaApplierV3
 section def_

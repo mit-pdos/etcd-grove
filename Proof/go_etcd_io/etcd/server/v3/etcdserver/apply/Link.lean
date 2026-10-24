@@ -71,6 +71,10 @@ public import Proof.context.TODO
 public import Proof.context.WithValue
 public import Proof.errors.Is
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType__String
+public import Proof.fmt.ErrorfNamed
+public import Proof.encoding.json.UnmarshalAttributes
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MustParseMemberIDFromKey
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.StoreClusterVersionKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.needAdminPermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Backend
@@ -79,11 +83,22 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Corru
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newAuthApplierV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newQuotaApplierV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.noSideEffect
-public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
+public import Proof.path.Dir
+public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshal
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
+public import Proof.google_golang_org.protobuf.proto.UnmarshalIRR
+public import Proof.google_golang_org.protobuf.encoding.protowire.ConsumeBytes
+public import Proof.google_golang_org.protobuf.encoding.protowire.ConsumeFieldValue
+public import Proof.google_golang_org.protobuf.encoding.protowire.ConsumeTag
+public import Proof.google_golang_org.protobuf.encoding.protowire.ConsumeVarint
+public import Proof.google_golang_org.protobuf.encoding.protowire.ParseError
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__LeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__Txn
+public import Proof.regexp.Regexp__MatchString
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2__String
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2__Unmarshal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2__toInternalRaftRequest
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendQuota__Cost
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveRequest
@@ -118,9 +133,65 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-theorem pbutil.wp_MustUnmarshalMessage :
-    EtcdGrove.pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.pbutil.MustUnmarshalMessage.wp_proof
+theorem proto.wp_UnmarshalIRR :
+    EtcdGrove.proto.UnmarshalIRR.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.proto.UnmarshalIRR.wp_proof
+
+theorem pbutil.wp_MustUnmarshal :
+    EtcdGrove.pbutil.MustUnmarshal.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.pbutil.MustUnmarshal.wp_proof
+
+theorem protowire.wp_ConsumeTag :
+    EtcdGrove.protowire.ConsumeTag.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.protowire.ConsumeTag.wp_proof
+
+theorem protowire.wp_ConsumeVarint :
+    EtcdGrove.protowire.ConsumeVarint.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.protowire.ConsumeVarint.wp_proof
+
+theorem protowire.wp_ConsumeBytes :
+    EtcdGrove.protowire.ConsumeBytes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.protowire.ConsumeBytes.wp_proof
+
+theorem protowire.wp_ConsumeFieldValue :
+    EtcdGrove.protowire.ConsumeFieldValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.protowire.ConsumeFieldValue.wp_proof
+
+theorem protowire.wp_ParseError :
+    EtcdGrove.protowire.ParseError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.protowire.ParseError.wp_proof
+
+theorem fmt.wp_ErrorfNamed :
+    EtcdGrove.fmt.ErrorfNamed.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.ErrorfNamed.wp_proof
+
+theorem requestV2.wp_Unmarshal :
+    EtcdGrove.apply.requestV2.Unmarshal.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.requestV2.Unmarshal.wp_proof protowire.wp_ConsumeTag protowire.wp_ConsumeVarint protowire.wp_ConsumeBytes protowire.wp_ConsumeFieldValue protowire.wp_ParseError fmt.wp_ErrorfNamed
+
+theorem regexp.Regexp.wp_MatchString :
+    EtcdGrove.regexp.Regexp.MatchString.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.regexp.Regexp.MatchString.wp_proof
+
+theorem membership.wp_StoreClusterVersionKey :
+    EtcdGrove.membership.StoreClusterVersionKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.membership.StoreClusterVersionKey.wp_proof
+
+theorem path.wp_Dir :
+    EtcdGrove.path.Dir.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.path.Dir.wp_proof
+
+theorem membership.wp_MustParseMemberIDFromKey :
+    EtcdGrove.membership.MustParseMemberIDFromKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.membership.MustParseMemberIDFromKey.wp_proof
+
+theorem json.wp_UnmarshalAttributes :
+    EtcdGrove.json.UnmarshalAttributes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.json.UnmarshalAttributes.wp_proof
+
+theorem requestV2.wp_toInternalRaftRequest :
+    EtcdGrove.apply.requestV2.toInternalRaftRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.requestV2.toInternalRaftRequest.wp_proof regexp.Regexp.wp_MatchString membership.wp_StoreClusterVersionKey path.wp_Dir membership.wp_MustParseMemberIDFromKey json.wp_UnmarshalAttributes
 
 theorem zap.wp_Stringer :
     EtcdGrove.zap.Stringer.spec (GF := GF) (hG := hG) :=
@@ -181,6 +252,10 @@ theorem zap.wp_String :
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Info.wp_proof
+
+theorem requestV2.wp_String :
+    EtcdGrove.apply.requestV2.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.requestV2.String.wp_proof
 
 theorem zap.Logger.wp_Panic :
     EtcdGrove.zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
@@ -263,7 +338,7 @@ theorem uberApplier.wp_Apply :
 
 theorem wp_Apply :
     EtcdGrove.apply.Apply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.Apply.wp_proof pbutil.wp_MustUnmarshalMessage zap.wp_Stringer zap.Logger.wp_Debug wp_noSideEffect uberApplier.wp_Apply
+  EtcdGrove.apply.Apply.wp_proof proto.wp_UnmarshalIRR pbutil.wp_MustUnmarshal requestV2.wp_Unmarshal requestV2.wp_toInternalRaftRequest zap.wp_Stringer zap.Logger.wp_Debug wp_noSideEffect uberApplier.wp_Apply
 
 theorem wp_checkLeasePutsKeys :
     EtcdGrove.apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG) :=

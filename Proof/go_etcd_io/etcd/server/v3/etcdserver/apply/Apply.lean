@@ -4,7 +4,10 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
-public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
+public import Spec.google_golang_org.protobuf.proto.UnmarshalIRR
+public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshal
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2__Unmarshal
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.requestV2__toInternalRaftRequest
 public import Spec.go_uber_org.zap.Stringer
 public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.noSideEffect
@@ -70,7 +73,10 @@ local macro "call_tail" : tactic => `(tactic| (
   · iright; iexact HG))
 
 theorem apply.Apply.wp_proof
-    (hMU : pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG))
+    (hProto : proto.UnmarshalIRR.spec (GF := GF) (hG := hG))
+    (hMU : pbutil.MustUnmarshal.spec (GF := GF) (hG := hG))
+    (hV2U : apply.requestV2.Unmarshal.spec (GF := GF) (hG := hG))
+    (hV2To : apply.requestV2.toInternalRaftRequest.spec (GF := GF) (hG := hG))
     (hZS : zap.Stringer.spec (GF := GF) (hG := hG))
     (hDbg : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hNSE : apply.noSideEffect.spec (GF := GF) (hG := hG))
@@ -83,11 +89,64 @@ theorem apply.Apply.wp_proof
   · iPkgInit
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil $$ []
   · iPkgInit
+  ihave #Pproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
   ihave ⟨%Hen, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   wp_auto
-  wp_apply (hMU.2 raftReq_ptr _ d m.data DfracDiscarded rq) $$ [raftReq] as ⟨#Hirr, -⟩
+  wp_apply (hProto d m.data DfracDiscarded raftReq_ptr _) $$ [raftReq] as %err ⟨-, Hproto⟩
   · iframe raftReq Hds
-    ipureintro; exact Hdec
+  wp_join (Q := fun v => iprop(⌜v = executeVal⌝ ∗ e_ptr ↦ e ∗ lg_ptr ↦ lg ∗
+      apply.internalRaftRequestIs raftReq_ptr rq))
+    at (if: _ then _ else _) with [Hproto e lg]
+  · unfold apply.entryDecode at Hdec
+    cases hIrr : apply.irrDecode m.data with
+    | some rq' =>
+      rw [hIrr] at Hdec
+      injection Hdec with hRq
+      subst hRq
+      icases Hproto with ⟨%Herr, #Hirr⟩
+      subst Herr
+      wp_auto
+      iframe e lg Hirr
+      ipureintro; rfl
+    | none =>
+      rw [hIrr] at Hdec
+      cases hV2 : apply.v2Decode m.data with
+      | none => simp [hV2] at Hdec
+      | some r =>
+        rw [hV2] at Hdec
+        simp only [Option.bind_some] at Hdec
+        icases Hproto with ⟨%Herr, %v', raftReq⟩
+        cases err with
+        | nil => exact absurd rfl Herr
+        | ok i1 =>
+          wp_auto
+          wp_apply (hMU (go.GoType.PointerType requestV2.ty) legacyReq_ptr d
+            iprop(legacyReq_ptr ↦ (zeroValDef : requestV2)) iprop(legacyReq_ptr ↦ r)) $$ [legacyReq]
+          · iframe # legacyReq
+            iintro Hlr
+            wp_apply (hV2U legacyReq_ptr _ d m.data DfracDiscarded) $$ [Hlr] as %err' ⟨-, Hlr⟩
+            · iframe # Hlr
+            rw [hV2]
+            icases Hlr with ⟨%Herr', Hlr⟩
+            subst Herr'
+            iframe Hlr
+            ipureintro; rfl
+          iintro Hlr
+          wp_auto
+          iapply wp_fupd
+          wp_apply (hV2To legacyReq_ptr r (DFrac.own 1) lg rq) $$ [Hlr] as %v ⟨Hlr, #Hval⟩
+          · iframe Hlr
+            ipureintro; exact ⟨Hlg, Hdec⟩
+          imod (apply.internalRaftRequestIs_of_val raftReq_ptr v rq) $$ [raftReq Hval] with #Hirr
+          · iframe # raftReq
+          imodintro
+          iframe e lg Hirr
+          ipureintro; rfl
+  rename_i v_if
+  iintro ⟨%Hv_if, e, lg, #Hirr⟩
+  subst Hv_if
+  wp_auto
   wp_apply hZS as %f -
   wp_apply wp_slice_literal (l := [f])
   isplitr
@@ -114,7 +173,7 @@ theorem apply.Apply.wp_proof
     cases hhd : rq.header with
     | none => exact absurd (Hlh.2 hhd) Hif
     | some hm =>
-      simp only [hhd, apply.optReqIs]
+      simp only [apply.optReqIs]
       iunfold apply.headerIs at Hh
       icases Hh with ⟨-, #HhID, -, -⟩
       wp_auto

@@ -2,9 +2,9 @@
 # backend.go, auth.go, quota.go, capped.go, corrupt.go and interface.go (the promoted methods of
 # the wrappers' embedded applierV3 interface are goose's MethodUnfold wrappers). metrics.go (the
 # prometheus gauge `alarms` and its `init.0`, which registers it) is names only.
-translate = ["*", "!alarms", "!init.*"]
-imports = ["!*", "context", "errors", "sync", "time",
-  "go.uber.org/zap", "google.golang.org/protobuf/proto",
+translate = ["*", "!alarms", "!memberAttributePathRegexp", "!init.*"]
+imports = ["!*", "context", "encoding/json", "errors", "fmt", "net/http", "path", "regexp", "sync", "time",
+  "go.uber.org/zap", "google.golang.org/protobuf/encoding/protowire", "google.golang.org/protobuf/proto",
   "github.com/prometheus/client_golang/prometheus",
   "github.com/Masterminds/semver/v3",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/membershippb",

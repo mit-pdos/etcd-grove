@@ -43,6 +43,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
 public import Perennial.Proof.time
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
+public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.log
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 
@@ -448,6 +449,56 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.storage
 
+namespace encoding.json
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.encoding.json :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
+  build_get_is_pkg_init_wf
+
+end encoding.json
+
+namespace net.http
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.http :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
+  build_get_is_pkg_init_wf
+
+end net.http
+
+namespace path
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path :=
+  build_get_is_pkg_init_wf
+
+end path
+
+namespace regexp
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.regexp :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.regexp :=
+  build_get_is_pkg_init_wf
+
+end regexp
+
+namespace google_golang_org.protobuf.encoding.protowire
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.encoding.protowire :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.encoding.protowire :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.protobuf.encoding.protowire
+
+/-- **`re` is a compiled `*regexp.Regexp` for pattern `pat`** (`regexp.MustCompile(pat)` at package
+init). -/
+opaque EtcdGrove.regexp.isRegex [FfiSyntax] : Loc → GoString → Prop :=
+  fun _ _ => True
+
 namespace go_etcd_io.etcd.server.v3.etcdserver.apply
 
 /-- **The error variables the applier returns, or compares its result's error with, hold
@@ -479,13 +530,16 @@ abbrev applyErrVars : IProp GF :=
 
 /-- The apply package's facts: its gauge `alarms` holds a fixed `*prometheus.GaugeVec` (whose
 `WithLabelValues` is the trust boundary, `Spec/github_com/prometheus/client_golang/prometheus/
-GaugeVec__WithLabelValues.lean`) with its label names (D19l (iii)), `etcdserver/errors.ErrCorrupt` a fixed non-nil error, and the
+GaugeVec__WithLabelValues.lean`) with its label names (D19l (iii)), `etcdserver/errors.ErrCorrupt` a fixed non-nil error,
+`memberAttributePathRegexp` a compiled `*regexp.Regexp` for the member attribute path pattern, and the
 error variables it returns `errors.New` errors (`applyErrVars`). -/
 abbrev applyInit : IProp GF :=
   iprop((∃ gv : Loc, globalAddr alarms ↦□ gv ∗
       ⌜EtcdGrove.prometheus.vecLabels gv [go!"server_id", go!"alarm_type"]⌝) ∗
-    (∃ e : GoInterfaceOk,
+    ((∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt ↦□ GoInterface.ok e) ∗
+     (∃ re : Loc, globalAddr memberAttributePathRegexp ↦□ re ∗
+      ⌜re ≠ null ∧ EtcdGrove.regexp.isRegex re go!"/0/members/[[:xdigit:]]{1,16}/attributes"⌝)) ∗
     applyErrVars)
 
 instance isPkgInit_inst :

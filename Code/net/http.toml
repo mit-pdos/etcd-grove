@@ -1,5 +1,5 @@
 # Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
+translate = ["!*", "MethodPut"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
