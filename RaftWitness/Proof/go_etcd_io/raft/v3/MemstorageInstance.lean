@@ -466,17 +466,6 @@ theorem memAppendRight_at (ms : Loc) (γs : MemStorNames) (p : List EntryM) :
   iexists σ
   iapply memStorAppendTok_at ms γs σ p $$ Hreg Ht
 
-theorem memAppendRight_intro (ms : Loc) (γs : MemStorNames) (p : List EntryM) :
-    ⊢ memStorReg (GF := GF) ms γs -∗ (⌜p = []⌝ ∨ ∃ σ, memAppendTok ms γs σ p) -∗
-      appendRight (memStorIface ms) p := by
-  iintro #Hreg Hr
-  unfold appendRight
-  icases Hr with (%Hp | ⟨%σ, Ht⟩)
-  · ileft; ipureintro; exact Hp
-  iright
-  iexists σ
-  iapply memStorAppendTok_intro ms γs σ p $$ Hreg Ht
-
 /-- ... and the receipt the application gives back (`appendReceipt`). -/
 theorem memAppendReceipt_intro (ms : Loc) (γs : MemStorNames) (p : List EntryM) :
     ⊢ memStorReg (GF := GF) ms γs -∗ (⌜p = []⌝ ∨ ∃ σ, memAppendedTok ms γs σ p) -∗
@@ -488,17 +477,6 @@ theorem memAppendReceipt_intro (ms : Loc) (γs : MemStorNames) (p : List EntryM)
   iright
   iexists σ
   iapply memStorAppendedTok_intro ms γs σ p $$ Hreg Ht
-
-theorem memAppendReceipt_at (ms : Loc) (γs : MemStorNames) (p : List EntryM) :
-    ⊢ memStorReg (GF := GF) ms γs -∗ appendReceipt (memStorIface ms) p -∗
-      ⌜p = []⌝ ∨ ∃ σ, memAppendedTok ms γs σ p := by
-  iintro #Hreg Hr
-  unfold appendReceipt
-  icases Hr with (%Hp | ⟨%σ, Ht⟩)
-  · ileft; ipureintro; exact Hp
-  iright
-  iexists σ
-  iapply memStorAppendedTok_at ms γs σ p $$ Hreg Ht
 
 /-! ### The contract and the application's `Append` -/
 

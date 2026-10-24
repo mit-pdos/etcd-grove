@@ -43,21 +43,6 @@ which `Step.commit` has, inside the invariant, and which is what lets the global
 committed log be extended there. -/
 
 omit [FfiSyntax] in
-theorem quorums_intersect_cfg (cfg q1 q2 : GSet w64) :
-    IsQuorum cfg q1 → IsQuorum cfg q2 → ∃ x, x ∈ q1 ∧ x ∈ q2 ∧ x ∈ cfg := by
-  intro Hq1 Hq2
-  have E1 : q1 ∩ cfg ∩ cfg = q1 ∩ cfg := by set_solver
-  have E2 : q2 ∩ cfg ∩ cfg = q2 ∩ cfg := by set_solver
-  obtain ⟨x, Hx1, Hx2⟩ := quorums_intersect cfg (q1 ∩ cfg) (q2 ∩ cfg)
-    (by unfold IsQuorum at *; rw [E1]; exact Hq1) (by unfold IsQuorum at *; rw [E2]; exact Hq2)
-  exact ⟨x, by set_solver, by set_solver, by set_solver⟩
-
-/-- Without a witness, a voter in both quorums is not the witness. -/
-theorem meet_nowit {γ : RaftNames} {q V : GSet w64} (h : γ.reWit = W64 0) :
-    (∃ v, v ∈ q ∧ v ∈ V) → ∃ v, v ∈ q ∧ v ∈ V ∧ ¬ (v = γ.reWit ∧ γ.reWit ≠ W64 0) :=
-  fun ⟨v, h1, h2⟩ => ⟨v, h1, h2, fun hw => hw.2 h⟩
-
-omit [FfiSyntax] in
 /-- Two subsets of `S` with more members than `S` meet. -/
 theorem gset_meet (S A B : GSet w64) (hA : A ⊆ S) (hB : B ⊆ S)
     (h : size S < size A + size B) : ∃ x, x ∈ A ∧ x ∈ B := by

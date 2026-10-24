@@ -528,15 +528,6 @@ theorem isMessage_propose_from (γ : RaftNames) (m : MessageM) (ents : List Entr
   unfold isMessage absMsg absMsgFrom at *
   iexact H
 
-/-- (2026-10-19, D21 M2r) A proposal's protocol fact ignores the message's context: a received
-copy's (`isRaftMsg`, at its context) is `fwdP`'s (at none). -/
-theorem isMessage_propose_ctx (γ : RaftNames) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
-    ⊢ isMessage (GF := GF) γ (absMsg .propose m ents ctx) -∗
-      isMessage γ (absMsg .propose m ents) := by
-  iintro H
-  unfold isMessage absMsg absMsgFrom at *
-  iexact H
-
 theorem isMessage_propose_pure (γ : RaftNames) (m : MessageM) (ents : List EntryM) :
     ⊢ isMessage (GF := GF) γ (absMsg .propose m ents) -∗
       ⌜m.Term' = W64 0 ∧ ents ≠ [] ∧ (ents.length : Int) < 2 ^ 61⌝ := by
@@ -1828,18 +1819,6 @@ theorem runCfg_mode (γ : NodeNames) (rs : RNState) :
   iunfold runCfg
   iframe H
   ipureintro; exact Hp
-
-/-- (D19i part 1) The floor is not raised past `applied` (`RNState.flw`). -/
-theorem runCfg_flw (γ : NodeNames) (rs : RNState) :
-    ⊢ runCfg (GF := GF) γ rs -∗ ⌜rs.flw = false⌝ ∗ runCfg γ rs := by
-  iintro Hcfg
-  iunfold runCfg at Hcfg
-  icases Hcfg with ⟨%Hm0, Hdlm, Hrest⟩
-  isplitr
-  · ipureintro; exact Hm0.2.2
-  iunfold runCfg
-  iframe Hdlm Hrest
-  ipureintro; exact Hm0
 
 /-- The `advancec` arm, before `Advance`: the driver's A1 (no conf entry of the committed log
 handed out past its configuration index, a lower bound of `run`'s) is A1 at the `RawNode`. -/

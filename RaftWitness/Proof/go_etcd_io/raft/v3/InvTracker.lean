@@ -431,18 +431,6 @@ instance ownIdList_persistent (sl : GoSlice) (l : List w64) :
     Persistent (ownIdList (GF := GF) sl DFrac.discard l) := by
   unfold ownIdList; infer_instance
 
-theorem ownIdList_len (sl : GoSlice) (dq : DFrac) (l : List w64) :
-    ownIdList (GF := GF) sl dq l ⊢ ownIdList sl dq l ∗ ⌜l.length = sint.nat sl.len⌝ := by
-  unfold ownIdList
-  iintro (%H | Hs)
-  · isplitl
-    · ileft; ipureintro; exact H
-    · ipureintro; rw [H.1, H.2]; rfl
-  · ihave %Hl := ownSlice_len $$ Hs
-    isplitl
-    · iright; iexact Hs
-    · ipureintro; exact Hl.1
-
 /-- Each tracked peer's `IsLearner` is whether it is outside the voter set `cfg`
 (2026-10-13, reconfiguration stage L): the voters are `cfg`, the learners the other
 tracked ids. -/
@@ -511,12 +499,6 @@ theorem WitP.no0 {w : w64} {peers : GMap w64 Progress} (H : WitP w peers) :
 theorem ne0_of_dom {V : Type} {m : GMap w64 V} {k : w64} {v : V} (H0 : W64 0 ∉ domSet m)
     (h : m !! k = some v) : k ≠ W64 0 := by
   rintro rfl; apply H0; rw [GMap.elem_of_dom', GMap.mem_iff, h]; rfl
-
-/-- No peer is `0`. -/
-theorem NoWitP.no0 {peers : GMap w64 Progress} (H : NoWitP peers) : peers !! W64 0 = none := by
-  cases h : peers !! W64 0 with
-  | none => rfl
-  | some p => exact absurd rfl (H _ p h).2
 
 /-- The tracker's epoch, witness-free (2026-10-19): the bare epoch at subterm 0 (`ownEpoch`,
 `InvEpoch.lean`) -- what `ResetReplicationSet(true)` builds when the configuration has no
@@ -821,14 +803,6 @@ lemmas are the bridge, and they are pure Lean -- no program, no ownership -- so 
 are stated here rather than inside a proof. `IsQuorum`, `granted` and `rejected` are
 from `Protocol/Model.lean` (and `elem_of_granted` from `Protocol/GhostState.lean`). -/
 
-/-- The voters are at most as many as the tracked ids (`ownTracker`'s `Hprs_dom`,
-`Hcfg_size`). -/
-theorem cfg_size_le {V : Type} (prs : GMap w64 V) (H1 : cfg ⊆ domSet prs)
-    (H2 : (GMap.size prs : Int) ≤ 2 ^ 62) : (GMap.size cfg : Int) ≤ 2 ^ 62 := by
-  have h1 := GMap.subseteq_size H1
-  rw [GMap.size_dom] at h1
-  omega
-
 theorem elem_of_rejected (votes : GMap w64 Bool) (k : w64) :
     k ∈ rejected votes ↔ votes !! k = some false := by
   unfold rejected
@@ -1040,41 +1014,6 @@ def visitClosure (trk : Loc) (votes : GMap w64 Bool) (prs : GMap w64 Loc) (f : G
     {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTracker cfg tv' ⟨votes, prs, pvs', EpochM.bare (W64 0)⟩ ∗
                             I ({[i]} ∪ D) pvs' }})
 
-/-- The inflight-window bound, read out without consuming the tracker. `reset`'s
-`Visit` closure calls `tracker.NewInflights(r.trk.MaxInflight, ...)`, whose premise
-this is; the closure cannot reach `ownTracker` itself, so `reset` pulls the fact into
-the Lean context before the `Visit`. -/
-theorem ownTracker_maxinflight (tv : tracker.ProgressTracker) (t : Trk) :
-    ⊢ ownTracker (GF := GF) cfg tv t -∗
-      ⌜0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62⌝ ∗
-      ownTracker cfg tv t := by
-  iintro Hown
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
-  iNamed Hown
-  isplitr
-  · ipureintro; exact HmaxInfl
-  iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters learners learnersNext
-    Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl Hwit
-    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext Hepoch
-
-/-- The configuration has at most `2^62` voters (`Hcfg_size`); the tracker survives. -/
-theorem ownTracker_size (tv : tracker.ProgressTracker) (t : Trk) :
-    ⊢ ownTracker (GF := GF) cfg tv t -∗
-      ⌜(GMap.size cfg : Int) ≤ 2 ^ 62⌝ ∗ ownTracker cfg tv t := by
-  iintro Hown
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
-  iNamed Hown
-  isplitr
-  · ipureintro
-    have h1 := GMap.subseteq_size Hprs_dom
-    rw [GMap.size_dom] at h1
-    omega
-  iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters learners learnersNext
-    Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl Hwit
-    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext Hepoch
-
 /-- The tracker tracks at most `2^62` ids, voters and learners (`Hcfg_size`); the tracker
 survives. -/
 theorem ownTracker_size_prs (tv : tracker.ProgressTracker) (t : Trk) :
@@ -1086,21 +1025,6 @@ theorem ownTracker_size_prs (tv : tracker.ProgressTracker) (t : Trk) :
   iNamed Hown
   isplitr
   · ipureintro; exact Hcfg_size
-  iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters learners learnersNext
-    Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl Hwit
-    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext Hepoch
-
-/-- Each tracked peer's `IsLearner` is whether it is outside `cfg` (`LearnerFlags`); the
-tracker survives. -/
-theorem ownTracker_flags (tv : tracker.ProgressTracker) (t : Trk) :
-    ⊢ ownTracker (GF := GF) cfg tv t -∗
-      ⌜LearnerFlags cfg t.peers⌝ ∗ ownTracker cfg tv t := by
-  iintro Hown
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
-  iNamed Hown
-  isplitr
-  · ipureintro; exact Hno_learners.2.2
   iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters learners learnersNext
     Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl Hwit
     $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext Hepoch
@@ -1138,42 +1062,6 @@ theorem ownTracker_lookup (tv : tracker.ProgressTracker) (t : Trk) (i : w64) (pr
     Hprs_dom Hvoters_arr Hautoleave Hvoters_dom
     ⟨Hno_learners.1, Hno_learners.2.1, Hno_learners.2.2.insert Hv Hl.1⟩ Hcfg_size HmaxInfl
     ⟨Hwit.1, NoWitP.insert Hwit.2 (Hl.2.trans (Hwit.2 i p Hv).1) (Hwit.2 i p Hv).2⟩
-    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext Hepoch
-
-/-- The same, given back at the record it was borrowed at. -/
-theorem ownTracker_lookup_same (tv : tracker.ProgressTracker) (t : Trk) (i : w64) (pr : Loc)
-    (Hpr : t.prs !! i = some pr) :
-    ⊢ ownTracker (GF := GF) cfg tv t -∗
-      ∃ p, ⌜t.peers !! i = some p⌝ ∗ ownProgress pr p ∗
-        (ownProgress pr p -∗ ownTracker cfg tv t) := by
-  iintro Hown
-  icases ownTracker_lookup cfg tv t i pr Hpr $$ Hown with ⟨%p, %Hv, Hp, Hback⟩
-  iexists p
-  isplitr
-  · ipureintro; exact Hv
-  iframe Hp
-  iintro Hp
-  ihave Hown := Hback $$ %p Hp %(And.intro rfl rfl)
-  rw [GMap.insert_id t.peers i p Hv]
-  iexact Hown
-
-/-- The `Progress` records are indexed by the same peers as the map. -/
-theorem ownTracker_prvals_dom (tv : tracker.ProgressTracker) (t : Trk) :
-    ⊢ ownTracker (GF := GF) cfg tv t -∗
-      ⌜domSet t.peers = domSet t.prs⌝ ∗ ownTracker cfg tv t := by
-  iintro Hown
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
-  iNamed Hown
-  ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
-  isplitr
-  · ipureintro
-    apply GMap.set_eq; intro k
-    rw [GMap.elem_of_dom, GMap.elem_of_dom, ← Option.isSome_iff_exists,
-      ← Option.isSome_iff_exists]
-    exact (Hiff k).symm
-  iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters learners learnersNext
-    Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl Hwit
     $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext Hepoch
 
 /-- Read the progress map's points-to and domain out of the tracker without consuming
@@ -1277,48 +1165,6 @@ def ownConfig (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap 
     IProp GF :=
   iprop(∃ pvs, ownConfigV cfg cfgv prsm prs pvs)
 
-/-- A voters-only configuration (no learners): every `Progress` a non-learner. -/
-theorem ownConfigV_voters (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
-    (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (vref : Loc) (vm : GMap w64 Unit)
-    (Hcfgarr : cfgv.Voters'.arr = [vref, map.nil])
-    (Hcfgl : cfgv.Learners' = map.nil)
-    (Hcfgln : cfgv.LearnersNext' = map.nil)
-    (Hcfgal : cfgv.AutoLeave' = false)
-    (Hcfgwit : cfgv.Witnesses'.arr = [W64 0, W64 0])
-    (Hvm : domSet vm = cfg)
-    (Hprs : domSet prs = cfg)
-    (Hfl : ∀ k p, pvs !! k = some p → p.learner = false)
-    (Hfw : NoWitP pvs)
-    (Hcsz : (GMap.size cfg : Int) ≤ 2 ^ 62) :
-    ⊢ (vref ↦$ vm : IProp GF) -∗ prsm ↦$□ prs -∗
-      ([∗map] _k ↦ pr;p ∈ prs;pvs, ownProgress pr p) -∗
-      ownConfigV cfg cfgv prsm prs pvs := by
-  iintro Hvref #Hprsm Hprogs
-  ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
-  ihave Hl0 : ownIdsetC (GF := GF) cfgv.Learners' (DFrac.own 1) (∅ : GMap w64 Unit) $$ []
-  · unfold ownIdsetC; ileft; ipureintro; exact ⟨Hcfgl, rfl⟩
-  unfold ownConfigV
-  iexists vref, vm, ∅
-  simp only [named]
-  iframe Hvref Hprsm Hprogs Hl0
-  ipureintro
-  refine ⟨Hcfgarr, Hcfgln, Hcfgal, ⟨Hcfgwit, Hfw⟩, Hvm, by rw [Hprs]; exact GMap.subseteq_refl _, ⟨?_, rfl, ?_⟩, ?_⟩
-  · apply GMap.set_eq; intro k
-    rw [Hprs]
-    constructor
-    · intro h; exact absurd h (GMap.not_elem_of_empty _)
-    · intro h
-      rw [GMap.elem_of_difference] at h
-      exact absurd h.1 h.2
-  · intro k p Hp
-    rw [Hfl k p Hp]
-    have hk : k ∈ cfg := by
-      rw [← Hprs, GMap.elem_of_dom]
-      have := (Hiff k).2 (by show (pvs !! k).isSome = true; rw [Hp]; rfl)
-      exact Option.isSome_iff_exists.1 this
-    simp [hk]
-  · rw [← GMap.size_dom, Hprs]; exact Hcsz
-
 /-- Name the values of a map's worth of objects: a `[∗map]` of existentials is a
 `[∗map]` over two maps against some map of witnesses. -/
 theorem bigSepM_exist_sepM2 {A B : Type} (m : GMap w64 A) (Φ : w64 → A → B → IProp GF) :
@@ -1379,41 +1225,6 @@ theorem ownTracker_empty (tv : tracker.ProgressTracker) (v0 : Loc)
       rfl, fun k p h => by simp at h⟩
     (by rw [GMap.map_size_empty]; decide) Hmi ⟨Hwit, NoWitP.empty⟩
     $$ Hvotes Hprs Hprogs Hv0 Hl0 Hln0 Hepoch
-
-/-- What `confchange.Restore` builds for a voters-only `ConfState`, as an `ownConfig`. -/
-theorem ownConfig_voters (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
-    (prs : GMap w64 Loc) (vref : Loc) (vm : GMap w64 Unit)
-    (Hcfgarr : cfgv.Voters'.arr = [vref, map.nil])
-    (Hcfgl : cfgv.Learners' = map.nil)
-    (Hcfgln : cfgv.LearnersNext' = map.nil)
-    (Hcfgal : cfgv.AutoLeave' = false)
-    (Hcfgwit : cfgv.Witnesses'.arr = [W64 0, W64 0])
-    (Hvm : domSet vm = cfg)
-    (Hprs : domSet prs = cfg)
-    (Hcsz : (GMap.size cfg : Int) ≤ 2 ^ 62)
-    (H0 : W64 0 ∉ domSet prs) :
-    ⊢ (vref ↦$ vm : IProp GF) -∗ prsm ↦$□ prs -∗
-      ([∗map] _k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜p.learner = false ∧ p.witness = false⌝) -∗
-      ownConfig cfg cfgv prsm prs := by
-  iintro Hvref #Hprsm Hprogs
-  icases bigSepM_exist_sepM2 prs
-    (fun _ pr (p : Progress) => iprop(ownProgress (GF := GF) pr p ∗ ⌜p.learner = false ∧ p.witness = false⌝))
-    $$ Hprogs with ⟨%pvs, Hprogs⟩
-  ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
-  icases BigSepM2.bigSepM2_sep_eqv.1 $$ Hprogs with ⟨Hprogs, Hfl⟩
-  ihave %Hfl := BigSepM2.bigSepM2_pure_intro $$ Hfl
-  unfold ownConfig
-  iexists pvs
-  iapply ownConfigV_voters cfg cfgv prsm prs pvs vref vm Hcfgarr Hcfgl Hcfgln Hcfgal Hcfgwit Hvm Hprs
-    ?_ ?_ Hcsz $$ Hvref Hprsm Hprogs
-  · intro k p Hp
-    obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
-      ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [Hp]; rfl))
-    exact (Hfl k pr p hpr Hp).1
-  · intro k p Hp
-    obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
-      ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [Hp]; rfl))
-    exact ⟨(Hfl k pr p hpr Hp).2, ne0_of_dom H0 hpr⟩
 
 /-- What `confchange.Restore` builds for a non-joint `ConfState` with learners `lrn`
 (2026-10-13), as an `ownConfig`. -/
@@ -1580,29 +1391,6 @@ theorem wp_min2_uint64 (x y : w64) :
   · rw [show w64Min x y = y by unfold w64Min; rw [ite_eq_right (by omega)]]
     iapply HΦ; itrivial
 
-
-/-- The fields of a witness-free epoch the tracker's functions read, each persistent: the
-subterm, and in both halves the witness and the excluded voter, all `0`. -/
-theorem ownEpochNW_fields (e : Loc) :
-    ownEpochNW (GF := GF) e ⊢
-      e.[tracker.Epoch, go!"Subterm"] ↦□ W64 0 ∗
-      (arrayIndexRef tracker.ReplicationSet (sint.Z (W64 0))
-        e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Witness"] ↦□ W64 0 ∗
-      (arrayIndexRef tracker.ReplicationSet (sint.Z (W64 0))
-        e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Excluded"] ↦□ W64 0 ∗
-      (arrayIndexRef tracker.ReplicationSet (sint.Z (W64 1))
-        e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Witness"] ↦□ W64 0 ∗
-      (arrayIndexRef tracker.ReplicationSet (sint.Z (W64 1))
-        e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Excluded"] ↦□ W64 0 := by
-  have Hf := ownEpoch_fields (GF := GF) e (EpochM.bare (W64 0))
-  have Hw := ownEpoch_we (GF := GF) e (EpochM.bare (W64 0))
-  simp only [EpochM.bare, RSM.bare] at Hf Hw
-  unfold ownEpochNW
-  simp only [EpochM.bare, RSM.bare]
-  iintro #He
-  icases Hf $$ He with ⟨#Hs, -⟩
-  icases Hw $$ He with ⟨#Hw0, #He0, #Hw1, #He1⟩
-  iframe Hs Hw0 He0 Hw1 He1
 
 /-- `max` on `uint64` (Rocq: the framework's `wp_max2_uint64`, which the Lean port lacks). -/
 theorem wp_max2_uint64 (x y : w64) :
