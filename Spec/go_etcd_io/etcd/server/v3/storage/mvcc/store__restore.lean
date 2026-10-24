@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 
 @[expose] public section
 
@@ -24,52 +25,61 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `s.restore()` over an empty `Key` bucket (`bucketView γ q ∅`, read-only): what `NewStore`
-restores, with `s.mu` held, after creating the buckets (the restore plan's R4, option 1: a bucket
-with data, as `store.Restore` restores, waits on two extensions of the backend's contract,
-`notes/restore-plan.md`, R4b and R4d), returning `nil`. It reads with a `ReadTx` (a reader's
-token `RT`, given back).
+/-- `s.restore()` over a backend whose `Key` bucket holds the restored log `L' = [[], []] ++ R`
+(`restoreLogOk R`: every revision of `R` with changes, the log well formed, no lease), read-only:
+`NewStore` restores the empty bucket (`R = []`), `store.Restore` a snapshot's (the restore plan's
+R4, R5c), returning `nil`. It reads with a `ReadTx` (a reader's token `RT`, given back): for a
+bucket with data, over a clean read buffer (`restoreView`: the store's clean view and the
+backend's clean-view `ReadTx`, `keyCleanRead`), where a limited range returns the range's first
+entries (`issues/etcd-unsafe-range-limit-buffer.md`: with entries in the read buffer it may skip
+some).
 
-* **The index** is rebuilt (nothing to put) while private (`ownIdxPriv`, as `newTreeIndex` returns
-  it: `restoreIntoIndex`'s goroutine updates key indexes outside the tree's lock, the restore
-  plan's R3 design point), then made a lock-protected index (`isTreeIndex`, with every reader's
-  token: `idx_publish`) at the log `[[], []]`, from the lock's ghost part (`idxLockG`) and the
-  writer's handle there (given back).
-* **`currentRev`** is stored the last revision seen, `1` (`restoreIntoIndex` sends it through its
-  channel), under `s.revMu`, locked and unlocked while it is private memory (back at its zero
-  value, `PlainRWMutex.lean`); the whole of `currentRev` is taken.
+* **The index** is rebuilt while private (`ownIdxPriv`, as `newTreeIndex` returns it:
+  `restoreIntoIndex`'s goroutine updates key indexes outside the tree's lock, the restore plan's
+  R3 design point), the bucket read in chunks of `restoreChunkKeys` entries and sent to the
+  goroutine, which reads their keys (a share of the read transaction, `rdSplit`) and answers the
+  last revision, then made a lock-protected index (`isTreeIndex`, with every reader's token:
+  `idx_publish`) at `L'`, from the lock's ghost part (`idxLockG`) and the writer's handle there
+  (given back), with a time receipt per entry (the goroutine's steps).
+* **`currentRev`** is stored the last revision, `|L'| - 1` (what the goroutine answers: every
+  revision of `R` has an entry), under `s.revMu`, locked and unlocked while it is private memory
+  (back at its zero value, `PlainRWMutex.lean`); the whole of `currentRev` is taken.
 * **No compaction** is found (`kbNoCmp`, the backend records none, consumed: its reads of the
   compaction keys find nothing, `kbNoCmp_metaNone`, the trust boundary): `compactMainRev` stays
   `-1` and no compaction is resumed.
-* **No lease** is attached (`keyToLease` stays empty: no entry is read). -/
+* **No lease** is attached (`keyToLease` stays empty: no entry has a lease). -/
 abbrev mvcc.store.restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
     (HF : val → IProp GF) (RT WT W Wi Dep : IProp GF) (Cmp : Prop)
-    (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (dqb dqi : DFrac),
+    (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (dqb dqi : DFrac)
+    (R : mvcc.Log),
+  mvcc.restoreLogOk R →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
       mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF ∗
-      RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗ mvcc.bucketView γ q (∅ : mvcc.Bucket) ∗
+      RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗ mvcc.restoreView b γ RT q R ∗
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
-      mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx 0 ∗ mvcc.idxWriter γ.idx [[], []] [] ∗
+      mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length ∗
+      mvcc.idxWriter γ.idx ([[], []] ++ R) [] ∗
       s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
       ⌜lg ≠ null⌝ ∗
       s.[store, go!"currentRev"] ↦ (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦ (W64 (-1) : w64) ∗
       s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; mvcc.bucketView γ q (∅ : mvcc.Bucket) ∗ RT ∗
+  {{ RET #GoInterface.nil; mvcc.restoreViewOut γ q R ∗ RT ∗
       mvcc.isTreeIndex ti γ.idx ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.idxReader ti γ.idx) ∗
-      mvcc.idxWriter γ.idx [[], []] [] ∗
-      s.[store, go!"currentRev"] ↦ (W64 1 : w64) ∗
+      mvcc.idxWriter γ.idx ([[], []] ++ R) [] ∗
+      s.[store, go!"currentRev"] ↦ (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
       s.[store, go!"compactMainRev"] ↦ (W64 (-1) : w64) ∗
       s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
       s.[store, go!"b"] ↦{dqb} b ∗
       s.[store, go!"kvindex"] ↦{dqi}
-        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) }}
+        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      ⧗ (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length).length }}
 
 end spec
 

@@ -52,11 +52,12 @@ instance hooksOk_persistent (P : BParams) (W Pk : BNames → IProp GF) (h : GoIn
   unfold hooksOk; infer_instance
 
 /-- **What the constructor gives** for the backend `b` over bbolt's data `D`, its ghost names
-`γ`. -/
+`γ` (the clients' whole view with the read buffer known clean, `bViewC … true`: the restore
+plan's R5a). -/
 def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (D : Data) :
     IProp GF :=
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ bOpen γ 1 ∗
-    bView γ 1 (vData P (D, ⟨∅, W64 0⟩)) ∗ plHook γ func.nil ∗ ownToks γ.wb wbInit ∗
+    bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗ ownToks γ.wb wbInit ∗
     rbOwn γ (rbData P D) ∗ [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b)
 
 end preds

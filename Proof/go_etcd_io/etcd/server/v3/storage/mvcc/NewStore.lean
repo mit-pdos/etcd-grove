@@ -385,12 +385,22 @@ theorem mvcc.NewStore.wp_proof
   icases mvcc.slot_take _ $$ Hrts with ⟨Hrt1, Hrts⟩
   ihave Hrt1 : mvcc.storeRT (GF := GF) γ $$ [Hrt1]
   · first | iexact Hrt1 | (rw [hγk]; iexact Hrt1)
-  wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
-      %(1 : Qp).half %P %(mvcc.hookFn γ) %(mvcc.storeRT γ) %_ %_ %_ %_ %_ %_
-      %(DFrac.own 1) %(DFrac.own 1)
-      [$Hbv2 $Hrt1 $currentRev $compactMainRev $revMu $Hncmp $b $kvindex $Hix $Hig $Hiw]
-      as ⟨Hbv2, Hrt1, #Hti, Hird, Hiw, currentRev, compactMainRev, revMu, b, kvindex⟩
+  ihave Hbv2 : mvcc.restoreView (GF := GF) (GoInterface.ok bi) γ (mvcc.storeRT γ) (1 : Qp).half []
+      $$ [Hbv2]
+  · unfold mvcc.restoreView mvcc.restoreViewOut; simp only [↓reduceIte]; iframe
+  have hR := hRestore «$r0_ptr» γ (GoInterface.ok bi) (lease.lessorIface lp) ti lg'
+      (1 : Qp).half P (mvcc.hookFn γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storeW «$r0_ptr» γ)
+      (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) (mvcc.storePutOk γ)
+      (DFrac.own 1) (DFrac.own 1) [] mvcc.restoreLogOk_nil
+  simp only [List.append_nil] at hR
+  rw [show (mvcc.evsOf ([[], []] ++ [[]])).length = 0 from rfl,
+    show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl] at hR
+  wp_apply hR
+      $$ [$Hbv2 $Hrt1 $currentRev $compactMainRev $revMu $Hncmp $b $kvindex $Hix $Hig $Hiw]
+      as ⟨Hbv2, Hrt1, #Hti, Hird, Hiw, currentRev, compactMainRev, revMu, b, kvindex, -⟩
   · iframe #; ipureintro; exact Hlgnn
+  ihave Hbv2 : mvcc.bucketView (GF := GF) γ (1 : Qp).half ∅ $$ [Hbv2]
+  · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv2
   ihave Hrt1 : mvcc.kbRT (GF := GF) γ.kb $$ [Hrt1]
   · iexact Hrt1
   ispecialize Hrts $$ Hrt1
