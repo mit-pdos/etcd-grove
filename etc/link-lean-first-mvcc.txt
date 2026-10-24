@@ -203,7 +203,7 @@ rangeEvents: NewRevBytes RevToBytes kvsToEvents
 watchableStore__syncWatchers: watcherGroup__size watcherGroup__choose rangeEvents newWatcherBatch watcher__send watcherGroup__add watcherGroup__delete watchableStore__addVictim
 watchableStore__moveVictims: watcher__send watcherGroup__add
 resyncDelay:
-watchableStore__syncWatchersLoop: time_NewTicker time_Ticker__Stop watcherGroup__size watchableStore__syncWatchers resyncDelay time_Ticker__Reset
+watchableStore__syncWatchersLoop: time_NewTicker time_Ticker__Stop watcherGroup__size watchableStore__syncWatchers time_Ticker__Reset
 watchableStore__syncVictimsLoop: watchableStore__moveVictims
 ChanBufLen:
 # The trust boundary (D19j, 2026-10-18): `ReportEventReceived` (`metrics.go`, names-only: a gauge's

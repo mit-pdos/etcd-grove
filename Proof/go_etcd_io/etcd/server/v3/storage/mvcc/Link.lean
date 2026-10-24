@@ -759,7 +759,7 @@ theorem time.Ticker.wp_Reset :
 
 theorem mvcc.watchableStore.wp_syncWatchersLoop :
     mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.syncWatchersLoop.wp_proof time.wp_NewTicker time.Ticker.wp_Stop mvcc.watcherGroup.wp_size mvcc.watchableStore.wp_syncWatchers mvcc.wp_resyncDelay time.Ticker.wp_Reset
+  mvcc.watchableStore.syncWatchersLoop.wp_proof time.wp_NewTicker time.Ticker.wp_Stop mvcc.watcherGroup.wp_size mvcc.watchableStore.wp_syncWatchers time.Ticker.wp_Reset
 
 theorem mvcc.watchableStore.wp_moveVictims :
     mvcc.watchableStore.moveVictims.spec (GF := GF) (hG := hG) :=

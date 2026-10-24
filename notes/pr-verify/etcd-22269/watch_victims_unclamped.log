@@ -1,0 +1,29 @@
+=== RUN   TestWatchVictims
+    logger.go:146: 1999-12-31T19:00:00.000-0500	INFO	bbolt	Opening db file (/tmp/TestWatchVictims1395347384/001/etcd_backend_test723177378/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x3a4aab8840a0, NoStatistics: false}
+    logger.go:146: 1999-12-31T19:00:00.000-0500	INFO	bbolt	Opening bbolt db (/tmp/TestWatchVictims1395347384/001/etcd_backend_test723177378/database) successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	INFO	kvstore restored	{"current-rev": 1}
+panic: non-positive interval for Ticker.Reset
+
+goroutine 114 [running, synctest bubble 1]:
+time.(*Ticker).Reset(0x3a4aabca1d50?, 0x5f5e100?)
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/time/tick.go:68 +0x69
+go.etcd.io/etcd/server/v3/storage/mvcc.(*watchableStore).syncWatchersLoop(0x3a4aabc9c000)
+	/root/etcd-pr/etcd-22269/server/storage/mvcc/watchable_store.go:248 +0x19f
+created by go.etcd.io/etcd/server/v3/storage/mvcc.New in goroutine 75
+	/root/etcd-pr/etcd-22269/server/storage/mvcc/watchable_store.go:87 +0x8b
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.015s
+FAIL

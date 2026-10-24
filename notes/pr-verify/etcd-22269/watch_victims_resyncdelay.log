@@ -1,0 +1,157 @@
+=== RUN   TestWatchVictims
+    logger.go:146: 1999-12-31T19:00:00.000-0500	INFO	bbolt	Opening db file (/tmp/TestWatchVictims2945012134/001/etcd_backend_test3824297068/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x1885d8a84938, NoStatistics: false}
+    logger.go:146: 1999-12-31T19:00:00.000-0500	INFO	bbolt	Opening bbolt db (/tmp/TestWatchVictims2945012134/001/etcd_backend_test3824297068/database) successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x03_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x03_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x04_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x04_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x05_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x05_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x06_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x06_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\a_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\a_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\b_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\b_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\t_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\t_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\n_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\n_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\v_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\v_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\f_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\f_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\r_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\r_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x0e_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x0e_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x0f_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x0f_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x10_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x10_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x11_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x11_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x12_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x12_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x13_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x13_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x14_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x14_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x15_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x15_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x16_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x16_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x17_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x17_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x18_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x18_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x19_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x19_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1a_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1a_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1b_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1b_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1c_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1c_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1d_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1d_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1e_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1e_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1f_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x1f_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00 _\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00 _\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00!_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00!_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\"_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\"_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00#_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00#_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00$_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00$_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00%_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00%_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00&_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00&_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00'_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00'_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00(_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00(_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00)_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00)_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00*_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00*_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00+_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00+_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00,_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00,_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00-_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00-_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00._\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00._\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00/_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00/_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x000_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x000_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x001_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x001_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x002_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x002_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x003_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x003_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x004_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x004_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x005_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x005_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x006_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x006_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x007_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x007_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x008_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x008_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x009_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x009_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00:_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00:_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00;_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00;_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00<_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00<_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00=_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00=_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00>_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00>_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00?_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00?_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00@_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00@_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00A_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 1999-12-31T19:00:00.000-0500	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00A_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 1999-12-31T19:00:00.100-0500	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 1999-12-31T19:00:00.100-0500	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 1999-12-31T19:00:00.100-0500	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 1999-12-31T19:00:00.100-0500	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 1999-12-31T19:00:00.100-0500	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 1999-12-31T19:00:00.100-0500	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 1999-12-31T19:00:12.800-0500	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 1999-12-31T19:00:12.800-0500	DEBUG	bbolt	Committing transaction 4 successfully
+--- PASS: TestWatchVictims (0.05s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	(cached)
