@@ -148,8 +148,9 @@ theorem mvcc.NewStore.wp_proof
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
   -- the store's struct
-  wp_apply (hNewIdx γi) $$ [Hifresh] as %ti ⟨Hix, Hig, Hiw, Hil, Hcu, Hcmp0⟩
-  · iframe Hifresh; ipureintro; exact Hlgnn
+  imod mvcc.idxFresh_split γi $$ Hifresh with ⟨Hnauth0, Hcmpf, #Hclb0, #Hllb0, Hiw, Hil, Hcu⟩
+  wp_apply (hNewIdx γi lg' 0 []) $$ [Hnauth0 Hcmpf] as %ti ⟨Hix, Hig, Hcmp0⟩
+  · iframe Hnauth0 Hcmpf; iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
   wp_apply hFifo $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, HsStop, Hq0, #Hp0⟩
   · ipureintro; exact Hlgnn
