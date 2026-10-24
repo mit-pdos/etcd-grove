@@ -447,11 +447,24 @@ protocol does not stream; a streamed body for one it does, with the protocol's c
   | .stream Pre Φ => iprop(⌜(H.proto R.host).streamed R ∧ R.body = []⌝ ∗
       □ (H.proto R.host).sreq R γk Pre Φ)
 
+/-- `netErr`'s fact, raw (opaque). -/
+opaque netErrRaw (e : GoInterface) : IProp GF
+
+/-- **An error net/http made** (persistent; 2026-10-24, rafthttp stage 7d): `RoundTrip`'s, a
+response body read's (`ReadAll_any_spec`). Such an error wraps nothing of the program's but its
+request body's reader's errors; what rafthttp concludes of it is `rafthttp.netErrNotRemoved_spec`
+(it is not rafthttp's `errMemberRemoved`). -/
+def netErr (e : GoInterface) : IProp GF := iprop(□ netErrRaw e)
+
+instance netErr_persistent (e : GoInterface) : Persistent (netErr (GF := GF) e) := by
+  unfold netErr; infer_instance
+
 /-- **A round tripper of the network `H`** (persistent; what rafthttp's names-only
 `NewRoundTripper`/`newStreamRoundTripper` return): `RoundTrip` of a request built for `R`, with
 its ticket `γk`, the protocol registered for its host (`httpProtoAt`) and
 `□ (H.proto R.host).req R γk`, (D42) its body of a kind the protocol allows (`reqSendOk`, with a
-streamed body's stream, `reqStream`, which `RoundTrip` consumes), either fails or returns a response whose status
+streamed body's stream, `reqStream`, which `RoundTrip` consumes), either fails (with an error of
+net/http's, `netErr`: stage 7d) or returns a response whose status
 `st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`, with
 the right to close the body (`respCloser`, 2026-10-23, stage 5e-3); the request is the caller's
 again (`RoundTrip` must not modify it). -/
@@ -462,7 +475,7 @@ def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
           httpProtoAt R.host (H.proto R.host) ∗ □ (H.proto R.host).req R γk }}
         (App (Val #(methods ti.ty go!"RoundTrip" ti.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); reqOwn r R ∗
-          (⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∗ netErr err ∨
            ⌜err = GoInterface.nil⌝ ∗ ∃ (st : w64) (rd : GoInterface),
             respAt resp st rd (fun hc => ∃ hs, (H.proto R.host).rhdr R hs ∧ srvView hs hc) ∗
             (□ ∃ w, (H.proto R.host).resp R γk st w) ∗
@@ -818,7 +831,7 @@ def ReadAll_any_spec : Prop :=
     ⊢ {{ respReadAny (GF := GF) rd }}
         (App (Val (@! _root_.Perennial.io.ReadAll)) (Val #rd))
       {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
-          ∃ bs : List w8, sl ↦* bs ∗ errStrOk err }}
+          ∃ bs : List w8, sl ↦* bs ∗ errStrOk err ∗ netErr err }}
 
 /-- A response body's `Close()` with its closer right, from any goroutine, any number of times:
 some error, whose `Error()` returns. -/

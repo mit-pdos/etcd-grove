@@ -459,6 +459,23 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['rttSec']
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     'ipersist HreceivedBytes', 'ipersist HrecvFailures', 'ipersist HsentBytes', 'ipersist HsentFailures',
     'ipersist HactivePeers', 'ipersist HdisconnectedPeers', 'ipersist HrttSec']
+# (2026-10-24, rafthttp stage 7d) the snapshot sender's and handler's metric vectors
+_SNAP_METRICS = [('snapshotSend', 'Counter', 'To'), ('snapshotSendInflights', 'Gauge', 'To'),
+                 ('snapshotSendFailures', 'Counter', 'To'), ('snapshotSendSeconds', 'Histogram', 'To'),
+                 ('snapshotReceive', 'Counter', 'From'), ('snapshotReceiveInflights', 'Gauge', 'From'),
+                 ('snapshotReceiveFailures', 'Counter', 'From'),
+                 ('snapshotReceiveSeconds', 'Histogram', 'From')]
+for _x, _k, _l in _SNAP_METRICS:
+    SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom'][_x] = promvec(_x, _k, [_l])
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
+    f'ipersist H{_x}' for _x, _, _ in _SNAP_METRICS]
+# (2026-10-24, rafthttp stage 7d) the snapshot sender's response-read timeout, which its `post`
+# hands to `time.AfterFunc` (any duration does)
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['snapResponseReadTimeout'] = dict(
+    doc='/-- `snapResponseReadTimeout = 5 * time.Second` (`snapshot_sender.go`): some duration, read-only for good. -/',
+    post='∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦ d', pat='⟨%d@, H@⟩')
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
+    'ipersist HsnapResponseReadTimeout']
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
     doc='''Its fact (`etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a fixed pointer

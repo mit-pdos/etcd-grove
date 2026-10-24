@@ -9,6 +9,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Sender
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PeerStatus
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Codec
+public import Proof.errors.NewVarCell
 
 @[expose] public section
 
@@ -71,12 +73,85 @@ def rdCloseOk (ri : GoInterfaceOk) : IProp GF :=
 instance rdCloseOk_persistent (ri : GoInterfaceOk) : Persistent (rdCloseOk (GF := GF) ri) := by
   unfold rdCloseOk; infer_instance
 
+/-- **net/http's errors are not rafthttp's `errMemberRemoved`** (stage 7d, the user's choice): the
+statement of `netErrNotRemoved_ok`'s trust boundary. `errMemberRemoved` is rafthttp's own
+`errors.New` error, returned only by `checkPostResponse` and the stream's `dial`, never handed to
+net/http (nor to the snapshot's pipe, whose writer closes with the backend's errors), so no error
+net/http makes or wraps is it, or wraps it: `errors.Is` of one against it is `false`. -/
+def netErrNotRemoved_spec : Prop :=
+  ∀ (e eR : GoInterface),
+    ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ http.netErr e ∗
+          globalAddr rafthttp.errMemberRemoved ↦□ eR }}
+        (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #e)) (Val #eR))
+      {{ RET #false; True }}
+
+/-- **What the snapshot sender's `post` returns** (persistent; stage 7d): `nil`, an error of
+net/http's (`netErr`), or a leaf pointer error other than `errMemberRemoved` (`errStopped`,
+`checkPostResponse`'s); an error whose `Error()` returns. -/
+def snapPostErr (err : GoInterface) : IProp GF :=
+  iprop(http.errStrOk err ∗ (⌜err = GoInterface.nil⌝ ∨ http.netErr err ∨
+    ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e ∧ errLeaf e⌝ ∗
+      □ (∀ eR : GoInterface, globalAddr rafthttp.errMemberRemoved ↦□ eR -∗ ⌜err ≠ eR⌝)))
+
+instance snapPostErr_persistent (err : GoInterface) : Persistent (snapPostErr (GF := GF) err) := by
+  unfold snapPostErr; infer_instance
+
+/-- A post's error (`postErr`) of a status other than `403` is a snapshot post's. -/
+theorem snapPostErr_of_postErr (st : w64) (err : GoInterface) (h : st ≠ W64 403) :
+    postErr (GF := GF) st err ⊢ snapPostErr err := by
+  unfold postErr snapPostErr
+  iintro ⟨#HS, (%Hn | ⟨%H403, -⟩ | #Hl)⟩
+  · iframe #; ileft; ipureintro; exact Hn
+  · exact absurd H403 h
+  · iframe #
+
 /-- **The right to stop the snapshot sender `s`** (exclusive, once: `stop` closes its `stopc`). -/
 def snapSenderStop (s : Loc) : IProp GF :=
   iprop(∃ (sc : GoChan) (γs : ChanNames), s.[rafthttp.snapshotSender, go!"stopc"] ↦□ sc ∗
     ownBroadcastChan sc γs iprop(True) .Pending)
 
 end defs
+
+section lemmas
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
+variable [ErrorStringLeaf]
+
+/-- An `errors.New` error whose cell holds a message other than `errMemberRemoved`'s is a snapshot
+post's leaf error (`snapPostErr`; as `checkPostResponse`'s `postErr_errorString`). -/
+theorem snapPostErr_errorString (x xR : Loc) (m mR : GoString) (hm : m ≠ mR) :
+    ⊢ (□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+        WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+          go!"Error" #x)) (Val #())) {{ Φ }}) -∗
+      errStrCell x m -∗
+      globalAddr rafthttp.errMemberRemoved ↦□
+        interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xR -∗
+      errStrCell xR mR -∗
+      snapPostErr (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+  iintro #HM #Hc #Hg #HcR
+  iunfold snapPostErr
+  isplitr
+  · iapply errorString_errStrOk $$ HM
+  iright; iright
+  iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+  isplitr
+  · ipureintro; exact ⟨rfl, errorString_leaf x⟩
+  imodintro
+  iintro %eR #HeR
+  icombine Hg HeR gives %Heq
+  subst Heq
+  ihave %Hne := errStrCell_ne x xR m mR hm $$ Hc HcR
+  ipureintro
+  intro he
+  apply Hne
+  injection he with h1
+  injection h1 with _ hv
+  exact go.intoVal_inj (V := Loc) hv
+
+end lemmas
 
 end EtcdGrove
 end Perennial

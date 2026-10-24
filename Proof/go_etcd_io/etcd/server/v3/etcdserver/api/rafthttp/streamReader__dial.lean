@@ -428,7 +428,7 @@ theorem rafthttp.streamReader.dial.wp_proof
       exact fun h => absurd h.1 (by decide)
     wp_apply HRT $$ [$Hreq $Hstr $Hso $Htk $Hpa $Hpr] as %resp %rerr ⟨Hreq, Hres⟩
     (try wp_auto)
-    icases Hres with (⟨%Herr, #HerrS⟩ | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr, #Hrc⟩)
+    icases Hres with (⟨%Herr, #HerrS, -⟩ | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr, #Hrc⟩)
     · -- `RoundTrip` failed
       cases rerr with
       | nil => exact absurd rfl Herr

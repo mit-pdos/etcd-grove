@@ -165,7 +165,7 @@ theorem rafthttp.pipeline.post.wp_proof
     iunfold Fulfilled
     iexists _
     iframe Hfl
-  icases Hres with (⟨%Herr, #HerrS⟩ | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr, -⟩)
+  icases Hres with (⟨%Herr, #HerrS, -⟩ | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr, -⟩)
   · -- `RoundTrip` failed
     cases rerr with
     | nil => exact absurd rfl Herr

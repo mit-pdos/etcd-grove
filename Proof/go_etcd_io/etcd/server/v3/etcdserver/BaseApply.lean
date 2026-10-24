@@ -218,7 +218,29 @@ abbrev rafthttpInit : IProp GF :=
     -- untranslated): a map of slices, read-only for good (the stream reader's
     -- `checkStreamSupport` looks a peer's version up)
     (∃ (m : Loc) (M : GMap GoString GoSlice), globalAddr supportedStream ↦□ m ∗ m ↦$□ M ∗
-      □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts))
+      □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts) ∗
+    -- (2026-10-24, rafthttp stage 7d) `errStopped`'s cell, which tells it from `errMemberRemoved`
+    -- (the snapshot sender's `post` returns it)
+    EtcdGrove.errVarCells [(errStopped, go!"stopped")] ∗
+    -- (2026-10-24, rafthttp stage 7d) the snapshot sender's and handler's metric vectors
+    -- (`metrics.go`), with their label names
+    (∃ v : Loc, globalAddr snapshotSend ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotSendInflights ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotSendFailures ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotSendSeconds ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceive ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceiveInflights ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceiveFailures ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceiveSeconds ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    -- (2026-10-24, rafthttp stage 7d) the snapshot sender's response-read timeout
+    -- (`snapshot_sender.go`, untranslated): some duration, read-only for good
+    (∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦□ d))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit
