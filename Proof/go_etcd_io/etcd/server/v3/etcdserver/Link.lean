@@ -156,6 +156,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Recover
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Revision
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__RoleAdd
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__RoleDelete
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__RoleGrantPermission
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__RoleRevokePermission
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserChangePassword
@@ -1000,6 +1001,14 @@ theorem auth.authStore.wp_RoleDelete :
     auth.authStore.RoleDelete.spec (GF := GF) (hG := hG) :=
   auth.authStore.RoleDelete.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.Logger.wp_Error zap.Logger.wp_Info
 
+theorem auth.wp_isValidPermissionRange :
+    auth.isValidPermissionRange.spec (GF := GF) (hG := hG) :=
+  auth.isValidPermissionRange.wp_proof auth.wp_isOpenEnded adt.BytesAffineComparable.wp_Compare
+
+theorem auth.authStore.wp_RoleGrantPermission :
+    auth.authStore.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
+  auth.authStore.RoleGrantPermission.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache auth.wp_isValidPermissionRange zap.wp_String zap.wp_ByteString zap.Logger.wp_Info
+
 theorem auth.authStore.wp_RoleRevokePermission :
     auth.authStore.RoleRevokePermission.spec (GF := GF) (hG := hG) :=
   auth.authStore.RoleRevokePermission.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.Logger.wp_Info
@@ -1031,10 +1040,6 @@ theorem auth.authStore.wp_UserGrantRole :
 theorem auth.authStore.wp_UserRevokeRole :
     auth.authStore.UserRevokeRole.spec (GF := GF) (hG := hG) :=
   auth.authStore.UserRevokeRole.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error zap.Logger.wp_Info
-
-theorem auth.wp_isValidPermissionRange :
-    auth.isValidPermissionRange.spec (GF := GF) (hG := hG) :=
-  auth.isValidPermissionRange.wp_proof auth.wp_isOpenEnded adt.BytesAffineComparable.wp_Compare
 
 theorem binary.wp_ReadUint64 :
     binary.ReadUint64.spec (GF := GF) (hG := hG) :=
