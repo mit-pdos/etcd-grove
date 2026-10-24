@@ -49,6 +49,9 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # request model records (a name above bbolt's key bound is fatal:
   # issues/etcd-auth-useradd-long-name-fatal.md)
   "AuthUserAddRequest", "AuthRoleAddRequest",
+  # the auth plan's A3, the API layer (2026-10-24): the requests whose fields the server's
+  # Authenticate and UserChangePassword read and write (the name and the passwords)
+  "AuthenticateRequest", "AuthUserChangePasswordRequest",
   # the server's RaftKV interface names the stream of RangeStream (an alias of a generic grpc
   # interface: an untranslated alias is emitted without the `.ty` its users name)
   "KV_RangeStreamServer",

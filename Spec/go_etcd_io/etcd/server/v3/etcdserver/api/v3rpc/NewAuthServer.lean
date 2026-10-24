@@ -5,6 +5,7 @@ vocabulary is `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvGrpcStart
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
 
 @[expose] public section
 
@@ -27,12 +28,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`NewAuthServer(s)`** returns a new `*AuthServer` (over the server as its authenticator). -/
+/-- **`NewAuthServer(s)`** returns a new `*AuthServer` over the server as its authenticator
+(`authServerIs`; the auth plan's A3, the API layer, 2026-10-24: `True` until then). -/
 abbrev v3rpc.NewAuthServer.spec : Prop :=
   ∀ (s : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc }}
     (App (Val (@! v3rpc.NewAuthServer)) (Val #s))
-  {{ (p : Loc), RET #p; True }}
+  {{ (p : Loc), RET #p; v3rpc.authServerIs p s }}
 
 end spec
 

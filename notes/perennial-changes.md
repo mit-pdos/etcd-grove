@@ -168,6 +168,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `strings.Contains` (`Spec/strings/`). (2026-10-23) Also `strings.TrimSuffix` (`Spec/strings/TrimSuffix.lean`: Perennial's
   `strings` has no body for it) and `path.Join` for the one case `etcd3.New` uses
   (`Spec/path/Join.lean`: `Join(["/", p])` of a clean absolute `p` is `p`, `PathCleanAbs`).
+  (2026-10-24, the auth plan's A3) The server's `UserAdd`/`UserChangePassword` call
+  `base64.StdEncoding.EncodeToString`: a package *variable* of the names-only package, whose load
+  needs a points-to the package's fact (`True`) does not give; they stay names only until a model
+  of `encoding/base64` (and of `golang.org/x/crypto/bcrypt`'s `GenerateFromPassword`) exists.
 
 ### `reflect.Value` held in a variable: its typed points-to is `sorry`
 
