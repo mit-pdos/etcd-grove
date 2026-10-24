@@ -117,6 +117,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatc
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatchStreamDuration_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.alarms_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.initFuncsOk
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.applySnapshotInProgress_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.hasLeader_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.heartbeatSendFailures_init
@@ -260,6 +261,7 @@ axiom audit.GetAuditIDTruncated.wp_proof
 axiom auth.NewAuthStore.wp_proof
 axiom auth.NewTokenProvider.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
+axiom auth.authStore.Recover.wp_proof
 axiom auth.hasRootRole.wp_proof
 axiom auth.redactToken.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
@@ -446,8 +448,10 @@ axiom labels.Everything.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
+axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom math.Ceil.wp_proof
+axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom metadata.FromIncomingContext.wp_proof

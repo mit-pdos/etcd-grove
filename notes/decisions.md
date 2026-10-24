@@ -17323,3 +17323,26 @@ the open raises it to `i` (minting `Rm i`), and `Release(i)`'s removals `j < i` 
 Per the decision ("stop and say why"), `storage.Release`'s axiom is not written over the decided
 `Rm`; S8d takes the file in its precondition regardless, and the counter variant is proposed for
 the orchestrator's confirmation (it needs no claim from raft's hand-off).
+
+**The other callees** (second S8c commit).
+- `schema.NewMembershipBackend` translated (`schema.toml`) and proved from its body (returns the
+  `*membershipBackend`, its fields read-only).
+- New trust-boundary axioms, each over S7's per-backend fragments and true of the Go code (their
+  docstrings argue it line by line): `membership.RaftCluster.SetBackend` (`clusterBeOn c oldbe` to
+  `clusterBeOn c newbe`, `MustCreateBackendBuckets` over present buckets: one write-back),
+  `lease.lessor.Recover` (`lessorBeOn` moved, no lease live before or after, the image's lease
+  bucket empty: two write-backs), `auth.authStore.Recover` (mode `.off`, `authBeOn` moved, the image's
+  auth buckets the boot ones, a reader token borrowed); the gauge `applySnapshotInProgress`'s
+  initializer (`etc/gen-init.py`: an opaque initializer turned into a gauge fact, `srvApplyLoopInit`).
+- Lemmas for S8d (`etcdserver/SnapApply.lean`): `kv_cert_jump` (W4: the apply thread's KV ghost
+  state moved to a longer committed prefix in one step, the image's model certified there) and
+  `srv_be_swap` (`s.be`'s swap: the current backend's ghost variable gathered from `bemuP 1`,
+  `srvBeOwn` and the write budget, moved to the new backend, the budget refilled, the old tokens out).
+
+**Where S8 stops now (S8d not started).** Four more questions surfaced while laying `applySnapshot`'s
+proof against the callees (`notes/snapshot-s8-plan.md`, "Where S8 stops, second pass"):
+W5 an environment premise for the snapshot file's directory read and rename (`DBFilePath`'s and
+`os.Rename`'s axioms allow I/O errors, on which `applySnapshot` panics), W6 `RaftCluster.Recover`'s
+members (the network directory facts `AddPeer` needs and the in-memory members' agreement with the
+rest model), W7 the old backend's `Close` (its `isStopChans` dropped at boot by `NewServer`, and all
+of its open token to gather), and W1's `Rm` (the variant to confirm).

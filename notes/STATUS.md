@@ -192,14 +192,13 @@ removed, ..., adequacy coverage" below.
 ### Open work, by track
 
 - **Snapshots (track T-S, D22).** Done: S-0..S-d4, S-f..S-i, S-g/S-h, S-r (snapshots in
-  `examples/kv`), the fork fixes, the receiver epochs' S1-S7f and S8a-S8b. Open:
-  - **S8c-S8d of the receiver epochs** (`applySnapshot` past the empty case; S8a-S8b done: no hook
-    runs on the new backend before `SetBackend`, the protocol's future status, section "D22
-    receiver epochs, S8" below): the callees' axioms and the proof, blocked on four questions
-    (`notes/snapshot-s8-plan.md`, "S8c/S8d, callee by callee"): W1 the snapshot directory's
-    removal fact `Rm` (with S-j1), W2 the auth store's reader resource across `Recover`
-    (`NewAuthStore`'s `RD`, the auth track's), W3 a peers right for `AddPeer` after `Start` that
-    the transport's `Stop` consumes, W4 the KV model at the image's prefix (S-j2's item 6).
+  `examples/kv`), the fork fixes, the receiver epochs' S1-S7f and S8a-S8c. Open:
+  - **S8d of the receiver epochs** (`applySnapshot` past the empty case; S8a-S8c done, section
+    "D22 receiver epochs, S8" below): the spec and proof, blocked on W1 (`Rm`'s variant to confirm),
+    W5 (an environment premise for the snapshot file's directory read and rename: the user's to
+    approve), W6 (`RaftCluster.Recover`'s members: the network directory and the rest model) and W7
+    (the old backend's `Close`: its stop channels and open token kept from boot);
+    `notes/snapshot-s8-plan.md`, "Where S8 stops, second pass".
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.
@@ -952,7 +951,7 @@ the synced watchers moved to the unsynced group with `restore` set, delivered up
 yet: `etcdserver.restorePre_of_apply` (`etcdserver/RestorePre.lean`) assembles the store half of the
 precondition from `apply.kvOwn` and `srvKVCloser`, its docstring what S7/S8 must supply.
 
-## D22 receiver epochs, S8: no hook on the new backend before `SetBackend`; the future status (2026-10-24, branch `worktree-agent-a9a2649236a655331`)
+## D22 receiver epochs, S8a-S8c: no hook on the new backend before `SetBackend`; the future status; the callees (2026-10-24, branch `worktree-agent-a9a2649236a655331`)
 
 `notes/decisions.md`, "D22 receiver epochs, S8 carried out"; plan `notes/snapshot-s8-plan.md` (two
 commits, each a full build). S7f's open issue resolved: the new backend's batch-lock resource is
@@ -966,10 +965,17 @@ open's batch-lock step receives them and gives `K` back (`newPostK`; `openPre`, 
 deposited `bFresh`), `batchLockInv`'s registration `applyRegd ∨ applyFut`; `ci_announce` (at the
 open), `fut_resolve` (in a hook: registered since, or refuted), `ci_swap_au` restated (from the
 announcement, the deposit back), `hooksOk_server_fut` (the server's hooks for the new backend).
-No axiom added (615 axioms, 4 sorries); no closed theorem's text; exported results with one more
-premise: `cindex_hook_backend`, `cindex_hookFnSpec`, `backend_server_hooks`,
-`server_kv_backend_hooks`. **Left** (S8c/S8d): the callees' axioms and `applySnapshot`'s proof,
-blocked on W1-W4 (the open-work item above).
+No axiom added in S8a-S8b; no closed theorem's text; exported results with one more premise:
+`cindex_hook_backend`, `cindex_hookFnSpec`, `backend_server_hooks`, `server_kv_backend_hooks`.
+**S8c** (the orchestrator's decisions on W1-W4, `notes/decisions.md`, "D22 S8's four questions
+decided" and "D22 receiver epochs, S8c carried out"): W3, the transport's peers right (`netPeers`,
+`netTrIs`; `Transport.Start` and `AddPeer` restated, `RemoveAllPeers` new; `RNEnv.TS`, the raft node's
+`stopped` carrying it to `onStop`'s `Stop`); W2 needs no `NewAuthStore` restatement in mode `.off`;
+W1's decided `Rm` is not establishable at `Release` (a variant proposed); new axioms
+`lessor.Recover`, `authStore.Recover`, `RaftCluster.SetBackend`, the gauge's initializer;
+`NewMembershipBackend` proved; S8d's lemmas `kv_cert_jump` (W4) and `srv_be_swap`. Axioms 615 ->
+620. Issue filed: `issues/etcd-rafthttp-leaderstats-followers-race.md`. **Left** (S8d): the open-work
+item above.
 
 ## D22 receiver epochs, S7f: the apply protocol per backend (2026-10-23, branch `worktree-agent-a5fae76133d772e18`)
 
