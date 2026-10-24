@@ -1,0 +1,11 @@
+=== RUN   TestPR21209_KeysBasicAndRevision
+--- PASS: TestPR21209_KeysBasicAndRevision (0.00s)
+=== RUN   TestPR21209_EmptyPrefixKeysVsCount
+    keys_pr21209_probe_test.go:132: Count("") -> KeyBytes="\x00" (len=1), RangeBytes="\x00"
+    keys_pr21209_probe_test.go:133: Keys("")  -> KeyBytes="" (len=0), RangeBytes="\x00"
+--- PASS: TestPR21209_EmptyPrefixKeysVsCount (0.00s)
+=== RUN   TestPR21209_RecordingClientStripsWithCountOnly
+    keys_pr21209_probe_test.go:213: Underlying client received Op from kc.Count: IsCountOnly=false, IsKeysOnly=false, Key="/registry/pods/", RangeEnd="/registry/pods0"
+--- PASS: TestPR21209_RecordingClientStripsWithCountOnly (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3/kubernetes	0.011s

@@ -8,11 +8,14 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Client__Count
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Client__Keys
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Client__OptimisticDelete
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Client__OptimisticPut
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
+public import Proof.go_etcd_io.etcd.client.v3.GetPrefixRangeEnd
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.ModRevision
@@ -22,9 +25,14 @@ public import Proof.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.OpPut
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
+public import Proof.go_etcd_io.etcd.client.v3.WithCountOnly
+public import Proof.go_etcd_io.etcd.client.v3.WithKeysOnly
 public import Proof.go_etcd_io.etcd.client.v3.WithLimit
+public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.WithRange
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
+public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.New
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.kvFromTxnResponse
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
@@ -51,6 +59,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
+theorem v3.wp_getPrefix :
+    EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.getPrefix.wp_proof
+
+theorem v3.wp_WithPrefix :
+    EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithPrefix.wp_proof v3.wp_getPrefix
+
+theorem v3.wp_WithCountOnly :
+    EtcdGrove.WithCountOnly.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithCountOnly.wp_proof
+
 theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
@@ -58,6 +78,18 @@ theorem v3.wp_WithRev :
 theorem v3.wp_WithLimit :
     EtcdGrove.WithLimit.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithLimit.wp_proof
+
+theorem v3.wp_GetPrefixRangeEnd :
+    EtcdGrove.GetPrefixRangeEnd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.GetPrefixRangeEnd.wp_proof v3.wp_getPrefix
+
+theorem v3.wp_WithRange :
+    EtcdGrove.WithRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRange.wp_proof
+
+theorem v3.wp_WithKeysOnly :
+    EtcdGrove.WithKeysOnly.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithKeysOnly.wp_proof
 
 theorem v3.wp_NewOp :
     EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
@@ -138,9 +170,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
+theorem Client.wp_Count :
+    EtcdGrove.kubernetes.Client.Count.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kubernetes.Client.Count.wp_proof v3.wp_WithPrefix v3.wp_WithCountOnly
+
 theorem Client.wp_Get :
     EtcdGrove.kubernetes.Client.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kubernetes.Client.Get.wp_proof v3.wp_WithRev v3.wp_WithLimit
+
+theorem Client.wp_Keys :
+    EtcdGrove.kubernetes.Client.Keys.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kubernetes.Client.Keys.wp_proof v3.wp_GetPrefixRangeEnd v3.wp_WithRange v3.wp_WithKeysOnly v3.wp_WithRev
 
 theorem wp_kvFromTxnResponse :
     EtcdGrove.kubernetes.kvFromTxnResponse.spec (GF := GF) (hG := hG) :=

@@ -217,6 +217,46 @@ instance CountOptions_into_val_typed :
 end def_
 end CountOptions
 
+namespace KeysOptions
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+
+instance KeysOptions_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.KeysOptions where
+  typedPointstoDef l v dq := iprop(
+    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysOptions go!"Revision" l) v.Revision' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance KeysOptions_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.KeysOptions go_etcd_io.etcd.client.v3.kubernetes.KeysOptions.underlying := by
+  solve_into_val_typed_struct
+
+instance KeysOptions_access_load_Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.KeysOptions) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysOptions go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysOptions go!"Revision" l) v.Revision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeysOptions_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.KeysOptions) (Revision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysOptions go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysOptions go!"Revision" l) Revision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := Revision' } : go_etcd_io.etcd.client.v3.kubernetes.KeysOptions) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end KeysOptions
+
 namespace PutOptions
 section def_
 
@@ -444,6 +484,80 @@ instance ListResponse_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.clien
 
 end def_
 end ListResponse
+
+namespace KeysResponse
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+
+instance KeysResponse_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.KeysResponse where
+  typedPointstoDef l v dq := iprop(
+    "Keys" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Keys" l) v.Keys' dq ∗
+    "Count" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Count" l) v.Count' dq ∗
+    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Revision" l) v.Revision' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance KeysResponse_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go_etcd_io.etcd.client.v3.kubernetes.KeysResponse.underlying := by
+  solve_into_val_typed_struct
+
+instance KeysResponse_access_load_Keys (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.KeysResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Keys" l) v.Keys' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Keys" l) v.Keys' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeysResponse_access_store_Keys (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.KeysResponse) (Keys' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Keys" l) v.Keys' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Keys" l) Keys' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Keys' := Keys' } : go_etcd_io.etcd.client.v3.kubernetes.KeysResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeysResponse_access_load_Count (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.KeysResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Count" l) v.Count' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeysResponse_access_store_Count (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.KeysResponse) (Count' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Count" l) v.Count' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Count" l) Count' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := Count' } : go_etcd_io.etcd.client.v3.kubernetes.KeysResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeysResponse_access_load_Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.KeysResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance KeysResponse_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.KeysResponse) (Revision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.KeysResponse go!"Revision" l) Revision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := Revision' } : go_etcd_io.etcd.client.v3.kubernetes.KeysResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end KeysResponse
 
 namespace PutResponse
 section def_

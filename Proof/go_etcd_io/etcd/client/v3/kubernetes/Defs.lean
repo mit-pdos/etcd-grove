@@ -87,6 +87,77 @@ theorem srvRangeOk_getKey1 (key : GoString) (s kvs : List EtcdKv) (more : Bool)
   | [a] => simp
   | a :: b :: F' => simp
 
+/-- `Keys`'s range on the wire:
+`OpGet(pfx, WithRange(GetPrefixRangeEnd(pfx)), WithKeysOnly(), WithRev(0))`. -/
+abbrev keysPrefixOp (pfx : GoString) : OpFull :=
+  txn.rangeOpOf pfx (prefixRangeEnd pfx) (W64 0) (W64 0) (W32 0) (W32 0) false true false
+    (W64 0) (W64 0) (W64 0) (W64 0)
+
+theorem rangeWireOf_keysPrefix (pfx : GoString) :
+    rangeWireOf (opGetModel pfx [withRangeM (prefixRangeEnd pfx), withKeysOnlyM, withRevM (W64 0)]) =
+      keysPrefixOp pfx := rfl
+
+/-- **`Keys`'s range selects the prefix range's key-values (without values/leases)** (pure). -/
+theorem srvRangeOk_keysPrefix (pfx : GoString) (s kvs : List EtcdKv) (more : Bool)
+    (h : txn.srvRangeOk (keysPrefixOp pfx) s kvs more) :
+    kvs.map EtcdKv.key =
+      (s.filter (fun v => inRange pfx (prefixRangeEnd pfx) v.key)).map EtcdKv.key ∧
+      more = false := by
+  obtain ⟨L, hsort, hmore, hkvs⟩ := h
+  have hpre : txn.srvPre (keysPrefixOp pfx) s =
+      (s.filter (fun v => inRange pfx (prefixRangeEnd pfx) v.key)).map (txn.kvRead true) := by
+    unfold txn.srvPre
+    simp [txn.rangeLimitOf, txn.hasRevFilters, mvcc.limitOf, mvcc.takeLimit, txn.fastKeysOnly,
+      rangeIn, kvFilterOk]
+  have hord : (keysPrefixOp pfx).effSortOrder = W64 0 := by
+    simp [OpFull.effSortOrder]
+  have hL : L = txn.srvPre (keysPrefixOp pfx) s := by
+    obtain ⟨-, -, -, h4⟩ := hsort
+    exact h4 (by rw [hord]; decide) (by rw [hord]; decide)
+  have hm : txn.srvMore (keysPrefixOp pfx) L = false := by
+    simp [txn.srvMore]
+  refine ⟨?_, by rw [hmore, hm]⟩
+  rw [hkvs]
+  unfold txn.srvTrunc
+  rw [hm, hL, hpre]
+  simp [List.map_map, txn.respKv, txn.kvRead]
+
+/-- **`Keys`'s count is the number of keys in `[pfx, prefixRangeEnd pfx)`** (pure). -/
+theorem srvCount_keysPrefix (pfx : GoString) (s : List EtcdKv) :
+    txn.srvCount (keysPrefixOp pfx) s true =
+      W64 (((s.filter (fun v => inRange pfx (prefixRangeEnd pfx) v.key)).length : Int)) := by
+  unfold txn.srvCount
+  simp [txn.rangeLimitOf, txn.hasRevFilters, mvcc.limitOf, mvcc.totalOf, rangeIn]
+
+/-- The start key `WithPrefix()` sets for `pfx`: `"\x00"` when `pfx` is empty, `pfx` otherwise. -/
+def prefixStart (pfx : GoString) : GoString :=
+  if pfx = [] then [W8 0] else pfx
+
+/-- `Count`'s range on the wire: `OpGet(pfx, WithPrefix(), WithCountOnly())`. -/
+abbrev countPrefixOp (pfx : GoString) : OpFull :=
+  txn.countOp (prefixStart pfx) (prefixRangeEnd pfx) (W64 0)
+
+theorem rangeWireOf_countPrefix (pfx : GoString) :
+    rangeWireOf (opGetModel pfx [withPrefixM, withCountOnlyM]) = countPrefixOp pfx := by
+  by_cases h : pfx = []
+  · subst h; rfl
+  · have hop : opGetModel pfx [withPrefixM, withCountOnlyM] =
+        { (OpFull.getInit pfx) with
+          base := { OpModel.zero with rangeEnd := prefixRangeEnd pfx, countOnly := true },
+          withPrefix := true, rangeEndSet := true } := by
+      unfold opGetModel opFold OpFull.getInit OpFull.newOp withPrefixM withCountOnlyM
+      simp [h]
+    have hst : prefixStart pfx = pfx := by simp [prefixStart, h]
+    rw [hop, countPrefixOp, hst]
+    rfl
+
+/-- **`Count`'s count is the number of keys in `[prefixStart pfx, prefixRangeEnd pfx)`** (pure). -/
+theorem srvCount_countPrefix (pfx : GoString) (s : List EtcdKv) :
+    txn.srvCount (countPrefixOp pfx) s true =
+      W64 (((s.filter (fun v => inRange (prefixStart pfx) (prefixRangeEnd pfx) v.key)).length : Int)) := by
+  unfold txn.srvCount
+  simp [countPrefixOp, txn.countOp, rangeIn]
+
 /-- `OptimisticPut`'s transaction (linkv's): put `val` at `key` if its mod revision is `rev`, else
 get it if `g`. -/
 abbrev optPutTxn (key val : GoString) (rev : w64) (g : Bool) : TxnModel :=
@@ -174,6 +245,55 @@ theorem kvOut_some (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ kvOut l 
 def single {α : Type} : List α → Option α
   | [v] => some v
   | _ => none
+
+/-- **A response's slice of keys** (`resp.Keys` in `KeysResponse`): a slice of `[]byte` slices `ksls`
+of the same length as `ks`, where each `ksls[i]` points to `ks[i]` read-only. -/
+def keysSlice (s : GoSlice) (ks : List GoString) : IProp GF :=
+  iprop(∃ ksls : List GoSlice, s ↦* ksls ∗ ⌜ksls.length = ks.length⌝ ∗
+    ∀ (i : Nat) (ksl : GoSlice) (k : GoString),
+      ⌜ksls[i]? = some ksl⌝ -∗ ⌜ks[i]? = some k⌝ -∗ ksl ↦*□ k)
+
+open Iris.ProofMode in
+/-- **What a linearizable range's reply says, including `m.count`** (extends `rangeReply_state_bnd`
+with `m.count = txn.srvCount o σ.kvs true`). -/
+theorem rangeReply_state_count_bnd
+    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+    [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.client.v3.Assumptions]
+    (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
+    (o : OpFull) (F : mvcc.Log) (Q : KVState → IProp GF) (m : RangeRespM)
+    (hs : o.base.serializable = false) (hr : o.base.rev = W64 0) :
+    client.rangeReplyOk E γr c F o cid mid Q m ⊢
+      ∃ σ : KVState, □ Q σ ∗ ⌜txn.srvRangeOk o σ.kvs m.kvs m.more ∧
+        m.count = txn.srvCount o σ.kvs true ∧
+        m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝ := by
+  iintro #H
+  iunfold client.rangeReplyOk at H
+  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
+  simp only [hs, Bool.false_eq_true, ↓reduceIte]
+  obtain ⟨hlen, hlen', hrev, -, -, -, hcnt, hsel, -⟩ := Hl
+  have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)) =
+      mvcc.stateAfter l := by
+    have h1 : mvcc.rangeRev m.hdr.revision o.base.rev = m.hdr.revision := by
+      simp [mvcc.rangeRev, hr]
+    rw [h1, hrev]
+    have h2 : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by
+      unfold sint.nat; word
+    rw [h2, mvcc.stateAt_last]
+  rw [hst] at hsel hcnt
+  iexists kvStateOf l
+  iframe HQ
+  ipureintro
+  refine ⟨hsel, hcnt, ?_, ?_⟩
+  · rw [hrev]
+    unfold kvStateOf
+    simp only
+    congr 1
+    omega
+  · unfold kvStateOf
+    simp only
+    omega
 
 end defs
 
