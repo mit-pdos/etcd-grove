@@ -37,13 +37,14 @@ theorem auth.authStore.IsAuthEnabled.wp_proof :
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold enabledP at HP
-  icases HP with ⟨%b, Hb⟩
+  icases HP with ⟨%b, Hb, #Hv⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb] as Hrd
-  · inext; iunfold enabledP; iexists b; iexact Hb
+  · inext; iunfold enabledP; iexists b; iframe Hb; iexact Hv
   iapply HΦ
   iunfold enabledRd
-  iexact Hrd
+  iframe Hrd
+  iexact Hv
 
 end proof
 

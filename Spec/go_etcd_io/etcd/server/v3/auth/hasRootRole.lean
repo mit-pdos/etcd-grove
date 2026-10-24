@@ -1,10 +1,12 @@
 /-
 `hasRootRole` (`server/auth/store.go`): the trust boundary (names only: it reads `u.Roles` of
-the protobuf `authpb.User`, an axiomatized type). Lean-first (no Rocq counterpart; unit P2).
+the protobuf `authpb.User`, and `sort.SearchStrings`, which Perennial has no spec of yet,
+`notes/perennial-changes.md`). Lean-first (no Rocq counterpart; unit P2; the auth plan's S3 states
+its result).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.auth.Base
+public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
 
 @[expose] public section
 
@@ -21,14 +23,17 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `hasRootRole(u)` of a non-nil user (`sort.SearchStrings(u.Roles, "root")` and a
-bounds-checked index): some boolean. The user's points-to is not stated: `authpb.User` is an
-axiomatized type whose typed points-to is a generated `sorry` instance. -/
+/-- `hasRootRole(u)` of a user message holding the record `ur` (`ownUser`, S1) whose roles are
+sorted (`UserGrantRole` sorts them; the backend's users are, `userOut`): `sort.SearchStrings(
+u.Roles, "root")` and a bounds-checked index decide whether `"root"` is among them (`isRoot`),
+the message kept. Trust boundary: `sort.SearchStrings` has no Perennial spec yet; with one,
+`hasRootRole` is translated and this is proved (`notes/perennial-changes.md`). -/
 abbrev auth.hasRootRole.spec : Prop :=
-  ∀ (u : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜u ≠ null⌝ }}
+  ∀ (u : Loc) (ur : auth.UserRec),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.ownUser u ur ∗
+      ⌜ur.roles.Pairwise go.GoStringLt⌝ }}
     (App (Val (@! go_etcd_io.etcd.server.v3.auth.hasRootRole)) (Val #u))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b; auth.ownUser u ur ∗ ⌜b = decide (auth.isRoot ur.roles)⌝ }}
 
 end spec
 

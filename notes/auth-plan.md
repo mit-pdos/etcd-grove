@@ -1,6 +1,13 @@
 # Plan: specifying and proving etcd's authentication and authorization (auth, RBAC)
 
-**Status.** S1 carried out (2026-10-23, branch `auth-s1`; `notes/decisions.md`, "S1 of the auth plan"):
+**Status.** S3 carried out (2026-10-24, branch `auth-s3`; `notes/decisions.md`, "S3 of the auth plan"):
+the store's checks return the model's verdicts in every mode (`isOpPermitted`/`Is*Permitted`
+`permVerdict`, `IsAdminPermitted` `adminVerdict` over an `Option AuthInfo`, `IsAuthEnabled`/`Revision`
+theirs; `auth/VerdictLemmas.lean`), `isAuthStore_of_authInv` derives the apply layer's contract in the
+store's mode, A2's `srvAdminNilOk` premise is derivable; A0's one-state verdict was unprovable and is
+corrected (`permitted` without the revision conjunct, the refused half over the four states read,
+`AuthView`/`refusedV`; `reqShape` inside the model; recorded states carry `permKeysOk`); `hasRootRole`
+stays an axiom, restated to return `isRoot` (needs a `sort.SearchStrings` spec in Perennial). S1 carried out (2026-10-23, branch `auth-s1`; `notes/decisions.md`, "S1 of the auth plan"):
 `authpb` translated as data (`authpb.toml`), schema's auth backend translated and its read side
 proved over the buckets (`etcdserver/InvAuthBackend.lean`: `authReader`/`authRTx`/`authBE`,
 `authBucketsAre`; `auth/Buckets.lean`: the records, `userOut`/`roleOut`, `authSnap`), the store's
@@ -141,7 +148,10 @@ in the model", judged "mechanical but wide") is subsumed: `on = st.enabled`.
   contract extended with a stop). Independent of S3-S5.
 - S3 `isOpPermitted`, `IsAdminPermitted`, `hasRootRole` (translated: `sort.SearchStrings` over a
   sorted `Roles`, so `UserGrantRole`'s sorting becomes a model invariant), `AuthInfoFromCtx` with
-  the token binding: the P2 specs restated as D-AU2 and re-proved.
+  the token binding: the P2 specs restated as D-AU2 and re-proved. **Done 2026-10-24** (branch
+  `auth-s3`) for the checks' verdicts in every mode; `hasRootRole` restated, not translated
+  (Perennial has no `sort.SearchStrings` spec); the token binding is S5's (`AuthInfoFromCtx`
+  unchanged); the verdict's shape corrected (decisions, "S3 of the auth plan").
 - S4 the admin side: `AuthEnable`/`AuthDisable`, `UserAdd`/`Delete`/`ChangePassword`/`GrantRole`/
   `RevokeRole`, `RoleAdd`/`Delete`/`GrantPermission`/`RevokePermission`, `Recover`, `commitRevision`:
   each a step of `AuthState`, the cache refreshed, the revision bumped; the apply layer's

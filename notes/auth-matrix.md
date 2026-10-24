@@ -110,5 +110,19 @@ check, and with auth off always:
   `raftRequest` has no lease request; `LeaseTimeToLive`/`LeaseLeases`'s key checks need a lessor
   with a key model).
 
-The admin guards take `IsAdminPermitted(nil)` as a premise (`srvAdminNilOk`: the store's spec
-covers a non-`nil` auth info only; track S).
+The admin guards take `IsAdminPermitted(nil)` as a premise (`srvAdminNilOk`); since S3
+(2026-10-24) the store's spec covers a `nil` auth info and `apply.isAuthStore` states it, so the
+premise is derivable (`srvAdminNilOk_of_srvAuthAt`) and its removal from the 12 specs is a
+mechanical follow-up.
+
+## What is proved of the store (S3, 2026-10-24)
+
+The checks the table's RBAC and admin rows call return the model's verdicts in every mode
+(`notes/decisions.md`, "S3 of the auth plan"): `IsPutPermitted`/`IsRangePermitted`/
+`IsDeleteRangePermitted` `auth.permVerdict` (in `on γa`: on a pass a recorded state at which the
+principal is granted the key or range -- the root role, or coverage for a request of the shape the
+cache decides -- or auth is disabled, and a recorded state whose revision admits the token; on a
+refusal the four states read, in which the check refuses), `IsAdminPermitted` `auth.adminVerdict`
+(a `nil` auth info covered), `IsAuthEnabled`/`Revision` theirs. The apply layer's contract is
+derived of the real store in its own mode (`isAuthStore_of_authInv`); the mode `on γa` reaches the
+contract once S4 produces the store's invariant with the history.

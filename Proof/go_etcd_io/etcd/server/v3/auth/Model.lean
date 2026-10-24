@@ -9,24 +9,28 @@ bytes-affine order (`GoStringLt`, Go's `bytes.Compare`): a point when `rangeEnd`
 to the end of the key space when `rangeEnd` is `"\x00"` (`isOpenEnded`), with a type `READ`,
 `WRITE` or `READWRITE` (`range_perm_cache.go`, `getMergedPerms`).
 
-**Permitted**: `permitted st ai key rangeEnd ty` is what `isOpPermitted` decides (`store.go`): with
-auth disabled everything; else the principal `ai` must carry a user name with a revision that is
-not `0` and not older than the store's (`ErrAuthOldRevision`: a token minted before a permission
-change is refused), the user must exist, and either has the root role or its roles' permissions
-of the type cover the key (`checkKeyPoint`: some permission contains it) or the range
-(`checkKeyInterval`: the union of the permissions covers every key of `[key, rangeEnd)`, which is
-what an interval tree's `Contains` computes). `adminOk st ai` is `IsAdminPermitted`'s: with auth
-disabled everything; else a named user that exists and has the root role.
+**Permitted**: `permitted st ai key rangeEnd ty` is what `isOpPermitted` decides at one state
+(`store.go`): with auth disabled everything; else the principal `ai` must carry a user name with a
+revision that is not `0` (`granted`), the user must exist, and either has the root role or its
+roles' permissions of the type cover the key (`checkKeyPoint`: some permission contains it) or the
+range (`checkKeyInterval`: the union of the permissions covers every key of `[key, rangeEnd)`,
+which is what an interval tree's `Contains` computes), for a request of the shape the cache
+decides (`reqShape`: a non-empty key, a point, an open-ended or a proper range). The revision
+check (`ErrAuthOldRevision`: a token minted before a permission change is refused) is a fact of
+its own in the verdict, not of the same state (see `permitted`). `adminOk st ai` is
+`IsAdminPermitted`'s: with auth disabled everything; else a named user that exists and has the
+root role.
 
 **The history** (`AuthNames`, `authHist`, `authStateAt`): the store's states in order, a
 monotone list whose authority the store's admin side holds (track S of the plan) and whose
-elements are persistent facts. A check's verdict is stated over recorded states, in the form that
-is true of the Go code's checks, which read the enabled flag, the revision, the user and the
-permission cache under separate locks: when the check passes, some recorded state permitted the
-operation; when it refuses, some recorded state did not (`permVerdict`, `adminVerdict`). Nothing
-says the two are the same state, nor that the state is the latest: an admin change racing with a
-check can make the verdict a mix of two states (store.go's own TOCTOU), and the end-to-end
-statements (track A) need only the first half.
+elements are persistent facts, each with valid permission keys (`permKeysOk`). A check's verdict
+is stated over recorded states, in the form that is true of the Go code's checks, which read the
+enabled flag, the revision, the user and the permission cache under separate locks: when the
+check passes, some recorded state permitted the operation and some recorded state's revision
+admitted the token; when it refuses, the four states it read (`AuthView`) refuse it
+(`refusedV`; `permVerdict`, `adminVerdict`). Nothing says the states are the same, nor that any
+is the latest: an admin change racing with a check can make the verdict a mix of states
+(store.go's own TOCTOU), and the end-to-end statements (track A) need only the first half.
 
 **The mode** `AuthMode` of a contract: `off` (auth disabled and never enabled: the checks pass;
 what `NewAuthStore` on an empty backend gives and every closed theorem runs in), `any` (nothing is
@@ -154,19 +158,141 @@ def coversRange (st : AuthState) (u : User) (op : PermType) (key rangeEnd : GoSt
 /-- The user `u` has the root role. -/
 def isRoot (u : User) : Prop := rootRole ∈ u
 
-/-- **`isOpPermitted`'s verdict** for the principal `ai` on `[key, rangeEnd)` with an operation of
-type `op` (see the file header). -/
+instance isRoot_decidable (u : User) : Decidable (isRoot u) :=
+  inferInstanceAs (Decidable (rootRole ∈ u))
+
+/-- **The request's shape the permission cache decides** (the auth plan's S2, `cacheVerdict`):
+a non-empty key, and a range that is empty (a point), open-ended or proper (`key < rangeEnd`).
+The cache's interval trees take the empty key as the top of the key space, the model as its least
+key, and `Contains` of an inverted range is not the model's coverage, so the cache's answer for
+another request is not stated (`permitted` and `refusedV` say nothing of the coverage then). -/
+def reqShape (key rangeEnd : GoString) : Prop :=
+  key ≠ [] ∧ (rangeEnd = [] ∨ isOpenEnded rangeEnd ∨ go.GoStringLt key rangeEnd)
+
+/-- The user's permissions cover the request: the point `key` when `rangeEnd` is empty
+(`checkKeyPoint`), else the range (`checkKeyInterval`). -/
+def covers (st : AuthState) (u : User) (op : PermType) (key rangeEnd : GoString) : Prop :=
+  if rangeEnd = [] then coversPoint st u op key else coversRange st u op key rangeEnd
+
+/-- **The principal `ai` is granted the operation at `st`** (what `isOpPermitted` decides after the
+enabled flag and the revision, `store.go`): a revision that is not `0` (`ErrUserEmpty`: an
+`AuthInfo{}`, no user given), a user that exists, with the root role or whose roles' permissions
+of the type cover the request, for a request of the shape the cache decides (`reqShape`). -/
+def granted (st : AuthState) (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType) : Prop :=
+  ai.rev ≠ 0 ∧ ∃ u, st.users !! ai.user = some u ∧
+    (isRoot u ∨ (reqShape key rangeEnd → covers st u op key rangeEnd))
+
+/-- **`isOpPermitted`'s verdict at one state** for the principal `ai` on `[key, rangeEnd)` with an
+operation of type `op` (see the file header): auth disabled, or the principal granted the
+operation. The revision check (`ErrAuthOldRevision`: the token's revision below the store's) is
+not here: the check reads the revision before the user and the cache, so a passing check need not
+have seen a single state at which the user was granted *and* the revision admitted the token (an
+admin change between the two reads bumps the revision and may grant the user); `permVerdict`
+states it of a recorded state of its own (the auth plan's S3, 2026-10-23; until then this
+predicate had it, and no proof could establish it). -/
 def permitted (st : AuthState) (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType) : Prop :=
-  st.enabled = false ∨
-  (ai.rev ≠ 0 ∧ st.revision ≤ ai.rev ∧
-    ∃ u, st.users !! ai.user = some u ∧
-      (isRoot u ∨
-        (if rangeEnd = [] then coversPoint st u op key else coversRange st u op key rangeEnd)))
+  st.enabled = false ∨ granted st ai key rangeEnd op
 
 /-- **`IsAdminPermitted`'s verdict**: `none` is a `nil` `AuthInfo`. -/
 def adminOk (st : AuthState) (ai : Option AuthInfoM) : Prop :=
   st.enabled = false ∨
   ∃ a u, ai = some a ∧ a.user ≠ [] ∧ st.users !! a.user = some u ∧ isRoot u
+
+/-- **The states a permission check read**, one per read under its own lock (`isOpPermitted`):
+the enabled flag's (`IsAuthEnabled`), the revision's (`Revision`), the user's (the backend's read
+transaction) and the permission cache's (`isRangeOpPermitted`). An admin change racing with the
+check can make them four different states (`store.go`'s own TOCTOU); a refusal is stated over all
+four (`refusedV`), since no single one need witness it. -/
+structure AuthView where
+  flag : AuthState
+  rev : AuthState
+  user : AuthState
+  cache : AuthState
+
+/-- **`isOpPermitted` refuses in the view `v`**: auth enabled, and the revision `0`, or below the
+store's, or every user of the name (none, or the one) without the root role and, for a request
+of the shape the cache decides, every user of the name at the cache's state without permissions
+covering the request. -/
+def refusedV (v : AuthView) (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType) : Prop :=
+  v.flag.enabled = true ∧
+  (ai.rev = 0 ∨ ai.rev < v.rev.revision ∨
+    ∀ u, v.user.users !! ai.user = some u → ¬ isRoot u ∧
+      (reqShape key rangeEnd →
+        ∀ u', v.cache.users !! ai.user = some u' → ¬ covers v.cache u' op key rangeEnd))
+
+/-- **`IsAdminPermitted` refuses**, having read the flag at `sf` and the user at `su`: auth
+enabled, and no principal, an unnamed one (`ErrUserEmpty`), or one whose user does not exist at
+`su` (`ErrUserNotFound`) or lacks the root role (`ErrPermissionDenied`). -/
+def adminRefused (sf su : AuthState) (ai : Option AuthInfoM) : Prop :=
+  sf.enabled = true ∧
+  ∀ a u, ai = some a → a.user ≠ [] → su.users !! a.user = some u → ¬ isRoot u
+
+/-- At one state, for a request of the shape the cache decides, a refusal is the verdict's
+negation up to the revision check. -/
+theorem refusedV_diag (st : AuthState) (ai : AuthInfoM) (key rangeEnd : GoString) (op : PermType)
+    (hs : reqShape key rangeEnd) :
+    refusedV ⟨st, st, st, st⟩ ai key rangeEnd op ↔
+      ¬ permitted st ai key rangeEnd op ∨ (st.enabled = true ∧ ai.rev < st.revision) := by
+  unfold refusedV permitted granted
+  constructor
+  · rintro ⟨he, h⟩
+    rcases h with h0 | hlt | hu
+    · left
+      rintro (hf | ⟨hne, -⟩)
+      · rw [he] at hf; cases hf
+      · exact hne h0
+    · right; exact ⟨he, hlt⟩
+    · left
+      rintro (hf | ⟨-, u, hu', hr | hc⟩)
+      · rw [he] at hf; cases hf
+      · exact (hu u hu').1 hr
+      · exact (hu u hu').2 hs u hu' (hc hs)
+  · rintro (h | ⟨he, hlt⟩)
+    · have he : st.enabled = true := by
+        cases hst : st.enabled
+        · exact absurd (Or.inl hst) h
+        · rfl
+      refine ⟨he, ?_⟩
+      by_cases h0 : ai.rev = 0
+      · left; exact h0
+      · right; right
+        intro u hu
+        have hng : ¬ (isRoot u ∨ (reqShape key rangeEnd → covers st u op key rangeEnd)) :=
+          fun hg => h (Or.inr ⟨h0, u, hu, hg⟩)
+        refine ⟨fun hr => hng (Or.inl hr), fun _ u' hu' hc => ?_⟩
+        rw [hu] at hu'; cases hu'
+        exact hng (Or.inr fun _ => hc)
+    · exact ⟨he, Or.inr (Or.inl hlt)⟩
+
+/-! ## Well-formedness of a state's permissions (the request side's premises; the auth plan's S2) -/
+
+/-- `isValidPermissionRange(key, rangeEnd)` (`range_perm_cache.go`, checked by
+`RoleGrantPermission`): a non-empty key, and a point, a range with `key < rangeEnd`, or an
+open-ended range. -/
+def rangeValid (key rangeEnd : GoString) : Prop :=
+  key ≠ [] ∧ (rangeEnd = [] ∨ go.GoStringLt key rangeEnd ∨ isOpenEnded rangeEnd)
+
+/-- Every permission of every role has a non-empty key (`rangeValid`'s first rule): the
+permission cache's interval trees take the empty key as the top of the key space (`adt.affCmp`,
+the affine order), the model as its least key; the cache computes `coversPoint`/`coversRange` of
+such states. -/
+def permKeysOk (st : AuthState) : Prop :=
+  ∀ r ps, st.roles !! r = some ps → ∀ p ∈ ps, p.key ≠ []
+
+/-- A user's permissions fit an interval tree's count (`getMergedPerms` inserts each into a tree
+whose count is a `uint64` kept below `2^63`, `adt.ownIvt`). -/
+def permsFit (st : AuthState) : Prop :=
+  ∀ u roles, st.users !! u = some roles → (userPerms st roles).length < 2 ^ 63
+
+/-- A permission of the user `u` is one of a role of the state. -/
+theorem mem_userPerms {st : AuthState} {u : User} {p : Perm} (h : p ∈ userPerms st u) :
+    ∃ r ps, st.roles !! r = some ps ∧ p ∈ ps := by
+  unfold userPerms at h
+  rw [List.mem_flatMap] at h
+  obtain ⟨r, -, hp⟩ := h
+  cases hr : st.roles !! r with
+  | none => rw [hr] at hp; cases hp
+  | some ps => rw [hr] at hp; exact ⟨r, ps, hr, hp⟩
 
 /-! ## Countability (for the history's ghost list) -/
 
@@ -221,54 +347,107 @@ theorem AuthMode.isOn_false_iff (M : AuthMode) : M.isOn = false ↔ M = .off := 
 section ghost
 variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
 
-/-- The history's authority: the states so far, in order (the store's admin side holds it). -/
-def authHist (γa : AuthNames) (hs : List AuthState) : IProp GF := monoListAuthOwn γa 1 hs
+/-- The history's authority: the states so far, in order (the store's admin side holds it), each
+with valid permission keys (`permKeysOk`: what `isValidPermissionRange` enforces on grants and the
+backend's data is assumed to have on boot; the permission cache computes the model's coverage of
+such states, the auth plan's S2). -/
+def authHist (γa : AuthNames) (hs : List AuthState) : IProp GF :=
+  iprop(monoListAuthOwn γa 1 hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝)
 
-/-- The `i`-th state of the history (persistent). -/
-def authStateAt (γa : AuthNames) (i : Nat) (st : AuthState) : IProp GF := monoListIdxOwn γa i st
+/-- The `i`-th state of the history (persistent), with valid permission keys. -/
+def authStateAt (γa : AuthNames) (i : Nat) (st : AuthState) : IProp GF :=
+  iprop(monoListIdxOwn γa i st ∗ ⌜permKeysOk st⌝)
 
 instance authStateAt_persistent (γa : AuthNames) (i : Nat) (st : AuthState) :
     Persistent (authStateAt (GF := GF) γa i st) := by
   unfold authStateAt; infer_instance
 
+theorem authStateAt_permKeysOk (γa : AuthNames) (i : Nat) (st : AuthState) :
+    authStateAt (GF := GF) γa i st ⊢ ⌜permKeysOk st⌝ := by
+  unfold authStateAt
+  iintro ⟨-, %H⟩
+  ipureintro; exact H
+
 theorem authStateAt_agree (γa : AuthNames) (i : Nat) (st st' : AuthState) :
     authStateAt (GF := GF) γa i st ∗ authStateAt γa i st' ⊢ ⌜st = st'⌝ := by
   unfold authStateAt
-  iintro ⟨H1, H2⟩
+  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
   iapply (mono_list_idx_agree γa i st st') $$ H1 H2
 
 theorem authHist_stateAt (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState)
     (h : hs[i]? = some st) : authHist (GF := GF) γa hs ⊢ authStateAt γa i st := by
   unfold authHist authStateAt
-  iintro H
-  ihave Hlb := monoListLbOwn_get γa 1 hs $$ H
-  iapply (monoListIdxOwn_get i st h) $$ Hlb
+  iintro ⟨H, %Hk⟩
+  isplitl [H]
+  · ihave Hlb := monoListLbOwn_get γa 1 hs $$ H
+    iapply (monoListIdxOwn_get i st h) $$ Hlb
+  · ipureintro; exact Hk st (List.mem_of_getElem? h)
 
 theorem authHist_lookup (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState) :
     authHist (GF := GF) γa hs ∗ authStateAt γa i st ⊢ ⌜hs[i]? = some st⌝ := by
   unfold authHist authStateAt
-  iintro ⟨H1, H2⟩
+  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
   iapply (mono_list_auth_idx_lookup γa 1 hs i st) $$ H1 H2
 
-theorem authHist_alloc (hs : List AuthState) : ⊢ |==> ∃ γa : AuthNames, authHist (GF := GF) γa hs := by
+theorem authHist_alloc (hs : List AuthState) (hk : ∀ st ∈ hs, permKeysOk st) :
+    ⊢ |==> ∃ γa : AuthNames, authHist (GF := GF) γa hs := by
   unfold authHist
   iintro
   imod (mono_list_own_alloc (GF := GF) hs) with ⟨%γ, H, -⟩
   imodintro
   iexists γ
-  iexact H
+  iframe H
+  ipureintro; exact hk
 
-theorem authHist_append (γa : AuthNames) (hs : List AuthState) (st : AuthState) :
-    authHist (GF := GF) γa hs ⊢ |==> authHist γa (hs ++ [st]) := by
+theorem authHist_append (γa : AuthNames) (hs : List AuthState) (st : AuthState)
+    (hk : permKeysOk st) : authHist (GF := GF) γa hs ⊢ |==> authHist γa (hs ++ [st]) := by
   unfold authHist
-  iintro H
+  iintro ⟨H, %Hk⟩
   imod (monoListAuthOwn_update_app (γ := γa) (l := hs) [st]) $$ H with ⟨H, -⟩
   imodintro
-  iexact H
+  iframe H
+  ipureintro
+  intro x hx
+  rw [List.mem_append, List.mem_singleton] at hx
+  rcases hx with hx | rfl
+  · exact Hk x hx
+  · exact hk
+
+/-- The view's four states are recorded (persistent). -/
+def recordedV (γa : AuthNames) (v : AuthView) : IProp GF :=
+  iprop((∃ i : Nat, authStateAt γa i v.flag) ∗ (∃ i : Nat, authStateAt γa i v.rev) ∗
+    (∃ i : Nat, authStateAt γa i v.user) ∗ (∃ i : Nat, authStateAt γa i v.cache))
+
+instance recordedV_persistent (γa : AuthNames) (v : AuthView) :
+    Persistent (recordedV (GF := GF) γa v) := by
+  unfold recordedV; infer_instance
+
+/-- Four recorded states as a view. -/
+theorem recordedV_intro (γa : AuthNames) (i j k l : Nat) (a b c d : AuthState) :
+    authStateAt (GF := GF) γa i a ⊢ authStateAt γa j b -∗ authStateAt γa k c -∗
+      authStateAt γa l d -∗ recordedV γa ⟨a, b, c, d⟩ := by
+  unfold recordedV
+  iintro Ha Hb Hc Hd
+  isplitl [Ha]
+  · iexists i; iexact Ha
+  isplitl [Hb]
+  · iexists j; iexact Hb
+  isplitl [Hc]
+  · iexists k; iexact Hc
+  · iexists l; iexact Hd
+
+/-- One recorded state, as every state of the view. -/
+theorem recordedV_diag (γa : AuthNames) (i : Nat) (st : AuthState) :
+    authStateAt (GF := GF) γa i st ⊢ recordedV γa ⟨st, st, st, st⟩ := by
+  unfold recordedV
+  iintro #H
+  iframe #
 
 /-- **A permission check's verdict** in the mode `M` (persistent; see the file header): `off`,
-the check passed; `any`, nothing; `on γa`, a recorded state that permitted the operation if it
-passed, a recorded state that did not if it refused. -/
+the check passed; `any`, nothing; `on γa`: if it passed, a recorded state that permitted the
+operation (`permitted`: auth disabled, or the user granted it) and a recorded state whose
+revision admitted the token (or at which auth was disabled); if it refused, a view of four
+recorded states in which it refuses (`refusedV`). -/
 def permVerdict (M : AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (key rangeEnd : GoString) (op : PermType) (err : GoInterface) : IProp GF :=
   match M with
@@ -278,7 +457,9 @@ def permVerdict (M : AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
       iprop((∃ (i : Nat) (st : AuthState), authStateAt γa i st ∗
           ⌜err = GoInterface.nil → permitted st (authInfoM info) key rangeEnd op⌝) ∗
         (∃ (i : Nat) (st : AuthState), authStateAt γa i st ∗
-          ⌜err ≠ GoInterface.nil → ¬ permitted st (authInfoM info) key rangeEnd op⌝))
+          ⌜err = GoInterface.nil → st.enabled = false ∨ st.revision ≤ (authInfoM info).rev⌝) ∗
+        (∃ v : AuthView, recordedV γa v ∗
+          ⌜err ≠ GoInterface.nil → refusedV v (authInfoM info) key rangeEnd op⌝))
 
 instance permVerdict_persistent (M : AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (key rangeEnd : GoString) (op : PermType) (err : GoInterface) :
@@ -297,8 +478,10 @@ theorem permVerdict_off (M : AuthMode) (info : go_etcd_io.etcd.server.v3.auth.Au
   · unfold permVerdict; iintro -; ipureintro; intro h; cases h
   · unfold permVerdict; iintro -; ipureintro; intro h; cases h
 
-/-- **`IsAdminPermitted`'s verdict** in the mode `M` (persistent), for the `AuthInfo` `a`
-(`none`: a `nil` pointer). -/
+/-- **`IsAdminPermitted`'s verdict** in the mode `M` (persistent), for the `AuthInfo` `ai`
+(`none`: a `nil` pointer): `on γa`, if it passed a recorded state at which the principal is admin
+(`adminOk`), if it refused the recorded states of the flag and of the user in which it refuses
+(`adminRefused`). -/
 def adminVerdict (M : AuthMode) (ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (err : GoInterface) : IProp GF :=
   match M with
@@ -307,8 +490,8 @@ def adminVerdict (M : AuthMode) (ai : Option go_etcd_io.etcd.server.v3.auth.Auth
   | .on γa =>
       iprop((∃ (i : Nat) (st : AuthState), authStateAt γa i st ∗
           ⌜err = GoInterface.nil → adminOk st (ai.map authInfoM)⌝) ∗
-        (∃ (i : Nat) (st : AuthState), authStateAt γa i st ∗
-          ⌜err ≠ GoInterface.nil → ¬ adminOk st (ai.map authInfoM)⌝))
+        (∃ (i j : Nat) (sf su : AuthState), authStateAt γa i sf ∗ authStateAt γa j su ∗
+          ⌜err ≠ GoInterface.nil → adminRefused sf su (ai.map authInfoM)⌝))
 
 instance adminVerdict_persistent (M : AuthMode) (ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (err : GoInterface) : Persistent (adminVerdict (GF := GF) M ai err) := by
@@ -353,36 +536,6 @@ instance revisionVerdict_persistent (M : AuthMode) (x : w64) :
 
 theorem revisionVerdict_any (x : w64) : ⊢ revisionVerdict (GF := GF) .any x := by
   unfold revisionVerdict; itrivial
-
-/-! ## Well-formedness of a state's permissions (the request side's premises; the auth plan's S2) -/
-
-/-- `isValidPermissionRange(key, rangeEnd)` (`range_perm_cache.go`, checked by
-`RoleGrantPermission`): a non-empty key, and a point, a range with `key < rangeEnd`, or an
-open-ended range. -/
-def rangeValid (key rangeEnd : GoString) : Prop :=
-  key ≠ [] ∧ (rangeEnd = [] ∨ go.GoStringLt key rangeEnd ∨ isOpenEnded rangeEnd)
-
-/-- Every permission of every role has a non-empty key (`rangeValid`'s first rule): the
-permission cache's interval trees take the empty key as the top of the key space (`adt.affCmp`,
-the affine order), the model as its least key; the cache computes `coversPoint`/`coversRange` of
-such states. -/
-def permKeysOk (st : AuthState) : Prop :=
-  ∀ r ps, st.roles !! r = some ps → ∀ p ∈ ps, p.key ≠ []
-
-/-- A user's permissions fit an interval tree's count (`getMergedPerms` inserts each into a tree
-whose count is a `uint64` kept below `2^63`, `adt.ownIvt`). -/
-def permsFit (st : AuthState) : Prop :=
-  ∀ u roles, st.users !! u = some roles → (userPerms st roles).length < 2 ^ 63
-
-/-- A permission of the user `u` is one of a role of the state. -/
-theorem mem_userPerms {st : AuthState} {u : User} {p : Perm} (h : p ∈ userPerms st u) :
-    ∃ r ps, st.roles !! r = some ps ∧ p ∈ ps := by
-  unfold userPerms at h
-  rw [List.mem_flatMap] at h
-  obtain ⟨r, -, hp⟩ := h
-  cases hr : st.roles !! r with
-  | none => rw [hr] at hp; cases hp
-  | some ps => rw [hr] at hp; exact ⟨r, ps, hr, hp⟩
 
 end ghost
 
