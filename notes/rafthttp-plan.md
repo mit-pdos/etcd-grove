@@ -787,9 +787,25 @@ trust-boundary spec.
    served, linkv3p's partitioner holding each member's token (`srvPeerCtl`) and taking
    `PeerPausable`. Trust check: `http.Serve_ok` and `Transport.Handler.wp_proof` new,
    `http.register`/`reserve` newly reached, `EtcdServer.RaftHandler.wp_proof` and
-   `net.http.Serve.wp_proof` gone: baseline 552 -> 554 (for the user's review). Left: 6e (the
+   `net.http.Serve.wp_proof` gone: baseline 552 -> 554 (accepted by the user 2026-10-24). Left: 6e (the
    spec-only helpers) and 6f (linking rafthttp, which turns the transport's axioms into
    `TransportSpecs.lean`'s theorems and reaches `swMsgBound_phys`, `SendSnapshot`, `ActiveSince`).
+
+   **6e (2026-10-24).** The spec-only helpers proved over their callees' specs (not linked until
+   6f): `setPeerURLsHeader` (its post now says the other headers are kept), `createPostRequest`
+   (`NewRequest` of a plain URL does not fail, so `lg.Panic` is dead), `checkPostResponse` (the
+   status switch as `dial`'s; the errors other than `errMemberRemoved` told from it by their
+   cells), `checkStreamSupport`, `checkClusterCompatibilityFromHeader` (with `minClusterVersion` and
+   `checkVersionCompatibility` specified and proved; `serverVersion`'s spec generalized: a panic,
+   allowed, on a header that does not parse). `types.URLs.Len` translated. rafthttp's fact gains the
+   three errors' cells (`errVarCells`) and `supportedStream`'s value (a read-only map of read-only
+   slices). Accepted by the user (2026-10-24), new boundary items: `http.URLStringAny_ok` (`URL.String` of any
+   URL returns), `http.HeaderGetOwnPtr_ok` (`Header.Get` on a request's map being built),
+   `http.reqURL_ok` (a request's `URL` field read-only), `http.StatusText_ok`, the init axiom
+   `supportedStream_init` (reached by every result through rafthttp's initializer), and
+   `fmt.ErrorfPlain`'s statement strengthened (its error's `errorString` cell holds the message,
+   which begins with the format's literal text, `fmt.litPrefix`: what tells an `Errorf` error from
+   `errMemberRemoved`). Trust check: `supportedStream_init` new, baseline 554 -> 555 (the HTTP items reached at 6f). Left: 6f (linking).
 
 ## Costs and risks
 

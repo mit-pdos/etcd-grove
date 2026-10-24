@@ -123,6 +123,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.recvFailures_i
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rttSec_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.sentBytes_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.sentFailures_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.supportedStream_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.opaqueInitsOk

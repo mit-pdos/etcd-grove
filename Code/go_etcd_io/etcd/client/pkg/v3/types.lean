@@ -93,6 +93,16 @@ noncomputable def NewURLsMapFromStringMap [FfiSyntax] [GoGlobalContext] : GoStri
 noncomputable def parse [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.parse"
 
+/-- go: urls.go:75:16 -/
+noncomputable def URLs.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "us"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "us" (App (Val (GoInstruction (GoAlloc URLs.ty))) (Var "us"))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "us"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [URLs.ty]))) (Val #())) (Var "$a0"))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.types where
   pkgImportedPkgs := [pkg_id.net.url]
 
@@ -212,8 +222,13 @@ abbrev URLs [FfiSyntax] : Type := GoSlice
 
 class URLs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq URLs.ty URLs.underlying
+  Len_unfold : MethodUnfold URLs.ty go!"Len" URLs.Len.impl
+  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType URLs.ty) go!"Len" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve URLs.ty go!"Len"))) (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "$r"))))
 
 attribute [instance] URLs.TypeAssumptions.underlying
+  URLs.TypeAssumptions.Len_unfold
+  URLs.TypeAssumptions.ptr_Len_unfold
 
 abbrev URLsMap [FfiSyntax] : Type := GoMap
 

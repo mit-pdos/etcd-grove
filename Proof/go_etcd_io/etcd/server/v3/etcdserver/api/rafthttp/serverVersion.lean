@@ -29,7 +29,7 @@ theorem rafthttp.serverVersion.wp_proof
     (hHeaderGetPtr : http.HeaderGetPtr_spec (GF := GF))
     (hMP : semver.MustParse.spec (GF := GF) (hG := hG)) :
     rafthttp.serverVersion.spec (GF := GF) (hG := hG) := by
-  intro hm hs Hv
+  intro hm hs
   wp_start as #Hhs
   wp_auto
   ipersist h
@@ -38,36 +38,31 @@ theorem rafthttp.serverVersion.wp_proof
   (try wp_auto)
   ihave #Hsp : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
   · iPkgInit
-  -- the string parsed: the header, or `"2.0.0"` if unset; either is valid
-  have Hvalid : apply.semverValid
-      (if http.hdrGet hs go!"X-Server-Version" = [] then go!"2.0.0"
-       else http.hdrGet hs go!"X-Server-Version") := by
-    split
-    · exact semver.semverValid_simple _ (by decide)
-    · rcases Hv with h | h
-      · rename_i hne; exact absurd (h.trans goString_empty) hne
-      · exact h
   by_cases he : http.hdrGet hs go!"X-Server-Version" = []
-  · rw [he] at Hvalid ⊢
-    simp only [↓reduceIte] at Hvalid
+  · -- unset: `"2.0.0"`, valid
+    rw [he]
+    simp only [↓reduceIte]
     (try wp_auto)
     wp_apply hMP as %rv %Hrv
     obtain ⟨nv, rfl, Hnv⟩ : ∃ v : Loc, rv = #v ∧ v ≠ null := by
       rcases Hrv with ⟨-, h⟩ | ⟨Hn, -⟩
       · exact h
-      · exact absurd Hvalid Hn
+      · exact absurd (semver.semverValid_simple _ (by decide)) Hn
     wp_auto
-    iapply HΦ; ipureintro; exact Hnv
-  · simp only [he, ↓reduceIte] at Hvalid
-    (try simp only [_root_.decide_eq_false he])
+    iapply HΦ; ipureintro; exact Or.inl ⟨nv, rfl, Hnv⟩
+  · (try simp only [_root_.decide_eq_false he])
     (try wp_auto)
     wp_apply hMP as %rv %Hrv
-    obtain ⟨nv, rfl, Hnv⟩ : ∃ v : Loc, rv = #v ∧ v ≠ null := by
-      rcases Hrv with ⟨-, h⟩ | ⟨Hn, -⟩
-      · exact h
-      · exact absurd Hvalid Hn
-    wp_auto
-    iapply HΦ; ipureintro; exact Hnv
+    rcases Hrv with ⟨Hval, nv, rfl, Hnv⟩ | ⟨Hn, p, rfl⟩
+    · wp_auto
+      iapply HΦ; ipureintro; exact Or.inl ⟨nv, rfl, Hnv⟩
+    · -- the header does not parse: `MustParse` panics
+      wp_auto
+      iapply HΦ; ipureintro
+      refine Or.inr ⟨fun Hv => ?_, p, rfl⟩
+      rcases Hv with h | h
+      · exact he (h.trans goString_empty)
+      · exact Hn h
 
 end proof
 

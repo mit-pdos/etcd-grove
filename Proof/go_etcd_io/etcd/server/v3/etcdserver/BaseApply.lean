@@ -208,7 +208,17 @@ abbrev rafthttpInit : IProp GF :=
     EtcdGrove.errorsNewVar errUnsupportedStreamType go!"unsupported stream type" ∗
     -- (2026-10-23, rafthttp stage 6c) the probers' round-trip histogram (`metrics.go`, untranslated):
     -- some pointer, read-only for good (`AddPeer` hands it to the prober)
-    (∃ v : Loc, globalAddr rttSec ↦□ v))
+    (∃ v : Loc, globalAddr rttSec ↦□ v) ∗
+    -- (2026-10-24, rafthttp stage 6e) the cells of the errors `checkPostResponse` returns, which
+    -- tell them from `errMemberRemoved` (`errVarCell`; D19k)
+    EtcdGrove.errVarCells [(errIncompatibleVersion, go!"incompatible version"),
+      (ErrClusterIDMismatch, go!"cluster ID mismatch"),
+      (errMemberRemoved, go!"the member has been permanently removed from the cluster")] ∗
+    -- (2026-10-24, rafthttp stage 6e) the stream types each version supports (`stream.go`,
+    -- untranslated): a map of slices, read-only for good (the stream reader's
+    -- `checkStreamSupport` looks a peer's version up)
+    (∃ (m : Loc) (M : GMap GoString GoSlice), globalAddr supportedStream ↦□ m ∗ m ↦$□ M ∗
+      □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit

@@ -100,6 +100,19 @@ axiom NewRequest_ok : NewRequest_spec (GF := GF)
 /-- (stage 5e-3) `url.URL.String` of a plain URL (`URLString_spec`). -/
 axiom URLString_ok : URLString_spec (GF := GF)
 
+/-- (rafthttp stage 6e) `Header.Get` on a request's header map being built
+(`HeaderGetOwnPtr_spec`). -/
+axiom HeaderGetOwnPtr_ok : HeaderGetOwnPtr_spec (GF := GF)
+
+/-- (rafthttp stage 6e) a request's `URL` field, read-only (`reqURL_spec`). -/
+axiom reqURL_ok : reqURL_spec (GF := GF)
+
+/-- (rafthttp stage 6e) `http.StatusText` (`StatusText_spec`). -/
+axiom StatusText_ok : StatusText_spec (GF := GF)
+
+/-- (rafthttp stage 6e) `url.URL.String` of any URL (`URLStringAny_spec`). -/
+axiom URLStringAny_ok : URLStringAny_spec (GF := GF)
+
 /-- (2026-10-23, stage 5f: the stream writer's) `ResponseWriter.Write` (`respWrite_spec`): writes a
 prefix of its bytes, all unless it fails (`io.Writer`'s contract). -/
 axiom respWrite_ok (H : HttpNet GF) : respWrite_spec H

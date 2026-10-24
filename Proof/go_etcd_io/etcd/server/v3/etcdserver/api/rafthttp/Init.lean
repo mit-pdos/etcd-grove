@@ -91,7 +91,6 @@ axiom opaqueInitsOk :
         statusMonitoringInterval.init,
         statusErrorInterval.init,
         snapResponseReadTimeout.init,
-        supportedStream.init,
         errMemberNotFound.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
@@ -126,6 +125,11 @@ axiom linkHeartbeatMessage_init :
 axiom linkHeartbeatSize_init :
     {{ (True : IProp GF) }} (App (Val linkHeartbeatSize.init) (Val #()))
     {{ RET #(); ∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝ }}
+
+/-- `supportedStream = map[string][]streamType{"2.0.0": {}, "2.1.0": {streamTypeMsgAppV2, streamTypeMessage}, ...}` (`stream.go`): a map of slices; nothing writes the map or its slices. -/
+axiom supportedStream_init :
+    {{ (True : IProp GF) }} (App (Val supportedStream.init) (Val #()))
+    {{ RET #(); ∃ (m : Loc) (M : GMap GoString GoSlice), globalAddr supportedStream ↦ m ∗ m ↦$□ M ∗ □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts }}
 
 /-- `receivedBytes = prometheus.NewCounterVec(..., []string{"From"})`
 (`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
@@ -303,7 +307,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk snapResponseReadTimeout.init (by mem_tac))
   wp_apply (errorsNewVarsInit errUnsupportedStreamType.init errUnsupportedStreamType go!"unsupported stream type" (by mem_tac))
     as ⟨%xerrUnsupportedStreamType, HerrUnsupportedStreamType, #MerrUnsupportedStreamType, #CerrUnsupportedStreamType⟩
-  wp_apply (opaqueInitsOk supportedStream.init (by mem_tac))
+  wp_apply supportedStream_init as ⟨%msupportedStream, %MsupportedStream, HsupportedStream, #MMsupportedStream, #MEsupportedStream⟩
   wp_apply linkHeartbeatMessage_init as #HlinkHeartbeatMessage
   wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
   wp_apply (errorsNewVarsInit errMemberRemoved.init errMemberRemoved go!"the member has been permanently removed from the cluster" (by mem_tac))
@@ -333,6 +337,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HlinkHeartbeatSize
   ipersist HreadBytesLimit
   ipersist HerrUnsupportedStreamType
+  ipersist HsupportedStream
   iframe Hown
   imodintro
   isplitr
@@ -353,7 +358,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iexact HRaftStreamPrefix
   isplitr
   · iexact HRaftSnapshotPrefix
-  simp only [EtcdGrove.errorsNewVar]
+  simp only [EtcdGrove.errorsNewVar, EtcdGrove.errVarCells, EtcdGrove.errVarCell]
   iframe #
   try (ipureintro; exact BlinkHeartbeatSize)
 

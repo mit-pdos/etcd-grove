@@ -1,7 +1,7 @@
 /-
-`checkStreamSupport(v, t)` (`stream.go`; rafthttp stage 5e-3). Lean-first. Spec only for now:
-its proof reads the untranslated `supportedStream` map (the package's initializer), whose value a
-fact of the package would give.
+`checkStreamSupport(v, t)` (`stream.go`; rafthttp stage 5e-3). Lean-first. (Proved in stage 6e,
+2026-10-24, over rafthttp's fact of the untranslated `supportedStream`: a read-only map of read-only
+slices, `supportedStream_init`.)
 -/
 module
 

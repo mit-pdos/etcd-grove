@@ -20,15 +20,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`serverVersion(h)`** of a header map whose `X-Server-Version` is unset or parses
-(`verHdrOk`, a raft member's response headers): the parsed version (`"2.0.0"` if unset), not
-`nil`; no panic. -/
+/-- **`serverVersion(h)`** of a header map `hm` holding `hs`: a version (not `nil`), or (2026-10-24,
+rafthttp stage 6e: any header, a request handler's) a panic when its `X-Server-Version` does not
+parse (`semver.MustParse`), never when it does (`verHdrOk`: unset, or valid). -/
 abbrev rafthttp.serverVersion.spec : Prop :=
   ∀ (hm : Loc) (hs : List (GoString × GoString)),
-  verHdrOk hs →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ http.hdrAt hm hs }}
     (App (Val (@! rafthttp.serverVersion)) (Val #hm))
-  {{ (v : Loc), RET #v; ⌜v ≠ null⌝ }}
+  {{ (r : val), RET r; ⌜(∃ v : Loc, r = #v ∧ v ≠ null) ∨ (¬ verHdrOk hs ∧ ∃ p : val, r = PanicV p)⌝ }}
 
 end spec
 

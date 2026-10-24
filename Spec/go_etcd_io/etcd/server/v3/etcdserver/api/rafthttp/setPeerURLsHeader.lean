@@ -1,7 +1,7 @@
 /-
-`setPeerURLsHeader(req, urls)` (`util.go`; rafthttp stage 5e-3). Lean-first. Spec only for now
-(as `createPostRequest`'s): its proof needs `url.URL.String` of any URL, which the HTTP boundary
-states only of plain ones (`URLString_spec`).
+`setPeerURLsHeader(req, urls)` (`util.go`; rafthttp stage 5e-3). Lean-first. (Proved in stage 6e,
+2026-10-24, over `url.URL.String` of any URL, `URLStringAny_spec`; its post since then says the
+other headers are kept, what `createPostRequest`'s `X-Server-From` needs.)
 -/
 module
 
@@ -27,7 +27,9 @@ abbrev rafthttp.setPeerURLsHeader.spec : Prop :=
   ∀ (r : Loc) (R : http.HReq) (urls : GoSlice) (uvs : List net.url.URL),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ http.reqOwn r R ∗ urls ↦*□ uvs }}
     (App (App (Val (@! rafthttp.setPeerURLsHeader)) (Val #r)) (Val #urls))
-  {{ RET #(); ∃ hs : List (GoString × GoString), http.reqOwn r { R with hdr := hs } }}
+  {{ RET #(); ∃ hs : List (GoString × GoString),
+      ⌜∀ k, http.canonKey k ≠ http.canonKey go!"X-PeerURLs" → http.hdrGet hs k = http.hdrGet R.hdr k⌝ ∗
+      http.reqOwn r { R with hdr := hs } }}
 
 end spec
 

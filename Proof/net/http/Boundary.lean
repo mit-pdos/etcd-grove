@@ -759,6 +759,42 @@ def URLString_spec : Prop :=
           (Val #()))
       {{ RET #(urlOf u.Host' u.Path'); p ↦{dq} u }}
 
+/-- `(&hm).Get(k)` on a request's header map being built (2026-10-24, rafthttp stage 6e:
+`checkPostResponse` logs the request's `X-Etcd-Cluster-ID`): the map's `Get`, through the
+request's `Header` field. -/
+def HeaderGetOwnPtr_spec : Prop :=
+  ∀ (p hm : Loc) (hs : List (GoString × GoString)) (k : GoString),
+    ⊢ {{ p ↦□ hm ∗ hdrOwn (GF := GF) hm hs }}
+        (App (Val (p @!! go.GoType.PointerType _root_.Perennial.net.http.Header.ty @!! go!"Get"))
+          (Val #k))
+      {{ RET #(hdrGet hs k); hdrOwn hm hs }}
+
+/-- **A request's `URL` field** (2026-10-24, rafthttp stage 6e): `NewRequest` sets it to the
+parsed URL and nothing writes it or the URL after (`req.URL.String()`, `checkPostResponse`'s
+error message): read-only for good, a fact of the rest of a request (`reqRest`). -/
+def reqURL_spec : Prop :=
+  ∀ (r : Loc) (R : HReq),
+    reqRest (GF := GF) r R ⊢ reqRest r R ∗
+      ∃ (up : Loc) (u : _root_.Perennial.net.url.URL), reqF go!"URL" r ↦□ up ∗ up ↦□ u
+
+/-- `http.StatusText(code)` (2026-10-24, rafthttp stage 6e: `checkPostResponse`'s error message):
+some string (Go's table lookup, `""` for an unknown code). -/
+def StatusText_spec : Prop :=
+  ∀ (code : w64),
+    ⊢ {{ (True : IProp GF) }}
+        (App (Val (@! _root_.Perennial.net.http.StatusText)) (Val #code))
+      {{ (s : GoString), RET #s; True }}
+
+/-- `u.String()` of any URL (2026-10-24, rafthttp stage 6e: `setPeerURLsHeader` renders the
+transport's peer URLs, whatever they are): some string; it reads the URL only. Go's `URL.String`
+assembles its fields with `escape` and never panics. -/
+def URLStringAny_spec : Prop :=
+  ∀ (p : Loc) (dq : DFrac) (u : _root_.Perennial.net.url.URL),
+    ⊢ {{ (p ↦{dq} u : IProp GF) }}
+        (App (Val (p @!! go.GoType.PointerType _root_.Perennial.net.url.URL.ty @!! go!"String"))
+          (Val #()))
+      {{ (s : GoString), RET #s; p ↦{dq} u }}
+
 /-! `encoding/binary`'s `Write` and `Read` of an integer (the codecs' length prefixes) are
 `Spec/encoding/binary/{WriteUint64,WriteUint8,ReadUint64}.lean`. -/
 

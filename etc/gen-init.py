@@ -202,7 +202,13 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
         'linkHeartbeatSize': dict(
         doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
         post='∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝',
-        pat='⟨%n@, H@, %B@⟩')},
+        pat='⟨%n@, H@, %B@⟩'),
+        # (2026-10-24, rafthttp stage 6e) the stream types each version supports, which the stream
+        # reader's `checkStreamSupport` looks up
+        'supportedStream': dict(
+        doc='/-- `supportedStream = map[string][]streamType{"2.0.0": {}, "2.1.0": {streamTypeMsgAppV2, streamTypeMessage}, ...}` (`stream.go`): a map of slices; nothing writes the map or its slices. -/',
+        post='∃ (m : Loc) (M : GMap GoString GoSlice), globalAddr supportedStream ↦ m ∗ m ↦$□ M ∗ □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts',
+        pat='⟨%m@, %M@, H@, #MM@, #ME@⟩')},
     alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64',
                  'ProbingPrefix': 'GoString', 'RaftStreamPrefix': 'GoString',
                  'RaftSnapshotPrefix': 'GoString'},
@@ -219,6 +225,7 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
             'ipersist HRaftPrefix', 'ipersist HProbingPrefix', 'ipersist HRaftStreamPrefix',
             'ipersist HRaftSnapshotPrefix', 'ipersist HConnReadTimeout', 'ipersist HlinkHeartbeatSize',
             'ipersist HreadBytesLimit', 'ipersist HerrUnsupportedStreamType',
+            'ipersist HsupportedStream',
             'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
             'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'isplitr',
@@ -227,8 +234,8 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
             'isplitr', '· iexact HRaftPrefix',
             'isplitr', '· iexact HProbingPrefix', 'isplitr', '· iexact HRaftStreamPrefix',
             'isplitr', '· iexact HRaftSnapshotPrefix',
-            'simp only [EtcdGrove.errorsNewVar]', 'iframe #',
-            'try (ipureintro; exact BlinkHeartbeatSize)'],
+            'simp only [EtcdGrove.errorsNewVar, EtcdGrove.errVarCells, EtcdGrove.errVarCell]',
+            'iframe #', 'try (ipureintro; exact BlinkHeartbeatSize)'],
 )
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',

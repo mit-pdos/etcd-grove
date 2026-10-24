@@ -148,7 +148,7 @@ local macro "status_switch" : tactic => `(tactic| (
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, #HE⟩
+    wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
     · iframe #; iframe Hasl
       simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero,
         fmt.argsOk, fmt.argOk]
@@ -226,7 +226,7 @@ local macro "status_switch" : tactic => `(tactic| (
       isplitr
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
-      wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, #HE⟩
+      wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
       · iframe #; iframe Hasl
         simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero,
           fmt.argsOk, fmt.argOk]
@@ -244,7 +244,7 @@ local macro "status_switch" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, #HE⟩
+  wp_apply hErrorf _ _ _ _ (by decide) $$ [Hasl] as %x ⟨-, %msg, -, -, #HE⟩
   · iframe #; iframe Hasl
     simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero,
       fmt.argsOk, fmt.argOk]
@@ -368,7 +368,7 @@ theorem rafthttp.streamReader.dial.wp_proof
     unfold http.reqRest
     iexact Hrest
   (try wp_auto)
-  wp_apply hSetPeer req _ urls uvs $$ [$Hreq] as ⟨%hs, Hreq⟩
+  wp_apply hSetPeer req _ urls uvs $$ [$Hreq] as ⟨%hs, -, Hreq⟩
   · iframe #
   (try wp_auto)
   wp_apply hWithContext req _ ctx $$ [$Hreq] as %req' Hreq
@@ -441,8 +441,12 @@ theorem rafthttp.streamReader.dial.wp_proof
       rw [Hsv _ (by decide)]
       exact Hrh0
     (try wp_auto)
-    wp_apply hServerVersion rhm rhs Hvh $$ [] as %rv %Hrv
+    wp_apply hServerVersion rhm rhs $$ [] as %rvv %Hrvv
     · iframe #
+    obtain ⟨rv, rfl, Hrv⟩ : ∃ v : Loc, rvv = #v ∧ v ≠ null := by
+      rcases Hrvv with h | ⟨Hn, -⟩
+      · exact h
+      · exact absurd Hvh Hn
     (try wp_auto)
     ihave #Hsp : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
     · iPkgInit
@@ -492,7 +496,7 @@ theorem rafthttp.streamReader.dial.wp_proof
       · iframe Hmu Hlocked; inext; iexact Hinv
       (try wp_auto)
       ihave Hnil := ownSlice_nil (V := GoInterface) (GF := GF) DFrac.discard
-      wp_apply hErrorf _ slice.nil [] DFrac.discard (by decide) $$ [Hnil] as %x ⟨-, %msg, #HM⟩
+      wp_apply hErrorf _ slice.nil [] DFrac.discard (by decide) $$ [Hnil] as %x ⟨-, %msg, -, -, #HM⟩
       · iframe #
         simp only [fmt.argsOk]; itrivial
       (try wp_auto)
