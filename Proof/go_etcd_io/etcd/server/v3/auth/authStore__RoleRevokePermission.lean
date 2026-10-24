@@ -55,7 +55,7 @@ theorem map_snd_filter_zip {α β : Type} (xs : List α) (bs : List β) (p : β 
       cases hp : p b <;> simp [ih bs h, hp]
 
 /-- A known type keeps the key and the range end. -/
-theorem permOfWire_some {w : PermW} {p : Perm} (h : permOfWire w = some p) :
+theorem permOfWire_some_range {w : PermW} {p : Perm} (h : permOfWire w = some p) :
     p.key = w.key ∧ p.rangeEnd = w.rangeEnd := by
   unfold permOfWire at h
   split at h
@@ -79,7 +79,7 @@ theorem filterMap_filter_keepW (ws : List PermW) (key rangeEnd : GoString) :
     | none =>
       cases hk : keepW key rangeEnd w <;> simp [List.filterMap_cons, hw, ih]
     | some p =>
-      obtain ⟨hk, hr⟩ := permOfWire_some hw
+      obtain ⟨hk, hr⟩ := permOfWire_some_range hw
       have hb : keepW key rangeEnd w = !decide (permAt key rangeEnd p) := by
         unfold keepW
         by_cases h1 : w.key = key <;> by_cases h2 : w.rangeEnd = rangeEnd <;>
@@ -93,7 +93,7 @@ theorem none_on_of_all_kept (ws : List PermW) (key rangeEnd : GoString)
     ∀ p ∈ ws.filterMap permOfWire, ¬ permAt key rangeEnd p := by
   intro p hp
   obtain ⟨w, hw, hpw⟩ := List.mem_filterMap.mp hp
-  obtain ⟨hk, hr⟩ := permOfWire_some hpw
+  obtain ⟨hk, hr⟩ := permOfWire_some_range hpw
   have := h w hw
   unfold keepW at this
   unfold permAt; rw [hk, hr]
