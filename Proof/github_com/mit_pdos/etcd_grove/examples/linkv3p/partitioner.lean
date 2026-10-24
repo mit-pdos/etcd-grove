@@ -37,8 +37,8 @@ theorem partitioner.wp_proof
     (wp_peerStep : peerStep.spec (GF := GF) (hG := hG))
     (wp_clientStep : clientStep.spec (GF := GF) (hG := hG)) :
     partitioner.spec (GF := GF) (hG := hG) := by
-  intro γn srvs brs sched ss bs steps
-  wp_start as ⟨#Hsrvs, #Hbrs, #Hsched, #Hmem, Hown⟩
+  intro hpp γn srvs brs sched ss bs steps
+  wp_start as ⟨#Hsrvs, #Hbrs, #Hsched, Hmem, Hown⟩
   ihave %Hbl := ownSlice_len $$ Hbrs
   ihave %Hstl := ownSlice_len $$ Hsched
   wp_auto
@@ -74,8 +74,8 @@ theorem partitioner.wp_proof
     (try wp_auto)
     wp_if_destruct
     · (try wp_auto)
-      wp_apply (wp_peerStep γn srvs ss _ _ _) $$ []
-      · iframe #
+      wp_apply (wp_peerStep hpp γn srvs ss _ _ _) $$ [Hmem] as Hmem
+      · iframe #; iframe Hmem
       (try wp_auto)
       wp_for_post
       iframe
@@ -85,8 +85,8 @@ theorem partitioner.wp_proof
     (try wp_auto)
     wp_if_destruct
     · (try wp_auto)
-      wp_apply (wp_peerStep γn srvs ss _ _ _) $$ []
-      · iframe #
+      wp_apply (wp_peerStep hpp γn srvs ss _ _ _) $$ [Hmem] as Hmem
+      · iframe #; iframe Hmem
       (try wp_auto)
       wp_for_post
       iframe

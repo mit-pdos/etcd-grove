@@ -34,7 +34,7 @@ raft's `Node`, connected in process by `deliver`, each node driven by a `tick` g
   mutex-protected counter (`transfers`, `transfersInv`: one credit per count) and passes a
   `MsgTimeoutNow` on only while one is left (`transfers.take`), as `tick` bounds a node's
   ticks; `Main` allocates them with the budget.
-* **The peers** (`peerOk`): the node a peer table maps an id to is that id's, of the
+* **The peers** (`kvPeerOk`): the node a peer table maps an id to is that id's, of the
   cluster's raft ghost state and term budget (persistent).
 -/
 module
@@ -104,16 +104,16 @@ variable [StorageModel GF]
 
 /-- The node `nd` is node `id` of the cluster's raft ghost state `γ` and term budget `bud`
 (persistent). -/
-def peerOk (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) : IProp GF :=
+def kvPeerOk (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) : IProp GF :=
   iprop(∃ (γn : NodeNames) (n : Loc),
     ⌜γn.raft = γ ∧ γn.bud = bud ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n ∧
       -- (D22 S-r) a node that takes snapshots (`NodeNames.snapIn`): the transport delivers them
       γn.snapIn = true⌝ ∗
     isNode γn id n)
 
-instance peerOk_persistent (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) :
-    Persistent (peerOk (GF := GF) γ bud id nd) := by
-  unfold peerOk; infer_instance
+instance kvPeerOk_persistent (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) :
+    Persistent (kvPeerOk (GF := GF) γ bud id nd) := by
+  unfold kvPeerOk; infer_instance
 
 /-- The transfer budget's lock invariant (see the file header): the number of `MsgTimeoutNow`s
 the transport may still pass on (D19b, 2026-10-18: until then with one tick credit each; `take`

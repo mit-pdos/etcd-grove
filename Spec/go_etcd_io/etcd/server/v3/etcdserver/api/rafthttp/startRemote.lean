@@ -26,7 +26,7 @@ started remote and the right to stop it. -/
 abbrev rafthttp.startRemote.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (urls : GoSlice)
     (uvs : List net.url.URL) (pid : w64),
-  uvs ≠ [] → (∀ u ∈ uvs, peerURL Rh pid u) → Rh.member lid → lid ≠ pid →
+  uvs ≠ [] → (∀ u ∈ uvs, peerURL Rh pid u) → Rh.member lid → lid ≠ pid → Rh.member pid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       trFixed Rh t lid γd R ∗ urls ↦*□ uvs ∗ R ∗ R ∗ R ∗ R }}
     (App (App (App (Val (@! rafthttp.startRemote)) (Val #t)) (Val #urls)) (Val #pid))

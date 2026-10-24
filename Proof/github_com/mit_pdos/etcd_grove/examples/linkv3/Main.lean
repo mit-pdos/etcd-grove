@@ -83,7 +83,7 @@ theorem Main.wp_proof
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N id₁ id₂ id₃ bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
     H0 H31 Hops Hmul
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Htok, #Hprem⟩
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
   ihave #Hcom' := Hcom
@@ -169,16 +169,27 @@ theorem Main.wp_proof
   -- the ghost state of the cluster and its members (`putget3_alloc`)
   -- (in `bootstrap`'s order: `linkv3-2`, `-3`, `-1`; the client's `etcdKV` at `linkv3-1`'s names)
   imod (cluster3_alloc id₂ id₃ id₁ bootLog Hbf (dir3 id₁ id₂ id₃) (by omega)) with ⟨%γ, %bud, %ρ₂,
-    %ρ₃, %ρ₁, %E₂, %E₃, %E₁, %Φs, %γn, %Hal, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hmb₁, Hsl₁, Hetcd⟩
+    %ρ₃, %ρ₁, %E₂, %E₃, %E₁, %Φs, %γn, %Hal, Hmb₂, Hmb₃, Hmb₁, #Hreg, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁⟩ := Hal
   obtain ⟨hn23, hn21, hn31⟩ := id_ne id₂ id₃ id₁ bootLog Hbf
+  -- (2026-10-24, rafthttp stage 6d) the directory well formed; the three peer addresses reserved
+  -- for the raft protocol
+  have Hnz := putget3.id_nz id₂ id₃ id₁ bootLog Hbf
+  have Hdok : netDirOk (dir3 id₁ id₂ id₃) :=
+    dir3_ok id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
+  imod (netHttp_reserve3 γn peerAddr₁ peerAddr₂ peerAddr₃ (by rw [hγn2]; exact Hdok.1)
+      (fun i h hm => dir3_host id₁ id₂ id₃ i h (by rw [← hγn2]; exact hm)))
+    $$ Hreg Hf₁ Hf₂ Hf₃ with ⟨#Hnet, Ho₁, Ho₂, Ho₃⟩
+  ihave #Hsl₁ := Hnet $$ %id₁
+  ihave #Hsl₂ := Hnet $$ %id₂
+  ihave #Hsl₃ := Hnet $$ %id₃
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
       (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
+      Hdok (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -197,8 +208,8 @@ theorem Main.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
       (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3, hn21]) Hlg Hck Haf Hbuq Hdbo)
-    $$ [Ha₂ Htok Hmb₂ Hsl₂] as %s₂ %err₂ Hr₂
+      Hdok (by simp [dir3, hn21]) Hlg Hck Haf Hbuq Hdbo)
+    $$ [Ha₂ Htok Hmb₂ Ho₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
   · cases err₂ with
@@ -216,8 +227,8 @@ theorem Main.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
       (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3, hn31, hn23.symm]) Hlg Hck Haf Hbuq Hdbo)
-    $$ [Ha₃ Htok Hmb₃ Hsl₃] as %s₃ %err₃ Hr₃
+      Hdok (by simp [dir3, hn31, hn23.symm]) Hlg Hck Haf Hbuq Hdbo)
+    $$ [Ha₃ Htok Hmb₃ Ho₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
   · cases err₃ with

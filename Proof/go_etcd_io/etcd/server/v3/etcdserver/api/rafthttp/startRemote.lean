@@ -32,13 +32,15 @@ theorem rafthttp.startRemote.wp_proof
     (hNewPicker : rafthttp.newURLPicker.spec (GF := GF) (hG := hG))
     (hPipeStart : rafthttp.pipeline.start.spec (GF := GF) (hG := hG)) :
     rafthttp.startRemote.spec (GF := GF) (hG := hG) := by
-  intro Rh t lid γd R urls uvs pid Hne Hurls Hmem Hnp
+  intro Rh t lid γd R urls uvs pid Hne Hurls Hmem Hnp Hpm
   wp_start as ⟨#Htr, #Hus, HR1, HR2, HR3, HR4⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %Hmem⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %Hmem⟩
+  have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
+  ihave #Hpreg := Hpreg0 $$ %pid %Hpp
   wp_auto
   wp_apply hNewPicker urls uvs (peerURL Rh pid) Hne Hurls $$ [] as %pk #Hpk
   · iframe #
@@ -58,8 +60,6 @@ theorem rafthttp.startRemote.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    isplitr
-    · iapply Hpreg
     ipureintro; exact ⟨Hmem, Hnp⟩
   (try wp_auto)
   obtain ⟨pl, hpl⟩ : ∃ pl : Loc, pl = «$r0_ptr» := ⟨_, rfl⟩

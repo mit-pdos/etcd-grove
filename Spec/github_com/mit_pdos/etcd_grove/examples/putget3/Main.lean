@@ -46,7 +46,8 @@ abbrev Main.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putget3 ∗
       netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
       netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
-      threadTok ∗ premises N id₁ id₂ id₃ bootLog }}
+      httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
+      httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ bootLog }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.putget3.Main)) (Val #()))
   {{ RET #(); True }}
 

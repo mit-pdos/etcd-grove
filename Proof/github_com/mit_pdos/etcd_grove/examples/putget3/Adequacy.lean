@@ -168,7 +168,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   iunfold startRights at Hrights
   simp only [putget3Names, putget3Addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩, -⟩
+  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩, ⟨Hf₁, Hf₂, Hf₃, -, -⟩⟩
   ihave #Hprem' := Hprem0
   imodintro
   unfold putget3Program
@@ -180,7 +180,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iframe
   have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ bootLog Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
-  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Htok]
+  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Hf₁ Hf₂ Hf₃ Htok]
   · iframe; iframe #
   ipureintro
   rfl

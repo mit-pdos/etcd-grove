@@ -81,10 +81,32 @@ theorem netOwner_of_mem (dir : w64 → List GoString) (hd : dirHostsDistinct dir
   rw [dif_pos hx]
   exact hd _ _ _ (Classical.choose_spec hx) hm
 
+/-- A host owned by a member is one of that member's peer URLs' (with no member `0`; stage 6d). -/
+theorem netOwner_mem (dir : w64 → List GoString) (h : GoString) (pid : w64) (hd0 : dir 0 = [])
+    (ho : netOwner dir h = pid) (hm : dir pid ≠ []) : go!"http://" ++ h ∈ dir pid := by
+  unfold netOwner at ho
+  by_cases hx : ∃ id, go!"http://" ++ h ∈ dir id
+  · rw [dif_pos hx] at ho
+    rw [← ho]
+    exact Classical.choose_spec hx
+  · rw [dif_neg hx] at ho
+    subst ho
+    exact absurd hd0 hm
+
 /-- **The network's raft-over-HTTP names** (D34, stage 6a): its owner map from the directory, its
 streams' registry, (stage 6d) its members those with peer URLs in the directory. -/
 noncomputable def netRh (γn : NetNames GF) : RaftHttp GF :=
   ⟨γn, netOwner γn.dir, γn.reg, fun id => γn.dir id ≠ []⟩
+
+/-- `netRh`'s owner map (stage 6d). Proved by `simp`, not `rfl`: the definitional check of the
+projection against `netOwner` unfolds `netOwner`'s body (a classical `if` over the `go!` byte
+literal) and exceeds Lean's default recursion depth; rewrite with this instead. -/
+theorem netRh_owner (γn : NetNames GF) (h : GoString) : (netRh γn).owner h = netOwner γn.dir h := by
+  simp only [netRh]
+
+/-- `netRh`'s members: those with peer URLs. -/
+theorem netRh_member (γn : NetNames GF) (id : w64) : (netRh γn).member id ↔ γn.dir id ≠ [] :=
+  Iff.rfl
 
 /-- **A request's sender, from its headers** (stage 6d; D35): `X-Server-From` holds the id of a
 member other than the receiver `rid` (`addRemoteFromRequest` reads it: then `AddRemote` of a peer

@@ -54,6 +54,7 @@ theorem snapBranch_send
     (s ml : Loc) (st : MsgSt) (sn0 : SnapshotM) (ai at_ : w64) (cs lg : Loc) (kv be : GoInterface)
     (RC RC' RS RS' : IProp GF) (Qd : backend.Data → Prop) (γ : RaftNames) (bud : BudgetNames)
     (A : List EntryM) (id : w64) (stg : Loc) (tr : GoInterface) (γn : NetNames GF) (S : IProp GF)
+    (lid : w64)
     (sid : w64)
     (Hty : st.msg.Type' = MsgSnap) (Hsn : st.snap = some sn0)
     (Hix : uint.Z sn0.Metadata'.Index' ≤ uint.Z ai)
@@ -73,7 +74,7 @@ theorem snapBranch_send
         □ (∀ c : ConfStateM, csOpt cs DFrac.discard c -∗
           raftSnapCert γ ⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave', []⟩) ∗
         srvMemberIDAddr s ↦□ id ∗ srvInflight s ∗ srvStoppingAddr s ↦□ stg ∗ stopChan stg ∗
-        rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn tr S }}
+        rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn lid tr S }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"sendMergedSnap"))
         (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
           go!"createMergedSnapshotMessage")) (Val #ml)) (Val #at_)) (Val #ai)) (Val #cs)))
@@ -88,7 +89,7 @@ theorem snapBranch_send
   ihave #Hcc := Hccs $$ %c Hcso
   imod srvMergedBundle γ sid bud ⊤ ml st sn0 c ai at_ A rc D (by simp) Hty Hsn Hix HAlen HAlast Hsok
     $$ Hinv Hrm Htlb Hbnd HA Hcc Hml Hrs HimgD with Hbun
-  wp_apply hSMS s mg ml rc lg id stg tr γn S $$ [Hgr Hlr Hbun] as ⟨Hgr, Hlr⟩
+  wp_apply hSMS s mg ml rc lg id stg tr γn S lid $$ [Hgr Hlr Hbun] as ⟨Hgr, Hlr⟩
   · iframe #; iframe Hgr Hlr
     isplitr
     · ipureintro; exact Hlgnn

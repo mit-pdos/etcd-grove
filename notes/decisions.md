@@ -15656,3 +15656,59 @@ not hold through that window; S-j must state it differently (e.g. `RemoveAllPeer
 recorded ids, and the window's remotes stopped by the re-add, or a premise).
 *Rejected:* a premise that the handlers' `AddRemote` returns (it is the code's behavior and
 provable); letting the handlers add remotes (their URLs come from the request).
+
+## D36: the transport's axioms restated over its proved state; the server and the examples over them (2026-10-24 · rafthttp stage 6d, fourth part; the user: "use the 2^50 physical assumption, carry netBundle's facts, continue 6d")
+
+**The two decisions** (blocked in the third part):
+* `swMsgBound` is a physical assumption, `swMsgBound_phys` (`rafthttp/Transport.lean`): the
+  encoding of a read-only message is below `2^50` bytes. Stated on `msgOwn` at the discarded
+  fraction (a message that can no longer change), used where the network's bundle becomes what
+  `Send` takes (`sendMsg_of_netBundle`). Not derivable: the logic can allocate a slice of any
+  `w64` length; `pbEnc_ok`'s `2^63` is Go's semantics (`Size` returns an `int`).
+* `netBundle` carries raft's facts and its sender: `netBundle N lid m` asks of a `MsgApp` raft's
+  shape (`AppShape`) and `From = lid`; `netTransport γn lid tr T` is of the member `lid`. The
+  server's messages give them from `isRaftMsg` (`AppFrom` of the node's id, `SentMsgOk` in the
+  no-transfer mode), `srvMsgNet` now of the sender `id` (`srvMsgNet_bundle`); raft's node names'
+  id is the configuration's (`NodeStart`'s post, from `isNode`).
+
+**The transport's specs** (`Spec/.../rafthttp/Transport__*.lean`): `Start`, `AddPeer`,
+`AddRemote`, `CutPeer`, `MendPeer` restated over the transport's state (`trLive`, `trFrozen`,
+`trTok`) and `Handler` added; each proved over its callees' specs (`TransportSpecs.lean`), an
+axiom until 6f links rafthttp. `Start`'s post also gives, once frozen, the network's transport
+(`netTransport`, its `Send` borrowing a reader's token) and `isTransporter` (`trFrozen_net`).
+Two new trust-boundary axioms there: `Transport.SendSnapshot` (untranslated, D22's contract, cut
+out of `Start`'s as the stage-6 choice (1) said) and `Transport.ActiveSince` (translated; its
+read lock taken with no reader token: the server's request path calls it from any goroutine, at
+most `2^30 - 1` at once, physically). Gone: the opaque `transportLive`, `transportStarted`,
+`transportRemotes`, `raftHandlerOf`; `netSlot` is no longer used by the server (kept in
+`Net.lean`, D22's interface). `CutPeer`/`MendPeer` take `PeerPausable` as a premise (the link
+cannot supply a class), and the examples that reach them (linkv3p) as an instance.
+
+**The HTTP side**: `netHttpOk γn lid` is of the member: the other members' hosts registered (a
+member never adds itself as a peer); `pipeReg` only for members (`trFixed`'s), and the directory
+gives no member `0` (an unknown host's owner). `netHttpOk_of_dir`, `netHttpOk_single` (a
+one-member network registers nothing), `netHttp_reserve3` (the program start's rights of three
+peer addresses reserved). `http.Serve_ok` (the HTTP boundary's `Serve_spec`, D33) replaces D21
+M5's `net/http.Serve` axiom; `EtcdServer.RaftHandler` is translated and proved over `Handler`.
+
+**The server** (`NewServer.spec`): takes `netHttpOk γn id` (not the member's slot) and
+`netDirOk dir` (no member `0`, distinct hosts, plain URLs); `bootstrap`'s contract (a premise)
+says more: `Members()` returns raft's peers in order, the directory's members are raft's peers,
+at most `2^20` of them (`bootOk`'s `Hmembers`, `Hdirps`; both true of Go: `Members()` and the
+peers are sorted by id, and the examples' directories are exact). `NewServer` adds every other
+member as a peer, eight of `lgMu`'s readers each, then freezes the transport; returns the member
+(`srvNetMember γn s id τ`: the transport frozen, every other member a peer), one reader token
+(`srvTrTok`, for `CutPeer`/`MendPeer`) and `httpProcSlots` copies of `srvServeRes` (an `R` and a
+token, for `Serve`). The raft loop's `S` (`srvEr`'s new argument) is a key (`srvTrKey`) to a
+reader token of the transport, fixed under a ghost name allocated before the raft node, since the
+node's environment is built before the transport (`netTransport_of_key`).
+
+**The examples**: the one-member examples' directories exact (`dirOne`, until then every id's,
+which the stronger contract would have made false); the three-member examples reserve their peer
+addresses at program start (`httpProtoFree`, D34a), register each member's listener and serve
+its handler with `Serve_ok`; linkv3p's partitioner holds each member's reader token
+(`srvPeerCtl`) and takes `PeerPausable`.
+
+**Lean**: `(netRh γn).owner h` against `netOwner γn.dir h` exceeds the default recursion depth by
+`rfl` (the check unfolds `netOwner`'s classical `if` over the `go!` byte literal); `netRh_owner`,
+proved by `simp only [netRh]`, is the rewrite.

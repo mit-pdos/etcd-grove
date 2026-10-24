@@ -50,7 +50,7 @@ theorem startCluster.wp_proof
     (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N id₁ id₂ id₃ bootLog lg W pfx Hbf hW Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Htok, #Hprem⟩
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
   -- `context`'s `closedchan`, from its package's facts
@@ -116,9 +116,20 @@ theorem startCluster.wp_proof
   -- the ghost state of the cluster and its members (`cluster3_alloc`, in `bootstrap`'s order,
   -- which is the names'; the client's `etcdKV` at `linkv3p-1`'s names)
   imod (cluster3_alloc W id₁ id₂ id₃ bootLog Hbf (dir3 id₁ id₂ id₃) (by omega)) with ⟨%γ, %bud, %ρ₁,
-    %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, Hsl₁, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hetcd⟩
+    %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, Hmb₂, Hmb₃, #Hreg, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁, hst₂, hwl₂, hst₃, hwl₃⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
+  -- (2026-10-24, rafthttp stage 6d) the directory well formed; the three peer addresses reserved
+  -- for the raft protocol
+  have Hnz := putget3.id_nz id₁ id₂ id₃ bootLog Hbf
+  have Hdok : netDirOk (dir3 id₁ id₂ id₃) :=
+    dir3_ok id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
+  imod (netHttp_reserve3 γn peerAddr₁ peerAddr₂ peerAddr₃ (by rw [hγn2]; exact Hdok.1)
+      (fun i h hm => dir3_host id₁ id₂ id₃ i h (by rw [← hγn2]; exact hm)))
+    $$ Hreg Hf₁ Hf₂ Hf₃ with ⟨#Hnet, Ho₁, Ho₂, Ho₃⟩
+  ihave #Hsl₁ := Hnet $$ %id₁
+  ihave #Hsl₂ := Hnet $$ %id₂
+  ihave #Hsl₃ := Hnet $$ %id₃
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members, each served
   iunfold memberBoot at Hmb₁
@@ -129,7 +140,7 @@ theorem startCluster.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
       (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn W hW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
+      Hdok (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -141,7 +152,7 @@ theorem startCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₁
   icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁,
-    #Hnm₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hstr₁⟩, %Hnr₁⟩
+    Hctl₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hstr₁⟩, %Hnr₁⟩
   iunfold srvGoRes at Hgo₁
   icases Hgo₁ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₂
@@ -152,8 +163,8 @@ theorem startCluster.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
       (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn W hW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hdbo Hms)
-    $$ [Ha₂ Hc₂ Htok Hmb₂ Hsl₂] as %s₂ %err₂ Hr₂
+      Hdok (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hdbo Hms)
+    $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
   · cases err₂ with
@@ -165,7 +176,7 @@ theorem startCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₂
   icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂,
-    #Hnm₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hstr₂⟩, %Hnr₂⟩
+    Hctl₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hstr₂⟩, %Hnr₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₃
@@ -176,8 +187,8 @@ theorem startCluster.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
       (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn W hW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hdbo Hms)
-    $$ [Ha₃ Hc₃ Htok Hmb₃ Hsl₃] as %s₃ %err₃ Hr₃
+      Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hdbo Hms)
+    $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
   · cases err₃ with
@@ -189,7 +200,7 @@ theorem startCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₃
   icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃,
-    #Hnm₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hstr₃⟩, %Hnr₃⟩
+    Hctl₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hstr₃⟩, %Hnr₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   iclear Hb₁ Hb₂ Hb₃ Hcom Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
@@ -310,7 +321,7 @@ theorem startCluster.wp_proof
   iunfold clusterUp
   iexists γ, γn, ρ₁, ρ₂, ρ₃, E₁', E₂', E₃', cid₁, cid₂, cid₃, mid₁, mid₂, mid₃, R₁, R₂, R₃,
     s₁, s₂, s₃, cl₁, cl₂, cl₃, br₁, br₂, br₃
-  iframe Hetcd Hob₁ Hob₂ Hob₃
+  iframe Hetcd Hob₁ Hob₂ Hob₃ Hctl₁ Hctl₂ Hctl₃
   obtain ⟨hr₁, -, hc₁, hch₁, hl₁, -⟩ := Hp₁
   obtain ⟨hr₂, -, hc₂, hch₂, hl₂, -⟩ := Hp₂
   obtain ⟨hr₃, -, hc₃, hch₃, hl₃, -⟩ := Hp₃

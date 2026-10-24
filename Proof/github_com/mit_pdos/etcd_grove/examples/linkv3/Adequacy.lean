@@ -129,7 +129,7 @@ theorem linkv3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   iunfold startRights at Hrights
   simp only [linkv3Names, linkv3Addrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩, -⟩
+  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hac, -⟩, ⟨Hf₁, Hf₂, Hf₃, -, -⟩⟩
   ihave #Hprem' := Hprem0
   imodintro
   unfold linkv3Program
@@ -142,7 +142,7 @@ theorem linkv3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   have hM := linkv3.wp_Main (GF := linkvGF) n id₁ id₂ id₃ bootLog clients ops Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
     Hc0 Hc31 Hops Hmul
-  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Htok]
+  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Hf₁ Hf₂ Hf₃ Htok]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro

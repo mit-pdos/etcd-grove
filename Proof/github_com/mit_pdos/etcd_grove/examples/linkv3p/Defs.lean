@@ -159,11 +159,17 @@ instance clientOk_persistent (γ : linkvtxn.LinkvNames) (cl : Loc) :
     Persistent (clientOk (GF := GF) γ cl) := by
   unfold clientOk; infer_instance
 
+/-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
+network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens
+(`srvTrTok`), which `CutPeer` and `MendPeer` borrow. -/
+def srvPeerCtl (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
+  iprop(∃ τ : SrvTr GF, srvNetMember γn s id τ ∗ srvTrTok γn τ)
+
 /-- **A member started and served** (the success of `startMember`): putget3's `memberUp` reduced
 to what `Main` needs of it -- the server's request and read views (at its apply environment `E`,
 agreeing with the stand-in `E₀`, auth off), the `GoAttach` resources with the thread token
-(`srvGoRes`), the member's place in the network (`srvNetMember`: what the partitioner's
-`CutPeer`/`MendPeer` take), and etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its
+(`srvGoRes`), the member's place in the network with a reader's token of its transport
+(`srvPeerCtl`: what the partitioner's `CutPeer`/`MendPeer` take), and etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its
 client address (`etcd_kv_started`), what its client's `Apply` takes, and (D29) that address
 refusal-free (`etcd_noRefusal`). -/
 def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ : apply.AEnv GF)
@@ -171,7 +177,7 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
   iprop(∃ (E : apply.AEnv GF) (γw : GName) (cid mid : w64),
     ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗
     isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvGoRes s ∗
-    srvNetMember γn s id ∗
+    srvPeerCtl γn s id ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/DeleteRange"
@@ -262,13 +268,13 @@ def watchEnv (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString)
     v3rpc.histWL γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3⟩
 
 /-- **A member of the started cluster** (persistent; W4: what `startCluster` gives of each, from
-`memberServed` and its bridge's start): its place in the network, its bridge's address serving
+`memberServed` and its bridge's start): its bridge's address serving
 its client address's, its read view, etcd's KV specs registered at its client address and the
 address refusal-free, its watch server and `Watch` stream there, its names agreeing with the
 cluster's (the raft names, what the KV model reads). -/
 def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
     (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : RaftNames) : IProp GF :=
-  iprop(srvNetMember γn s id ∗ forwards b c ∗ isServerRead s E ρ.rd ∗
+  iprop(forwards b c ∗ isServerRead s E ρ.rd ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/DeleteRange"
@@ -300,6 +306,9 @@ def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (W : SrvWorkload
     memberAt γn s₁ id₁ ρ₁ E₁ cid₁ mid₁ R₁ bridgeAddr₁ clientAddr₁ γ ∗
     memberAt γn s₂ id₂ ρ₂ E₂ cid₂ mid₂ R₂ bridgeAddr₂ clientAddr₂ γ ∗
     memberAt γn s₃ id₃ ρ₃ E₃ cid₃ mid₃ R₃ bridgeAddr₃ clientAddr₃ γ ∗
+    -- (2026-10-24, rafthttp stage 6d) each member's place in the network, with a reader's token
+    -- of its transport (until then in `memberAt`, without)
+    srvPeerCtl γn s₁ id₁ ∗ srvPeerCtl γn s₂ id₂ ∗ srvPeerCtl γn s₃ id₃ ∗
     bridge.ownBridge br₁ clientAddr₁ false ∗ bridge.ownBridge br₂ clientAddr₂ false ∗
     bridge.ownBridge br₃ clientAddr₃ false ∗
     isNewClient cl₁ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗

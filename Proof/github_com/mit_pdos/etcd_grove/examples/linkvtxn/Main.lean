@@ -142,14 +142,17 @@ theorem Main.wp_proof
     Hnk, #Hkvinv, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   -- (D21 M2) the raft network, the one member's slot
-  imod (netNames_alloc (srvNet γ bud) linkvtxnDir (GMap.insert id () ∅) _) with ⟨%γn, %Hγn, Hslots, -⟩
-  ihave Hslot := (BigSepM.bigSepM_insert (GMap.lookup_empty id)).1 $$ Hslots
-  icases Hslot with ⟨Hslot, -⟩
+  imod (netNames_alloc (srvNet γ bud) (linkvtxnDir id) (∅ : GMap w64 Unit) _) with ⟨%γn, %Hγn, -, #HregN⟩
+  -- (2026-10-24, rafthttp stage 6d) a one-member network: no other member's hosts to register
+  ihave #Hnet := netHttpOk_single γn id
+    (fun f hf => dirOne_member id _ f (by rw [Hγn.2] at hf; exact hf)) $$ HregN
+  have Hdirok : netDirOk (linkvtxnDir id) :=
+    dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   have hblen : γ.reBoot.length ≤ 2 ^ 60 := by
     rw [hboot, Hbf.boot.1]; simp
   wp_apply (wp_NewServer _ ⟨[peerURL], [clientURL], GMap.insert go!"linkvtxn"
       (slice.mk peer (W64 (max (max (0 + 1) 0) 0)) (W64 (max (max (0 + 1) 0) 0))) ∅,
-      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N Φs γn linkvtxnDir hraft hpol hc0 hch hlog hcok
+      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N Φs γn (linkvtxnDir id) hraft hpol hc0 hch hlog hcok
       (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl Htb Hrb48 HrbN
       -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48` (`Main`'s)
       (by
@@ -158,8 +161,8 @@ theorem Main.wp_proof
         simp only [hne, if_false, h48]
         omega)
       hblen
-      hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
-    $$ [Hghost HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
+      hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok)
+    $$ [Hghost HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -186,7 +189,7 @@ theorem Main.wp_proof
     isplitr; · ipureintro; exact Hdbo
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %HE, #Hwb, -, -, Hbuilt, Hgap,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %γk, %τ, %HE, #Hwb, -, -, Hbuilt, Hgap,
     Hserve, Hsv, Hmon, -⟩)
   · -- `NewServer` failed: `Main` returns
     cases err with

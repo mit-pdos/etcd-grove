@@ -46,7 +46,7 @@ abbrev startMember.spec : Prop :=
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.reCfg = GMap.listToSet ps → γ.reDyn = none → γ.reCCOk = ccOk ps → γ.reBoot = bootLog →
   γ.reNoSnap = true → γ.reNoXfer = true → bootLog.length ≤ 2 ^ 60 →
-  γn.N = srvNet γ bud → γn.dir = dir → go!"http://" ++ peerAddr ∈ dir id →
+  γn.N = srvNet γ bud → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
   v3rpc.ServerMethodSets →
@@ -57,7 +57,10 @@ abbrev startMember.spec : Prop :=
       sl₁ ↦*□ initURLs3 name₁ ∗ sl₂ ↦*□ initURLs3 name₂ ∗ sl₃ ↦*□ initURLs3 name₃ ∗
       bootPremise N ps bootLog dir name peerAddr client id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot W γ bud bootLog ρ E₀ Φs id ∗ netSlot γn id }}
+      memberBoot W γ bud bootLog ρ E₀ Φs id ∗
+      -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
+      -- side for it and the right to serve its peer address with the raft protocol
+      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #lg))

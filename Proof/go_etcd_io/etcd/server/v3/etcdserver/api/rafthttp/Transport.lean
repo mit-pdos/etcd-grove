@@ -70,7 +70,7 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"ServerStats"] ↦□ ss ∗ ⌜ss ≠ null⌝ ∗
     t.[rafthttp.Transport, go!"pipelineProber"] ↦□ pp ∗
     t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗
-    streamRegInv Rh ∗ (□ ∀ pid : w64, pipeReg Rh pid) ∗
+    streamRegInv Rh ∗ (□ ∀ pid : w64, ⌜Rh.member pid ∧ pid ≠ lid⌝ -∗ pipeReg Rh pid) ∗
     globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream" ∗ ⌜Rh.member lid⌝)
 
 set_option synthInstance.maxHeartbeats 8000000 in
@@ -122,7 +122,7 @@ def peerStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (p : Loc) : IProp GF 
 /-- **A message for the peer `pid` of the member `lid`** (what `peer.send` takes; stage 6b): read-only,
 marshalable, for `pid`, not a snapshot, without responses, with its bundle; a `MsgApp` of raft's
 shape from `lid` (what the msgappv2 stream encodes: `V2EncOk`); its encoding below `2^50` bytes
-(`swMsgBound`, until the counter's spec takes the `Add` panic, the user's choice for stage 6). -/
+(`swMsgBound`: `swMsgBound_phys`, the user's choice in stage 6d). -/
 def peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
@@ -161,6 +161,31 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+
+/-- **The trust boundary: no raft message's encoding reaches `2^50` bytes** (2026-10-24, rafthttp
+stage 6d, the user's choice): the encoding of a read-only message is below `2^50` bytes (a
+petabyte; `swMsgBound`), a physical fact, like `netProcSlots`: no machine holds a message that
+large. The stream writer sums the sizes of up to 2049 messages into an `int` it adds to a
+prometheus counter, whose `Add` panics on a negative value; the sum stays below `2^62`. (Stage 6's
+choice (3), a panicking `Add` the writer's goroutine may reach, is not provable: Perennial's
+`wp_fork` asks a goroutine not to panic.) Not derivable in the logic, which can allocate a slice of
+any `w64` length: `pbEnc_ok` bounds the encoding by `2^63` only (an `int`, Go's semantics). -/
+axiom swMsgBound_phys (ml : Loc) (st : MsgSt) :
+    msgOwn (GF := GF) ml DFrac.discard st ⊢ ⌜swMsgBound ml⌝
+
+/-- **A message in the network's bundle is one the transport's `Send` takes** (stage 6d): the
+bundle's facts (`netBundle`), and its encoding's bound (`swMsgBound_phys`). -/
+theorem sendMsg_of_netBundle (Rh : RaftHttp GF) (lid : w64) (ml : Loc) :
+    netBundle Rh.γn.N lid ml ⊢ sendMsg Rh lid ml := by
+  iintro Hb
+  iunfold netBundle at Hb
+  icases Hb with ⟨%st, #Hm, #HP, HO, %H⟩
+  ihave %Hbd := swMsgBound_phys ml st $$ Hm
+  iunfold sendMsg
+  iexists st
+  iframe; iframe #
+  ipureintro
+  exact ⟨H.2.1, H.1, H.2.1, H.2.2, Hbd⟩
 
 /-- A started peer's stream writers (what the stream handler's `Get` gives). -/
 theorem peerStreams_of_peerOk (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (R : IProp GF)

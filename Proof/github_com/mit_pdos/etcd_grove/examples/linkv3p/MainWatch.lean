@@ -116,9 +116,9 @@ theorem MainWatch.wp_proof
     (wp_WithProgressNotify : WithProgressNotify.spec (GF := GF) (hG := hG))
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS ESL ENG ESE CRE CEC N id₁ id₂ id₃ bootLog nw nops sched steps Hbf Htb Hrb48
+  intro CS ES FS RS ESL ENG ESE CRE CEC PP N id₁ id₂ id₃ bootLog nw nops sched steps Hbf Htb Hrb48
     HrbN Hck Haf Hbuq Hdbo Hms hAs H0 H31 Hops Hmul
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, #Hsched, Htok, #Hprem⟩
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, #Hsched, Htok, #Hprem⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts
   ihave #Heo : client.eofOk (GF := GF) $$ []
   · iapply (client.eofOk_of_init hAs)
@@ -157,7 +157,7 @@ theorem MainWatch.wp_proof
   (try wp_auto)
   wp_apply (wp_startCluster N id₁ id₂ id₃ bootLog lg (watchkv.workload (trs.map pairOf)) wkPfx Hbf
       (watchkv.workload_noGrant _) Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
-    $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Htok] as %srvs %brs %clis %ok Hup
+    $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
   · subst Hok
@@ -168,14 +168,14 @@ theorem MainWatch.wp_proof
   iunfold clusterUp at Hup
   icases Hup with ⟨%γ, %γn, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %cid₁, %cid₂, %cid₃, %mid₁, %mid₂,
     %mid₃, %R₁, %R₂, %R₃, %s₁, %s₂, %s₃, %cl₁, %cl₂, %cl₃, %br₁, %br₂, %br₃, #Hsrvs, #Hbrs, #Hclis,
-    #Hm₁, #Hm₂, #Hm₃, Hob₁, Hob₂, Hob₃, #Hnc₁, #Hnc₂, #Hnc₃, Hetcd, %Hal⟩
+    #Hm₁, #Hm₂, #Hm₃, Hctl₁, Hctl₂, Hctl₃, Hob₁, Hob₂, Hob₃, #Hnc₁, #Hnc₂, #Hnc₃, Hetcd, %Hal⟩
   obtain ⟨hwl₁, hst₂, hwl₂, hst₃, hwl₃⟩ := Hal
   iunfold memberAt at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hnm₁, #Hfw₁, #Hrd₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁, ⟨%pw₁, #Hws₁⟩,
+  icases Hm₁ with ⟨#Hfw₁, #Hrd₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁, ⟨%pw₁, #Hws₁⟩,
     %HR₁, #Hstr₁, %Hp₁⟩
-  icases Hm₂ with ⟨#Hnm₂, #Hfw₂, #Hrd₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂, ⟨%pw₂, #Hws₂⟩,
+  icases Hm₂ with ⟨#Hfw₂, #Hrd₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂, ⟨%pw₂, #Hws₂⟩,
     %HR₂, #Hstr₂, %Hp₂⟩
-  icases Hm₃ with ⟨#Hnm₃, #Hfw₃, #Hrd₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, ⟨%pw₃, #Hws₃⟩,
+  icases Hm₃ with ⟨#Hfw₃, #Hrd₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, ⟨%pw₃, #Hws₃⟩,
     %HR₃, #Hstr₃, %Hp₃⟩
   obtain ⟨hr₁, hc₁, hch₁, hlog₁⟩ := Hp₁
   obtain ⟨hr₂, hc₂, hch₂, hlog₂⟩ := Hp₂
@@ -321,19 +321,19 @@ theorem MainWatch.wp_proof
     iExactEq Hrd0'; rfl
   (try wp_auto)
   -- `go partitioner(srvs, brs, sched)`: every member's place in the network, every bridge owned
-  ihave #Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, srvNetMember γn s id) $$ []
+  ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
   · iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvNetMember (GF := GF) γn s id))).2
-    isplitr
-    · iexists id₁; iexact Hnm₁
+      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+    isplitl [Hctl₁]
+    · iexists id₁; iexact Hctl₁
     iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvNetMember (GF := GF) γn s id))).2
-    isplitr
-    · iexists id₂; iexact Hnm₂
+      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+    isplitl [Hctl₂]
+    · iexists id₂; iexact Hctl₂
     iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvNetMember (GF := GF) γn s id))).2
-    isplitr
-    · iexists id₃; iexact Hnm₃
+      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+    isplitl [Hctl₃]
+    · iexists id₃; iexact Hctl₃
     iapply BigSepL.bigSepL_nil.2
     itrivial
   ihave Hobs : ([∗list] br ∈ [br₁, br₂, br₃], ∃ addr : GoString, bridge.ownBridge br addr false)
@@ -352,8 +352,8 @@ theorem MainWatch.wp_proof
     · iexists clientAddr₃; iexact Hob₃
     iapply BigSepL.bigSepL_nil.2
     itrivial
-  wp_apply wp_fork $$ [Hobs]
-  · wp_apply (wp_partitioner γn _ _ sched [s₁, s₂, s₃] [br₁, br₂, br₃] steps) $$ [Hobs]
+  wp_apply wp_fork $$ [Hobs Hmem]
+  · wp_apply (wp_partitioner PP γn _ _ sched [s₁, s₂, s₃] [br₁, br₂, br₃] steps) $$ [Hobs Hmem]
     all_goals (try (iframe #))
     all_goals (try iframe)
     ipureintro; exact isPanic_intoVal ()

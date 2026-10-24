@@ -186,9 +186,9 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       iframe
       ipureintro; constructor <;> word
     | some nd =>
-      ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => peerOk (GF := GF) γ bud id nd)
+      ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => kvPeerOk (GF := GF) γ bud id nd)
         HPt $$ HP
-      unfold peerOk
+      unfold kvPeerOk
       icases Hpeer with ⟨%γn, %n, %Hnd, #HisNode⟩
       obtain ⟨Hr, Hbud, rfl, Hsi0⟩ := Hnd
       have Hsi : q.st.msg.Type' = MsgSnap → γn.snapIn = true := fun _ => Hsi0

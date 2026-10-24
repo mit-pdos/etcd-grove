@@ -53,9 +53,9 @@ theorem Main.wp_proof
     (wp_partitioner : partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N id₁ id₂ id₃ bootLog clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
+  intro CS ESL ESE PP N id₁ id₂ id₃ bootLog clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
     Hdbo Hms hAs H0 H31 Hops Hmul
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, #Hsched, Htok, #Hprem⟩
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -69,7 +69,7 @@ theorem Main.wp_proof
   -- the cluster, at putget's workload (no lease), its clients' watch environment unused
   wp_apply (wp_startCluster N id₁ id₂ id₃ bootLog lg putgetWorkload [] Hbf putgetWorkload_noGrant
       Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
-    $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Htok] as %srvs %brs %clis %ok Hup
+    $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
   · subst Hok
@@ -80,27 +80,27 @@ theorem Main.wp_proof
   iunfold clusterUp at Hup
   icases Hup with ⟨%γ, %γn, %ρ₁, %ρ₂, %ρ₃, %E₁', %E₂', %E₃', %cid₁, %cid₂, %cid₃, %mid₁, %mid₂,
     %mid₃, %R₁, %R₂, %R₃, %s₁, %s₂, %s₃, %cl₁, %cl₂, %cl₃, %br₁, %br₂, %br₃, #Hsrvs, #Hbrs, #Hclis,
-    #Hm₁, #Hm₂, #Hm₃, Hob₁, Hob₂, Hob₃, #Hnc₁, #Hnc₂, #Hnc₃, Hetcd, %Hal⟩
+    #Hm₁, #Hm₂, #Hm₃, Hctl₁, Hctl₂, Hctl₃, Hob₁, Hob₂, Hob₃, #Hnc₁, #Hnc₂, #Hnc₃, Hetcd, %Hal⟩
   obtain ⟨hwl₁, hst₂, hwl₂, hst₃, hwl₃⟩ := Hal
   iunfold memberAt at Hm₁ Hm₂ Hm₃
-  icases Hm₁ with ⟨#Hnm₁, #Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁, -, -, -, %Hp₁⟩
-  icases Hm₂ with ⟨#Hnm₂, #Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂, -, -, -, -⟩
-  icases Hm₃ with ⟨#Hnm₃, #Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, -, -, -, -⟩
+  icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁, -, -, -, %Hp₁⟩
+  icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂, -, -, -, -⟩
+  icases Hm₃ with ⟨#Hfw₃, -, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃, -, -, -, -⟩
   obtain ⟨-, -, -, hlog₁⟩ := Hp₁
   -- `go partitioner(srvs, brs, sched)`: every member's place in the network
-  ihave #Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, srvNetMember γn s id) $$ []
+  ihave Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, srvPeerCtl γn s id) $$ [Hctl₁ Hctl₂ Hctl₃]
   · iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvNetMember (GF := GF) γn s id))).2
-    isplitr
-    · iexists id₁; iexact Hnm₁
+      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+    isplitl [Hctl₁]
+    · iexists id₁; iexact Hctl₁
     iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvNetMember (GF := GF) γn s id))).2
-    isplitr
-    · iexists id₂; iexact Hnm₂
+      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+    isplitl [Hctl₂]
+    · iexists id₂; iexact Hctl₂
     iapply (BigSepL.bigSepL_cons
-      (Φ := fun _ s => iprop(∃ id : w64, srvNetMember (GF := GF) γn s id))).2
-    isplitr
-    · iexists id₃; iexact Hnm₃
+      (Φ := fun _ s => iprop(∃ id : w64, srvPeerCtl (GF := GF) γn s id))).2
+    isplitl [Hctl₃]
+    · iexists id₃; iexact Hctl₃
     iapply BigSepL.bigSepL_nil.2
     itrivial
   -- every bridge owned, not blackholed
@@ -120,8 +120,8 @@ theorem Main.wp_proof
     · iexists clientAddr₃; iexact Hob₃
     iapply BigSepL.bigSepL_nil.2
     itrivial
-  wp_apply wp_fork $$ [Hobs]
-  · wp_apply (wp_partitioner γn _ _ sched [s₁, s₂, s₃] [br₁, br₂, br₃] steps) $$ [Hobs]
+  wp_apply wp_fork $$ [Hobs Hmem]
+  · wp_apply (wp_partitioner PP γn _ _ sched [s₁, s₂, s₃] [br₁, br₂, br₃] steps) $$ [Hobs Hmem]
     all_goals (try (iframe #))
     all_goals (try iframe)
     ipureintro; exact isPanic_intoVal ()

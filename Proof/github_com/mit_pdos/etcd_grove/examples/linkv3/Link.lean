@@ -8,10 +8,8 @@ hand.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.google_golang_org.grpc.Server__Serve
-public import Proof.net.http.Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3.startMember
 public import Proof.net.Listen
@@ -55,10 +53,6 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3.Assumptions]
 variable [NaInvG GF]
 
-theorem EtcdServer.wp_RaftHandler :
-    EtcdGrove.EtcdServer.RaftHandler.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.EtcdServer.RaftHandler.wp_proof
-
 theorem features.wp_NewDefaultServerFeatureGate :
     EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
@@ -67,17 +61,13 @@ theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.Server.Serve.wp_proof
 
-theorem net.http.wp_Serve :
-    EtcdGrove.net.http.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.http.Serve.wp_proof
-
 theorem net.wp_Listen :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.net.Listen.wp_proof
 
 theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.linkv3.startMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler net.http.wp_Serve
+  EtcdGrove.linkv3.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3.Main.spec (GF := GF) (hG := hG) :=

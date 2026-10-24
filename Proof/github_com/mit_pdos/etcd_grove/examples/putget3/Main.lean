@@ -74,7 +74,7 @@ theorem Main.wp_proof
     (wp_Background : context.Background.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N id₁ id₂ id₃ bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Htok, #Hprem⟩
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
   ihave #Hcom' := Hcom
@@ -155,8 +155,9 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅)) $$ []
   · iExactEq Hpm; rfl
   -- the ghost state of the cluster and its members (`putget3_alloc`)
-  imod (putget3_alloc id₁ id₂ id₃ bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂,
-    %E₃, %Φs, %γn, %Hal, Hmb₁, Hsl₁, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hetcd⟩
+  imod (putget3_alloc id₁ id₂ id₃ bootLog Hbf (by omega)) $$ Hf₁ Hf₂ Hf₃ with ⟨%γ, %bud, %ρ₁, %ρ₂,
+    %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨Hsl₁, Ho₁⟩, Hmb₂, ⟨Hsl₂, Ho₂⟩, Hmb₃, ⟨Hsl₃, Ho₃⟩,
+    Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hwl₁⟩ := Hal
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members
@@ -164,7 +165,7 @@ theorem Main.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
       (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
+      (dir3_ok id₁ id₂ id₃ bootLog Hbf) (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hsl₁ Ho₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -183,8 +184,8 @@ theorem Main.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
       (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).1.symm]) Hlg Hck Haf Hbuq Hdbo)
-    $$ [Ha₂ Htok Hmb₂ Hsl₂] as %s₂ %err₂ Hr₂
+      (dir3_ok id₁ id₂ id₃ bootLog Hbf) (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).1.symm]) Hlg Hck Haf Hbuq Hdbo)
+    $$ [Ha₂ Htok Hmb₂ Hsl₂ Ho₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
   · cases err₂ with
@@ -202,9 +203,9 @@ theorem Main.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
       (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).2.1.symm,
+      (dir3_ok id₁ id₂ id₃ bootLog Hbf) (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).2.1.symm,
         (id_ne id₁ id₂ id₃ bootLog Hbf).2.2.symm]) Hlg Hck Haf Hbuq Hdbo)
-    $$ [Ha₃ Htok Hmb₃ Hsl₃] as %s₃ %err₃ Hr₃
+    $$ [Ha₃ Htok Hmb₃ Hsl₃ Ho₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
   · cases err₃ with

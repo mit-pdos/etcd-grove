@@ -36,6 +36,40 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- A host of the directory is one of the three peer addresses (2026-10-24, rafthttp stage 6d). -/
+theorem dir3_host (id₁ id₂ id₃ id : w64) (h : GoString)
+    (hm : go!"http://" ++ h ∈ dir3 id₁ id₂ id₃ id) : h = peerAddr₁ ∨ h = peerAddr₂ ∨ h = peerAddr₃ := by
+  unfold dir3 at hm
+  split at hm
+  · left; simpa using hm
+  split at hm
+  · right; left; simpa using hm
+  split at hm
+  · right; right; simpa using hm
+  · simp at hm
+
+/-- **`Main`'s directory is well formed** (`netDirOk`, `NewServer`'s premise; rafthttp stage 6d):
+no member `0`, each peer address one member's, plain `http://` URLs. -/
+theorem dir3_ok (id₁ id₂ id₃ : w64) (h1 : id₁ ≠ W64 0) (h2 : id₂ ≠ W64 0) (h3 : id₃ ≠ W64 0) :
+    netDirOk (dir3 id₁ id₂ id₃) := by
+  refine ⟨?_, ?_, ?_⟩
+  · unfold dir3
+    rw [if_neg (fun e => h1 (by rw [← e]; rfl)), if_neg (fun e => h2 (by rw [← e]; rfl)),
+      if_neg (fun e => h3 (by rw [← e]; rfl))]
+  · intro i j h hi hj
+    unfold dir3 at hi hj
+    split at hi <;> split at hj <;> (try split at hi) <;> (try split at hj) <;>
+      (try split at hi) <;> (try split at hj) <;> simp_all <;> (try decide)
+  · intro i s hs
+    unfold dir3 at hs
+    split at hs
+    · simp at hs; subst hs; decide
+    split at hs
+    · simp at hs; subst hs; decide
+    split at hs
+    · simp at hs; subst hs; decide
+    · simp at hs
+
 /-- **What `Main` takes of the ghost state, for its cluster** (see the file header): putget3's
 `putget3_alloc` at the directory `dir`, with the client's `etcdKV` at the third member's names
 (and that member's start log). -/
@@ -51,9 +85,12 @@ theorem cluster3_alloc (W : SrvWorkload) (id₁ id₂ id₃ : w64) (bootLog : Li
         ρ₁.rd.kv.wl = W ∧
         ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₂.rd.kv.wl = ρ₁.rd.kv.wl ∧
         ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.wl = ρ₁.rd.kv.wl⌝ ∗
-      memberBoot W γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
-      memberBoot W γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
-      memberBoot W γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
+      memberBoot W γ bud bootLog ρ₁ E₁ Φs id₁ ∗
+      memberBoot W γ bud bootLog ρ₂ E₂ Φs id₂ ∗
+      memberBoot W γ bud bootLog ρ₃ E₃ Φs id₃ ∗
+      -- (2026-10-24, rafthttp stage 6d) the network's streams' registry (until then a slot per
+      -- member)
+      inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth γn.reg 1 m) ∗
       etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ bootLog Hbf
@@ -119,26 +156,14 @@ theorem cluster3_alloc (W : SrvWorkload) (id₁ id₂ id₃ : w64) (bootLog : Li
   imod (memberBoot_of W γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
       Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
-  -- the raft network: a slot per member
-  imod (netNames_alloc (srvNet γ bud) dir
-      (GMap.insert id₁ () (GMap.insert id₂ () (GMap.insert id₃ () (∅ : GMap w64 Unit)))) _)
-    with ⟨%γn, %Hγn, Hslots, -⟩
-  ihave ⟨Hs₁, Hslots⟩ := (BigSepM.bigSepM_insert
-    (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
-    (by rw [gmap_get?_eq, GMap.lookup_insert_ne _ _ (Ne.symm hn12),
-      GMap.lookup_insert_ne _ _ (Ne.symm hn13)]; exact GMap.lookup_empty _)).1 $$ Hslots
-  ihave ⟨Hs₂, Hslots⟩ := (BigSepM.bigSepM_insert
-    (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
-    (by rw [gmap_get?_eq, GMap.lookup_insert_ne _ _ (Ne.symm hn23)]; exact GMap.lookup_empty _)).1 $$ Hslots
-  ihave ⟨Hs₃, -⟩ := (BigSepM.bigSepM_insert
-    (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
-    (GMap.lookup_empty _)).1 $$ Hslots
+  -- the raft network
+  imod (netNames_alloc (srvNet γ bud) dir (∅ : GMap w64 Unit) _) with ⟨%γn, %Hγn, -, #Hreg⟩
   obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hwl₁⟩ := Hρ₁
   obtain ⟨hst₂, -, -, -, hwl₂⟩ := Hρ₂
   obtain ⟨hst₃, -, -, -, hwl₃⟩ := Hρ₃
   imodintro
   iexists γ, bud, ρ₁, ρ₂, ρ₃, env₀ idx₁ cok₁ rev₁, env₀ idx₂ cok₂ rev₂, env₀ idx₃ cok₃ rev₃, Φs, γn
-  iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃
+  iframe Hb₁ Hb₂ Hb₃ Hreg
   isplitr
   · ipureintro
     exact ⟨hcfg, hdyn, hcc, hboot, htr, htx, Hγn.1, Hγn.2, by rw [hlog₁, hlog], by rw [hwl₁, hwl],

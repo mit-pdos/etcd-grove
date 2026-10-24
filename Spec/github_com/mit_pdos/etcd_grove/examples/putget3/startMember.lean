@@ -4,8 +4,11 @@ M5, 2026-10-19): one member of putget3's cluster started -- the server (configur
 its raft handler served on a listener at its peer address, the server started. Lean-first (no Rocq
 counterpart).
 
-**The triple:** given the member's ghost state (`memberBoot`, `putget3_alloc`'s) and network slot,
-the right to listen on its peer address (`netAddrFree`, D19d), a thread token (`Start` forks the
+**The triple:** given the member's ghost state (`memberBoot`, `putget3_alloc`'s), the network's
+HTTP side for it (`netHttpOk`: the other members' peer addresses registered with the raft protocol;
+2026-10-24, rafthttp stage 6d, until then the member's network slot) and the right to serve its own
+peer address with that protocol (`http.httpProtoOwn`, the program start's reservation), the right
+to listen on its peer address (`netAddrFree`, D19d), a thread token (`Start` forks the
 server's goroutines; it comes back in `srvGoRes`), its URLs read-only (the peer URL slice, the
 initial cluster's map with its three slices), `bootstrap`'s contract for it (`bootPremise`) and the
 premises it shares with the other members: an error with the thread token, or the server started,
@@ -15,8 +18,8 @@ goroutine resources, the serving resources `NewServer` left).
 **The pure premises:** putget's (`Main.spec`'s): the thread and time-receipt bounds, the named
 effect and workload premises; the cluster's raft names (static, no-snapshot mode, the policy
 `ccOk ps`), its bootstrap log shorter than `2 ^ 60`, the network's payload the server's and its
-directory `dir`, with `http://peerAddr` one of the member's peer URLs there (`http.Serve`'s
-premise); the logger not `nil`.
+directory `dir` (well formed, `netDirOk`), with `http://peerAddr` one of the member's peer URLs there
+(so the member owns the address its handler serves); the logger not `nil`.
 -/
 module
 
@@ -72,7 +75,7 @@ abbrev startMember.spec : Prop :=
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.reCfg = GMap.listToSet ps → γ.reDyn = none → γ.reCCOk = ccOk ps → γ.reBoot = bootLog →
   γ.reNoSnap = true → γ.reNoXfer = true → bootLog.length ≤ 2 ^ 60 →
-  γn.N = srvNet γ bud → γn.dir = dir → go!"http://" ++ peerAddr ∈ dir id →
+  γn.N = srvNet γ bud → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putget3 ∗
@@ -82,7 +85,8 @@ abbrev startMember.spec : Prop :=
       sl₁ ↦*□ initURLs3 name₁ ∗ sl₂ ↦*□ initURLs3 name₂ ∗ sl₃ ↦*□ initURLs3 name₃ ∗
       bootPremise N ps bootLog dir name peerAddr client id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot putgetWorkload γ bud bootLog ρ E₀ Φs id ∗ netSlot γn id }}
+      memberBoot putgetWorkload γ bud bootLog ρ E₀ Φs id ∗
+      netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.putget3.startMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #lg))

@@ -55,7 +55,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
     (hDur : zap.Duration.spec (GF := GF) (hG := hG))
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) := by
-  intro s mg ml rc lg id stg tr γn S
+  intro s mg ml rc lg id stg tr γn S lid
   wp_start as ⟨Hgr, Hlr, #Hlgf, %Hlgnn, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr, #Hmg, Hbun⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit

@@ -105,10 +105,13 @@ def wireEq (st st' : MsgSt) : Prop :=
 /-- **A message handed to `Send`**, with its bundle: read-only for good (the transport's writer
 goroutines marshal it after `Send` returns), its persistent part and its one-shot part; (D22 S-i)
 not a `MsgSnap`, which goes by `SendSnapshot` (`netSnapBundle`). (2026-10-22, D33a) With no
-responses: what marshals (`MsgMarshals`), so that the receiver's copy has none either (`netRecv`). -/
-def netBundle (N : NetPayload GF) (m : Loc) : IProp GF :=
+responses: what marshals (`MsgMarshals`), so that the receiver's copy has none either (`netRecv`).
+(2026-10-24, rafthttp stage 6d) Of the sender `lid`: a `MsgApp` of raft's shape (`AppShape`) from
+`lid`, what rafthttp's msgappv2 stream carries whole (raft's `isRaftMsg` says both of its messages). -/
+def netBundle (N : NetPayload GF) (lid : w64) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ (□ N.P st) ∗ N.O st ∗
-    ⌜st.msg.Type' ≠ MsgSnap ∧ st.resps = []⌝)
+    ⌜st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
 
 /-- **A snapshot message handed to `SendSnapshot`** (D22 S-i): the raft message `ml` of the merged
 message, a `MsgSnap` with a snapshot of index `i`, with its bundle (read-only for good, as
@@ -194,11 +197,12 @@ with its bundle (`netSnapBundle`), which the transport streams to the slot holde
 (possibly lost), closing the message (`CloseWithError`: its reader closed, one value on its
 `closeC`) when done, or at once with `errMemberNotFound` if no peer is added for `To`.
 (2026-10-24, rafthttp stage 6d, the user's choice) `Send` borrows `T`, its caller's resource: the
-transport's read lock needs one of the mutex's reader tokens (the server's raft loop holds one). -/
-def netTransport (γn : NetNames GF) (tr : GoInterface) (T : IProp GF) : IProp GF :=
+transport's read lock needs one of the mutex's reader tokens (the server's raft loop holds one).
+(2026-10-24) Of the member `lid`: its messages are `lid`'s (`netBundle`). -/
+def netTransport (γn : NetNames GF) (lid : w64) (tr : GoInterface) (T : IProp GF) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
-      {{ sl ↦* msL ∗ ([∗list] m ∈ msL, netBundle γn.N m) ∗ T }}
+      {{ sl ↦* msL ∗ ([∗list] m ∈ msL, netBundle γn.N lid m) ∗ T }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
       {{ RET #(); T }}) ∗
     □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}) ∗
@@ -207,8 +211,8 @@ def netTransport (γn : NetNames GF) (tr : GoInterface) (T : IProp GF) : IProp G
         (App (Val #(methods ti.ty go!"SendSnapshot" ti.v)) (Val #m))
       {{ RET #(); True }}))
 
-instance netTransport_persistent (γn : NetNames GF) (tr : GoInterface) (T : IProp GF) :
-    Persistent (netTransport γn tr T) := by
+instance netTransport_persistent (γn : NetNames GF) (lid : w64) (tr : GoInterface) (T : IProp GF) :
+    Persistent (netTransport γn lid tr T) := by
   unfold netTransport; infer_instance
 
 /-- **The transport's concurrency bound** (D21 M2, the user's (A)): at most `2 ^ 29` calls

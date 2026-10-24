@@ -2,8 +2,8 @@
 **The HTTP boundary's axioms** (rafthttp stage 4e, 2026-10-23; D33a, D33b, D33c): the statements
 of `Proof/net/http/Boundary.lean` the proofs use, assumed, and the registration of an address's
 protocol. Lean-first. Each is a fact about Go's `net/http`, `io` and `bytes` (read against the
-statement's docstring in `Boundary.lean`); the specs not listed (`Serve_spec`, `respRead_spec`,
-`HeaderGet_spec`) stay statements until a proof uses them.
+statement's docstring in `Boundary.lean`); the specs not listed (`respRead_spec`, `HeaderGet_spec`)
+stay statements until a proof uses them.
 
 Soundness of the specs stated for any `HttpNet` (`Error_ok`, ...): their resources
 (`respWriter H`, `respReader H`) come only from `Serve` and `RoundTrip`, which need an address's
@@ -44,6 +44,15 @@ address's reserved protocol, serves it with that protocol (the model: the listen
 `net.Listen` consuming `netAddrFree a`; the protocol the ghost map's entry for `a`). -/
 axiom register (l : GoInterface) (a : GoString) (P : Proto GF) :
   ⊢ netListenerAt (GF := GF) l a -∗ httpProtoOwn a P ==∗ httpListenerAt l a P
+
+/-- (rafthttp stage 6d, 2026-10-24: the examples' members serving their raft handler) `http.Serve`
+of a registered listener with a handler of its address's protocol (`Serve_spec`): it serves each
+request on its own goroutine, lending it one of `httpProcSlots` copies of the handler's resource,
+and returns an error if it returns. It replaces D21 M5's `net/http.Serve` axiom (on the opaque
+`raftHandlerOf`): what that axiom asserted of rafthttp's handlers is now proved (`Transport.Handler`,
+`handlerOk`), and the deployment fact (the address served by its member's handler) is the
+registration's (`register`) and the directory's (`netOwner`). -/
+axiom Serve_ok (H : HttpNet GF) : Serve_spec H
 
 /-- A request body's `Read` (`bodyRead_spec`): Go's server body reader of a request's
 `Content-Length` or chunked body; a body cut short is `io.ErrUnexpectedEOF`, not `EOF`. -/

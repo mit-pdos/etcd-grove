@@ -1,21 +1,18 @@
 /-
 **Serving a member's raft handler** (D21 stage M5, 2026-10-19; the user's (A), `notes/decisions.md`,
-"D21 M5"). Lean-first (no Rocq counterpart). The terms of two trust-boundary axioms,
-`EtcdServer.RaftHandler` and `net/http.Serve`, which state D21b's deployment fact where the program
-serves the handler: every peer URL of member `id` (`γn.dir id`) is served by the raft handler of
-the transport holding `id`'s slot, so `rafthttp.Transport.Start`'s promise (`Process` only with
-messages sent to its member, nothing on `ErrorC`) holds of the program.
-
-* `srvNetMember γn s id` (persistent): the server `s` is member `id` of the network `γn`:
+"D21 M5"; restated over rafthttp's proved transport in rafthttp stage 6d, 2026-10-24). Lean-first
+(no Rocq counterpart).
+* `srvNetMember γn s id τ` (persistent): the server `s` is member `id` of the network `γn`:
   what its inbound path reads (`srvProcOk`, its member id among it) and its raft wrapper's
-  transport `t`, started in `γn` (`transportStarted`) -- `NewServer` started it with `id`'s slot
-  (`NewServer.spec`'s `netSlot γn id`) -- with no remote (`transportRemotes t []`: a new cluster's
-  bootstrap has none, `bootOk`'s `Hrms0`; what `CutPeer`/`MendPeer` need, the partition plan's S2,
-  2026-10-20). `NewServer` gives it.
-* `raftHandlerOf γn id h` (persistent, opaque): `h` is an `http.Handler` of the transport holding
-  `id`'s slot in `γn` (`rafthttp.Transport.Handler()`: a mux of the transport's pipeline, stream
-  and snapshot handlers, which hand what they receive to that transport's `Raft`). Only
-  `EtcdServer.RaftHandler`'s axiom gives it.
+  transport `τ.t` with the names `τ.c` (`SrvTr`), of member `id`, frozen (`trFrozen`) with no
+  remote (a new cluster's bootstrap has none, `bootOk`'s `Hrms0`; what `CutPeer`/`MendPeer` need,
+  the partition plan's S2, 2026-10-20) and every other member of the network added as a peer
+  (what `Handler` needs, D35). `NewServer` gives it.
+* `srvTrTok γn τ`: one of the transport's lock's reader tokens (`trTok`), what `CutPeer` and
+  `MendPeer` borrow; `srvServeRes γn τ`: what each request the transport's handler serves
+  borrows, a reader's token and an `R` (`Handler`, `http.Serve_spec`'s `httpProcSlots` copies).
+(Until stage 6d, `raftHandlerOf γn id h`, opaque: a handler of the transport holding `id`'s slot,
+which only `EtcdServer.RaftHandler`'s axiom gave and `net/http.Serve`'s axiom took.)
 -/
 module
 
@@ -39,26 +36,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **The server `s` is member `id` of the network `γn`** (persistent; see the file header). -/
-def srvNetMember (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
-  iprop(srvProcOk γn s id ∗ ∃ t : Loc, rnTransportAddr (srvRAddr s) ↦□ transportIface t ∗
-    transportStarted γn t ∗ transportRemotes t [])
+/-- **The server's transport** (stage 6d): the `*rafthttp.Transport` `t` and its names `c`. -/
+structure SrvTr (GF : BundledGFunctors) where
+  t : Loc
+  c : TrN GF
 
-instance srvNetMember_persistent (γn : NetNames GF) (s : Loc) (id : w64) :
-    Persistent (srvNetMember (GF := GF) γn s id) := by
+/-- **The server `s` is member `id` of the network `γn`** (persistent; see the file header). -/
+def srvNetMember (γn : NetNames GF) (s : Loc) (id : w64) (τ : SrvTr GF) : IProp GF :=
+  iprop(srvProcOk γn s id ∗ rnTransportAddr (srvRAddr s) ↦□ transportIface τ.t ∗ ⌜τ.c.lid = id⌝ ∗
+    ∃ rs : trIds, trFrozen γn τ.t τ.c rs ∗
+      ⌜rs.1 = [] ∧ ∀ f, (netRh γn).member f → f ≠ id → f ∈ rs.2⌝)
+
+instance srvNetMember_persistent (γn : NetNames GF) (s : Loc) (id : w64) (τ : SrvTr GF) :
+    Persistent (srvNetMember (GF := GF) γn s id τ) := by
   unfold srvNetMember; infer_instance
 
-/-- The opaque core of `raftHandlerOf`. -/
-opaque raftHandlerOfCore (γn : NetNames GF) (id : w64) (h : GoInterface) : IProp GF
+/-- **One of the server's transport's reader tokens** (see the file header). -/
+def srvTrTok (γn : NetNames GF) (τ : SrvTr GF) : IProp GF := trTok γn τ.t τ.c
 
-/-- **`h` is a raft handler of member `id`'s transport in `γn`** (persistent, opaque; see the file
-header). -/
-def raftHandlerOf (γn : NetNames GF) (id : w64) (h : GoInterface) : IProp GF :=
-  iprop(□ raftHandlerOfCore γn id h)
-
-instance raftHandlerOf_persistent (γn : NetNames GF) (id : w64) (h : GoInterface) :
-    Persistent (raftHandlerOf (GF := GF) γn id h) := by
-  unfold raftHandlerOf; infer_instance
+/-- **What each request the server's raft handler serves borrows** (see the file header). -/
+def srvServeRes (γn : NetNames GF) (τ : SrvTr GF) : IProp GF := iprop(τ.c.R ∗ trTok γn τ.t τ.c)
 
 end defs
 

@@ -771,6 +771,26 @@ trust-boundary spec.
    facts in raft's invariants (stage 3's `isRaftMsg`), to be carried into `netBundle` or a
    per-sender bundle.
 
+   **6d, fourth part (2026-10-24; D36, `notes/decisions.md`).** The user's decisions: the `2^50`
+   physical assumption (`swMsgBound_phys`), `netBundle` carrying raft's facts and the sender. The
+   transport's specs restated over its state (`Start`, `AddPeer`, `AddRemote`, `CutPeer`, `MendPeer`,
+   and `Handler` new), each proved over its callees' (`TransportSpecs.lean`), axioms until 6f;
+   `Start`'s post gives, once frozen, `netTransport` and `isTransporter` (`trFrozen_net`, over
+   `SendSnapshot` and `ActiveSince`, two new boundary specs, reached once 6f links `Start`).
+   `netHttpOk` relative to the member. `EtcdServer.RaftHandler` translated and proved; D21 M5's
+   `net/http.Serve` axiom replaced by `http.Serve_ok` (D33's `Serve_spec`). `NewServer` over the new
+   specs: every other member added (eight `lgMu` readers each), the transport frozen, the raft
+   loop's key to a reader token (`srvTrKey`), the member's tokens out (`srvTrTok`, `srvServeRes`);
+   its premises: `netDirOk`, `netHttpOk`, and `bootstrap`'s contract saying `Members()` is raft's
+   peers and the directory's members are those, at most `2^20`. The examples: exact one-member
+   directories (`dirOne`), the three-member clusters' peer addresses reserved at program start and
+   served, linkv3p's partitioner holding each member's token (`srvPeerCtl`) and taking
+   `PeerPausable`. Trust check: `http.Serve_ok` and `Transport.Handler.wp_proof` new,
+   `http.register`/`reserve` newly reached, `EtcdServer.RaftHandler.wp_proof` and
+   `net.http.Serve.wp_proof` gone: baseline 552 -> 554 (for the user's review). Left: 6e (the
+   spec-only helpers) and 6f (linking rafthttp, which turns the transport's axioms into
+   `TransportSpecs.lean`'s theorems and reaches `swMsgBound_phys`, `SendSnapshot`, `ActiveSince`).
+
 ## Costs and risks
 
 - Several weeks, comparable to the watch client. Stage 5 carries most of the risk (a goroutine

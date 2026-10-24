@@ -26,15 +26,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.MendPeer(id)`** on member `mid`'s server in the network `γn` (`srvNetMember`, which
-`NewServer` gives): it returns; the member's transport (`srvNetMember`'s started
-`*rafthttp.Transport`, which the type assertion finds) stops dropping the messages to and from the member `id` that `CutPeer` made it drop
-(`rafthttp.Transport.MendPeer`'s axiom: within the network model, which lets any message be lost). -/
+`NewServer` gives, with its transport `τ`), with one of the transport's reader tokens
+(`srvTrTok`): it returns the token; the member's transport (`τ.t`, which the type assertion finds)
+stops dropping the messages to and from the member `id` that `CutPeer` made it drop (`rafthttp.Transport.MendPeer`: within the network model, which lets any message be lost;
+2026-10-24, rafthttp stage 6d: proved, with the token its read lock takes). The method set's
+premise `PeerPausable` (`*peer` implements `Pausable`). -/
 abbrev EtcdServer.MendPeer.spec : Prop :=
-  ∀ (γn : NetNames GF) (s : Loc) (mid id : w64),
+  PeerPausable → ∀ (γn : NetNames GF) (s : Loc) (mid id : w64) (τ : SrvTr GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvNetMember γn s mid }}
+      srvNetMember γn s mid τ ∗ srvTrTok γn τ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"MendPeer")) (Val #id))
-  {{ RET #(); True }}
+  {{ RET #(); srvTrTok γn τ }}
 
 end spec
 

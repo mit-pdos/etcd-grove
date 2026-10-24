@@ -8,7 +8,6 @@ hand.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Proof.go_etcd_io.etcd.client.v3.WithCreatedNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.WithProgressNotify
@@ -21,7 +20,6 @@ public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGa
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
-public import Proof.net.http.Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Main
@@ -123,10 +121,6 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 variable [NaInvG GF]
 
-theorem EtcdServer.wp_RaftHandler :
-    EtcdGrove.EtcdServer.RaftHandler.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.EtcdServer.RaftHandler.wp_proof
-
 theorem bridge.wp_New :
     EtcdGrove.bridge.New.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bridge.New.wp_proof
@@ -155,10 +149,6 @@ theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.Server.Serve.wp_proof
 
-theorem net.http.wp_Serve :
-    EtcdGrove.net.http.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.http.Serve.wp_proof
-
 theorem wp_Apply :
     EtcdGrove.linkv3p.Apply.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.Apply.wp_proof linkvtxn.wp_Apply
@@ -173,7 +163,7 @@ theorem net.wp_Listen :
 
 theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.linkv3p.startMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler net.http.wp_Serve grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
+  EtcdGrove.linkv3p.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
 
 theorem wp_startBridge :
     EtcdGrove.linkv3p.startBridge.spec (GF := GF) (hG := hG) :=

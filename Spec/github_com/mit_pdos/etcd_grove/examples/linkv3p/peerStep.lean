@@ -26,14 +26,17 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 
 /-- **`peerStep(srvs, kind, a, b)`**, over the read-only slice of servers `ss`, each a member of
-the network `γn`: it returns. -/
+the network `γn` with one of its transport's reader tokens (`srvPeerCtl`, 2026-10-24, rafthttp
+stage 6d: what its `CutPeer`/`MendPeer` borrow): it returns them. The method set's premise
+`PeerPausable` (`*peer` implements `Pausable`, `CutPeer`'s). -/
 abbrev peerStep.spec : Prop :=
+  PeerPausable →
   ∀ (γn : NetNames GF) (srvs : GoSlice) (ss : List Loc) (kind a b : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
-      srvs ↦*□ ss ∗ ([∗list] s ∈ ss, ∃ id : w64, srvNetMember γn s id) }}
+      srvs ↦*□ ss ∗ ([∗list] s ∈ ss, ∃ id : w64, srvPeerCtl γn s id) }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.peerStep))
       (Val #srvs)) (Val #kind)) (Val #a)) (Val #b))
-  {{ RET #(); True }}
+  {{ RET #(); [∗list] s ∈ ss, ∃ id : w64, srvPeerCtl γn s id }}
 
 end spec
 

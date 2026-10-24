@@ -474,6 +474,11 @@ rafthttp_Transport__CutPeer:
 rafthttp_Transport__MendPeer:
 EtcdServer__CutPeer: rafthttp_Transport__CutPeer
 EtcdServer__MendPeer: rafthttp_Transport__MendPeer
+# (rafthttp stage 6d, 2026-10-24) the member's raft handler with its body, over rafthttp's
+# `Transport.Handler` (proved over its callees, `TransportSpecs.lean`; an axiom until stage 6f
+# links rafthttp)
+rafthttp_Transport__Handler:
+EtcdServer__RaftHandler: rafthttp_Transport__Handler
 node__Ready: @
 node__Advance: @
 node__Tick: @

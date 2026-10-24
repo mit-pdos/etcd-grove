@@ -128,23 +128,66 @@ theorem memberBoot_of (W : SrvWorkload) (γ : RaftNames) (bud : BudgetNames) (bo
   rw [hiss', Hiss]
   iexact H0
 
+/-- A host of the directory is one of the three peer addresses (2026-10-24, rafthttp stage 6d). -/
+theorem dir3_host (id₁ id₂ id₃ id : w64) (h : GoString)
+    (hm : go!"http://" ++ h ∈ dir3 id₁ id₂ id₃ id) : h = peerAddr₁ ∨ h = peerAddr₂ ∨ h = peerAddr₃ := by
+  unfold dir3 at hm
+  split at hm
+  · left; simpa using hm
+  split at hm
+  · right; left; simpa using hm
+  split at hm
+  · right; right; simpa using hm
+  · simp at hm
+
+/-- **`Main`'s directory is well formed** (`netDirOk`, `NewServer`'s premise; rafthttp stage 6d):
+no member `0`, each peer address one member's, plain `http://` URLs. -/
+theorem dir3_ok (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : BootFacts id₁ id₂ id₃ bootLog) :
+    netDirOk (dir3 id₁ id₂ id₃) := by
+  obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
+  have Hnz := id_nz id₁ id₂ id₃ bootLog Hbf
+  have h1 := Hnz id₁ (by simp); have h2 := Hnz id₂ (by simp); have h3 := Hnz id₃ (by simp)
+  refine ⟨?_, ?_, ?_⟩
+  · unfold dir3
+    rw [if_neg (fun e => h1 (by rw [← e]; rfl)), if_neg (fun e => h2 (by rw [← e]; rfl)),
+      if_neg (fun e => h3 (by rw [← e]; rfl))]
+  · intro i j h hi hj
+    unfold dir3 at hi hj
+    split at hi <;> split at hj <;> (try split at hi) <;> (try split at hj) <;>
+      (try split at hi) <;> (try split at hj) <;> simp_all <;> (try decide)
+  · intro i s hs
+    unfold dir3 at hs
+    split at hs
+    · simp at hs; subst hs; decide
+    split at hs
+    · simp at hs; subst hs; decide
+    split at hs
+    · simp at hs; subst hs; decide
+    · simp at hs
+
 /-- **What `Main` takes of the ghost state, for its cluster** (see the file header). -/
 theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     (Hbf : BootFacts id₁ id₂ id₃ bootLog) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
-    ⊢ |={⊤}=> ∃ (γ : RaftNames) (bud : BudgetNames) (ρ₁ ρ₂ ρ₃ : ReqNames)
+    -- (2026-10-24, rafthttp stage 6d) the program start's HTTP rights of the peer addresses
+    ⊢ httpProtoFree (GF := GF) peerAddr₁ -∗ httpProtoFree (GF := GF) peerAddr₂ -∗
+      httpProtoFree (GF := GF) peerAddr₃ ={⊤}=∗ ∃ (γ : RaftNames) (bud : BudgetNames) (ρ₁ ρ₂ ρ₃ : ReqNames)
         (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
         (γn : NetNames GF),
       ⌜γ.reCfg = GMap.listToSet [id₁, id₂, id₃] ∧ γ.reDyn = none ∧
         γ.reCCOk = ccOk [id₁, id₂, id₃] ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
         γ.reNoXfer = true ∧ γn.N = srvNet γ bud ∧ γn.dir = dir3 id₁ id₂ id₃ ∧ ρ₁.rd.kv.wl = putgetWorkload⌝ ∗
-      memberBoot putgetWorkload γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
-      memberBoot putgetWorkload γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
-      memberBoot putgetWorkload γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
+      memberBoot putgetWorkload γ bud bootLog ρ₁ E₁ Φs id₁ ∗
+      (netHttpOk γn id₁ ∗ http.httpProtoOwn peerAddr₁ (raftProto (netRh γn))) ∗
+      memberBoot putgetWorkload γ bud bootLog ρ₂ E₂ Φs id₂ ∗
+      (netHttpOk γn id₂ ∗ http.httpProtoOwn peerAddr₂ (raftProto (netRh γn))) ∗
+      memberBoot putgetWorkload γ bud bootLog ρ₃ E₃ Φs id₃ ∗
+      (netHttpOk γn id₃ ∗ http.httpProtoOwn peerAddr₃ (raftProto (netRh γn))) ∗
       etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ bootLog Hbf
   have Hnz := id_nz id₁ id₂ id₃ bootLog Hbf
-  istart
+  have Hdok := dir3_ok id₁ id₂ id₃ bootLog Hbf
+  iintro Hf₁ Hf₂ Hf₃
   imod newServerNames_alloc (GF := GF) with ⟨%idx₁, %cok₁, %rev₁, Hidx₁, Hcok₁, Hrev₁⟩
   imod newServerNames_alloc (GF := GF) with ⟨%idx₂, %cok₂, %rev₂, Hidx₂, Hcok₂, Hrev₂⟩
   imod newServerNames_alloc (GF := GF) with ⟨%idx₃, %cok₃, %rev₃, Hidx₃, Hcok₃, Hrev₃⟩
@@ -205,24 +248,21 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
   imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
       Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, -, Hb₃⟩
-  -- the raft network: a slot per member
-  imod (netNames_alloc (srvNet γ bud) (dir3 id₁ id₂ id₃)
-      (GMap.insert id₁ () (GMap.insert id₂ () (GMap.insert id₃ () (∅ : GMap w64 Unit)))) _)
-    with ⟨%γn, %Hγn, Hslots, -⟩
-  ihave ⟨Hs₁, Hslots⟩ := (BigSepM.bigSepM_insert
-    (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
-    (by rw [gmap_get?_eq, GMap.lookup_insert_ne _ _ (Ne.symm hn12),
-      GMap.lookup_insert_ne _ _ (Ne.symm hn13)]; exact GMap.lookup_empty _)).1 $$ Hslots
-  ihave ⟨Hs₂, Hslots⟩ := (BigSepM.bigSepM_insert
-    (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
-    (by rw [gmap_get?_eq, GMap.lookup_insert_ne _ _ (Ne.symm hn23)]; exact GMap.lookup_empty _)).1 $$ Hslots
-  ihave ⟨Hs₃, -⟩ := (BigSepM.bigSepM_insert
-    (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
-    (GMap.lookup_empty _)).1 $$ Hslots
+  -- the raft network (rafthttp stage 6d): each peer address reserved for the raft protocol, so
+  -- every member's transport may post to the others'
+  imod (netNames_alloc (srvNet γ bud) (dir3 id₁ id₂ id₃) (∅ : GMap w64 Unit) _)
+    with ⟨%γn, %Hγn, -, #Hreg⟩
+  have Hd0 : γn.dir 0 = [] := by rw [Hγn.2]; exact Hdok.1
+  imod (netHttp_reserve3 γn peerAddr₁ peerAddr₂ peerAddr₃ Hd0
+      (fun i h hm => dir3_host id₁ id₂ id₃ i h (by rw [← Hγn.2]; exact hm)))
+    $$ Hreg Hf₁ Hf₂ Hf₃ with ⟨#Hnet, Ho₁, Ho₂, Ho₃⟩
+  ihave #Hs₁ := Hnet $$ %id₁
+  ihave #Hs₂ := Hnet $$ %id₂
+  ihave #Hs₃ := Hnet $$ %id₃
   obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hwl₁⟩ := Hρ₁
   imodintro
   iexists γ, bud, ρ₁, ρ₂, ρ₃, env₀ idx₁ cok₁ rev₁, env₀ idx₂ cok₂ rev₂, env₀ idx₃ cok₃ rev₃, Φs, γn
-  iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃
+  iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃ Ho₁ Ho₂ Ho₃
   isplitr
   · ipureintro; exact ⟨hcfg, hdyn, hcc, hboot, htr, htx, Hγn.1, Hγn.2, by rw [hwl₁, hwl]⟩
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,

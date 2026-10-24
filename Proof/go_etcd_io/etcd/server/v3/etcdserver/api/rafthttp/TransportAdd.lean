@@ -60,7 +60,8 @@ theorem rafthttp.Transport.AddPeer_core
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
     (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString)
     (Hne : ss ≠ []) (Hpl : ∀ s ∈ ss, types.plainPeerURL s)
-    (Hown : ∀ h, go!"http://" ++ h ∈ ss → Rh.owner h = id) (Hself : lid ≠ id) :
+    (Hown : ∀ h, go!"http://" ++ h ∈ ss → Rh.owner h = id) (Hself : lid ≠ id)
+    (Hpm : Rh.member id) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trFixed Rh t lid γd R ∗ trStopInv Rh R γs ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
@@ -131,7 +132,7 @@ theorem rafthttp.Transport.AddPeer_core
   have Hune : uvs ≠ [] := by
     intro h; rw [h] at Huvs; exact Hne (List.length_eq_zero_iff.1 Huvs.1.symm)
   wp_apply hStartPeer Rh t lid γd R urls uvs id fs Hune
-      (fun u hu => peerURL_of_parsed Rh id ss Hown u (Huvs.2 u hu)) Hfs Hmem Hself $$ [HRs]
+      (fun u hu => peerURL_of_parsed Rh id ss Hown u (Huvs.2 u hu)) Hfs Hmem Hself Hpm $$ [HRs]
     as %pp ⟨#Hpok, Hpstop⟩
   · iframe; iframe #
   (try wp_auto)
@@ -215,7 +216,8 @@ theorem rafthttp.Transport.AddRemote_core
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
     (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString)
     (Hne : ss ≠ []) (Hpl : ∀ s ∈ ss, types.plainPeerURL s)
-    (Hown : ∀ h, go!"http://" ++ h ∈ ss → Rh.owner h = id) (Hself : lid ≠ id) :
+    (Hown : ∀ h, go!"http://" ++ h ∈ ss → Rh.owner h = id) (Hself : lid ≠ id)
+    (Hpm : Rh.member id) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trFixed Rh t lid γd R ∗ trStopInv Rh R γs ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
@@ -275,7 +277,7 @@ theorem rafthttp.Transport.AddRemote_core
   have Hune : uvs ≠ [] := by
     intro h; rw [h] at Huvs; exact Hne (List.length_eq_zero_iff.1 Huvs.1.symm)
   wp_apply hStartRemote Rh t lid γd R urls uvs id Hune
-      (fun u hu => peerURL_of_parsed Rh id ss Hown u (Huvs.2 u hu)) Hmem Hself $$ [HR1 HR2 HR3 HR4]
+      (fun u hu => peerURL_of_parsed Rh id ss Hown u (Huvs.2 u hu)) Hmem Hself Hpm $$ [HR1 HR2 HR3 HR4]
     as %g ⟨#Hgok, Hgstop⟩
   · iframe; iframe #
   (try wp_auto)

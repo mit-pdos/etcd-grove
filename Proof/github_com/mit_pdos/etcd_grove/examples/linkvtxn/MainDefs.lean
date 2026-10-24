@@ -44,8 +44,9 @@ def urlsOk (U : BootURLs) : Prop :=
   U.peer = [peerURL] ∧ U.client = [clientURL] ∧
     (∃ sl : GoSlice, U.initMap = GMap.insert go!"linkvtxn" sl ∅) ∧ U.initURLs go!"linkvtxn" = [peerURL]
 
-/-- **The peer-URL directory of `Main`'s cluster**: its one member's peer URL. -/
-def linkvtxnDir (_ : w64) : List GoString := [go!"http://127.0.0.1:23806"]
+/-- **The peer-URL directory of `Main`'s cluster**: its one member's peer URL, of the
+member `id` only (`dirOne`; 2026-10-24, rafthttp stage 6d; until then every id's). -/
+def linkvtxnDir (id : w64) : w64 → List GoString := dirOne id go!"http://127.0.0.1:23806"
 
 end pure
 
@@ -73,7 +74,7 @@ def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
         (γ : RaftNames),
       ⌜cfgOk cfg ∧ urlsOk U ∧ γ.reCfg = GMap.listToSet [id] ∧ γ.reDyn = none ∧
         γ.reCCOk = putget.ccOk id ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true⌝ -∗
-      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N linkvtxnDir) ∗
+      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N (linkvtxnDir id)) ∗
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
     rnStopOkStarted ∗

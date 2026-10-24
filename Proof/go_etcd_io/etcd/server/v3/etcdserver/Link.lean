@@ -40,6 +40,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberAppl
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NextRequestID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Process
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportUnreachable
@@ -230,6 +231,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddRemote
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__CutPeer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Handler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__MendPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Start
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
@@ -1083,6 +1085,14 @@ theorem context.wp_WithValue :
 theorem EtcdServer.wp_Put :
     EtcdServer.Put.spec (GF := GF) (hG := hG) :=
   EtcdServer.Put.wp_proof EtcdServer.wp_raftRequest PutRequest.wp_GetKey traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String context.wp_WithValue
+
+theorem rafthttp.Transport.wp_Handler :
+    rafthttp.Transport.Handler.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.Handler.wp_proof
+
+theorem EtcdServer.wp_RaftHandler :
+    EtcdServer.RaftHandler.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RaftHandler.wp_proof rafthttp.Transport.wp_Handler
 
 theorem traceutil.wp_EnsureTrace :
     traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=

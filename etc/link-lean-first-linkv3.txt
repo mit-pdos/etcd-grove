@@ -4,14 +4,14 @@
 # `linkv3`.
 #
 # `startMember`: putget3's start of one member (the server's results, linked in its `Link.lean`;
-# the feature gate's, `net.Listen`'s, `RaftHandler`'s and `http.Serve`'s trust-boundary axioms)
+# `RaftHandler`'s, linked in the server's `Link.lean`; the feature gate's and `net.Listen`'s
+# trust-boundary axioms; the HTTP boundary's `Serve`, used by the proof directly)
 etcdserver_NewServer: @
 EtcdServer__Start: @
 features_NewDefaultServerFeatureGate:
 net_Listen:
-EtcdServer__RaftHandler:
-http_Serve:
-linkv3_startMember: features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start net_Listen EtcdServer__RaftHandler http_Serve
+EtcdServer__RaftHandler: @
+linkv3_startMember: features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start net_Listen EtcdServer__RaftHandler
 # `Main`: putget3's start of the cluster and the client (v3rpc's and the client's results, linked
 # in their `Link.lean`s; zap's and grpc's trust-boundary axioms), then linkv's `Check` (linked in
 # linkv's `Link.lean`)

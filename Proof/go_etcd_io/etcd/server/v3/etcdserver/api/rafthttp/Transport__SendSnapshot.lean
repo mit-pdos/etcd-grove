@@ -1,10 +1,10 @@
 /-
-Trust boundary: `http.Serve` of a member's raft handler (an axiom; D21 stage M5, the user's (A);
-why it is true of the Go code: `Spec/net/http/Serve.lean`).
+The trust boundary: `(*rafthttp.Transport).SendSnapshot(…)` (rafthttp stage 6d, 2026-10-24). Lean-first; why
+the statement is true of the Go code is in its spec's docstring.
 -/
 module
 
-public import Spec.net.http.Serve
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__SendSnapshot
 
 @[expose] public section
 
@@ -21,7 +21,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-axiom net.http.Serve.wp_proof : net.http.Serve.spec (GF := GF) (hG := hG)
+axiom rafthttp.Transport.SendSnapshot.wp_proof : rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG)
 
 end proof
 
