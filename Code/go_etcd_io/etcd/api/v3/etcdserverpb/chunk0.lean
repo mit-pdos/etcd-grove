@@ -928,8 +928,6 @@ axiom AuthDisableRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthStatusRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom AuthUserDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom AuthUserGrantRoleRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthUserRevokeRoleRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -5255,9 +5253,31 @@ noncomputable instance equals_unfold_AuthUserGetRequest [FfiSyntax] [GoGlobalCon
 @[reducible] noncomputable def AuthUserGetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AuthUserGetRequest.fields)
 
-axiom AuthUserDeleteRequest : Type
-axiom AuthUserDeleteRequest.zero_val : ZeroVal AuthUserDeleteRequest
-attribute [instance] AuthUserDeleteRequest.zero_val
+structure AuthUserDeleteRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthUserDeleteRequest.zero_val [FfiSyntax] : ZeroVal AuthUserDeleteRequest :=
+  ⟨AuthUserDeleteRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthUserDeleteRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthUserDeleteRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthUserDeleteRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthUserDeleteRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthUserDeleteRequest.fields AuthUserDeleteRequest.fieldsUnsealed :=
+  ⟨by unfold AuthUserDeleteRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthUserDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthUserDeleteRequest.fields)
 
 structure AuthUserChangePasswordRequest [FfiSyntax] where
   mk ::

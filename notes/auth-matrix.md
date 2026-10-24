@@ -188,3 +188,14 @@ Stated at the API layer so far: A2's twelve (`Compact`, the eight maintenance wr
 `Unlock`, the five `Election` rows (the client's `concurrency` package over the in-process client),
 the lease rows' key checks (a lessor with a key model), `MemberAdd`/`MemberUpdate`/`MemberPromote`
 (`encoding/json`).
+
+## What is proved of the table (S4, the store's admin side, 2026-10-24)
+
+The store's `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd` and
+`Recover` perform the model's step on the latest recorded state (`auth/Steps.lean`, `adminOut`): the
+state appended to the history, or the model's refusal. The admin rows' class at apply is unchanged:
+`apply.isAuthStore`'s admin clauses are still the `isAuthStoreAdmin` contract (stating them as steps
+needs the authority in the apply environment); `UserGrantRole`, `UserRevokeRole`, `RoleDelete`,
+`RoleGrantPermission`, `RoleRevokePermission`, `UserGet`, `RoleGet`, `UserList`, `RoleList` are
+translated, not proved.
+

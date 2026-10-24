@@ -28,16 +28,17 @@ namespace auth
 
 open Iris Iris.BI Iris.ProofMode
 
-/-- `AuthMode` as `Option (Option GName)` (`off`, `any`, `on γa`): for the ghost variable. -/
-def AuthMode.enc : AuthMode → Option (Option GName)
+/-- `AuthMode` as `Option (Option (GName × GName))` (`off`, `any`, `on γa` by its two names):
+for the ghost variable. -/
+def AuthMode.enc : AuthMode → Option (Option (GName × GName))
   | .off => none
   | .any => some none
-  | .on γa => some (some γa)
+  | .on γa => some (some (γa.hist, γa.cur))
 
-def AuthMode.dec : Option (Option GName) → AuthMode
+def AuthMode.dec : Option (Option (GName × GName)) → AuthMode
   | none => .off
   | some none => .any
-  | some (some γa) => .on γa
+  | some (some (h, c)) => .on ⟨h, c⟩
 
 theorem AuthMode.dec_enc (M : AuthMode) : AuthMode.dec (AuthMode.enc M) = M := by
   cases M <;> rfl
