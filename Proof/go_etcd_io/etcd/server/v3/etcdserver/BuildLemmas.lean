@@ -171,15 +171,58 @@ theorem backend_server_hooks_of
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ regdOrLink γA γ ⊢
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b := by
-  iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hnh, #Hci, #Hinv⟩
+  iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hnh, #Hci, #Hinv, #Hrl⟩
   iapply isBackend_backendHooks hOn γ P W
     (batchLockInv γA (metaTM γ P)) b bh _ lgh hH
   iframe Hspkg Hbpkg Hsch Hh Hnh
   iintro !> #Hb %t #Ht
   iapply ci_saveSpec hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH
   iframe #
+
+/-- **The physical names of the backend `applySnapshot` opens** (D22 receiver epochs, S8b,
+2026-10-24): the fresh `π0` with the new backend's write-back and open names. -/
+abbrev futPhys (π0 : ApplyPhys) (γB : backend.BNames) : ApplyPhys :=
+  { π0 with bwb := γB.wb, bopn := γB.opn }
+
+/-- **The server's hooks' contract for the backend `applySnapshot` opens** (D22 receiver epochs,
+S8b, 2026-10-24; `OpenSnapshotBackend`'s `openPre`): for the family of batch-lock resources
+`batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P)` (the protocol at the fresh names `π0`
+carrying the new backend's write-back and open names, so a hook of the backend before its names are
+registered finds the payment rights deposited for it: `regdOrLink`'s second case). -/
+theorem hooksOk_server_fut
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (γA : ApplyNames) (π0 : ApplyPhys) (ci : Loc) (P : backend.BParams)
+    (W : backend.BNames → IProp GF) (bh lgh : Loc) (hP : ciKeys P) (hH : storage.hooksParams P) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
+      storage.isBackendHooks bh
+        ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
+          #ci⟩ lgh ∗
+      isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      backend.hooksOk P W (fun γB => batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P))
+        (storage.hooksIface bh) := by
+  iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hci, #Hinv⟩
+  iapply hooksOk_backendHooks hOn P W _ bh _ lgh hH
+  iframe Hspkg Hbpkg Hsch Hh
+  iintro !> %γ %b %t Hb #Ht
+  inext
+  ihave #Hrl : regdOrLink (γA.withPh (futPhys π0 γ)) γ $$ []
+  · iunfold regdOrLink; iright; ipureintro; exact ⟨rfl, rfl⟩
+  iapply ci_saveSpec hSave hPut hUR hID hName hSafe (γA.withPh (futPhys π0 γ)) ci γ P (W γ) _ b t
+    hP hH
+  ihave #Hinv' : inv applyN (consInv (γA.withPh (futPhys π0 γ))) $$ []
+  · rw [show consInv (GF := GF) (γA.withPh (futPhys π0 γ)) = consInv γA from rfl]; iexact Hinv
+  iframe Hbpkg Hsch Hcpkg Hb Ht Hci Hinv' Hrl
 
 end backend
 

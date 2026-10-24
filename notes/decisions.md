@@ -17197,3 +17197,49 @@ not refute in the window between).
   `BackendHooks.OnPreCommitUnsafe`; definitions: `bgOk`, `payIn`, `hooksSpec`, `hookFnSpec`,
   `hooksReq`, `saveSpec`, `saveReq`, `openPre`. No closed theorem's or exported result's text
   changed.
+
+**S8b: the apply protocol's future status** (`InvApply.lean`, `InvServer.lean`, `CindexBackend.lean`,
+`BuildLemmas.lean`, `HooksBackend.lean`).
+- `ApplyPhys` gains `bwb`, `bopn`: the backend's write-back and open names (read only by a future
+  backend's hook, to find the rights deposited for *its* backend: the batch lock's resource
+  `batchLockInv γ TM` sees only `γ`, so the link must be in the names; the family of a new
+  backend's resources is `fun γB => batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P)`,
+  `futPhys π0 γB := {π0 with bwb := γB.wb, bopn := γB.opn}`).
+- `ApplyNames.fut` (logical): a monotone list of announced backends with claim tokens;
+  `consRest` holds `futInv` against the registry's list (each entry registered, its claim token
+  deposited, or still future, its deposited `bFresh`: `futStash`).
+- `batchLockInv` and `hookDone` hold `applyRegdF` (`applyRegd ∨ applyFut`); `commit_save_au` keeps
+  `applyRegd`, which a hook gets from `batchLockInv_resolve` (with `regdOrLink γA γB`: registered,
+  or `γB`'s names; for a future entry `fut_resolve` finds it registered since or refutes the commit,
+  `backend.hook_bFresh_false`).
+- `ci_announce` (in the open's batch-lock step: the deposit, the entry, the lock's resource and the
+  claim), `ci_swap_au` restated (from the claim; the deposit back, the entry registered, the
+  invariant's half of the mirror and the read view from the caller), `applyRegd_of_thread`,
+  `consInv_alloc` (with the boot backend's `bwb`/`bopn`, the empty future list).
+- The hooks' contracts: `ci_hook_backend_run`, `ci_hook_backend` take `applyRegd γA`;
+  `ci_hookFnSpec`, `ci_saveSpec`, `backend_server_hooks_of` take `regdOrLink γA γ`;
+  `hooksOk_backendHooks` (storage: the hooks' contract for every backend of a family) and
+  `hooksOk_server_fut` (the server's hooks for the new backend's family, what
+  `OpenSnapshotBackend`'s `openPre` takes).
+- Statements changed: exported results `cindex_hook_backend` (+ `applyRegd γA`),
+  `cindex_hookFnSpec`, `backend_server_hooks`, `server_kv_backend_hooks` (+ `regdOrLink`); the
+  definitions `ApplyPhys`, `ApplyNames`, `consRest`, `batchLockInv`, `hookDone`; `ci_swap_au`
+  (no caller yet). No closed theorem's text changed; `bootOk`'s text unchanged (its
+  `batchLockInv γA` and `consInv γA` hold more: the announced list, empty at boot). No axiom.
+
+**Where S8 stops: S8c/S8d not started.** Going through `applySnapshot`'s callees
+(`notes/snapshot-s8-plan.md`, "S8c/S8d, callee by callee") found four questions whose answers
+decide what the remaining axioms can truthfully say, two in trusted statements other tracks own:
+W1 the snapshot directory's removal fact `Rm` (`snapDirInv`; the `.snap.db` file `OpenSnapshotBackend`
+takes, and `storage.Release`'s removals; with S-j1); W2 `NewAuthStore`'s reader resource `RD`
+(it lends an open share of the construction's backend, while after `authStore.Recover` the
+permission checks read the new one, and `isReqAuth st RD` is persistent: a true `Recover` needs
+`RD` to be a reader of whichever backend is current; the auth track's statement); W3 `AddPeer`
+panics on a stopped transport, and the started transport's contract lets `raftNode.onStop`'s `Stop`
+race with it in the model, which Go excludes by order (`run`'s deferred `sched.Stop()` before
+`s.r.stop()`): an exclusive peers right that `Stop` consumes, threaded from the apply thread to the
+raft node's stop, restating `Transport.Start` and `isRNTransport`; W4 the KV model at the image's
+prefix (`kvApplied` at `A'`, S-j2's item 6). Writing the axioms before these are settled would
+risk false trusted statements or a second restatement; S8a and S8b do not depend on them.
+`applyAll` still calls the empty case (its proof unchanged); the general spec and its wiring wait
+for S8d.

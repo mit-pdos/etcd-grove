@@ -61,6 +61,7 @@ for the boot backend: `consInv_alloc`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 public import Perennial.Ghost.Token
 
 @[expose] public section
@@ -104,10 +105,16 @@ structure ApplyPhys where
   pend : GName
   /-- the meta keys the backend was opened with -/
   m0 : MetaCI
+  /-- (D22 receiver epochs, S8b, 2026-10-24) the backend's write-back tokens' name (`γB.wb`):
+  a hook of this backend, while it is a future one, refutes the fresh payment rights deposited
+  for it (`fut_resolve`); read by nothing else -/
+  bwb : GName
+  /-- (S8b) the backend's open token's name (`γB.opn`), likewise -/
+  bopn : GName
 
 instance ApplyPhys.countable : Pos.Countable ApplyPhys :=
-  .ofInjective (fun π => Pos.Countable.encode (π.mt, π.wr, π.pend, π.m0))
-    (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
+  .ofInjective (fun π => Pos.Countable.encode (π.mt, π.wr, π.pend, π.m0, π.bwb, π.bopn))
+    (by rintro ⟨a, b, c, d, e, f⟩ ⟨a', b', c', d', e', f'⟩ h; have h := Pos.encode_inj h; simp_all)
 
 /-- The ghost names of the protocol: the logical ones (`ci`, `st`, `fz`, `cur`, `reg`), fixed for
 the server's life, and the current backend's physical ones (`ph`; D22 receiver epochs, S7f,
@@ -127,6 +134,12 @@ structure ApplyNames where
   current one last (the invariant's authority); a batch lock holds the index of its own
   (`applyRegd`), so its commits find their mirror whether its backend is current or retired -/
   reg : GName
+  /-- `monoList (ApplyPhys × GName)` (D22 receiver epochs, S8b, 2026-10-24): every backend
+  announced before it became current (`applySnapshot`'s new backend, from its open to
+  `ci.SetBackend`), with a claim token's name; the invariant's authority, and per entry either its
+  registration (its names in the registry, the claim token deposited) or its fresh payment rights
+  (`futStash`); a future backend's batch lock holds its entry's index (`applyFut`) -/
+  fut : GName
   /-- the physical names these names are at (the current backend's for the apply thread) -/
   ph : ApplyPhys
 
@@ -141,7 +154,7 @@ abbrev ApplyNames.m0 (γ : ApplyNames) : MetaCI := γ.ph.m0
 
 /-- **The names `γ` at the physical names `π`** (S7f): `γ`'s logical names. -/
 abbrev ApplyNames.withPh (γ : ApplyNames) (π : ApplyPhys) : ApplyNames :=
-  ⟨γ.ci, γ.st, γ.fz, γ.cur, γ.reg, π⟩
+  ⟨γ.ci, γ.st, γ.fz, γ.cur, γ.reg, γ.fut, π⟩
 
 theorem ApplyNames.withPh_ph (γ : ApplyNames) : γ.withPh γ.ph = γ := rfl
 
@@ -217,11 +230,49 @@ theorem retiredInv_mono (l : List ApplyPhys) (c c' : w64) (h : uint.Z c ≤ uint
   iframe Hm
   ipureintro; omega
 
+/-- **A future backend's deposit** (D22 receiver epochs, S8b, 2026-10-24): the fresh payment rights
+(`backend.bFresh`: every write-back token and the clients' whole open token) of a backend whose
+write-back and open names are `π`'s. While they are here no commit runs that backend's hooks
+(`backend.hook_bFresh_false`). -/
+def futStash (π : ApplyPhys) : IProp GF :=
+  iprop(∃ γB : backend.BNames, backend.bFresh γB ∗ ⌜γB.wb = π.bwb ∧ γB.opn = π.bopn⌝)
+
+/-- **The announced backends** (S8b) against the registry's list `L`: the authority of the futures'
+list `M`, each entry registered (its names in `L`, its claim token here) or still future (its
+deposit). -/
+def futInv (γ : ApplyNames) (L : List ApplyPhys) : IProp GF :=
+  iprop(∃ M : List (ApplyPhys × GName), monoListAuthOwn γ.fut 1 M ∗
+    [∗list] e ∈ M, ((⌜e.1 ∈ L⌝ ∗ token e.2) ∨ futStash e.1))
+
+instance futInv_timeless (γ : ApplyNames) (L : List ApplyPhys) :
+    Timeless (futInv (GF := GF) γ L) := by
+  unfold futInv futStash backend.bFresh backend.bOpen; infer_instance
+
+/-- The announced backends against a longer registry. -/
+theorem futInv_mono (γ : ApplyNames) (L L' : List ApplyPhys) (h : ∀ π, π ∈ L → π ∈ L') :
+    futInv (GF := GF) γ L ⊢ futInv γ L' := by
+  unfold futInv
+  iintro ⟨%M, Ha, HM⟩
+  iexists M
+  iframe Ha
+  iapply BigSepL.bigSepL_mono_of_forall (by
+    intro _ _
+    iintro (⟨%Hm, Ht⟩ | Hs)
+    · ileft; iframe Ht; ipureintro; exact h _ Hm
+    · iright; iexact Hs) $$ HM
+
+/-- Setting a list's element to itself. -/
+theorem futList_set_self {α : Type} {l : List α} {i : Nat} {x : α} (h : l[i]? = some x) :
+    l.set i x = l := by
+  obtain ⟨hi, rfl⟩ := List.getElem?_eq_some_iff.1 h
+  exact List.set_getElem_self hi
+
 /-- **The protocol's registry and retired backends** at the names `γ` (S7f): the authority of the
 registry (the retired backends' physical names `l`, then the current `γ.ph`) and the retired
-mirrors (`retiredInv`, at most `c`). -/
+mirrors (`retiredInv`, at most `c`); (S8b) the announced backends against the registry
+(`futInv`). -/
 def consRest (γ : ApplyNames) (l : List ApplyPhys) (c : w64) : IProp GF :=
-  iprop(monoListAuthOwn γ.reg 1 (l ++ [γ.ph]) ∗ retiredInv l c)
+  iprop(monoListAuthOwn γ.reg 1 (l ++ [γ.ph]) ∗ retiredInv l c ∗ futInv γ (l ++ [γ.ph]))
 
 instance consRest_timeless (γ : ApplyNames) (l : List ApplyPhys) (c : w64) :
     Timeless (consRest (GF := GF) γ l c) := by
@@ -268,6 +319,21 @@ instance applyRegd_persistent (γ : ApplyNames) : Persistent (applyRegd (GF := G
 instance applyRegd_timeless (γ : ApplyNames) : Timeless (applyRegd (GF := GF) γ) := by
   unfold applyRegd monoListIdxOwn monoListLbOwn; infer_instance
 
+/-- **A batch lock's announcement** (persistent; D22 receiver epochs, S8b, 2026-10-24): the
+physical names `γ.ph` are an entry of the announced backends (with some claim token). -/
+def applyFut (γ : ApplyNames) : IProp GF :=
+  iprop(∃ (j : Nat) (γc : GName), monoListIdxOwn γ.fut j (γ.ph, γc))
+
+instance applyFut_persistent (γ : ApplyNames) : Persistent (applyFut (GF := GF) γ) := by
+  unfold applyFut; infer_instance
+
+/-- **What a batch lock knows of its names** (persistent; S8b): registered, or announced (a future
+backend's: `fut_resolve` turns it into the registration in a hook, or refutes the hook). -/
+def applyRegdF (γ : ApplyNames) : IProp GF := iprop(applyRegd γ ∨ applyFut γ)
+
+instance applyRegdF_persistent (γ : ApplyNames) : Persistent (applyRegdF (GF := GF) γ) := by
+  unfold applyRegdF; infer_instance
+
 /-- The protocol's parts at `γ.withPh γ.ph` are at `γ`. -/
 theorem consParts_ph (γ : ApplyNames) (l : List ApplyPhys) (s : ApplyState) (mi : w64) (w : Bool) :
     ((consInvAt (GF := GF) (γ.withPh γ.ph) s mi w ∨ consFrozen (γ.withPh γ.ph) s mi w) ∗
@@ -307,11 +373,11 @@ theorem consInv_close (γ : ApplyNames) (l : List ApplyPhys) (s s' : ApplyState)
       (consInvAt γ s' mi w ∨ consFrozen γ s' mi w) ⊢ consInv γ := by
   iintro ⟨Hc, Hr, Hi⟩
   iunfold consRest at Hr
-  icases Hr with ⟨Ha, Hr⟩
+  icases Hr with ⟨Ha, Hr, Hf⟩
   ihave Hr := retiredInv_mono l _ _ hle $$ Hr
-  icases consParts_ph' γ l s' mi w $$ [$Hi Ha Hr] with ⟨Hi, Hr⟩
+  icases consParts_ph' γ l s' mi w $$ [$Hi Ha Hr Hf] with ⟨Hi, Hr⟩
   · iunfold consRest
-    iframe Ha Hr
+    iframe Ha Hr Hf
   iunfold consInv
   iexists γ.ph, l, s', mi, w
   iunfold curOwn at Hc
@@ -334,9 +400,10 @@ theorem frozen_thread_false (γ : ApplyNames) (s s' : ApplyState) (mi : w64) (w 
 /-- The batch transaction lock's invariant, for the backend's meta-keys resource `TM`: the
 keys, the lock's half of the stored index's mirror, the token `pend`, and (S7f) the registration
 of the backend's physical names (`applyRegd`), so that its commits find their mirror once the
-backend is retired. -/
+backend is retired; (D22 receiver epochs, S8b, 2026-10-24) or their announcement (`applyFut`):
+`applySnapshot`'s new backend's lock is made at its open, before its names are registered. -/
 def batchLockInv (γ : ApplyNames) (TM : MetaCI → IProp GF) : IProp GF :=
-  iprop(∃ mm : MetaCI, ghostVar γ.mt (1 : Qp).half mm.1 ∗ TM mm ∗ token γ.pend ∗ applyRegd γ)
+  iprop(∃ mm : MetaCI, ghostVar γ.mt (1 : Qp).half mm.1 ∗ TM mm ∗ token γ.pend ∗ applyRegdF γ)
 
 /-- The read view of the meta keys, as the backend's `ReadTx` contract (`metaReadTx`) sees
 it: while no commit has stored meta keys, they read as `γ.m0`. `γ.wr` is the invariant's;
@@ -801,7 +868,7 @@ theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
   rotate_left
   · -- retired (S7f): the mirror's other half is the registry's entry of `γ.ph`
     iunfold consRest at Hr
-    icases Hr with ⟨Ha, Hret⟩
+    icases Hr with ⟨Ha, Hret, Hfut⟩
     iunfold applyRegd at Hreg
     icases Hreg with ⟨%i, #Hidx⟩
     icases reg_lookup γ.reg (l ++ [π]) i γ.ph $$ [$Ha $Hidx] with ⟨%Hli, Ha, -⟩
@@ -828,13 +895,13 @@ theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
       by_cases hk : s.k = W64 0
       · rw [if_pos hk]; exact Hmr
       · rw [if_neg hk]; unfold ciEff; rw [if_neg hk]; exact Int.le_refl _
-    imod Hclose $$ [Hci Hi Ha Hret Hmr] with -
+    imod Hclose $$ [Hci Hi Ha Hret Hmr Hfut] with -
     · inext
       iunfold consInv
       iexists π, l, s, mi, w
       iframe Hci Hi
       iunfold consRest
-      iframe Ha
+      iframe Ha Hfut
       iunfold retiredInv
       iapply Hret
       iexists (if s.k = W64 0 then mm.1 else s.k)
@@ -1062,28 +1129,186 @@ theorem unfreeze (γ : ApplyNames) (s : ApplyState) :
   iframe Hcu
   iexact Hst
 
-/-! ## The backend's swap (D22 receiver epochs, S7f) -/
+/-! ## The backend's swap (D22 receiver epochs, S7f; the future status, S8b) -/
 
-/-- **The backend's swap** (D22 receiver epochs, S7f, 2026-10-23; `notes/decisions.md`, "D22
-receiver epochs, S7f carried out"), at the linearization point of `ci.SetBackend(newbe)` in
-`applySnapshot` (its store of `ci = 0`: `consistentIndex.SetBackend.spec`'s update): the apply
-thread, at `s` out of the window, moves the protocol to the new backend's physical names `π'` (its
-mirror `π'.mt`, whole, at the meta keys it was opened with `π'.m0`, its read view's `π'.wr`, whole,
-unwritten), at the state `s'` (`ci = 0`, nothing in flight, `stOk`); the old backend's names are
-retired: their mirror's invariant half joins `retiredInv`, at most the new `ciEff` (`π'.m0.1`,
-which must not be below the old one: `hle`), so the old backend's commits (its `Close`) still go
-through `commit_save_au`. The apply thread gets its state at the new names, the new batch lock's
-half of the mirror and the new names' registration (`applyRegd`), for the new backend's
-`batchLockInv`. -/
-theorem ci_swap_au (γ : ApplyNames) (s s' : ApplyState) (π' : ApplyPhys) (Φ : IProp GF)
+/-- A list index of an authority, the authority kept. -/
+theorem fut_lookup (γr : GName) (l : List (ApplyPhys × GName)) (i : Nat) (e : ApplyPhys × GName) :
+    monoListAuthOwn (GF := GF) γr 1 l ∗ monoListIdxOwn γr i e ⊢
+      ⌜l[i]? = some e⌝ ∗ (monoListAuthOwn γr 1 l ∗ monoListIdxOwn γr i e) :=
+  persistent_entails_right (by
+    iintro ⟨Ha, Hi⟩
+    iapply mono_list_auth_idx_lookup γr 1 l i e $$ Ha Hi)
+
+/-- A member of the registry's authority is registered (its index, persistent). -/
+theorem regd_of_mem (γr : GName) (L : List ApplyPhys) (π : ApplyPhys) (h : π ∈ L) :
+    monoListAuthOwn (GF := GF) γr 1 L ⊢ monoListAuthOwn γr 1 L ∗ ∃ i : Nat, monoListIdxOwn γr i π := by
+  iintro Ha
+  ihave #Hlb := monoListLbOwn_get γr 1 L $$ Ha
+  iframe Ha
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem h
+  iexists i
+  iunfold monoListIdxOwn
+  iexists L
+  iframe Hlb
+  ipureintro
+  exact List.getElem?_eq_getElem hi
+
+/-- **The apply thread's names are registered** (persistent; D22 receiver epochs, S8b, 2026-10-24):
+its part of the current names says they are the invariant's current ones, the registry's last. -/
+theorem applyRegd_of_thread (γ : ApplyNames) (s : ApplyState) :
+    inv applyN (consInv (GF := GF) γ) ⊢ applyThread γ s ={⊤}=∗ applyThread γ s ∗ applyRegd γ := by
+  iintro #Hinv Hst
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  iinv Hinv with Hi Hclose
+  imod Hi with Hi
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
+  iunfold consRest at Hr
+  icases Hr with ⟨Ha, Hret, Hfut⟩
+  icases regd_of_mem γ.reg (l ++ [γ.ph]) γ.ph (by simp) $$ Ha with ⟨Ha, %i, #Hidx⟩
+  imod Hclose $$ [Hci Hi Ha Hret Hfut] with -
+  · inext
+    iunfold consInv
+    iexists γ.ph, l, s0, mi, w
+    iunfold curOwn at Hci
+    iframe Hci Hi
+    iunfold consRest
+    iframe Ha Hret Hfut
+  imodintro
+  iunfold applyThread
+  iframe Hst Hcu
+  iunfold applyRegd
+  iexists i
+  iexact Hidx
+
+/-- **A future backend's hook resolved** (D22 receiver epochs, S8b, 2026-10-24): in a hook of the
+backend `γB` (its batch lock held in state `st`, its commit paid, `payIn`), whose names `γ.ph` were
+announced (`applyFut`) and carry `γB`'s write-back and open names: either they have been
+registered since (the swap ran: `applyRegd`, from the registry's authority), or they are still
+future, and then the deposited payment rights refute the commit (`backend.hook_bFresh_false`). -/
+theorem fut_resolve [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+    (γ : ApplyNames) (γB : backend.BNames) (P : backend.BParams) (b : Loc)
+    (st : backend.BSess) (stop : Bool) (m u : Nat) (hwb : γB.wb = γ.ph.bwb)
+    (hopn : γB.opn = γ.ph.bopn) :
+    inv applyN (consInv (GF := GF) γ) ⊢ applyFut γ -∗ backend.batchLocked γB P b st -∗
+      backend.payIn γB st stop m u -∗
+      |={⊤}=> applyRegd γ ∗ backend.batchLocked γB P b st ∗ backend.payIn γB st stop m u := by
+  iintro #Hinv #Hfut Hl Hpay
+  iunfold applyFut at Hfut
+  icases Hfut with ⟨%j, %γc, #Hidx⟩
+  iinv Hinv with Hi Hclose
+  imod Hi with Hi
+  iunfold consInv at Hi
+  icases Hi with ⟨%π, %l, %s, %mi, %w, Hci, Hi, Hr⟩
+  iunfold consRest at Hr
+  icases Hr with ⟨Ha, Hret, Hfut⟩
+  iunfold futInv at Hfut
+  icases Hfut with ⟨%M, HaM, HM⟩
+  icases fut_lookup γ.fut M j (γ.ph, γc) $$ [$HaM $Hidx] with ⟨%HMj, HaM, -⟩
+  icases (BigSepL.bigSepL_lookup_acc HMj).1 $$ HM with ⟨He, HMb⟩
+  icases He with (⟨%Hmem, Htc⟩ | Hst)
+  · icases regd_of_mem γ.reg (l ++ [π]) γ.ph Hmem $$ Ha with ⟨Ha, %i, #Hreg⟩
+    ihave HM := HMb $$ %(γ.ph, γc) [Htc]
+    · ileft; iframe Htc; ipureintro; exact Hmem
+    imod Hclose $$ [Hci Hi Ha Hret HaM HM] with -
+    · inext
+      iunfold consInv
+      iexists π, l, s, mi, w
+      iframe Hci Hi
+      iunfold consRest
+      iframe Ha Hret
+      iunfold futInv
+      iexists M
+      iframe HaM
+      rw [futList_set_self HMj]
+      iexact HM
+    imodintro
+    iframe Hl Hpay
+    iunfold applyRegd
+    iexists i
+    iexact Hreg
+  · iunfold futStash at Hst
+    icases Hst with ⟨%γB', Hfr, %Hlink⟩
+    iexfalso
+    iapply backend.hook_bFresh_false γB γB' P b st stop m u (by rw [hwb]; exact Hlink.1)
+      (by rw [hopn]; exact Hlink.2) $$ [$Hl $Hpay $Hfr]
+
+/-- **A backend announced** (D22 receiver epochs, S8b, 2026-10-24), in the open's batch-lock step
+(`backend.New`'s, `OpenSnapshotBackend`'s `openPre`): the new backend's physical names `π` (fresh
+batch-lock token, one half of its fresh mirror at the meta keys `mm` the backend holds, `TM mm`)
+and its fresh payment rights (`bFresh` of a backend with `π`'s write-back and open names), which
+join the announced list with a fresh claim token: the new backend's lock resource
+`batchLockInv (γ.withPh π) TM` (its names announced, `applyFut`) and the claim (its token and its
+entry's index), which `ci_swap_au` takes when it registers the names. -/
+theorem ci_announce (γ : ApplyNames) (π : ApplyPhys) (γB : backend.BNames) (TM : MetaCI → IProp GF)
+    (mm : MetaCI) (hwb : γB.wb = π.bwb) (hopn : γB.opn = π.bopn) :
+    inv applyN (consInv (GF := GF) γ) ⊢ backend.bFresh γB -∗ token π.pend -∗
+      ghostVar π.mt (1 : Qp).half mm.1 -∗ TM mm -∗
+      |={⊤}=> batchLockInv (γ.withPh π) TM ∗
+        ∃ (j : Nat) (γc : GName), token γc ∗ monoListIdxOwn γ.fut j (π, γc) := by
+  iintro #Hinv Hfr Hpend Hmt HTM
+  imod token_alloc with ⟨%γc, Htc⟩
+  iinv Hinv with Hi Hclose
+  imod Hi with Hi
+  iunfold consInv at Hi
+  icases Hi with ⟨%π0, %l, %s, %mi, %w, Hci, Hi, Hr⟩
+  iunfold consRest at Hr
+  icases Hr with ⟨Ha, Hret, Hfut⟩
+  iunfold futInv at Hfut
+  icases Hfut with ⟨%M, HaM, HM⟩
+  imod monoListAuthOwn_update_app [(π, γc)] $$ HaM with ⟨HaM, #Hlb⟩
+  ihave #Hidx := monoListIdxOwn_get M.length (π, γc) (by simp) $$ Hlb
+  imod Hclose $$ [Hci Hi Ha Hret HaM HM Hfr] with -
+  · inext
+    iunfold consInv
+    iexists π0, l, s, mi, w
+    iframe Hci Hi
+    iunfold consRest
+    iframe Ha Hret
+    iunfold futInv
+    iexists M ++ [(π, γc)]
+    iframe HaM
+    iapply BigSepL.bigSepL_snoc.2
+    iframe HM
+    iright
+    iunfold futStash
+    iexists γB
+    iframe Hfr
+    ipureintro; exact ⟨hwb, hopn⟩
+  imodintro
+  isplitl [Hpend Hmt HTM]
+  · iunfold batchLockInv
+    iexists mm
+    iframe Hmt HTM Hpend
+    iunfold applyRegdF
+    iright
+    iunfold applyFut
+    iexists M.length, γc
+    iexact Hidx
+  iexists M.length, γc
+  iframe Htc Hidx
+
+/-- **The backend's swap** (D22 receiver epochs, S7f, 2026-10-23; restated for the future status in
+S8b, 2026-10-24; `notes/decisions.md`, "D22 receiver epochs, S7f carried out" and "S8 carried
+out"), at the linearization point of `ci.SetBackend(newbe)` in `applySnapshot` (its store of
+`ci = 0`: `consistentIndex.SetBackend.spec`'s update): the apply thread, at `s` out of the window,
+moves the protocol to the announced backend's physical names `π'` (their claim, `ci_announce`'s;
+the invariant's half of its mirror at the meta keys it was opened with `π'.m0`, its read view's
+`π'.wr`, whole, unwritten), at the state `s'` (`ci = 0`, nothing in flight, `stOk`); the old
+backend's names are retired: their mirror's invariant half joins `retiredInv`, at most the new
+`ciEff` (`π'.m0.1`, which must not be below the old one: `hle`), so the old backend's commits (its
+`Close`) still go through `commit_save_au`. The new names are registered (the claim's entry turns
+registered, its token deposited) and the apply thread gets its state at them, their registration
+and the new backend's payment rights back (`futStash`). -/
+theorem ci_swap_au (γ : ApplyNames) (s s' : ApplyState) (π' : ApplyPhys) (j : Nat) (γc : GName)
+    (Φ : IProp GF)
     (hk' : s'.k = W64 0) (hps' : s'.pending = false) (hok : stOk (γ.withPh π') s')
     (hle : uint.Z (ciEff γ s.k) ≤ uint.Z π'.m0.1) :
-    inv applyN (consInv γ) ⊢ applyThread γ s -∗ ghostVar π'.mt 1 π'.m0.1 -∗
-      ghostVar π'.wr 1 false -∗
-      (applyThread (γ.withPh π') s' -∗ ghostVar π'.mt (1 : Qp).half π'.m0.1 -∗
-        applyRegd (γ.withPh π') -∗ Φ) -∗
+    inv applyN (consInv γ) ⊢ applyThread γ s -∗ ghostVar π'.mt (1 : Qp).half π'.m0.1 -∗
+      ghostVar π'.wr 1 false -∗ token γc -∗ monoListIdxOwn γ.fut j (π', γc) -∗
+      (applyThread (γ.withPh π') s' -∗ applyRegd (γ.withPh π') -∗ futStash π' -∗ Φ) -∗
       |={⊤ \ ↑ciN, ∅}=> ∃ k0 : w64, ciIdx γ.ci k0 ∗ (ciIdx γ.ci (W64 0) ={∅, ⊤ \ ↑ciN}=∗ Φ) := by
-  iintro #Hinv Hst Hmt' Hwr' HΦ
+  iintro #Hinv Hst Hm1 Hwr' Htc #Hjdx HΦ
   iinv Hinv with Hi Hclose
   imod Hi with Hi
   iunfold applyThread at Hst
@@ -1097,6 +1322,24 @@ theorem ci_swap_au (γ : ApplyNames) (s s' : ApplyState) (π' : ApplyPhys) (Φ :
   icombine Hst Hs gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   have hmi : uint.Z mi ≤ uint.Z (ciEff γ s.k) := consInvAt_mi γ s mi w Hmk Hk0 Hw0
+  iunfold consRest at Hr
+  icases Hr with ⟨Ha, Hret, Hfut⟩
+  iunfold futInv at Hfut
+  icases Hfut with ⟨%M, HaM, HM⟩
+  icases fut_lookup γ.fut M j (π', γc) $$ [$HaM $Hjdx] with ⟨%HMj, HaM, -⟩
+  have hsub : ∀ π, π ∈ l ++ [γ.ph] → π ∈ (l ++ [γ.ph]) ++ [π'] := fun π h =>
+    List.mem_append_left _ h
+  ihave HM : [∗list] e ∈ M, ((⌜e.1 ∈ (l ++ [γ.ph]) ++ [π']⌝ ∗ token e.2) ∨ futStash e.1) $$ [HM]
+  · iapply BigSepL.bigSepL_mono_of_forall (by
+      intro _ _
+      iintro (⟨%Hm, Ht⟩ | Hs)
+      · ileft; iframe Ht; ipureintro; exact hsub _ Hm
+      · iright; iexact Hs) $$ HM
+  icases (BigSepL.bigSepL_lookup_acc HMj).1 $$ HM with ⟨He, HMb⟩
+  icases He with (⟨-, Htc'⟩ | Hstash)
+  · iexfalso; iapply token_exclusive $$ Htc Htc'
+  ihave HM := HMb $$ %(π', γc) [Htc]
+  · ileft; iframe Htc; ipureintro; simp
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   iexists s.k
@@ -1106,13 +1349,10 @@ theorem ci_swap_au (γ : ApplyNames) (s s' : ApplyState) (π' : ApplyPhys) (Φ :
   imod ghostVar_update_halves s' $$ Hst Hs with ⟨Hst, Hs⟩
   iunfold curOwn at Hcu Hci
   imod ghostVar_update_halves π' $$ Hcu Hci with ⟨Hcu, Hci⟩
-  iunfold consRest at Hr
-  icases Hr with ⟨Ha, Hret⟩
   imod monoListAuthOwn_update_app [π'] $$ Ha with ⟨Ha, #Hlb⟩
   ihave #Hidx := monoListIdxOwn_get (l ++ [γ.ph]).length π' (by simp) $$ Hlb
-  icases (ghostVar_split_half π'.mt 1 π'.m0.1).1 $$ Hmt' with ⟨Hm1, Hm2⟩
   ihave Hret := retiredInv_mono l _ π'.m0.1 hle $$ Hret
-  imod Hclose $$ [Hci Hk Hs Hm1 Hwr' Hfzt Ha Hret Hm] with -
+  imod Hclose $$ [Hci Hk Hs Hm1 Hwr' Hfzt Ha Hret Hm HaM HM] with -
   · inext
     iunfold consInv
     iexists π', l ++ [γ.ph], s', π'.m0.1, false
@@ -1128,18 +1368,24 @@ theorem ci_swap_au (γ : ApplyNames) (s s' : ApplyState) (π' : ApplyPhys) (Φ :
       exact ⟨fun h => absurd rfl h, fun _ => rfl, fun _ => rfl, hok⟩
     iunfold consRest
     iframe Ha
-    iunfold retiredInv
-    iapply BigSepL.bigSepL_snoc.2
-    rw [hk']
-    have hc : ciEff (γ.withPh π') (W64 0) = π'.m0.1 := by unfold ciEff; rw [if_pos rfl]
-    rw [hc]
-    iunfold retiredInv at Hret
-    iframe Hret
-    iexists mi
-    iframe Hm
-    ipureintro; omega
+    isplitl [Hret Hm]
+    · iunfold retiredInv
+      iapply BigSepL.bigSepL_snoc.2
+      rw [hk']
+      have hc : ciEff (γ.withPh π') (W64 0) = π'.m0.1 := by unfold ciEff; rw [if_pos rfl]
+      rw [hc]
+      iunfold retiredInv at Hret
+      iframe Hret
+      iexists mi
+      iframe Hm
+      ipureintro; omega
+    iunfold futInv
+    iexists M
+    iframe HaM
+    rw [futList_set_self HMj]
+    iexact HM
   imodintro
-  iapply HΦ $$ [Hst Hcu] Hm2
+  iapply HΦ $$ [Hst Hcu] [] Hstash
   · iunfold applyThread
     iunfold curOwn
     iframe Hst Hcu
@@ -1156,7 +1402,7 @@ the backend does): over a consistent index holding 0 (`NewConsistentIndex`'s), f
 at the meta keys `m0`, fresh names with the registry holding them alone; the apply thread at
 `ci = 0`, processed through the stored index; the batch lock's half of the mirror, its token and
 its registration. -/
-theorem consInv_alloc (γci : CINames) (m0 : MetaCI) (Ms : CoPset) :
+theorem consInv_alloc (γci : CINames) (m0 : MetaCI) (bwb bopn : GName) (Ms : CoPset) :
     ciIdx (GF := GF) γci (W64 0) ⊢ |={Ms}=> ∃ γ : ApplyNames, ⌜γ.ci = γci ∧ γ.m0 = m0⌝ ∗
       inv applyN (consInv γ) ∗ applyThread γ ⟨W64 0, m0.1, W64 0, false⟩ ∗
       ghostVar γ.mt (1 : Qp).half m0.1 ∗ token γ.pend ∗ applyRegd γ := by
@@ -1166,23 +1412,24 @@ theorem consInv_alloc (γci : CINames) (m0 : MetaCI) (Ms : CoPset) :
   imod (ghostVar_alloc (GF := GF) false) with ⟨%γwr, Hwr⟩
   imod token_alloc with ⟨%γpend, Hpend⟩
   imod token_alloc with ⟨%γfz, Hfz⟩
-  imod (ghostVar_alloc (GF := GF) (⟨γmt, γwr, γpend, m0⟩ : ApplyPhys)) with ⟨%γcur, Hcur⟩
-  imod (mono_list_own_alloc (GF := GF) [(⟨γmt, γwr, γpend, m0⟩ : ApplyPhys)])
+  imod (ghostVar_alloc (GF := GF) (⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys)) with ⟨%γcur, Hcur⟩
+  imod (mono_list_own_alloc (GF := GF) [(⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys)])
     with ⟨%γreg, Ha, #Hlb⟩
-  ihave #Hidx := monoListIdxOwn_get (γ := γreg) 0 (⟨γmt, γwr, γpend, m0⟩ : ApplyPhys) rfl $$ Hlb
+  imod (mono_list_own_alloc (GF := GF) ([] : List (ApplyPhys × GName))) with ⟨%γfut, Haf, -⟩
+  ihave #Hidx := monoListIdxOwn_get (γ := γreg) 0 (⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys) rfl $$ Hlb
   icases (ghostVar_split_half γst 1 (⟨W64 0, m0.1, W64 0, false⟩ : ApplyState)).1 $$ Hst
     with ⟨Hst1, Hst2⟩
   icases (ghostVar_split_half γmt 1 m0.1).1 $$ Hmt with ⟨Hmt1, Hmt2⟩
-  icases (ghostVar_split_half γcur 1 (⟨γmt, γwr, γpend, m0⟩ : ApplyPhys)).1 $$ Hcur
+  icases (ghostVar_split_half γcur 1 (⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys)).1 $$ Hcur
     with ⟨Hcur1, Hcur2⟩
-  iexists (⟨γci, γst, γfz, γcur, γreg, ⟨γmt, γwr, γpend, m0⟩⟩ : ApplyNames)
+  iexists (⟨γci, γst, γfz, γcur, γreg, γfut, ⟨γmt, γwr, γpend, m0, bwb, bopn⟩⟩ : ApplyNames)
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
-  isplitl [Hk Hst1 Hmt1 Hwr Hfz Hcur1 Ha]
+  isplitl [Hk Hst1 Hmt1 Hwr Hfz Hcur1 Ha Haf]
   · iapply inv_alloc applyN Ms
     inext
     iunfold consInv
-    iexists (⟨γmt, γwr, γpend, m0⟩ : ApplyPhys), ([] : List ApplyPhys),
+    iexists (⟨γmt, γwr, γpend, m0, bwb, bopn⟩ : ApplyPhys), ([] : List ApplyPhys),
       (⟨W64 0, m0.1, W64 0, false⟩ : ApplyState), m0.1, false
     iframe Hcur1
     isplitl [Hk Hst1 Hmt1 Hwr Hfz]
@@ -1198,7 +1445,13 @@ theorem consInv_alloc (γci : CINames) (m0 : MetaCI) (Ms : CoPset) :
     iunfold consRest
     rw [List.nil_append]
     iframe Ha
-    iunfold retiredInv
+    isplitr
+    · iunfold retiredInv
+      iapply BigSepL.bigSepL_nil.2
+      itrivial
+    iunfold futInv
+    iexists ([] : List (ApplyPhys × GName))
+    iframe Haf
     iapply BigSepL.bigSepL_nil.2
     itrivial
   imodintro

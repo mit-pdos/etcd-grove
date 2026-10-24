@@ -60,6 +60,15 @@ def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗ ownToks γ.wb wbInit ∗
     rbOwn γ (rbData P D) ∗ [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b)
 
+end preds
+
+section fresh
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
 /-- **A fresh backend's payment rights** (D22 receiver epochs, S8a, 2026-10-24): every write-back
 token and the clients' whole open token, which the constructor gives (`newPost`). Whoever holds
 them knows no commit can run the backend's hooks (`hook_fresh_false`): every commit is paid by one
@@ -126,6 +135,15 @@ theorem hook_bFresh_false (γ γ' : BNames) (P : BParams) (b : Loc) (st : BSess)
   · rw [← hopn]; iexact Hop
   iapply hook_fresh_false γ P b st stop m u $$ [$Hl $Hpay $Htoks $Hop]
 
+end fresh
+
+section preds2
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
 /-- **What the constructor gives, the fresh backend's payment rights traded** (D22 receiver epochs,
 S8a, 2026-10-24): `newPost` with the creator's batch-lock step having taken `bFresh γ` (every
 write-back token and the clients' whole open token) and given `K γ` in its place. A creator that
@@ -146,7 +164,7 @@ theorem newPost_of_K (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b
   unfold newPost
   iframe Hb Hs Ho Hv Hh Ht Hr Hrd
 
-end preds
+end preds2
 
 end backend
 end EtcdGrove
