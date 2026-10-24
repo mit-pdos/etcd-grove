@@ -4,7 +4,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.auth`
 
 Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
 `ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`, and the admin side's eleven
-(the auth plan's S4, 2026-10-24: `ErrRootUserNotExist`, ..., `ErrInvalidAuthMgmt`; translated
+(the auth plan's S4, 2026-10-24: `ErrRootUserNotExist`, ..., `ErrInvalidAuthMgmt`), and S5's two
+(`ErrAuthFailed`, `ErrAuthNotEnabled`; translated
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).
@@ -65,8 +66,6 @@ axiom opaqueInitsOk :
         simpleTokenTTLResolution.init,
         «_».init,
         rootPerm.init,
-        ErrAuthFailed.init,
-        ErrAuthNotEnabled.init,
         ErrInvalidAuthOpts.init,
         ErrInvalidAuthMethod.init,
         ErrMissingKey.init,
@@ -116,10 +115,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthMgmt _ as HErrInvalidAuthMgmt
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthToken _ as HErrInvalidAuthToken
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrAuthOldRevision _ as HErrAuthOldRevision
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrAuthNotEnabled _ as HErrAuthNotEnabled
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrPermissionNotGranted _ as HErrPermissionNotGranted
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrRoleNotGranted _ as HErrRoleNotGranted
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrPermissionDenied _ as HErrPermissionDenied
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoPasswordUser _ as HErrNoPasswordUser
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrAuthFailed _ as HErrAuthFailed
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrPermissionNotGiven _ as HErrPermissionNotGiven
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrRoleEmpty _ as HErrRoleEmpty
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrRoleNotFound _ as HErrRoleNotFound
@@ -166,6 +167,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrRoleNotFound))
   -- translated initializer of ErrRoleEmpty))
   -- translated initializer of ErrPermissionNotGiven))
+  -- translated initializer of ErrAuthFailed))
+  -- translated initializer of ErrNoPasswordUser))
+  -- translated initializer of ErrPermissionDenied))
+  -- translated initializer of ErrRoleNotGranted))
+  -- translated initializer of ErrPermissionNotGranted))
+  -- translated initializer of ErrAuthNotEnabled))
+  -- translated initializer of ErrAuthOldRevision))
+  -- translated initializer of ErrInvalidAuthToken))
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRootUserNotExist #MErrRootUserNotExist
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRootRoleNotExist #MErrRootRoleNotExist
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrUserAlreadyExist #MErrUserAlreadyExist
@@ -175,18 +184,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRoleNotFound #MErrRoleNotFound
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRoleEmpty #MErrRoleEmpty
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrPermissionNotGiven #MErrPermissionNotGiven
-  wp_apply (opaqueInitsOk ErrAuthFailed.init (by mem_tac))
-  -- translated initializer of ErrNoPasswordUser))
-  -- translated initializer of ErrPermissionDenied))
-  -- translated initializer of ErrRoleNotGranted))
-  -- translated initializer of ErrPermissionNotGranted))
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrAuthFailed #MErrAuthFailed
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrNoPasswordUser #MErrNoPasswordUser
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrPermissionDenied #MErrPermissionDenied
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRoleNotGranted #MErrRoleNotGranted
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrPermissionNotGranted #MErrPermissionNotGranted
-  wp_apply (opaqueInitsOk ErrAuthNotEnabled.init (by mem_tac))
-  -- translated initializer of ErrAuthOldRevision))
-  -- translated initializer of ErrInvalidAuthToken))
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrAuthNotEnabled #MErrAuthNotEnabled
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrAuthOldRevision #MErrAuthOldRevision
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrInvalidAuthToken #MErrInvalidAuthToken
   wp_apply (opaqueInitsOk ErrInvalidAuthOpts.init (by mem_tac))
@@ -206,10 +209,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrRoleNotFound
   ipersist HErrRoleEmpty
   ipersist HErrPermissionNotGiven
+  ipersist HErrAuthFailed
   ipersist HErrNoPasswordUser
   ipersist HErrPermissionDenied
   ipersist HErrRoleNotGranted
   ipersist HErrPermissionNotGranted
+  ipersist HErrAuthNotEnabled
   ipersist HErrAuthOldRevision
   ipersist HErrInvalidAuthToken
   ipersist HErrInvalidAuthMgmt
@@ -222,10 +227,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ihave #TErrRoleNotFound := EtcdGrove.errorMsg_triple _ _ _ $$ MErrRoleNotFound
   ihave #TErrRoleEmpty := EtcdGrove.errorMsg_triple _ _ _ $$ MErrRoleEmpty
   ihave #TErrPermissionNotGiven := EtcdGrove.errorMsg_triple _ _ _ $$ MErrPermissionNotGiven
+  ihave #TErrAuthFailed := EtcdGrove.errorMsg_triple _ _ _ $$ MErrAuthFailed
   ihave #TErrNoPasswordUser := EtcdGrove.errorMsg_triple _ _ _ $$ MErrNoPasswordUser
   ihave #TErrPermissionDenied := EtcdGrove.errorMsg_triple _ _ _ $$ MErrPermissionDenied
   ihave #TErrRoleNotGranted := EtcdGrove.errorMsg_triple _ _ _ $$ MErrRoleNotGranted
   ihave #TErrPermissionNotGranted := EtcdGrove.errorMsg_triple _ _ _ $$ MErrPermissionNotGranted
+  ihave #TErrAuthNotEnabled := EtcdGrove.errorMsg_triple _ _ _ $$ MErrAuthNotEnabled
   ihave #TErrAuthOldRevision := EtcdGrove.errorMsg_triple _ _ _ $$ MErrAuthOldRevision
   ihave #TErrInvalidAuthToken := EtcdGrove.errorMsg_triple _ _ _ $$ MErrInvalidAuthToken
   ihave #TErrInvalidAuthMgmt := EtcdGrove.errorMsg_triple _ _ _ $$ MErrInvalidAuthMgmt

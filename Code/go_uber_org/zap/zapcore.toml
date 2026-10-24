@@ -1,5 +1,6 @@
 # Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
+# The log-level constant `DebugLevel` (zap's `DebugLevel` is it; the auth plan's S5, 2026-10-24).
+translate = ["!*", "DebugLevel"]
 imports = ["!*", "time", "io"]
 
 # translate the definitions of all type declarations goose supports

@@ -601,6 +601,7 @@ axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
 axiom zap.Int32.wp_proof
 axiom zap.Int64.wp_proof
+axiom zap.Logger.Check.wp_proof
 axiom zap.Logger.Debug.wp_proof
 axiom zap.Logger.Error.wp_proof
 axiom zap.Logger.Fatal.wp_proof
@@ -615,6 +616,7 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
+axiom zapcore.CheckedEntry.Write.wp_proof
 sorry k8setcd3.clientErr_other
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
