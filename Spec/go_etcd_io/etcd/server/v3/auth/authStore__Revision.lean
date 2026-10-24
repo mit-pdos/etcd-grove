@@ -22,13 +22,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- `as.Revision()`: the atomic load of `revision`. -/
+/-- `as.Revision()`: the atomic load of `revision`, with the mode's verdict on it (`revisionVerdict`:
+in `on γa` a recorded state's revision; the auth plan's S3). -/
 
 abbrev auth.authStore.Revision.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Revision")) (Val #()))
-  {{ (x : w64), RET #x; True }}
+  {{ (x : w64), RET #x; revisionVerdict M x }}
 
 end spec
 

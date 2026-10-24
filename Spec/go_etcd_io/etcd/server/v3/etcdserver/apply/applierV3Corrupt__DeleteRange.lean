@@ -29,12 +29,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **`a.DeleteRange(dr)`**: `ErrCorrupt`; nothing written. -/
 abbrev apply.applierV3Corrupt.DeleteRange.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log)
-    (Pre Q Post : IProp GF),
+    (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.corruptIs p inner ∗
-      apply.deletePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+      apply.deletePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
     (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPostF E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq log F (apply.deleteAnswerIs log o resp err) Pre Post ∗
+      apply.kvPostF E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info rq log F (apply.deleteAnswerIs log o resp err) Pre Post ∗
       apply.traceRes trace }}
 
 end spec

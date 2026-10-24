@@ -354,6 +354,10 @@ theorem zap.Logger.wp_Warn :
     zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
   zap.Logger.Warn.wp_proof
 
+theorem proto.wp_Unmarshal :
+    proto.Unmarshal.spec (GF := GF) (hG := hG) :=
+  proto.Unmarshal.wp_proof
+
 theorem zap.Logger.wp_Info :
     zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   zap.Logger.Info.wp_proof
@@ -421,10 +425,6 @@ theorem mvcc.kvHasher.wp_Hash :
 theorem mvcc.kvHasher.wp_WriteKeyValue :
     mvcc.kvHasher.WriteKeyValue.spec (GF := GF) (hG := hG) :=
   mvcc.kvHasher.WriteKeyValue.wp_proof
-
-theorem proto.wp_Unmarshal :
-    proto.Unmarshal.spec (GF := GF) (hG := hG) :=
-  proto.Unmarshal.wp_proof
 
 theorem mvcc.watcherGroup.wp_contains :
     mvcc.watcherGroup.contains.spec (GF := GF) (hG := hG) :=
@@ -605,9 +605,13 @@ theorem mvcc.wp_restoreIntoIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.restoreIntoIndex.spec (GF := GF) (hG := hG) :=
   mvcc.restoreIntoIndex.wp_proof mvcc.keyIndex.wp_put mvcc.keyIndex.wp_tombstone mvcc.keyIndex.wp_restore mvcc.keyIndex.wp_restoreTombstone mvcc.treeIndex.wp_KeyIndex mvcc.treeIndex.wp_Insert mvcc.wp_BytesToRev mvcc.wp_isTombstone verify.wp_Verify zap.wp_Error zap.Logger.wp_Warn
 
+theorem mvcc.wp_restoreChunk :
+    mvcc.restoreChunk.spec (GF := GF) (hG := hG) :=
+  mvcc.restoreChunk.wp_proof proto.wp_Unmarshal mvcc.wp_isTombstone
+
 theorem mvcc.store.wp_restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.restore.spec (GF := GF) (hG := hG) :=
-  mvcc.store.restore.wp_proof mvcc.store.wp_setupMetricsReporter mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_UnsafeReadFinishedCompact mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_restoreIntoIndex zap.wp_Int64 zap.Logger.wp_Info
+  mvcc.store.restore.wp_proof mvcc.store.wp_setupMetricsReporter mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_UnsafeReadFinishedCompact mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_restoreIntoIndex mvcc.wp_restoreChunk mvcc.wp_BytesToRev zap.wp_Int64 zap.Logger.wp_Info
 
 theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=
@@ -788,10 +792,6 @@ theorem mvcc.readView.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem mvcc.readView.wp_Rev :
     mvcc.readView.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
-
-theorem mvcc.wp_restoreChunk :
-    mvcc.restoreChunk.spec (GF := GF) (hG := hG) :=
-  mvcc.restoreChunk.wp_proof proto.wp_Unmarshal mvcc.wp_isTombstone
 
 theorem schedule.job.wp_Do :
     schedule.job.Do.spec (GF := GF) (hG := hG) :=

@@ -34,16 +34,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-! ## The auth layer's KV methods: a rejection, or the inner applier's answer -/
 
-/-- `auth_reject_kvPost` with a floor (unit V2): a rejection meets any floor. -/
+/-- `auth_reject_kvPost` with a floor (unit V2): a rejection meets any floor (and says nothing of
+the class: `chainClass_auth_rejected`). -/
 theorem apply.auth_reject_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
-    (inner : GoInterface) (rq : IRRModel) (log F : mvcc.Log) (R : apply.Outcome → IProp GF)
+    (inner : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
+    (log F : mvcc.Log) (R : apply.Outcome → IProp GF)
     (Pre Q Post : IProp GF) (hk : apply.authChecks (dispatchKind rq) = true)
     (hm : apply.authMayReject on rq) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
-      R (.rejected .auth) -∗ apply.kvOwn E log -∗ apply.authInfoOwn p -∗
-      apply.chainRes c inner -∗ mvcc.csContract E.P E.f Pre Q Post -∗
-      apply.kvPostF E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log
-        F R Pre Post := by
+      R (.rejected .auth) -∗ apply.kvOwn E log -∗
+      structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗
+      apply.chainResAny c inner -∗ mvcc.csContract E.P E.f Pre Q Post -∗
+      apply.kvPostF E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
+        log F R Pre Post := by
   iintro #Happ HR Hkv Hinfo Hres Hcs
   ihave HPre := apply.csContract_pre _ _ _ _ _ $$ Hcs
   iunfold apply.kvPostF
@@ -54,21 +57,25 @@ theorem apply.auth_reject_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Cha
   simp only [apply.Outcome.logAfter]
   iframe HR Hkv
   isplitl [Hinfo Hres]
-  · iapply apply.chainRes_auth_in c p inner $$ Happ Hinfo Hres
-  iright; iexact HPre
+  · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
+  isplitl [HPre]
+  · iright; iexact HPre
+  iapply apply.chainClass_auth_rejected
 
-/-- `auth_pass_kvPost` with a floor (unit V2). -/
+/-- `auth_pass_kvPost` with a floor (unit V2): the inner's post, the field, and the request's
+class the passed checks established (A3). -/
 theorem apply.auth_pass_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
-    (inner : GoInterface) (rq : IRRModel) (log F : mvcc.Log) (R : apply.Outcome → IProp GF)
-    (Pre Post : IProp GF) :
+    (inner : GoInterface) (info info' : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
+    (log F : mvcc.Log) (R : apply.Outcome → IProp GF) (Pre Post : IProp GF) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
-      apply.kvPostF E c inner rq log F R Pre Post -∗ apply.authInfoOwn p -∗
-      apply.kvPostF E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq
+      apply.kvPostF E c inner info' rq log F R Pre Post -∗
+      structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ apply.reqClass E.authMode info rq -∗
+      apply.kvPostF E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
         log F R Pre Post := by
-  iintro #Happ Hpost Hinfo
+  iintro #Happ Hpost Hinfo #Hcls
   iunfold apply.kvPostF at Hpost
   iunfold apply.kvPostF
-  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩
+  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -⟩
   iexists oc
   iframe HR Hkv HPP
   isplitr
@@ -76,7 +83,10 @@ theorem apply.auth_pass_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain
     refine ⟨?_, Hst.2⟩
     simp only [apply.chainStep]
     split <;> simp [Hst.1]
-  iapply apply.chainRes_auth_in c p inner $$ Happ Hinfo Hres
+  ihave Hres := apply.chainResAny_of c inner info' $$ Hres
+  isplitl [Hinfo Hres]
+  · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
+  iapply apply.chainClass_auth_pass $$ Hcls
 
 /-- `checkTxnPermission`'s triple, as a hypothesis (the Löb induction's). -/
 def apply.txnPermT (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)

@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3backend.LeaseRevoke.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro E p r rq id log Pre Q Post
+  intro E p r rq id log Pre Q Post info
   wp_start as ⟨#Hb, Hpre⟩
   iunfold apply.revokePre at Hpre
   iunfold apply.mPre at Hpre

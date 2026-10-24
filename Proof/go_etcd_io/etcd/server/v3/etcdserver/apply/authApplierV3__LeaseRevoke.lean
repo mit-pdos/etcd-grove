@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.LeaseRevoke.wp_proof
     (hLP : apply.checkLeasePuts.spec (GF := GF) (hG := hG)) :
     apply.authApplierV3.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq id log Pre Q Post
+  intro E c inner p r rq id log Pre Q Post info
   wp_start as ⟨#Hauth, #Hinner, Hpre⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩

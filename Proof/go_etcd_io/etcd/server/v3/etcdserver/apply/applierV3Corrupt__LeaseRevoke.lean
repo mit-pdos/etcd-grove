@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
     apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq id log Pre Q Post
+  intro E c inner p r rq id log Pre Q Post info
   wp_start as ⟨-, Hpre⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

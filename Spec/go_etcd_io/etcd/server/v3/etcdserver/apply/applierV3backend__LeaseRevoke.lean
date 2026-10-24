@@ -29,12 +29,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **`a.LeaseRevoke(lc)`**: the lessor's `Revoke` (its deletions of the lease's keys committed through the store's writer, in one critical section), then a fresh response with `newHeader()`; the lessor's error. -/
 abbrev apply.applierV3backend.LeaseRevoke.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log)
-    (Pre Q Post : IProp GF),
+    (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      apply.revokePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) r rq id log Pre Q Post }}
+      apply.revokePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info r rq id log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"LeaseRevoke")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      apply.kvPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) rq log (apply.revokeOutcomeIs resp err) Pre Post }}
+      apply.kvPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info rq log (apply.revokeOutcomeIs resp err) Pre Post }}
 
 end spec
 

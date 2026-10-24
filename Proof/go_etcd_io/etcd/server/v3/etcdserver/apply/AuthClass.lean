@@ -312,6 +312,104 @@ theorem cmpsClass_snoc (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.aut
   iframe H2
   ipureintro; exact he
 
+/-! ## The class of a request, and its principal (A3, 2026-10-23) -/
+
+/-- **The principal of the request `rq`** as the auth layer's `Apply` records it in its
+`authInfo` (`auth.go`): the header's `Username` and `AuthRevision`; with no header, the zero
+`AuthInfo` the field holds between `Apply`s (set at construction, reset after every `Apply`). -/
+def principalOf (rq : IRRModel) : go_etcd_io.etcd.server.v3.auth.AuthInfo :=
+  match rq.header with
+  | some hm => ⟨hm.username, hm.authRevision⟩
+  | none => zeroValDef
+
+/-- **The class of the request `rq`** for the principal `info` in the mode `M`: the permissions
+its KV request needs (`putClass`, `deleteClass`, `rangeClass`, `txnClass`); nothing for the other
+requests (a lease revocation's keys are not stated: `checkLeasePuts`, see the header). -/
+def reqClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) : IProp GF :=
+  match dispatchKind rq with
+  | .put => iprop(∃ o : OpFull, ⌜rq.put = some o⌝ ∗ putClass M info o)
+  | .deleteRange => iprop(∃ o : OpFull, ⌜rq.deleteRange = some o⌝ ∗ deleteClass M info o)
+  | .range => iprop(∃ o : OpFull, ⌜rq.range = some o⌝ ∗ rangeClass M info o)
+  | .txn => iprop(∃ t : TxnModel, ⌜rq.txn = some t⌝ ∗ txnClass M info t)
+  | _ => iprop(True)
+
+instance reqClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) : Persistent (reqClass (GF := GF) M info rq) := by
+  unfold reqClass; split <;> infer_instance
+
+/-- A request the auth layer's KV methods do not check has the trivial class. -/
+theorem reqClass_nonKV (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) (h : isKVKind (dispatchKind rq) = false) : ⊢ reqClass (GF := GF) M info rq := by
+  unfold reqClass
+  split
+  all_goals first | (iintro; itrivial) | (exfalso; simp_all [isKVKind])
+
+theorem reqClass_put (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) (o : OpFull) (h : rq.put = some o) (hk : dispatchKind rq = .put) :
+    putClass (GF := GF) M info o ⊢ reqClass M info rq := by
+  unfold reqClass; rw [hk]; iintro H; iexists o; iframe H; ipureintro; exact h
+
+theorem reqClass_deleteRange (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) (o : OpFull) (h : rq.deleteRange = some o) (hk : dispatchKind rq = .deleteRange) :
+    deleteClass (GF := GF) M info o ⊢ reqClass M info rq := by
+  unfold reqClass; rw [hk]; iintro H; iexists o; iframe H; ipureintro; exact h
+
+theorem reqClass_range (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) (o : OpFull) (h : rq.range = some o) (hk : dispatchKind rq = .range) :
+    rangeClass (GF := GF) M info o ⊢ reqClass M info rq := by
+  unfold reqClass; rw [hk]; iintro H; iexists o; iframe H; ipureintro; exact h
+
+theorem reqClass_txn (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (rq : IRRModel) (t : TxnModel) (h : rq.txn = some t) (hk : dispatchKind rq = .txn) :
+    txnClass (GF := GF) M info t ⊢ reqClass M info rq := by
+  unfold reqClass; rw [hk]; iintro H; iexists t; iframe H; ipureintro; exact h
+
+/-- The read of a range `o` from its check's verdict (`IsRangePermitted(key, rangeEnd)` on the
+request's slices, the model's end `rangeEndOf esl e`). -/
+theorem rangeClass_of_verdict (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (o : OpFull) (esl : GoSlice) (e : GoString) (hl : e.length = sint.nat esl.len)
+    (hre : o.base.rangeEnd = txn.rangeEndOf esl e) :
+    auth.permVerdict (GF := GF) M info o.key e .read GoInterface.nil ⊢ rangeClass M info o := by
+  unfold rangeClass
+  iintro H
+  iexists e
+  isplitl []
+  · ipureintro; rw [hre]; exact authEndOf_rangeEndOf esl e hl
+  · iapply (classRes_of_permVerdict M info o.key e .read) $$ H
+
+/-- The class of a delete `o` from its checks' verdicts (`IsDeleteRangePermitted`, and with
+`PrevKv` `IsRangePermitted`, on the request's slices). -/
+theorem deleteClass_of_verdicts (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (o : OpFull) (esl : GoSlice) (e : GoString) (hl : e.length = sint.nat esl.len)
+    (hre : o.base.rangeEnd = txn.rangeEndOf esl e) :
+    auth.permVerdict (GF := GF) M info o.key e .write GoInterface.nil ∗
+      (∀ _ : o.base.prevKV = true, auth.permVerdict M info o.key e .read GoInterface.nil) ⊢
+      deleteClass M info o := by
+  unfold deleteClass
+  iintro ⟨Hw, Hr⟩
+  iexists e
+  isplitl []
+  · ipureintro; rw [hre]; exact authEndOf_rangeEndOf esl e hl
+  iapply classRes_cons
+  isplitl [Hw]
+  · iapply (classRes_of_permVerdict M info o.key e .write) $$ Hw
+  cases hp : o.base.prevKV
+  · simp only [Bool.false_eq_true, ↓reduceIte]; iapply classRes_nil
+  · simp only [↓reduceIte]
+    ihave Hr := Hr $$ %rfl
+    iapply (classRes_of_permVerdict M info o.key e .read) $$ Hr
+
+/-- **The class of a `UserGet` of the user `n`** by the principal `info` (`authApplierV3.UserGet`,
+`auth.go`): an admin (`IsAdminPermitted`'s verdict at `nil`), or the user itself. -/
+def userGetClass (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (n : GoString) : IProp GF :=
+  iprop(auth.adminVerdict M (some info) GoInterface.nil ∨ ⌜n = info.Username'⌝)
+
+instance userGetClass_persistent (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (n : GoString) : Persistent (userGetClass (GF := GF) M info n) := by
+  unfold userGetClass; infer_instance
+
 end defs
 
 end apply

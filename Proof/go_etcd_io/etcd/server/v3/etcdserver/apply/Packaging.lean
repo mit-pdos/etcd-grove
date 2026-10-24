@@ -36,10 +36,11 @@ theorem mkOk_ptr_inj (t : go.GoType) (p q : Loc)
 
 /-! ## The quota layer -/
 
-theorem chainRes_quota_out (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_quota_out (c : Chain) (p : Loc) (inner : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     structFieldRef quotaApplierV3 go!"applierV3" p ↦□ inner ⊢
-      chainRes (GF := GF) (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) -∗
-        chainRes c inner := by
+      chainRes (GF := GF) (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) info -∗
+        chainRes c inner info := by
   iintro #Hf Hr
   simp only [chainRes]
   icases Hr with ⟨%p', %inner', %Ha, #Hf', Hr⟩
@@ -49,10 +50,11 @@ theorem chainRes_quota_out (c : Chain) (p : Loc) (inner : GoInterface) :
   subst Heq
   iexact Hr
 
-theorem chainRes_quota_in (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_quota_in (c : Chain) (p : Loc) (inner : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     structFieldRef quotaApplierV3 go!"applierV3" p ↦□ inner ⊢
-      chainRes (GF := GF) c inner -∗
-        chainRes (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) := by
+      chainRes (GF := GF) c inner info -∗
+        chainRes (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) info := by
   iintro #Hf Hr
   simp only [chainRes]
   iexists p, inner
@@ -61,10 +63,11 @@ theorem chainRes_quota_in (c : Chain) (p : Loc) (inner : GoInterface) :
 
 /-! ## The capped layer -/
 
-theorem chainRes_capped_out (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_capped_out (c : Chain) (p : Loc) (inner : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     structFieldRef applierV3Capped go!"applierV3" p ↦□ inner ⊢
-      chainRes (GF := GF) (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) -∗
-        chainRes c inner := by
+      chainRes (GF := GF) (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) info -∗
+        chainRes c inner info := by
   iintro #Hf Hr
   simp only [chainRes]
   icases Hr with ⟨%p', %inner', %Ha, #Hf', Hr⟩
@@ -74,10 +77,11 @@ theorem chainRes_capped_out (c : Chain) (p : Loc) (inner : GoInterface) :
   subst Heq
   iexact Hr
 
-theorem chainRes_capped_in (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_capped_in (c : Chain) (p : Loc) (inner : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     structFieldRef applierV3Capped go!"applierV3" p ↦□ inner ⊢
-      chainRes (GF := GF) c inner -∗
-        chainRes (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) := by
+      chainRes (GF := GF) c inner info -∗
+        chainRes (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) info := by
   iintro #Hf Hr
   simp only [chainRes]
   iexists p, inner
@@ -86,11 +90,11 @@ theorem chainRes_capped_in (c : Chain) (p : Loc) (inner : GoInterface) :
 
 /-! ## The corrupt layer -/
 
-theorem chainRes_corrupt_out (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_corrupt_out (c : Chain) (p : Loc) (inner : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     structFieldRef applierV3Corrupt go!"applierV3" p ↦□ inner ⊢
-      chainRes (GF := GF) (.corrupt c)
-        (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) -∗
-        chainRes c inner := by
+      chainRes (GF := GF) (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info -∗
+        chainRes c inner info := by
   iintro #Hf Hr
   simp only [chainRes]
   icases Hr with ⟨%p', %inner', %Ha, #Hf', Hr⟩
@@ -100,10 +104,11 @@ theorem chainRes_corrupt_out (c : Chain) (p : Loc) (inner : GoInterface) :
   subst Heq
   iexact Hr
 
-theorem chainRes_corrupt_in (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_corrupt_in (c : Chain) (p : Loc) (inner : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     structFieldRef applierV3Corrupt go!"applierV3" p ↦□ inner ⊢
-      chainRes (GF := GF) c inner -∗
-        chainRes (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) := by
+      chainRes (GF := GF) c inner info -∗
+        chainRes (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info := by
   iintro #Hf Hr
   simp only [chainRes]
   iexists p, inner
@@ -112,10 +117,11 @@ theorem chainRes_corrupt_in (c : Chain) (p : Loc) (inner : GoInterface) :
 
 /-! ## The auth layer: its `authInfo` beside the inner's -/
 
-theorem chainRes_auth_out {on : Bool} (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_auth_out {on : Bool} (c : Chain) (p : Loc) (inner : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
-      chainRes (GF := GF) (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) -∗
-        authInfoOwn p ∗ chainRes c inner := by
+      chainRes (GF := GF) (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info -∗
+        structFieldRef authApplierV3 go!"authInfo" p ↦ info ∗ chainResAny c inner := by
   iintro #Hf Hr
   simp only [chainRes]
   icases Hr with ⟨%p', %inner', %Ha, #Hf', Hi, Hr⟩
@@ -123,21 +129,106 @@ theorem chainRes_auth_out {on : Bool} (c : Chain) (p : Loc) (inner : GoInterface
   subst this
   icombine Hf Hf' gives %Heq
   subst Heq
-  iframe Hr
-  iunfold authInfoOwn
-  iexact Hi
+  iframe Hi
+  iunfold chainResAny
+  iexact Hr
 
-theorem chainRes_auth_in {on : Bool} (c : Chain) (p : Loc) (inner : GoInterface) :
+theorem chainRes_auth_in {on : Bool} (c : Chain) (p : Loc) (inner : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
-      authInfoOwn (GF := GF) p -∗ chainRes c inner -∗
-        chainRes (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) := by
+      structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ chainResAny (GF := GF) c inner -∗
+        chainRes (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info := by
   iintro #Hf Hi Hr
   simp only [chainRes]
   iexists p, inner
-  iframe Hf Hr
-  iunfold authInfoOwn at Hi
-  iframe Hi
+  iframe Hf Hi
+  iunfold chainResAny at Hr
+  iframe Hr
   ipureintro; rfl
+
+/-! ## The resources at some principal -/
+
+theorem chainResAny_quota_out (c : Chain) (p : Loc) (inner : GoInterface) :
+    structFieldRef quotaApplierV3 go!"applierV3" p ↦□ inner ⊢
+      chainResAny (GF := GF) (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) -∗
+        chainResAny c inner := by
+  iintro #Hf Hr
+  iunfold chainResAny at Hr
+  icases Hr with ⟨%info, Hr⟩
+  iapply chainResAny_of
+  iapply chainRes_quota_out c p inner info $$ Hf Hr
+
+theorem chainResAny_quota_in (c : Chain) (p : Loc) (inner : GoInterface) :
+    structFieldRef quotaApplierV3 go!"applierV3" p ↦□ inner ⊢
+      chainResAny (GF := GF) c inner -∗
+        chainResAny (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) := by
+  iintro #Hf Hr
+  iunfold chainResAny at Hr
+  icases Hr with ⟨%info, Hr⟩
+  iapply chainResAny_of
+  iapply chainRes_quota_in c p inner info $$ Hf Hr
+
+theorem chainResAny_capped_out (c : Chain) (p : Loc) (inner : GoInterface) :
+    structFieldRef applierV3Capped go!"applierV3" p ↦□ inner ⊢
+      chainResAny (GF := GF) (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) -∗
+        chainResAny c inner := by
+  iintro #Hf Hr
+  iunfold chainResAny at Hr
+  icases Hr with ⟨%info, Hr⟩
+  iapply chainResAny_of
+  iapply chainRes_capped_out c p inner info $$ Hf Hr
+
+theorem chainResAny_capped_in (c : Chain) (p : Loc) (inner : GoInterface) :
+    structFieldRef applierV3Capped go!"applierV3" p ↦□ inner ⊢
+      chainResAny (GF := GF) c inner -∗
+        chainResAny (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) := by
+  iintro #Hf Hr
+  iunfold chainResAny at Hr
+  icases Hr with ⟨%info, Hr⟩
+  iapply chainResAny_of
+  iapply chainRes_capped_in c p inner info $$ Hf Hr
+
+theorem chainResAny_corrupt_out (c : Chain) (p : Loc) (inner : GoInterface) :
+    structFieldRef applierV3Corrupt go!"applierV3" p ↦□ inner ⊢
+      chainResAny (GF := GF) (.corrupt c)
+        (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) -∗
+        chainResAny c inner := by
+  iintro #Hf Hr
+  iunfold chainResAny at Hr
+  icases Hr with ⟨%info, Hr⟩
+  iapply chainResAny_of
+  iapply chainRes_corrupt_out c p inner info $$ Hf Hr
+
+theorem chainResAny_corrupt_in (c : Chain) (p : Loc) (inner : GoInterface) :
+    structFieldRef applierV3Corrupt go!"applierV3" p ↦□ inner ⊢
+      chainResAny (GF := GF) c inner -∗
+        chainResAny (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) := by
+  iintro #Hf Hr
+  iunfold chainResAny at Hr
+  icases Hr with ⟨%info, Hr⟩
+  iapply chainResAny_of
+  iapply chainRes_corrupt_in c p inner info $$ Hf Hr
+
+/-- The auth layer's resources at some principal: its `authInfo` at some value, the inner's. -/
+theorem chainResAny_auth_out {on : Bool} (c : Chain) (p : Loc) (inner : GoInterface) :
+    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
+      chainResAny (GF := GF) (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) -∗
+        ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
+          structFieldRef authApplierV3 go!"authInfo" p ↦ info ∗ chainResAny c inner := by
+  iintro #Hf Hr
+  iunfold chainResAny at Hr
+  icases Hr with ⟨%info, Hr⟩
+  iexists info
+  iapply chainRes_auth_out c p inner info $$ Hf Hr
+
+theorem chainResAny_auth_in {on : Bool} (c : Chain) (p : Loc) (inner : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
+      structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ chainResAny (GF := GF) c inner -∗
+        chainResAny (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) := by
+  iintro #Hf Hi Hr
+  iapply chainResAny_of
+  iapply chainRes_auth_in c p inner info $$ Hf Hi Hr
 
 end lemmas
 

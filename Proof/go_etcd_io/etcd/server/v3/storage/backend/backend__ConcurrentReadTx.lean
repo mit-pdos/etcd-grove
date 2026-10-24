@@ -104,7 +104,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hmu] as ⟨Hrl, HP⟩
   wp_pure
   unfold rtRes rtResAt rtRest rtCore rtIntv
-  icases HP with ⟨%rd, %rv, %H, %m, %Pb, %cm, Hrb, %Hok, Hcmf, Hview, Hrd, Hrvs, Hcur, Hhist,
+  icases HP with ⟨%rd, %rv, %H, %m, %Pb, %cm, Hrb, %Hok, Hcmf, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist,
     Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
@@ -220,11 +220,11 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   -- the deferred `b.readTx.RUnlock()`
   wp_method_call
   wp_auto
-  unfold bView
-  icases Hbv with ⟨Hbv, Hcw⟩
+  unfold bView bViewC
+  icases Hbv with ⟨%cc, Hbv, Hcw, Hcl⟩
   icombine Hbv Hview gives %Hvd0
   have Hvd := Hvd0.2
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hrb Hcmf Hview Hrd Hrvs Hcur Hhist Hrtxf Hwgf Hpo
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hrb Hcmf Hview Hrd Hrvs Hcur Hcln Hhist Hrtxf Hwgf Hpo
       Hlive Hwo Htk] as Hmu
   · inext
     iexists rd, rv, H, m, Pb, cm
@@ -249,6 +249,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   · iintro Hcr
     iexists rt
     iframe; iframe #
+  iexists cc
   iframe
 
 

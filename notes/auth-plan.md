@@ -1,6 +1,13 @@
 # Plan: specifying and proving etcd's authentication and authorization (auth, RBAC)
 
-**Status.** S1 carried out (2026-10-23, branch `auth-s1`; `notes/decisions.md`, "S1 of the auth plan"):
+**Status.** S3 carried out (2026-10-24, branch `auth-s3`; `notes/decisions.md`, "S3 of the auth plan"):
+the store's checks return the model's verdicts in every mode (`isOpPermitted`/`Is*Permitted`
+`permVerdict`, `IsAdminPermitted` `adminVerdict` over an `Option AuthInfo`, `IsAuthEnabled`/`Revision`
+theirs; `auth/VerdictLemmas.lean`), `isAuthStore_of_authInv` derives the apply layer's contract in the
+store's mode, A2's `srvAdminNilOk` premise is derivable; A0's one-state verdict was unprovable and is
+corrected (`permitted` without the revision conjunct, the refused half over the four states read,
+`AuthView`/`refusedV`; `reqShape` inside the model; recorded states carry `permKeysOk`); `hasRootRole`
+stays an axiom, restated to return `isRoot` (needs a `sort.SearchStrings` spec in Perennial). S1 carried out (2026-10-23, branch `auth-s1`; `notes/decisions.md`, "S1 of the auth plan"):
 `authpb` translated as data (`authpb.toml`), schema's auth backend translated and its read side
 proved over the buckets (`etcdserver/InvAuthBackend.lean`: `authReader`/`authRTx`/`authBE`,
 `authBucketsAre`; `auth/Buckets.lean`: the records, `userOut`/`roleOut`, `authSnap`), the store's
@@ -15,7 +22,7 @@ verdicts `permVerdict`/`adminVerdict`/`enabledVerdict`/`revisionVerdict`), the c
 `notes/auth-matrix.md`. What differed from the plan: the verdicts are two one-directional facts
 over recorded states, not `↔` at one state (the checks' own TOCTOU, decisions); the history is
 indexed by position, not by the auth revision (`AuthEnable` does not bump it); `isReqAuth` is
-untouched (the token binding is S5's). A1 carried out 2026-10-23 (branch `auth-a1`: the class statement for the verified checks and the API-layer handlers, `apply/AuthClass.lean`; the method-level statement is its follow-up, `notes/decisions.md`, "A1 of the auth plan"). S1 carried out 2026-10-23 (branch `auth-s1`: `authpb` as data, schema's auth backend's read side proved over the buckets, the store's contract with the mode, two `proto.Unmarshal` sibling axioms; `notes/decisions.md`, "S1 of the auth plan"). A2 carried out 2026-10-23 (branch `auth-a2`: the API layer's two guards and the entry points they guard -- `Compact`, the eight maintenance wrappers, `RemoveMember`, `MemberList` -- over their inner operations as token-carrying contracts; left: the member operations that marshal JSON, the lease entry points and their key checks; `notes/decisions.md`, "A2 of the auth plan"); S2 carried out 2026-10-23 (branch `auth-s2`: the permission cache computes the model's `coversPoint`/`coversRange` of a recorded state, `getMergedPerms`/`refreshRangePermCache`/`isValidPermissionRange` proved, the bytes-affine tree's three facts axioms pending S2b; `notes/decisions.md`, "S2 of the auth plan"); S2b carried out 2026-10-24 (branch `auth-s2b`: the tree's proof generic in the key representation `adt.KeyRep`, the string- and bytes-affine results its instances, the three axioms removed, `Contains` proved; `notes/decisions.md`, "S2b of the auth plan"); S3 to S5, A3, A4, E not started. Prompted by etcd-io/etcd#22595 (the
+untouched (the token binding is S5's). A1 carried out 2026-10-23 (branch `auth-a1`: the class statement for the verified checks and the API-layer handlers, `apply/AuthClass.lean`; the method-level statement is its follow-up, `notes/decisions.md`, "A1 of the auth plan"). A1's follow-up carried out 2026-10-24 (branch `auth-a3`: the request's principal is an index of the chain's resources, the KV methods' posts state the request's class for it through the chain up to `apply.Apply`, `Apply`'s admin check passed for it, `UserGet`'s self case; `notes/decisions.md`, "A3 of the auth plan, the apply layer"). S1 carried out 2026-10-23 (branch `auth-s1`: `authpb` as data, schema's auth backend's read side proved over the buckets, the store's contract with the mode, two `proto.Unmarshal` sibling axioms; `notes/decisions.md`, "S1 of the auth plan"). A2 carried out 2026-10-23 (branch `auth-a2`: the API layer's two guards and the entry points they guard -- `Compact`, the eight maintenance wrappers, `RemoveMember`, `MemberList` -- over their inner operations as token-carrying contracts; left: the member operations that marshal JSON, the lease entry points and their key checks; `notes/decisions.md`, "A2 of the auth plan"); S2 carried out 2026-10-23 (branch `auth-s2`: the permission cache computes the model's `coversPoint`/`coversRange` of a recorded state, `getMergedPerms`/`refreshRangePermCache`/`isValidPermissionRange` proved, the bytes-affine tree's three facts axioms pending S2b; `notes/decisions.md`, "S2 of the auth plan"); S2b carried out 2026-10-24 (branch `auth-s2b`: the tree's proof generic in the key representation `adt.KeyRep`, the string- and bytes-affine results its instances, the three axioms removed, `Contains` proved; `notes/decisions.md`, "S2b of the auth plan"); S4, S5, A3's rest, A4, E not started. Prompted by etcd-io/etcd#22595 (the
 proposal to revert Auth to Beta: "the feature was never really finished", a stream of security
 reports) and #22540 / PR #22541 (an "auth matrix" test: every gRPC method on the client port
 classified public / authenticated / RBAC / admin and probed with no token, an invalid token and an
@@ -145,7 +152,10 @@ in the model", judged "mechanical but wide") is subsumed: `on = st.enabled`.
   "S2b of the auth plan").
 - S3 `isOpPermitted`, `IsAdminPermitted`, `hasRootRole` (translated: `sort.SearchStrings` over a
   sorted `Roles`, so `UserGrantRole`'s sorting becomes a model invariant), `AuthInfoFromCtx` with
-  the token binding: the P2 specs restated as D-AU2 and re-proved.
+  the token binding: the P2 specs restated as D-AU2 and re-proved. **Done 2026-10-24** (branch
+  `auth-s3`) for the checks' verdicts in every mode; `hasRootRole` restated, not translated
+  (Perennial has no `sort.SearchStrings` spec); the token binding is S5's (`AuthInfoFromCtx`
+  unchanged); the verdict's shape corrected (decisions, "S3 of the auth plan").
 - S4 the admin side: `AuthEnable`/`AuthDisable`, `UserAdd`/`Delete`/`ChangePassword`/`GrantRole`/
   `RevokeRole`, `RoleAdd`/`Delete`/`GrantPermission`/`RevokePermission`, `Recover`, `commitRevision`:
   each a step of `AuthState`, the cache refreshed, the revision bumped; the apply layer's
@@ -211,9 +221,9 @@ already a premise of D29's refusal-freedom and would become real with S5).
 | S3 | P2's checks re-proved to compute the model; `hasRootRole`; the token binding | S1, S2 | days |
 | S4 | the admin side as model steps; `Recover`; the apply layer's admin requests | S3 | one to two weeks |
 | S5 | `NewAuthStore`, `Authenticate`, the token providers | S4 | about a week |
-| A1 | the class statement for the verified KV and watch handlers, both layers | A0 | about a week; **done** 2026-10-23 for the checks (`checkPutAuth`, `checkTxnReqsPermission`, `checkTxnPermission`/`CheckTxnAuth`) and the API layer (`doSerialize`, `Range`, `isWatchPermitted`); the method-level statement (the auth applier's `Put`/`DeleteRange`/`Txn`, needs the principal through `chainRes`) is the follow-up |
+| A1 | the class statement for the verified KV and watch handlers, both layers | A0 | about a week; **done** 2026-10-23 for the checks (`checkPutAuth`, `checkTxnReqsPermission`, `checkTxnPermission`/`CheckTxnAuth`) and the API layer (`doSerialize`, `Range`, `isWatchPermitted`); the method-level statement **done** 2026-10-24 (branch `auth-a3`: the principal through `chainRes`, the class through the chain to `apply.Apply`, `Apply`'s admin pass) |
 | A2 | the advisories' methods: Cluster, Lease, Maintenance, `Alarm`, `Compact` translated and proved | A1 | two weeks; **done** 2026-10-23 for the two guards and the guarded entry points (`Compact`, the eight maintenance wrappers, `RemoveMember`, `MemberList`, over their inner operations as token-carrying contracts: `notes/decisions.md`, "A2 of the auth plan"); left: `AddMember`/`UpdateMember`/`promoteMember` (`encoding/json`), the lease entry points and their key checks |
-| A3 | the Auth service, Lock, Election | A2 | one to two weeks |
+| A3 | the Auth service, Lock, Election | A2 | one to two weeks; the apply layer's part begun 2026-10-24 (branch `auth-a3`: `Apply`'s admin pass for the request's principal, `UserGet`'s self case; `RoleGet`'s has-role case waits for `HasRole`'s model) |
 | A4 | the watch shapes | A1 | days |
 | E | `examples/authkv`, the closed theorem | S1-S5, A1, A4 | one to two weeks |
 

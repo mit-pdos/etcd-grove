@@ -145,8 +145,8 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       wp_auto
       obtain ⟨hfo, hbg⟩ := free_of_pend0 HP Hwf Hbg hp0 Hhw
       bu_free st hbg hfo
-    · unfold bView
-      icases Hbv with ⟨Hbv1, Hcvw⟩
+    · unfold bView bViewC
+      icases Hbv with ⟨%c, Hbv1, Hcvw, Hcl⟩
       icombine Hv Hbv1 gives % ⟨_, Hvd⟩
       rw [decide_eq_true hp0]
       wp_auto
@@ -156,6 +156,9 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         $$ [Hbv1 Hcvw]
       · rw [← hvf, Hvd]
         iframe
+      ihave Hbv : iprop(∃ c, ghostVar γ.view (1 : Qp).half (sData P st.S) ∗
+          ghostVar γ.cvw (1 : Qp).half () ∗ ghostVar γ.cln (1 : Qp).half c) $$ [Hbv Hcl]
+      · iexists c; icases Hbv with ⟨H1, H2⟩; iframe
       icases HQw $$ Hbv with ⟨HWv, HQ⟩
       bu_free st hbg hfo
   · icases Hcase with (⟨%Hvs, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
@@ -181,7 +184,8 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       have hvs' : vData P ((wbSt P st).C, (wbSt P st).R) = sData P (wbSt P st).S := by
         rw [wbSt_C, wbSt_R, wbSt_S, hsame]
         exact Hvs.1
-      imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame hsafe) $$ [$Hci $Hwb $HRB $Hrvs]
+      imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame hsafe
+        (rbClean_writeback Hvs.2)) $$ [$Hci $Hwb $HRB $Hrvs]
         with ⟨Hrr, Hrvs⟩
       ihave Hv : ghostVar γ.view (1 : Qp).half.half (vData P (st.C, writebackR st.W st.R)) $$ [Hv]
       · rw [hsame]; iexact Hv

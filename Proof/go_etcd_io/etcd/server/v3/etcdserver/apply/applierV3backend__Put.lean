@@ -32,7 +32,7 @@ theorem apply.applierV3backend.Put.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hPut : txn.Put.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Put.spec (GF := GF) (hG := hG) := by
-  intro E p r rq o log F Pre Q Post
+  intro E p r rq o log F Pre Q Post info
   wp_start as ⟨#Hb, Hpre, #HF⟩
   iunfold apply.putPre at Hpre
   iunfold apply.mPre at Hpre
@@ -74,7 +74,7 @@ theorem apply.applierV3backend.Put.wp_proof
   isplitr [Htrc]
   rotate_left
   · iunfold apply.traceRes; iright; iexact Htrc
-  iunfold apply.kvPostF
+  iapply apply.kvPostF_backend
   obtain ⟨hput, hk, -⟩ := Hrq
   icases Hout with (⟨%Hn, #He, Hsw, HPre⟩ | ⟨%Hn, #He, Hsw, HPost⟩ |
     ⟨%Herr, #Hresp, Hhdr, Hsw, #Hlok, HPost, -⟩)

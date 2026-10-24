@@ -32,7 +32,7 @@ theorem apply.applierV3backend.Authenticate.wp_proof
     (hWV : context.WithValue.spec (GF := GF) (hG := hG))
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Authenticate.spec (GF := GF) (hG := hG) := by
-  intro E p r log Pre Q Post
+  intro E p r log Pre Q Post info
   wp_start as ⟨#Hb, ⟨⟨%am, #Hr⟩, HRW⟩, Hpre, Hwt, #HSplit⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
@@ -87,7 +87,7 @@ theorem apply.applierV3backend.Authenticate.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iunfold apply.kvOwn
     iframe
   · -- a response: its header
@@ -98,7 +98,7 @@ theorem apply.applierV3backend.Authenticate.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iunfold apply.kvOwn
     iframe
 

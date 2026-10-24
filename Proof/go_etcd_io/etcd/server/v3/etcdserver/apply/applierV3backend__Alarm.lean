@@ -35,7 +35,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
     (hAT : etcdserverpb.AlarmType.String.spec (GF := GF) (hG := hG))
     (hWLV : prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Alarm.spec (GF := GF) (hG := hG) := by
-  intro E p r log Pre Q Post
+  intro E p r log Pre Q Post info
   wp_start as ⟨#Hb, ⟨⟨%am, #Hr⟩, HRW⟩, Hpre, Hwt⟩
   ihave Hai : (applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -59,7 +59,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iframe
     iright
     iapply apply.csContract_pre
@@ -73,7 +73,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iunfold apply.mPost
+      iapply apply.mPost_backend
       iframe
       iright
       iapply apply.csContract_pre
@@ -92,7 +92,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iunfold apply.mPost
+      iapply apply.mPost_backend
       iframe
     icases Hm with (%Hn | #Hm)
     · exact absurd Hn Hif
@@ -126,7 +126,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iframe
   wp_if_destruct
   · -- DEACTIVATE
@@ -143,7 +143,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iunfold apply.mPost
+      iapply apply.mPost_backend
       iframe
     icases Hm with (%Hn | #Hm)
     · exact absurd Hn Hif
@@ -177,13 +177,13 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iframe
   · -- any other action
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iunfold apply.mPost
+    iapply apply.mPost_backend
     iframe
     iright
     iapply apply.csContract_pre
