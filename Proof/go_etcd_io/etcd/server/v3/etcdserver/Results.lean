@@ -1216,7 +1216,7 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
     (hfit : auth.permsFit stl) (hempty : ∃ s ∈ hs, s.users = ∅) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ auth.authBackendOk ab R (.on γa) ∗
-        auth.authWBackendOk ab (.on γa) P f T ∗
+        auth.authWBackendOkR ab (.on γa) P f T ∗
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
         T ∗ mvcc.csContract P f Pre Q Post ∗ auth.tokenProviderOkA tp (.on γa) A ∗ A ∗

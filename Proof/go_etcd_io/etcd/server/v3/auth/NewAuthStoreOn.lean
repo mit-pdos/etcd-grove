@@ -50,10 +50,10 @@ section ghost
 variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
 
 /-- The authority keeps a recorded state. -/
-theorem authOwn_stateAt_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState)
+theorem authOwnF_stateAt_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState)
     (h : hs[i]? = some st) :
-    authOwn (GF := GF) (.on γa) hs ⊢ |==> (authOwn (.on γa) hs ∗ authStateAt γa i st) := by
-  simp only [authOwn]
+    authOwnF (GF := GF) (.on γa) hs ⊢ |==> (authOwnF (.on γa) hs ∗ authStateAt γa i st) := by
+  simp only [authOwnF]
   iintro ⟨Hh, Hc⟩
   imod (authHist_stateAt_keep γa hs i st h) $$ Hh with ⟨Hh, #H⟩
   imodintro
@@ -189,7 +189,7 @@ theorem newAuthStore_on
     (hempty : ∃ s ∈ hs, s.users = ∅) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ authBackendOk ab R (.on γa) ∗
-        authWBackendOk ab (.on γa) P f T ∗
+        authWBackendOkR ab (.on γa) P f T ∗
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
         T ∗ mvcc.csContract P f Pre Q Post ∗ tokenProviderOkA tp (.on γa) A ∗ A ∗
@@ -202,7 +202,8 @@ theorem newAuthStore_on
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [bump stl])⌝ ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
-  wp_start as ⟨%Hlg, %Hab, #Hrdok, #Hwok, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur⟩
+  wp_start as ⟨%Hlg, %Hab, #Hrdok, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur⟩
+  ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
   subst Hab
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -304,10 +305,10 @@ theorem newAuthStore_on
   iStructNamed Hst
   -- the latest state and an empty one are recorded
   have hidx : hs[hs.length - 1]? = some st0 := by rw [← List.getLast?_eq_getElem?]; exact hlast
-  imod (authOwn_stateAt_keep γa hs _ st0 hidx) $$ Hown with ⟨Hown, #Hst0⟩
+  imod (authOwnF_stateAt_keep γa hs _ st0 hidx) $$ Hown with ⟨Hown, #Hst0⟩
   obtain ⟨se, hse, hseu⟩ := hempty
   obtain ⟨ie, hie⟩ := List.mem_iff_getElem?.1 hse
-  imod (authOwn_stateAt_keep γa hs ie se hie) $$ Hown with ⟨Hown, #Hse⟩
+  imod (authOwnF_stateAt_keep γa hs ie se hie) $$ Hown with ⟨Hown, #Hse⟩
   -- the three locks' guards
   ihave ⟨Hbe1, Hbe2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ be
   ihave ⟨Hen1, Hen2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ enabled
@@ -361,14 +362,17 @@ theorem newAuthStore_on
     (try wp_auto)
     wp_join_done
   -- `if as.Revision() == 0 { as.commitRevision(tx) }`: the latest state's revision
-  ihave %Hpk := authOwn_last_permKeysOk (.on γa) hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk (.on γa) hs $$ Hown
+  icases (authOwnF_split (.on γa) hs).1 $$ Hown with ⟨Hown, Hsh⟩
   wp_apply (h_Revision «$r0_ptr» R (.on γa) (some hs)) $$ [Hown] as %xr ⟨Hown, -, %Hxr⟩
   · iframe #; simp only [authOwnOpt_some]; iexact Hown
   iunfold authOwnOpt at Hown
+  ihave Hown := (authOwnF_split (.on γa) hs).2 $$ [Hown Hsh]
+  · iframe Hown Hsh
   have hxr : uint.nat xr = st0.revision := Hxr hs st0 rfl Hl0 rfl (by simp)
   (try wp_auto)
   wp_join iprop(∃ (sta : AuthState) (hs' : List AuthState), tx_ptr ↦ GoInterface.ok ti ∗
-      as_ptr ↦ «$r0_ptr» ∗ Lk sta Post ∗ authOwn (.on γa) hs' ∗
+      as_ptr ↦ «$r0_ptr» ∗ Lk sta Post ∗ authOwnF (.on γa) hs' ∗
       ⌜hs'.getLast? = some sta ∧ permsFit sta ∧
         ((st0.revision ≠ 0 ∧ hs' = hs) ∨ (st0.revision = 0 ∧ hs' = hs ++ [bump st0]))⌝)
     with [HL Hown tx «as»] as ⟨%sta, %hs', tx, «as», HL, Hown, %Hsta⟩
@@ -405,7 +409,7 @@ theorem newAuthStore_on
   wp_apply (h_metrics «$r0_ptr»)
   (try wp_auto)
   -- `refreshRangePermCache(tx)` from the transaction's state, the latest
-  imod (authSnap_of_last (.on γa) hs' sta Hsta.1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last (.on γa) hs' sta Hsta.1) $$ Hown with ⟨Hown, #Hsnap⟩
   wp_bind (App (Val («$r0_ptr» @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh «$r0_ptr» R (.on γa) ti (fun x => Lk x Post) sta) $$ [HL]

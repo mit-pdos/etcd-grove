@@ -199,7 +199,7 @@ theorem auth.authStore.UserAdd.wp_proof
       iexists eNPU; iframe HeNPU; ipureintro; rfl
     | nil =>
       (try wp_auto)
-      ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+      ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
       have Hstep := (Hok st0 Hl0)
       wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
       ipersist Hnsl
@@ -232,7 +232,7 @@ theorem auth.authStore.UserAdd.wp_proof
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
         intro hM; subst hM; exact Hl0
       have Hl1 := histLast_after M hs (putUser st0 urN.name urN.roles) rev (fun h => by subst h; exact Hl0) Hrev
-      imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+      imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
       iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState))
@@ -287,7 +287,7 @@ theorem auth.authStore.UserAdd.wp_proof
       iframe Hown
   · -- a no-password user: none
     (try wp_auto)
-    ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+    ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
     have Hstep := (Hok st0 Hl0)
     wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
     ipersist Hnsl
@@ -320,7 +320,7 @@ theorem auth.authStore.UserAdd.wp_proof
       refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
       intro hM; subst hM; exact Hl0
     have Hl1 := histLast_after M hs (putUser st0 urN.name urN.roles) rev (fun h => by subst h; exact Hl0) Hrev
-    imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+    imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
     iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState))

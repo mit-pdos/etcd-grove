@@ -136,7 +136,7 @@ theorem auth.authStore.RoleAdd.wp_proof
     iframe Hown
     iexists eRAE; iframe HeRAE; ipureintro; rfl
   ihave %Hnone := roleOut_null st0 name $$ Hrl
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok st0 Hl0)
   wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
   ipersist Hnsl

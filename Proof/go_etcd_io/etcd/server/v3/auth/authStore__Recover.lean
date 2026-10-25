@@ -33,7 +33,8 @@ theorem auth.authStore.Recover.wp_proof
     (h_setRevision : auth.authStore.setRevision.spec (GF := GF) (hG := hG)) :
     auth.authStore.Recover.spec (GF := GF) (hG := hG) := by
   intro st R M P f T hs be
-  wp_start as ⟨#Hinv, Hown, HWR, Htpa, HR, %Hbenn, #Hbeok, #Hwbeok, #Hfit⟩
+  wp_start as ⟨#Hinv, Hown, HWR, Htpa, HR, %Hbenn, #Hbeok, #HwbeokR, #Hfit⟩
+  ihave #Hwbeok := authWBackendOk_of_R _ M P f T $$ HwbeokR
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv

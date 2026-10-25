@@ -18,11 +18,15 @@ but before the batch transaction) are a parameter `en` of the step, the flag's v
 (`enabledVerdict`: some recorded state's flag), in the spirit of the verdicts' honesty about the
 checks' reads (`Model.lean`): the step is relative to the flag read, not to the latest state's.
 
-**The authority** (`authOwn M hs`): in the mode `on γa`, the history (`authHist`) and half the
-ghost variable of the latest state (`authCurHalf`; the store's revision invariant holds the other
-half, `InvAuth.lean`), held by the admin side's caller (the server's apply thread) and threaded
-through the admin operations' specs: an operation whose outcome is `next st'` appends `st'`
-(`adminOut`); in `off` the states stay disabled; in `any` nothing.
+**The authority** (`authOwn M hs`): in the mode `on γa`, the admin side's half of the history
+(`authHistHalf`) and half the ghost variable of the latest state (`authCurHalf`; the store's
+revision invariant holds the other half, `InvAuth.lean`), held by the admin side's caller (the
+server's apply thread) and threaded through the admin operations' specs: an operation whose
+outcome is `next st'` appends `st'` (`adminOut`); in `off` the states stay disabled; in `any`
+nothing. The history's other half is the backend's batch lock's (`authLockShare`, the auth plan's
+S4f, 2026-10-25): `Lock()` gives it with the buckets' state (`authLockI`), so inside the
+transaction the caller holds the whole authority (`authOwnF`), which an append needs, and
+`Unlock()` takes it back with the buckets at the new latest state.
 
 **Premises** (`stepOk`): the revision below `2^64 - 1` (the atomic `revision` is a `uint64`) and
 the next state's permissions fitting the cache's trees (`permsFit`, `refreshRangePermCache`'s
@@ -282,10 +286,26 @@ section ghost
 variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
 
 /-- **The admin side's authority** in the mode `M`, the history `hs` (see the file header):
-`on γa`, the history's authority and half the latest state's ghost variable (the other half is
-the store's revision invariant's, `InvAuth.lean`); `off`, the states disabled (and one at least);
-`any`, nothing. -/
+`on γa`, the admin side's half of the history and half the latest state's ghost variable (the
+other half is the store's revision invariant's, `InvAuth.lean`); `off`, the states disabled (and
+one at least); `any`, nothing. -/
 def authOwn (M : AuthMode) (hs : List AuthState) : IProp GF :=
+  match M with
+  | .on γa => iprop(authHistHalf γa hs ∗ ∃ st : AuthState, ⌜hs.getLast? = some st⌝ ∗ authCurHalf γa st)
+  | .off => iprop(⌜hs ≠ [] ∧ ∀ st ∈ hs, st.enabled = false⌝)
+  | .any => iprop(True)
+
+/-- **The batch lock's share of the authority** (the auth plan's S4f): `on γa`, the lock's half
+of the history; in the other modes nothing. -/
+def authLockShare (M : AuthMode) (hs : List AuthState) : IProp GF :=
+  match M with
+  | .on γa => authLockHalf γa hs
+  | _ => iprop(True)
+
+/-- **The authority inside a batch transaction** (the auth plan's S4f): `on γa`, the history's
+whole authority (the admin side's half joined with the lock's, `authOwnF_split`) and half the
+latest state's ghost variable; the other modes as `authOwn`. -/
+def authOwnF (M : AuthMode) (hs : List AuthState) : IProp GF :=
   match M with
   | .on γa => iprop(authHist γa hs ∗ ∃ st : AuthState, ⌜hs.getLast? = some st⌝ ∗ authCurHalf γa st)
   | .off => iprop(⌜hs ≠ [] ∧ ∀ st ∈ hs, st.enabled = false⌝)
@@ -301,6 +321,74 @@ def histLast (M : AuthMode) (hs : List AuthState) (st : AuthState) : Prop :=
 
 theorem authOwn_any (hs : List AuthState) : ⊢ authOwn (GF := GF) .any hs := by
   unfold authOwn; itrivial
+
+theorem authOwnF_any (hs : List AuthState) : ⊢ authOwnF (GF := GF) .any hs := by
+  unfold authOwnF; itrivial
+
+/-- The authority inside a transaction is the admin side's and the lock's. -/
+theorem authOwnF_split (M : AuthMode) (hs : List AuthState) :
+    authOwnF (GF := GF) M hs ⊣⊢ authOwn M hs ∗ authLockShare M hs := by
+  cases M with
+  | on γa =>
+    simp only [authOwnF, authOwn, authLockShare]
+    constructor
+    · iintro ⟨Hh, Hc⟩
+      icases (authHist_split γa hs).1 $$ Hh with ⟨H1, H2⟩
+      iframe H1 Hc H2
+    · iintro ⟨⟨H1, Hc⟩, H2⟩
+      iframe Hc; iapply (authHist_split γa hs).2; iframe H1 H2
+  | off =>
+    simp only [authOwnF, authOwn, authLockShare]
+    constructor
+    · iintro H; iframe H
+    · iintro ⟨H, -⟩; iexact H
+  | any =>
+    simp only [authOwnF, authOwn, authLockShare]
+    constructor
+    · iintro -; isplitl <;> itrivial
+    · iintro -; itrivial
+
+/-- **What the batch lock holds with the buckets at `st`** (the auth plan's S4f): its share of
+some history whose latest state (`histLast`) is `st`. -/
+def authLockI (M : AuthMode) (st : AuthState) : IProp GF :=
+  iprop(∃ hs : List AuthState, authLockShare M hs ∗ ⌜histLast M hs st⌝)
+
+/-- **`Lock()`'s join**: the admin side's authority and the lock's share agree on the history, so
+the buckets hold the admin side's latest state. -/
+theorem authOwn_lockI_join (M : AuthMode) (hs : List AuthState) (st : AuthState) :
+    ⊢ authOwn (GF := GF) M hs -∗ authLockI M st -∗ authOwnF M hs ∗ ⌜histLast M hs st⌝ := by
+  iintro Hown HI
+  iunfold authLockI at HI
+  icases HI with ⟨%hs', Hsh, %Hl⟩
+  cases M with
+  | on γa =>
+    simp only [authOwn, authLockShare]
+    icases Hown with ⟨Hh, Hc⟩
+    ihave %Heq := authHistHalf_lock_agree γa hs hs' $$ Hh Hsh
+    subst Heq
+    isplitl
+    · iapply (authOwnF_split (.on γa) hs).2
+      simp only [authOwn, authLockShare]; iframe Hh Hc Hsh
+    · ipureintro; exact Hl
+  | off =>
+    isplitl
+    · iapply (authOwnF_split .off hs).2; iframe Hown
+      simp only [authLockShare]; itrivial
+    · ipureintro; simp only [histLast] at Hl ⊢; exact Hl
+  | any =>
+    isplitl
+    · iapply authOwnF_any
+    · ipureintro; simp only [histLast]
+
+/-- **`Unlock()`'s split**: the lock takes its share back with the buckets at the latest state. -/
+theorem authOwnF_lockI_split (M : AuthMode) (hs : List AuthState) (st : AuthState)
+    (hl : histLast M hs st) :
+    authOwnF (GF := GF) M hs ⊢ authOwn M hs ∗ authLockI M st := by
+  iintro H
+  icases (authOwnF_split M hs).1 $$ H with ⟨Hown, Hsh⟩
+  iframe Hown
+  iunfold authLockI
+  iexists hs; iframe Hsh; ipureintro; exact hl
 
 /-- The authority keeps a recorded state (a bupd: the lower bound is taken from the authority). -/
 theorem authHist_stateAt_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState)
@@ -318,10 +406,10 @@ theorem authHist_stateAt_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) 
   · ipureintro; exact Hk st (List.mem_of_getElem? h)
 
 /-- The latest state is recorded (`on γa`). -/
-theorem authOwn_last (γa : AuthNames) (hs : List AuthState) :
-    authOwn (GF := GF) (.on γa) hs ⊢ |==> (authOwn (.on γa) hs ∗
+theorem authOwnF_last (γa : AuthNames) (hs : List AuthState) :
+    authOwnF (GF := GF) (.on γa) hs ⊢ |==> (authOwnF (.on γa) hs ∗
       ∃ st : AuthState, ⌜hs.getLast? = some st⌝ ∗ authStateAt γa (hs.length - 1) st) := by
-  simp only [authOwn]
+  simp only [authOwnF]
   iintro ⟨Hh, ⟨%st, %Hl, Hc⟩⟩
   have hi : hs[hs.length - 1]? = some st := by
     cases hs with

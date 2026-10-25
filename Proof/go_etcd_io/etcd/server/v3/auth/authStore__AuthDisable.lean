@@ -110,7 +110,7 @@ theorem auth.authStore.AuthDisable.wp_proof
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
   iintro ⟨%st0, HL, Hown, %Hl0⟩
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok true st0 Hl0)
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #false))
@@ -126,7 +126,7 @@ theorem auth.authStore.AuthDisable.wp_proof
   · ipureintro
     exact ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_enabled _ _ (Hpk st0 Hl0 h1 h2), Hoff⟩
   have Hl1 := histLast_after M hs { st0 with enabled := false } rev (fun _ => rfl) Hrev
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   ihave #Hev2 := enabledVerdict_of_snap M _ $$ Hsnap
   (try wp_auto)
   wp_apply HUnlock $$ %_ %Post %(hs ++ [bump { st0 with enabled := false }]) [HL $Hown]

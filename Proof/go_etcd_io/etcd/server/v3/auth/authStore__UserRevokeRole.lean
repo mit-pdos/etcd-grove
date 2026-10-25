@@ -316,7 +316,7 @@ theorem auth.authStore.UserRevokeRole.wp_proof
   inext
   iintro ⟨HL, Huu⟩
   (try wp_auto)
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := Hok en st0 Hl0
   have hstep : userRevokeRoleF en name role st0 = .next (bump (putUser st0 name roles')) := by
     have : role ∈ roles := Hurr ▸ hin
@@ -331,7 +331,7 @@ theorem auth.authStore.UserRevokeRole.wp_proof
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
     intro hM; subst hM; exact Hl0
   have Hl1 := histLast_after M hs (putUser st0 name roles') rev (fun h => by subst h; exact Hl0) Hrev
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))

@@ -449,7 +449,7 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
           iframe
         ipureintro; simp only [List.length_set]; exact Hlocs
       imod auth.ownRoleX_persist rl _ $$ Hrm with Hrm
-      ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+      ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
       have hstep := auth.grant_update name st0 rr ps _ q w Hlook Hrrp hq hqk hqre hvalid
       have hkeys : M.isOn = true → M ≠ .any →
           ∀ p ∈ ({ rr with perms := rr.perms.set (sint.Z idx).toNat w } : RoleRec).toRole,
@@ -476,7 +476,7 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
         intro hM; subst hM; exact Hl0
       have Hl1 := histLast_after M hs (putRole st0 name rr'.toRole) rev
         (fun h => by subst h; exact Hl0) Hrev
-      imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+      imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       (try wp_auto)
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
@@ -619,7 +619,7 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
             iapply H; ipureintro; exact List.mem_of_getElem? hk)
         iapply hintro
         iexact Hxw
-      ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+      ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
       have hstep := auth.grant_insert name st0 rr ps w locs «$r0_ptr» xs' Hlook Hrrp hzl' Hperm hvalid
       have hkeys : M.isOn = true → M ≠ .any →
           ∀ p ∈ ({ rr with perms := xs'.map Prod.snd } : RoleRec).toRole, p.key ≠ [] := fun h1 h2 =>
@@ -645,7 +645,7 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
         intro hM; subst hM; exact Hl0
       have Hl1 := histLast_after M hs (putRole st0 name rr'.toRole) rev
         (fun h => by subst h; exact Hl0) Hrev
-      imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+      imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       (try wp_auto)
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))

@@ -178,7 +178,7 @@ theorem auth.authStore.UserDelete.wp_proof
     iexists eUNF; iframe HeUNF; ipureintro; rfl
   ihave Hu' := userOut_some _ st0 name Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok en st0 Hl0)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
   iapply HDelU $$ %st0 %Post %name HL
@@ -195,7 +195,7 @@ theorem auth.authStore.UserDelete.wp_proof
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_delUser _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
     intro hM; subst hM; exact Hl0
   have Hl1 := histLast_after M hs (delUser st0 name) rev (fun h => by subst h; exact Hl0) Hrev
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))

@@ -411,7 +411,7 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
   obtain ⟨ps', hps'eq⟩ : ∃ l, l = ps.filter (fun p => ¬ permAt key rangeEnd p) := ⟨_, rfl⟩
   ihave HL : Lk (putRole st0 role ps') Post $$ [HL]
   · iExactEq HL; show Lk (putRole st0 rr.name rr'.toRole) Post = _; rw [Hrrn, hps', hps'eq]
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have hstep : roleRevokePermissionR role key rangeEnd st0 (.next (bump (putRole st0 role ps'))) := by
     simp only [roleRevokePermissionR, Hlook]
     right; rw [hps'eq]
@@ -424,7 +424,7 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
       (fun p hp => Hpk st0 Hl0 h1 h2 role ps Hlook p (by rw [hps'eq] at hp; exact (List.mem_filter.mp hp).1)), ?_⟩
     intro hM; subst hM; exact Hl0
   have Hl1 := histLast_after M hs (putRole st0 role ps') rev (fun h => by subst h; exact Hl0) Hrev
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
