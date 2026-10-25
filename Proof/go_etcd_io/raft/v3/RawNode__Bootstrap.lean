@@ -481,7 +481,7 @@ theorem RawNode.Bootstrap.wp_proof
   isplitl []
   · ipureintro; rfl
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap]
-  · iapply ownRawNode_intro_static γ rn id
+  · iapply ownRawNode_intro_static (fp := []) γ rn id
         { delivered := [], unpersisted := [], steps := [], term := W64 1,
           storage := interface.ok si, mode := RNMode.static,
           cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }

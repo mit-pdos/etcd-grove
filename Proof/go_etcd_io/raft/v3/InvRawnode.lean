@@ -30,7 +30,8 @@ term. Inside are the struct, the `raft` it points to at some physical state `s`
 the queue, and the term. The scope facts the specs took as premises until then are
 conjuncts: the node is a voter of `γ.reCfg`, the configuration `ownRaftPhys` is about; no
 snapshot is pending (handing one out is phase 2); synchronous storage writes; and (since
-2026-10-17, `RNPv`; from 2026-10-10 pre-vote off) pre-vote off in the dynamic mode only, and
+2026-10-17, `RNPv`; from 2026-10-10 pre-vote off; 2026-10-17 to 2026-10-25 pre-vote off in the
+dynamic mode) in the dynamic mode a pre-candidate's campaign guard (`PreGuardF`), and
 the term ceiling `rs.tc` (`NGhost.tc`): every queued message is of a term at most the node's or
 the ceiling (`OutTermOk`), which `readyWithoutAccept` reports of the messages it hands out, and a
 pre-candidate's next term is within it; the client raises it (`ownRawNode_raise_tc`) with the
@@ -872,18 +873,24 @@ theorem RNFl.keep {rs rs' : RNState} {s s' : NState} (h : RNFl rs s)
   · have := h.1 (hw ▸ hf); rw [hfl]; omega
   · rw [hag] at hlt ⊢; rw [hst]; exact h.2 (by omega)
 
-/-- (2026-10-17) The pre-vote scope and the term ceiling, as `ownRawNode` keeps them: pre-vote off
-in the dynamic mode (a pre-candidate there needs `StepR.campaign`'s guard kept: not yet proved);
-the ceiling `rs.tc` the struct's (`NGhost.tc`), at least the term, and one past it at a
-pre-candidate (a won pre-vote campaigns at `term + 1`: the pre-campaign's budget). -/
-def RNPv (rs : RNState) (s : NState) : Prop :=
-  (rs.mode.isDyn = true → s.prevote = false) ∧ rs.tc = s.gh.tc ∧
+/-- (2026-10-17) The pre-vote scope and the term ceiling, as `ownRawNode` keeps them: (2026-10-25,
+T-M M2b; from 2026-10-17 pre-vote off in the dynamic mode) in the dynamic mode a pre-candidate's
+campaign guard (`PreGuardF`, at the ghost part's full prefix `fp`); the ceiling `rs.tc` the
+struct's (`NGhost.tc`), at least the term, and one past it at a pre-candidate (a won pre-vote
+campaigns at `term + 1`: the pre-campaign's budget). -/
+def RNPv (rs : RNState) (fp : List EntryM) (s : NState) : Prop :=
+  (rs.mode.isDyn = true → PreGuardF fp s) ∧ rs.tc = s.gh.tc ∧
   uint.Z s.term ≤ uint.Z s.gh.tc ∧
   (s.role = .preCandidate → uint.Z s.term + 1 ≤ uint.Z s.gh.tc)
 
-theorem RNPv.dyn {rs : RNState} {s : NState} (H : RNPv rs s) (g : RGh) :
-    (rs.mode.toG g).isDyn = true → s.prevote = false :=
-  fun h => H.1 (by rw [← RNMode.toG_isDyn rs.mode g]; exact h)
+/-- The guard as the mode's (`GMode.Guard`), at the ghost part over `fp`. -/
+theorem RNPv.guard {rs : RNState} {fp : List EntryM} {s : NState} (H : RNPv rs fp s) (ca : Nat)
+    (cfg : CCState) : (rs.mode.toG ⟨ca, cfg, fp⟩).Guard s := by
+  have H1 := H.1
+  revert H1
+  cases rs.mode with
+  | static => intro _; trivial
+  | dyn dec c0 h0 _ => intro H1; exact H1 rfl
 
 set_option hygiene false in
 /-- A premise of `raft.Step` about a type a network message is not (`Hty`): vacuous. -/
@@ -910,7 +917,7 @@ takes after `RestMsgOk` is left in `X`). Shared by `RawNode.Step` (`RawNode__Ste
 `run`'s step (`InvNodeRun.lean`, `wp_rn_raft_Step_net`). -/
 theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md : GMode} {m : MessageM}
     {ents : List EntryM} {sn : Option SnapshotM} {ctx : List w8} {rsp : List Loc} {X : Prop}
-    (Hok : NetMsgOk id ⟨m, ents, sn, ctx, rsp⟩) (Hpv : RNPv rs s) (Htrm : rs.term = s.term)
+    (Hok : NetMsgOk id ⟨m, ents, sn, ctx, rsp⟩) {fp : List EntryM} (Hpv : RNPv rs fp s) (Htrm : rs.term = s.term)
     (Hmtc : uint.Z m.Term' ≤ uint.Z rs.tc)
     (Htn : m.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z m.Term') + 1 ≤ uint.Z rs.tc)
     (Hb1 : m.Type' = MsgPreVote → 1 ≤ uint.Z s.term)
@@ -991,27 +998,54 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md 
       simp only at h ⊢
       exact ⟨by omega, by omega, Hfla⟩) Hxo)
 
-/-- `RNPv` after a step of `raft.Step` (`PreCandStep`): the setting and the ceiling kept, the term
-within the ceiling, and a pre-campaign (`MsgHup`) only with the ceiling one past the term. -/
-theorem RNPv.step {rs rs' : RNState} {s s' : NState} {m : MessageM} (H : RNPv rs s)
-    (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (hpv : s'.prevote = s.prevote)
+/-- The mode's guard from the guard in the dynamic mode. -/
+theorem RNMode.guard_of {mode : RNMode} {fp : List EntryM} {s : NState}
+    (h : mode.isDyn = true → PreGuardF fp s) (ca : Nat) (cfg : CCState) :
+    (mode.toG ⟨ca, cfg, fp⟩).Guard s := by
+  cases mode with
+  | static => trivial
+  | dyn dec c0 h0 _ => exact h rfl
+
+/-- In the static mode `RNPv` does not depend on the full prefix. -/
+theorem RNPv.static_fp {rs : RNState} {fp fp' : List EntryM} {s : NState} (H : RNPv rs fp s)
+    (hm : rs.mode = .static) : RNPv rs fp' s :=
+  ⟨fun h => (by rw [hm] at h; cases h), H.2⟩
+
+/-- `RNPv` after a step of `raft.Step` (`PreCandStep`): the guard kept (`PreGuardF.pc`), the ceiling
+kept, the term within the ceiling, and a pre-campaign (`MsgHup`) only with the ceiling one past the
+term. -/
+theorem RNPv.step [GoGlobalContext] [GoSemanticsFunctions] {rs rs' : RNState} {fp : List EntryM}
+    {s s' : NState} {m : MessageM}
+    (H : RNPv rs fp s)
+    (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (_hpv : s'.prevote = s.prevote)
     (hgh : s'.gh = s.gh) (ht : uint.Z s'.term ≤ uint.Z s.gh.tc) (hpc : PreCandStep m s s')
-    (hhup : m.Type' = MsgHup → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) : RNPv rs' s' := by
+    (hhup : m.Type' = MsgHup → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) : RNPv rs' fp s' := by
   obtain ⟨H1, H2, -, H4⟩ := H
-  refine ⟨fun h => by rw [hpv]; exact H1 (hmd ▸ h), by rw [htc, hgh]; exact H2,
+  refine ⟨fun h => PreGuardF.pc hpc (H1 (hmd ▸ h)), by rw [htc, hgh]; exact H2,
     by rw [hgh]; exact ht, fun h => ?_⟩
   obtain ⟨Ht, Hor⟩ := hpc h
   rw [hgh, Ht]
-  rcases Hor with Hr | Hh
+  rcases Hor with ⟨Hr, -⟩ | ⟨Hh, -⟩
   · exact H4 Hr
   · exact hhup Hh
 
-/-- `RNPv` across a step that keeps the term, the role, the setting and the ghost bounds. -/
-theorem RNPv.keep {rs rs' : RNState} {s s' : NState} (H : RNPv rs s)
-    (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (hpv : s'.prevote = s.prevote)
-    (hgh : s'.gh = s.gh) (ht : s'.term = s.term) (hr : s'.role = s.role) : RNPv rs' s' := by
+/-- `RNPv` across a step that keeps the term, the role and the ghost bounds, and the guard
+(`hg`). -/
+theorem RNPv.keep {rs rs' : RNState} {fp : List EntryM} {s s' : NState} (H : RNPv rs fp s)
+    (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (_hpv : s'.prevote = s.prevote)
+    (hgh : s'.gh = s.gh) (ht : s'.term = s.term) (hr : s'.role = s.role)
+    (hg : PreGuardF fp s → PreGuardF fp s') : RNPv rs' fp s' := by
   obtain ⟨H1, H2, H3, H4⟩ := H
-  refine ⟨fun h => by rw [hpv]; exact H1 (hmd ▸ h), by rw [htc, hgh]; exact H2,
+  refine ⟨fun h => hg (H1 (hmd ▸ h)), by rw [htc, hgh]; exact H2,
+    by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h)⟩
+
+/-- `RNPv.keep` in the static mode, where the guard is not kept. -/
+theorem RNPv.keepS {rs rs' : RNState} {fp : List EntryM} {s s' : NState} (H : RNPv rs fp s)
+    (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (_hpv : s'.prevote = s.prevote)
+    (hgh : s'.gh = s.gh) (ht : s'.term = s.term) (hr : s'.role = s.role)
+    (hm : rs.mode = .static) : RNPv rs' fp s' := by
+  obtain ⟨-, H2, H3, H4⟩ := H
+  refine ⟨fun h => (by rw [hmd, hm] at h; cases h), by rw [htc, hgh]; exact H2,
     by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h)⟩
 
 /-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s loan, as the node keeps it** (`RNState.slent`):
@@ -1127,41 +1161,40 @@ theorem ack_snap_sip {rs : RNState} {s : NState} (H : LoanOk rs s) (Hsn : SnpOk 
     exact .inr ((Hsn.2.1 _ a1).1 hsn).1
 
 /-- What `GMode.Pre` needs of the node, for any message but a snapshot or a storage-apply
-acknowledgement (2026-10-14, stage B7 part 2). -/
-def PreFacts (dyn : Bool) (s : NState) : Prop :=
-  (dyn = true → s.role ≠ .preCandidate) ∧
+acknowledgement (2026-10-14, stage B7 part 2): (2026-10-25, T-M M2b; until then no pre-candidate in
+the dynamic mode) the mode's campaign guard (`GMode.Guard`), and room in the log. -/
+def PreFacts (md : GMode) (s : NState) : Prop :=
+  md.Guard s ∧
   plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64
 
 /-- (2026-10-20, D22 S-c) `GMode.Pre` for any message but a storage-apply acknowledgement, a
 snapshot's included (`GMode.Pre` asks nothing of one). -/
 theorem RNMode.pre_net {mode : RNMode} {g : RGh} {m : MessageM} {ents : List EntryM}
-    {s : NState} (h : PreFacts (mode.toG g).isDyn s)
+    {s : NState} (h : PreFacts (mode.toG g) s)
     (h3 : m.Type' ≠ MsgStorageApplyResp) : (mode.toG g).Pre m ents s := by
   cases mode with
   | static => trivial
   | dyn dec c0 h0 _ =>
-    exact ⟨h.1 rfl, fun h' => absurd h' h3, fun _ => h.2⟩
+    exact ⟨h.1, fun h' => absurd h' h3, fun _ => h.2⟩
 
 theorem GMode.Pre.of_facts {md : GMode} {m : MessageM} {ents : List EntryM}
-    {s : NState} (h : PreFacts md.isDyn s) (h1 : m.Type' ≠ MsgSnap)
+    {s : NState} (h : PreFacts md s) (h1 : m.Type' ≠ MsgSnap)
     (h3 : m.Type' ≠ MsgStorageApplyResp) :
     md.Pre m ents s := by
   cases md with
   | static => trivial
-  | dyn dec c0 h0 g => exact ⟨h.1 rfl, fun h' => absurd h' h3, fun _ => h.2⟩
+  | dyn dec c0 h0 g => exact ⟨h.1, fun h' => absurd h' h3, fun _ => h.2⟩
 
-/-- ... read off the struct, at a node with pre-vote off in the dynamic mode (2026-10-17: until
-then at a node with pre-vote off). -/
+/-- ... read off the struct, with the mode's guard (2026-10-25, T-M M2b: until then at a node with
+pre-vote off in the dynamic mode). -/
 theorem ownRaftPhysC_preFacts (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState)
-    {dyn : Bool} (Hpv : dyn = true → s.prevote = false) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜PreFacts dyn s⌝ ∗ ownRaftPhysCV c V r id s := by
+    {md : GMode} (Hg : md.Guard s) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜PreFacts md s⌝ ∗ ownRaftPhysCV c V r id s := by
   iintro H
-  icases ownRaftPhysC_precand c r id s $$ H with ⟨%Hpc, H⟩
   icases ownRaftPhysC_last_bound c r id s $$ H with ⟨%Hb, H⟩
   iframe H
   ipureintro
-  refine ⟨fun hd h => ?_, Hb⟩
-  have := Hpc h; rw [Hpv hd] at this; cases this
+  exact ⟨Hg, Hb⟩
 
 end proof
 
@@ -2149,9 +2182,10 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
   "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
-  -- (2026-10-17; until then pre-vote off, `s.prevote = false`, its scope) pre-vote off in the
-  -- dynamic mode only, and the term ceiling (`RNPv`)
-  "%Hpvoff" ∷ ⌜RNPv rs s⌝ ∗
+  -- (2026-10-17; until then pre-vote off, `s.prevote = false`, its scope) in the dynamic mode a
+  -- pre-candidate's campaign guard (2026-10-25, T-M M2b; until then pre-vote off there), and the
+  -- term ceiling (`RNPv`)
+  "%Hpvoff" ∷ ⌜RNPv rs fp s⌝ ∗
   -- the lower bounds for `node.go` (2026-10-10, `RNState.outlb`)
   "%Hrs_out" ∷ ⌜rs.outlb = s.gh.outlb⌝ ∗
   "%Hrs_unst" ∷ ⌜rs.unst = s.gh.unst⌝ ∗
@@ -2174,7 +2208,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
-    (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
+    (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
@@ -2238,7 +2272,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
-    (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
+    {fp : List EntryM} (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s)
     -- (D19p, 2026-10-18) the tracker within the ghost state's tracked bound
@@ -2269,7 +2303,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     · ipureintro; exact Hnl
     ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk⟩
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) rfl Hasync Hdlen
-    Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    Hunp Hsnap Hstok Htrm Hstor (Hpvoff.static_fp Hm) Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc
 
 /-- The mode is the ghost state's (2026-10-14, stage B7 part 2): static exactly when `γ` is. -/

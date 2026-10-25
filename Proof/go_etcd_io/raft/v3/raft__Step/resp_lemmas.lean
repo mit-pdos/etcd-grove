@@ -406,7 +406,8 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
           exact .trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 (.trans _ _ _ _ _ H3 H5))
         · rw [H4e]; exact ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩
         · rw [H4e]; exact keep_frame rfl rfl rfl rfl rfl
-      refine ⟨Hwf, ?_, keep_frame rfl rfl rfl rfl rfl⟩
+      refine ⟨Hwf, ?_, keep_frame rfl rfl rfl rfl rfl
+        (hpc := fun h => absurd (h.symm.trans Hr) (by decide))⟩
       have Hpr1 : (toPState { s with prvals := pvs }).role = .leader := Hpr
       have H1 : StepCF c id (toPState s) [absMsg .appResp m ents]
           (toPState { s with prvals := pvs }) := by

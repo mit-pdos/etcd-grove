@@ -8,7 +8,7 @@ The ghost state `raft.Step` keeps, in either mode (2026-10-14, reconfiguration s
 * `ownStepGhost γ md c id s`: `ownRaftGhost` of `toPState s` in the mode's flag, and what else
   the mode keeps (`ghostRest`). In the dynamic mode it is `ownRaftGhostR` (`ownStepGhost_dyn`).
 * `GMode.Pre md m ents s`: the dynamic mode's premises of a step the code cannot check
-  (`DynHyp`, `StepLemmasR.lean`): no pre-candidate, A1 at a `MsgStorageApplyResp` (no conf
+  (`DynHyp`, `StepLemmasR.lean`): a pre-candidate with its campaign guard (`PreGuard`; until 2026-10-25 none), A1 at a `MsgStorageApplyResp` (no conf
   entry between the configuration index and the acknowledged index), the log short enough for
   a dropped proposal. (Until 2026-10-14, stage B8, also no `MsgSnap`.)
 * `GMode.SnapOk γ md sv scfg` (2026-10-14, stage B8): what a `MsgSnap`'s snapshot must be in the
@@ -59,7 +59,7 @@ def GMode.Pre (md : GMode) (m : MessageM) (ents : List EntryM) (s : NState) : Pr
   match md with
   | .static => True
   | .dyn _ _ _ g =>
-    s.role ≠ .preCandidate ∧
+    PreGuardF g.fp s ∧
     (m.Type' = MsgStorageApplyResp →
       s.logst.snap = none ∧
       ∀ e, ents.getLast? = some e → NoConfIn (rOf s g).full g.cidx (uint.nat e.Index')) ∧
@@ -169,15 +169,30 @@ theorem GMode.StepOut.keep {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
     · rfl
     · exact absurd h hm
 
+/-- (2026-10-25, T-M M2b) The dynamic mode's campaign guard of a pre-candidate (`PreGuard`, at the
+ghost part's full prefix); nothing in the static mode. -/
+def GMode.Guard (md : GMode) (s : NState) : Prop :=
+  match md with
+  | .static => True
+  | .dyn _ _ _ g => PreGuardF g.fp s
+
+/-- At a node that is no pre-candidate in the dynamic mode, the guard holds vacuously. -/
+theorem GMode.Guard.of_nonpre {md : GMode} {s : NState}
+    (h : md.isDyn = true → s.role ≠ .preCandidate) : md.Guard s := by
+  cases md with
+  | static => trivial
+  | dyn dec c0 h0 g => exact fun _ hp => absurd hp (h rfl)
+
 /-- The dynamic mode's premises of a step, for a message that is no snapshot, no storage-apply
-acknowledgement and no proposal: only that the node is no pre-candidate. -/
+acknowledgement and no proposal: only a pre-candidate's campaign guard (`GMode.Guard`; until
+2026-10-25 that the node is no pre-candidate). -/
 theorem GMode.Pre.of_other {md : GMode} {m : MessageM} {ents : List EntryM}
-    {s : NState} (_h1 : m.Type' ≠ MsgSnap) (h2 : md.isDyn = true → s.role ≠ .preCandidate)
+    {s : NState} (_h1 : m.Type' ≠ MsgSnap) (h2 : md.Guard s)
     (h3 : m.Type' ≠ MsgStorageApplyResp) (h4 : m.Type' ≠ MsgProp) : md.Pre m ents s := by
   cases md with
   | static => trivial
   | dyn dec c0 h0 g =>
-    exact ⟨h2 rfl, fun h => absurd h h3, fun h => absurd h h4⟩
+    exact ⟨h2, fun h => absurd h h3, fun h => absurd h h4⟩
 
 /-- `GMode.Pre` gives `DynHyp` at any end state whose `applied` moved at most to the
 acknowledged index, given the invariant (`applied ≤` the configuration index). -/
@@ -190,7 +205,7 @@ theorem GMode.Pre.dynHyp {md : GMode} {m : MessageM} {ents : List EntryM}
     (HI : RInv dec c0 (rOf s g)) : DynHyp m s s' g := by
   subst hmd
   obtain ⟨h2, h3, h4⟩ := h
-  refine ⟨Hns, h2, HI.full, fun hty => ⟨(h3 hty).1, ?_⟩, h4⟩
+  refine ⟨Hns, h2 HI.full.1, HI.full, fun hty => ⟨(h3 hty).1, ?_⟩, h4⟩
   have Hac : uint.nat s.logst.applied ≤ g.cidx := HI.applied_cidx
   have Hempty : ∀ n, n ≤ g.cidx → NoConfIn (rOf s g).full g.cidx n :=
     fun n hn k e hk1 hk2 => absurd (Nat.lt_of_lt_of_le hk2 hn) (Nat.not_lt.2 hk1)

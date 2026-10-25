@@ -710,7 +710,7 @@ theorem raft.Step.wp_proof
     imod lastRec_receipt γ _ $$ Hlr with #Hrc0
     wp_apply (wp_Step_MsgProp P Q c r id s ml m sn ctx rs ents cs _ Hty Hterm Hfrom Hne Hlen Hlok
       Hlnz Hwf HL (Hnors (.inl Hty)))
-      $$ [$Hphys $Hmi $Hcc $Hrc0] as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hfr, %Hst, Herr⟩
+      $$ [$Hphys $Hmi $Hcc $Hrc0] as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hfr, %Hpk, %Hst, Herr⟩
     obtain ⟨recv, Hrecv, Hrl, Hstep⟩ := Hst
     -- the receipt of the bound: the last index's, or the appended batch's
     ihave #HrcB : ⧖ (B.toNat - γ.reBoot.length) $$ [Hrcb]
@@ -754,7 +754,7 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
     isplitr
-    · ipureintro; exact fun _ => TermStep.of_local Hfr.1
+    · ipureintro; exact fun _ => TermStep.of_local Hfr.1 Hpk
     isplitr
     · ipureintro; resp_other
     isplitr
@@ -782,7 +782,7 @@ theorem raft.Step.wp_proof
       wp_apply (wp_Step_MsgStorageAppendResp_none P Q c r id s ml m sn ctx rs ents HtyA Hsn Hle
           Hstok' Hghoff Hwf)
         $$ [$Hphys $Hmi]
-        as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Herr⟩
+        as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hpk, %Hst, %Herr⟩
       imod ghost_step_md0 γ md c id m s s' Hst
         (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyA.symm.trans h) (by w32_ne))
           (fun h => absurd (HtyA.symm.trans h) (by w32_ne)) hmd HI) Hfr.1.nsst
@@ -803,7 +803,7 @@ theorem raft.Step.wp_proof
       isplitr
       · ipureintro; exact fun _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
       isplitr
-      · ipureintro; exact fun _ => TermStep.of_local Hfr.1
+      · ipureintro; exact fun _ => TermStep.of_local Hfr.1 Hpk
       isplitr
       · ipureintro; exact RespStep.of_type (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
           (by rw [HtyA]; w32_ne)
@@ -845,7 +845,10 @@ theorem raft.Step.wp_proof
       isplitr
       · ipureintro; exact fun _ _ h => absurd (h HtyA) (by simp)
       isplitr
-      · ipureintro; exact fun _ => TermStep.of_term rfl (fun _ => Hp5)
+      · ipureintro
+        obtain ⟨Hk1, Hk2⟩ := ackSnapLog_keep s.logst m s.term sv
+        exact fun _ => TermStep.of_term rfl (fun _ => Hp5)
+          (fun h => ⟨rfl, .inl ⟨h, Hp1, Hp2, Hp3, Hk1, Hk2⟩⟩)
       isplitr
       · ipureintro; exact RespStep.of_type (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
           (by rw [HtyA]; w32_ne)
@@ -859,7 +862,7 @@ theorem raft.Step.wp_proof
     -- `Hents` is already read-only: the `MsgProp` case split reduced its `if`
     wp_apply (wp_Step_MsgStorageApplyResp P Q c r id s ml m sn ctx rs ents HtyB (Hsapr HtyB) (Happly HtyB)
         Hwf (Hsal HtyB)) $$ [$Hphys $Hmi]
-      as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Happ', %Happ2, %Herr⟩
+      as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hpk, %Hst, %Happ', %Happ2, %Herr⟩
     imod ghost_step_md0 γ md c id m s s' Hst
       (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyB.symm.trans h) (by w32_ne))
         (fun _ => Happ') hmd HI) Hfr.1.nsst
@@ -880,7 +883,7 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ h => absurd HtyB h
     isplitr
-    · ipureintro; exact fun _ => TermStep.of_local Hfr.1
+    · ipureintro; exact fun _ => TermStep.of_local Hfr.1 Hpk
     isplitr
     · ipureintro; exact RespStep.of_type (by rw [HtyB]; w32_ne) (by rw [HtyB]; w32_ne)
         (by rw [HtyB]; w32_ne)

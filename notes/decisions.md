@@ -18447,3 +18447,27 @@ lock's resource; `AddPeer`/`AddRemote` already take it). W3's text predates D41 
   peer is dropped, as Go's `Send` logs and ignores an unknown id), instead of `trFrozen`'s fixed
   `rs`; `netTransport` (`Net.lean`, shared with D22) keeps its statement if its `Send` does not
   name the ids (to check in M5).
+
+**M2b: pre-vote in the dynamic mode (2026-10-25, branch `membership-m2`).** Q2 (A) carried out, with
+no premise and the trust base unchanged. A pre-candidate in the dynamic mode carries its campaign
+guard instead of being excluded:
+- `PreGuard fp s` (`StepLemmasR.lean`): a pre-candidate has no snapshot pending and no conf entry at
+  the full log's positions `[applied, committed)`, which is `StepR.campaign`'s guard on `rOf s g`.
+  `PreGuardF` is the same at a full prefix of the boundary's length (what the `RawNode` keeps without
+  `FullOk` at hand). `DynHyp` and `GMode.Pre` take the guard where they took "no pre-candidate";
+  `GMode.Guard` is it at the mode's ghost part.
+- Kept across a step through `PreCandStep` (`raft.Step`'s `TermStep`), strengthened: a pre-candidate
+  that stays one kept its boundary, log, commit index and `applied` order, with no snapshot pending
+  appearing (`PreKeep`); one that a `MsgHup` made one has `hup`'s check (`HupFact`), which
+  `noConfIn_of_unapplied` turns into the guard. `PreGuardF.pc`/`.step` (spec level). The local
+  branches state `PreKeep` at a pre-candidate (`%Hpk`: a pre-candidate drops proposals, `stableTo`
+  only moves entries stable, `appliedTo` and a snapshot's acknowledgement touch neither log nor commit).
+- The win: `stepR_prevoteRespResult` (`prevote_lemmas.lean`): waiting is no step, a loss `abandon`, a
+  win `StepR.campaign` from the guard; `StepCD.of_excluded` only excludes a `MsgSnap` now.
+- The `RawNode` layer: `RNPv rs fp s`'s first conjunct is the guard (was `isDyn → prevote = false`);
+  `PreFacts md s` takes the mode; `tickElection`/`tickHeartbeat` take `md.Guard s` and `TickStep`
+  carries the guard; `Advance`'s loop carries it (`%Hpg1`); `acceptReady` keeps it
+  (`readyNstate_guard`); `wp_applyConf_dyn` excludes a pre-candidate by the guard as it excluded a
+  candidate by `RInv.cand`.
+- `RestartNode.spec` loses its premise `md.isDyn = true → cv.PreVote' = false`.
+

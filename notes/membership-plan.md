@@ -1,6 +1,6 @@
 # Membership changes in the server (track T-M, D21d (B)) — plan
 
-Planned 2026-10-25. Status: **M0 in part**: Q1-Q4 decided (D43: removal only; pre-vote and
+Planned 2026-10-25. Status: **M2b done** (pre-vote in the dynamic mode, 2026-10-25); **M0 in part**: Q1-Q4 decided (D43: removal only; pre-vote and
 `StepDownOnRemoval = false` proved in the dynamic mode; the removed member's own stop); W3 settled
 (the user for the D22 owner: the peers right is `trLive`, D43); the example and the client path
 still open.
@@ -110,7 +110,8 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   - *M2c.* `StepDownOnRemoval = false` in the dynamic mode, if Q3 (A).
   Each its own stage with a paper check first (`notes/reconfiguration-safety.md`), as B1 was.
   *Scoped 2026-10-25* (order: M2b, M2c, M2a):
-  - M2b: the dynamic mode excludes a pre-candidate everywhere (`RNPv`'s `s.prevote = false`,
+  - **M2b done (2026-10-25)**: pre-vote in the dynamic mode proved, no premise; see `notes/decisions.md`,
+    D43, "M2b". Scoping (kept): the dynamic mode excluded a pre-candidate everywhere (`RNPv`'s `s.prevote = false`,
     `PreFacts`, `GMode.Pre`, `DynHyp`; every step at a pre-candidate closed by `StepCD.of_excluded`
     with no `StepR` witness, `raft__Step/prevote_lemmas.lean:167`). The model collapses the role to
     follower (`proleRole`), so the guard goes at the node level: a pre-candidate has no pending

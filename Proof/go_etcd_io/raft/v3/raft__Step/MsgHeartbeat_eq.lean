@@ -114,7 +114,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iframe Hphys
     ipureintro
     refine ⟨nstateWf_heartbeatResult _ _ _ _ Hwf, ⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
-      keep_frame rfl rfl rfl rfl rfl⟩
+      keep_frame rfl rfl rfl rfl rfl (hpc := fun h => absurd (h.symm.trans Hrole) (by decide))⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
     · refine StepCD.frame ?_ (by rframe)

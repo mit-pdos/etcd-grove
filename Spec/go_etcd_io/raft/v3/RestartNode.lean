@@ -58,9 +58,8 @@ abbrev RestartNode.spec : Prop :=
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
-  -- (2026-10-17; until then in either mode) pre-vote off in the dynamic mode, which does not
-  -- model pre-candidates
-  (md.isDyn = true → cv.PreVote' = false) →
+  -- (2026-10-25, T-M M2b: pre-vote either way; 2026-10-17 to 2026-10-25 off in the dynamic mode,
+  -- which did not model pre-candidates; until then off in either mode)
   cv.Applied' = W64 0 →
   σ.prev = entryID.mk (W64 0) (W64 0) →
   σ.ents = [] →

@@ -29,10 +29,12 @@ def TickStep [FfiSyntax] (s s' : NState) : Prop :=
   NetFrame s s' ∧ uint.Z s.term ≤ uint.Z s'.term ∧ uint.Z s'.term ≤ uint.Z s.term + 1 ∧
   uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
   -- (2026-10-17) a pre-candidate afterwards is at the term before (a pre-campaign keeps it)
-  (s'.role = .preCandidate → s'.term = s.term)
+  (s'.role = .preCandidate → s'.term = s.term) ∧
+  -- (2026-10-25, T-M M2b) and its campaign guard kept (`PreGuardF.step`)
+  (∀ fp : List EntryM, PreGuardF fp s → PreGuardF fp s')
 
 theorem TickStep.refl [FfiSyntax] (s : NState) : TickStep s s :=
-  ⟨NetFrame.refl s, Int.le_refl _, by omega, Int.le_refl _, fun _ => rfl⟩
+  ⟨NetFrame.refl s, Int.le_refl _, by omega, Int.le_refl _, fun _ => rfl, fun _ h => h⟩
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -52,9 +54,9 @@ abbrev raft.tickElection.spec : Prop :=
   NStateWf s →
   -- (D19i part 1) the floor at most `applied` (a campaign's `hup`)
   uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
-  -- (2026-10-14, stage B7 part 2) in either ghost mode (`raft.Step.spec`'s); the dynamic one
-  -- excludes a pre-candidate (`GMode.Pre`)
-  (md.isDyn = true → s.role ≠ .preCandidate) →
+  -- (2026-10-14, stage B7 part 2) in either ghost mode (`raft.Step.spec`'s); in the dynamic one
+  -- a pre-candidate's campaign guard (`GMode.Guard`; until 2026-10-25 no pre-candidate)
+  md.Guard s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s }}
