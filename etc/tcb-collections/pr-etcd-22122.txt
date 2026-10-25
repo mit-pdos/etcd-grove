@@ -1,0 +1,5 @@
+# PR etcd-io/etcd#22122 (client/v3/ordering): every linked result of
+# Proof/go_etcd_io/etcd/client/v3/ordering/Results.lean
+roots ^Proof/go_etcd_io/etcd/client/v3/ordering/Results\.lean$
+axiom proto.Clone.wp_proof
+axiom status.Error.wp_proof

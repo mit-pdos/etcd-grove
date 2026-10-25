@@ -189,6 +189,8 @@ PROJECTS = [
             "go.etcd.io/etcd/client/v3/concurrency",
             # with bodies (client/v3/leasing.toml): the leasing KV and its lease cache
             "go.etcd.io/etcd/client/v3/leasing",
+            # with bodies (client/v3/ordering.toml): the ordering KV and Txn wrapper
+            "go.etcd.io/etcd/client/v3/ordering",
             # with bodies (client/v3/experimental/recipes.toml): barrier, double barrier, queue,
             # priority queue, RWMutex
             "go.etcd.io/etcd/client/v3/experimental/recipes",

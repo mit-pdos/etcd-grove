@@ -1,0 +1,18 @@
+=== RUN   TestKvOrdering
+--- PASS: TestKvOrdering (0.00s)
+=== RUN   TestTxnOrdering
+--- PASS: TestTxnOrdering (0.00s)
+=== RUN   TestPR22122_MutableTxnExecutedAtMostOnce
+    probe_22122_test.go:123: PASS [PR #22122]: mutable Txn executed Do exactly 1 time (returned rev=5 < prevRev=10 without resubmitting)
+--- PASS: TestPR22122_MutableTxnExecutedAtMostOnce (0.00s)
+=== RUN   TestPR22122_ReadOnlyNestedTxnRetriesUntilMonotonic
+    probe_22122_test.go:162: PASS [PR #22122]: nested read-only Txn retried 3 times until rev=15 >= prevRev=10
+--- PASS: TestPR22122_ReadOnlyNestedTxnRetriesUntilMonotonic (0.00s)
+=== RUN   TestCaveat1_MutableTxnViolationDiscardsCommittedRespWhenClosureErrors
+    probe_22122_test.go:193: CAVEAT 1 CONFIRMED: mutable Txn was already committed on server (doCalls=1), but Commit() discarded txnResp and returned (<nil>, etcdclient: no cluster members have a revision higher than the previously received revision)
+--- PASS: TestCaveat1_MutableTxnViolationDiscardsCommittedRespWhenClosureErrors (0.00s)
+=== RUN   TestCaveat2_PutDeleteAndDoBypassKvOrdering
+    probe_22122_test.go:236: CAVEAT 2 CONFIRMED: kv.Put(rev=100) left prevRev=0 so kv.Get(rev=50) saw 0 violations; kv.Do(rev=5 < prevRev=50) bypassed kvOrdering with 0 violations
+--- PASS: TestCaveat2_PutDeleteAndDoBypassKvOrdering (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3/ordering	0.012s
