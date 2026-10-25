@@ -543,6 +543,9 @@ v3alarm_NewAlarmStore:
 # `SetBackend`, axioms true of the Go code (their specs' docstrings).
 lease_lessor__Recover:
 membership_RaftCluster__SetBackend:
+# (D22 receiver epochs, S8d, W6, 2026-10-25) `applySnapshot`'s cluster `Recover`, an axiom true of
+# the Go code over an image good for the cluster (its spec's docstring).
+membership_RaftCluster__Recover:
 apply_NewUberApplier: @
 # (D21 M2, 2026-10-19) the inbound path from the transport (`rafthttp.Raft`, NetBridge.lean):
 # `Process` and the reports with their bodies, raft's node methods linked in raft's Link (`@`),

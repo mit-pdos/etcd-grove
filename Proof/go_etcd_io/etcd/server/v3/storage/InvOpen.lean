@@ -59,11 +59,14 @@ opaque releaseOk : Prop
 /-- **The file system cooperates for an applied snapshot's files** (a named premise about the
 program's environment, as `dbOpensOk`; D22 receiver epochs, S8d, 2026-10-24): the snapshot
 directories' reads (`snap.dirReadOk`), the renames of a held file onto an owned entry
-(`backend.renameOk`), and the storage's releases (`releaseOk`) do not fail. `applySnapshot` panics
-otherwise (`server.go:1059`, `:1101`); `applySnapshot.spec` takes it. Not yet a premise of any
-closed theorem (S-l's wiring; the user's decision, W5). -/
+(`backend.renameOk`), the storage's releases (`releaseOk`) and (W7, 2026-10-25) bbolt's close of the
+old backend (`backend.dbCloseOk`) do not fail. `applySnapshot` panics otherwise (`server.go:1063`,
+`:1105`, `:1138`); `applySnapshot.spec` takes it. The user's decision (W5, 2026-10-25): its own
+environment premise, not folded into `dbOpensOk`; not yet a premise of any closed theorem (it may
+become one at S-l). -/
 def snapOpensOk : Prop :=
-  (∀ ss : Loc, snap.dirReadOk ss) ∧ (∀ src dst : GoString, renameOk src dst) ∧ releaseOk
+  (∀ ss : Loc, snap.dirReadOk ss) ∧ (∀ src dst : GoString, renameOk src dst) ∧ releaseOk ∧
+    dbCloseOk
 
 /-- The batch limit `newBackend(cfg, hooks)` configures (`DefaultBackendConfig`'s
 `defaultBatchLimit`, unless the configuration sets one). -/

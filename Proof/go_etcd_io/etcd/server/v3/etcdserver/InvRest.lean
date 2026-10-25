@@ -324,6 +324,21 @@ def clusterBeOn (c be : Loc) : IProp GF :=
         #be : GoInterface) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" mbl ↦□ lg)
 
+/-- **The membership buckets of an image good for the cluster `c`** (opaque, a premise about the
+images a member applies; D22 receiver epochs, S8d, W6, 2026-10-25): the `members`,
+`members_removed` and `cluster` buckets (`mem`, `rem`, `cl`) decode (`MustReadMembersFromBackend`'s
+keys and JSON values, the cluster version, the downgrade record), the members include `c`'s local
+member and are the static cluster's (those of `bootOk`'s `Members()` contract, with the directory's
+peer URLs), none removed, and the cluster version is one `MustDetectDowngrade` accepts for this
+server (no downgrade). -/
+opaque membership.memBucketsOk (c : Loc) (mem rem cl : Option backend.BktData) : Prop
+
+/-- **The tracked buckets `r` hold an image good for the cluster `c`** (`memBucketsOk` of its three
+membership buckets; what `RaftCluster.Recover`'s axiom takes). -/
+def membership.clusterImageOk (c : Loc) (r : GMap GoString backend.BktData) : Prop :=
+  membership.memBucketsOk c (r.lookup go!"members") (r.lookup go!"members_removed")
+    (r.lookup go!"cluster")
+
 /-- **The server's objects on the backend at `be`** (D22 receiver epochs, S7c, S7e): the alarm
 store `al`'s, the auth store `st`'s and the lessor `lp`'s user halves of their backend fields and
 the cluster `c`'s field, the server's `H` of its environment's rest resource and write right

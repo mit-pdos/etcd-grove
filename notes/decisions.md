@@ -18596,8 +18596,10 @@ simple provider, JWT. Trust base unchanged.
   already carries a counted `ownToks γ.rdt 1`: a `Close` that takes all `nReaders` reader tokens
   and the remainder share would exclude every reader by counting, a redesign of `bStopped`'s
   exclusion `bOpen_stopped` and of `run`'s `CommitAndStop`), still with all reader tokens back.
-  Either way the close-error fact (`closeOk`, bbolt's `Close` failing for I/O) joins
-  `snapOpensOk`.
+  The close-error fact is in already: `backend.dbCloseOk` (opaque, `InvBbolt.lean`), bbolt's
+  `DB.Close_kv` axiom restated (an error implies `¬ dbCloseOk`; true: the fact is defined as the
+  close not failing for the environment's reasons), `backend.Close`'s spec with it (its proof passes
+  bbolt's result on), and the fourth member of `storage.snapOpensOk`.
 - **W8** (open; `notes/snapshot-s8-plan.md`): `RemoveAllPeers` and the proved transport's peer
   coverage (rafthttp's note in D40). Not resolved here: the window's `AddRemote` adds a remote with
   the request's URLs (Go's behavior, and Go's `AddPeer` does not stop it afterwards), so either the

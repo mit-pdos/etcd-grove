@@ -203,11 +203,14 @@ removed, ..., adequacy coverage" below.
   axiom proved since restore R5f, 2026-10-24). Open:
   - **S8d of the receiver epochs** (`applySnapshot` past the empty case; S8a-S8c done, section
     "D22 receiver epochs, S8" below): the spec and proof. W1 done (`Rm := snapTakenLb`,
-    `storage.Release`'s axiom); W5 decided (`storage.snapOpensOk`, its own environment premise);
-    W3 to redo over rafthttp's proved transport (the merge of 2026-10-25 reverted S8c's W3 axioms);
-    W6 decided (the directory in `rcLockInv`), W7 decided (a `Close` with readers running), W8 open
-    (`RemoveAllPeers` and D35's peer coverage); `notes/snapshot-s8-plan.md`, "Where S8 stops, second
-    pass", and `notes/decisions.md`, "D22 S8d: W6 and W7 as decided do not go through".
+    `storage.Release`'s axiom); W5 done (`storage.snapOpensOk`, its own environment premise, with
+    bbolt's `backend.dbCloseOk`: `DB.Close_kv` and `backend.Close` restated); W6 done without
+    changing `rcLockInv` (`bootOk`'s persistent `Members()` contract; `RaftCluster.Recover`'s axiom
+    over `membership.clusterImageOk`); W3 to redo over rafthttp's proved transport (the merge of
+    2026-10-25 reverted S8c's W3 axioms), with W8 open (`RemoveAllPeers` and the transport's peer
+    coverage, D40's note); **blocked on W7** (option (b), a `Close` with readers running, does not
+    hold of Go's shared read transaction; the old backend's reader tokens' `bOpen` shares cannot be
+    summed). `notes/decisions.md`, "D22 S8d after the merge of 2026-10-25".
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.

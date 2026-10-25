@@ -254,6 +254,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIf
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__shouldPersistCheckpoints
 public import Proof.math.Ceil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Recover
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetVersionChangedNotifier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__String
@@ -2448,6 +2449,10 @@ theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] [Etc
 theorem lease.lessor.wp_Recover :
     lease.lessor.Recover.spec (GF := GF) (hG := hG) :=
   lease.lessor.Recover.wp_proof
+
+theorem membership.RaftCluster.wp_Recover :
+    membership.RaftCluster.Recover.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.Recover.wp_proof
 
 theorem membership.RaftCluster.wp_SetBackend :
     membership.RaftCluster.SetBackend.spec (GF := GF) (hG := hG) :=

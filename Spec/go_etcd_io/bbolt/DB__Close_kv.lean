@@ -26,13 +26,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `db.Close()` (it waits for the open transactions): the database closed. The backend closes
-it with no lock of its own held, so the spec asks only that it be a database. -/
+/-- `db.Close()` (it waits for the open transactions): the database closed, `nil` or an error the
+environment caused (`¬ dbCloseOk`: D22 receiver epochs, S8d, 2026-10-25). The backend closes it with
+no lock of its own held, so the spec asks only that it be a database. -/
 abbrev bbolt.DB.Close_kv.spec : Prop :=
   ∀ (db : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ ¬ dbCloseOk⌝ }}
 
 end spec
 
