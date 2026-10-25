@@ -290,3 +290,12 @@ contract, with `enable`/`disable`/`invalidateUser` from the admin side's share (
 hypotheses (`ValidSpec`, `info`'s context; `RunSpec`, the TTL keeper's goroutine). The admin rows
 that call the provider (`AuthEnable`, `AuthDisable`, `UserDelete`, `UserChangePassword`) take
 `tpAdmin` with their write resource (`notes/decisions.md`, "S5d of the auth plan").
+
+## What is proved of the table (S5e, the simple provider with no hypothesis, 2026-10-25)
+
+The binding every row's principal rests on: the simple token provider (etcd's default) is proved to
+meet the token contract with `info`'s context premise in the mode `on γa` with no hypothesis
+(`token_simple_ok`, the server's `Results.lean`), and its constructor (`token_simple_new`). The
+generic contract the store's invariant holds keeps `ValidSpec`; nothing produces the provider in the
+store yet (`NewAuthStore`, an axiom) (`notes/decisions.md`, "S5e of the auth plan").
+
