@@ -18543,3 +18543,43 @@ recipes' separate history model (`EtcdModel`, certified logs) could be restated 
 and a revision's changes are not a state. A function `GoString → Option KVRec` per revision: not
 countable (the ghost variable needs `Pos.Countable`) and not finite; `GMap` is both, with
 extensional equality.
+
+## D46: the state's later revisions are their changes, in order; a watch is repeated reads of it (2026-10-25 · the user)
+
+*Supersedes* D45's `later : List KVStore` (a store per revision) and its "Rejected" paragraph
+(a revision's changes are not a state).
+
+**The user's decision.** `KVState` holds the list of every change, so the updates of a
+transaction are ordered in the abstract state; the watch spec guarantees that the events it
+returns are computed as etcd computes them from its key bucket (`rangeEvents`/`kvsToEvents`).
+
+**Why** (what etcd does, `server/storage/mvcc`). etcd never stores a store per revision: each change
+of a write transaction is a record of the backend's `key` bucket at its own revision
+`(main, sub)` (`kvstore_txn.go`: a put's `KeyValue`, a delete's tombstone), and both ways a
+watch's events are built read those changes: a synced watcher's from the transaction's change list
+(`watchableStoreTxnWrite.End`), an unsynced one's from the bucket over `[minRev, curRev + 1)`
+(`kvsToEvents`). A store per revision is a derived view, lossy when a revision writes a key twice
+(`[put k v₁, put k v₂]`, `[put j, del j]` with `j` absent: the stores of `[put k v₂]` and of
+nothing), which etcd's check allows (`issues/etcd-txn-check-intervals-sibling.md`); so the watch
+facts (`srvNoDupKeys`, watchkv's `WkLog`) could not be stated over it. Compaction fits:
+compacting at `c` keeps each key's latest record at or below `c` and every later one, the store
+at `c` and the later revisions' changes.
+
+**The state** (`KVModelDefs.lean`). `KVState ⟨compacted, base, later⟩` with `later : List (List
+mvcc.Change)`: the changes of revisions `compacted + 1, ..., rev`, each in order. The views D45 had
+are computed (`runFrom`, `mvcc.stateAt`'s step): `KVState.at r`, `store`, `kvs`, `rev`, and
+`changesAt r`; `commit cs` appends `cs`; `kvStateOf l = ⟨0, storeOf (stateAt l 0), l.drop 1⟩`.
+The lemmas D45's users rely on keep their statements (`kvStateOf_at`, `commit_kvs`, ...), so the
+KV specs are unchanged. The name `KVState` stays for now: `EtcdState` would sit beside the
+cache's `etcdState` and `EtcdStateWf`, which the watch's restatement will touch.
+
+**The watch (candidate, `client/v3/WatchState.lean`, `watcher.Watch.specσ`).** As a linearizable
+`Get`, the caller gives a persistent read update of `σ`; each response is one firing of it (`□ Q
+σ`), and its events are exactly `σ.rangeEvents o (c + 1) (c' + 1)`: revision `r`'s events
+`mvcc.evsOfRevM r (σ.at (r - 1)).kvs (σ.changesAt r)` (one per change, in order: a put's the
+key-value it wrote, a delete's the key with `ModRevision = r`), filtered by the range. A progress
+notification at `p ≤ σ.rev` says no event in `(c, p]`. `rangeEvents_kvStateOf`: at a log's state
+these are mvcc's `logEvents`, what the server sends. Neither `srvNoDupKeys` nor `startOk` is a
+premise. The candidate keeps the current completeness promise's scope (a non-empty prefix not all
+`0xff`, `rev ≥ 1`) and one member (`isKvWatcher`); the existing `watcher.Watch.spec` and its
+proofs are unchanged until the candidate is audited.

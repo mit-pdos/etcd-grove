@@ -346,9 +346,11 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 `notes/decisions.md` D43 (one stated gRPC spec per KV method, the client's `kv.Put`/`Get`/`Delete`/
 `Do` and `txn.Commit` over one cluster-level `isKv kv γ dup` with the caller's atomic update written
 in the spec, `□?dup`), D44 (no workload: the client spec supports what the proof supports; a
-client's own facts in its invariant; no built-in restriction on the raft log) and D45 (the state a
-multi-revision store of maps, `KVState ⟨compacted, base, later⟩`, `KVStore := GMap GoString
-KVRec`; `kv.Get` at any revision the state keeps).
+client's own facts in its invariant; no built-in restriction on the raft log), D45 (the state
+multi-revision, `KVState ⟨compacted, base, later⟩`, `base : KVStore := GMap GoString KVRec`;
+`kv.Get` at any revision the state keeps) and D46 (`later` each revision's changes, in order, as
+mvcc's key bucket keeps them; the stores computed from them; a watch as repeated reads of the
+state, candidate spec `watcher.Watch.specσ` in `client/v3/WatchState.lean`).
 
 - Done: the server, the client library (`KVService`, the specs, `Results`), the cache's client
   (`kvRegs` instead of `Range` alone; `etcd_cache_served` at `ρ.rd = γr`), recipes, concurrency,
@@ -357,11 +359,11 @@ KVRec`; `kv.Get` at any revision the state keeps).
   `writes` predicate and the examples' `W`/`noGrant` arguments are gone.
 - Open: watchkv, cachekv and linkv3p's `MainWatch` do not build: their `srvNoDupKeys` and the
   watch model's steps (`WkLog`: every revision from 2 a plan put) came from the workload
-  (`watchkv/Workload.lean`). A store-per-revision state cannot carry it (a revision `[put k v,
-  put j x, del j]` with `j` absent has the store of `[put k v]`), and etcd's check lets some
-  transactions write a key twice (`issues/etcd-txn-check-intervals-sibling.md`), so it is not a
-  server theorem either; the choice (the state's revisions carrying their events, or another
-  route) is the user's. Not run: `etc/tcb-report.py --check` (needs the full build).
+  (`watchkv/Workload.lean`). The route (D46): restate the watch over `σ` (the candidate
+  `watcher.Watch.specσ`, awaiting the user's audit), port the client watcher's proof
+  (`WatchContent`, `WatchRun`, ...) and the watch's clients (the cache, the recipes, concurrency,
+  leasing: `EtcdModel`) to it, and give watchkv an invariant over `σ`'s changes (each revision
+  from 2 a plan put). Not run: `etc/tcb-report.py --check` (needs the full build).
 - Not yet written: an `isKv` constructor lemma (that `isKv` is satisfiable from a started
   cluster's facts).
 
