@@ -430,6 +430,26 @@ theorem EtcdServer.requireAuthInfo_bound
           iexact Hpb
         · iintro %h; exact absurd rfl h
 
+/-- **`srvAuthBound` of the real store** (the auth plan's E2e, 2026-10-25): a server whose
+`authStore` field holds a store with the store's invariant in the server's mode, its reader
+resource the store's (`auth.authRd`), has the bound request side. `auth.newAuthStore_boot`
+(`auth/Boot.lean`) gives the invariant in the mode `on γa`; the server's own statement still
+takes `NewAuthStore`'s axiom (mode `off`), so this is what the server derives `srvAuthBound` with
+once its boot takes the store from `newAuthStore_boot`. -/
+theorem srvAuthBound_of_authInv
+    (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (s stp : Loc) (R : IProp GF) (E : apply.AEnv GF)
+    (hRD : E.RD = auth.authRd stp R E.authMode) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ auth.authIface stp ∗
+      auth.authInv stp R E.authMode ⊢ srvAuthBound s E := by
+  iintro ⟨#Hpkg, #Hf, #Hinv⟩
+  iunfold srvAuthBound
+  iexists auth.authIface stp
+  iframe Hf
+  rw [hRD]
+  iapply (isReqAuthBound_of_authInv hCtx stp R E.authMode) $$ [$Hpkg $Hinv]
+
 end proof
 
 end EtcdGrove
