@@ -140,6 +140,29 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   `ApplyConfChange`'s `DynCCPreOp`: its decoder, an existing member's `AddNode` a no-op or zeroed); `srvCCPolicy`/`ccApplyOk` widened to the
   kinds in scope (v1, `RemoveNode`); the static examples restated over it or kept on a static
   instance (to decide in M3: whether the static mode at the server goes, as STATUS suggests).
+  *Scoped 2026-10-25* (the user's decisions, D43 "M3"): (i) the leader's `Advance` before its apply
+  loop applies a conf change (`issues/etcd-leader-advance-before-applyconfchange.md`) violates raft's
+  A1 in the dynamic mode (`node.Advance.spec`: `NoConfIn ds ca`), so the fork gets the drafted fix
+  (the leader does the follower's second `notifyc` send); (ii) the server stays **parametric in the
+  mode**: the static examples keep their statements, the dynamic one's resources are carried as raft's
+  specs carry them (`⌜static⌝ ∨ nodeCfg … ∗ dlvLb …`). Sub-stages:
+  - *M3a.* The fork's leader wait (`goose-lean-leaderwait`, `4d9282b0f`), re-translated;
+    `raftNode.start`'s leader branch proved as the follower's (static mode: nothing changes).
+  - *M3b.* `rnEnvOk` over the node's mode (its `RNMode.static` conjunct dropped where the mode is
+    read: `raftPropose`'s `ApplyConfChange`, `isRaftNodeIfc`'s `Advance`); every static caller
+    supplies `.static` and is unchanged.
+  - *M3c.* The dynamic mode's resources through the server: the driver's `nodeCfg` and `dlvLb` from
+    the raft loop to the apply thread with the `toApply` (`applyc`), back at `notifyc`'s second send.
+    `notifyc` is a fresh capacity-1 channel per `Ready`, so the second send completes only once the
+    apply thread has received the first, which it does after `applyEntries`: a local idiom over the
+    raw channel state (`Buffered`), the apply thread depositing `nodeCfg` at its receive and the second
+    send claiming it (`Spsc` keeps no capacity). A1 at `Advance` from the apply thread's applied
+    conf entries.
+  - *M3d.* `applyConfChange`'s `ApplyConfChange` at `DynCCPreOp`: the server's decoder
+    (`ccDecodeV1`) is raft's `dec`; `ccApplyOk` (an `AddNode` of a member, the boot entries') meets
+    it (an existing member's `AddNode`, applied by raft as a no-op).
+  - *M3e.* `newRaftNode`/`NodeStart` at `md := .dyn` from `raft_dyn_alloc_boot` (M2a), a
+    dynamic-mode instance of the server's start beside the static one.
 - **M4. The membership writers.** Translate `RaftCluster.RemoveMember`,
   `ValidateConfigurationChange` (its `RemoveNode` case), `mustAddToRemovedMembersInStore`, the
   backend's member delete (`schema`'s `MustDeleteMemberFromBackend`); `rcLockInv`'s `removed` map

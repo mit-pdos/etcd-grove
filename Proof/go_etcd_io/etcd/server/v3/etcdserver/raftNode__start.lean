@@ -637,34 +637,95 @@ theorem raftNode.start.wp_proof
               itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
-        · -- the leader: `notifyc <- struct{}{}`
+        · -- the leader: `notifyc <- struct{}{}`, then (on a conf change, D43 M3: the fork's
+          -- leader wait) a second `notifyc` send or `<-r.stopped`
           wp_auto
           wp_apply wp_bag_send γnc nc _ (fun _ => iprop(True)) $$ [$Hncb]
-          -- `r.Advance()`: the driver moves to `L' ++ ce`
-          rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
-          wp_auto
-          rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
-          wp_auto
-          ihave HAdv' := HAdv $$ %L' %ce %es %p'
-          wp_apply HAdv' $$ [$Hbusy $Hrcpt] as ⟨Hdrv, #Hfl⟩
-          -- `close(raftAdvancedC)`, with the floor's witness
-          wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-          · imodintro; iexact Hfl
-          (try wp_auto)
-          wp_for_post
-          iframe
-          iexists (L' ++ ce), true, rt', p'
-          iframe
-          isplitr
-          · ipureintro; exact Hrt'
-          iunfold rnLoopTokP
-          iexists _, cums ++ [L' ++ ce]
-          iframe
-          ipureintro
-          simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
-          constructor
-          · omega
-          · rfl
+          cases cc
+          · wp_auto
+            -- `r.Advance()`: the driver moves to `L' ++ ce`
+            rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
+            wp_auto
+            rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
+            wp_auto
+            ihave HAdv' := HAdv $$ %L' %ce %es %p'
+            wp_apply HAdv' $$ [$Hbusy $Hrcpt] as ⟨Hdrv, #Hfl⟩
+            -- `close(raftAdvancedC)`, with the floor's witness
+            wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
+            · imodintro; iexact Hfl
+            (try wp_auto)
+            wp_for_post
+            iframe
+            iexists (L' ++ ce), true, rt', p'
+            iframe
+            isplitr
+            · ipureintro; exact Hrt'
+            iunfold rnLoopTokP
+            iexists _, cums ++ [L' ++ ce]
+            iframe
+            ipureintro
+            simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
+            constructor
+            · omega
+            · rfl
+          · wp_auto
+            wp_apply_core chan.wp_select_blocking_nil
+            iapply BigAndL.bigAndL_cons.2
+            isplit
+            · ileft
+              simp only [chan.blockingClausePre]
+              iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nc, γnc, ()
+              isplitr
+              · ipureintro; exact ⟨rfl, rfl⟩
+              isplitr
+              · iapply is_bag_is_chan $$ Hncb
+              iapply bag_send_au γnc nc (fun _ => iprop(True)) () _ $$ [$HlcA $HlcB] Hncb []
+              · itrivial
+              inext
+              wp_auto
+              -- `r.Advance()`: the driver moves to `L' ++ ce`
+              rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
+              wp_auto
+              rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
+              wp_auto
+              ihave HAdv' := HAdv $$ %L' %ce %es %p'
+              wp_apply HAdv' $$ [$Hbusy $Hrcpt] as ⟨Hdrv, #Hfl⟩
+              -- `close(raftAdvancedC)`, with the floor's witness
+              wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
+              · imodintro; iexact Hfl
+              (try wp_auto)
+              wp_for_post
+              iframe
+              iexists (L' ++ ce), true, rt', p'
+              iframe
+              isplitr
+              · ipureintro; exact Hrt'
+              iunfold rnLoopTokP
+              iexists _, cums ++ [L' ++ ce]
+              iframe
+              ipureintro
+              simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
+              constructor
+              · omega
+              · rfl
+            iapply BigAndL.bigAndL_cons.2
+            isplit
+            · ileft
+              simp only [chan.blockingClausePre]
+              iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, stc, γst
+              isplitr
+              · ipureintro; rfl
+              isplitr
+              · iapply is_bag_is_chan $$ Hstb
+              iapply bag_recv_au γst stc _ _ $$ [$HlcA $HlcB] Hstb
+              inext
+              iintro %u -
+              wp_auto
+              wp_for_post
+              wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone]
+              itrivial
+            iapply BigAndL.bigAndL_nil.2
+            itrivial
       iapply BigAndL.bigAndL_cons.2
       isplit
       · ileft
