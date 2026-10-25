@@ -120,9 +120,10 @@ the committed index `0` (`isKv`'s `srvStart`) and the caller's update at each me
 theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     txn.Commit.spec (GF := GF) (hG := hG) := by
-  intro tp addr api γ rf ci cd b Q
+  intro tp addr api γ dup ci cd b Q
   iintro %Φ ⟨#Pc, Hobj, #Hkt, #Hkv, %Hp, Hu⟩ HΦ
-  ihave ⟨%Hz, Hu⟩ := writeUpd_txn_nz rf γ (txnWireOf b.model) Q $$ Hu
+  ihave Hu := txnAu_upd dup γ (txnWireOf b.model) Q $$ Hu
+  ihave ⟨%Hz, Hu⟩ := writeUpd_txn_nz (!dup) γ (txnWireOf b.model) Q $$ Hu
   iunfold isKv at Hkv
   icases Hkv with ⟨%ms, #Hkv⟩
   iunfold isKvOf at Hkv
@@ -139,7 +140,8 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     · ipureintro; exact Hp
     isplitl []
     · iunfold knownAt; iexact HK
-    iapply (txnReqPre_of_upd tp ms rf Hr _ _ (txnUpd_of ms γ Hn (txnWireOf b.model) Q)) $$ Hu
+    iapply (txnReqPre_of_upd tp ms (!dup) (noRefusal_of_dup ms dup Hr) _ _
+      (txnUpd_of ms γ Hn (txnWireOf b.model) Q)) $$ Hu
   inext
   iintro %resp %err Hout
   iapply HΦ

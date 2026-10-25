@@ -83,13 +83,13 @@ theorem kv.Get.wp_proof
     (wp_Do : kv.Do.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Get.spec (GF := GF) (hG := hG) := by
-  intro api γ rf ci cd key sl gs R Q
+  intro api γ dup ci cd key sl gs R Q
   wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrun⟩
   obtain ⟨Hnp, Ht, Hr0⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api γ rf ci cd opv (opGetModel key gs) Q $$ []
+  wp_apply wp_Do api γ dup ci cd opv (opGetModel key gs) Q $$ []
     as %r %err Hout
   · iframe #
     unfold doRunOk

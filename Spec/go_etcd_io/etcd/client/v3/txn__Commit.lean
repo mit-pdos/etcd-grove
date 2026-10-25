@@ -24,20 +24,28 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `t.Commit()` on a builder at `b` made from a `*kv` of etcd's KV `γ` (`txnKvIs`, `isKv`, D43): the
 request `&pb.TxnRequest{Compare: cmps, Success: sus, Failure: fas}` (the transaction
 `txnWireOf b.model` on the wire, of plain operations within the txn package's model) through the
-`*kv`'s retry client's `Txn`, with the client's call options, with the caller's update at `γ`
-(`txnUpdK`: none or a read update if read-only, a write's if writing; persistent, or fired at
-most once on a refusal-free client: `writeUpd`): the call's answer (`txnCallOut` of `txnStOk`, the
+`*kv`'s retry client's `Txn`, with the client's call options, with the caller's update of `γ`'s
+state: none or a persistent atomic read if read-only; if writing (plain in the KV model, no range
+end `[0]`, admitted by `γ`'s workload), an atomic update by the transaction (`kvOpStep`); persistent
+if the client's writes may be delivered more than once (`□?dup`): the call's answer (`txnCallOut` of `txnStOk`, the
 state `σ` the update fired at, the reply's verdict, responses and revision as the run's at `σ`;
 the error through `ContextError`, a client error). The builder is spent (its slices are now the
 request's). -/
 abbrev txn.Commit.spec : Prop :=
-  ∀ (tp : Loc) (addr : List GoString) (api : Loc) (γ : KVNames) (rf : Bool)
+  ∀ (tp : Loc) (addr : List GoString) (api : Loc) (γ : KVNames) (dup : Bool)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (Q : KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      txnObjAt tp addr ci cd b ∗ txnKvIs tp api ∗ isKv api γ rf ∗
+      txnObjAt tp addr ci cd b ∗ txnKvIs tp api ∗ isKv api γ dup ∗
       ⌜TxnModel.plain b.model ∧ txnModelIn (txnWireOf b.model)⌝ ∗
-      writeUpd rf (txnUpdK γ (txnWireOf b.model) Q) }}
+      □?dup (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
+        (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
+          □ AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+            <{ etcdKV γ σ, COMM □ Q σ }>) ∨
+        (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model) ∧
+            γ.wl.writes (.txn (txnWireOf b.model))⌝ ∗
+          AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+            <{ etcdKV γ (kvOpStep (.txn (txnWireOf b.model)) σ), COMM Q σ }>)) }}
     (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
       (Val #()))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

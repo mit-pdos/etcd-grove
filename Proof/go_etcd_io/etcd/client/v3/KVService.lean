@@ -19,7 +19,7 @@ whose handler ran.
 **The client's side at the members** (`isKV api ms`: the members' registrations; the terms the
 members' lemmas of the `*kv`'s calls are stated in, `KVMembers.lean`: `kvPutSpec`, ..., `floorsAt`,
 `knownAt`, `putUpd`, ..., `putAns`, ..., with the lemmas that a caller's side meets the members'
-spec, `putSpec_of`, ...) and **the client's view** (the last section: `isKv api γ rf`, one KV with
+spec, `putSpec_of`, ...) and **the client's view** (the last section: `isKv api γ dup`, one KV with
 its members hidden, the precondition of the calls' specs, and the reply's fields as functions of
 the state the update fired at, `putStOk`, ...).
 -/
@@ -930,14 +930,15 @@ end members
 
 /-! ## The client's view: one KV, its members hidden (D43, 2026-10-25)
 
-**`isKv api γ rf`** (persistent) is what the specs of the `*kv`'s calls take (`kv.Put`, `kv.Get`,
+**`isKv api γ dup`** (persistent) is what the specs of the `*kv`'s calls take (`kv.Put`, `kv.Get`,
 `kv.Delete`, `kv.Do`, and `txn.Commit` with the builder's `txnKvIs`): the `*kv` `api` is a client
 of some members (`∃ ms`: hidden), each registering etcd's KV specs at its address (`kvRegsAt`),
 all at the names of one KV: every member's state and workload names are `γ`'s
 (`x.γr.kv.st = γ.st`, `x.γr.kv.wl = γ.wl`: a cluster booted together, `srvMemberBoot_alloc`), so a
-single update at `γ` is each member's (`kvOpAu1_names`, `kvReadAu_names`). If `rf`, the members
-never refuse a request (`noRefusalAt`, D29): a write is sent at most once, and its update may be
-fired at most once (`writeUpd`); otherwise it is persistent.
+single update at `γ` is each member's (`kvOpAu1_names`, `kvReadAu_names`). Unless `dup`, the
+members never refuse a request (`noRefusalAt`, D29): a write is delivered at most once, so its
+atomic update may be fired at most once; if `dup` (the client's retry interceptor may resend it),
+it must be persistent: the specs take a write's atomic update under `□?dup`.
 
 The specs take the caller's update at `γ` and give the reply's fields as functions of the state
 `σ` the update fired at (`putStOk`, `rangeStOk`, `delStOk`, `txnStOk`). Their proofs go through the
@@ -996,30 +997,31 @@ theorem kvReadAu_names (γk γk' : KVNames) (hst : γk.st = γk'.st) (Q : KVStat
   unfold kvReadAu kvAu etcdKV; rw [hst]
 
 /-- **The `*kv` `api` of the members `ms` at the KV `γ`** (persistent; see the section header). -/
-def isKvOf (api : Loc) (γ : KVNames) (rf : Bool) (ms : List (SrvAt GF)) : IProp GF :=
+def isKvOf (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvAt GF)) : IProp GF :=
   iprop(kvObjAt api (ms.map SrvAt.addr) ∗ kvRegs ms ∗ ([∗list] x ∈ ms, srvStart x) ∗
     ⌜(∀ x ∈ ms, x.γr.kv.st = γ.st ∧ x.γr.kv.wl = γ.wl) ∧
-      (rf = true → ∀ x ∈ ms, noRefusalAt x.addr)⌝)
+      (dup = false → ∀ x ∈ ms, noRefusalAt x.addr)⌝)
 
-instance isKvOf_persistent (api : Loc) (γ : KVNames) (rf : Bool) (ms : List (SrvAt GF)) :
-    Persistent (isKvOf api γ rf ms) := by
+instance isKvOf_persistent (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvAt GF)) :
+    Persistent (isKvOf api γ dup ms) := by
   unfold isKvOf; infer_instance
 
 /-- **The `*kv` `api` is a client of etcd's KV `γ`** (persistent; see the section header): of some
-members, each at `γ`'s state and workload; if `rf`, refusal-free. -/
-def isKv (api : Loc) (γ : KVNames) (rf : Bool) : IProp GF :=
-  iprop(∃ ms : List (SrvAt GF), isKvOf api γ rf ms)
+members, each at `γ`'s state and workload; unless `dup`, refusal-free (a write is delivered at
+most once). -/
+def isKv (api : Loc) (γ : KVNames) (dup : Bool) : IProp GF :=
+  iprop(∃ ms : List (SrvAt GF), isKvOf api γ dup ms)
 
-instance isKv_persistent (api : Loc) (γ : KVNames) (rf : Bool) :
-    Persistent (isKv (GF := GF) api γ rf) := by
+instance isKv_persistent (api : Loc) (γ : KVNames) (dup : Bool) :
+    Persistent (isKv (GF := GF) api γ dup) := by
   unfold isKv; infer_instance
 
 /-- A client of the members `ms` at `γ` is a client of `γ`. -/
-theorem isKv_intro (api : Loc) (γ : KVNames) (rf : Bool) (ms : List (SrvAt GF))
+theorem isKv_intro (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvAt GF))
     (hn : ∀ x ∈ ms, x.γr.kv.st = γ.st ∧ x.γr.kv.wl = γ.wl)
-    (hr : rf = true → ∀ x ∈ ms, noRefusalAt x.addr) :
+    (hr : dup = false → ∀ x ∈ ms, noRefusalAt x.addr) :
     kvObjAt api (ms.map SrvAt.addr) ∗ kvRegs ms ∗ ([∗list] x ∈ ms, srvStart x) ⊢
-      isKv api γ rf := by
+      isKv api γ dup := by
   iintro ⟨#Ho, #Hr, #Hs⟩
   unfold isKv isKvOf
   iexists ms
@@ -1087,6 +1089,86 @@ def txnStOk (t : TxnModel) (Q : KVState → IProp GF) (m : TxnRespM) : IProp GF 
       m.hdr.revision = W64 ((if txn.txnReadonly t then σ.rev else
         (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev : Nat) : Int) ∧
       σ.rev + 3 < 2 ^ 63⌝)
+
+/-! ### The specs' atomic updates, in the proofs' terms -/
+
+/-- An update under `□?dup` (persistent if the client's writes may be delivered more than once)
+is a write's update by the client's kind. -/
+theorem writeUpd_of_if (dup : Bool) (P P' : IProp GF) (h : P ⊢ P') :
+    (□?dup P : IProp GF) ⊢ writeUpd (!dup) P' := by
+  cases dup
+  · show P ⊢ _
+    unfold writeUpd
+    iintro H
+    iright
+    isplitl []
+    · ipureintro; rfl
+    iapply h; iexact H
+  · show (□ P : IProp GF) ⊢ _
+    unfold writeUpd
+    iintro #H
+    ileft
+    imodintro
+    iapply h; iexact H
+
+/-- A write's atomic update, as the specs state it, is `kvOpAu1`'s. -/
+theorem writeAu_upd (dup : Bool) (γ : KVNames) (op : KVOp) (Q : KVState → IProp GF)
+    (hw : γ.wl.writes op) :
+    iprop(□?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ (kvOpStep op σ), COMM Q σ }>)) ⊢ writeUpd (!dup) (kvOpAu1 γ op Q) :=
+  writeUpd_of_if dup _ _ (by
+    unfold kvOpAu1 kvAu1
+    iintro H
+    isplitr
+    · ipureintro; exact hw
+    iexact H)
+
+/-- A range's update, as the specs state it, is `rangeUpdK`'s. -/
+theorem readAu_upd (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) :
+    iprop(□ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗
+      AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ σ, COMM □ Q σ }>))) ⊢ □ rangeUpdK γ o Q := by
+  unfold rangeUpdK kvReadAu kvAu
+  iintro #H
+  imodintro
+  icases H with (%h | ⟨%h, #Ha⟩)
+  · ileft; ipureintro; exact h
+  · iright
+    isplitr
+    · ipureintro; exact h
+    imodintro
+    iexact Ha
+
+/-- A transaction's update, as the spec states it, is `txnUpdK`'s. -/
+theorem txnAu_upd (dup : Bool) (γ : KVNames) (t : TxnModel) (Q : KVState → IProp GF) :
+    iprop(□?dup (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
+      (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗
+        □ AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γ σ, COMM □ Q σ }>) ∨
+      (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ γ.wl.writes (.txn t)⌝ ∗
+        AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γ (kvOpStep (.txn t) σ), COMM Q σ }>))) ⊢
+      writeUpd (!dup) (txnUpdK γ t Q) :=
+  writeUpd_of_if dup _ _ (by
+    unfold txnUpdK kvReadAu kvAu kvOpAu1 kvAu1
+    iintro (%H | ⟨%H, #Ha⟩ | ⟨%H, Ha⟩)
+    · ileft; ipureintro; exact H
+    · iright; ileft
+      isplitr
+      · ipureintro; exact H
+      iexact Ha
+    · iright; iright
+      isplitr
+      · ipureintro; exact ⟨H.1, H.2.1, H.2.2.1⟩
+      isplitr
+      · ipureintro; exact H.2.2.2
+      iexact Ha)
+
+/-- A client that is refusal-free unless `dup`, by `writeUpd`'s flag. -/
+theorem noRefusal_of_dup (ms : List (SrvAt GF)) (dup : Bool)
+    (hr : dup = false → ∀ x ∈ ms, noRefusalAt x.addr) :
+    (!dup) = true → ∀ x ∈ ms, noRefusalAt x.addr :=
+  fun h => hr (by cases dup <;> simp_all)
 
 /-! ### From `γ` to the members, from the members' replies to `γ`'s -/
 

@@ -83,20 +83,20 @@ theorem kv.Delete.wp_proof
     (wp_Do : kv.Do.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Delete.spec (GF := GF) (hG := hG) := by
-  intro api γ rf ci cd key sl gs Q
+  intro api γ dup ci cd key sl gs Q
   wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun⟩
-  obtain ⟨Hnp, Ht, Hz⟩ := Hnp
+  obtain ⟨Hnp, Ht, Hz, Hw⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api γ rf ci cd opv (opDeleteModel key gs) Q $$ [Hrun]
+  wp_apply wp_Do api γ dup ci cd opv (opDeleteModel key gs) Q $$ [Hrun]
     as %r %err Hout
   · iframe #
     unfold doRunOk
     iright
     iright
     iframe # Hrun
-    ipureintro; exact ⟨Ht, Hz⟩
+    ipureintro; exact ⟨Ht, Hz, Hw⟩
   ihave Hout' : deleteCallOut (delStOk (deleteWireOf (opDeleteModel key gs)) Q) r.del' err
       $$ [Hout]
   · have Heq : doOut (opDeleteModel key gs) (putStOk (putWireOf (opDeleteModel key gs)) Q)

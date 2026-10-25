@@ -81,20 +81,20 @@ theorem kv.Put.wp_proof
     (wp_Do : kv.Do.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Put.spec (GF := GF) (hG := hG) := by
-  intro api γ rf ci cd key val sl gs Q
+  intro api γ dup ci cd key val sl gs Q
   wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun⟩
-  obtain ⟨Hnp, Ht, Hl⟩ := Hnp
+  obtain ⟨Hnp, Ht, Hl, Hw⟩ := Hnp
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api γ rf ci cd opv (opPutModel key val gs) Q $$ [Hrun]
+  wp_apply wp_Do api γ dup ci cd opv (opPutModel key val gs) Q $$ [Hrun]
     as %r %err Hout
   · iframe #
     unfold doRunOk
     iright
     ileft
     iframe # Hrun
-    ipureintro; exact ⟨Ht, Hl⟩
+    ipureintro; exact ⟨Ht, Hl, Hw⟩
   ihave Hout' : putCallOut (putStOk (putWireOf (opPutModel key val gs)) Q) r.put' err $$ [Hout]
   · have Heq : doOut (opPutModel key val gs) (putStOk (putWireOf (opPutModel key val gs)) Q)
         (rangeStOk (rangeWireOf (opPutModel key val gs)) Q)

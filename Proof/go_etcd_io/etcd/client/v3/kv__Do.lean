@@ -308,10 +308,10 @@ theorem kv.Do.wp_members
     iframe HF Hu
 
 /-- What `kv.Do`'s precondition says of the operation's kind. -/
-theorem doRunOk_kind (γ : KVNames) (rf : Bool) (o : OpFull) (Q : KVState → IProp GF) :
-    doRunOk (GF := GF) γ rf o Q ⊢ ⌜(o.t = W64 1 ∧ (rangeWireOf o).base.rev = W64 0) ∨
+theorem doRunOk_kind (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → IProp GF) :
+    doRunOk (GF := GF) γ dup o Q ⊢ ⌜(o.t = W64 1 ∧ (rangeWireOf o).base.rev = W64 0) ∨
       o.t = W64 2 ∨ (o.t = W64 3 ∧ (deleteWireOf o).base.rangeEnd ≠ [W8 0])⌝ ∗
-      doRunOk γ rf o Q := by
+      doRunOk γ dup o Q := by
   unfold doRunOk
   iintro (⟨%H, Hs, #Hu⟩ | ⟨%H, Hu⟩ | ⟨%H, Hu⟩)
   · isplitr
@@ -321,7 +321,7 @@ theorem doRunOk_kind (γ : KVNames) (rf : Bool) (o : OpFull) (Q : KVState → IP
     · ipureintro; exact Or.inr (Or.inl H.1)
     iright; ileft; iframe Hu; ipureintro; exact H
   · isplitr
-    · ipureintro; exact Or.inr (Or.inr H)
+    · ipureintro; exact Or.inr (Or.inr ⟨H.1, H.2.1⟩)
     iright; iright; iframe Hu; ipureintro; exact H
 
 /-- `kv.Do` on a `*kv` of etcd's KV `γ` (D43): `kv.Do.wp_members` at its hidden members, from the
@@ -336,9 +336,9 @@ theorem kv.Do.wp_proof
     (wp_retry_DeleteRange : retryKVClient.DeleteRange.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.spec (GF := GF) (hG := hG) := by
-  intro api γ rf ci cd opv o Q
+  intro api γ dup ci cd opv o Q
   iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun⟩ HΦ
-  ihave ⟨%Hk, Hrun⟩ := doRunOk_kind γ rf o Q $$ Hrun
+  ihave ⟨%Hk, Hrun⟩ := doRunOk_kind γ dup o Q $$ Hrun
   have hrr : o.t = W64 1 → (rangeWireOf o).base.rev = W64 0 := fun h1 => by
     rcases Hk with ⟨_, h⟩ | h | ⟨h, _⟩
     · exact h
@@ -372,21 +372,26 @@ theorem kv.Do.wp_proof
       iframe Hsn
       isplitl []
       · iunfold knownAt; iexact HK
+      ihave #Hu := readAu_upd γ (rangeWireOf o) Q $$ Hu
       iapply (rangeUpd_of ms γ Hn (rangeWireOf o) Q) $$ Hu
     · iright
       ileft
       isplitl []
-      · ipureintro; exact Hp
+      · ipureintro; exact ⟨Hp.1, Hp.2.1⟩
       isplitl []
       · iunfold floorsAt; iexact HF
-      iapply (kvReqPre_of_upd api ms rf Hr _ _ (putUpd_of ms γ Hn (putWireOf o) Q)) $$ Hu
+      ihave Hu := writeAu_upd dup γ _ Q Hp.2.2 $$ Hu
+      iapply (kvReqPre_of_upd api ms (!dup) (noRefusal_of_dup ms dup Hr) _ _
+        (putUpd_of ms γ Hn (putWireOf o) Q)) $$ Hu
     · iright
       iright
       isplitl []
-      · ipureintro; exact Hd
+      · ipureintro; exact ⟨Hd.1, Hd.2.1⟩
       isplitl []
       · iunfold floorsAt; iexact HF
-      iapply (kvReqPre_of_upd api ms rf Hr _ _ (delUpd_of ms γ Hn (deleteWireOf o) Q)) $$ Hu
+      ihave Hu := writeAu_upd dup γ _ Q Hd.2.2 $$ Hu
+      iapply (kvReqPre_of_upd api ms (!dup) (noRefusal_of_dup ms dup Hr) _ _
+        (delUpd_of ms γ Hn (deleteWireOf o) Q)) $$ Hu
   inext
   iintro %r %err Hout
   iapply HΦ
