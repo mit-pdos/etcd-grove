@@ -1,6 +1,6 @@
 /-
 `m.CloseWithError(err)` (`etcdserver/api/snap/message.go`; names only; rafthttp stage 7b, D42,
-2026-10-24, statement for review, **D22's interface**: to be agreed with the D22 owner): closes
+2026-10-24, **D22's interface**: settled by the user for the D22 owner, 2026-10-25, D42): closes
 the message's reader and sends `err == nil` on its `closeC` (`NewMessage`'s channel, of one slot,
 whose receives carry nothing: `isChanBag` at `True`; a second send would block, which a partial
 correctness spec allows). The snapshot sender calls it once, after its post, from `send`'s

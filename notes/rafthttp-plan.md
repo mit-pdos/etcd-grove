@@ -895,14 +895,14 @@ package (names-only, D22's): given the rest of the body at its stream contract a
 directory's invariant (`snapDirInv`, D22 S-i), on success the index is saved (`snapSaved γd i`)
 with a file holding some `D'` with `□ img i D'` (its own `D` when it wrote the file, another
 sender's when one was there: D22's finding 7, harmless, both are the committed state at `i`).
-This is D22's interface: its statement is agreed with the D22 owner before 7b.
+This is D22's interface: its statement was to be agreed with the D22 owner; the user settled it for them (2026-10-25).
 
 **Stages.**
-- **7a. Scope** (this section), D42: (A), the user's choice. *Still open: the D22 owner's
-  agreement on `SaveDBFrom`'s spec and on the HTTP boundary's streamed body, asked with 7b's
-  statements.*
-- **7b. Boundary statements** (drafted 2026-10-24, for review; the D22 owner's agreement pending
-  on the three `snap` statements):
+- **7a. Scope** (this section), D42: (A), the user's choice. *The D22 owner's agreement on
+  `SaveDBFrom`'s spec and on the HTTP boundary's streamed body: settled by the user for the owner,
+  2026-10-25 (`notes/decisions.md`, D42).*
+- **7b. Boundary statements** (drafted 2026-10-24; the three `snap` statements settled by the user for the D22
+  owner, 2026-10-25):
   - *The HTTP boundary* (`Proof/net/http/Boundary.lean`, mine): a protocol's streamed requests
     (`Proto.streamed`) and their contract (`Proto.sreq R γk Pre Φ`: every prefix of the body in
     `Pre`, every complete stream in `Φ`); the client's stream reader (`streamReaderOk`, a `Read`
@@ -965,7 +965,7 @@ This is D22's interface: its statement is agreed with the D22 owner before 7b.
     `SendSnapshot` looks up the peer of the raft message's `To`.
   - *Facts*: `rafthttpInit` gains `errStopped`'s cell, the eight snapshot metric vectors, the read
     timeout and `errMemberNotFound` (their `_init` axioms, as the other metrics').
-  - *D22's interface, pending its owner*: `snap.Message.fields` (now with `0 ≤ TotalSize`: the sender
+  - *D22's interface (settled by the user for its owner, 2026-10-25)*: `snap.Message.fields` (now with `0 ≤ TotalSize`: the sender
     adds it to a counter) and `CloseWithError`, as axioms; `io.MultiReader` an axiom (names-only
     in Perennial).
   - The trust base: 3 axioms gone (`SendSnapshot`, `newSnapshotSender`, `snapshotSender.stop`), 16
@@ -983,7 +983,7 @@ This is D22's interface: its statement is agreed with the D22 owner before 7b.
     `Errorf`'s; the user's choice: the handler formats `%v` of errors); `(*time.Duration).String`
     (the pointer wrapper, as `Seconds_ptr`); the D42 boundary's `bodyStreamRead_ok` and
     `ReadFull_stream_ok` (7b's statements, now axioms); `SaveDBFrom` an axiom, now with `0 ≤ n` on
-    success (the handler adds it to a counter; D22's, pending its owner).
+    success (the handler adds it to a counter; D22's, settled by the user for its owner).
   - `wp_todoCtx_Done'` moved to `TodoCtx.lean` (both handlers use it).
   - The trust base: `newSnapshotHandler`'s axiom gone, 5 new: 717 entries.
 - **7f. Link and notes** (done 2026-10-25): the `etc/link-lean-first-server.txt` entries and `Link.lean`

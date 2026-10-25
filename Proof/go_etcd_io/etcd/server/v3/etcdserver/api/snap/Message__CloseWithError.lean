@@ -1,5 +1,5 @@
 /-
-Trust boundary: `snap.Message.CloseWithError` (an axiom; see `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Message__CloseWithError.lean`). rafthttp stage 7d, 2026-10-24, D42. **D22's interface, pending the D22 owner's agreement.**
+Trust boundary: `snap.Message.CloseWithError` (an axiom; see `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Message__CloseWithError.lean`). rafthttp stage 7d, 2026-10-24, D42. **D22's interface, settled by the user for the D22 owner (2026-10-25).**
 -/
 module
 

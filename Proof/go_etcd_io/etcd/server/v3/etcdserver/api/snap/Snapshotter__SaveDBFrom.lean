@@ -1,5 +1,5 @@
 /-
-Trust boundary: `snap.Snapshotter.SaveDBFrom` (an axiom; see `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Snapshotter__SaveDBFrom.lean`). rafthttp stage 7e, 2026-10-25, D42. **D22's interface, pending the D22 owner's agreement.**
+Trust boundary: `snap.Snapshotter.SaveDBFrom` (an axiom; see `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Snapshotter__SaveDBFrom.lean`). rafthttp stage 7e, 2026-10-25, D42. **D22's interface, settled by the user for the D22 owner (2026-10-25).**
 -/
 module
 

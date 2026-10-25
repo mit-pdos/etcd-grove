@@ -1,6 +1,6 @@
 /-
 `ss.SaveDBFrom(r, id)` (`etcdserver/api/snap/db.go:37-90`; names only; rafthttp stage 7b, D42,
-2026-10-24, statement for review, **D22's interface**: to be agreed with the D22 owner; until
+2026-10-24, **D22's interface**: settled by the user for the D22 owner, 2026-10-25, D42; until
 stage 7 its effect was inside the snapshot handler's axiom). It copies `r` to its end into a
 temporary file (`io.Copy`, which reads until a `Read` returns `io.EOF`, then fsyncs), and renames it
 to the index's path (`snapDBPath ss id`), or, when a file of that index is already there, keeps

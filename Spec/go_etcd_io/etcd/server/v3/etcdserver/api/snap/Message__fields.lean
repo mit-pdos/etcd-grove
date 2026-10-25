@@ -1,6 +1,6 @@
 /-
 **The fields of a merged snapshot message** (`snap.Message`; rafthttp stage 7b, D42, 2026-10-24,
-statement for review, **D22's interface**: to be agreed with the D22 owner). The snapshot sender
+**D22's interface**: settled by the user for the D22 owner, 2026-10-25, D42). The snapshot sender
 (`snapshotSender.send`, `createSnapBody`) reads `merged.Message`, `merged.TotalSize` and
 `merged.ReadCloser`; `msgIs m ml rc` (`Proof/.../snap/Defs.lean`) is opaque, so this states what
 those reads give: the raft message `ml`, some size, not negative (`proto.Size(ml) + rcSize`, the

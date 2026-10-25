@@ -18146,9 +18146,9 @@ pipe) that the sender never sees, which the HTTP boundary's requests (a body fix
 Either way `SendSnapshot`'s and the handler's statements are unchanged, so no closed theorem
 changes; (A) leaves fewer assumptions and touches D22's interfaces only through `SaveDBFrom`'s spec.
 
-The user chose (A): it leaves fewer assumptions, and both sides of the transfer are proved. What
-remains open is the D22 owner's agreement on `SaveDBFrom`'s statement and on the streamed body's
-use of `readerStreams`, which stage 7b's statements are drafted for.
+The user chose (A): it leaves fewer assumptions, and both sides of the transfer are proved. The D22
+owner's agreement on `SaveDBFrom`'s statement and on the streamed body's use of `readerStreams`
+was left open, then settled by the user ("D22's interface settled", below).
 
 **7b's shape (2026-10-24).** The kind of a request's body is the protocol's, not the request's
 (`Proto.streamed`): the server cannot tell a chunked body from a fixed one by anything the
@@ -18183,6 +18183,14 @@ decoded frame is the sender's (`msgFrame_prefix_eq`); `SaveDBFrom` then continue
 `bodyStream` from that frame, and `Φ` of the whole stream gives the rest's image. The user chose a
 `fmt.Sprintf` boundary over `fmt.argsOk` (as `Printf`'s and `Errorf`'s) to keep `ServeHTTP` proved
 rather than an axiom.
+
+**D22's interface settled (2026-10-25).** The user decided the three `snap` statements for the D22
+owner ("can we decide on behalf of D22 owner? it seems small if we need to adjust"):
+`snap.Message.fields` (with `0 ≤ TotalSize`), `snap.Message.CloseWithError` and
+`snap.Snapshotter.SaveDBFrom` (with `0 ≤ n` on success) stand as stated. They are axioms on D22's
+interface and no proof depends on how D22 would prove them, so a revision by the owner is local:
+the statement, and the few lines of `send`/`createSnapBody` or `ServeHTTP` that use it. The owner
+is told, not asked.
 
 ## S4d of the auth plan: `RoleGrantPermission` performs the model's step (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4d`)
 
