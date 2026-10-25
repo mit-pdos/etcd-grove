@@ -66,6 +66,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Un
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.bucket__ID
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.bucket__Name
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.bucket__IsSafeRangeBucket
@@ -142,6 +143,13 @@ def bkLockedAt (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (l : Puts) : I
 /-- The batch lock held with the puts `l`. -/
 def bkLocked (γ : BNames) (P : BParams) (b : Loc) (l : Puts) : IProp GF :=
   iprop(∃ st : BSess, bkLockedAt γ P b st l)
+
+/-- **The batch lock held after a delete from a hook's bucket** in a session holding the puts `l`
+(the lessor's from `Lease`, `bt_leaseDel`; leases T3, 2026-10-25), with a write-back's budget:
+what only `Unlock` takes (`bt_unlockD`). -/
+def bkLockedD (γ : BNames) (P : BParams) (b : Loc) (l : Puts) : IProp GF :=
+  iprop(∃ (st0 : BSess) (bi : BucketInfo) (k : GoString), batchLocked γ P b (st0.del bi k) ∗
+    wbTok γ ∗ ⌜sessPuts P st0 l ∧ sessWf P st0 ∧ P.HB bi.name = true⌝)
 
 /-- `NewStore`'s session after `n` bucket creations: no delete pending, `n` more operations
 than at the free lock (at most two), nothing the readers see changed, out of the hook's window,
@@ -262,6 +270,56 @@ theorem sessPuts_put {P : BParams} (hPw : P.Wf) {st : BSess} {l : Puts}
     simp only [GMap.lookup_insert_eq_iff, ↓reduceIte, Option.getD_some]
     rw [hw]
 
+/-- A session with puts leaves room for one more operation and a commit's hook. -/
+theorem sessPuts_del_room {P : BParams} (hPw : P.Wf) {st : BSess} {l : Puts}
+    (hs : sessPuts P st l) (hwf : sessWf P st) :
+    sint.Z st.pend + 1 < 2 ^ 58 ∧ sint.Z (st.pend + W64 1) + P.hookMax < 2 ^ 58 := by
+  obtain ⟨-, hp, -, hl, -⟩ := hs
+  have h1 := hPw.2.2.1
+  have h2 := hPw.2.2.2.1
+  have h0 : 0 ≤ sint.Z st.pend := hwf.2.2.2.2.1
+  have h3 : sint.Z st.pend < 2 ^ 58 := hwf.2.2.2.2.2.1
+  have : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
+  omega
+
+/-- A delete from a hook's bucket leaves the writer's contents off the hook's buckets. -/
+theorem sData_del_HB {P : BParams} {S : Data} {n k : GoString} (h : P.HB n = true) :
+    sData P (S.insert n ((bktOf S n).delete k)) = sData P S := by
+  unfold sData
+  apply vData_eq_of_agree
+  rw [vOf_emptyR, vOf_emptyR]
+  intro n' hn' k'
+  have : n ≠ n' := fun e => by subst e; rw [h] at hn'; cases hn'
+  unfold dget
+  rw [GMap.lookup_insert_ne _ _ this]
+
+/-- A delete from a hook's bucket changes nothing the readers see. -/
+theorem viewSame_del {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString}
+    (hb : P.HB bi.name = true) (h : viewSame P st) : viewSame P (st.del bi k) := by
+  refine ⟨?_, h.2⟩
+  show vData P (st.C, st.R) = sData P (st.S.insert bi.name ((bktOf st.S bi.name).delete k))
+  rw [sData_del_HB hb]
+  exact h.1
+
+/-- A change of a tracked bucket is the tracked buckets' (`rbData`). -/
+theorem rbData_insert_tracked {P : BParams} {S : Data} {n : GoString} (b : BktData)
+    (h : P.RB n = true) : rbData P (S.insert n b) = (rbData P S).insert n b := by
+  apply GMap.ext
+  intro n'
+  rw [rbData_lookup]
+  by_cases hn : n = n'
+  · subst hn
+    simp only [h, ↓reduceIte, GMap.lookup_insert_eq_iff]
+  · rw [GMap.lookup_insert_ne _ _ hn, GMap.lookup_insert_ne _ _ hn, rbData_lookup]
+
+/-- A delete from a tracked bucket, on the tracked buckets (`rbDel`). -/
+theorem rbData_del {P : BParams} {S : Data} {n k : GoString} (h : P.RB n = true) :
+    rbData P (S.insert n ((bktOf S n).delete k)) = rbDel (rbData P S) n k := by
+  rw [rbData_insert_tracked _ h]
+  unfold rbDel bktOf
+  rw [rbData_lookup]
+  simp only [h, ↓reduceIte]
+
 /-! ## The buckets -/
 
 section buckets
@@ -328,6 +386,21 @@ theorem meta_isBucket (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hsi with ⟨⟨%b0, #Hk0, #Hb0⟩, -, -, -⟩
+  icombine Hk Hk0 gives %Heq
+  subst Heq
+  iapply bucketIs_isBucket hID hName hSafe $$ [$Hpkg $Hb0]
+
+/-- schema's `Lease` bucket is the `Bucket` `leaseBI` (leases T3, 2026-10-25). -/
+theorem lease_isBucket (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) (b : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b ⊢ isBucket b leaseBI := by
+  unfold leaseBI
+  iintro ⟨#Hpkg, #Hk⟩
+  ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hsi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%b0, #Hk0, #Hb0⟩⟩
   icombine Hk Hk0 gives %Heq
   subst Heq
   iapply bucketIs_isBucket hID hName hSafe $$ [$Hpkg $Hb0]
@@ -1622,6 +1695,120 @@ theorem bt_unlock (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := h
   iframe Hbv
   ipureintro; exact sData_puts hP Hwf Hs Hvd
 
+/-- **The batch transaction's `Unlock()` after the lessor's delete** (`bkLockedD`; leases T3,
+2026-10-25), as `bt_unlock0` and `bt_unlock`: the delete is in a hook's bucket, so the session
+still changed nothing the readers see but its puts. -/
+theorem bt_unlockD (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b t : Loc) (l : Puts) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
+      unlockAt ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty,
+        #t⟩ (bkView γ) W Pk (bkLockedD γ P b l) l := by
+  iintro ⟨#Hpkg, #Hb, #Ht⟩
+  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
+    %HPw⟩
+  iunfold unlockAt
+  isplitr
+  · iintro !> %Φ !> ⟨Hl, %Hn, HW, HPk⟩ HΦ
+    subst Hn
+    iunfold bkLockedD at Hl
+    icases Hl with ⟨%st0, %bi, %k, Hl, Hwb, %Hs⟩
+    obtain ⟨hs, hwf, hb⟩ := Hs
+    obtain ⟨-, hroom⟩ := sessPuts_del_room HPw hs hwf
+    wp_apply (hUL γ P W Pk b t (st0.del bi k) iprop(True) hs.2.2.2.2 hroom)
+      $$ [$Hb $Ht $Hl $Hwb HW HPk]
+    · ileft
+      iframe HW HPk
+      ipureintro; exact viewSame_del hb (viewSame_noPuts hP hwf hs)
+    iapply HΦ; itrivial
+  · iintro !> %m %Q %Φ !> ⟨Hl, Hv, Hwand, HPk⟩ HΦ
+    iunfold bkLockedD at Hl
+    icases Hl with ⟨%st0, %bi, %k, Hl, Hwb, %Hs⟩
+    obtain ⟨hs, hwf, hb⟩ := Hs
+    obtain ⟨-, hroom⟩ := sessPuts_del_room HPw hs hwf
+    iunfold bkView at Hv
+    icases Hv with ⟨%vd, Hv, %Hvd⟩
+    icases batchLocked_view γ P b (st0.del bi k) 1 vd $$ [$Hl $Hv] with ⟨Hl, Hv, %Hag⟩
+    subst Hag
+    iapply (hUL γ P W Pk b t (st0.del bi k) Q hs.2.2.2.2 hroom) $$ %Φ [Hl Hwb Hv HPk Hwand] HΦ
+    iframe Hpkg Hb Ht Hl Hwb
+    iright
+    iexists (vData P ((st0.del bi k).C, (st0.del bi k).R))
+    iframe Hv HPk
+    iintro Hbv
+    iapply Hwand
+    iunfold bkView
+    iexists (sData P (st0.del bi k).S)
+    iframe Hbv
+    ipureintro
+    show keyView (sData P (st0.S.insert bi.name ((bktOf st0.S bi.name).delete k))) _
+    rw [sData_del_HB hb]
+    exact sData_puts hP hwf hs Hvd
+
+/-- **The lessor's delete from `Lease` under the batch lock** (leases T3, 2026-10-25), as mvcc's
+contract states it (`batchTxSpecG`'s last clause), with the client half of the tracked buckets
+and the parameters letting the lessor delete from `Lease` (`leaseParams`) as the right `Rb`: the
+backend's `UnsafeDelete` of a non-safe-range, tracked bucket, its key not a hook's own; the lock
+token then `bkLockedD`. -/
+theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b t : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
+      □ (∀ (l : Puts) (bk : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
+          (r : GMap GoString BktData),
+        {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ bk ∗ bkLocked γ P b l ∗
+            key ↦*{dq} k ∗ iprop(rbOwn γ r ∗ ⌜leaseParams P⌝) }}
+          (App (App (Val #(methods (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeDelete" #t))
+            (Val #bk)) (Val #key))
+        {{ RET #(); (∃ U : IProp GF, U ∗ unlockAt ⟨go.GoType.PointerType
+              go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ (bkView γ) W Pk U l) ∗
+            key ↦*{dq} k ∗ iprop(rbOwn γ (rbDel r leaseName k) ∗ ⌜leaseParams P⌝) }}) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩ !> %l %bk %key %k %dq %r %Φ !> ⟨#HL, Hl, Hkey, Hrb, %HLp⟩ HΦ
+  obtain ⟨hhas, hrb, hhk⟩ := HLp
+  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
+    %HPw⟩
+  iunfold bkLocked at Hl
+  icases Hl with ⟨%st, Hl⟩
+  iunfold bkLockedAt at Hl
+  icases Hl with ⟨Hl, Hwb, %Hs⟩
+  icases batchLocked_wf γ P b st $$ Hl with ⟨Hl, %Hwf⟩
+  icases batchLocked_rb γ P b st r $$ [$Hl $Hrb] with ⟨Hl, Hrb, %Hr⟩
+  subst Hr
+  ihave #Hbk := lease_isBucket hID hName hSafe bk $$ [$Hsch $HL]
+  obtain ⟨hroom, -⟩ := sessPuts_del_room HPw Hs Hwf
+  have hSB : P.SB leaseBI.name = false := by rw [hP.2.2.2.1]; decide
+  have hHB : P.HB leaseBI.name = true := by rw [hP.2.2.1]; decide
+  have hrp : rbPut (GF := GF) γ P leaseBI.name st.S = rbOwn γ (rbData P st.S) := by
+    unfold rbPut; rw [show leaseBI.name = leaseName from rfl, hrb]; rfl
+  have hrp' : rbPut (GF := GF) γ P leaseName
+      (st.S.insert leaseName ((bktOf st.S leaseName).delete k)) =
+      rbOwn γ (rbDel (rbData P st.S) leaseName k) := by
+    unfold rbPut; rw [hrb]
+    simp only [↓reduceIte]
+    rw [rbData_del hrb]
+  rw [← hrp]
+  wp_apply (hDel γ P W Pk b t st bk leaseBI key k dq hhas hroom hSB (hhk k))
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hrb] as ⟨Hl, Hkey, Hrb⟩
+  ihave Hrb : rbOwn γ (rbDel (rbData P st.S) leaseName k) $$ [Hrb]
+  · rw [← hrp']; iexact Hrb
+  iapply HΦ
+  isplitl [Hl Hwb]
+  · iexists (bkLockedD γ P b l)
+    isplitl [Hl Hwb]
+    · iunfold bkLockedD
+      iexists st, leaseBI, k
+      iframe
+      ipureintro; exact ⟨Hs, Hwf, hHB⟩
+    iapply bt_unlockD hUL hP γ W Pk b t l $$ [$Hpkg $Hb $Ht]
+  iframe Hkey Hrb
+  ipureintro; exact ⟨hhas, hrb, hhk⟩
+
 end batch
 
 /-! ## The batch transaction, continued: its reads and `NewStore`'s calls -/
@@ -1962,6 +2149,7 @@ theorem isKeyBackendG_of_backend
     (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
     (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
     (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
@@ -1973,7 +2161,7 @@ theorem isKeyBackendG_of_backend
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk Del W W iprop(True) Cmp Pk (bkHookIs γ)
-        (bkReq γ P b) := by
+        (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝)) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
@@ -2009,7 +2197,9 @@ theorem isKeyBackendG_of_backend
       · iintro !> %hc; exact (hC hc).elim
       isplitr
       · iintro !> %hc; exact (hC hc).elim
-      iintro !> %hc; exact (hC hc).elim
+      isplitr
+      · iintro !> %hc; exact (hC hc).elim
+      iapply bt_leaseDel hDel hUL hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
     · iunfold batchTxInitSpec
       isplitr
       · iapply bt_lockOut hLO γ P W Pk b t $$ [$Hpkg $Hb $Ht]
@@ -2050,6 +2240,7 @@ theorem storeBackendT_of_backend
     (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
     (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
     (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
@@ -2079,11 +2270,13 @@ theorem storeBackendT_of_backend
     unfold storeCmp kbCmp; rw [hk]; simp
   have hrq : storeReq (GF := GF) γ = bkReq d.γB d.P d.be := by
     unfold storeReq kbReq; rw [hk]
+  have hrb : storeRb (GF := GF) γ = fun r => iprop(rbOwn d.γB r ∗ ⌜leaseParams d.P⌝) := by
+    unfold storeRb kbRb; rw [hk]
   iunfold storeBackendT
-  rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hk]
+  rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hk]
   simp only [kbWi]
   iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
-    hSP hUL hbUR hCB hID hName hSafe hP d.γB (lateW d.gx) Pk d.be (delKey γ) _ hc $$ H
+    hSP hUL hbUR hCB hDel hID hName hSafe hP d.γB (lateW d.gx) Pk d.be (delKey γ) _ hc $$ H
 
 
 /-- **The clean-view `ReadTx` of the real backend** (the restore plan's R5a; `keyCleanRead`: what
@@ -2143,6 +2336,7 @@ theorem storeBackend_of_backend
     (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
     (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
     (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
@@ -2156,7 +2350,7 @@ theorem storeBackend_of_backend
             #d.be) s γ Pk := by
   iintro #H %s %γ %hγ
   ihave #HT := (storeBackendT_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI
-    hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk γb) $$ H %s %γ %hγ
+    hLO hSP hUL hbUR hCB hDel hID hName hSafe d hP Pk γb) $$ H %s %γ %hγ
   iunfold storeBackendT at HT
   iunfold storeBackend
   iexists iprop(True)

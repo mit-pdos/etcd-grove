@@ -224,7 +224,8 @@ theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
       mvcc.isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (mvcc.bkView γ) (mvcc.bkRTx γ P b) (backend.wbTok γ) mvcc.keyPutOk Del W W iprop(True) Cmp
-        Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b) :=
+        Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b)
+        (fun r => iprop(backend.rbOwn γ r ∗ ⌜mvcc.leaseParams P⌝)) :=
   mvcc.isKeyBackendG_of_backend backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
     backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size
     backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock
@@ -233,7 +234,8 @@ theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
     backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply
     backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock
     backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket
-    schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+    backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
+    schema.bucket.wp_IsSafeRangeBucket
     hP γ W Pk b Del Cmp hC
 
 end bridge
@@ -291,7 +293,8 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
     backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
     backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
-    backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
+    backend.batchTxBuffered.wp_UnsafeCreateBucket
+    backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
     schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb
 
 /-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with
@@ -314,7 +317,8 @@ theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d
     backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
     backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
-    backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
+    backend.batchTxBuffered.wp_UnsafeCreateBucket
+    backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
     schema.bucket.wp_IsSafeRangeBucket d hP Pk γb
 
 /-- **`store.Write` over the real backend, linked**. -/

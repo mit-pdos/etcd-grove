@@ -1632,15 +1632,46 @@ sole writer's certificate, tokens but the transaction's and notified-log half. T
 read-only (Go never writes it after `Write`; unit N4, D14a: the txn package's functions take the
 wrapper as an interface value over `mw`, `KVView.lean`'s `twWrap`). -/
 def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (pend : List Change)
-    (puts deletes putSize : w64) : IProp GF :=
+    (puts deletes putSize : w64) (ld : Bool := false) : IProp GF :=
   iprop(∃ mw : Loc,
     "#Htw" ∷ tw ↦□ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
                       s' := s } : watchableStoreTxnWrite) ∗
     "#Hws" ∷ isWatchableStore s st γ ∗
-    "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize ∗
+    "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize (ld := ld) ∗
     "#Hcert" ∷ idxCert γ.st.idx ilog ∗
     "Htoks" ∷ ownToks γ.st.revs (wBudget ilog - 1) ∗
     "Hwlog" ∷ monoListAuthOwn γ.wlog (1 : Qp).half ilog)
+
+/-- **The lessor's delete under the watchable write transaction's lock** (leases T3, 2026-10-25;
+`storeTxnWriteIs_leaseDel`): the transaction's batch transaction `bt` deletes a key of the
+`Lease` bucket, with the store's right to write the tracked buckets; the transaction is then one
+whose lock token only `Unlock` takes (`ld`), which `watchableStoreTxnWrite.End` takes. -/
+theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) :
+    isWatchTxnWrite (GF := GF) tw s st γ trace ilog pend puts deletes putSize ⊢
+      ∃ bt : GoInterfaceOk, ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
+          (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
+        globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b -∗ key ↦*{dq} k -∗
+        storeRb γ.st r -∗
+        ▷ (isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize true -∗ key ↦*{dq} k -∗
+          storeRb γ.st (rbDel r leaseName k) -∗ Φ #()) -∗
+        WP (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key)) {{ Φ }} := by
+  iintro H
+  iunfold isWatchTxnWrite at H
+  iNamed H
+  icases isTxnWrite_leaseDel mw st γ.st trace ilog pend puts deletes putSize _ _ $$ Htx
+    with ⟨%bt, Hd⟩
+  iexists bt
+  iintro %b %key %k %dq %r %Φ #HL Hkey Hrb HΦ
+  iapply Hd $$ %b %key %k %dq %r %Φ HL Hkey Hrb
+  inext
+  iintro Htx Hkey Hrb
+  iapply HΦ $$ [Htx Htoks Hwlog] Hkey Hrb
+  iunfold isWatchTxnWrite
+  iexists mw
+  simp only [named]
+  iframe Htx Htoks Hwlog
+  iframe #
 
 end reprs
 

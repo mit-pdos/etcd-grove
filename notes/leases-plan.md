@@ -127,6 +127,28 @@ derived in `isApplyLessor_of_lessorInv`.
   exposing it while open (`storeTxnWriteIs` holds `Locked`); (iii) `rdIs` giving it with the
   transaction `rd()` returns; and (iv) the lessor's `le.b.BatchTx()` being the store's batch
   transaction (the same backend: `lessorBeOn`, `kb = some d`).
+  *(i) and (ii) done (2026-10-25):* `batchTxSpecG`'s last clause (`InvStore.lean`):
+  `UnsafeDelete(schema.Lease, k)` under `Locked l`, with `Rb r` (the right to write the tracked
+  buckets, a new parameter, default `True`; the store's `storeRb`: the real backend's `rbOwn`
+  with `leaseParams`, the table naming `lease`, tracked, no hook keys), gives `Rb (rbDel r
+  "lease" k)` and **a token only `Unlock` takes** (`unlockAt`), not `Locked l` again: the
+  backend counts pending operations (`pend < 2^58`), so a token kept after a delete would allow
+  unboundedly many, which the bridge cannot bound from `l`; `Revoke` makes one delete, then
+  `End`. Proved of the real backend (`BackendBridge.lean`: `bt_leaseDel`, the token
+  `bkLockedD`, its `Unlock`s `bt_unlockD`, a delete from a hook bucket leaving the readers' view,
+  `sData_del_HB`); the bridge takes the backend's `UnsafeDelete` spec (threaded up to
+  `NewServer`, hypothesis `h94`). The write transaction carries a flag `ld` (`storeTxnWriteIs`,
+  `storeTxnWriteCore`, `isTxnWrite(Core)`, `isWatchTxnWrite`, default `false`; the lock token
+  `lockedIs`), `Changes`, `Rev` and the three `End`s take either, and
+  `isWatchTxnWrite_leaseDel` (through `isTxnWrite_leaseDel`, `storeTxnWriteIs_leaseDel`) is the
+  delete under an open transaction. To get the bucket, schema's `Lease` and `leaseBucketName` are
+  now translated (`schema.toml`; two untranslated initializers fewer in `opaqueInitsOk`) and
+  `schemaInit` has the `Lease` bucket (`gen-init.py`). Trust base: 696 axioms, 4 sorries, as
+  before; the server's collection and the seven built on it now reach `bbolt.Bucket.Delete_kv`
+  (bbolt's assumed delete, which the backend's `UnsafeDelete` is proved over, as `UnsafePut`
+  over `Put_kv`). The boundary spec of `UnsafeDeleteLease` now names the key (the id's
+  big-endian bytes). Left: (iii) and (iv); the holder of `Rb` at `Revoke` (the apply thread's
+  `rbOwn`, `srvRestOwn`, with `leaseParams` from the boot facts) is L3's.
 
 **L3. The apply thread with leases.** `leasesKnown` becomes an equality: the lessor's live set
 (`leaseOwn γ.leases L`) is the model's table's ids. `plainCover` admits `LeaseGrant`,

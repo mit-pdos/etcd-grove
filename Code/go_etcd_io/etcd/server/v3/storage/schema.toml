@@ -6,10 +6,12 @@
 # package is names only. The alarm and auth backends' constructors (`NewAlarmBackend`,
 # `NewAuthBackend`) with bodies, and (with `zap`, `auth`, `etcdserverpb` among the imports) their
 # structs `alarmBackend`/`authBackend` with fields (2026-10-17, unit N4: the server's
-# construction states that they wrap its backend).
+# construction states that they wrap its backend). The lessor's `Lease` bucket and its name
+# (2026-10-25, leases T3: notes/leases-plan.md).
 translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket", "NewAlarmBackend", "NewAuthBackend",
   "UnsafeCreateAuthRolesBucket", "revBytesLen", "authEnabled", "authDisabled",
   "Auth", "AuthUsers", "AuthRoles", "authBucketName", "authUsersBucketName", "authRolesBucketName",
+  "Lease", "leaseBucketName",
   "AuthEnabledKeyName", "AuthRevisionKeyName",
   "authBackend.CreateAuthBuckets", "authBackend.ForceCommit", "authBackend.ReadTx", "authBackend.BatchTx",
   "authBackend.GetUser", "authBackend.GetAllUsers", "authBackend.GetRole", "authBackend.GetAllRoles",

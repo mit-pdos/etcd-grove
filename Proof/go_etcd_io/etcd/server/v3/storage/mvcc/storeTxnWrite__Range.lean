@@ -90,7 +90,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     -- (but for keys compaction deleted: none the read names, `rangeKeys`)
     ihave #Hrdr := mvcc.batchTx_readerD bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ)
-      (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ Hbt
+      (mvcc.storeRb γ) (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ Hbt
     ihave HR : iprop(Locked (mvcc.pendPuts ilog pend) ∗
         mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog)) $$ [Hlocked Hbv]
     · iframe Hlocked Hbv
