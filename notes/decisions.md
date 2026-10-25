@@ -18807,61 +18807,6 @@ through `ownTracker_toC`/`ownTrackerC_toSimple`) and its own interface (`ownRaft
   `ownRaftPhys`, `ownTracker`, `ApplyCCOk`, `SwitchOk` or `CommitOk` (`.lake/tcb.json`), so no
   top-level statement changed.
 
-## D22 S8d, W7 carried out (first part): the readers' shares counted, `store.Restore` exact (2026-10-25 · decided by the orchestrator: option 1)
-
-**Problem.** The old backend's `Close` needs the whole open token (`bOpen 1`), and after `Restore`
-the server holds every old reader token, but neither their `bOpen` shares (existential in `kbRT`,
-`bkRTx`) nor their number (`Restore` returned `k + 1` with `k` existential) were known.
-
-**Decision (minimal).**
-- *Fixed shares.* `backend.rdOpen := ½ / nReaders` (`InvBackend.lean`, section `shares`, with
-  `bOpen_add`, `bOpen_rep`, `bOpen_one_shares : bOpen 1 ⊣⊢ bOpen ½ ∗ [∗ nReaders] bOpen rdOpen`);
-  `mvcc.bkRTx` and `mvcc.kbRT` carry exactly `bOpen rdOpen` (until now `∃ q`). `NewServer` keeps
-  the constructors' half `bOpen ½` (until now some remainder `qo`) and the boot backend's stop
-  channels (`bootBackend_of_newPost` no longer drops `isStopChans`).
-- *The retired count, exact.* The readers' pool (`poolBody`) now says its slots in, out and
-  retired are exactly `nReaders` (until now at most), and the retired count `r` is a ghost
-  variable half the pool's, half the store's creator's (`mvcc.retiredAt γ r`; `NewStore` gives it at
-  `0`, each `storeReader_retire` counts one; until now the retirees held `ownToks γ.tkr 1` each).
-  The etcd server, the only creator that retires, retires two (the monitor's, the writer's), and
-  `writerOwn γ` carries `retiredAt γ 2` (until now the writer's retired ticket).
-- *`Restore` exact.* `restore_switch` learns no slot is out (none under the watchable store's lock:
-  the caller's `wsDep`; none under `s.mu`: the writer's invariant, restoring because the switch
-  holds all of `cur`, holds `s.mu`'s deposit ghost whole; a second later credit, `wp_auto_lc 3`) and
-  so the pool holds `nReaders - 2` slots; `store.Restore` and `watchableStore.Restore` return
-  `nReaders - 1` old tokens (the pool's and the writer's) and one new token, no `k`.
-- *Not changed:* `backend.Close.spec` (it still takes `bOpen 1`, which `bOpen_one_shares`
-  reassembles from the half, the `nReaders - 1` returned tokens and the monitor's).
-
-**Restated statements** (all intermediate; the definitions changed are reached by closed theorems'
-statements through the server's state, as the orchestrator accepted): `mvcc.kbRT`, `mvcc.bkRTx`
-(and `bkRT_x`, `crt_locked`, `rt_locked` lose their share parameter), `mvcc.poolBody`,
-`mvcc.writerOwn`, new `mvcc.retiredAt`, `mvcc.readerPool_retire`, `mvcc.storeReader_retire` (take
-and return the count), `mvcc.NewStore.spec`, `mvcc.newWatchableStore.spec`, `mvcc.New.spec` (their
-posts gain `retiredAt γ 0`), `mvcc.restore_switch`, `mvcc.store.Restore.spec`,
-`mvcc.watchableStore.Restore.spec`, `server_kv_watchable_of`, `bkRTx_of_rdToks`,
-`bootBackend_of_newPost`. No axiom added or removed.
-
-**User-confirmed (2026-10-25, via the orchestrator).** W7 = count the shares (fixed-fraction reader
-tokens, `store.Restore` returning the exact count: carried out above); W8 = a named premise of
-`applySnapshot.spec`, discharged in S-j1 with the rafthttp track. From now on a design choice that
-would change a trusted statement, a closed theorem, a premise or another track's statement goes to
-the orchestrator as a question with options and a recommendation.
-
-**W7's second part, open (a question for the user).** `Close` of the old backend needs, besides
-the reader tokens (now all counted and back after `Restore` and `srv_be_swap`), the old backend's
-stop channels and the constructors' half `bOpen ½`, which `NewServer` now keeps but drops at its
-end: they must reach `applySnapshot` through the apply thread's state. Every route goes through a
-predicate a closed theorem's statement reaches (`srvApplyKV`, in `Results.lean:431`, and the run
-loop's state). Options: (a) in `srvBeOwn` (the apply thread's part of `s.be`, already per current
-backend; `applySnapshot` moves it to the new backend with `OpenSnapshotBackend`'s own half and
-stop channels): a two-conjunct addition, `srv_be_swap` returning the old ones; a patch is ready
-(not committed); (b) a separate conjunct of the run loop's state beside `srvApplyKV`, which leaves
-`srvApplyKV`'s closed theorem alone but changes `run`'s and `applyAll`'s specs; (c) leave `Close`'s
-resources as a premise of `applySnapshot.spec` for S-j1 (it then has to thread them anyway).
-Recommendation: (a), the smallest change, in the predicate whose meaning is "the apply thread's
-part of the current backend".
-
 ## E2b of the auth plan: `examples/authkv`, its client-side contract, the closed theorem stated (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2b`)
 
 The example side of D-AU5, in parallel with E2a (`NewAuthStore` over provisional schema axioms,
@@ -19039,3 +18984,58 @@ history fixed after the set-up (`notes/decisions.md`, "E2b of the auth plan").
 names-only package's); the root collections reaching the auth package's initializer
 (`cachekv`, `k8setcd3`, `linkv3p`, `linkvtxn`, `putget`, `putget3`, `watchkv`) list it.
 `newAuthStore_on` adds none (its callees are proved but `zap`'s, axioms already).
+
+## D22 S8d, W7 carried out (first part): the readers' shares counted, `store.Restore` exact (2026-10-25 · decided by the orchestrator: option 1)
+
+**Problem.** The old backend's `Close` needs the whole open token (`bOpen 1`), and after `Restore`
+the server holds every old reader token, but neither their `bOpen` shares (existential in `kbRT`,
+`bkRTx`) nor their number (`Restore` returned `k + 1` with `k` existential) were known.
+
+**Decision (minimal).**
+- *Fixed shares.* `backend.rdOpen := ½ / nReaders` (`InvBackend.lean`, section `shares`, with
+  `bOpen_add`, `bOpen_rep`, `bOpen_one_shares : bOpen 1 ⊣⊢ bOpen ½ ∗ [∗ nReaders] bOpen rdOpen`);
+  `mvcc.bkRTx` and `mvcc.kbRT` carry exactly `bOpen rdOpen` (until now `∃ q`). `NewServer` keeps
+  the constructors' half `bOpen ½` (until now some remainder `qo`) and the boot backend's stop
+  channels (`bootBackend_of_newPost` no longer drops `isStopChans`).
+- *The retired count, exact.* The readers' pool (`poolBody`) now says its slots in, out and
+  retired are exactly `nReaders` (until now at most), and the retired count `r` is a ghost
+  variable half the pool's, half the store's creator's (`mvcc.retiredAt γ r`; `NewStore` gives it at
+  `0`, each `storeReader_retire` counts one; until now the retirees held `ownToks γ.tkr 1` each).
+  The etcd server, the only creator that retires, retires two (the monitor's, the writer's), and
+  `writerOwn γ` carries `retiredAt γ 2` (until now the writer's retired ticket).
+- *`Restore` exact.* `restore_switch` learns no slot is out (none under the watchable store's lock:
+  the caller's `wsDep`; none under `s.mu`: the writer's invariant, restoring because the switch
+  holds all of `cur`, holds `s.mu`'s deposit ghost whole; a second later credit, `wp_auto_lc 3`) and
+  so the pool holds `nReaders - 2` slots; `store.Restore` and `watchableStore.Restore` return
+  `nReaders - 1` old tokens (the pool's and the writer's) and one new token, no `k`.
+- *Not changed:* `backend.Close.spec` (it still takes `bOpen 1`, which `bOpen_one_shares`
+  reassembles from the half, the `nReaders - 1` returned tokens and the monitor's).
+
+**Restated statements** (all intermediate; the definitions changed are reached by closed theorems'
+statements through the server's state, as the orchestrator accepted): `mvcc.kbRT`, `mvcc.bkRTx`
+(and `bkRT_x`, `crt_locked`, `rt_locked` lose their share parameter), `mvcc.poolBody`,
+`mvcc.writerOwn`, new `mvcc.retiredAt`, `mvcc.readerPool_retire`, `mvcc.storeReader_retire` (take
+and return the count), `mvcc.NewStore.spec`, `mvcc.newWatchableStore.spec`, `mvcc.New.spec` (their
+posts gain `retiredAt γ 0`), `mvcc.restore_switch`, `mvcc.store.Restore.spec`,
+`mvcc.watchableStore.Restore.spec`, `server_kv_watchable_of`, `bkRTx_of_rdToks`,
+`bootBackend_of_newPost`. No axiom added or removed.
+
+**User-confirmed (2026-10-25, via the orchestrator).** W7 = count the shares (fixed-fraction reader
+tokens, `store.Restore` returning the exact count: carried out above); W8 = a named premise of
+`applySnapshot.spec`, discharged in S-j1 with the rafthttp track. From now on a design choice that
+would change a trusted statement, a closed theorem, a premise or another track's statement goes to
+the orchestrator as a question with options and a recommendation.
+
+**W7's second part, open (a question for the user).** `Close` of the old backend needs, besides
+the reader tokens (now all counted and back after `Restore` and `srv_be_swap`), the old backend's
+stop channels and the constructors' half `bOpen ½`, which `NewServer` now keeps but drops at its
+end: they must reach `applySnapshot` through the apply thread's state. Every route goes through a
+predicate a closed theorem's statement reaches (`srvApplyKV`, in `Results.lean:431`, and the run
+loop's state). Options: (a) in `srvBeOwn` (the apply thread's part of `s.be`, already per current
+backend; `applySnapshot` moves it to the new backend with `OpenSnapshotBackend`'s own half and
+stop channels): a two-conjunct addition, `srv_be_swap` returning the old ones; a patch is ready
+(not committed); (b) a separate conjunct of the run loop's state beside `srvApplyKV`, which leaves
+`srvApplyKV`'s closed theorem alone but changes `run`'s and `applyAll`'s specs; (c) leave `Close`'s
+resources as a premise of `applySnapshot.spec` for S-j1 (it then has to thread them anyway).
+Recommendation: (a), the smallest change, in the predicate whose meaning is "the apply thread's
+part of the current backend".
