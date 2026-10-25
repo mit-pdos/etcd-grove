@@ -67,7 +67,7 @@ theorem newClient.wp_proof
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
   icases Hcfg with ⟨#Heps, #Hdo, %Hc⟩
-  obtain ⟨Hplain, Htls, Hun, Hpw, Htok, Hctx, Hlg, Hms, Hmr, Hrej, Has⟩ := Hc
+  obtain ⟨Hplain, Htls, Hun, Hpw, Htok, Hctx, Hlg, Hms, Hmr, Hrej, Has, Hck⟩ := Hc
   ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp
   ihave #Hpf := Hp
   iStructNamed Hpf
@@ -83,7 +83,8 @@ theorem newClient.wp_proof
   ihave #Hvars0 := Hvars
   iunfold clientNewVars at Hvars
   icases Hvars with ⟨⟨%dsl, #Hdsl, #Hdslok⟩, -, -, -⟩
-  wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := go_etcd_io.etcd.client.v3.channel)
+    go.string go_etcd_io.etcd.client.v3.channel.ty) as %mref Hmref
   rw [decide_eq_false Hlg]
   wp_auto
   icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hcnn⟩
@@ -139,8 +140,8 @@ theorem newClient.wp_proof
   imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
   · inext; itrivial
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hguard⟩
-  wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil eps cfg.Endpoints' eps
-    $$ [$epMu $Hguard $endpoints $resolver $Hro $Heps] as ⟨endpoints, Hro⟩
+  wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» mref (DFrac.own 1) slice.nil cfg.Endpoints' eps
+    $$ [$epMu $Hguard $endpoints $channels $Hmref $Heps] as ⟨endpoints, channels, Hmref⟩
   ipersist endpoints
   ihave #Hrc : retryClientOk (GF := GF) «$r0_ptr» $$ []
   · iunfold retryClientOk
@@ -152,12 +153,16 @@ theorem newClient.wp_proof
     ipureintro; intro h; exact absurd rfl h
   ihave #HDOpt : p.[go_etcd_io.etcd.client.v3.Config, go!"DialOptions"] ↦□ cfg.DialOptions' $$ []
   · iexact DialOptions
-  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps
-    $$ [$Hrc $cfg $Hdo $authTokenBundle $creds $endpoints $Heps $resolver $Hro]
-    as %conn %derr Hres
+  wp_apply wp_dialWithBalancer «$r0_ptr» (GoInterface.ok ctx') (DFrac.own 1) cfg GoInterface.nil r cfg.Endpoints' eps
+    $$ [$Hrc $ctx $cfg $Hdo $authTokenBundle $creds $endpoints $Heps $resolver $Hro]
+    as %conn %derr ⟨ctx, Hres⟩
   · ipureintro; exact Hplain
-  icases Hres with (⟨%Hderr, #Hconn⟩ | %Hderr)
+  icases Hres with (⟨⟨%Hderr, %Hconn_nn⟩, #Hconn⟩ | %Hderr)
   · subst Hderr
+    wp_auto
+    wp_apply wp_mapInsert $$ [$Hmref] as Hmref
+    rw [Hck, doFor_unseal]
+    unfold doForDef
     wp_auto
     ipersist conn
     iunfold isEtcdConn at Hconn

@@ -49,7 +49,7 @@ theorem lessor.KeepAlive.wp_proof
   · iPkgInit
   ihave Hci : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, -, -, -, -, -, -, #Hchsz⟩
+  icases Hci with ⟨-, -, -, -, -, -, -, #Hchsz, -⟩
   wp_auto
   wp_apply chan.wp_make2 (V := Loc) (W64 16) $$ [] as %ch %γ ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; constructor <;> decide
@@ -103,7 +103,7 @@ theorem lessor.KeepAlive.wp_proof
     wp_apply (wp_WithValue ctx ⟨go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty,
         #(zero_val go_etcd_io.etcd.client.v3.keepAliveCtxKey)⟩ _) $$ []
       as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, -, #Hic, -, -⟩
-    · iframe #; ipureintro; right; right; right; right; rfl
+    · iframe #; ipureintro; right; right; right; right; left; rfl
     subst Hc
     ihave #Hctx' := Hic $$ %cd Hctx
     (try wp_auto)

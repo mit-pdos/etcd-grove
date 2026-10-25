@@ -204,7 +204,8 @@ def clientCfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) :
       cfg.Token' = [] ∧ cfg.Context' = GoInterface.nil ∧ cfg.Logger' ≠ null ∧
       sint.Z cfg.MaxCallSendMsgSize' ≤ 0 ∧ sint.Z cfg.MaxCallRecvMsgSize' ≤ 0 ∧
       cfg.RejectOldCluster' = false ∧
-      cfg.AutoSyncInterval' = W64 0⌝)
+      cfg.AutoSyncInterval' = W64 0 ∧
+      cfg.ChannelKeys' = slice.nil⌝)
 
 instance clientCfgOk_persistent (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) :
     Persistent (clientCfgOk (GF := GF) cfg eps) := by

@@ -957,6 +957,28 @@ def retryKVAt (rkv conn : Loc) : IProp GF :=
 instance retryKVAt_persistent (rkv conn : Loc) : Persistent (retryKVAt (GF := GF) rkv conn) := by
   unfold retryKVAt; infer_instance
 
+/-- **The generated stub `kc`** (`*etcdserverpb.kVClient`) on a `*routingClientConn` `rcc`
+for the `*Client` `cl` (PR #21765). -/
+def kvRoutingStubAt (kc rcc cl : Loc) : IProp GF :=
+  iprop(structFieldRef etcdserverpb.kVClient go!"cc" kc ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.routingClientConn.ty) #rcc :
+        GoInterface) ∗
+    structFieldRef go_etcd_io.etcd.client.v3.routingClientConn go!"client" rcc ↦□ cl)
+
+instance kvRoutingStubAt_persistent (kc rcc cl : Loc) :
+    Persistent (kvRoutingStubAt (GF := GF) kc rcc cl) := by
+  unfold kvRoutingStubAt; infer_instance
+
+/-- **The `*retryKVClient` `rkv`** over a stub on a `*routingClientConn` `rcc` for `cl` (PR #21765). -/
+def retryKVRoutingAt (rkv rcc cl : Loc) : IProp GF :=
+  iprop(∃ kc : Loc, structFieldRef go_etcd_io.etcd.client.v3.retryKVClient go!"kc" rkv ↦□
+      (interface.mkOk (go.GoType.PointerType etcdserverpb.kVClient.ty) #kc : GoInterface) ∗
+    kvRoutingStubAt kc rcc cl)
+
+instance retryKVRoutingAt_persistent (rkv rcc cl : Loc) :
+    Persistent (retryKVRoutingAt (GF := GF) rkv rcc cl) := by
+  unfold retryKVRoutingAt; infer_instance
+
 /-- **The call options' slice `sl`** (read-only, full: `len = cap`), each one the client passes. -/
 def callOptsAt (sl : GoSlice) : IProp GF :=
   iprop(∃ vs : List GoInterface, sl ↦*□ vs ∗ ⌜sl.len = sl.cap⌝ ∗ callOptsOk vs ∗

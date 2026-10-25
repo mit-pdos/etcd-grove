@@ -67,6 +67,7 @@ instance Client_typed_pointsto :
     "resolver" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"resolver" l) v.resolver' dq ∗
     "epMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"epMu" l) v.epMu' dq ∗
     "endpoints" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"endpoints" l) v.endpoints' dq ∗
+    "channels" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"channels" l) v.channels' dq ∗
     "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" l) v.ctx' dq ∗
     "cancel" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"cancel" l) v.cancel' dq ∗
     "Username" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"Username" l) v.Username' dq ∗
@@ -273,6 +274,22 @@ instance Client_access_store_endpoints (l : Loc) (v : go_etcd_io.etcd.client.v3.
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"endpoints" l) v.endpoints' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"endpoints" l) endpoints' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endpoints' := endpoints' } : go_etcd_io.etcd.client.v3.Client) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Client_access_load_channels (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"channels" l) v.channels' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"channels" l) v.channels' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Client_access_store_channels (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (channels' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"channels" l) v.channels' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"channels" l) channels' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with channels' := channels' } : go_etcd_io.etcd.client.v3.Client) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

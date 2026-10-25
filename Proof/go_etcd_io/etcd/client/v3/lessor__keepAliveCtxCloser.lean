@@ -128,9 +128,9 @@ theorem lessor.keepAliveCtxCloser.wp_proof
         icases Hco with ⟨%ci, %cdi, %Hcieq, #Hci⟩
         rw [Hcieq]
         (try wp_auto)
-        wp_apply wp_Value ci _ cdi rfl $$ [$Hci] as %v1 %Hv1
+        wp_apply wp_Value.1 ci _ cdi rfl $$ [$Hci] as %v1 %Hv1
         (try wp_auto)
-        wp_apply wp_Value ctx _ cd rfl $$ [$Hctx] as %v2 %Hv2
+        wp_apply wp_Value.1 ctx _ cd rfl $$ [$Hctx] as %v2 %Hv2
         rcases Hv1 with rfl | ⟨p1, rfl⟩ <;> rcases Hv2 with rfl | ⟨p2, rfl⟩
         · (try wp_auto)
           have Hlt2 : sint.nat n < chs.length := by rw [Hlen]; exact Hlt

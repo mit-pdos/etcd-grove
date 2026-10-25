@@ -1,0 +1,22 @@
+=== RUN   TestVerify_Finding1_SetEndpointsEmptyChannelsInNewClient
+    channel_pool_verify_test.go:38: After SetEndpoints on empty c.channels (as at newClient:471): c.Endpoints()=[127.0.0.1:2379 127.0.0.1:2380], len(c.channels)=0 (0 resolver updates performed)
+--- PASS: TestVerify_Finding1_SetEndpointsEmptyChannelsInNewClient (0.00s)
+=== RUN   TestVerify_Finding2a_RetryKVClientNilEpMuPanic
+    channel_pool_verify_test.go:61: Recovered expected panic on RetryKVClient(&Client{conn: conn}): runtime error: invalid memory address or nil pointer dereference
+--- PASS: TestVerify_Finding2a_RetryKVClientNilEpMuPanic (0.00s)
+=== RUN   TestVerify_Finding2b_NewCtxClientDirectConnBroken
+    channel_pool_verify_test.go:91: NewCtxClient with c.conn != nil but c.channels == nil returned error: rpc error: code = Canceled desc = etcdclient: client connection is closing (code=Canceled)
+--- PASS: TestVerify_Finding2b_NewCtxClientDirectConnBroken (0.00s)
+=== RUN   TestVerify_Finding3_ClosedClientErrorTypeRegressionAndDeadCode
+    channel_pool_verify_test.go:122: After Close(), connectionPoolClosedError() = *errors.errorString (context canceled), status.Code = Unknown
+    channel_pool_verify_test.go:132: After Close(), c.Get(context.Background(), "k") = *errors.errorString (context canceled), status.Code = Unknown
+--- PASS: TestVerify_Finding3_ClosedClientErrorTypeRegressionAndDeadCode (0.00s)
+=== RUN   TestVerify_Finding4_CloseNotIdempotentAndErrorsJoinMasksIsConnCanceled
+    channel_pool_verify_test.go:161: 1st Close() = <nil>; 2nd Close() = context canceled
+    channel_pool_verify_test.go:172: IsConnCanceled(rawCancelErr)=true, IsConnCanceled(errors.Join(otherGrpcErr, rawCancelErr))=false (code=Internal)
+--- PASS: TestVerify_Finding4_CloseNotIdempotentAndErrorsJoinMasksIsConnCanceled (0.01s)
+=== RUN   TestVerify_Finding6_ErrChannelKeyNotFoundWrappedIsNotLeaf
+    channel_pool_verify_test.go:209: connectionForContext error = *fmt.wrapError (etcdclient: channel key is not initialized: "unconfigured"), errors.Unwrap(err) = *errors.errorString (etcdclient: channel key is not initialized)
+--- PASS: TestVerify_Finding6_ErrChannelKeyNotFoundWrappedIsNotLeaf (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3	0.030s

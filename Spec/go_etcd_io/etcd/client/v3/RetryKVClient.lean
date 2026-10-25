@@ -32,6 +32,17 @@ abbrev RetryKVClient.spec : Prop :=
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv⌝ ∗
       retryKVAt rkv conn }}
 
+/-- `RetryKVClient(c)` on a `*Client` `cl` (PR #21765): allocates `&routingClientConn{client: cl}`,
+passes it to `pb.NewKVClient`, and returns `&retryKVClient{kc: kc}` (`retryKVRoutingAt rkv rcc cl`),
+as a `KVClient`. -/
+abbrev RetryKVClient_routing.spec : Prop :=
+  ∀ (cl : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.RetryKVClient)) (Val #cl))
+  {{ (v : GoInterface), RET #v; ∃ (rkv rcc : Loc),
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv⌝ ∗
+      retryKVRoutingAt rkv rcc cl }}
+
 end spec
 
 end EtcdGrove

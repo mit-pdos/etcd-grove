@@ -36,7 +36,7 @@ abbrev grpc.NewClient.spec : Prop :=
       grpcResolverAt rb scheme addrs ∗ ⌜(scheme ++ go!"://") <+: target⌝ }}
     (App (App (Val (@! google_golang_org.grpc.NewClient)) (Val #target)) (Val #sl))
   {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err);
-      (⌜err = GoInterface.nil⌝ ∗ grpcConn conn addrs (unaryIcsOf ds) []) ∨
+      (⌜err = GoInterface.nil ∧ conn ≠ null⌝ ∗ grpcConn conn addrs (unaryIcsOf ds) []) ∨
         ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec

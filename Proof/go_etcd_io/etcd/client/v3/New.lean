@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.New
 public import Spec.go_etcd_io.etcd.client.v3.newClient
+public import Spec.go_etcd_io.etcd.client.v3.validateChannelKeys
 
 @[expose] public section
 
@@ -29,7 +30,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
+theorem clientv3.New.wp_proof
+    (wp_validateChannelKeys : validateChannelKeys.spec (GF := GF) (hG := hG))
+    (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
     clientv3.New.spec (GF := GF) (hG := hG) := by
   intro cfg eps V
   wp_start as ⟨#Hcfg, %HV⟩
@@ -41,6 +44,15 @@ theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := h
   rw [decide_eq_false (show ¬ (cfg.Endpoints'.len = W64 0) by
     intro h; rw [h] at Hel; have h0 := Hel.1
     exact Hpure.1.1 (List.eq_nil_of_length_eq_zero (by rw [h0]; rfl)))]
+  wp_auto
+  have Hck : cfg.ChannelKeys' = slice.nil := Hpure.2.2.2.2.2.2.2.2.2.2.2
+  rw [Hck]
+  ihave #Hcks : (slice.nil : GoSlice) ↦*□ ([] : List GoString) $$ []
+  · iapply ownSlice_nil
+  wp_apply wp_validateChannelKeys slice.nil DFrac.discard []
+    $$ [$Hcks] as %verr ⟨_, Hvres⟩
+  icases Hvres with %Hvres'
+  subst Hvres'
   wp_auto
   ipersist cfg
   wp_apply wp_newClient cfg_ptr cfg eps V $$ [$cfg $Hcfg] as %cl %err Hres

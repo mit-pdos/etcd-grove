@@ -6,6 +6,7 @@ boundary. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvLease
+public import Spec.context.WithValue
 public import Perennial.Proof.context
 
 @[expose] public section
@@ -25,18 +26,22 @@ variable [sem : go.Semantics]
 variable [package_sem : context.Assumptions]
 
 /-- `ctx.Value(key)` on a context (`context.isContext`, whose `Value` Perennial specifies only at
-`&cancelCtxKey`) for a key of clientv3's type `keepAliveCtxKey` (an empty struct, comparable;
-unexported, so only `client/v3` stores a value under it: `lessor.KeepAlive`'s
-`context.WithValue(ctx, keepAliveCtxKey{}, &ctx)`): returns `nil` or a `*context.Context` (the
-caller compares two such values with `==`, which does not panic on them). -/
+`&cancelCtxKey`) for clientv3's unexported context keys:
+1. `keepAliveCtxKey` (`lessor.KeepAlive`'s `context.WithValue(ctx, keepAliveCtxKey{}, &ctx)`):
+   returns `nil` or a `*context.Context`;
+2. `channelKeyContextKey` (PR #21765, `channel_key.go`): a default client call context (`ctxOk`,
+   not wrapped by `WithChannelKey` with a custom key) carries no custom channel key
+   (`clientv3.ctxChannelKeyIs (GoInterface.ok ctx) none`). -/
 abbrev context.ValueKeepAlive.spec : Prop :=
-  ∀ (ctx key : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  key.ty = go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty →
-  {{ context.isContext ctx cd }}
-    (App (Val #(methods ctx.ty go!"Value" ctx.v)) (Val #(GoInterface.ok key)))
-  {{ (v : GoInterface), RET #v;
-      ⌜v = GoInterface.nil ∨
-        ∃ p : Loc, v = interface.mkOk (go.GoType.PointerType _root_.Perennial.context.Context.ty) #p⌝ }}
+  (∀ (ctx key : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    key.ty = go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty →
+    {{ context.isContext ctx cd }}
+      (App (Val #(methods ctx.ty go!"Value" ctx.v)) (Val #(GoInterface.ok key)))
+    {{ (v : GoInterface), RET #v;
+        ⌜v = GoInterface.nil ∨
+          ∃ p : Loc, v = interface.mkOk (go.GoType.PointerType _root_.Perennial.context.Context.ty) #p⌝ }}) ∧
+  (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    ctxOk ctx cd ⊢ clientv3.ctxChannelKeyIs (GoInterface.ok ctx) none)
 
 end spec
 

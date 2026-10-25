@@ -510,7 +510,15 @@ abbrev clientv3Init : IProp GF :=
       globalAddr go_etcd_io.etcd.client.v3.zeroTime ↦□ t ∗
       globalAddr go_etcd_io.etcd.client.v3.maxBackoff ↦□ d) ∗
     -- (item 1, the client lease, 2026-10-18) `lease.go`'s `LeaseResponseChSize` (never written)
-    globalAddr go_etcd_io.etcd.client.v3.LeaseResponseChSize ↦□ (W64 16 : w64))
+    globalAddr go_etcd_io.etcd.client.v3.LeaseResponseChSize ↦□ (W64 16 : w64) ∗
+    -- (PR #21765: `channel_key.go`'s `ErrChannelKeyNotFound` and `ErrReservedChannelKey`,
+    -- `errors.New` errors wrapped by `fmt.Errorf`)
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.client.v3.ErrChannelKeyNotFound ↦□ GoInterface.ok e ∗
+      errorStringSpec e) ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.client.v3.ErrReservedChannelKey ↦□ GoInterface.ok e ∗
+      errorStringSpec e))
 
 instance clientv3_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
   define_is_pkg_init clientv3Init

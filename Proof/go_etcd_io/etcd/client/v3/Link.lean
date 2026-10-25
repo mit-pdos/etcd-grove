@@ -8,15 +8,19 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.ChannelKeyFromContext
 public import Proof.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Proof.go_etcd_io.etcd.client.v3.Client__GetLogger
 public import Proof.go_etcd_io.etcd.client.v3.Client__SetEndpoints
 public import Proof.go_etcd_io.etcd.client.v3.Client__autoSync
+public import Proof.go_etcd_io.etcd.client.v3.Client__connectionForContext
+public import Proof.go_etcd_io.etcd.client.v3.Client__connectionPoolClosedError
 public import Proof.go_etcd_io.etcd.client.v3.Client__credentialsForEndpoint
 public import Proof.go_etcd_io.etcd.client.v3.Client__dial
 public import Proof.go_etcd_io.etcd.client.v3.Client__dialSetupOpts
 public import Proof.go_etcd_io.etcd.client.v3.Client__dialWithBalancer
 public import Proof.go_etcd_io.etcd.client.v3.Client__getToken
+public import Proof.go_etcd_io.etcd.client.v3.Client__initChannelKey
 public import Proof.go_etcd_io.etcd.client.v3.Client__refreshToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__roundRobinQuorumBackoff
 public import Proof.go_etcd_io.etcd.client.v3.Client__shouldRefreshToken
@@ -51,10 +55,13 @@ public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
 public import Proof.go_etcd_io.etcd.client.v3.RetryLeaseClient
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
+public import Proof.go_etcd_io.etcd.client.v3.WithChannelKey
 public import Proof.go_etcd_io.etcd.client.v3.WithRequireLeader
 public import Proof.go_etcd_io.etcd.client.v3.authority
 public import Proof.go_etcd_io.etcd.client.v3.blockLogger__recordWait
 public import Proof.go_etcd_io.etcd.client.v3.canceledByCaller
+public import Proof.go_etcd_io.etcd.client.v3.channelKeyForRequest
+public import Proof.go_etcd_io.etcd.client.v3.channelKeyFromContext
 public import Proof.go_etcd_io.etcd.client.v3.New
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.context.TODO
@@ -120,6 +127,8 @@ public import Proof.go_etcd_io.etcd.client.v3.retryLeaseClient__LeaseKeepAlive
 public import Proof.go_etcd_io.etcd.client.v3.retryLeaseClient__LeaseRevoke
 public import Proof.go_etcd_io.etcd.client.v3.retryPolicy__String
 public import Proof.go_etcd_io.etcd.client.v3.reuseOrNewWithCallOptions
+public import Proof.go_etcd_io.etcd.client.v3.routingClientConn__Invoke
+public import Proof.go_etcd_io.etcd.client.v3.routingClientConn__NewStream
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Code
@@ -152,6 +161,8 @@ public import Proof.go_etcd_io.etcd.client.v3.lessor__sendKeepAliveLoop
 public import Proof.go_etcd_io.etcd.client.v3.valCtx__Deadline
 public import Proof.go_etcd_io.etcd.client.v3.valCtx__Done
 public import Proof.go_etcd_io.etcd.client.v3.valCtx__Err
+public import Proof.go_etcd_io.etcd.client.v3.validateChannelKey
+public import Proof.go_etcd_io.etcd.client.v3.validateChannelKeys
 public import Proof.go_etcd_io.etcd.client.v3.waitRetryBackoff
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.watchClient__Watch
 public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__addSubstream
@@ -193,6 +204,7 @@ public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint
+public import Proof.fmt.Link
 
 @[expose] public section
 
@@ -210,6 +222,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+theorem status.wp_Error :
+    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Error.wp_proof
 
 theorem grpc.wp_Peer :
     EtcdGrove.grpc.Peer.spec (GF := GF) (hG := hG) :=
@@ -323,10 +339,6 @@ theorem ResponseHeader.wp_GetRevision :
     EtcdGrove.ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ResponseHeader.GetRevision.wp_proof
 
-theorem status.wp_Error :
-    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
-
 theorem v3.WatchResponse.wp_Err :
     EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
@@ -370,6 +382,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
+theorem v3.wp_channelKeyFromContext :
+    EtcdGrove.channelKeyFromContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.channelKeyFromContext.wp_proof
+
+theorem v3.wp_ChannelKeyFromContext :
+    EtcdGrove.ChannelKeyFromContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ChannelKeyFromContext.wp_proof v3.wp_channelKeyFromContext
+
 theorem v3.Client.wp_Endpoints :
     EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.Endpoints.wp_proof
@@ -389,6 +409,18 @@ theorem v3.Client.wp_SetEndpoints :
 theorem v3.Client.wp_autoSync :
     EtcdGrove.Client.autoSync.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.autoSync.wp_proof
+
+theorem v3.wp_channelKeyForRequest :
+    EtcdGrove.channelKeyForRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.channelKeyForRequest.wp_proof v3.wp_ChannelKeyFromContext
+
+theorem v3.Client.wp_connectionForContext :
+    EtcdGrove.Client.connectionForContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.connectionForContext.wp_proof v3.wp_channelKeyForRequest fmt.wp_Errorf
+
+theorem v3.Client.wp_connectionPoolClosedError :
+    EtcdGrove.Client.connectionPoolClosedError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.connectionPoolClosedError.wp_proof status.wp_Error
 
 theorem endpoint.wp_RequiresCredentials :
     EtcdGrove.endpoint.RequiresCredentials.spec (GF := GF) (hG := hG) :=
@@ -522,6 +554,22 @@ theorem v3.Client.wp_dialWithBalancer [go_etcd_io.etcd.client.v3.DialWithBalance
     EtcdGrove.Client.dialWithBalancer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.dialWithBalancer.wp_proof v3.Client.wp_Endpoints v3.Client.wp_credentialsForEndpoint grpc.wp_WithResolvers v3.Client.wp_dial
 
+theorem v3.wp_validateChannelKey :
+    EtcdGrove.validateChannelKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.validateChannelKey.wp_proof fmt.wp_Errorf
+
+theorem resolver.wp_New :
+    EtcdGrove.resolver.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.resolver.New.wp_proof
+
+theorem resolver.EtcdManualResolver.wp_Close :
+    EtcdGrove.resolver.EtcdManualResolver.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.resolver.EtcdManualResolver.Close.wp_proof
+
+theorem v3.Client.wp_initChannelKey [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    EtcdGrove.Client.initChannelKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.initChannelKey.wp_proof v3.wp_validateChannelKey resolver.wp_New resolver.EtcdManualResolver.wp_Close v3.Client.wp_credentialsForEndpoint grpc.wp_WithResolvers v3.Client.wp_dial
+
 theorem v3.wp_ContextError :
     EtcdGrove.ContextError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ContextError.wp_proof rpctypes.wp_Error status.wp_FromError
@@ -586,6 +634,14 @@ theorem v3.wp_RetryLeaseClient :
     EtcdGrove.RetryLeaseClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryLeaseClient.wp_proof wp_NewLeaseClient
 
+theorem context.wp_WithValue :
+    EtcdGrove.context.WithValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithValue.wp_proof
+
+theorem v3.wp_WithChannelKey :
+    EtcdGrove.WithChannelKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithChannelKey.wp_proof context.wp_WithValue
+
 theorem v3.blockLogger.wp_recordWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.blockLogger.recordWait.spec (GF := GF) (hG := hG) :=
   EtcdGrove.blockLogger.recordWait.wp_proof
@@ -594,17 +650,13 @@ theorem v3.wp_canceledByCaller :
     EtcdGrove.canceledByCaller.spec (GF := GF) (hG := hG) :=
   EtcdGrove.canceledByCaller.wp_proof errors.wp_IsStatusErr
 
+theorem v3.wp_validateChannelKeys :
+    EtcdGrove.validateChannelKeys.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.validateChannelKeys.wp_proof v3.wp_validateChannelKey
+
 theorem context.wp_WithCancelTodo :
     EtcdGrove.context.WithCancelTodo.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithCancelTodo.wp_proof
-
-theorem resolver.wp_New :
-    EtcdGrove.resolver.New.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.resolver.New.wp_proof
-
-theorem resolver.EtcdManualResolver.wp_Close :
-    EtcdGrove.resolver.EtcdManualResolver.Close.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.resolver.EtcdManualResolver.Close.wp_proof
 
 theorem v3.wp_NewCluster :
     EtcdGrove.NewCluster.spec (GF := GF) (hG := hG) :=
@@ -632,7 +684,7 @@ theorem v3.wp_newClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
 
 theorem v3.clientv3.wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.clientv3.New.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.clientv3.New.wp_proof v3.wp_newClient
+  EtcdGrove.clientv3.New.wp_proof v3.wp_validateChannelKeys v3.wp_newClient
 
 theorem context.wp_ValueKeepAlive :
     EtcdGrove.context.ValueKeepAlive.spec (GF := GF) (hG := hG) :=
@@ -641,10 +693,6 @@ theorem context.wp_ValueKeepAlive :
 theorem context.wp_WithCancelValCtx :
     EtcdGrove.context.WithCancelValCtx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithCancelValCtx.wp_proof
-
-theorem context.wp_WithValue :
-    EtcdGrove.context.WithValue.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.context.WithValue.wp_proof
 
 theorem v3.wp_ensureWatchHeader [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.ensureWatchHeader.spec (GF := GF) (hG := hG) :=
@@ -781,6 +829,14 @@ theorem v3.retryLeaseClient.wp_LeaseKeepAlive :
 theorem v3.retryLeaseClient.wp_LeaseRevoke :
     EtcdGrove.retryLeaseClient.LeaseRevoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.retryLeaseClient.LeaseRevoke.wp_proof v3.wp_withRepeatablePolicy leaseClient.wp_LeaseRevoke
+
+theorem v3.routingClientConn.wp_Invoke :
+    EtcdGrove.routingClientConn.Invoke.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.routingClientConn.Invoke.wp_proof v3.Client.wp_connectionForContext grpc.ClientConn.wp_Invoke
+
+theorem v3.routingClientConn.wp_NewStream :
+    EtcdGrove.routingClientConn.NewStream.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.routingClientConn.NewStream.wp_proof v3.Client.wp_connectionForContext grpc.ClientConn.wp_NewStream
 
 theorem v3.wp_streamKeyFromCtx [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.streamKeyFromCtx.spec (GF := GF) (hG := hG) :=

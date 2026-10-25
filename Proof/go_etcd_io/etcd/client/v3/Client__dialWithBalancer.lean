@@ -1,6 +1,6 @@
 /-
-Proof of `Spec/go_etcd_io/etcd/client/v3/Client__dialWithBalancer.lean` (item 5, client construction).
-Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/etcd/client/v3/Client__dialWithBalancer.lean` (item 5, client construction;
+updated for PR #21765). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -29,16 +29,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- The proof unfolds the method by its trusted body (`DialWithBalancerBody.lean`). -/
-theorem Client.dialWithBalancer.wp_proof
+/-- The proof unfolds `dialWithBalancerForKey` by its trusted body (`DialWithBalancerBody.lean`). -/
+theorem Client.dialWithBalancerForKey.wp_proof
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    (wp_Endpoints : Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_credentialsForEndpoint : Client.credentialsForEndpoint.spec (GF := GF) (hG := hG))
     (wp_WithResolvers : grpc.WithResolvers.spec (GF := GF) (hG := hG))
     (wp_dial : Client.dial.spec (GF := GF) (hG := hG)) :
-    Client.dialWithBalancer.spec (GF := GF) (hG := hG) := by
-  intro c cfg cr r esl eps
-  wp_start as ⟨#Hc, #Hcfg, #Hdo, #Hatb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
+    Client.dialWithBalancerForKey.spec (GF := GF) (hG := hG) := by
+  intro c ctx key cfg cr r esl dq eps
+  wp_start as ⟨#Hc, #Hcfg, #Hdo, #Hatb, #Hcr, Hesl, %Hplain, Hro⟩
   obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
     cases eps with
     | nil => exact absurd rfl Hplain.1
@@ -47,13 +46,12 @@ theorem Client.dialWithBalancer.wp_proof
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_Endpoints c $$ [$Hc] as %esl' ⟨%eps, Hesl', Heq⟩
-  ihave %Heq' := Heq $$ Heps Hesl
-  subst Heq'
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hesl'
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
+  rw [decide_eq_false (by simp at Hlen; word)]
+  wp_auto
   rw [ite_eq_left (by simp at Hlen; word)]
-  wp_apply wp_load_slice_index esl' (sint.Z (W64 0)) (ep :: rest) (DFrac.own 1) ep (by decide) $$ [$Hesl']
-    as -
+  wp_apply wp_load_slice_index esl (sint.Z (W64 0)) (ep :: rest) dq ep (by decide) $$ [$Hesl]
+    as Hesl
   · ipureintro; rfl
   wp_apply wp_credentialsForEndpoint c ep cr $$ [$Hcr]
   · ipureintro; exact Hp1
@@ -75,11 +73,15 @@ theorem Client.dialWithBalancer.wp_proof
     as %o2 ⟨Ho2, -, -⟩
   ipersist Ho2
   (try wp_auto)
+  rw [ite_eq_left (by simp at Hlen; word)]
+  wp_apply wp_load_slice_index esl (sint.Z (W64 0)) (ep :: rest) dq ep (by decide) $$ [$Hesl]
+    as Hesl
+  · ipureintro; rfl
   ihave Hrb := etcdResolver_grpc (GF := GF) r (ep :: rest) Hplain $$ Hro
-  wp_apply wp_dial c cfg cr o2 (resolverIface r) esl (ep :: rest) $$ [$Hc $Hcfg $Hdo $Hatb $Heps $Hesl $Hrb]
-    as %conn %err Hres
+  wp_apply wp_dial c ctx key ep cfg cr o2 (resolverIface r) (ep :: rest)
+    $$ [$Hc $Hcfg $Hdo $Hatb $Hrb] as %conn %err Hres
   · isplitr
-    · ipureintro; exact Hplain
+    · ipureintro; exact Hp1
     iunfold dialOptsAt
     iexists [o]
     rw [List.nil_append]
@@ -87,7 +89,27 @@ theorem Client.dialWithBalancer.wp_proof
     ipureintro
     exact .cons Ho .nil
   iapply HΦ
-  iexact Hres
+  iframe Hesl Hres
+
+theorem Client.dialWithBalancer.wp_proof
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    (wp_Endpoints : Client.Endpoints.spec (GF := GF) (hG := hG))
+    (wp_credentialsForEndpoint : Client.credentialsForEndpoint.spec (GF := GF) (hG := hG))
+    (wp_WithResolvers : grpc.WithResolvers.spec (GF := GF) (hG := hG))
+    (wp_dial : Client.dial.spec (GF := GF) (hG := hG)) :
+    Client.dialWithBalancer.spec (GF := GF) (hG := hG) := by
+  intro c ctx dq cfg cr r esl eps
+  wp_start as ⟨#Hc, Hctx, #Hcfg, #Hdo, #Hatb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
+  wp_auto
+  wp_apply wp_Endpoints c $$ [$Hc] as %esl' ⟨%eps', Hesl', Heq⟩
+  ihave %Heq' := Heq $$ Heps Hesl
+  rcases Heq' with rfl
+  wp_apply (Client.dialWithBalancerForKey.wp_proof wp_credentialsForEndpoint wp_WithResolvers wp_dial)
+    c ctx go!"default" cfg cr r esl' (DFrac.own 1) _
+    $$ [$Hc $Hcfg $Hdo $Hatb $Hcr $Hesl' $Hro] as %conn %err ⟨-, Hres⟩
+  · ipureintro; exact Hplain
+  iapply HΦ
+  iframe Hctx Hres
 
 end proof
 

@@ -43,6 +43,148 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.client.v3
 
+namespace WatchResponse
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
+
+instance WatchResponse_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.WatchResponse where
+  typedPointstoDef l v dq := iprop(
+    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Header" l) v.Header' dq ∗
+    "Events" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Events" l) v.Events' dq ∗
+    "CompactRevision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CompactRevision" l) v.CompactRevision' dq ∗
+    "Canceled" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Canceled" l) v.Canceled' dq ∗
+    "Created" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Created" l) v.Created' dq ∗
+    "closeErr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"closeErr" l) v.closeErr' dq ∗
+    "CancelReason" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CancelReason" l) v.CancelReason' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance WatchResponse_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.WatchResponse go_etcd_io.etcd.client.v3.WatchResponse.underlying := by
+  solve_into_val_typed_struct
+
+instance WatchResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Header" l) v.Header' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (Header' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Header" l) v.Header' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Header" l) Header' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := Header' } : go_etcd_io.etcd.client.v3.WatchResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_load_Events (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Events" l) v.Events' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Events" l) v.Events' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_store_Events (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (Events' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Events" l) v.Events' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Events" l) Events' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Events' := Events' } : go_etcd_io.etcd.client.v3.WatchResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_load_CompactRevision (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CompactRevision" l) v.CompactRevision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CompactRevision" l) v.CompactRevision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_store_CompactRevision (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (CompactRevision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CompactRevision" l) v.CompactRevision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CompactRevision" l) CompactRevision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactRevision' := CompactRevision' } : go_etcd_io.etcd.client.v3.WatchResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_load_Canceled (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Canceled" l) v.Canceled' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Canceled" l) v.Canceled' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_store_Canceled (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (Canceled' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Canceled" l) v.Canceled' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Canceled" l) Canceled' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Canceled' := Canceled' } : go_etcd_io.etcd.client.v3.WatchResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_load_Created (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Created" l) v.Created' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Created" l) v.Created' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_store_Created (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (Created' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Created" l) v.Created' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"Created" l) Created' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Created' := Created' } : go_etcd_io.etcd.client.v3.WatchResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_load_closeErr (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"closeErr" l) v.closeErr' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"closeErr" l) v.closeErr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_store_closeErr (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (closeErr' : GoError) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"closeErr" l) v.closeErr' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"closeErr" l) closeErr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closeErr' := closeErr' } : go_etcd_io.etcd.client.v3.WatchResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_load_CancelReason (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CancelReason" l) v.CancelReason' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CancelReason" l) v.CancelReason' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchResponse_access_store_CancelReason (l : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (CancelReason' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CancelReason" l) v.CancelReason' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.WatchResponse go!"CancelReason" l) CancelReason' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CancelReason' := CancelReason' } : go_etcd_io.etcd.client.v3.WatchResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end WatchResponse
+
 namespace watcher
 section def_
 

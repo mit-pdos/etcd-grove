@@ -228,18 +228,39 @@ translate = [
   # interface (a field of `Client`, which `newClient` allocates) is translated, not axiomatized
   "New",
   "newClient",
+  "Client.Close",
   "Client.SetEndpoints",
-  # (not `Client.dialWithBalancer`, names only: its `grpc.WithResolvers(c.resolver)` converts to
+  "Client.dialWithBalancer",
+  # (not `Client.dialWithBalancerForKey`, names only: its `grpc.WithResolvers(r)` converts to
   # grpc's `resolver.Builder`, which no file of the package imports, and the pinned translator
   # then names the type after the imported package of the same name, the client's
   # `internal/resolver` (`pkgRef`'s fallback): an unknown `internal.resolver.Builder.ty`. Its body
   # is the translation with that type corrected, a trusted unfolding:
   # `Proof/go_etcd_io/etcd/client/v3/DialWithBalancerBody.lean`.)
   "Client.credentialsForEndpoint",
-  "Client.dial",
+  "Client.dialWithContext",
   "Client.dialSetupOpts",
   "authority",
   "Client.autoSync",
+  # PR #21765: channel_key.go and channel_pool.go
+  "defaultChannelKey",
+  "ErrChannelKeyNotFound",
+  "ErrReservedChannelKey",
+  "channelKeyContextKey",
+  "WithChannelKey",
+  "ChannelKeyFromContext",
+  "channelKeyForRequest",
+  "channelKeyFromContext",
+  "validateChannelKeys",
+  "validateChannelKey",
+  "channel",
+  "channel.close",
+  "Client.initChannelKey",
+  "Client.connectionForContext",
+  "Client.connectionPoolClosedError",
+  "routingClientConn",
+  "routingClientConn.Invoke",
+  "routingClientConn.NewStream",
   # the adequacy example (item 9, point 7): `(*Client).Put`/`Get`, promoted from the embedded
   # `KV` interface (no body: the filter only lets the translator emit their `MethodUnfold`
   # rules, `ptr_Put_unfold`/`ptr_Get_unfold`, the call through the `KV` field)

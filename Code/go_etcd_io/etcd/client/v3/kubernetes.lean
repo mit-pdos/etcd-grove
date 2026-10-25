@@ -691,16 +691,24 @@ class Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"autoSync"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
   checkVersion_unfold : MethodUnfold Client.ty go!"checkVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"checkVersion"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
+  connectionForContext_unfold : MethodUnfold Client.ty go!"connectionForContext" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"connectionForContext"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
+  connectionPoolClosedError_unfold : MethodUnfold Client.ty go!"connectionPoolClosedError" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"connectionPoolClosedError"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
   credentialsForEndpoint_unfold : MethodUnfold Client.ty go!"credentialsForEndpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"credentialsForEndpoint"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
-  dial_unfold : MethodUnfold Client.ty go!"dial" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dial"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
   dialSetupOpts_unfold : MethodUnfold Client.ty go!"dialSetupOpts" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialSetupOpts"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
   dialWithBalancer_unfold : MethodUnfold Client.ty go!"dialWithBalancer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialWithBalancer"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
+  dialWithBalancerForKey_unfold : MethodUnfold Client.ty go!"dialWithBalancerForKey" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialWithBalancerForKey"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
+  dialWithContext_unfold : MethodUnfold Client.ty go!"dialWithContext" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialWithContext"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
   getToken_unfold : MethodUnfold Client.ty go!"getToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"getToken"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
+  initChannelKey_unfold : MethodUnfold Client.ty go!"initChannelKey" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"initChannelKey"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
   refreshToken_unfold : MethodUnfold Client.ty go!"refreshToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"refreshToken"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
   roundRobinQuorumBackoff_unfold : MethodUnfold Client.ty go!"roundRobinQuorumBackoff" (LamV "$r"
@@ -837,16 +845,24 @@ class Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"autoSync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
   ptr_checkVersion_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"checkVersion" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"checkVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
+  ptr_connectionForContext_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"connectionForContext" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"connectionForContext"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
+  ptr_connectionPoolClosedError_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"connectionPoolClosedError" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"connectionPoolClosedError"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
   ptr_credentialsForEndpoint_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"credentialsForEndpoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"credentialsForEndpoint"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
-  ptr_dial_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dial"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
   ptr_dialSetupOpts_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialSetupOpts" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialSetupOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
   ptr_dialWithBalancer_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialWithBalancer" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialWithBalancer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
+  ptr_dialWithBalancerForKey_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialWithBalancerForKey" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialWithBalancerForKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
+  ptr_dialWithContext_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialWithContext" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"dialWithContext"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
   ptr_getToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"getToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"getToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
+  ptr_initChannelKey_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"initChannelKey" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"initChannelKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
   ptr_refreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"refreshToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Client"))) (Var "$r")))))
   ptr_roundRobinQuorumBackoff_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"roundRobinQuorumBackoff" (LamV "$r"
@@ -927,11 +943,15 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.WithLogger_unfold
   Client.TypeAssumptions.autoSync_unfold
   Client.TypeAssumptions.checkVersion_unfold
+  Client.TypeAssumptions.connectionForContext_unfold
+  Client.TypeAssumptions.connectionPoolClosedError_unfold
   Client.TypeAssumptions.credentialsForEndpoint_unfold
-  Client.TypeAssumptions.dial_unfold
   Client.TypeAssumptions.dialSetupOpts_unfold
   Client.TypeAssumptions.dialWithBalancer_unfold
+  Client.TypeAssumptions.dialWithBalancerForKey_unfold
+  Client.TypeAssumptions.dialWithContext_unfold
   Client.TypeAssumptions.getToken_unfold
+  Client.TypeAssumptions.initChannelKey_unfold
   Client.TypeAssumptions.refreshToken_unfold
   Client.TypeAssumptions.roundRobinQuorumBackoff_unfold
   Client.TypeAssumptions.shouldRefreshToken_unfold
@@ -1000,11 +1020,15 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_WithLogger_unfold
   Client.TypeAssumptions.ptr_autoSync_unfold
   Client.TypeAssumptions.ptr_checkVersion_unfold
+  Client.TypeAssumptions.ptr_connectionForContext_unfold
+  Client.TypeAssumptions.ptr_connectionPoolClosedError_unfold
   Client.TypeAssumptions.ptr_credentialsForEndpoint_unfold
-  Client.TypeAssumptions.ptr_dial_unfold
   Client.TypeAssumptions.ptr_dialSetupOpts_unfold
   Client.TypeAssumptions.ptr_dialWithBalancer_unfold
+  Client.TypeAssumptions.ptr_dialWithBalancerForKey_unfold
+  Client.TypeAssumptions.ptr_dialWithContext_unfold
   Client.TypeAssumptions.ptr_getToken_unfold
+  Client.TypeAssumptions.ptr_initChannelKey_unfold
   Client.TypeAssumptions.ptr_refreshToken_unfold
   Client.TypeAssumptions.ptr_roundRobinQuorumBackoff_unfold
   Client.TypeAssumptions.ptr_shouldRefreshToken_unfold
