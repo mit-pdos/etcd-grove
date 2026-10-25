@@ -18448,6 +18448,83 @@ lock's resource; `AddPeer`/`AddRemote` already take it). W3's text predates D41 
   `rs`; `netTransport` (`Net.lean`, shared with D22) keeps its statement if its `Send` does not
   name the ids (to check in M5).
 
+**M2b: pre-vote in the dynamic mode (2026-10-25, branch `membership-m2`).** Q2 (A) carried out, with
+no premise and the trust base unchanged. A pre-candidate in the dynamic mode carries its campaign
+guard instead of being excluded:
+- `PreGuard fp s` (`StepLemmasR.lean`): a pre-candidate has no snapshot pending and no conf entry at
+  the full log's positions `[applied, committed)`, which is `StepR.campaign`'s guard on `rOf s g`.
+  `PreGuardF` is the same at a full prefix of the boundary's length (what the `RawNode` keeps without
+  `FullOk` at hand). `DynHyp` and `GMode.Pre` take the guard where they took "no pre-candidate";
+  `GMode.Guard` is it at the mode's ghost part.
+- Kept across a step through `PreCandStep` (`raft.Step`'s `TermStep`), strengthened: a pre-candidate
+  that stays one kept its boundary, log, commit index and `applied` order, with no snapshot pending
+  appearing (`PreKeep`); one that a `MsgHup` made one has `hup`'s check (`HupFact`), which
+  `noConfIn_of_unapplied` turns into the guard. `PreGuardF.pc`/`.step` (spec level). The local
+  branches state `PreKeep` at a pre-candidate (`%Hpk`: a pre-candidate drops proposals, `stableTo`
+  only moves entries stable, `appliedTo` and a snapshot's acknowledgement touch neither log nor commit).
+- The win: `stepR_prevoteRespResult` (`prevote_lemmas.lean`): waiting is no step, a loss `abandon`, a
+  win `StepR.campaign` from the guard; `StepCD.of_excluded` only excludes a `MsgSnap` now.
+- The `RawNode` layer: `RNPv rs fp s`'s first conjunct is the guard (was `isDyn → prevote = false`);
+  `PreFacts md s` takes the mode; `tickElection`/`tickHeartbeat` take `md.Guard s` and `TickStep`
+  carries the guard; `Advance`'s loop carries it (`%Hpg1`); `acceptReady` keeps it
+  (`readyNstate_guard`); `wp_applyConf_dyn` excludes a pre-candidate by the guard as it excluded a
+  candidate by `RInv.cand`.
+- `RestartNode.spec` loses its premise `md.isDyn = true → cv.PreVote' = false`.
+
+**M2c: `StepDownOnRemoval` off in the dynamic mode (2026-10-25, branch `membership-m2`).** Q3 (A)
+carried out, with no premise and the trust base unchanged. As 4.11 said, the protocol's ghost
+needed nothing; what required the flag was the code level's "a leader is a voter":
+- `ownRaftPhysC`'s `Hvoter` is now `role ≠ follower → role ≠ leader → id ∈ V` (a candidate or
+  pre-candidate is a voter; a leader need not be). `becomeLeader.spec` takes "not a leader" (it is
+  a candidate's, `stepCandidate`).
+- `switchToConfig`: a removed or demoted leader steps down with `stepDownOnRemoval` and otherwise
+  returns, still leader (`SwitchOkC`'s new branch; the premise `id ∉ voters → s.sdr = true` is gone,
+  a voter keeps `MatchKept`). `applyCCOkC_step`/`applyCCOkC_stepR`: that case is `reMatch` only, in
+  both models. `applyConfChange.spec` loses its `sdr` premise; `specS` (static) takes `id ∈ cfg`,
+  which its static callers have (`ownRawNode`'s `Hin`).
+- `stepLeader`: a proposal at a leader without its own `Progress` is dropped (Go's
+  `Progress[r.id] == nil` branch, `raft.go:1298-1302`, reachable now); the heartbeat response's
+  quorum needs a voter in the configuration, which `stepLeader` now takes (`Hhr`'s third conjunct)
+  and `raft.Step` reads off the ghost state (`ghostRest_voters_ne`: statically `reCfg_ne`,
+  dynamically `cfgFold_ok`); the append response did not use it.
+- `sdrOk` is the read-only field only; `RestartNode.spec` loses `md.isDyn → StepDownOnRemoval' = true`.
+
+**M2a: `StartNode`/`Bootstrap` in the dynamic mode (2026-10-25, branch `membership-m2`).** A new
+cluster's boot log in the dynamic mode, with the trust base unchanged. Until now the allocation
+took "static unless the boot log is empty" (`ownRaftGhost_alloc_core`'s `dyn = none ∨ L = []`):
+the boot log's conf entries are committed with no quorum (D12's `commitJ` boot arm), and the dynamic
+ghost wants a commit-fact **witness** for every conf entry below a commit index (`witsB`) or a
+commit fact's configuration index (`cqAt`'s dynamic part).
+- *The paper check* (`notes/reconfiguration-safety.md`, section 0, "The boot log"): witnesses are
+  read only in the far cases (`lc_far_older`, the winners table's two far cases, the read index's
+  two): a conf entry `k2` of one log with one more conf entry before it than the other side's
+  configuration prefix has, the other side holding I1 there. Every commit fact's log and every
+  campaign log starts with the boot log (`cq_boot`, `isCamp_boot`, `leadFull_boot`), so at
+  `k2 < |boot|` the two logs agree through `k2`, and `far_older` (I1) already closes the case. So a
+  conf entry of the boot log needs no witness: `cqAt`, `cqDyn`, `witsB` and `doomed`'s witnesses
+  take `γ.reBoot.length ≤ k` (a binder after the position's), and each far case splits on it.
+  Nothing else changed in the protocol proof; the adjacent cases did not use witnesses.
+- *The configuration index starts at `0`* (`rboot c0 bootLog`, `ResultsDyn.lean`): Go's `Bootstrap`
+  installs the peers in the tracker but applies nothing (`applied = 0`), and the application
+  re-applies the boot entries through the first `Ready` (`ApplyConfChange` of `AddNode` of a voter,
+  a no-op). With `capplied = 0` and the configuration `c0` (the peers', `cfg = cfgFold c0 []`),
+  that re-application is the dynamic mode's ordinary `ApplyConfChange` (`DynCCPreOp`, in order from
+  `0`); `RInv_rboot` holds (I1 at the commit index, the log's end, holds of any log). Starting at
+  `|boot|` instead would have needed a new "re-application below the configuration index" case in
+  `ApplyConfChange` and the fold of the boot log to be `c0`; at `0` neither is needed, and nothing
+  asks the boot entries' fold to be `c0` (that `dec` decodes them so that `ccStepB` succeeds is the
+  application's `ApplyConfChange` premise, as for any conf entry: M3's).
+- The allocation: `ownRaftGhost_alloc_core` loses `dyn = none ∨ L = []` (the initial `witsB` holds
+  vacuously below `|boot|`); `raft_dyn_alloc_boot` (`ResultsDyn.lean`) is the dynamic instance, every
+  member at `rboot c0 bootLog` (`ownRaftGhostR`), in the no-snapshot and no-transfer modes or not.
+- The code: `bootInit γ md id V bootLog` (`InvBoot.lean`, as `rnInit` for `RestartNode`: statically
+  `ownRaftGhost γ id (bootPState bootLog)`, dynamically `rboot` at `c0 = cfgState V ∅`);
+  `RawNode.Bootstrap.spec`, `setupNode.spec` and `StartNode.spec` take the mode `md` and close the
+  node in it (`StartNode`'s `snapIn` premise gains `md = .static`, as `RestartNode`'s). `Bootstrap`'s
+  dynamic case closes `ownRawNode` as `RestartNode`'s does (`ownStepGhost_dyn` at
+  `⟨0, cfgState V ∅, []⟩`, the tracker's learners empty). The server's `newRaftNode` passes `.static`
+  (M3 moves it).
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL

@@ -18,11 +18,14 @@ conf changes through the first `Ready`, whose `CommittedEntries` are the boot en
 delivered log is empty although the committed log is `bootLog` (`isCommitted γ bootLog`, the
 allocation's): the driver's `Advance` delivers it.
 
-**The ghost state.** The cluster's ghost state is allocated before the call
-(`ownRaftGhost_alloc_boot`, `Protocol/Facts.lean`: every member at `bootPState bootLog`, the
-committed log `bootLog` from the start, `RaftNames.reBoot = bootLog`), in the static mode with
-`γ.reCfg` the peers. This node takes its `ownRaftGhost γ cv.ID' (bootPState bootLog)` and
-`isCommitted γ bootLog`, and the log's description `BootLogOk γ.reCCOk ps bootLog` (entry `k`: type
+**The ghost state.** The cluster's ghost state is allocated before the call, in the mode `md`
+(statically `ownRaftGhost_alloc_boot`, `Protocol/Facts.lean`: every member at `bootPState
+bootLog`, the committed log `bootLog` from the start, `RaftNames.reBoot = bootLog`, `γ.reCfg` the
+peers; dynamically, since 2026-10-25, T-M M2a, `raft_dyn_alloc_boot`, `Protocol/ResultsDyn.lean`:
+every member at `rboot c0 bootLog`, `c0` the peers' configuration, at the configuration index `0`,
+so that the application's re-application of the boot entries through the first `Ready` is the
+dynamic mode's ordinary `ApplyConfChange`). This node takes its `bootInit γ md cv.ID' V bootLog`
+and `isCommitted γ bootLog`, and the log's description `BootLogOk γ.reCCOk ps bootLog` (entry `k`: type
 `1`, term `1`, index `k + 1`, bytes decoding to `AddNode ps[k]`, admitted by the cluster's
 conf-change policy).
 
@@ -61,7 +64,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev StartNode.spec : Prop :=
-  ∀ (γ : RaftNames) (bud : BudgetNames) (c : Loc) (cv : Config)
+  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk)
     (σ : StorState)
     (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
@@ -102,8 +105,8 @@ abbrev StartNode.spec : Prop :=
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
   -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
-  -- outside the no-snapshot mode
-  (sn = true → γ.reNoSnap = false) →
+  -- outside the no-snapshot mode and (2026-10-25, T-M M2a) in the static mode
+  (sn = true → γ.reNoSnap = false ∧ md = .static) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- `NewRawNode`'s `InitialState` premise (D7's shape; the conf state's record `csm` empty)
@@ -114,8 +117,9 @@ abbrev StartNode.spec : Prop :=
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       -- the peers, their contexts, and `Marshal` at their conf changes (`InvBoot.lean`)
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
-      -- this node's ghost state at the bootstrap state, and the committed boot log
-      ownRaftGhost γ cv.ID' (bootPState bootLog) ∗ isCommitted γ bootLog ∗
+      -- this node's ghost state at the bootstrap state in the mode `md` (2026-10-25, T-M M2a;
+      -- until then static), and the committed boot log
+      bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
       -- the cluster's term budget, at least at the bootstrap term `1` (`budget_alloc_boot`)
       inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
       -- (2026-10-19, D21 M3) in the cluster's no-snapshot mode (`RaftNames.reNoSnap`), a storage
@@ -129,7 +133,7 @@ abbrev StartNode.spec : Prop :=
       -- (D17d, 2026-10-18) what the `InitialState` premise gives back: `InitialState` runs before
       -- the node's goroutine starts
       R ∗ ∃ (γn : NodeNames) (n : Loc),
-        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = RNMode.static ∧
+        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
          γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
         -- the driver's view of the configuration: the peers'

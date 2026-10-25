@@ -357,7 +357,11 @@ abbrev stepLeader.spec : Prop :=
   (m.Type' = MsgHeartbeatResp →
    (ctx = [] ∨ 8 ≤ ctx.length) ∧
    (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
-                 ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))) →
+                 ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int)) ∧
+   -- (2026-10-25, T-M M2c) the configuration has a voter (`maybeAdvance`'s quorum; until then
+   -- the leader itself, a voter by `ownRaftPhysC`, which a leader removed without
+   -- `StepDownOnRemoval` is not; `raft.Step` has it from the ghost state)
+   c.voters ≠ ∅) →
   -- (2026-10-16, stage R8a, D11) an accepted `MsgAppResp` acknowledges an index within the
   -- leader's log, so `MaybeUpdate` keeps the leader's progress bound (`PrvalsOk`): `Step` has it
   -- from the message's ghost witness (`ackIn`, `ownRaftGhost_ackIn_le`)

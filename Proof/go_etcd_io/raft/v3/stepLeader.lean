@@ -86,9 +86,9 @@ theorem stepLeader.wp_proof
     stepLeader.spec (GF := GF) (hG := hG) := by
   intro c r id s ml m ents sn ctx rs k0 Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Hxft
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
-  -- a leader is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
-  icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
-  have Hid : id ∈ c.voters := Hvoter (by rw [Hlead]; decide)
+  -- (2026-10-25, T-M M2c) a leader need not be a voter (removed without `StepDownOnRemoval`); until
+  -- then `ownRaftPhys`'s `Hvoter` said it was, and the proposal, heartbeat-response and
+  -- append-response paths read it
   by_cases Hp : m.Type' = MsgProp
   · obtain ⟨Hne, Hsmall, Hnz⟩ := Hprop Hp
     icases Hcc $$ %Hp with ⟨%cs, #Hcc⟩
@@ -98,7 +98,7 @@ theorem stepLeader.wp_proof
       wp_UnmarshalConfChange wp_UnmarshalConfChangeV2 wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
       wp_fmt_Sprintf wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
       wp_Entry_GetData wp_EntryType_Enum wp_DescribeConfChange r id s ml m ents sn ctx rs cs k0 Hp
-      Hid Hne Hsmall Hnz Hlead $$ [Hphys Hm]
+      Hne Hsmall Hnz Hlead $$ [Hphys Hm]
     · iframe
       iframe Hinit Hcc Hrc
     inext
@@ -167,11 +167,11 @@ theorem stepLeader.wp_proof
       _ _ _ Hty Hlead $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
-  · obtain ⟨Hclen, Hcb⟩ := Hhr Hty
+  · obtain ⟨Hclen, Hcb, Hvne⟩ := Hhr Hty
     iapply wp_stepLeader_hbresp c wp_raft_sendAppend wp_raftLog_lastIndex wp_readOnly_recvAck
       wp_readOnly_maybeAdvance wp_raft_responseToReadIndexReq wp_raft_send wp_GetType wp_GetFrom
       wp_GetContext wp_GetTo r id s ml m ents ctx sn rs _ _ _ Hty Hlead
-      (Hself (Or.inl Hty)) Hid (Hrdnz (Or.inl Hty)).1 Hclen Hcb $$ [Hphys Hm] HΦ'
+      (Hself (Or.inl Hty)) Hvne (Hrdnz (Or.inl Hty)).1 Hclen Hcb $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · iapply wp_stepLeader_appresp c wp_raft_sendAppend wp_raft_maybeSendAppend
@@ -180,7 +180,7 @@ theorem stepLeader.wp_proof
       wp_Progress_BecomeReplicate wp_Progress_CanBumpCommit wp_Inflights_FreeLE
       wp_raftLog_findConflictByTerm wp_raftLog_lastIndex wp_raftLog_firstIndex
       wp_raft_sendTimeoutNow wp_GetType wp_GetFrom wp_GetReject wp_GetIndex wp_GetRejectHint
-      wp_GetLogTerm r id s ml m Hty Hlead Hid (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
+      wp_GetLogTerm r id s ml m Hty Hlead (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
       (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty).1 (fun h => (Hack h).2) ents ctx sn rs _ _ _
       $$ [Hphys Hm] HΦ'
     iframe

@@ -2337,6 +2337,9 @@ of `G` at a position below `a`, a **witness** (`WitOk`): a commit fact of a term
 covering it, whose log agrees with `G` up to it, and whose configuration index is exactly the
 one just before it. A witness's configuration index is below the fact's, so the definition
 recurses on `a` (well founded). `cqAt γ t n G a c q` is the fact with its data, `cq` hides it.
+(2026-10-25, T-M M2a) A conf entry of the bootstrap log (`γ.reBoot`, committed with no quorum)
+needs no witness: where the far cases ask for one (`lc_far_older`, ...), an entry of the boot log
+is already in both logs, against I1 (`far_older`).
 
 `commitIn γ F c tm`: the full log `F` agrees, at `c`, with such a `G` for some `t ≤ tm`
 with `c ≤ n` (`commitJ`), and (dynamic mode, stage B5) every conf entry of `F` below `c` has a
@@ -2382,12 +2385,12 @@ def cqAt (γ : RaftNames) (t n : w64) (G : List EntryM) (a : w64) (c : CfgM)
     isCommitted γ (G.take (uint.Z a).toNat) ∗
     ([∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i') ∗
     (⌜γ.reDyn = none⌝ ∨ (⌜ConfI1 G (uint.Z a).toNat⌝ ∗
-      ∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < (uint.Z a).toNat),
+      ∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < (uint.Z a).toNat), ∀ (_ : γ.reBoot.length ≤ k),
         ∃ (t' n' : w64) (G' : List EntryM) (a' : w64) (c' : CfgM) (q' : GSet w64),
           ∃ (_ : WitOk G k t' n' G' a' (uint.Z t + 1)), cqAt γ t' n' G' a' c' q')))
 termination_by (uint.Z a).toNat
 decreasing_by
-  rename_i h1 h2
+  rename_i h1 _ h2
   exact Nat.lt_of_le_of_lt h2.2.2.1 h1.2
 
 theorem cqAt_persistent_aux (γ : RaftNames) :
@@ -2408,6 +2411,7 @@ theorem cqAt_persistent_aux (γ : RaftNames) :
     refine @sep_persistent _ _ _ _ inferInstance ?_
     refine forall_persistent _ (h := fun k => ?_)
     refine forall_persistent _ (h := fun hk => ?_)
+    refine forall_persistent _ (h := fun _ => ?_)
     refine exists_persistent _ (h := fun t' => ?_)
     refine exists_persistent _ (h := fun n' => ?_)
     refine exists_persistent _ (h := fun G' => ?_)
@@ -2439,6 +2443,7 @@ theorem cqAt_timeless_aux (γ : RaftNames) :
     refine @sep_timeless _ _ _ _ inferInstance ?_
     refine @forall_timeless _ _ _ _ (fun k => ?_)
     refine @forall_prop_timeless _ _ _ _ (fun hk => ?_)
+    refine @forall_prop_timeless _ _ _ _ (fun _ => ?_)
     refine @exists_timeless _ _ _ _ (fun t' => ?_)
     refine @exists_timeless _ _ _ _ (fun n' => ?_)
     refine @exists_timeless _ _ _ _ (fun G' => ?_)
@@ -2455,7 +2460,7 @@ instance cqAt_timeless (γ : RaftNames) (t n : w64) (G : List EntryM) (a : w64)
 /-- `cqAt`'s dynamic part. -/
 def cqDyn (γ : RaftNames) (t : w64) (G : List EntryM) (a : w64) : IProp GF :=
   iprop(⌜ConfI1 G (uint.Z a).toNat⌝ ∗
-      ∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < (uint.Z a).toNat),
+      ∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < (uint.Z a).toNat), ∀ (_ : γ.reBoot.length ≤ k),
         ∃ (t' n' : w64) (G' : List EntryM) (a' : w64) (c' : CfgM) (q' : GSet w64),
           ∃ (_ : WitOk G k t' n' G' a' (uint.Z t + 1)), cqAt γ t' n' G' a' c' q')
 
@@ -2542,7 +2547,7 @@ theorem cq_boot (γ : RaftNames) (t n : w64) (G : List EntryM) :
 /-- The node-local witnesses (2026-10-14, reconfiguration stage B5; the paper's `W`): every
 conf entry of `F` at a position below `lim` has a witness of a term below `B`. -/
 def witsB (γ : RaftNames) (F : List EntryM) (lim : Nat) (B : Int) : IProp GF :=
-  iprop(∀ (k : Nat), ∀ (_ : IsConfPos F k ∧ k < lim),
+  iprop(∀ (k : Nat), ∀ (_ : IsConfPos F k ∧ k < lim), ∀ (_ : γ.reBoot.length ≤ k),
     ∃ (t' n' : w64) (G' : List EntryM) (a' : w64) (c' : CfgM) (q' : GSet w64),
       ∃ (_ : WitOk F k t' n' G' a' B), cqAt γ t' n' G' a' c' q')
 
@@ -2554,6 +2559,7 @@ instance witsB_timeless (γ : RaftNames) (F : List EntryM) (lim : Nat) (B : Int)
   unfold witsB
   refine @forall_timeless _ _ _ _ (fun k => ?_)
   refine @forall_prop_timeless _ _ _ _ (fun hk => ?_)
+  refine @forall_prop_timeless _ _ _ _ (fun hb => ?_)
   infer_instance
 
 /-- `commitIn`'s commit justification (until 2026-10-14 all of `commitIn`). Since 2026-10-16
@@ -2634,8 +2640,8 @@ theorem witsB_le (γ : RaftNames) (F : List EntryM) (lim lim' : Nat) (B B' : Int
     lim' ≤ lim → B ≤ B' → ⊢ witsB (GF := GF) γ F lim B -∗ witsB γ F lim' B' := by
   intro Hl HB
   unfold witsB
-  iintro #H %k %Hk
-  ihave Hw := H $$ %k %(And.intro Hk.1 (by omega))
+  iintro #H %k %Hk %Hb
+  ihave Hw := H $$ %k %(And.intro Hk.1 (by omega)) %Hb
   icases Hw with ⟨%t', %n', %G', %a', %c', %q', %Hwo, #Hc⟩
   iexists t', n', G', a', c', q'
   iexists (by obtain ⟨h1, h2⟩ := Hwo; exact ⟨by omega, h2⟩)
@@ -2646,11 +2652,11 @@ theorem witsB_agree (γ : RaftNames) (F F' : List EntryM) (lim : Nat) (B : Int) 
     F'.take lim = F.take lim → ⊢ witsB (GF := GF) γ F lim B -∗ witsB γ F' lim B := by
   intro Hag
   unfold witsB
-  iintro #H %k %Hk
+  iintro #H %k %Hk %Hb
   have Hpos : IsConfPos F k := by
     obtain ⟨⟨e, he, hc⟩, hk⟩ := Hk
     exact ⟨e, by rw [← getElem?_agree_lt Hag hk]; exact he, hc⟩
-  ihave Hw := H $$ %k %(And.intro Hpos Hk.2)
+  ihave Hw := H $$ %k %(And.intro Hpos Hk.2) %Hb
   icases Hw with ⟨%t', %n', %G', %a', %c', %q', %Hwo, #Hc⟩
   iexists t', n', G', a', c', q'
   iexists (by

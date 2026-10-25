@@ -26,7 +26,7 @@ theorem setupNode.wp_proof
     (wp_RawNode_Bootstrap : RawNode.Bootstrap.spec (GF := GF) (hG := hG))
     (wp_newNode : newNode.spec (GF := GF) (hG := hG)) :
     setupNode.spec (GF := GF) (hG := hG) := by
-  intro γ c cv lok si σ hs csm R peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 P11
+  intro γ md c cv lok si σ hs csm R peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 P11
     P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, Hinit, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hnscap, #Hcl⟩
   ihave %Hplen := ownSlice_len $$ Hpeers
@@ -48,7 +48,7 @@ theorem setupNode.wp_proof
   have Hfresh0 : GMap.listToSet csm.Voters' = ∅ := by rw [Q1]; rfl
   ihave Hfresh' : rawNodeFresh rn cv.ID' si ∅ cv.StepDownOnRemoval' cv.PreVote' s $$ [Hfresh]
   · rw [← Hfresh0]; iexact Hfresh
-  wp_apply wp_RawNode_Bootstrap γ rn cv.ID' si cv.StepDownOnRemoval' cv.PreVote' s peers dq pv ps ctxs
+  wp_apply wp_RawNode_Bootstrap γ md rn cv.ID' si cv.StepDownOnRemoval' cv.PreVote' s peers dq pv ps ctxs
     bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
     $$ [$Hfresh' $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hnscap $Hcl] as %err2 ⟨%Herr2, Hrn, Hpeers⟩
   subst Herr2

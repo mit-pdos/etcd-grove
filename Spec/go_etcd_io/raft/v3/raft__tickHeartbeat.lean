@@ -38,7 +38,8 @@ abbrev raft.tickHeartbeat.spec : Prop :=
   ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
   NStateWf s →
   -- (2026-10-14, stage B7 part 2) in either ghost mode (`raft.Step.spec`'s)
-  (md.isDyn = true → s.role ≠ .preCandidate) →
+  -- (2026-10-25, T-M M2b) a pre-candidate's campaign guard (until then no pre-candidate)
+  md.Guard s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s }}

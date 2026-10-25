@@ -733,7 +733,7 @@ theorem wp_stepLeader_hbresp
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (Hty : m.Type' = MsgHeartbeatResp) (Hlead : s.role = .leader) (Hself : m.From' ≠ id)
-    (Hid : id ∈ c.voters) (Hrd : RdOk c.voters s.rd)
+    (Hvne : c.voters ≠ ∅) (Hrd : RdOk c.voters s.rd)
     (Hclen : ctx = [] ∨ 8 ≤ ctx.length)
     (Hcb : ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
             ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int)) :
@@ -894,8 +894,7 @@ theorem wp_stepLeader_hbresp
     isplitr
     · ipureintro; exact Hcsz
     isplitr
-    · ipureintro; intro h; change c.voters = ∅ at h; rw [h] at Hid
-      exact absurd Hid (GMap.not_elem_of_empty _)
+    · ipureintro; intro h; change c.voters = ∅ at h; exact Hvne h
     · ipureintro; exact Hbound
   ihave Htrk := Htrkback $$ Hv0 Hv1
   ihave Hphys := Hback $$ %tv %ro2 %(readonlyAdvance ra N).1 Htrkf Htrk Hrof Hro
@@ -1116,7 +1115,7 @@ theorem wp_stepLeader_appresp
     (wp_GetRejectHint : raftpb.Message.GetRejectHint.spec (GF := GF) (hG := hG))
     (wp_GetLogTerm : raftpb.Message.GetLogTerm.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (Hty : m.Type' = MsgAppResp) (Hlead : s.role = .leader) (Hid : id ∈ c.voters)
+    (Hty : m.Type' = MsgAppResp) (Hlead : s.role = .leader)
     (Hfrom0 : m.From' ≠ W64 0) (Hself : m.Reject' = true → m.From' ≠ id) (Hnz : s.term ≠ W64 0)
     (Hrdp : ∀ p ∈ s.rd.pend, p.2 ≠ [])
     -- (stage R8a) an accepted acknowledgement is within the log (`MaybeUpdate` keeps `PrvalsOk`)
