@@ -272,3 +272,12 @@ on `name/`; `Unlock`: the delete of the request's key; `Campaign` and `Leader`: 
 translated, not proved. The class becomes the server's handlers' checks once the in-process client
 (`v3client.New(s)`) is shown to meet the contract (not translated yet).
 
+
+## What is proved of the table (S5c in part, the simple provider's token check, 2026-10-25)
+
+The binding every row's principal rests on, for etcd's default provider: `isValidSimpleToken` is
+proved on a context (`tokenSimple_isValid`; `strconv.ParseUint`, the `select` on the index waiter
+and the context), so the simple provider's `info` keeps the binding on a context with no hypothesis
+on the check (`tokenSimple_info_ctx`). The provider still is not shown to meet the whole contract
+(`tokenProviderOk`): `enable`, `disable`, `invalidateUser` and the TTL keeper are left
+(`notes/decisions.md`, "S5c of the auth plan, in part").

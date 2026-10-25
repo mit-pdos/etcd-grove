@@ -18236,3 +18236,52 @@ the trust base is unchanged (696 axioms, 4 sorries).
 **Also.** `concurrency.sessionOptSpec` (a `□`) has no `Persistent` instance; v3lock's `Defs.lean`
 adds one locally (`sessionOptSpec_persistent'`), to be moved next to the definition.
 
+
+## S5c of the auth plan, in part: the pin at Perennial's `strconv` and `time.Ticker`, `isValidSimpleToken` proved on a context (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5c`)
+
+**Problem.** S5b left three hypotheses on the simple token provider: `isValidSimpleToken` (it
+calls `strconv.ParseUint`, which Perennial did not translate) and the keeper's `run`/`stop`
+(`time.Ticker`, `Time.After`). Perennial now has both (`13a60f492`, `c022dbe42`; `notes/
+perennial-changes.md`, "Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`").
+
+**The pin bump** (`24bef275e`). Perennial now translates `strconv`, so its `IsPkgInit` instance and
+`wp_initialize'` are Perennial's: raft's `Base.lean` and `Init.lean` (and the witness copies) drop
+their own (an instance `define_is_pkg_init iprop(True)`, a proof over the trust-boundary axiom
+`strconv.opaqueInitsOk`, which goes: 696 to 695 axioms); `etc/gen-init.py` no longer counts
+`strconv` among raft's packages; the package tables (and kvwitness's hand-written one) gain
+`internal/strconv` and `internal/stringslite`, which `strconv` imports. The worktree built against
+the pinned Perennial through a path manifest and a private `.lake/packages` (Perennial at the
+pinned checkout, the other dependencies the shared ones), so the shared clone stayed at
+`beb785eaf` for the other worktrees.
+
+**`isValidSimpleToken` proved** (`tokenSimple_isValid`, `auth/TokenSimple.lean`): on a context
+(Perennial's `context.isContext ci cd`) and the provider's index waiter (`simpleWaitOk p`: the
+field `indexWaiter` read-only, a function returning, for every index, a channel on which a receive
+may complete with any outcome, `anyRecv`), it returns: `strings.Split`, `strconv.ParseUint` (a
+non-nil `*NumError` is `false`), then the `select` on the waiter's channel and the context's
+`Done` (`isContextDone_receive`). Stated at `HasLC.hasLC`: Perennial's contexts are, the rest of
+the file is generic over later credits. `tokenSimple_info` is generalized over the check's
+precondition (`tokenSimple_info_of`); the old theorem over `ValidSpec` is its corollary, and
+`tokenSimple_info_ctx` is `info` on a context with no hypothesis on the check.
+
+**Why `ValidSpec` stays for the contract.** `tokenProviderOk`'s `info` clause has no context
+premise and is generic over later credits, so `tokenSimple_info_ctx` cannot discharge it: the
+contract needs a context premise at `HasLC.hasLC` (its callers, `authInfoFromToken` and
+`AuthInfoFromCtx`, have the request's context), a change to `InvAuth` and its users.
+
+**Not finished: the keeper and the provider's rest** (`run`, `stop`, `enable`, `disable`,
+`invalidateUser`, `newTokenProviderSimple`; translated, `run`/`stop` since this stage). Two design
+changes, each wider than this stage:
+- **The keeper field is read outside the lock.** `invalidateUser` tests `t.simpleTokenKeeper ==
+  nil` before taking `simpleTokensMu`; `enable`/`disable` write it under the lock. Not a Go bug:
+  all three are called by the auth store's admin side, serialized (`enable`/`disable` under
+  `enabledMu`; `invalidateUser` from `UserDelete`/`UserChangePassword` on the apply thread; `Close`
+  only from `Cleanup`, before the server starts). But the contract's `{{ True }}` clauses for the
+  three cannot be met: the field needs a share the caller holds (the admin side's, `authOwn`'s),
+  half in the lock invariant.
+- **A keeper's goroutine must find its map after relocking.** `simpleLk` holds the maps of the
+  keepers created (`ks`, existential), so `run` cannot know, at its next `Lock`, that its keeper
+  is still among them: the lock invariant needs a ghost set of keepers (an authority, a
+  persistent element per keeper). `run`'s loop is then the map range with deletion
+  (`wp_map_for_range_gen`), the delete callback over the provider's map, the ticker's channel bag
+  and `stopc` (a bag), `donec` a broadcast channel `run` closes and `stop` waits on.
