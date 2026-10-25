@@ -182,40 +182,6 @@ theorem entsBig_lookup (ls : List Loc) (es : List EntryM) (i : Nat) (e : EntryM)
   · ipureintro; exact Hl'
   iapply (BigSepL2.bigSepL2_lookup Hl' He) $$ H
 
-/-- Two lists of log entries at the same pointers are the same (D2: a log entry is one value
-for good). -/
-theorem entsBig_agree (ls : List Loc) (es1 es2 : List EntryM) :
-    ([∗list] l;e ∈ ls;es1, entRO (GF := GF) l e) ∗ ([∗list] l;e ∈ ls;es2, entRO l e) ⊢
-      ⌜es1 = es2⌝ := by
-  induction ls generalizing es1 es2 with
-  | nil =>
-    iintro ⟨H1, H2⟩
-    ihave %h1 := entsBig_length $$ H1
-    ihave %h2 := entsBig_length $$ H2
-    ipureintro
-    cases es1 <;> cases es2 <;> simp_all
-  | cons l ls ih =>
-    cases es1 with
-    | nil =>
-      iintro ⟨H1, -⟩
-      ihave %h1 := entsBig_length $$ H1
-      simp at h1
-    | cons e1 es1 =>
-      cases es2 with
-      | nil =>
-        iintro ⟨-, H2⟩
-        ihave %h2 := entsBig_length $$ H2
-        simp at h2
-      | cons e2 es2 =>
-        iintro ⟨H1, H2⟩
-        icases (BigSepL2.bigSepL2_cons).1 $$ H1 with ⟨#E1, #R1⟩
-        icases (BigSepL2.bigSepL2_cons).1 $$ H2 with ⟨#E2, #R2⟩
-        ihave %He := entPts_agree l DFrac.discard DFrac.discard e1 e2 $$ [E1 E2]
-        · iframe E1 E2
-        ihave %Hr := ih es1 es2 $$ [R1 R2]
-        · iframe R1 R2
-        ipureintro; rw [He, Hr]
-
 /-- An entry slice, frozen read-only. -/
 theorem entsPts_persist (s : GoSlice) (dq : DFrac) (es : List EntryM) :
     entsPts (GF := GF) s dq es ⊢ |==> entsRO s es := by
@@ -340,14 +306,6 @@ theorem csPts_persist (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
   · ipureintro; exact Hnn
   iframe HV Hv HL Hl HO Ho HN Hn HA cA HW cW HWO cWO Hpb
   ipureintro; exact Hal
-
-theorem csOpt_persist (p : Loc) (dq : DFrac) (c : ConfStateM) :
-    csOpt (GF := GF) p dq c ⊢ |==> csOpt p DFrac.discard c := by
-  iunfold csOpt
-  iintro (%H | H)
-  · imodintro; ileft; ipureintro; exact H
-  · imod csPts_persist _ _ _ _ $$ H with #H
-    imodintro; iright; iexact H
 
 theorem csOptA_persist (p : Loc) (dq : DFrac) (c : ConfStateM) :
     csOptA (GF := GF) p dq c ⊢ |==> csOptA p DFrac.discard c := by

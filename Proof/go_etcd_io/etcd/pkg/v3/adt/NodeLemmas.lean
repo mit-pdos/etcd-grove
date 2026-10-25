@@ -39,16 +39,6 @@ omit package_sem in
 theorem colorW_inj {c1 c2 : RbColor} (h : colorW c1 = colorW c2) : c1 = c2 := by
   cases c1 <;> cases c2 <;> first | rfl | (exact absurd h (by decide))
 
-omit package_sem in
-include sem in
-theorem affIvl_inj {b1 e1 b2 e2 : GoString} (h : affIvl b1 e1 = affIvl b2 e2) :
-    b1 = b2 ∧ e1 = e2 := by
-  unfold affIvl at h
-  simp only [Interval.mk.injEq] at h
-  obtain ⟨h1, h2⟩ := h
-  simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h1 h2
-  exact ⟨go.intoVal_inj h1, go.intoVal_inj h2⟩
-
 /-- A points-to made read-only. -/
 theorem tp_persist {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (dq : DFrac) :
     (l ↦{dq} v : IProp GF) ⊢ |==> l ↦□ v :=
@@ -554,11 +544,6 @@ omit K in
 theorem ownIvt_combine (t : Loc) (L1 L2 : List Entry) (q1 q2 : Qp) :
     ownIvt (GF := GF) t L1 q1 ∗ ownIvt t L2 q2 ⊢ ⌜L1 = L2⌝ ∗ ownIvt t L1 (q1 + q2) :=
   ownIvtK_combine strKey t L1 L2 q1 q2
-
-omit K in
-theorem ownIvt_not_null (t : Loc) (L : List Entry) (q : Qp) :
-    ownIvt (GF := GF) t L q ⊢ ⌜t ≠ null⌝ :=
-  ownIvtK_not_null strKey t L (DFrac.own q)
 
 omit K in
 /-- The string-affine node's `iv` is the entry's `IntervalValue` (`strKey` holds no resource). -/

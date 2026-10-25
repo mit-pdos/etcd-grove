@@ -417,11 +417,6 @@ def stepErr (err : GoInterface) : IProp GF :=
 instance stepErr_persistent (err : GoInterface) : Persistent (stepErr (GF := GF) err) := by
   unfold stepErr; infer_instance
 
-theorem stepErr_nil : ⊢ stepErr (GF := GF) interface.nil := by
-  unfold stepErr
-  ileft
-  ipureintro; rfl
-
 /-- A proposal on `propc`: the message `Propose` builds, with its one-entry batch owned,
 the data read-only and its record (`entData`, 2026-10-10), and its result channel, of
 which `run` is the producer (a `Handoff`: `run` sends the error, `stepErr`, and closes); or
@@ -849,13 +844,6 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iexists d, ce
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
-
-/-- The committed log the driver was handed is a lower bound of `run`'s (2026-10-15). -/
-theorem nodeDriver_lb (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) :
-    ⊢ nodeDriver (GF := GF) γ id n ds -∗ dlvLb γ ds := by
-  iintro H
-  unfold nodeDriver
-  icases H with ⟨-, -, $, -⟩
 
 theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) :
     ⊢ nodeDriverBusy (GF := GF) γ id n ds es -∗ dlvLb γ ds := by

@@ -229,13 +229,6 @@ theorem plogTermAt_none_range (b : entryID) (es : List EntryM) (i : w64) :
     · intro h; cases h
     · intro h; omega
 
-/-- A well-formed log's entry at `i` has index `i`. -/
-theorem PlogWf_lookup_index (b : entryID) (es : List EntryM) (k : Nat)
-    (e : EntryM) :
-    PlogWf b es → es[k]? = some e →
-    uint.Z e.Index' = uint.Z b.index' + ((k + 1 : Nat) : Int) := by
-  intro H Hk; exact H k e Hk
-
 omit [FfiSyntax] in
 theorem getLast?_some_getElem? {A : Type _} (l : List A) (e : A) (h : l.getLast? = some e) :
     l[l.length - 1]? = some e := by
@@ -273,24 +266,6 @@ theorem plogTermAt_last (b : entryID) (es : List EntryM) :
     simp only [entId]
     push_cast at this ⊢; omega
   | none => exact plogTermAt_base b es
-
-/-- `plogTruncateAppend` of a batch that continues the log is a plain append. -/
-theorem plogTruncateAppend_cont (b : entryID) (es ents : List EntryM)
-    (e0 : EntryM) :
-    ents[0]? = some e0 →
-    uint.Z e0.Index' = plogLastIndexZ b es + 1 →
-    plogTruncateAppend b es ents = es ++ ents := by
-  intro H0 Hidx
-  unfold plogTruncateAppend
-  cases ents with
-  | nil => cases H0
-  | cons e ents' =>
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at H0
-    subst H0
-    unfold plogLastIndexZ at Hidx
-    have : (uint.Z e.Index' - uint.Z b.index' - 1).toNat = es.length := by omega
-    dsimp only
-    rw [this, List.take_of_length_le (Nat.le_refl _)]
 
 /-- A well-formed log stays well-formed under `plogTruncateAppend` of a well-formed
 batch starting inside or just after it. -/

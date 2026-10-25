@@ -129,11 +129,6 @@ theorem msgOwn_to_msgIn (l : Loc) (ms : MsgSt) (h : ms.msg.Type' ≠ MsgApp) :
     msgOwn (GF := GF) l (DFrac.own 1) ms ⊢ msgIn l DFrac.discard ms := by
   simp only [msgOwn, msgPts, msgIn, needsCap_of_ne h]; exact .rfl
 
-/-- A received `MsgApp` holds its capacity. -/
-theorem msgIn_MsgApp (l : Loc) (dqe : DFrac) (ms : MsgSt) (h : ms.msg.Type' = MsgApp) :
-    msgIn (GF := GF) l dqe ms ⊣⊢ msgPtsC l (DFrac.own 1) dqe true ms := by
-  simp only [msgIn, needsCap_of_eq h]; exact .rfl
-
 /-- An owned message frozen read-only for good (a stored read-index request: nothing writes it
 after, `responseToReadIndexReq` reads `From` and shares `Entries`). -/
 theorem msgOwn_persist (l : Loc) (dq : DFrac) (ms : MsgSt) :

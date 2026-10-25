@@ -260,10 +260,6 @@ def RunSt.enc : RunSt → Nat
   | .drained => 2
   | .runT k => k + 3
 
-theorem RunSt.enc_inj : Function.Injective RunSt.enc := by
-  intro a b h
-  cases a <;> cases b <;> simp_all [RunSt.enc]
-
 instance RunSt.countable : Pos.Countable RunSt :=
   countableOfLeftInverse RunSt.enc
     (fun n => match n with | 0 => .idle | 1 => .runU | 2 => .drained | k + 3 => .runT k)

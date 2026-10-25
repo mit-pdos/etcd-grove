@@ -128,15 +128,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- **The batch lock's quarter of the readers' view** at `vd` (see the file header). -/
 def viewAt (γ : BNames) (vd : VData) : IProp GF := ghostVar γ.view (1 : Qp).half.half vd
 
-/-- The witness agrees with a client's share of the view. -/
-theorem viewAt_bView_agree (γ : BNames) (q : Qp) (vd vd' : VData) :
-    viewAt (GF := GF) γ vd ∗ bView γ q vd' ⊢ ⌜vd = vd'⌝ := by
-  unfold viewAt bView bViewC
-  iintro ⟨Ha, %c, Hb, -, -⟩
-  icombine Ha Hb gives %H
-  ipureintro
-  exact H.2
-
 end preds
 
 end backend

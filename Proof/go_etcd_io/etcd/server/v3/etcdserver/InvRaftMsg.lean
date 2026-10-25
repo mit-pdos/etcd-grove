@@ -133,40 +133,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `m.GetTo()` of a message to `to` is `to` (raft's `Message.GetTo.spec`). -/
-theorem wp_msgAt_GetTo (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
-    ∀ (m : Loc) (to : w64) (ty : w32),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgAt m to ty }}
-      (App (Val (m @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetTo")) (Val #()))
-    {{ RET #to; True }} := by
-  intro m to ty
-  iintro %Φ ⟨#Hi, #H⟩ HΦ
-  iunfold msgAt at H
-  icases H with ⟨%st, #Hm, %Hst⟩
-  obtain ⟨rfl, rfl⟩ := Hst
-  iapply wp_GetTo.1 m DFrac.discard DFrac.discard false st $$ [$Hi $Hm]
-  inext
-  iintro -
-  iapply HΦ
-  itrivial
-
-/-- `m.GetType()` of a message of type `ty` is `ty`. -/
-theorem wp_msgAt_GetType (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG)) :
-    ∀ (m : Loc) (to : w64) (ty : w32),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ msgAt m to ty }}
-      (App (Val (m @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetType")) (Val #()))
-    {{ RET #ty; True }} := by
-  intro m to ty
-  iintro %Φ ⟨#Hi, #H⟩ HΦ
-  iunfold msgAt at H
-  icases H with ⟨%st, #Hm, %Hst⟩
-  obtain ⟨rfl, rfl⟩ := Hst
-  iapply wp_GetType.1 m DFrac.discard DFrac.discard false st $$ [$Hi $Hm]
-  inext
-  iintro -
-  iapply HΦ
-  itrivial
-
 /-- `p.GetTerm()` of a hard state at `hs` (nil: the empty one) is `hs.term`. -/
 theorem wp_hardStateAt_GetTerm
     (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG)) :

@@ -65,24 +65,6 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
 
 /-! The batch, as `appendEntry` rewrites it: `stamp` (`Protocol/Model.lean`). -/
 
-/-- One iteration of the loop, on the list: the prefix already stamped grows
-by one. -/
-private theorem stamp_step (tm li : w64) (ents : List EntryM) (n : Nat) (e : EntryM)
-    (He : ents[n]? = some e) :
-    ((ents.mapIdx (stamp tm li)).take n ++ ents.drop n).set n
-        { e with Term' := tm, Index' := li + W64 1 + W64 n }
-      = (ents.mapIdx (stamp tm li)).take (n+1) ++ ents.drop (n+1) := by
-  have Hlt : n < ents.length := by
-    rcases (List.getElem?_eq_some_iff.1 He) with ⟨h, _⟩; exact h
-  have Hl : ((ents.mapIdx (stamp tm li)).take n).length = n := by
-    simp only [List.length_take, List.length_mapIdx]; omega
-  rw [List.set_append_right _ _ (by omega), Hl, Nat.sub_self]
-  rw [List.take_add_one, List.getElem?_mapIdx, He]
-  rw [List.drop_eq_getElem_cons Hlt]
-  simp only [Option.map_some, Option.toList_some, List.set_cons_zero, List.append_assoc,
-    List.singleton_append]
-  rfl
-
 /-- Stamping touches only `Term` and `Index`: a property of the other fields carries
 over to the stamped batch (Rocq `stamped_empty`, `stamped_normal`). -/
 private theorem stamped_mem (tm li : w64) (ents : List EntryM) (P : EntryM → Prop)

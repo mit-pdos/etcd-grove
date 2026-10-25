@@ -62,11 +62,6 @@ variable (σ : WsState) (v : SyncVars)
 
 theorem SyncVars.st_Ws : (v.st σ).Ws = v.Ws := rfl
 theorem SyncVars.st_Wu : (v.st σ).Wu = v.Wu := rfl
-theorem SyncVars.st_ST : (v.st σ).ST = v.ST := rfl
-theorem SyncVars.st_E : (v.st σ).E = v.E := rfl
-theorem SyncVars.st_M : (v.st σ).M = σ.M := rfl
-theorem SyncVars.st_Wo : (v.st σ).Wo = σ.Wo := rfl
-theorem SyncVars.st_Lmu : (v.st σ).Lmu = σ.Lmu := rfl
 theorem SyncVars.st_VB : (v.st σ).VB = σ.VB ++ [v.Bv] := rfl
 
 theorem SyncVars.st_victimOf (k : Loc) :
@@ -552,22 +547,6 @@ theorem sw_minRevFold_ge (ST : GMap Loc WatcherSt) (b : Int) :
     cases hs : ST !! x with
     | none => exact h
     | some st => have := hD x List.mem_cons_self st hs; simp only; omega
-
-/-- The least `minRev` of a non-empty set of members, all with states between `0` and `cur`: at
-most each member's, between `0` and `cur`. -/
-theorem sw_minRevOf_bounds (ST : GMap Loc WatcherSt) (S : GMap Loc Unit) (cur : Int)
-    (hne : ∃ w, (S !! w).isSome) (hst : ∀ w, (S !! w).isSome → (ST !! w).isSome)
-    (hb : ∀ w st, (S !! w).isSome → ST !! w = some st → 0 ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ cur) :
-    0 ≤ minRevOf ST S ∧ minRevOf ST S ≤ cur ∧
-      ∀ w st, (S !! w).isSome → ST !! w = some st → minRevOf ST S ≤ sint.Z st.minRev := by
-  unfold minRevOf minRevL
-  refine ⟨sw_minRevFold_ge ST 0 _ _ (by omega) (fun w hw st hs =>
-      (hb w st ((GMap.mem_dom_list S w).1 hw) hs).1), ?_, fun w st hw hs =>
-      sw_minRevFold_le_mem ST _ _ w st ((GMap.mem_dom_list S w).2 hw) hs⟩
-  obtain ⟨w, hw⟩ := hne
-  obtain ⟨st, hs⟩ := Option.isSome_iff_exists.1 (hst w hw)
-  exact Int.le_trans (sw_minRevFold_le_mem ST _ _ w st ((GMap.mem_dom_list S w).2 hw) hs)
-    (hb w st hw hs).2
 
 /-- The least `minRev` of members with non-negative states: non-negative, at most each member's
 (D22 receiver epochs, S6: with no bound by `cur`, restoring members may be beyond it). -/

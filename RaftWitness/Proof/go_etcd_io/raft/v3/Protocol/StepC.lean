@@ -128,10 +128,6 @@ theorem JQuorum_single {c : CfgM} {id : w64} (h : CfgSingle c id) : JQuorum c {[
     size_singleton]
   omega
 
-theorem cfgSingle_simple (cfg lrn : GSet w64) (id : w64) :
-    CfgSingle (CfgM.simple cfg lrn) id ↔ cfg = {[id]} := by
-  unfold CfgSingle CfgM.simple; simp
-
 /-! ### Joint quorums at a non-joint configuration -/
 
 theorem MajQ_empty (q : GSet w64) : MajQ ∅ q := Or.inl rfl
@@ -189,9 +185,6 @@ theorem QOverlap.refl {c : CfgM} (hi : c.incoming ≠ ∅) : QOverlap c c :=
 /-- Whether the configuration `c` is joint: `len(r.trk.Config.Voters[1]) > 0`, `stepLeader`'s
 `alreadyJoint` (moved here from `Spec/stepLeader.lean` in stage B3, for `StepR`'s proposals). -/
 def CfgM.joint (c : CfgM) : Bool := decide (0 < GMap.size c.outgoing)
-
-theorem CfgM.joint_simple (cfg lrn : GSet w64) : (CfgM.simple cfg lrn).joint = false := by
-  simp [CfgM.joint, CfgM.simple, GMap.map_size_empty]
 
 /-! ### Conf-change entries of a log (moved here from `CfgOverlap.lean` and `StepRInv.lean`
 in stage B5: the ghost state's dynamic facts read them) -/
@@ -348,15 +341,6 @@ theorem confCount_take_le_self (l : List EntryM) (n : Nat) : confCount (l.take n
   conv => rhs; rw [← this]
   rw [confCount_append]; omega
 
-/-- I1 at `a` is at most one conf entry at or past `a` (2026-10-20). -/
-theorem confCount_drop_of_ConfI1 {l : List EntryM} {a : Nat} (h : ConfI1 l a) :
-    confCount (l.drop a) ≤ 1 := by
-  apply confCount_le_one
-  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
-  rw [List.getElem?_drop] at h1 h2
-  have := h (a + k1) (a + k2) e1 e2 (by omega) h1 h2 c1 c2
-  omega
-
 /-- At most one conf entry at or past `a`: the log has at most one more than its prefix. -/
 theorem confCount_le_take_add_one {l : List EntryM} {a : Nat} (h : confCount (l.drop a) ≤ 1) :
     confCount l ≤ confCount (l.take a) + 1 := by
@@ -402,14 +386,6 @@ theorem ConfI1_snoc {l : List EntryM} {c : Nat} {e : EntryM} (h : ConfI1 l c)
   rw [List.getElem?_append_left (by omega)] at h1
   rw [List.getElem?_append_left hk2] at h2
   exact h k1 k2 e1 e2 hlt h1 h2 c1 c2
-
-theorem ConfI1_take {l : List EntryM} {c n : Nat} (h : ConfI1 l c) : ConfI1 (l.take n) c := by
-  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
-  rw [List.getElem?_take] at h1 h2
-  by_cases hk1 : k1 < n <;> by_cases hk2 : k2 < n <;>
-    simp only [hk1, hk2, ite_true, ite_false] at h1 h2
-  · exact h k1 k2 e1 e2 hlt h1 h2 c1 c2
-  all_goals (first | cases h1 | cases h2)
 
 /-- With at most one conf entry at or past `a`, a conf entry at `k ≥ a` has exactly the conf
 entries of the prefix of length `a` before it. -/
