@@ -41,7 +41,7 @@ def serverFeatures : List GoString :=
   [go!"StopGRPCServiceOnDefrag", go!"InitialCorruptCheck", go!"CompactHashCheck",
    go!"TxnModeWriteWithSharedBuffer", go!"LeaseCheckpoint", go!"LeaseCheckpointPersist",
    go!"SetMemberLocalAddr", go!"FastLeaseKeepAlive", go!"PriorityRequest",
-   go!"NonBlockingDefrag"]
+   go!"NonBlockingDefrag", go!"AutoPromoteLearners"]
 
 /-- **The feature gate** `fg` (`featuregate.FeatureGate`, names-only: the trust boundary, a
 contract): `Enabled(f)` of a registered feature returns some boolean. -/

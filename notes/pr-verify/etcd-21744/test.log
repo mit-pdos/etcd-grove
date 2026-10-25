@@ -1,0 +1,220 @@
+=== RUN   TestVerifyPR21744_Finding1_MissingReqTimeoutDeadlocksMonitor
+raft2026/10/24 19:42:36 INFO: 1 switched to configuration voters=()
+raft2026/10/24 19:42:36 INFO: 1 became follower at term 0
+raft2026/10/24 19:42:36 INFO: newRaft 1 [peers: [], term: 0, commit: 0, applied: 0, lastindex: 0, lastterm: 0]
+raft2026/10/24 19:42:36 INFO: 1 became follower at term 1
+raft2026/10/24 19:42:36 INFO: 1 switched to configuration voters=(1)
+raft2026/10/24 19:42:36 INFO: 1 switched to configuration voters=(1)
+raft2026/10/24 19:42:36 INFO: 1 is starting a new election at term 1
+raft2026/10/24 19:42:36 INFO: 1 became candidate at term 2
+raft2026/10/24 19:42:36 INFO: 1 received MsgVoteResp from 1 at term 2
+raft2026/10/24 19:42:36 INFO: 1 has received 1 MsgVoteResp votes and 0 vote rejections
+raft2026/10/24 19:42:36 INFO: 1 became leader at term 2
+raft2026/10/24 19:42:36 INFO: 1 ignoring conf change transition:ConfChangeTransitionAuto changes:{type:ConfChangeAddNode node_id:2} context:"{\"IsPromote\":true}" at config voters=(1): possible unapplied conf change at index 3 (applied to 1)
+    auto_promote_verify_test.go:193: Part A confirmed: raft.ProposeConfChange returned nil and rewrote second ConfChange (ID=102) to EntryNormal at Index=4 with len(Data)=0
+    logger.go:146: 2026-10-24T19:42:36.063-0400	INFO	bbolt	Opening db file (/tmp/TestVerifyPR21744_Finding1_MissingReqTimeoutDeadlocksMonitor2311928506/001/etcd_backend_test184717769/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x337167582188, NoStatistics: false}
+    logger.go:146: 2026-10-24T19:42:36.064-0400	INFO	bbolt	Opening bbolt db (/tmp/TestVerifyPR21744_Finding1_MissingReqTimeoutDeadlocksMonitor2311928506/001/etcd_backend_test184717769/database) successfully
+    logger.go:146: 2026-10-24T19:42:36.064-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:36.064-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:36.064-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:36.064-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:36.065-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Creating bucket if not exist "members"
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Creating bucket if not exist "members" successfully
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed"
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed" successfully
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Creating bucket if not exist "cluster"
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Creating bucket if not exist "cluster" successfully
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Putting key "1"
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Putting key "1" successfully
+    logger.go:146: 2026-10-24T19:42:36.066-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "1", "added-peer-peer-urls": ["http://127.0.0.1:2380"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Putting key "2"
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Putting key "2" successfully
+    logger.go:146: 2026-10-24T19:42:36.066-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "2", "added-peer-peer-urls": ["http://127.0.0.1:22380"], "added-peer-is-learner": true}
+    logger.go:146: 2026-10-24T19:42:36.066-0400	WARN	use default bcrypt cost instead of the invalid given cost	{"min-cost": 4, "max-cost": 31, "default-cost": 10, "given-cost": 0}
+    logger.go:146: 2026-10-24T19:42:36.066-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:36.067-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    auto_promote_verify_test.go:232: Server ReqTimeout() = 5.01s; waiting 5.26s to verify tryAutoPromoteLearners is permanently blocked in s.configure
+    auto_promote_verify_test.go:243: Part B confirmed: tryAutoPromoteLearners remained blocked past ReqTimeout (5.01s) and s.w.IsRegistered(281474976710657)=true
+    logger.go:146: 2026-10-24T19:42:41.329-0400	DEBUG	auto-promote skipped	{"learner-id": "2", "error": "etcdserver: request cancelled"}
+    logger.go:146: 2026-10-24T19:42:41.329-0400	INFO	bbolt	Opening db file (/tmp/TestVerifyPR21744_Finding1_MissingReqTimeoutDeadlocksMonitor2311928506/002/etcd_backend_test1787219100/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x3371677940c8, NoStatistics: false}
+    logger.go:146: 2026-10-24T19:42:41.329-0400	INFO	bbolt	Opening bbolt db (/tmp/TestVerifyPR21744_Finding1_MissingReqTimeoutDeadlocksMonitor2311928506/002/etcd_backend_test1787219100/database) successfully
+    logger.go:146: 2026-10-24T19:42:41.329-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:41.329-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:41.329-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.329-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:41.329-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "members"
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "members" successfully
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed"
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed" successfully
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "cluster"
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "cluster" successfully
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Putting key "1"
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Putting key "1" successfully
+    logger.go:146: 2026-10-24T19:42:41.330-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "1", "added-peer-peer-urls": ["http://127.0.0.1:2380"], "added-peer-is-learner": false}
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Putting key "2"
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Putting key "2" successfully
+    logger.go:146: 2026-10-24T19:42:41.330-0400	INFO	added member	{"cluster-id": "0", "local-member-id": "0", "added-peer-id": "2", "added-peer-peer-urls": ["http://127.0.0.1:22380"], "added-peer-is-learner": true}
+    logger.go:146: 2026-10-24T19:42:41.330-0400	WARN	use default bcrypt cost instead of the invalid given cost	{"min-cost": 4, "max-cost": 31, "default-cost": 10, "given-cost": 0}
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-24T19:42:41.330-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.331-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    auto_promote_verify_test.go:278: Part D confirmed: wrapping ctx with context.WithTimeout causes promoteMember to return etcdserver: request timed out and clean up s.w
+    logger.go:146: 2026-10-24T19:42:41.382-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-24T19:42:41.382-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-24T19:42:41.382-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-24T19:42:41.382-0400	DEBUG	bbolt	Committing transaction 3 successfully
+--- PASS: TestVerifyPR21744_Finding1_MissingReqTimeoutDeadlocksMonitor (5.32s)
+=== RUN   TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailed
+=== RUN   TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailed/raft_proposal_dropped
+    logger.go:146: 2026-10-24T19:42:41.383-0400	INFO	bbolt	Opening db file (/tmp/TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailedraft_p2822970361/001/etcd_backend_test2650580218/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x337167794138, NoStatistics: false}
+    logger.go:146: 2026-10-24T19:42:41.383-0400	INFO	bbolt	Opening bbolt db (/tmp/TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailedraft_p2822970361/001/etcd_backend_test2650580218/database) successfully
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Creating bucket if not exist "members"
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Creating bucket if not exist "members" successfully
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed"
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed" successfully
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Creating bucket if not exist "cluster"
+    logger.go:146: 2026-10-24T19:42:41.383-0400	DEBUG	bbolt	Creating bucket if not exist "cluster" successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Putting key "1"
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Putting key "1" successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Putting key "2"
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Putting key "2" successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    auto_promote_verify_test.go:326: Confirmed: transient error "raft proposal dropped" -> learnerPromoteFailed=0->1, logged warn "auto-promote failed"
+    logger.go:146: 2026-10-24T19:42:41.384-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Committing transaction 3 successfully
+=== RUN   TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailed/etcdserver:_request_timed_out,_possibly_due_to_previous_leader_failure
+    logger.go:146: 2026-10-24T19:42:41.385-0400	INFO	bbolt	Opening db file (/tmp/TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailedetcdse3584598346/001/etcd_backend_test2197271096/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x3371677941a8, NoStatistics: false}
+    logger.go:146: 2026-10-24T19:42:41.385-0400	INFO	bbolt	Opening bbolt db (/tmp/TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailedetcdse3584598346/001/etcd_backend_test2197271096/database) successfully
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Creating bucket if not exist "members"
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Creating bucket if not exist "members" successfully
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed"
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed" successfully
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Creating bucket if not exist "cluster"
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Creating bucket if not exist "cluster" successfully
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Putting key "1"
+    logger.go:146: 2026-10-24T19:42:41.385-0400	DEBUG	bbolt	Putting key "1" successfully
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Putting key "2"
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Putting key "2" successfully
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    auto_promote_verify_test.go:326: Confirmed: transient error "etcdserver: request timed out, possibly due to previous leader failure" -> learnerPromoteFailed=0->1, logged warn "auto-promote failed"
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-24T19:42:41.386-0400	DEBUG	bbolt	Committing transaction 3 successfully
+=== RUN   TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailed/etcdserver:_request_timed_out,_possibly_due_to_connection_lost
+    logger.go:146: 2026-10-24T19:42:41.387-0400	INFO	bbolt	Opening db file (/tmp/TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailedetcdse3419187464/001/etcd_backend_test1385605253/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x337167794218, NoStatistics: false}
+    logger.go:146: 2026-10-24T19:42:41.387-0400	INFO	bbolt	Opening bbolt db (/tmp/TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailedetcdse3419187464/001/etcd_backend_test1385605253/database) successfully
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Creating bucket if not exist "members"
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Creating bucket if not exist "members" successfully
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed"
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Creating bucket if not exist "members_removed" successfully
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Creating bucket if not exist "cluster"
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Creating bucket if not exist "cluster" successfully
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Putting key "1"
+    logger.go:146: 2026-10-24T19:42:41.387-0400	DEBUG	bbolt	Putting key "1" successfully
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Putting key "2"
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Putting key "2" successfully
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    auto_promote_verify_test.go:326: Confirmed: transient error "etcdserver: request timed out, possibly due to connection lost" -> learnerPromoteFailed=0->1, logged warn "auto-promote failed"
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-24T19:42:41.388-0400	DEBUG	bbolt	Committing transaction 3 successfully
+--- PASS: TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailed (0.01s)
+    --- PASS: TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailed/raft_proposal_dropped (0.00s)
+    --- PASS: TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailed/etcdserver:_request_timed_out,_possibly_due_to_previous_leader_failure (0.00s)
+    --- PASS: TestVerifyPR21744_Finding2_TransientErrorsCountedAsFailed/etcdserver:_request_timed_out,_possibly_due_to_connection_lost (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	5.347s

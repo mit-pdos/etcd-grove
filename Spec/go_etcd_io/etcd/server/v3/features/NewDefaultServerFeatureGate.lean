@@ -38,7 +38,7 @@ variable [sem : go.Semantics]
 
 /-- **`features.NewDefaultServerFeatureGate(name, lg)`** returns a non-nil `*featureGate` (as a
 `featuregate.FeatureGate`) meeting the feature gate's contract on the server's features, with
-`CompactHashCheck` off. -/
+`CompactHashCheck` and `AutoPromoteLearners` off. -/
 abbrev features.NewDefaultServerFeatureGate.spec : Prop :=
   ∀ (name : GoString) (lg : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features }}
@@ -50,7 +50,11 @@ abbrev features.NewDefaultServerFeatureGate.spec : Prop :=
       -- (audit B4a, 2026-10-18) `CompactHashCheck` at its default, off
       featureIs (interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p)
-        go!"CompactHashCheck" false }}
+        go!"CompactHashCheck" false ∗
+      -- (PR etcd#21744) `AutoPromoteLearners` at its default, off
+      featureIs (interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p)
+        go!"AutoPromoteLearners" false }}
 
 end spec
 

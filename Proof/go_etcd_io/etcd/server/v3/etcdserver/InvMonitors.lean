@@ -113,14 +113,16 @@ def srvMonitorCfg (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
     srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ cfg.ServerFeatureGate' ∗
     srvLgReader s)
 
-/-- **The hash and downgrade monitors are off** (persistent; audit B4a, see the file header): no
-corruption check (`CorruptCheckTime = 0`), no downgrade check (`DowngradeCheckTime = 0`), and the
-feature gate answering `false` for `CompactHashCheck`. -/
+/-- **The hash, downgrade, and auto-promote-learners monitors are off** (persistent; audit B4a, see
+the file header): no corruption check (`CorruptCheckTime = 0`), no downgrade check
+(`DowngradeCheckTime = 0`), and the feature gate answering `false` for `CompactHashCheck` and
+`AutoPromoteLearners`. -/
 def srvMonitorsOff (s : Loc) : IProp GF :=
   iprop(srvCfgFieldAddr s go!"CorruptCheckTime" ↦□ (W64 0) ∗
     srvCfgFieldAddr s go!"DowngradeCheckTime" ↦□ (W64 0) ∗
     ∃ fg : GoInterface, srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗
-      featureIs fg go!"CompactHashCheck" false)
+      featureIs fg go!"CompactHashCheck" false ∗
+      featureIs fg go!"AutoPromoteLearners" false)
 
 instance srvMonitorsOff_persistent (s : Loc) : Persistent (srvMonitorsOff (GF := GF) s) := by
   unfold srvMonitorsOff; infer_instance

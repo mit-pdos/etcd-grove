@@ -22,6 +22,9 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.features
 
+@[reducible] noncomputable def AutoPromoteLearners [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"AutoPromoteLearners")
+
 @[reducible] noncomputable def StopGRPCServiceOnDefrag [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"StopGRPCServiceOnDefrag")
 

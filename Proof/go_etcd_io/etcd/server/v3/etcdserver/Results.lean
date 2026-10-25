@@ -1164,6 +1164,15 @@ end Perennial
 #print axioms Perennial.EtcdGrove.server_run
 #print axioms Perennial.EtcdGrove.server_start
 #print axioms Perennial.EtcdGrove.server_Start
+#print axioms Perennial.EtcdGrove.EtcdServer.Start.wp_proof_autoPromote
+#print axioms Perennial.EtcdGrove.EtcdServer.wp_monitorAutoPromoteLearners
+#print axioms Perennial.EtcdGrove.EtcdServer.wp_tryAutoPromoteLearners
+#print axioms Perennial.EtcdGrove.EtcdServer.FeatureEnabled.wp_is
+#print axioms Perennial.EtcdGrove.EtcdServer.tryAutoPromoteLearners.wp_default_forced
+#print axioms Perennial.EtcdGrove.EtcdServer.parseProposeCtxErr.wp_canceled_ne_timeout
+#print axioms Perennial.EtcdGrove.finding2_ErrProposalDropped_mem_false
+#print axioms Perennial.EtcdGrove.finding2_ErrTimeoutDueToLeaderFail_mem_false
+#print axioms Perennial.EtcdGrove.finding2_ErrTimeoutDueToConnectionLost_mem_false
 #print axioms Perennial.EtcdGrove.start_gives_views
 #print axioms Perennial.EtcdGrove.scheduler_fifo
 #print axioms Perennial.EtcdGrove.server_raft_node_start

@@ -37,6 +37,22 @@ theorem EtcdServer.FeatureEnabled.wp_proof :
   iapply HΦ
   itrivial
 
+/-- `s.FeatureEnabled(f)` for a feature `f` whose value `b` is fixed (`featureIs fg f b`). -/
+theorem EtcdServer.FeatureEnabled.wp_is (s : Loc) (fg : GoInterface) (f : GoString) (b : Bool) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ featureIs fg f b }}
+      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"FeatureEnabled")) (Val #f))
+    {{ RET #b; True }} := by
+  wp_start as ⟨#Hfg, #Hgate⟩
+  iunfold featureIs at Hgate
+  icases Hgate with ⟨%fi, %Hfi, #HEn⟩
+  wp_auto
+  subst Hfi
+  wp_auto
+  wp_apply HEn $$ []
+  iapply HΦ
+  itrivial
+
 end proof
 
 end EtcdGrove

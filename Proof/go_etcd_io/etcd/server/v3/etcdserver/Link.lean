@@ -71,6 +71,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getLead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTerm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTxPostLockInsideApplyHook
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorAutoPromoteLearners
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorClusterVersions
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorCompactHash
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorDowngrade
@@ -95,6 +96,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__shouldSnaps
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__tryAutoPromoteLearners
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__Clone
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Less
@@ -219,6 +221,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.numConnectedSince
 public import Proof.os.Rename
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
+public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.google_golang_org.protobuf.proto.Clone
@@ -653,6 +656,14 @@ theorem EtcdServer.wp_getTxPostLockInsideApplyHook :
     EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG) :=
   EtcdServer.getTxPostLockInsideApplyHook.wp_proof consistentIndex.wp_ConsistentApplyingIndex consistentIndex.wp_UnsafeConsistentIndex consistentIndex.wp_SetConsistentIndex
 
+theorem types.ID.wp_String_ptr :
+    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
+  types.ID.String_ptr.wp_proof
+
+theorem prometheus.CounterVec.wp_WithLabelValues :
+    prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
+  prometheus.CounterVec.WithLabelValues.wp_proof
+
 theorem schema.wp_NewAlarmBackend :
     schema.NewAlarmBackend.spec (GF := GF) (hG := hG) :=
   schema.NewAlarmBackend.wp_proof
@@ -788,10 +799,6 @@ theorem v2stats.wp_NewServerStats :
 theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
   v2stats.NewLeaderStats.wp_proof zap.wp_NewNop
-
-theorem types.ID.wp_String_ptr :
-    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
-  types.ID.String_ptr.wp_proof
 
 theorem types.URLs.wp_StringSlice :
     types.URLs.StringSlice.spec (GF := GF) (hG := hG) :=
@@ -1471,6 +1478,14 @@ theorem snap.wp_NewMessage :
 theorem EtcdServer.wp_createMergedSnapshotMessage :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) :=
   EtcdServer.createMergedSnapshotMessage.wp_proof EtcdServer.wp_Logger EtcdServer.wp_KV wp_newSnapshotReaderCloser proto.wp_CloneConfState backend.snapshot.wp_Size snap.wp_NewMessage
+
+theorem EtcdServer.wp_tryAutoPromoteLearners :
+    EtcdServer.tryAutoPromoteLearners.spec (GF := GF) (hG := hG) :=
+  EtcdServer.tryAutoPromoteLearners.wp_proof EtcdServer.wp_Logger membership.RaftCluster.wp_Members EtcdServer.wp_MemberID types.ID.wp_String types.ID.wp_String_ptr zap.wp_String zap.Logger.wp_Info errors.wp_Is zap.wp_Error zap.Logger.wp_Debug prometheus.CounterVec.wp_WithLabelValues zap.Logger.wp_Warn
+
+theorem EtcdServer.wp_monitorAutoPromoteLearners :
+    EtcdServer.monitorAutoPromoteLearners.spec (GF := GF) (hG := hG) :=
+  EtcdServer.monitorAutoPromoteLearners.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Info notify.Notifier.wp_Receive EtcdServer.wp_isLeader EtcdServer.wp_tryAutoPromoteLearners
 
 theorem EtcdServer.wp_newHeader :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=

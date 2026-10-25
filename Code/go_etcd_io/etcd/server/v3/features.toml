@@ -3,7 +3,7 @@
 # (`LeaseCheckpointPersist`, `LeaseCheckpoint` in NewServer; unit N4, 2026-10-17) and the one
 # `v3rpc.newHealthNotifier` reads (`StopGRPCServiceOnDefrag`; item 4, the server start).
 translate = ["!*", "PriorityRequest", "TxnModeWriteWithSharedBuffer", "LeaseCheckpointPersist",
-  "LeaseCheckpoint", "StopGRPCServiceOnDefrag"]
+  "LeaseCheckpoint", "StopGRPCServiceOnDefrag", "AutoPromoteLearners"]
 imports = ["!*", "go.etcd.io/etcd/pkg/v3/featuregate"]
 
 # translate the definitions of all type declarations goose supports
