@@ -90,7 +90,7 @@ def simpleLk (p : Loc) (γt γf γk : GName) : IProp GF :=
     ([∗map] t ↦ u ∈ m, ghostMapElem γt (t, u) DFrac.discard () ∗ ghostMapElem γf t (DFrac.own 1) ()) ∗
     tokAuth γt S ∗
     tsF go!"simpleTokenKeeper" p ↦{DFrac.own (1 : Qp).half} k ∗ ⌜k = null ∨ K.lookup k = some ()⌝ ∗
-    ghostMapAuth γk 1 K ∗ ([∗map] k' ↦ _u ∈ K, keeperMap k') ∗
+    ghostMapAuth γk 1 K ∗ ([∗map] k' ↦ _u ∈ K, keeperMap k' ∗ ghostMapElem γk k' DFrac.discard ()) ∗
     tsF go!"simpleTokenTTL" p ↦ ttl ∗ ⌜0 < sint.Z ttl⌝)
 
 /-- The provider's read-only fields and its mutex (persistent). -/
@@ -112,10 +112,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- A keeper of the set, its map out and back. -/
-theorem keepers_acc (K : GMap Loc Unit) (k : Loc) (hk : K.lookup k = some ()) :
-    ([∗map] k' ↦ _u ∈ K, keeperMap (GF := GF) k') ⊢
-      keeperMap k ∗ (keeperMap k -∗ [∗map] k' ↦ _u ∈ K, keeperMap k') :=
-  (BigSepM.bigSepM_lookup_acc (Φ := fun k' (_ : Unit) => keeperMap (GF := GF) k') hk).1
+theorem keepers_acc (γk : GName) (K : GMap Loc Unit) (k : Loc) (hk : K.lookup k = some ()) :
+    ([∗map] k' ↦ _u ∈ K, iprop(keeperMap (GF := GF) k' ∗ ghostMapElem γk k' DFrac.discard ())) ⊢
+      keeperMap k ∗
+        (keeperMap k -∗ [∗map] k' ↦ _u ∈ K, iprop(keeperMap k' ∗ ghostMapElem γk k' DFrac.discard ())) := by
+  iintro H
+  icases (BigSepM.bigSepM_lookup_acc
+    (Φ := fun k' (_ : Unit) => iprop(keeperMap (GF := GF) k' ∗ ghostMapElem γk k' DFrac.discard ())) hk).1 $$ H
+    with ⟨⟨Hkm, #He⟩, Hback⟩
+  iframe Hkm
+  iintro Hkm
+  iapply Hback
+  iframe Hkm He
 
 /-- The issued element of a token the map holds (persistent), the map's resources kept. -/
 theorem big_issued (γt γf : GName) (m : GMap GoString GoString) (t : GoString) :
@@ -266,7 +274,7 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
   (try wp_auto)
   -- the keeper's reset, when the token is in the map and the keeper is set
   wp_join iprop(t_ptr ↦ p ∗ token_ptr ↦ token ∗ tsF go!"simpleTokenKeeper" p ↦{DFrac.own (1 : Qp).half} k ∗
-      ([∗map] k' ↦ _u ∈ ks, keeperMap k'))
+      ([∗map] k' ↦ _u ∈ ks, iprop(keeperMap k' ∗ ghostMapElem γk k' DFrac.discard ())))
     with [t token Hk Hks] as ⟨t, token, Hk, Hks⟩
   · (try wp_auto)
     wp_if_destruct
@@ -274,7 +282,7 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
     (try wp_auto)
     rcases Hkks with Hkn | Hkm
     · exact absurd Hkn Hif
-    icases keepers_acc ks k Hkm $$ Hks with ⟨Hkp, Hback⟩
+    icases keepers_acc γk ks k Hkm $$ Hks with ⟨Hkp, Hback⟩
     wp_apply (keeper_reset k token) $$ [Hkp] as Hkp
     · iframe Hkp
     (try wp_auto)
@@ -378,7 +386,7 @@ theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (
   (try wp_auto)
   rcases Hkks with Hkn | Hkm
   · exact absurd Hkn Hif
-  icases keepers_acc ks k Hkm $$ Hks with ⟨Hkp, Hback⟩
+  icases keepers_acc γk ks k Hkm $$ Hks with ⟨Hkp, Hback⟩
   wp_apply (keeper_add k tok) $$ [$Hkp] as Hkp
   ihave Hks := Hback $$ Hkp
   (try wp_auto)

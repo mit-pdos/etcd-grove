@@ -15,6 +15,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.auth.TokenSimple
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
+public import Spec.go_uber_org.zap.Logger__Debug
+public import Spec.go_uber_org.zap.String
 
 @[expose] public section
 
@@ -234,7 +236,7 @@ theorem tokenSimple_invalidateUser (p : Loc) (γt γf : GName) (user : GoString)
   subst Heq
   rcases Hkks with Hkn | Hkm
   · exact absurd Hkn Hif
-  icases keepers_acc ks ka Hkm $$ Hks with ⟨Hkp, Hback⟩
+  icases keepers_acc γk ks ka Hkm $$ Hks with ⟨Hkp, Hback⟩
   (try wp_auto)
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -304,6 +306,165 @@ theorem tokenSimple_invalidateUser (p : Loc) (γt γf : GName) (user : GoString)
   (try wp_auto)
   iapply HΦ
   iunfold simpleAdmin; iexists ka; iframe Hka Hkst
+
+/-- A broadcast channel's closing right, and its persistent `Unknown` view. -/
+theorem bc_pending_unknown (ch : Loc) (γ : ChanNames) (Q : IProp GF) :
+    ownBroadcastChan ch γ Q .Pending ⊢ ownBroadcastChan ch γ Q .Pending ∗ ownBroadcastChan ch γ Q .Unknown := by
+  iintro Hown
+  icases ownBroadcastChan_open _ _ _ _ $$ Hown with ⟨%γch, #Hint, Hown⟩
+  isplitl [Hown]
+  · iapply ownBroadcastChan_close _ _ _ _ γch; iframe #; iexact Hown
+  · iapply ownBroadcastChan_close _ _ _ _ γch; iframe #
+
+/-- **`t.enable()`**: a keeper created and its goroutine started (`RunSpec`), when none is set. -/
+theorem tokenSimple_enable (hRun : RunSpec (GF := GF) (hG := hG))
+    (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG)) (p : Loc) (γt γf : GName) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk (GF := GF) p γt γf ∗
+        simpleAdmin p }}
+      (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"enable" #p)) (Val #()))
+    {{ RET #(); simpleAdmin p }} := by
+  wp_start as ⟨#Hok, Had⟩
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  iunfold simpleOk at Hok
+  icases Hok with ⟨%lg, %γk, #Hlg, %Hlgnn, #Hmu⟩
+  iunfold simpleAdmin at Had
+  icases Had with ⟨%ka, Hka, #Hkst⟩
+  wp_bind (App (Val wrapDefer) _)
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HI⟩
+  iunfold simpleLk at HI
+  icases HI with ⟨%mp, %m, %k, %ks, %ttl, %S, Hmp, Hm, Hbig, Hauth, Hk, %Hkks, HKa, Hks, Httl, %Httlpos⟩
+  icombine Hka Hk gives %Heq
+  subst Heq
+  (try wp_auto)
+  wp_if_destruct
+  rotate_left
+  · -- already enabled
+    (try wp_auto)
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk HKa Hks Httl]
+    · iunfold simpleLk
+      iexists mp, m, ka, ks, ttl, S
+      iframe Hmp Hm Hbig Hauth Hk HKa Hks Httl
+      ipureintro; exact ⟨Hkks, Httlpos⟩
+    (try wp_auto)
+    iapply HΦ
+    iunfold simpleAdmin; iexists ka; iframe Hka Hkst
+  wp_if_destruct
+  · exfalso; simp_all; omega
+  (try wp_auto)
+  ipersist t
+  wp_apply (wp_map_make1 (K := GoString) (V := time.Time) go.string time.Time.ty) as %km Hkm
+  wp_apply (chan.wp_make1 (V := Unit)) as %dc %γd ⟨#Hdc, %Hcapd, Hdo⟩
+  wp_apply (chan.wp_make1 (V := Unit)) as %sc %γs ⟨#Hsc, %Hcaps, Hso⟩
+  (try wp_auto)
+  ihave %Hkpnn := typedPointsto_not_null _ _ _ $$ «$r0»
+  ihave Hkf := typedPointsto_split _ _ _ $$ «$r0»
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed Hkf
+  -- the new keeper in the ghost set (whether or not its address is there already)
+  ihave HinsK : iprop(|==> ∃ K' : GMap Loc Unit, ghostMapAuth γk 1 K' ∗
+      ghostMapElem γk «$r0_ptr» DFrac.discard () ∗ ⌜K'.lookup «$r0_ptr» = some ()⌝ ∗
+      (keeperMap «$r0_ptr» -∗
+        [∗map] k' ↦ _u ∈ K', iprop(keeperMap (GF := GF) k' ∗ ghostMapElem γk k' DFrac.discard ()))) $$
+      [HKa Hks]
+  · cases hK : ks.lookup «$r0_ptr» with
+    | some u =>
+      cases u
+      icases (BigSepM.bigSepM_lookup_acc
+        (Φ := fun k' (_ : Unit) => iprop(keeperMap (GF := GF) k' ∗ ghostMapElem γk k' DFrac.discard ())) hK).1
+        $$ Hks with ⟨⟨-, #He⟩, Hback⟩
+      imodintro
+      iexists ks
+      iframe HKa He
+      isplitr
+      · ipureintro; exact hK
+      iintro Hkm
+      iapply Hback
+      iframe Hkm He
+    | none =>
+      imod (ghost_map_insert_persist «$r0_ptr» () hK) $$ HKa with ⟨HKa, #He⟩
+      imodintro
+      iexists (ks.insert «$r0_ptr» ())
+      iframe HKa He
+      isplitr
+      · ipureintro; simp
+      iintro Hkm
+      iapply (BigSepM.bigSepM_insert hK).2
+      iframe Hks Hkm He
+  imod HinsK with ⟨%K', HKa, #HelK, %HK', HKback⟩
+  imod (start_bag (fun _ : Unit => iprop(True)) ChanState.Idle sc γs trivial) $$ Hsc Hso with #Hbag
+  imod (alloc_broadcast_chan iprop(True) γd dc) $$ Hdc Hdo with Hpend
+  icases bc_pending_unknown dc γd _ $$ Hpend with ⟨Hpend, #Hunk⟩
+  ihave Hkf := (typedPointsto_half_split _ _ (1 : Qp)).2 $$ [Hka Hk]
+  · iframe
+  ipersist tokens
+  ipersist donec
+  ipersist stopc
+  ipersist deleteTokenFunc
+  ipersist mu
+  ipersist simpleTokenTTL
+  (try wp_auto)
+  wp_apply wp_fork $$ [Hpend]
+  · wp_apply (hRun «$r0_ptr» p γt γf γk) $$ [Hpend]
+    · iframe #
+      iunfold keeperRun
+      iexists sc, dc, γs, γd, _
+      iframe #
+      iframe Hpend
+      iunfold delfOk
+      iintro !> %tk %mp0 %m0 %Ψ !> ⟨Hmp0, Hm0, Hbig0⟩ HΨ
+      (try wp_auto)
+      wp_apply (wp_map_lookup2 go.string go.string mp0 m0 tk) $$ [$Hm0] as Hm0
+      (try wp_auto)
+      ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+      · iPkgInit
+      wp_if_destruct
+      · (try wp_auto)
+        wp_apply h_String $$ [] as %f1 -
+        wp_apply h_String $$ [] as %f2 -
+        (try wp_auto)
+        wp_apply wp_slice_literal
+        (try wp_auto)
+        isplitr
+        · ipureintro; rfl
+        iintro %fsl
+        iintro Hfsl
+        (try wp_auto)
+        wp_apply h_Debug $$ []
+        · iframe #; ipureintro; exact Hlgnn
+        (try wp_auto)
+        wp_apply (wp_mapDelete mp0 m0 tk go.string go.string) $$ [$Hm0] as Hm0
+        (try wp_auto)
+        iapply HΨ
+        iexists _
+        iframe Hmp0 Hm0
+        cases hl : m0.lookup tk with
+        | none => rw [GMap.delete_notin _ _ hl]; iexact Hbig0
+        | some u =>
+          icases (BigSepM.bigSepM_delete hl).1 $$ Hbig0 with ⟨-, Hbig0⟩
+          iexact Hbig0
+      (try wp_auto)
+      iapply HΨ
+      iexists _
+      iframe Hmp0 Hm0 Hbig0
+    ipureintro; exact isPanic_intoVal _
+  (try wp_auto)
+  ihave ⟨Hka, Hk⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hkf
+  ihave Hks := HKback $$ [Hkm]
+  · iunfold keeperMap; iexists km, ∅, ttl; iframe Hkm; iframe #
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk HKa Hks Httl]
+  · iunfold simpleLk
+    iexists mp, m, «$r0_ptr», K', ttl, S
+    iframe Hmp Hm Hbig Hauth Hk HKa Hks Httl
+    ipureintro; exact ⟨Or.inr HK', Httlpos⟩
+  (try wp_auto)
+  iapply HΦ
+  iunfold simpleAdmin; iexists «$r0_ptr»; iframe Hka
+  iright
+  iunfold keeperStop; iexists sc, dc, γs, γd; iframe #
 
 end proof
 
