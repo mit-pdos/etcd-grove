@@ -85,7 +85,7 @@ def doomed (γ : RaftNames) (T t' : w64) (U : GSet w64) : IProp GF :=
     cqAt γ t' n G a c q ∗
     (∀ (u : w64), ∀ (_ : u ∈ U), ∃ (t'' i'' : w64),
       ⌜uint.Z T < uint.Z t'' ∧ 0 < uint.Z i''⌝ ∗ isAcked γ u t'' i'') ∗
-    dynOn γ iprop(∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < (uint.Z a).toNat),
+    dynOn γ iprop(∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < (uint.Z a).toNat), ∀ (_ : γ.reBoot.length ≤ k),
       ∃ (tw nw : w64) (Gw : List EntryM) (aw : w64) (cw : CfgM) (qw : GSet w64),
         ⌜WitOk G k tw nw Gw aw (uint.Z t' + 1) ∧ (uint.Z T < uint.Z tw → ∀ x, x ∈ qw → x ∈ U)⌝ ∗
         cqAt γ tw nw Gw aw cw qw))

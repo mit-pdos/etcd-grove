@@ -65,8 +65,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     rfl
   rw [Hlen0]
   (try wp_auto)
-  -- `raft.StartNode(b.config, b.peers)`
-  wp_apply (wp_StartNode γ bud bv.config' cv lok ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
+  -- `raft.StartNode(b.config, b.peers)`, in the static mode (2026-10-25, T-M M2a: `bootInit`)
+  ihave Hghost : bootInit γ .static cv.ID' (GMap.listToSet ps) bootLog $$ [Hghost]
+  · unfold bootInit; iexact Hghost
+  wp_apply (wp_StartNode γ .static bud bv.config' cv lok ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
     memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
     (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs bootLog false Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl

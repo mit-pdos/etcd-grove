@@ -18489,3 +18489,39 @@ needed nothing; what required the flag was the code level's "a leader is a voter
   dynamically `cfgFold_ok`); the append response did not use it.
 - `sdrOk` is the read-only field only; `RestartNode.spec` loses `md.isDyn → StepDownOnRemoval' = true`.
 
+**M2a: `StartNode`/`Bootstrap` in the dynamic mode (2026-10-25, branch `membership-m2`).** A new
+cluster's boot log in the dynamic mode, with the trust base unchanged. Until now the allocation
+took "static unless the boot log is empty" (`ownRaftGhost_alloc_core`'s `dyn = none ∨ L = []`):
+the boot log's conf entries are committed with no quorum (D12's `commitJ` boot arm), and the dynamic
+ghost wants a commit-fact **witness** for every conf entry below a commit index (`witsB`) or a
+commit fact's configuration index (`cqAt`'s dynamic part).
+- *The paper check* (`notes/reconfiguration-safety.md`, section 0, "The boot log"): witnesses are
+  read only in the far cases (`lc_far_older`, the winners table's two far cases, the read index's
+  two): a conf entry `k2` of one log with one more conf entry before it than the other side's
+  configuration prefix has, the other side holding I1 there. Every commit fact's log and every
+  campaign log starts with the boot log (`cq_boot`, `isCamp_boot`, `leadFull_boot`), so at
+  `k2 < |boot|` the two logs agree through `k2`, and `far_older` (I1) already closes the case. So a
+  conf entry of the boot log needs no witness: `cqAt`, `cqDyn`, `witsB` and `doomed`'s witnesses
+  take `γ.reBoot.length ≤ k` (a binder after the position's), and each far case splits on it.
+  Nothing else changed in the protocol proof; the adjacent cases did not use witnesses.
+- *The configuration index starts at `0`* (`rboot c0 bootLog`, `ResultsDyn.lean`): Go's `Bootstrap`
+  installs the peers in the tracker but applies nothing (`applied = 0`), and the application
+  re-applies the boot entries through the first `Ready` (`ApplyConfChange` of `AddNode` of a voter,
+  a no-op). With `capplied = 0` and the configuration `c0` (the peers', `cfg = cfgFold c0 []`),
+  that re-application is the dynamic mode's ordinary `ApplyConfChange` (`DynCCPreOp`, in order from
+  `0`); `RInv_rboot` holds (I1 at the commit index, the log's end, holds of any log). Starting at
+  `|boot|` instead would have needed a new "re-application below the configuration index" case in
+  `ApplyConfChange` and the fold of the boot log to be `c0`; at `0` neither is needed, and nothing
+  asks the boot entries' fold to be `c0` (that `dec` decodes them so that `ccStepB` succeeds is the
+  application's `ApplyConfChange` premise, as for any conf entry: M3's).
+- The allocation: `ownRaftGhost_alloc_core` loses `dyn = none ∨ L = []` (the initial `witsB` holds
+  vacuously below `|boot|`); `raft_dyn_alloc_boot` (`ResultsDyn.lean`) is the dynamic instance, every
+  member at `rboot c0 bootLog` (`ownRaftGhostR`), in the no-snapshot and no-transfer modes or not.
+- The code: `bootInit γ md id V bootLog` (`InvBoot.lean`, as `rnInit` for `RestartNode`: statically
+  `ownRaftGhost γ id (bootPState bootLog)`, dynamically `rboot` at `c0 = cfgState V ∅`);
+  `RawNode.Bootstrap.spec`, `setupNode.spec` and `StartNode.spec` take the mode `md` and close the
+  node in it (`StartNode`'s `snapIn` premise gains `md = .static`, as `RestartNode`'s). `Bootstrap`'s
+  dynamic case closes `ownRawNode` as `RestartNode`'s does (`ownStepGhost_dyn` at
+  `⟨0, cfgState V ∅, []⟩`, the tracker's learners empty). The server's `newRaftNode` passes `.static`
+  (M3 moves it).
+

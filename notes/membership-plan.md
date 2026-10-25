@@ -126,12 +126,18 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     `MsgProp` (`Progress[id]`: Go's drop branch `raft.go:1298-1302` becomes reachable), the heartbeat
     and `MsgAppResp` responses, `becomeLeader`; `switchToConfig`/`applyConfChange`'s
     `id ∉ voters → sdr` premise and `sdrOk` go.
-  - M2a: `StartNode`/`Bootstrap` return the static mode; the allocation needs `dyn = none ∨ L = []`
-    (`Protocol/Facts.lean:1034`): the boot log's conf entries are committed without a quorum, which
-    the dynamic ghost's commit witnesses (`cqAt`) must admit (likely: `c0` the peers, the boot
-    `AddNode`s of existing voters no-ops at re-application).
+  - **M2a done (2026-10-25)**: `StartNode`/`Bootstrap` in either mode, the trust base unchanged; see
+    `notes/decisions.md`, D43, "M2a". Scoping (kept): `StartNode`/`Bootstrap` returned the static
+    mode; the allocation needed `dyn = none ∨ L = []` (`Protocol/Facts.lean:1034`): the boot log's
+    conf entries are committed without a quorum, which the dynamic ghost's commit witnesses (`cqAt`)
+    must admit. Done: the boot log's conf entries need no witness (the far cases close at them by
+    I1, `notes/reconfiguration-safety.md` section 0); the configuration index starts at `0`, so the
+    re-application of the boot entries is the ordinary dynamic `ApplyConfChange` (whose premise,
+    that each decodes and applies, M3's server discharges).
 - **M3. The server in the dynamic mode.** `rnEnvOk`'s `RNMode.static` replaced by the dynamic mode
-  (`NodeStart`, `InvRaftNode`, `BuildGap`, `newRaftNode`); `srvCCPolicy`/`ccApplyOk` widened to the
+  (`NodeStart`, `InvRaftNode`, `BuildGap`, `newRaftNode`: `StartNode` at `md := .dyn`, the cluster
+  from `raft_dyn_alloc_boot`, M2a; the server's re-application of the boot `AddNode`s meets
+  `ApplyConfChange`'s `DynCCPreOp`: its decoder, an existing member's `AddNode` a no-op or zeroed); `srvCCPolicy`/`ccApplyOk` widened to the
   kinds in scope (v1, `RemoveNode`); the static examples restated over it or kept on a static
   instance (to decide in M3: whether the static mode at the server goes, as STATUS suggests).
 - **M4. The membership writers.** Translate `RaftCluster.RemoveMember`,

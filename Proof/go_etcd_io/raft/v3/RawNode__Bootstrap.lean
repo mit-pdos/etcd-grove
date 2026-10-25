@@ -37,7 +37,7 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
-  intro γ rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
+  intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
   wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hnscap, #Hcl⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
@@ -413,7 +413,7 @@ theorem RawNode.Bootstrap.wp_proof
     · rw [CfgM.voters_simple] at h; exact h
     · simp only [CfgM.simple] at h; exact absurd h (GMap.not_elem_of_empty _)
   icases ownRaftPhysC_sdr _ rnv.raft' id sk $$ Hphys with ⟨#Hsd0, Hphys⟩
-  ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' RNMode.static $$ []
+  ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' md $$ []
   · iunfold sdrOk; iexists sk.sdr; iexact Hsd0
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   ihave Hphys : ownRaftPhys γ.reCfg rnv.raft' id sk $$ [Hphys]
@@ -481,30 +481,87 @@ theorem RawNode.Bootstrap.wp_proof
   isplitl []
   · ipureintro; rfl
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap]
-  · iapply ownRawNode_intro_static (fp := []) γ rn id
-        { delivered := [], unpersisted := [], steps := [], term := W64 1,
-          storage := interface.ok si, mode := RNMode.static,
-          cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
-        { sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } (bootPState bootLog) ({ rnv with prevHardSt' := es } : RawNode) sv
-        (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] rfl HNrel
-        (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6) Hasync
-        (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
-        (by rw [HNls]; simp only [logAppend, Hun])
-        (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
-        (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg])
-        ⟨fun h => (by cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
-          fun h => by simp only at h; rw [HNr] at h; cases h⟩
-        (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
-        -- (D22 S-d3a) no snapshot lent
-        ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
-          fun l h => (by cases h)⟩
-        (TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6))
-        Hnl0
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] []
-    · iapply pendList_nil
-    · iapply ackInv_none; intro _ _ _ _ h; cases h
-    · ipureintro; trivial
-    · simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hcl
+  · cases md with
+    | static =>
+      iunfold bootInit at Hghost
+      iapply ownRawNode_intro_static (fp := []) γ rn id
+          { delivered := [], unpersisted := [], steps := [], term := W64 1,
+            storage := interface.ok si, mode := RNMode.static,
+            cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
+          ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) (bootPState bootLog) ({ rnv with prevHardSt' := es } : RawNode) sv
+          (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] rfl HNrel
+          (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6) Hasync
+          (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
+          (by rw [HNls]; simp only [logAppend, Hun])
+          (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
+          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg])
+          ⟨fun h => (by cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
+            fun h => by simp only at h; rw [HNr] at h; cases h⟩
+          (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
+          -- (D22 S-d3a) no snapshot lent
+          ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
+            fun l h => (by cases h)⟩
+          (TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6))
+          Hnl0
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] []
+      · iapply pendList_nil
+      · iapply ackInv_none; intro _ _ _ _ h; cases h
+      · ipureintro; trivial
+      · simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hcl
+    | dyn dec c0 h0 h1 =>
+      -- (2026-10-25, T-M M2a) the dynamic mode: the ghost state at `rboot c0 bootLog`, the
+      -- configuration index `0`, the configuration the peers' (`ownRaftPhysC` at it, as
+      -- `RestartNode`'s dynamic case)
+      iunfold bootInit at Hghost
+      icases Hghost with ⟨%HD, Hgr⟩
+      obtain ⟨HD, rfl⟩ := HD
+      ihave Hphys := ownRaftPhys_toC' $$ Hphys
+      have Hro : rOf ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) ⟨0, cfgState (GMap.listToSet ps) ∅, []⟩ =
+          rboot (cfgState (GMap.listToSet ps) ∅) bootLog := by
+        have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) = bootPState bootLog := HNrel.1
+        unfold rOf rboot pciR
+        rw [HpS]
+        simp only; rw [HNls]
+        simp [logAppend, Hap0, Hsn, HNr]
+      have Hdiff : domSet ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState).progress \ γ.reCfg = ∅ := by
+        apply GMap.set_eq; intro k
+        rw [GMap.elem_of_difference]
+        constructor
+        · rintro ⟨h1, h2⟩; exact absurd ((GMap.elem_of_subseteq _ _).1 Hsub k h1) h2
+        · intro h; exact absurd h (GMap.not_elem_of_empty _)
+      ihave Hghost : ownStepGhost γ
+          (RNMode.toG (.dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1)
+            ⟨0, cfgState (GMap.listToSet ps) ∅, []⟩)
+          (CfgM.simple γ.reCfg (domSet ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState).progress \ γ.reCfg)) id ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) $$ [Hgr]
+      · simp only [RNMode.toG]
+        iapply (ownStepGhost_dyn γ dec _ h0 _ _ id ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState)).2
+        rw [Hro]
+        iframe Hgr
+        isplitr
+        · ipureintro
+          refine ⟨HD, ?_, Hnl0⟩
+          rw [Hdiff, R7]; rfl
+        simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hcl
+      iapply ownRawNode_intro γ rn id
+          { delivered := [], unpersisted := [], steps := [], term := W64 1,
+            storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1,
+            cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
+          ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) _ [] ({ rnv with prevHardSt' := es } : RawNode) sv
+          (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] HNrel.2 (fun h => by cases h) rfl Hasync
+          (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
+          (by rw [HNls]; simp only [logAppend, Hun])
+          (fun _ => by rw [HNls]; simp only [logAppend, Hsn]) trivial
+          (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg])
+          ⟨fun _ _ h => (by simp only at h; rw [HNr] at h; cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
+            fun h => by simp only at h; rw [HNr] at h; cases h⟩
+          (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
+          -- (D22 S-d3a) no snapshot lent
+          ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
+            fun l h => (by cases h)⟩
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] []
+      · iapply pendList_nil
+      · iapply ackInv_none; intro _ _ _ _ h; cases h
+      · ipureintro; trivial
   · iexact Hpeers
 
 end proof

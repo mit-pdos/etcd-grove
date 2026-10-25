@@ -100,6 +100,88 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
   iintro %h
   exfalso; exact absurd h (by simp [initPState])
 
+/-- (2026-10-25, T-M M2a) A member of a new cluster after `RawNode.Bootstrap`, in the dynamic
+model: the bootstrap state (`bootPState bootLog`: term `1`, the boot log committed), configuration
+`c0` (the peers', which `Bootstrap` installs in the tracker), at the configuration index `0`:
+nothing applied, so the application re-applies the boot entries (`ApplyConfChange`, as the
+first `Ready` hands them out), each through the ordinary dynamic rule. -/
+def rboot (c0 : CCState) (bootLog : List EntryM) : RState :=
+  { p := bootPState bootLog, applied := W64 0, pci := W64 0, snap := false, cidx := 0, cfg := c0,
+    fp := [] }
+
+/-- `RInv` of the bootstrap state: I1 holds at the commit index, the log's end; the configuration
+is the fold of no entry. -/
+theorem RInv_rboot (dec : CCDec) (c0 : CCState) (bootLog : List EntryM)
+    (hL : (bootLog.length : Int) < 2 ^ 64) : RInv dec c0 (rboot c0 bootLog) := by
+  have hc : uint.Z (rboot c0 bootLog).p.commit = bootLog.length := by
+    show uint.Z (W64 (bootLog.length : Int)) = _
+    exact uint_Z_W64 _ (by omega) hL
+  have hcn : uint.nat (rboot c0 bootLog).p.commit = bootLog.length := by
+    have := rUnat_eq (rboot c0 bootLog).p.commit; omega
+  have hfull : (rboot c0 bootLog).full = bootLog := by
+    show [] ++ bootLog = bootLog; rfl
+  have h0 := base0_index
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · exact FullOk_base0
+  · show uint.Z base0.index' ≤ _; rw [h0, hc]; omega
+  · show _ ≤ plogLastIndexZ base0 bootLog; unfold plogLastIndexZ; rw [h0, hc]; omega
+  · show uint.nat (W64 0) ≤ 0; decide
+  · show 0 ≤ _; omega
+  · intro h; cases h
+  · intro _; show uint.Z base0.index' ≤ uint.Z (W64 0); rw [h0]; decide
+  · intro h; cases h
+  · show cfgFold dec c0 (([] ++ bootLog).take 0) = some c0; rfl
+  · rw [hfull, hcn]
+    intro k1 k2 e1 e2 hlt _ h2 _ _
+    have := (List.getElem?_eq_some_iff.mp h2).1
+    omega
+  · intro h; cases h
+  · intro h; cases h
+
+/-- (2026-10-25, T-M M2a) **The dynamic ghost state of a new cluster**: as `raft_dyn_alloc`, but
+the nodes `ids` at the bootstrap state `rboot c0 bootLog` and the committed log `bootLog` from the
+start (`ownRaftGhost_alloc_core` at the boot log in the dynamic mode, whose boot conf entries need
+no witness: `witsB`), in the no-snapshot and no-transfer modes `ns`, `nx` or not. -/
+theorem raft_dyn_alloc_boot (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
+    (ids : GSet w64) (ccOk : w32 → List w8 → Prop) (bootLog : List EntryM)
+    (C : RaftNames → IProp GF) (ns nx : Bool) :
+    W64 0 ∉ ids → bootLog ≠ [] → BootWf ccOk bootLog →
+    ⊢ allocClientGen E c0.cfg.incoming (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk bootLog C -∗
+      |={E}=> ∃ γ : RaftNames,
+        ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming ∧
+          γ.reBoot = bootLog ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx⌝ ∗
+        raftCommitInv (GF := GF) γ ∗ C γ ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rboot c0 bootLog)) ∗
+        isCommitted γ bootLog ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ := by
+  intro Hnz Hbne Hok
+  have Hlen : (bootLog.length : Int) < 2 ^ 64 := by have := Hok.1; omega
+  iintro Hcl
+  imod ownRaftGhost_alloc_core (GF := GF) E c0.cfg.incoming ids
+    (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk bootLog (W64 1) C none
+    (fun _ h => by cases h) ns (fun _ => Hbne) nx (fun _ => Hbne) (fun _ _ => True) h0.2.1 Hnz Hok
+    (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
+    $$ Hcl with ⟨%γ, %Hγ, #Hinv, #Hc0, Hn, HC, Hcr, #Hcri⟩
+  simp only [Option.isSome_some]
+  imodintro
+  iexists γ
+  isplitr
+  · ipureintro
+    refine ⟨?_, Hγ.2.2.1, Hγ.1, Hγ.2.2.2.1, Hγ.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.1⟩
+    unfold RaftNames.dyn; rw [Hγ.2.1]; simp [DynCfg.all_self]
+  iframe Hinv HC Hc0 Hcr Hcri
+  iapply BigSepM.bigSepM_impl $$ Hn
+  imodintro
+  iintro %id %u %_ Hg
+  unfold ownRaftGhostR
+  rw [show (rboot c0 bootLog).p = initPStateAt (W64 1) bootLog from rfl]
+  iframe Hg
+  isplitr; · ipureintro; exact RInv_rboot dec c0 bootLog Hlen
+  isplitr
+  · unfold logRecs rboot
+    iapply (BigSepL.bigSepL_nil).2; iempintro
+  iintro %h
+  exfalso; exact absurd h (by simp [initPStateAt, initPState])
+
 end ghost
 
 end EtcdGrove
