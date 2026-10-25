@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
+public import Proof.go_etcd_io.etcd.client.v3.KVService
 
 @[expose] public section
 
@@ -12,7 +12,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.api.v3
+open Iris Iris.BI go_etcd_io.etcd.api.v3 client
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -21,25 +21,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Get(ctx, key, opts...)` on a `*kv` over a connection to `addr` (`kvObjAt`): `OpGet(key,
-opts...)` (options that do not panic, keep the range type, and may need a resource `R`, given
-back: `optsAtRes`; any sort option, checked against `etcdserverpb`'s enumerations,
-`sortNamesOk`: the vertical slice's unit V2; C1 required none), then `kv.Do`, the error through
-`ContextError`: `rangeCallOut` for the range the server reads (`rangeWireOf`), for a spec `Spec`
-registered for `Range` and the caller's `Q`. -/
+/-- `kv.Get(ctx, key, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D43): `OpGet(key, opts...)`
+(options that do not panic, keep the range type, read at the latest revision, and may need a
+resource `R`, given back: `optsAtRes`; any sort option, checked against `etcdserverpb`'s
+enumerations, `sortNamesOk`), then `kv.Do`, with the caller's read update at `γ` or none
+(`rangeUpdK`, persistent: a read may be answered by any member, and again); the error through
+`ContextError`: `rangeCallOut` of `rangeStOk`, a state `σ` (the read update's, `□ Q σ`, if
+linearizable) whose selection, count and revision are the reply's. -/
 abbrev kv.Get.spec : Prop :=
-  ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
-    (Spec : GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse) (Q : RangeRespM → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
+  ∀ (api : Loc) (γ : KVNames) (rf : Bool) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
+    (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ rf ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
       sortNamesIf (opGetModel key gs).base.sortSet ∗
-      ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
-      isGrpcRpcs addr go!"/etcdserverpb.KV/Range" Spec ∗
-      □ ▷ Spec (rangeWireOf (opGetModel key gs)) Q }}
+      ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧
+        (rangeWireOf (opGetModel key gs)).base.rev = W64 0⌝ ∗
+      □ rangeUpdK γ (rangeWireOf (opGetModel key gs)) Q }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗ rangeCallOut Q resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      R ∗ rangeCallOut (rangeStOk (rangeWireOf (opGetModel key gs)) Q) resp err }}
 
 end spec
 

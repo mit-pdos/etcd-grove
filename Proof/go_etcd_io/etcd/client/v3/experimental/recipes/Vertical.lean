@@ -118,7 +118,7 @@ real `*kv` and etcd's server returns a queue whose `Enqueue` meets its spec, and
 `(v, nil)` is an item `it` with the value `v`, taken by this call in the server's terms
 (`queueTaken`), at a revision at least the caller's `lo`, in order (`dequeueOrder`). -/
 theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoString) (s : Loc)
-    (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) (kp : GoString) (hkp : kp ≠ [])
+    (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (kp : GoString) (hkp : kp ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
@@ -126,13 +126,9 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
         isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w kp ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange"
-          (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
+        EtcdGrove.client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : EtcdGrove.client.SrvAt GF) ∗
         sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api [addr] E γw γr cid mid }}
+        EtcdGrove.client.kvWritesOk api [addr] E γr cid mid }}
       (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
         (Val #kp))
     {{ (q : Loc), RET #q;
@@ -154,8 +150,9 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
                 dequeueOrder (EM := v3rpc.etcdModelOfServer E) kp kp modRevLe it r ∗
                 ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
               ⌜err ≠ GoInterface.nil⌝ }}) }} := by
-  iintro %Φ ⟨#Pr, #Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei, #Hnp⟩ HΦ
-  ihave #Hcl := isEtcdRecipesClient_of_kv cl w api [addr] s E γw γr cid mid kp hkp hAs $$ []
+  iintro %Φ ⟨#Pr, #Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hreg, #Hsn, #Hcei, #Hnp⟩ HΦ
+  ihave #Hregs := EtcdGrove.client.kvRegs_one addr E γr cid mid $$ Hreg
+  ihave #Hcl := isEtcdRecipesClient_of_kv cl w api [addr] s E γr cid mid kp hkp hAs $$ []
   · iframe #
   iapply (wp_NewQueue (EM := v3rpc.etcdModelOfServer E) cl kp) $$ []
   · iframe #
