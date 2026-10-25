@@ -35,9 +35,10 @@ abbrev mvcc.rangeEvents.spec : Prop :=
     (log : mvcc.Log) (minRev maxRev : w64) (g : Loc) (W : GMap Loc mvcc.WatchRange)
     (RT WT Wi Dep : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
-    (Rb : GMap GoString backend.BktData → IProp GF),
+    (Rb : GMap GoString backend.BktData → IProp GF)
+    (Bt : GoInterfaceOk → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) Wr Wi Dep Cmp P HF (Rb := Rb) ∗ RT ∗
+      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) Wr Wi Dep Cmp P HF (Rb := Rb) (Bt := Bt) ∗ RT ∗
       mvcc.crevFrozen γ ∗
       mvcc.bucketView γ q (mvcc.bucketMap log) ∗
       mvcc.idxCert γ.idx log ∗ mvcc.ownWatcherGroup g W ∗

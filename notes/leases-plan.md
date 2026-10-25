@@ -149,6 +149,20 @@ derived in `isApplyLessor_of_lessorInv`.
   over `Put_kv`). The boundary spec of `UnsafeDeleteLease` now names the key (the id's
   big-endian bytes). Left: (iii) and (iv); the holder of `Rb` at `Revoke` (the apply thread's
   `rbOwn`, `srvRestOwn`, with `leaseParams` from the boot facts) is L3's.
+  *(iii) and (iv) done (2026-10-25):* (iv) `isKeyBackendG` and `isBatchTxG` take `Bt` (default
+  `True`): the batch transactions `BatchTx()` returns satisfy it; the store's `storeBt` (`kbBt`)
+  is, over the real backend at `d.be`, `bkBt d.be bt` (`BatchTx()` of that backend returns `bt`,
+  proved in `BackendBridge.lean`: the backend's `batchTx` field is read-only), nothing over
+  mvcc's assumed backend; the write transaction records it (`storeTxnWriteIs`,
+  `storeTxnWriteCore`: `HbtB`) and the three `_leaseDel` lemmas return it with the delete, so
+  `Revoke` (holding `lessorBeOn lp d.be`, the user's half of `le.b`) knows its `le.b.BatchTx()`
+  is the transaction it deletes under. (iii) `mvcc.rdIs rd s st γ` (`InvWatchStore.lean`): the
+  deleter, called by the store's sole writer with what `watchableStore.Write` takes, returns a
+  watchable write transaction (`isWatchTxnWrite … L [] 0 0 0`) as a `lease.TxnDelete`;
+  `newWatchableStore` proves it of its closure (its proof now takes `watchableStore.Write`'s and
+  `traceutil.TODO`'s specs) and returns `∃ rd, rdOwn γl rd ∗ rdIs rd s st γ`, as do `New`,
+  `server_kv_watchable(_of)`. Left in L2d: `Lease.Keys` and `Revoke`, whose spec waits for L2b (the
+  keys `Revoke` deletes are the item set's, which L2b gives a meaning).
 
 **L3. The apply thread with leases.** `leasesKnown` becomes an equality: the lessor's live set
 (`leaseOwn γ.leases L`) is the model's table's ids. `plainCover` admits `LeaseGrant`,

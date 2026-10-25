@@ -2161,7 +2161,8 @@ theorem isKeyBackendG_of_backend
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk Del W W iprop(True) Cmp Pk (bkHookIs γ)
-        (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝)) := by
+        (bkReq γ P b) (fun r => iprop(rbOwn γ r ∗ ⌜leaseParams P⌝))
+        (bkBt b) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
@@ -2200,12 +2201,21 @@ theorem isKeyBackendG_of_backend
       isplitr
       · iintro !> %hc; exact (hC hc).elim
       iapply bt_leaseDel hDel hUL hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
+    isplitr
     · iunfold batchTxInitSpec
       isplitr
       · iapply bt_lockOut hLO γ P W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr
       · iapply bt_create hCB hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
       iapply bt_unlockO hUL γ P W Pk b t $$ [$Hpkg $Hb $Ht]
+    -- `BatchTx()` returns this batch transaction again: the field is read-only
+    iunfold bkBt
+    iintro !> !> %Φ' !> - HΦ'
+    wp_apply (hBT γ P W Pk b) $$ [$Hb] as %t' #Ht'
+    ihave %ht := typedPointsto_agree_wand _ _ _ _ _ $$ Ht Ht'
+    subst ht
+    iapply HΦ'
+    itrivial
   isplitr
   · iapply bk_forceCommit hFC γ P W Pk b $$ [$Hpkg $Hb]
   isplitr
@@ -2272,8 +2282,10 @@ theorem storeBackendT_of_backend
     unfold storeReq kbReq; rw [hk]
   have hrb : storeRb (GF := GF) γ = fun r => iprop(rbOwn d.γB r ∗ ⌜leaseParams d.P⌝) := by
     unfold storeRb kbRb; rw [hk]
+  have hbt : storeBt (GF := GF) γ = bkBt d.be := by
+    unfold storeBt kbBt; rw [hk]
   iunfold storeBackendT
-  rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hk]
+  rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hbt, hk]
   simp only [kbWi]
   iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
     hSP hUL hbUR hCB hDel hID hName hSafe hP d.γB (lateW d.gx) Pk d.be (delKey γ) _ hc $$ H

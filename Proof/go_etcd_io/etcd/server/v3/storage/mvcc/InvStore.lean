@@ -1151,16 +1151,17 @@ instance batchTxInitSpec_persistent (bt : GoInterfaceOk) (RT WT : IProp GF) (W W
 def isBatchTxG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
-    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
+    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
+    (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ (Locked : Puts → IProp GF) (LockedO : Nat → IProp GF),
     batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb ∗
-      batchTxInitSpec bt RT WT W Wi Dep LockedO P)
+      batchTxInitSpec bt RT WT W Wi Dep LockedO P ∗ □ Bt bt)
 
 instance isBatchTxG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
-    (Rb : GMap GoString backend.BktData → IProp GF) :
-    Persistent (isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb) := by
+    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) :
+    Persistent (isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt) := by
   unfold isBatchTxG; infer_instance
 
 /-- No condition on the puts (mvcc's assumed backend). -/
@@ -1244,7 +1245,8 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT :
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y)))
-    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
+    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
+    (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
       {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
@@ -1256,7 +1258,7 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT :
           ∃ L : IProp GF, L ∗ keyReadSnap View RT Del true rt m L }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
       {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt);
-          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb }}) ∗
+          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt }}) ∗
     □ (∀ (X Y : IProp GF),
       {{ RT ∗ WT ∗ X ∗ Req X Y }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
       {{ RET #(); RT ∗ Y }}) ∗
@@ -1275,8 +1277,9 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT :
 instance isKeyBackendG_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
-    (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
-    Persistent (isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF Req Rb) := by
+    (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
+    (Bt : GoInterfaceOk → IProp GF) :
+    Persistent (isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF Req Rb Bt) := by
   unfold isKeyBackendG; infer_instance
 
 /-! ## The lessor
@@ -1463,9 +1466,9 @@ commit take. -/
 theorem isKeyBackendG_wand {b : GoInterface} {View : Qp → Bucket → IProp GF} {RT WT : IProp GF}
     {PutOk : Bucket → Puts → GoString → GoString → Prop} {Del : GoString → IProp GF}
     {W Wi Dep : IProp GF} {Cmp : Prop} {P : IProp GF} {HF : val → IProp GF} {γ : StoreNames}
-    {Rb : GMap GoString backend.BktData → IProp GF} :
-    isKeyBackendG (GF := GF) b View RT WT PutOk Del W Wi Dep Cmp P HF (storeReq γ) Rb ⊢
-      isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF (Rb := Rb) := by
+    {Rb : GMap GoString backend.BktData → IProp GF} {Bt : GoInterfaceOk → IProp GF} :
+    isKeyBackendG (GF := GF) b View RT WT PutOk Del W Wi Dep Cmp P HF (storeReq γ) Rb Bt ⊢
+      isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P HF (Rb := Rb) (Bt := Bt) := by
   iintro #H
   unfold isKeyBackendG
   icases H with ⟨%bi, %Hbi, #H1, #H2, #H3, #HFc, #H5, #H6, #H7⟩
@@ -1509,6 +1512,32 @@ def kbRb : Option KBReal → GMap GoString backend.BktData → IProp GF
 
 /-- The store's right to write the tracked buckets (`kbRb`). -/
 abbrev storeRb (γ : StoreNames) : GMap GoString backend.BktData → IProp GF := kbRb γ.kb
+
+/-- The real backend at `be` returns the batch transaction `bt` from `BatchTx()` (persistent). -/
+def bkBt (be : Loc) (bt : GoInterfaceOk) : IProp GF :=
+  iprop(□ ({{ True }}
+    (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+      go!"BatchTx" #be)) (Val #()))
+    {{ RET #(GoInterface.ok bt); True }}))
+
+instance bkBt_persistent (be : Loc) (bt : GoInterfaceOk) : Persistent (bkBt (GF := GF) be bt) := by
+  unfold bkBt; infer_instance
+
+/-- **The batch transaction `bt` is the backend's** (`isKeyBackendG`'s `Bt`; leases T3, L2d (iv),
+2026-10-25) for the instance `kb`: over the real backend at `d.be`, its `BatchTx()` returns `bt`
+(the backend's `batchTx` field, read-only), so that the lessor's `le.b.BatchTx()` in `Revoke` is
+the batch transaction the KV write transaction holds the lock of; nothing over mvcc's assumed
+backend. -/
+def kbBt : Option KBReal → GoInterfaceOk → IProp GF
+  | none => fun _ => iprop(True)
+  | some d => bkBt d.be
+
+instance kbBt_persistent (kb : Option KBReal) (bt : GoInterfaceOk) :
+    Persistent (kbBt (GF := GF) kb bt) := by
+  cases kb <;> unfold kbBt <;> infer_instance
+
+/-- The store's batch transaction is its backend's (`kbBt`). -/
+abbrev storeBt (γ : StoreNames) : GoInterfaceOk → IProp GF := kbBt γ.kb
 
 /-- The pending puts are at most the pending changes. -/
 theorem pendPuts_length_le (ilog : Log) (pend : List Change) :
@@ -2122,12 +2151,12 @@ theorem storeW_pending (s : Loc) (γ : StoreNames) :
 theorem isKeyBackendG_cmp (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P : IProp GF) (HF : val → IProp GF)
     (h : storeCmp γ) :
     isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) (storeRb γ) ⊢
+      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) (storeRb γ) (storeBt γ) ⊢
     isKeyBackendG b (bucketView γ) iprop(True) iprop(True) noPutCond (delKey γ) (writerRes s γ)
       iprop(True) Dep True P HF := by
   unfold storeCmp kbCmp at h
   unfold storeW kbWi storeRT storeWT storePutOk storeCmp kbCmp kbRT kbWT kbPutOk storeReq kbReq
-    storeRb kbRb
+    storeRb kbRb storeBt kbBt
   simp only [h]
   exact .rfl
 
@@ -2607,7 +2636,7 @@ def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
   iprop(∃ (Ph Dep : IProp GF),
     "#Hhook" ∷ hookP γ Ph ∗
     "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) (storeReq γ) (storeRb γ) ∗
+      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ) ∗
     "#Hdep" ∷ □ Dep ∗
     "#Hti" ∷ isTreeIndex o.ti γ.idx ∗
     "#HisSched" ∷ schedule.isFifo o.ssched γ.sch)
@@ -3206,7 +3235,7 @@ store's contract no longer fixes the hook, which the etcd server installs after 
 with some deposit witness. -/
 def storeBackend (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : IProp GF :=
   iprop(∃ Dep : IProp GF, isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ)
-    (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ))
+    (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ))
 
 instance storeBackend_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackend (GF := GF) b s γ P) := by
@@ -3219,7 +3248,7 @@ first `Unlock` deposits it). What `store.Restore` takes of its new backend: it n
 backend's batch transaction, so it has no witness of its own. -/
 def storeBackendT (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : IProp GF :=
   isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ) (storeW s γ)
-    (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ)
+    (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
 
 instance storeBackendT_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackendT (GF := GF) b s γ P) := by
@@ -3708,6 +3737,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "#Hhook" ∷ hookOk γ Pw fw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
       (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) ∗
+    "#HbtB" ∷ storeBt γ bt ∗
     "#Hreg" ∷ storeRegd s γ ∗
     "Hrt" ∷ storeRT γ ∗
     "Hlocked" ∷ lockedIs ld bt (bucketView γ) (storeW s γ) Pw Locked (pendPuts ilog pend) ∗
@@ -3753,6 +3783,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "#Hhook" ∷ hookOk γ Pw fw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
       (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) ∗
+    "#HbtB" ∷ storeBt γ bt ∗
     "#Hreg" ∷ storeRegd s γ ∗
     "Hrt" ∷ storeRT γ ∗
     "Hlocked" ∷ lockedIs ld bt (bucketView γ) (storeW s γ) Pw Locked (pendPuts ilog pend) ∗
@@ -3850,7 +3881,7 @@ other call before it). -/
 theorem storeTxnWriteIs_leaseDel (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (crev : Int) (Z : IProp GF) :
     storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ⊢
-      ∃ bt : GoInterfaceOk, ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
+      ∃ bt : GoInterfaceOk, storeBt γ bt ∗ ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
           (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
         globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b -∗ key ↦*{dq} k -∗
         storeRb γ r -∗
@@ -3861,6 +3892,8 @@ theorem storeTxnWriteIs_leaseDel (tw s : Loc) (γ : StoreNames) (ilog : Log) (pe
   iunfold storeTxnWriteIs at Htw
   iNamed Htw
   iexists bt
+  isplitr
+  · iexact HbtB
   iintro %b %key %k %dq %r %Φ #HL Hkey Hrb HΦ
   ihave #Hbt0 : batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
       (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) $$ []
@@ -3996,7 +4029,7 @@ wrapper (`storeTxnWriteIs_leaseDel`). -/
 theorem isTxnWrite_leaseDel (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
     (pend : List Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) :
     isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ⊢
-      ∃ bt : GoInterfaceOk, ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
+      ∃ bt : GoInterfaceOk, storeBt γ bt ∗ ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
           (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
         globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b -∗ key ↦*{dq} k -∗
         storeRb γ r -∗
@@ -4006,8 +4039,10 @@ theorem isTxnWrite_leaseDel (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog :
   iintro H
   iunfold isTxnWrite at H
   iNamed H
-  icases storeTxnWriteIs_leaseDel tw s γ ilog pend crev Z $$ Htw with ⟨%bt, Hd⟩
+  icases storeTxnWriteIs_leaseDel tw s γ ilog pend crev Z $$ Htw with ⟨%bt, #HbtB, Hd⟩
   iexists bt
+  isplitr
+  · iexact HbtB
   iintro %b %key %k %dq %r %Φ #HL Hkey Hrb HΦ
   iapply Hd $$ %b %key %k %dq %r %Φ HL Hkey Hrb
   inext

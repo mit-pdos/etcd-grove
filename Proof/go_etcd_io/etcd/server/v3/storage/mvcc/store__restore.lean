@@ -49,7 +49,7 @@ theorem mvcc.store.restore.wp_proof
     (hZI64 : zap.Int64.spec (GF := GF) (hG := hG))
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     mvcc.store.restore.spec (GF := GF) (hG := hG) := by
-  intro s γ b le ti lg q P HF RT WT W Wi Dep Cmp PutOk Rb dqb dqi R RevP RevK RevQ dqc q1 q2 hR hq12
+  intro s γ b le ti lg q P HF RT WT W Wi Dep Cmp PutOk Rb Bt dqb dqi R RevP RevK RevQ dqc q1 q2 hR hq12
   by_cases hR0 : R = []
   rotate_left
   · -- a bucket with data (the restore plan's R5c)

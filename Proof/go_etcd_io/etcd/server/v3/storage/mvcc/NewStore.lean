@@ -288,7 +288,7 @@ theorem mvcc.NewStore.wp_proof
   wp_apply HB as %bt #Hbt
   (try wp_auto)
   iunfold mvcc.isBatchTxG at Hbt
-  icases Hbt with ⟨%Locked, %LockedO, -, #Hinit⟩
+  icases Hbt with ⟨%Locked, %LockedO, -, #Hinit, -⟩
   iunfold mvcc.batchTxInitSpec at Hinit
   icases Hinit with ⟨#HLockOut, #HCreate, #HUnlock0⟩
   -- `tx.LockOutsideApply()`, the buckets created
@@ -372,7 +372,7 @@ theorem mvcc.NewStore.wp_proof
   · unfold mvcc.restoreView mvcc.restoreViewOut; simp only [↓reduceIte]; iframe
   have hR := hRestore «$r0_ptr» γ (GoInterface.ok bi) (lease.lessorIface lp) ti lg'
       (1 : Qp).half P (mvcc.hookFn γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storeW «$r0_ptr» γ)
-      (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) (mvcc.storePutOk γ) (mvcc.storeRb γ)
+      (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) (mvcc.storePutOk γ) (mvcc.storeRb γ) (mvcc.storeBt γ)
       (DFrac.own 1) (DFrac.own 1) []
       iprop(«$r0_ptr».[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
         «$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64))

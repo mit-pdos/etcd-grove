@@ -1649,7 +1649,7 @@ whose lock token only `Unlock` takes (`ld`), which `watchableStoreTxnWrite.End` 
 theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log)
     (pend : List Change) (puts deletes putSize : w64) :
     isWatchTxnWrite (GF := GF) tw s st γ trace ilog pend puts deletes putSize ⊢
-      ∃ bt : GoInterfaceOk, ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
+      ∃ bt : GoInterfaceOk, storeBt γ.st bt ∗ ∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
           (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
         globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b -∗ key ↦*{dq} k -∗
         storeRb γ.st r -∗
@@ -1660,8 +1660,10 @@ theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (i
   iunfold isWatchTxnWrite at H
   iNamed H
   icases isTxnWrite_leaseDel mw st γ.st trace ilog pend puts deletes putSize _ _ $$ Htx
-    with ⟨%bt, Hd⟩
+    with ⟨%bt, #HbtB, Hd⟩
   iexists bt
+  isplitr
+  · iexact HbtB
   iintro %b %key %k %dq %r %Φ #HL Hkey Hrb HΦ
   iapply Hd $$ %b %key %k %dq %r %Φ HL Hkey Hrb
   inext
@@ -1672,6 +1674,25 @@ theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (i
   simp only [named]
   iframe Htx Htoks Hwlog
   iframe #
+
+/-- **The range deleter `rd`** of the watchable store `s` (inner store `st`, names `γ`;
+persistent; leases T3, L2d (iii), 2026-10-25): `newWatchableStore` gives the lessor the closure
+`func() lease.TxnDelete { return s.Write(traceutil.TODO()) }`, which, called by the store's sole
+writer at its committed log `L` (what `watchableStore.Write` takes: a reader's slot, the write
+token, `watchWriter`, the post-lock hook run on the caller's `Pre`), opens a watchable write
+transaction on a fresh trace and returns it as a `lease.TxnDelete` (the lessor's `Revoke`
+deletes the lease's keys through it). -/
+def rdIs (rd : GoFunc) (s st : Loc) (γ : WsNames) : IProp GF :=
+  iprop(□ (∀ (L : Log) (P Pre Q : IProp GF) (f : val),
+    {{ storeReader st γ.st ∗ storeWT γ.st ∗ watchWriter γ L ∗ ⌜L.length + 4 ≤ 2 ^ 63⌝ ∗
+        hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+      (App (Val #rd) (Val #()))
+    {{ (tw trace : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
+        isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) ∗ Q ∗ hookIs γ.st P f }}))
+
+instance rdIs_persistent (rd : GoFunc) (s st : Loc) (γ : WsNames) :
+    Persistent (rdIs (GF := GF) rd s st γ) := by
+  unfold rdIs; infer_instance
 
 end reprs
 

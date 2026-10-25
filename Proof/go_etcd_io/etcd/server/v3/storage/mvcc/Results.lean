@@ -225,7 +225,7 @@ theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (mvcc.bkView γ) (mvcc.bkRTx γ P b) (backend.wbTok γ) mvcc.keyPutOk Del W W iprop(True) Cmp
         Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b)
-        (fun r => iprop(backend.rbOwn γ r ∗ ⌜mvcc.leaseParams P⌝)) :=
+        (fun r => iprop(backend.rbOwn γ r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b) :=
   mvcc.isKeyBackendG_of_backend backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
     backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size
     backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock

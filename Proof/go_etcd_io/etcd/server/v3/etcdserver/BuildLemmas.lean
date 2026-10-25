@@ -92,7 +92,7 @@ theorem server_kv_watchable_of
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st ∗ (∃ rd : GoFunc, lease.rdOwn γl rd) ∗ auth.modeTag γw.tag M }} := by
+        mvcc.wsCloser ws st γw.st ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif, Hok⟩ HΦ
   -- the auth mode's tag (the auth plan's A4): the store's owner tag names the mode `M`
   imod auth.modeTag_alloc (GF := GF) M with ⟨%γtag, #Htag⟩
