@@ -7,8 +7,10 @@ start with auth's authority (E2a: `NewAuthStore` in the mode `on γa`, the simpl
 `tokenProviderOkCtx`, the admin side's authority in the server's environment, `srvAuthBound`);
 `SetUp`'s admin calls through the client's `Auth` methods to the apply layer's admin steps
 (`apply.isAuthSteps`), the history after them `setupSt` at every later position (no later admin
-request is sent); `AuthInfoFromCtx`'s binding naming the context's token (today `ctxBound` says
-only "some token issued to its user"); the client's auth contract (`ClientAuth.lean`); the
+request is sent); the client's auth contract (`ClientAuth.lean`), stated over the context's own
+token, which `AuthInfoFromCtx`'s binding names since the auth plan's E2c (`auth.ctxTokenOf`, from
+`metadata.incomingOf`; a token is issued to one user, `auth.tokIssued_agree`, the bad token to no
+one, `tokIssued_badToken`); the
 client's write path without refusal-freedom (D29's `noRefusalAt` is false of an auth-enabled
 member: a refused write is retried, every attempt refused); and the checks' proofs over the
 workload, with `Permitted`'s (`Permitted.lean`) and the model's verdicts (`Model.lean`).

@@ -45,7 +45,7 @@ abbrev v3rpc.AuthAdmin.isPermitted.boundSpec : Prop :=
       E.RD }}
     (App (Val (aa @!! go.GoType.PointerType v3rpc.AuthAdmin.ty @!! go!"isPermitted"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutB s E.authMode err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutB s E.authMode (GoInterface.ok ctx) err }}
 
 theorem v3rpc.AuthAdmin.isPermitted_bound
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -106,7 +106,7 @@ theorem v3rpc.AuthAdmin.isPermitted_bound
       · iapply (adminRes_of_adminVerdict _ _) $$ Hv
       iunfold principalBound; itrivial
     · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-      ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode a user rev $$ [$Hb $Hau]
+      ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hb $Hau]
       iunfold authInfoIs at Hau
       icases Hau with ⟨%Hann', -, -⟩
       (try wp_auto)
@@ -131,7 +131,7 @@ abbrev v3rpc.AuthAdmin.requireAuthInfo.boundSpec : Prop :=
       v3rpc.authAdminIs aa s E ∗ srvAuthBound s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
     (App (Val (aa @!! go.GoType.PointerType v3rpc.AuthAdmin.ty @!! go!"requireAuthInfo"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err }}
 
 theorem v3rpc.AuthAdmin.requireAuthInfo_bound
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -214,7 +214,7 @@ theorem v3rpc.AuthAdmin.requireAuthInfo_bound
         isplitr
         · iintro %h; cases h
         · iintro %_; iexact Hb
-      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode a user rev $$ [$Hbnd $Hau]
+      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hbnd $Hau]
         iunfold authInfoIs at Hau
         icases Hau with ⟨%Hann', -, -⟩
         (try wp_auto)
@@ -245,7 +245,7 @@ abbrev v3rpc.authMaintenanceServer.requireAuthInfo.boundSpec : Prop :=
       E.RD }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!!
       go!"requireAuthInfo")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err }}
 
 theorem v3rpc.authMaintenanceServer.requireAuthInfo_bound
     (hP : v3rpc.AuthAdmin.requireAuthInfo.boundSpec (GF := GF) (hG := hG)) :

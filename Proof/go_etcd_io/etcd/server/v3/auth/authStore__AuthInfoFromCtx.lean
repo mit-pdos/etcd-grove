@@ -45,7 +45,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
   · iPkgInit
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨#HeUE, #HeUNF, #HePD, #HeOR, #HeIT, ⟨%s1, #Hs1⟩, ⟨%s2, #Hs2⟩, -⟩
+  icases Hai with ⟨#HeUE, #HeUNF, #HePD, #HeOR, #HeIT, #Hs1, #Hs2, -⟩
   ihave #HeIT' := HeIT
   iunfold authErrVar at HeIT'
   icases HeIT' with ⟨%eIT, #HeITa, -⟩
@@ -65,7 +65,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     iunfold ctxBound; ileft; ipureintro; rfl
   wp_auto
   wp_apply h_FromIncomingContext as %md %ok Hmd
-  icases Hmd with (%Hok | ⟨%m, Hm, Hvals⟩)
+  icases Hmd with (⟨%Hok, %Hinc⟩ | ⟨%md0, %m, ⟨%Hok, %Hinc, %Hdom⟩, Hm, Hvals⟩)
   · subst Hok
     wp_auto
     iapply HΦ
@@ -75,23 +75,16 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     isplitr
     · iunfold authErrIs; ileft; ipureintro; rfl
     iunfold ctxBound; ileft; ipureintro; rfl
-  cases ok
-  · wp_auto
-    iapply HΦ
-    iframe
-    isplitr
-    · iunfold authInfoRO; ileft; ipureintro; rfl
-    isplitr
-    · iunfold authErrIs; ileft; ipureintro; rfl
-    iunfold ctxBound; ileft; ipureintro; rfl
+  subst Hok
   wp_auto
-  wp_apply wp_map_lookup2 go.string _ md m s1 $$ Hm as Hm
-  cases h1 : m !! s1 with
+  wp_apply wp_map_lookup2 go.string _ md m go!"token" $$ Hm as Hm
+  cases h1 : m !! go!"token" with
   | some ts1 =>
     simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
     wp_auto
-    icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : GoString) (sl : GoSlice) =>
-        iprop(∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝)) h1).1 $$ Hvals with ⟨⟨%vs, Hts, %Hne⟩, -⟩
+    icases (BigSepM.bigSepM_lookup_acc (Φ := fun (k : GoString) (sl : GoSlice) =>
+        iprop(∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝ ∗ ⌜md0 k = some vs⌝)) h1).1 $$ Hvals
+        with ⟨⟨%vs, Hts, %Hne, %Hmd0⟩, -⟩
     ihave %Htsl := ownSlice_len _ _ _ $$ Hts
     obtain ⟨v0, hv0⟩ : ∃ v0, vs[0]? = some v0 := by
       cases vs with
@@ -144,18 +137,30 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
       isplitr
       · iunfold authErrIs; ileft; ipureintro; rfl
       iunfold ctxBound; iright; iexists (strings.trimPrefix v0 [66#8, 101#8, 97#8, 114#8, 101#8, 114#8, 32#8])
+      isplitr
+      · ipureintro
+        obtain ⟨x, xs, rfl⟩ : ∃ x xs, vs = x :: xs := by
+          cases vs with
+          | nil => exact absurd rfl Hne
+          | cons a l => exact ⟨a, l, rfl⟩
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at hv0
+        subst hv0
+        unfold ctxTokenOf
+        rw [Hinc]
+        simp only [Hmd0]
       iExactEq Hb
       simp
   | none =>
     simp only [Option.isSome_none, Option.getD_none]
     wp_auto
-    wp_apply wp_map_lookup2 go.string _ md m s2 $$ Hm as Hm
-    cases h2 : m !! s2 with
+    wp_apply wp_map_lookup2 go.string _ md m go!"authorization" $$ Hm as Hm
+    cases h2 : m !! go!"authorization" with
     | some ts2 =>
       simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
       wp_auto
-      icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : GoString) (sl : GoSlice) =>
-          iprop(∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝)) h2).1 $$ Hvals with ⟨⟨%vs, Hts, %Hne⟩, -⟩
+      icases (BigSepM.bigSepM_lookup_acc (Φ := fun (k : GoString) (sl : GoSlice) =>
+          iprop(∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝ ∗ ⌜md0 k = some vs⌝)) h2).1 $$ Hvals
+          with ⟨⟨%vs, Hts, %Hne, %Hmd0⟩, -⟩
       ihave %Htsl := ownSlice_len _ _ _ $$ Hts
       obtain ⟨v0, hv0⟩ : ∃ v0, vs[0]? = some v0 := by
         cases vs with
@@ -208,6 +213,18 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
         isplitr
         · iunfold authErrIs; ileft; ipureintro; rfl
         iunfold ctxBound; iright; iexists (strings.trimPrefix v0 [66#8, 101#8, 97#8, 114#8, 101#8, 114#8, 32#8])
+        isplitr
+        · ipureintro
+          obtain ⟨x, xs, rfl⟩ : ∃ x xs, vs = x :: xs := by
+            cases vs with
+            | nil => exact absurd rfl Hne
+            | cons a l => exact ⟨a, l, rfl⟩
+          simp only [List.getElem?_cons_zero, Option.some.injEq] at hv0
+          subst hv0
+          have h1' : md0 go!"token" = none := (Hdom _).1 h1
+          unfold ctxTokenOf
+          rw [Hinc]
+          simp only [h1', Hmd0]
         iExactEq Hb
         simp
     | none =>
