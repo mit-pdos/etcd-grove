@@ -57,10 +57,10 @@ other entries kept). -/
 def delfOk (p : Loc) (γt γf : GName) (df : GoFunc) : IProp GF :=
   iprop(□ (∀ (tk : GoString) (mp : Loc) (m : GMap GoString GoString),
     {{ tsF go!"simpleTokens" p ↦ mp ∗ mp ↦$ m ∗
-        ([∗map] t ↦ u ∈ m, ghostMapElem γt (t, u) DFrac.discard () ∗ ghostMapElem γf t (DFrac.own 1) ()) }}
+        ([∗map] t ↦ u ∈ m, ghostMapElem γt t DFrac.discard u ∗ ghostMapElem γf t DFrac.discard ()) }}
       (App (Val #df) (Val #tk))
     {{ RET #(); ∃ m' : GMap GoString GoString, tsF go!"simpleTokens" p ↦ mp ∗ mp ↦$ m' ∗
-        ([∗map] t ↦ u ∈ m', ghostMapElem γt (t, u) DFrac.discard () ∗ ghostMapElem γf t (DFrac.own 1) ()) }}))
+        ([∗map] t ↦ u ∈ m', ghostMapElem γt t DFrac.discard u ∗ ghostMapElem γf t DFrac.discard ()) }}))
 
 /-- **What a keeper's goroutine `run` is given** (`enable`): the keeper's read-only fields, its
 stop channels with the right to close `donec`, the provider's mutex with its invariant, the
@@ -245,8 +245,8 @@ theorem tokenSimple_invalidateUser (p : Loc) (γt γf : GName) (user : GoString)
         "Hmp" ∷ tsF go!"simpleTokens" p ↦ mp ∗ "Hk" ∷ tsF go!"simpleTokenKeeper" p ↦{DFrac.own (1 : Qp).half} ka ∗
         "Hkp" ∷ keeperMap ka ∗ "name" ∷ name_ptr ↦ nv ∗ "token" ∷ token_ptr ↦ tv ∗
         "t" ∷ t_ptr ↦ p ∗ "username" ∷ username_ptr ↦ user ∗
-        "Hbig" ∷ ([∗map] t ↦ u ∈ m', iprop(ghostMapElem (GF := GF) γt (t, u) DFrac.discard () ∗
-          ghostMapElem γf t (DFrac.own 1) ()))))
+        "Hbig" ∷ ([∗map] t ↦ u ∈ m', iprop(ghostMapElem (GF := GF) γt t DFrac.discard u ∗
+          ghostMapElem γf t DFrac.discard ()))))
     _ go.string go.string mp m $$ Hm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
   isplitl [Hmp Hk Hkp name token t username Hbig]

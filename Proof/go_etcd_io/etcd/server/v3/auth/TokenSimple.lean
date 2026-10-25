@@ -7,9 +7,9 @@ plan"). Lean-first (no Rocq counterpart).
 `simpleTokensMu`, and a TTL keeper (`simpleTokenTTLKeeper`, while auth is enabled) whose goroutine
 deletes expired tokens. The binding (`tokenProviderOk`'s `info` clause): every token in the map was
 issued to its user. The lock invariant (`simpleLk`) holds, for every entry `t ↦ u` of the map, the
-persistent `tokIssued`-element `(t, u)` and the right to issue `t` (`tokFresh`, exclusive), so that
-`assign`'s caller, who holds the right to issue its token (`authnCtx`), knows the token is not in
-the map: `assignSimpleTokenToUser`'s panic on a token issued twice is unreachable.
+persistent `tokIssued`-element `t ↦ u` and the spent right to issue `t` (read-only; the auth plan's
+E2c: issuing spends the exclusive `tokFresh`), so that `assign`'s caller, who holds the right to
+issue its token (`authnCtx`), knows the token is not in the map: `assignSimpleTokenToUser`'s panic on a token issued twice is unreachable.
 
 **Three hypotheses, not axioms** (`tokenSimple_ok`'s premises): the functions Perennial cannot
 reach. `isValidSimpleToken` parses the token's index with `strconv.ParseUint` (Perennial does not
@@ -77,7 +77,8 @@ def keeperMap (k : Loc) : IProp GF :=
 
 /-- **What `simpleTokensMu` guards** (the provider `p`, the issued tokens' names `γt`, the fresh
 tokens' `γf`, the keepers' `γk`): the map `simpleTokens` with, for each entry `t ↦ u`, the persistent
-issued element `(t, u)` and the right to issue `t`; the issued tokens' authority; half the current
+issued element `t ↦ u` and the spent right to issue `t` (read-only; the auth plan's E2c); the issued
+tokens' authority; half the current
 keeper field (the other half is the admin side's, `simpleAdmin`: `invalidateUser` reads the field
 outside the mutex; the auth plan's S5d) and the keeper (`nil`, or one of the keepers created, `K`,
 a ghost set whose elements their goroutines hold, so that a keeper's `run` finds its map after
@@ -85,10 +86,10 @@ relocking: S5d), with the maps of all of them; the TTL (positive: `enable` then 
 package default). -/
 def simpleLk (p : Loc) (γt γf γk : GName) : IProp GF :=
   iprop(∃ (mp : Loc) (m : GMap GoString GoString) (k : Loc) (K : GMap Loc Unit) (ttl : time.Duration)
-      (S : GMap (GoString × GoString) Unit),
+      (S : GMap GoString GoString),
     tsF go!"simpleTokens" p ↦ mp ∗ mp ↦$ m ∗
-    ([∗map] t ↦ u ∈ m, ghostMapElem γt (t, u) DFrac.discard () ∗ ghostMapElem γf t (DFrac.own 1) ()) ∗
-    tokAuth γt S ∗
+    ([∗map] t ↦ u ∈ m, ghostMapElem γt t DFrac.discard u ∗ ghostMapElem γf t DFrac.discard ()) ∗
+    tokAuth γt γf S ∗
     tsF go!"simpleTokenKeeper" p ↦{DFrac.own (1 : Qp).half} k ∗ ⌜k = null ∨ K.lookup k = some ()⌝ ∗
     ghostMapAuth γk 1 K ∗ ([∗map] k' ↦ _u ∈ K, keeperMap k' ∗ ghostMapElem γk k' DFrac.discard ()) ∗
     tsF go!"simpleTokenTTL" p ↦ ttl ∗ ⌜0 < sint.Z ttl⌝)
@@ -125,27 +126,46 @@ theorem keepers_acc (γk : GName) (K : GMap Loc Unit) (k : Loc) (hk : K.lookup k
   iapply Hback
   iframe Hkm He
 
-/-- The issued element of a token the map holds (persistent), the map's resources kept. -/
-theorem big_issued (γt γf : GName) (m : GMap GoString GoString) (t : GoString) :
-    ([∗map] t ↦ u ∈ m, iprop(ghostMapElem (GF := GF) γt (t, u) DFrac.discard () ∗
-        ghostMapElem γf t (DFrac.own 1) ())) ⊢
-      ([∗map] t ↦ u ∈ m, iprop(ghostMapElem (GF := GF) γt (t, u) DFrac.discard () ∗
-        ghostMapElem γf t (DFrac.own 1) ())) ∗
-      □ (∀ u : GoString, ⌜m !! t = some u⌝ → ghostMapElem γt (t, u) DFrac.discard ()) := by
+/-- The issued element of a token the map holds (persistent), with its shape, the map's and the
+authority's resources kept. -/
+theorem big_issued (γt γf : GName) (S : GMap GoString GoString) (m : GMap GoString GoString)
+    (t : GoString) :
+    ([∗map] t ↦ u ∈ m, iprop(ghostMapElem (GF := GF) γt t DFrac.discard u ∗
+        ghostMapElem γf t DFrac.discard ())) ∗ tokAuth γt γf S ⊢
+      ([∗map] t ↦ u ∈ m, iprop(ghostMapElem (GF := GF) γt t DFrac.discard u ∗
+        ghostMapElem γf t DFrac.discard ())) ∗ tokAuth γt γf S ∗
+      □ (∀ u : GoString, ⌜m !! t = some u⌝ → ghostMapElem γt t DFrac.discard u ∗ ⌜tokShape t⌝) := by
   cases h : m !! t with
   | none =>
-    iintro H; iframe H
+    iintro ⟨H, Ha⟩; iframe H Ha
     iintro !> %u %hu
     exact absurd hu (by simp)
   | some u0 =>
-    iintro H
-    icases (BigSepM.bigSepM_lookup_acc h).1 $$ H with ⟨⟨#Hi, Hf⟩, Hback⟩
+    iintro ⟨H, Ha⟩
+    icases (BigSepM.bigSepM_lookup_acc h).1 $$ H with ⟨⟨#Hi, #Hf⟩, Hback⟩
     ihave H := Hback $$ [Hf]
     · iframe Hf Hi
-    iframe H
+    icases tokAuth_lookup γt γf S t u0 $$ [$Ha $Hi] with ⟨Ha, %Hsh⟩
+    iframe H Ha
     iintro !> %u %hu
     simp only [Option.some.injEq] at hu
-    subst hu; iexact Hi
+    subst hu; iframe Hi; ipureintro; exact Hsh
+
+/-- A token whose right to issue is held is not in the map. -/
+theorem big_fresh_none (γt γf : GName) (m : GMap GoString GoString) (t : GoString) :
+    ([∗map] t ↦ u ∈ m, iprop(ghostMapElem (GF := GF) γt t DFrac.discard u ∗
+        ghostMapElem γf t DFrac.discard ())) ∗ ghostMapElem γf t (DFrac.own 1) () ⊢
+      ([∗map] t ↦ u ∈ m, iprop(ghostMapElem (GF := GF) γt t DFrac.discard u ∗
+        ghostMapElem γf t DFrac.discard ())) ∗ ghostMapElem γf t (DFrac.own 1) () ∗
+      ⌜m !! t = none⌝ := by
+  cases h : m !! t with
+  | none =>
+    iintro ⟨H, Hf⟩; iframe H Hf; ipureintro; trivial
+  | some u0 =>
+    iintro ⟨H, Hf⟩
+    icases (BigSepM.bigSepM_lookup_acc h).1 $$ H with ⟨⟨-, #Hsp⟩, -⟩
+    ihave %Hne := tokSpent_ne γf t t $$ [$Hsp $Hf]
+    exact absurd rfl Hne
 
 /-- `tm.resetSimpleToken(token)`: the keeper's map, kept. -/
 theorem keeper_reset (k : Loc) (token : GoString) :
@@ -289,7 +309,7 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
     ihave Hks := Hback $$ Hkp
     iframe t token Hk Hks
     ipureintro; rfl
-  icases big_issued γt γf m token $$ Hbig with ⟨Hbig, #Hiss⟩
+  icases big_issued γt γf S m token $$ [$Hbig $Hauth] with ⟨Hbig, Hauth, #Hiss⟩
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk HKa Hks Httl]
   · iunfold simpleLk
     iexists mp, m, k, ks, ttl, S
@@ -341,12 +361,13 @@ theorem tokenSimple_info (hValid : ValidSpec (GF := GF) (hG := hG)) (p : Loc) (�
 
 /-- **`assignSimpleTokenToUser`**, with the right to issue `tok`: `tok` issued to `user`. -/
 theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt : γa.tok = γt)
-    (hγf : γa.fresh = γf) (user tok : GoString) :
+    (hγf : γa.fresh = γf) (user tok : GoString) (hsh : tokShape tok) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γt γf ∗
         tokFresh γa tok }}
       (App (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"assignSimpleTokenToUser" #p))
         (Val #user)) (Val #tok))
     {{ RET #(); tokIssued γa tok user }} := by
+  subst hγt hγf
   wp_start as ⟨#Hok, Hfr⟩
   iunfold simpleOk at Hok
   icases Hok with ⟨%lg, %γk, #Hlg, %Hlgnn, #Hmu⟩
@@ -356,10 +377,11 @@ theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HI⟩
   iunfold simpleLk at HI
   icases HI with ⟨%mp, %m, %k, %ks, %ttl, %S, Hmp, Hm, Hbig, Hauth, Hk, %Hkks, HKa, Hks, Httl, %Httlpos⟩
-  -- issue the token (whichever branch is taken)
-  iunfold tokFresh at Hfr
-  rw [hγf]
-  imod tokIssue ⟨γt, γt, γt, γt⟩ S tok user $$ Hauth with ⟨%S', Hauth, #Hiss⟩
+  -- the token is not in the map (its right is held), then issued (whichever branch is taken)
+  icases big_fresh_none γa.tok γa.fresh m tok $$ [Hbig Hfr] with ⟨Hbig, Hfr, %Hnone⟩
+  · iframe Hbig; iunfold tokFresh at Hfr; iexact Hfr
+  imod tokIssue γa S tok user hsh $$ [$Hauth Hfr] with ⟨%S', Hauth, #Hiss, #Hsp⟩
+  · iunfold tokFresh; iexact Hfr
   (try wp_auto)
   wp_if_destruct
   · -- no keeper (auth disabled): the token is not stored
@@ -371,15 +393,13 @@ theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (
       ipureintro; exact ⟨Or.inl rfl, Httlpos⟩
     (try wp_auto)
     iapply HΦ
-    unfold tokIssued; rw [hγt]; iexact Hiss
+    iexact Hiss
   (try wp_auto)
   wp_apply (wp_map_lookup2 go.string go.string mp m tok) $$ [$Hm] as Hm
   (try wp_auto)
   cases hlk : m !! tok with
   | some u =>
-    icases (BigSepM.bigSepM_lookup_acc hlk).1 $$ Hbig with ⟨⟨-, Hf2⟩, -⟩
-    ihave %Hne := ghostMapElem_ne γf tok tok (DFrac.own 1) () () $$ Hfr Hf2
-    exact absurd rfl Hne
+    rw [Hnone] at hlk; cases hlk
   | none =>
   (try wp_auto)
   wp_apply (wp_mapInsert go.string mp m tok user) $$ [$Hm] as Hm
@@ -391,11 +411,13 @@ theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (
   ihave Hks := Hback $$ Hkp
   (try wp_auto)
   ihave Hbig : [∗map] t ↦ u ∈ (<[tok := user]> m),
-      iprop(ghostMapElem (GF := GF) γt (t, u) DFrac.discard () ∗ ghostMapElem γf t (DFrac.own 1) ()) $$
-      [Hbig Hfr]
+      iprop(ghostMapElem (GF := GF) γa.tok t DFrac.discard u ∗ ghostMapElem γa.fresh t DFrac.discard ()) $$
+      [Hbig]
   · iapply (BigSepM.bigSepM_insert hlk).2
-    iframe Hbig Hfr
-    iunfold tokIssued at Hiss; iexact Hiss
+    iframe Hbig Hsp
+    iunfold tokIssued at Hiss
+    icases Hiss with ⟨Hi, -⟩
+    iexact Hi
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk HKa Hks Httl]
   · iunfold simpleLk
     iexists mp, _, k, ks, ttl, S'
@@ -403,7 +425,7 @@ theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (
     ipureintro; exact ⟨Or.inr Hkm, Httlpos⟩
   (try wp_auto)
   iapply HΦ
-  unfold tokIssued; rw [hγt]; iexact Hiss
+  iexact Hiss
 
 /-- **`assign`**, on an `Authenticate` context: a token issued to the user, or an error. -/
 theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt : γa.tok = γt)
@@ -442,7 +464,8 @@ theorem tokenSimple_assign (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt :
   have htok := sprintfOut_simpleTok pre idx tok Htok
   subst htok
   (try wp_auto)
-  wp_apply (tokenSimple_assignToUser p γt γf γa hγt hγf user (simpleTok pre idx)) $$ [Hfr] as #Hiss
+  wp_apply (tokenSimple_assignToUser p γt γf γa hγt hγf user (simpleTok pre idx) ⟨pre, idx, rfl⟩)
+    $$ [Hfr] as #Hiss
   · iframe #; iunfold freshOk at Hfr; iexact Hfr
   (try wp_auto)
   iapply HΦ

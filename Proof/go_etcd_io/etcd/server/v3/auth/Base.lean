@@ -13,7 +13,7 @@ As in those, the package facts are assumptions about package initialization, not
 `ErrInvalidAuthToken`, the admin side's eleven, S4, and S5's `ErrAuthFailed`, `ErrAuthNotEnabled`: `errors.New(...)`, each a fixed leaf pointer error whose `Error()`
 returns, `authErrVar`, the shape of the apply package's `errVarLeaf`), and the two token keys of
 `rpctypes` that `AuthInfoFromCtx` looks up (`TokenFieldNameGRPC`, `TokenFieldNameSwagger`:
-fixed read-only strings), stated here as the txn package states its foreign errors.
+read-only, `"token"` and `"authorization"`, the auth plan's E2c), stated here as the txn package states its foreign errors.
 -/
 module
 
@@ -100,10 +100,8 @@ instance reportP_fractional : Fractional (reportP (GF := GF)) where
 abbrev authInit : IProp GF :=
   iprop(authErrVar ErrUserEmpty ∗ authErrVar ErrUserNotFound ∗ authErrVar ErrPermissionDenied ∗
     authErrVar ErrAuthOldRevision ∗ authErrVar ErrInvalidAuthToken ∗
-    (∃ s : GoString,
-      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC ↦□ s) ∗
-    (∃ s : GoString,
-      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ s) ∗
+    globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC ↦□ go!"token" ∗
+    globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ go!"authorization" ∗
     -- the admin side's (the auth plan's S4, 2026-10-24), appended
     authErrVar ErrRootUserNotExist ∗ authErrVar ErrRootRoleNotExist ∗
     authErrVar ErrUserAlreadyExist ∗ authErrVar ErrRoleAlreadyExist ∗ authErrVar ErrRoleNotFound ∗

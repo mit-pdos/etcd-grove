@@ -19110,6 +19110,77 @@ resources as a premise of `applySnapshot.spec` for S-j1 (it then has to thread t
 Recommendation: (a), the smallest change, in the predicate whose meaning is "the apply thread's
 part of the current backend".
 
+## E2c of the auth plan: the server's token facts -- the context's own token, the simple shape, one user per token (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2c`)
+
+The server-side facts E2b found `Main`'s proof needs ("E2b of the auth plan", "What the server
+side must say"), but the auth history fixed after the set-up, which S4f gave
+(`authHistHalf_lookup`).
+
+**The context's own token.** `ctxBound M a` said the auth info `AuthInfoFromCtx` returns is `nil`
+or bound to *some* token issued to its user, which a bad principal's request satisfies as soon as
+anyone holds a token. The token is now the context's:
+- `metadata.incomingOf ctx` (`Proof/google_golang_org/grpc/metadata/Incoming.lean`, opaque): a
+  context's incoming metadata, `none` or each key's values. A context is immutable, so its metadata
+  is a function of the context value. `metadata.FromIncomingContext`'s trust-boundary spec now says
+  `ok` exactly when it is `some md0`, and the map has `md0`'s keys, each slice holding that key's
+  strings (still at least one). Its callers that only read the map (`newUnaryInterceptor`) take
+  the old shape, `weakSpec`, through `FromIncomingContext.weaken` (`FromIncomingWeak.lean`).
+- `rpctypes.TokenFieldNameGRPC`/`TokenFieldNameSwagger`'s initializer axioms now state the strings
+  (`"token"`, `"authorization"`; `metadatafields.go`), so `rpctypesInit` and `authInit` hold them
+  as such (`etc/gen-init.py`). Same axioms, stronger statements.
+- `auth.ctxTokenOf ctx` (`InvAuth.lean`): what `AuthInfoFromCtx` reads -- the first value under
+  `token`, else under `authorization`, `"Bearer "` trimmed.
+- **Changed statements**, each gaining the request context:
+  - `auth.ctxBound M ctx a := a = null ∨ ∃ t, ctxTokenOf ctx = some t ∗ infoBound M t a`;
+  - `authStore.AuthInfoFromCtx.spec`'s post: `ctxBound M ctx a`;
+  - `isReqAuthBound`'s `AuthInfoFromCtx` clause: `ctxBound M (ok ctx) a`;
+  - `ctxBoundOrTLS s M ctx a`;
+  - `principalBound s M ctx ai`: the user is the one the context's token was issued to;
+  - `adminOutB`/`authedOutB s M ctx err`, `principalBoundI s M ctx info`;
+  - the guards' bound variants, for `ctx` the guarded request's:
+    - `EtcdServer.AuthInfoFromCtx`;
+    - `checkMembershipOperationPermission`;
+    - `requireAuthInfo`;
+    - `AuthAdmin.isPermitted`/`requireAuthInfo`;
+    - the maintenance server's `requireAuthInfo`;
+    - `isWatchPermitted`, at the stream's `r.ci`.
+
+  Their proofs changed only by threading `ctx`.
+
+**One user per token, the simple shape.** `tokIssued γa t u` was an element of a ghost map keyed by
+the pair `(t, u)`, so that a token could be issued again after `disable()` cleared the simple
+provider's map, possibly to another user. But every issue spends a right `tokFresh γa t` that is
+exclusive and comes once per token, `<prefix>.<raft index>`. So the key is now the token:
+- **`tokIssued`.** `tokIssued γa t u := t ↪[γa.tok]□ u ∗ ⌜tokShape t⌝`, where `tokShape t` is
+  `∃ pre idx, t = simpleTok pre idx`.
+- **Issuing.** `tokIssue` spends the right: it makes it read-only, and it needs the shape.
+- **The authority.** `tokAuth γt γf S` (token to user) keeps, for each issued token, its element,
+  its spent right and its shape. A held right is therefore not that of an issued token
+  (`tokSpent_ne`), and `tokIssue` inserts.
+- **New facts:**
+  - `tokIssued_agree`: a token is issued to one user;
+  - `tokIssued_shape`;
+  - authkv's `tokIssued_badToken`, restated in its `Results.lean` with `authkv_token_one_user`.
+- **The simple provider's map entries** hold the spent right instead of the exclusive one.
+  `assignSimpleTokenToUser`'s panic on a token already in the map is refuted against it before
+  issuing (`big_fresh_none`). `info` reads the shape from the authority (`big_issued`,
+  `tokAuth_lookup`).
+
+**The shape is the simple provider's.** No other provider is proved. The JWT provider, when it is,
+issues signed tokens of another shape. `tokShape` would then be the mode's (a provider's shape in
+the contract), or JWT tokens recorded under names of their own. Recorded, not done.
+
+**Trust base.** Unchanged (718 axioms, 5 sorries). `FromIncomingContext.wp_proof` and the two
+`rpctypes` initializer axioms say more than before. `incomingOf` is an `opaque`, not an axiom.
+
+**Not done (E2's server side, for `Main`):**
+- the client's contract C1-C4 over `metadata.incomingOf`: what `AppendToOutgoingContext` and gRPC's
+  delivery make of a call's context;
+- where the server allocates `γa` and the fresh rights (`Authenticate`'s `<prefix>.<index>`, once
+  per raft index);
+- `NewAuthStore`'s server statement, still an axiom;
+- the client's write path without refusal-freedom (E2d).
+
 ## E2d of the auth plan: the client's write path with refusals, and `clientv3.New` with a user name (2026-10-25 · `notes/auth-plan.md`)
 
 **The question.** E2b found D29's refusal-freedom (`noRefusalAt`, the axiom `etcd_noRefusal`)

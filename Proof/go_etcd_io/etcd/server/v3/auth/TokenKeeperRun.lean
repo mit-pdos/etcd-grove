@@ -144,8 +144,8 @@ theorem keeper_run : RunSpec (GF := GF) (hG := hG) := by
     iapply wp_map_for_range_mut (K := GoString) (V := time.Time) (fun (_ : Nat) (_ : GMap GoString time.Time) =>
         iprop(∃ (tv : GoString) (ev : time.Time) (pm : GMap GoString GoString),
           "Hmp" ∷ tsF go!"simpleTokens" p ↦ mp ∗ "Hm" ∷ mp ↦$ pm ∗
-          "Hbig" ∷ ([∗map] t ↦ u ∈ pm, iprop(ghostMapElem (GF := GF) γt (t, u) DFrac.discard () ∗
-            ghostMapElem γf t (DFrac.own 1) ())) ∗
+          "Hbig" ∷ ([∗map] t ↦ u ∈ pm, iprop(ghostMapElem (GF := GF) γt t DFrac.discard u ∗
+            ghostMapElem γf t DFrac.discard ())) ∗
           "t" ∷ t_ptr ↦ tv ∗ "tokenendtime" ∷ tokenendtime_ptr ↦ ev ∗ "nowtime" ∷ nowtime_ptr ↦ now))
       _ go.string time.Time.ty km tmap $$ Htm
     iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
@@ -262,8 +262,8 @@ theorem tokenSimple_new (h_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_alloc p as Hp
     iStructNamed Hp
-    imod (tokAlloc (GF := GF)) with ⟨%γt, Htok⟩
     imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Unit)) with ⟨%γf, Hf⟩
+    imod (tokAlloc (GF := GF) γf) with ⟨%γt, Htok⟩
     imod (ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit)) with ⟨%γk, Hka⟩
     ihave ⟨Hk1, Hk2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ simpleTokenKeeper
     imod sync.init_Mutex (simpleLk p γt γf γk) ⊤ (tsF go!"simpleTokensMu" p)
@@ -303,8 +303,8 @@ theorem tokenSimple_new (h_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_alloc p as Hp
     iStructNamed Hp
-    imod (tokAlloc (GF := GF)) with ⟨%γt, Htok⟩
     imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Unit)) with ⟨%γf, Hf⟩
+    imod (tokAlloc (GF := GF) γf) with ⟨%γt, Htok⟩
     imod (ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit)) with ⟨%γk, Hka⟩
     ihave ⟨Hk1, Hk2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ simpleTokenKeeper
     imod sync.init_Mutex (simpleLk p γt γf γk) ⊤ (tsF go!"simpleTokensMu" p)

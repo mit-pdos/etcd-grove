@@ -92,8 +92,9 @@ theorem isReqAuth_of_authInv
     iapply authInfoRO_authInfoOpt a $$ Ha
 
 /-- **The request side with the token binding** (persistent; the auth plan's S5, 2026-10-24):
-`isReqAuth`'s `AuthInfoFromCtx`, whose auth info is moreover bound to the context's token in the
-mode `M` (`auth.ctxBound`: in `on γa`, its user is one the token was issued to). Stated beside
+`isReqAuth`'s `AuthInfoFromCtx`, whose auth info is moreover bound to the context's own token in
+the mode `M` (`auth.ctxBound`: the token `auth.ctxTokenOf ctx` its metadata carries, the auth plan's
+E2c; in `on γa`, its user is one the token was issued to). Stated beside
 `isReqAuth` (which the request path's and `NewAuthStore`'s statements name) rather than in it. -/
 def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
@@ -101,7 +102,7 @@ def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IPro
       {{ mvcc.txnCtx ctx cd ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-          applyErrIs err ∗ auth.ctxBound M a }}))
+          applyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
 
 instance isReqAuthBound_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
     Persistent (isReqAuthBound (GF := GF) st RD M) := by

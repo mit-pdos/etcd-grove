@@ -68,6 +68,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Proof.go_etcd_io.etcd.server.v3.auth.Tokens
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
+public import Proof.google_golang_org.grpc.metadata.Incoming
 
 @[expose] public section
 
@@ -398,12 +399,31 @@ instance infoBound_persistent (M : AuthMode) (token : GoString) (a : Loc) :
     Persistent (infoBound (GF := GF) M token a) := by
   unfold infoBound; infer_instance
 
-/-- **The auth info a request's context gives** in the mode `M` (persistent; S5): `nil`, or one
-bound to some token (`infoBound`). -/
-def ctxBound (M : AuthMode) (a : Loc) : IProp GF :=
-  iprop(⌜a = null⌝ ∨ ∃ token : GoString, infoBound M token a)
+/-- **The token a request's context carries** (the auth plan's E2c, 2026-10-25): what
+`AuthInfoFromCtx` reads of the context's incoming metadata (`metadata.incomingOf`): the first value
+of the key `token` (`rpctypes.TokenFieldNameGRPC`), else of `authorization`
+(`TokenFieldNameSwagger`), with a `"Bearer "` prefix trimmed; `none` if the context has no metadata
+or neither key. -/
+def ctxTokenOf (ctx : GoInterface) : Option GoString :=
+  match metadata.incomingOf ctx with
+  | none => none
+  | some md =>
+    match md go!"token" with
+    | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
+    | some [] => none
+    | none =>
+      match md go!"authorization" with
+      | some (v :: _) => some (strings.trimPrefix v go!"Bearer ")
+      | _ => none
 
-instance ctxBound_persistent (M : AuthMode) (a : Loc) : Persistent (ctxBound (GF := GF) M a) := by
+/-- **The auth info the request context `ctx` gives** in the mode `M` (persistent; S5): `nil`, or
+one bound to the context's own token (`ctxTokenOf`, the auth plan's E2c, 2026-10-25; until then
+"some token"). -/
+def ctxBound (M : AuthMode) (ctx : GoInterface) (a : Loc) : IProp GF :=
+  iprop(⌜a = null⌝ ∨ ∃ token : GoString, ⌜ctxTokenOf ctx = some token⌝ ∗ infoBound M token a)
+
+instance ctxBound_persistent (M : AuthMode) (ctx : GoInterface) (a : Loc) :
+    Persistent (ctxBound (GF := GF) M ctx a) := by
   unfold ctxBound; infer_instance
 
 /-- **An `Authenticate` context** `ctx` in the mode `M` (the auth plan's S5b, 2026-10-24): what
