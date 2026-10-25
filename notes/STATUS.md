@@ -341,6 +341,30 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## The client's KV specs: one stated spec per method, over etcd's whole KV state (2026-10-25, branch `worktree-kv-stated-specs`)
+
+`notes/decisions.md` D43 (one stated gRPC spec per KV method, the client's `kv.Put`/`Get`/`Delete`/
+`Do` and `txn.Commit` over one cluster-level `isKv kv γ dup` with the caller's atomic update written
+in the spec, `□?dup`), D44 (no workload: the client spec supports what the proof supports; a
+client's own facts in its invariant; no built-in restriction on the raft log) and D45 (the state a
+multi-revision store of maps, `KVState ⟨compacted, base, later⟩`, `KVStore := GMap GoString
+KVRec`; `kv.Get` at any revision the state keeps).
+
+- Done: the server, the client library (`KVService`, the specs, `Results`), the cache's client
+  (`kvRegs` instead of `Range` alone; `etcd_cache_served` at `ρ.rd = γr`), recipes, concurrency,
+  leasing, kubernetes, k8s's etcd3 store (its `New` without the writes premise), and the examples
+  putget, putget3, linkvtxn, linkv3p's `Main`, k8setcd3 build. `SrvWorkload`, `KVNames.wl`, the
+  `writes` predicate and the examples' `W`/`noGrant` arguments are gone.
+- Open: watchkv, cachekv and linkv3p's `MainWatch` do not build: their `srvNoDupKeys` and the
+  watch model's steps (`WkLog`: every revision from 2 a plan put) came from the workload
+  (`watchkv/Workload.lean`). A store-per-revision state cannot carry it (a revision `[put k v,
+  put j x, del j]` with `j` absent has the store of `[put k v]`), and etcd's check lets some
+  transactions write a key twice (`issues/etcd-txn-check-intervals-sibling.md`), so it is not a
+  server theorem either; the choice (the state's revisions carrying their events, or another
+  route) is the user's. Not run: `etc/tcb-report.py --check` (needs the full build).
+- Not yet written: an `isKv` constructor lemma (that `isKv` is satisfiable from a started
+  cluster's facts).
+
 ## The watch shapes (A4) (2026-10-24, branch `auth-a4`, worktree `/shared/etcd-grove-a4`)
 
 The auth plan's A4 (`notes/auth-plan.md`; `notes/decisions.md`, "A4 of the auth plan").
