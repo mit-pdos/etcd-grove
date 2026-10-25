@@ -131,8 +131,12 @@ theorem authRevision_of_authInv
         {{ (x : w64), RET #x; auth.revisionVerdict M x }}) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iintro !> %Φ !> - HΦ
-  iapply (hRev st R M) $$ [] HΦ
-  iframe Hpkg Hinv
+  iapply (hRev st R M none) $$ []
+  · iframe Hpkg Hinv; simp only [auth.authOwnOpt_none]; itrivial
+  inext
+  iintro %x ⟨-, #Hv, -⟩
+  iapply HΦ
+  iexact Hv
 
 /-- A check's verdict says the check passed in the mode `off` (`isAuthStore`'s pure conjunct). -/
 theorem permVerdict_isOn (M : auth.AuthMode) (info : auth.AuthInfo) (key rangeEnd : GoString)
@@ -250,10 +254,10 @@ theorem isAuthStore_of_authInv
     iexact Hv
   isplitr
   · iintro !> %Φ !> - HΦ
-    iapply (hRev st R M) $$ []
-    · iframe #
+    iapply (hRev st R M none) $$ []
+    · iframe #; simp only [auth.authOwnOpt_none]; itrivial
     inext
-    iintro %x #Hv
+    iintro %x ⟨-, #Hv, -⟩
     iapply HΦ
     iexact Hv
   isplitr

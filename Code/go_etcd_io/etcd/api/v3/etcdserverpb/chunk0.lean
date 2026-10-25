@@ -928,25 +928,9 @@ axiom AuthDisableRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthStatusRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom AuthenticateRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom AuthUserDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom AuthUserChangePasswordRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom AuthUserGrantRoleRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom AuthUserRevokeRoleRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom AuthUserListRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthRoleListRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom AuthRoleDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom AuthRoleGrantPermissionRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom AuthRoleRevokePermissionRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def KV_RangeStreamClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty RangeStreamResponse.ty)
@@ -5173,9 +5157,33 @@ axiom AuthStatusRequest : Type
 axiom AuthStatusRequest.zero_val : ZeroVal AuthStatusRequest
 attribute [instance] AuthStatusRequest.zero_val
 
-axiom AuthenticateRequest : Type
-axiom AuthenticateRequest.zero_val : ZeroVal AuthenticateRequest
-attribute [instance] AuthenticateRequest.zero_val
+structure AuthenticateRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  Password' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthenticateRequest.zero_val [FfiSyntax] : ZeroVal AuthenticateRequest :=
+  ⟨AuthenticateRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthenticateRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Password" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthenticateRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthenticateRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthenticateRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthenticateRequest.fields AuthenticateRequest.fieldsUnsealed :=
+  ⟨by unfold AuthenticateRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthenticateRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthenticateRequest.fields)
 
 structure AuthUserAddRequest [FfiSyntax] where
   mk ::
@@ -5235,21 +5243,117 @@ noncomputable instance equals_unfold_AuthUserGetRequest [FfiSyntax] [GoGlobalCon
 @[reducible] noncomputable def AuthUserGetRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AuthUserGetRequest.fields)
 
-axiom AuthUserDeleteRequest : Type
-axiom AuthUserDeleteRequest.zero_val : ZeroVal AuthUserDeleteRequest
-attribute [instance] AuthUserDeleteRequest.zero_val
+structure AuthUserDeleteRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
 
-axiom AuthUserChangePasswordRequest : Type
-axiom AuthUserChangePasswordRequest.zero_val : ZeroVal AuthUserChangePasswordRequest
-attribute [instance] AuthUserChangePasswordRequest.zero_val
+noncomputable instance AuthUserDeleteRequest.zero_val [FfiSyntax] : ZeroVal AuthUserDeleteRequest :=
+  ⟨AuthUserDeleteRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-axiom AuthUserGrantRoleRequest : Type
-axiom AuthUserGrantRoleRequest.zero_val : ZeroVal AuthUserGrantRoleRequest
-attribute [instance] AuthUserGrantRoleRequest.zero_val
+@[reducible] noncomputable def AuthUserDeleteRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-axiom AuthUserRevokeRoleRequest : Type
-axiom AuthUserRevokeRoleRequest.zero_val : ZeroVal AuthUserRevokeRoleRequest
-attribute [instance] AuthUserRevokeRoleRequest.zero_val
+@[irreducible] noncomputable def AuthUserDeleteRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthUserDeleteRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthUserDeleteRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthUserDeleteRequest.fields AuthUserDeleteRequest.fieldsUnsealed :=
+  ⟨by unfold AuthUserDeleteRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthUserDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthUserDeleteRequest.fields)
+
+structure AuthUserChangePasswordRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  Password' : GoString
+  HashedPassword' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthUserChangePasswordRequest.zero_val [FfiSyntax] : ZeroVal AuthUserChangePasswordRequest :=
+  ⟨AuthUserChangePasswordRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthUserChangePasswordRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Password" go.string),
+(go.field_decl.FieldDecl go!"HashedPassword" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthUserChangePasswordRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthUserChangePasswordRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthUserChangePasswordRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthUserChangePasswordRequest.fields AuthUserChangePasswordRequest.fieldsUnsealed :=
+  ⟨by unfold AuthUserChangePasswordRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthUserChangePasswordRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthUserChangePasswordRequest.fields)
+
+structure AuthUserGrantRoleRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  User' : GoString
+  Role' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthUserGrantRoleRequest.zero_val [FfiSyntax] : ZeroVal AuthUserGrantRoleRequest :=
+  ⟨AuthUserGrantRoleRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthUserGrantRoleRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"User" go.string),
+(go.field_decl.FieldDecl go!"Role" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthUserGrantRoleRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthUserGrantRoleRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthUserGrantRoleRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthUserGrantRoleRequest.fields AuthUserGrantRoleRequest.fieldsUnsealed :=
+  ⟨by unfold AuthUserGrantRoleRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthUserGrantRoleRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthUserGrantRoleRequest.fields)
+
+structure AuthUserRevokeRoleRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  Role' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthUserRevokeRoleRequest.zero_val [FfiSyntax] : ZeroVal AuthUserRevokeRoleRequest :=
+  ⟨AuthUserRevokeRoleRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthUserRevokeRoleRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Role" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthUserRevokeRoleRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthUserRevokeRoleRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthUserRevokeRoleRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthUserRevokeRoleRequest.fields AuthUserRevokeRoleRequest.fieldsUnsealed :=
+  ⟨by unfold AuthUserRevokeRoleRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthUserRevokeRoleRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthUserRevokeRoleRequest.fields)
 
 structure AuthRoleAddRequest [FfiSyntax] where
   mk ::
@@ -5311,17 +5415,89 @@ axiom AuthRoleListRequest : Type
 axiom AuthRoleListRequest.zero_val : ZeroVal AuthRoleListRequest
 attribute [instance] AuthRoleListRequest.zero_val
 
-axiom AuthRoleDeleteRequest : Type
-axiom AuthRoleDeleteRequest.zero_val : ZeroVal AuthRoleDeleteRequest
-attribute [instance] AuthRoleDeleteRequest.zero_val
+structure AuthRoleDeleteRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Role' : GoString
+  unknownFields' : GoSlice
+  sizeCache' : w32
 
-axiom AuthRoleGrantPermissionRequest : Type
-axiom AuthRoleGrantPermissionRequest.zero_val : ZeroVal AuthRoleGrantPermissionRequest
-attribute [instance] AuthRoleGrantPermissionRequest.zero_val
+noncomputable instance AuthRoleDeleteRequest.zero_val [FfiSyntax] : ZeroVal AuthRoleDeleteRequest :=
+  ⟨AuthRoleDeleteRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-axiom AuthRoleRevokePermissionRequest : Type
-axiom AuthRoleRevokePermissionRequest.zero_val : ZeroVal AuthRoleRevokePermissionRequest
-attribute [instance] AuthRoleRevokePermissionRequest.zero_val
+@[reducible] noncomputable def AuthRoleDeleteRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Role" go.string),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthRoleDeleteRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthRoleDeleteRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthRoleDeleteRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthRoleDeleteRequest.fields AuthRoleDeleteRequest.fieldsUnsealed :=
+  ⟨by unfold AuthRoleDeleteRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthRoleDeleteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthRoleDeleteRequest.fields)
+
+structure AuthRoleGrantPermissionRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Name' : GoString
+  Perm' : Loc
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthRoleGrantPermissionRequest.zero_val [FfiSyntax] : ZeroVal AuthRoleGrantPermissionRequest :=
+  ⟨AuthRoleGrantPermissionRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthRoleGrantPermissionRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Perm" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthRoleGrantPermissionRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthRoleGrantPermissionRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthRoleGrantPermissionRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthRoleGrantPermissionRequest.fields AuthRoleGrantPermissionRequest.fieldsUnsealed :=
+  ⟨by unfold AuthRoleGrantPermissionRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthRoleGrantPermissionRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthRoleGrantPermissionRequest.fields)
+
+structure AuthRoleRevokePermissionRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Role' : GoString
+  Key' : GoSlice
+  RangeEnd' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthRoleRevokePermissionRequest.zero_val [FfiSyntax] : ZeroVal AuthRoleRevokePermissionRequest :=
+  ⟨AuthRoleRevokePermissionRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthRoleRevokePermissionRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Role" go.string),
+(go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"RangeEnd" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthRoleRevokePermissionRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthRoleRevokePermissionRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthRoleRevokePermissionRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthRoleRevokePermissionRequest.fields AuthRoleRevokePermissionRequest.fieldsUnsealed :=
+  ⟨by unfold AuthRoleRevokePermissionRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthRoleRevokePermissionRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthRoleRevokePermissionRequest.fields)
 
 structure AuthEnableResponse [FfiSyntax] where
   mk ::

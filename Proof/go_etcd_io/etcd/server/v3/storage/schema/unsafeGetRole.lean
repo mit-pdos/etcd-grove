@@ -40,7 +40,7 @@ theorem schema.unsafeGetRole.wp_proof
   (try wp_auto)
   wp_apply HU $$ [$HRoles $HH $Hkey] as %ks %vs ⟨HH, -, #Hv⟩
   (try wp_auto)
-  unfold schema.roleOutD schema.pointValsA
+  unfold schema.roleOutDX schema.pointValsA
   cases hl : D.roles.lookup name with
   | none =>
     ihave %Hlen := ownSlice_len _ _ _ $$ Hv

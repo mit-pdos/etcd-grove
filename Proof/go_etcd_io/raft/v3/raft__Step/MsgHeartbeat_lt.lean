@@ -124,7 +124,8 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     have Hok : SendOk id s ack [] [] [absMsgFrom .appResp ack id s.term []] :=
       Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hfid, rfl⟩)))
     wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (Or.inl rfl) Hok
-      (fun h => absurd h (by simp only [ack]; w32_ne)) $$ [$Hphys $Hack] as Hphys
+      (fun h => absurd h (by simp only [ack]; w32_ne)) (fun h => absurd h (by simp only [ack]; w32_ne))
+      rfl $$ [$Hphys $Hack] as Hphys
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys

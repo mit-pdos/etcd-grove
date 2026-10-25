@@ -186,6 +186,10 @@ structure StoreNames where
   wsd : GName := 0
   /-- (S5a) the tickets checked out under the watchable store's lock (`ownTokAuth`) -/
   tkw : GName := 0
+  /-- (the restore plan's R5e) the retired tickets (`ownTokAuth`): a reader that retires its ticket
+  for a backend token of its own (`readerPool_retire`) holds one, the readers' pool the authority,
+  so that the pool's slots and the retired readers' tokens are at most `nReaders` together -/
+  tkr : GName := 0
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -217,8 +221,8 @@ instance kbReal_countable : Pos.Countable KBReal :=
 
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
-    (fun x : StoreNames => (x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2⟩)
+    (fun x : StoreNames => ((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr))
+    (fun q => let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2⟩)
     (fun _ => rfl)
 
 /-- **The store's physical ghost names** (D22 receiver epochs, S5b, 2026-10-22): those of one
@@ -254,7 +258,7 @@ def StoreNames.phys (γ : StoreNames) : PhysNames :=
 def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
   ⟨⟨γ.idx.hist, p.nev, γ.idx.log, γ.idx.crev, p.cmp⟩, p.bucket, γ.clog, γ.leases, γ.revs, p.hook,
     p.hookFn, p.kb, p.cmeta, p.fin, p.sch, γ.cok, γ.watchQ, γ.wr, p.wk, p.wv, γ.cur, γ.rst, γ.tk,
-    γ.tko, γ.wsd, γ.tkw⟩
+    γ.tko, γ.wsd, γ.tkw, γ.tkr⟩
 
 @[simp] theorem StoreNames.withPhys_phys (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).phys = p := rfl
@@ -299,6 +303,9 @@ def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
 
 @[simp] theorem StoreNames.withPhys_tkw (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).tkw = γ.tkw := rfl
+
+@[simp] theorem StoreNames.withPhys_tkr (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).tkr = γ.tkr := rfl
 
 @[simp] theorem StoreNames.withPhys_idx_hist (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).idx.hist = γ.idx.hist := rfl
@@ -1999,14 +2006,27 @@ holding the batch lock and `s.mu` shared, has the state out). A writer finds the
 holds the key: `writerInv_checkout`); so does the holder of `s.mu` exclusively (`store.Restore`,
 which takes neither the batch lock nor a writer's state from it: all of the deposit ghost). (S5b) At
 the current objects and physical names, with an eighth of the fraction of them: a writer finds the
-state at its pin's (`writerInv_checkout`). (S6) Checked in with the backend's registration
+state at its pin's (`writerInv_checkout`). (The restore plan's R5e) Or, while `store.Restore`
+restores, all of `s.mu`'s deposit ghost (no writer checks out: its part would be too much) and half
+the index's history's authority (no writer checks in: its index writer's handle has all of it;
+`Restore` keeps the other half, so the history is still its own when it checks the state back in),
+without an eighth of the current objects and names: `Restore` keeps it, so that, holding every
+other eighth, it finds the invariant in this state when it moves them (`restore_switch`), and the
+state, which it moves to the new backend and index, is `Restore`'s (`restore_takeover`,
+`restore_finish`). (S6) Checked in
+with the backend's registration
 (`writerReg`: pending after a restore), checked out with the store registered (`storeRegd`, until
 S6 in `physOk`: a restored backend is registered only at its first writer's lock). -/
-def writerInv (s : Loc) (γ : StoreNames) : IProp GF :=
-  inv writerN iprop(∃ (p : PhysNames) (o : StoreObjs),
+def writerInvBody (s : Loc) (γ : StoreNames) : IProp GF :=
+  iprop((∃ (p : PhysNames) (o : StoreObjs),
     curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
     (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-      writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p)))
+      writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))) ∨
+    ghostVar γ.wr 1 () ∗ ∃ h : List HistItem, monoListAuthOwn γ.idx.hist (1 : Qp).half h)
+
+/-- The writer's invariant (`writerInvBody`). -/
+def writerInv (s : Loc) (γ : StoreNames) : IProp GF :=
+  inv writerN (writerInvBody s γ)
 
 instance writerInv_persistent (s : Loc) (γ : StoreNames) : Persistent (writerInv (GF := GF) s γ) := by
   unfold writerInv; infer_instance
@@ -2460,6 +2480,10 @@ theorem revMuInv_close (s : Loc) (γ γp : StoreNames) (q : Qp) :
   rw [← Hp]
   iframe H Hc
 
+/-- The initial log's bucket is empty. -/
+theorem bucketMap_init : bucketMap [[], []] = (∅ : Bucket) := by
+  simp [bucketMap, bucketOf, bucketOfRev]; rfl
+
 /-- **The four fields `store.Restore` writes, at the objects `o`**, at the fraction `dq`
 (D22 receiver epochs, S3: until then `↦□` in `isStore`). -/
 def storeFields (s : Loc) (o : StoreObjs) (dq : DFrac) : IProp GF :=
@@ -2666,6 +2690,23 @@ for the old backend's `Close`). -/
 def idxSlot (γ : StoreNames) (o : StoreObjs) : IProp GF :=
   iprop(idxReader o.ti γ.idx ∗ storeRT γ)
 
+/-- The slots of the index's lock, with the backend's reader tokens, as the readers' pool's (D22
+receiver epochs, S4; S5a: with the tokens; S5b: of the objects `o`). -/
+theorem idxSlots_of (γ : StoreNames) (o : StoreObjs) : ∀ (n : Nat),
+    ([∗list] _x ∈ List.replicate n (), idxReader (GF := GF) o.ti γ.idx) ∗
+      ([∗list] _x ∈ List.replicate n (), storeRT γ) ⊢
+      [∗list] _x ∈ List.replicate n (), idxSlot γ o
+  | 0 => by rw [List.replicate_zero]; iintro _; iapply BigSepL.bigSepL_nil_intro; iempintro
+  | n + 1 => by
+    rw [List.replicate_succ]
+    iintro ⟨Hi, Ht⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hi with ⟨Hi1, Hi⟩
+    icases BigSepL.bigSepL_cons.1 $$ Ht with ⟨Ht1, Ht⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hi1 Ht1]
+    · iunfold idxSlot; iframe Hi1 Ht1
+    · iapply idxSlots_of γ o n; iframe Hi Ht
+
 /-- **The watchable store's deposit** (D22 receiver epochs, S5a): all of the watchable store's
 deposit ghost (`StoreNames.wsd`, held by the watchable store's `s.mu` at its fraction,
 `wsFields`): `syncWatchers`, holding that lock exclusively, deposits it in the readers' pool while
@@ -2689,10 +2730,11 @@ version monitor's). The holder of `s.mu` exclusively and of the watchable store'
 (`store.Restore`) finds every slot not retired in. (S5b) The slots are of the current objects and
 names (`readerPool`): a lender checks out at a part of them (its pin). -/
 def poolBody (γ : StoreNames) (o : StoreObjs) : IProp GF :=
-  iprop(∃ k j w : Nat, ownTokAuth γ.tk k ∗ ownTokAuth γ.tko j ∗ ownTokAuth γ.tkw w ∗
+  iprop(∃ k j w r : Nat, ownTokAuth γ.tk k ∗ ownTokAuth γ.tko j ∗ ownTokAuth γ.tkw w ∗
+    ownTokAuth γ.tkr r ∗
     ([∗list] _x ∈ List.replicate k (), idxSlot γ o) ∗
     ([∗list] _x ∈ List.replicate j (), wDep γ) ∗
-    ([∗list] _x ∈ List.replicate w (), wsDep γ) ∗ ⌜k + j + w ≤ nReaders⌝)
+    ([∗list] _x ∈ List.replicate w (), wsDep γ) ∗ ⌜k + j + w + r ≤ nReaders⌝)
 
 /-- The readers' pool's invariant (S5b): its body at the current objects and names, with an eighth
 of the fraction of them. -/
@@ -3214,17 +3256,19 @@ theorem storeReader_toC (s : Loc) (γ : StoreNames) :
 2026-10-22): a reader token of the backend of its own (retired from the readers' pool,
 `storeReader_retire`; until S5a a reader's handle had one), which its writes under the batch lock
 borrow (the apply package's contracts: `apply.kvOwn`). A restore takes it back and gives the new
-backend's. -/
-def writerOwn (γ : StoreNames) : IProp GF := storeRT γ
+backend's. (The restore plan's R5e) With its retired ticket (`readerPool_retire`), so that the
+readers' pool's slots are fewer than `nReaders`: the restore refills the pool with tokens of the new
+backend while it holds one. -/
+def writerOwn (γ : StoreNames) : IProp GF := iprop(storeRT γ ∗ ownToks γ.tkr 1)
 
 /-- The sole writer lends its backend token. -/
 theorem writerOwn_rt (γ : StoreNames) :
     writerOwn (GF := GF) γ ⊢ storeRT γ ∗ (storeRT γ -∗ writerOwn γ) := by
   unfold writerOwn
-  iintro H
+  iintro ⟨H, Ht⟩
   iframe H
   iintro H
-  iexact H
+  iframe H Ht
 
 /-! ## The read transaction -/
 
@@ -4051,6 +4095,36 @@ def restoreView (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R 
   iprop(restoreViewOut γ q R ∗
     (if R = [] then iprop(True) else keyCleanRead b (bucketViewC γ) RT))
 
+/-- Two parts summing to one make the whole points-to. -/
+theorem typedPointsto_parts {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (q1 q2 : Qp)
+    (h : q1 + q2 = 1) :
+    typedPointsto (GF := GF) l v (DFrac.own 1) ⊣⊢ (l ↦{DFrac.own q1} v ∗ l ↦{DFrac.own q2} v) := by
+  have h' : (DFrac.own 1 : DFrac) = DFrac.own q1 • DFrac.own q2 := by rw [DFrac.op_own, h]
+  rw [h']
+  exact (typedPointsto_dfractional (GF := GF) l v).dfractional _ _
+
+/-- **`store.restore`'s lock of `s.revMu`** (the restore plan's R5e), as its caller gives it: from
+`RevP`, `Lock` returns the lock's part `q` of `currentRev` (at some value: `restore`'s own part
+says which), with `RevK` (`NewStore`: private memory; `store.Restore`: the lock in restoring mode,
+whose parts of the counters are at any values). -/
+def revLockW (s : Loc) (q : Qp) (RevP RevK : IProp GF) : IProp GF :=
+  iprop(∀ Ψ : val → IProp GF, RevP -∗
+    ▷ (∀ v : w64, (s.[store, go!"currentRev"] ↦{DFrac.own q} v : IProp GF) -∗ RevK -∗ Ψ #()) -∗
+    WP (App (Val (s.[store, go!"revMu"] @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"Lock"))
+      (Val #())) {{ Ψ }})
+
+/-- **`store.restore`'s unlock of `s.revMu`**: with the lock's part `q` of `currentRev` at the
+restored log `L'`'s last revision, `RevK` and `V` (`restore`'s share of the bucket's view, idle
+after its read transaction's `RLock`: `store.Restore` puts it in `s.revMu`'s body), `Unlock` gives
+`RevQ`. -/
+def revUnlockW (s : Loc) (q : Qp) (L' : Log) (RevK V RevQ : IProp GF) : IProp GF :=
+  iprop(∀ Ψ : val → IProp GF,
+    (s.[store, go!"currentRev"] ↦{DFrac.own q} (W64 ((L'.length : Int) - 1) : w64) : IProp GF) -∗
+    RevK -∗ V -∗
+    ▷ (RevQ -∗ Ψ #()) -∗
+    WP (App (Val (s.[store, go!"revMu"] @!! go.GoType.PointerType sync.RWMutex.ty @!! go!"Unlock"))
+      (Val #())) {{ Ψ }})
+
 /-- `NewStore`'s log: no revision after its two. -/
 theorem restoreLogOk_nil : restoreLogOk [] := by
   refine ⟨by simp, ⟨⟨fun _ => rfl, ?_⟩, by decide, by decide, by simp⟩, by simp⟩
@@ -4166,16 +4240,15 @@ theorem writerInv_checkout (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreOb
         idxCert γ.idx L ∗ ⌜L ≠ []⌝ ∗ compactRes γ) ∗ curAt γ dq o := by
   iintro Hlc #Hi Hpin HW Hd
   iunfold writerInv at Hi
-  imod inv_acc (E := ⊤) (N := writerN) (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
-      curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))
+  imod inv_acc (E := ⊤) (N := writerN) (P := writerInvBody (GF := GF) s γ)
     (by exact CoPset.subseteq_top) $$ Hi with ⟨HP, Hclose⟩
-  imod (lc_fupd_elim_later (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
-      curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))) $$ Hlc HP with HP
-  icases HP with ⟨%p, %o', Hc, HP⟩
+  imod (lc_fupd_elim_later (P := writerInvBody (GF := GF) s γ)) $$ Hlc HP with HP
+  iunfold writerInvBody at HP
+  icases HP with (⟨%p, %o', Hc, HP⟩ | ⟨Hwr1, -⟩)
+  rotate_left 1
+  · iunfold wDep at Hd
+    ihave %Hv := ghostVar_valid_2 γ.wr () 1 () _ $$ Hwr1 Hd
+    exact absurd Hv.1 (Qp_one_add_not_le _)
   ihave %Hv := curAt_pin γ p _ _ o o' $$ [Hpin Hc]
   · iframe Hpin Hc
   obtain ⟨rfl, rfl⟩ := Hv
@@ -4185,7 +4258,8 @@ theorem writerInv_checkout (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreOb
     iunfold writerRes at HWr
     icases HWr with ⟨%L, Hwk, Hwv, Hbv, #Hcert, %Hne, Hcres⟩
     imod Hclose $$ [Hc Hwk Hd] with -
-    · inext; iexists γ.phys, o'; rw [StoreNames.withPhys_self]; iframe Hc; iright; iframe Hwk Hd Hreg
+    · inext; iunfold writerInvBody; ileft; iexists γ.phys, o'; rw [StoreNames.withPhys_self]
+      iframe Hc; iright; iframe Hwk Hd Hreg
     imodintro
     iframe HL Hreg Hpin
     iexists L
@@ -4208,16 +4282,19 @@ theorem writerInv_checkin (s : Loc) (γ : StoreNames) (L : Log) (dq : DFrac) (o 
       writerKey γ ∗ wDep γ ∗ ghostVar γ.wv (1 : Qp).half L ∗ curAt γ dq o := by
   iintro Hlc #Hi Hpin HL Hv
   iunfold writerInv at Hi
-  imod inv_acc (E := ⊤) (N := writerN) (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
-      curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))
+  imod inv_acc (E := ⊤) (N := writerN) (P := writerInvBody (GF := GF) s γ)
     (by exact CoPset.subseteq_top) $$ Hi with ⟨HP, Hclose⟩
-  imod (lc_fupd_elim_later (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
-      curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
-        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))) $$ Hlc HP with HP
-  icases HP with ⟨%p, %o', Hc, HP⟩
+  imod (lc_fupd_elim_later (P := writerInvBody (GF := GF) s γ)) $$ Hlc HP with HP
+  iunfold writerInvBody at HP
+  icases HP with (⟨%p, %o', Hc, HP⟩ | ⟨-, %h, Hh1⟩)
+  rotate_left 1
+  · iunfold writerL at HL
+    icases HL with ⟨%l1, %n1, HL⟩
+    iNamed HL
+    iunfold idxWriter at Hw
+    icases Hw with ⟨Hh2, -⟩
+    ihave %Hv := monoListAuthOwn_agree γ.idx.hist 1 (1 : Qp).half _ _ $$ Hh2 Hh1
+    exact absurd Hv.1 (Qp_one_add_not_le _)
   ihave %Hvv := curAt_pin γ p _ _ o o' $$ [Hpin Hc]
   · iframe Hpin Hc
   obtain ⟨rfl, rfl⟩ := Hvv
@@ -4233,7 +4310,8 @@ theorem writerInv_checkin (s : Loc) (γ : StoreNames) (L : Log) (dq : DFrac) (o 
     ihave %Hv3 := ghostVar_valid_2 γ.wv l1 1 L (1 : Qp).half $$ Hwv12 Hv
     exact absurd Hv3.1 (Qp_one_add_not_le _)
   · imod Hclose $$ [Hc HL] with -
-    · inext; iexists γ.phys, o'; rw [StoreNames.withPhys_self]; iframe Hc; ileft; iframe HL
+    · inext; iunfold writerInvBody; ileft; iexists γ.phys, o'; rw [StoreNames.withPhys_self]
+      iframe Hc; ileft; iframe HL
       iunfold writerReg; ileft; iexact Hreg
     imodintro; iframe Hk Hd Hv Hpin
 
@@ -4258,21 +4336,21 @@ theorem readerPool_checkout (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
   iunfold poolBody at HP
-  icases HP with ⟨%k, %j, %w, Ha, Hao, Haw, Hs, Hds, Hws, %Hk⟩
+  icases HP with ⟨%k, %j, %w, %r, Ha, Hao, Haw, Har, Hs, Hds, Hws, %Hk⟩
   icombine Ha Ht gives %Hle
   obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
   imod ownTokAuth_delete_S γ.tk k' $$ Ha Ht with Ha
   imod ownTokAuth_S γ.tko _ $$ Hao with ⟨Hao, Hto⟩
   rw [List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨H1, Hs⟩
-  imod Hclose $$ [Hc Ha Hao Haw Hs Hds Hws Hd] with -
+  imod Hclose $$ [Hc Ha Hao Haw Har Hs Hds Hws Hd] with -
   · inext
     iexists γ.phys, o'
     rw [StoreNames.withPhys_self]
     iframe Hc
     iunfold poolBody
-    iexists k', j + 1, w
-    iframe Ha Hao Haw Hs Hws
+    iexists k', j + 1, w, r
+    iframe Ha Hao Haw Har Hs Hws
     isplitl [Hds Hd]
     · rw [List.replicate_succ]; iapply BigSepL.bigSepL_cons.2; iframe Hd Hds
     ipureintro; omega
@@ -4306,21 +4384,21 @@ theorem readerPool_checkin (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
   iunfold poolBody at HP
-  icases HP with ⟨%k, %j, %w, Ha, Hao, Haw, Hs, Hds, Hws, %Hk⟩
+  icases HP with ⟨%k, %j, %w, %r, Ha, Hao, Haw, Har, Hs, Hds, Hws, %Hk⟩
   icombine Hao Hto gives %Hle
   obtain ⟨j', rfl⟩ : ∃ j', j = j' + 1 := ⟨j - 1, by omega⟩
   imod ownTokAuth_delete_S γ.tko j' $$ Hao Hto with Hao
   imod ownTokAuth_S γ.tk k $$ Ha with ⟨Ha, Ht⟩
   rw [List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hd, Hds⟩
-  imod Hclose $$ [Hc Ha Hao Haw Hs Hds Hws H1] with -
+  imod Hclose $$ [Hc Ha Hao Haw Har Hs Hds Hws H1] with -
   · inext
     iexists γ.phys, o'
     rw [StoreNames.withPhys_self]
     iframe Hc
     iunfold poolBody
-    iexists k + 1, j', w
-    iframe Ha Hao Haw Hds Hws
+    iexists k + 1, j', w, r
+    iframe Ha Hao Haw Har Hds Hws
     isplitl [Hs H1]
     · rw [List.replicate_succ]; iapply BigSepL.bigSepL_cons.2; iframe H1 Hs
     ipureintro; omega
@@ -4354,21 +4432,21 @@ theorem readerPool_checkout_ws (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
   iunfold poolBody at HP
-  icases HP with ⟨%k, %j, %w, Ha, Hao, Haw, Hs, Hds, Hws, %Hk⟩
+  icases HP with ⟨%k, %j, %w, %r, Ha, Hao, Haw, Har, Hs, Hds, Hws, %Hk⟩
   icombine Ha Ht gives %Hle
   obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
   imod ownTokAuth_delete_S γ.tk k' $$ Ha Ht with Ha
   imod ownTokAuth_S γ.tkw _ $$ Haw with ⟨Haw, Htw⟩
   rw [List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨H1, Hs⟩
-  imod Hclose $$ [Hc Ha Hao Haw Hs Hds Hws Hd] with -
+  imod Hclose $$ [Hc Ha Hao Haw Har Hs Hds Hws Hd] with -
   · inext
     iexists γ.phys, o'
     rw [StoreNames.withPhys_self]
     iframe Hc
     iunfold poolBody
-    iexists k', j, w + 1
-    iframe Ha Hao Haw Hs Hds
+    iexists k', j, w + 1, r
+    iframe Ha Hao Haw Har Hs Hds
     isplitl [Hws Hd]
     · rw [List.replicate_succ]; iapply BigSepL.bigSepL_cons.2; iframe Hd Hws
     ipureintro; omega
@@ -4395,21 +4473,21 @@ theorem readerPool_checkin_ws (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
   iunfold poolBody at HP
-  icases HP with ⟨%k, %j, %w, Ha, Hao, Haw, Hs, Hds, Hws, %Hk⟩
+  icases HP with ⟨%k, %j, %w, %r, Ha, Hao, Haw, Har, Hs, Hds, Hws, %Hk⟩
   icombine Haw Htw gives %Hle
   obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
   imod ownTokAuth_delete_S γ.tkw w' $$ Haw Htw with Haw
   imod ownTokAuth_S γ.tk k $$ Ha with ⟨Ha, Ht⟩
   rw [List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hws with ⟨Hd, Hws⟩
-  imod Hclose $$ [Hc Ha Hao Haw Hs Hds Hws H1] with -
+  imod Hclose $$ [Hc Ha Hao Haw Har Hs Hds Hws H1] with -
   · inext
     iexists γ.phys, o'
     rw [StoreNames.withPhys_self]
     iframe Hc
     iunfold poolBody
-    iexists k + 1, j, w'
-    iframe Ha Hao Haw Hds Hws
+    iexists k + 1, j, w', r
+    iframe Ha Hao Haw Har Hds Hws
     isplitl [Hs H1]
     · rw [List.replicate_succ]; iapply BigSepL.bigSepL_cons.2; iframe H1 Hs
     ipureintro; omega
@@ -4434,7 +4512,7 @@ thread's token, for its writes under the batch lock, which borrow one: `apply.kv
 version monitor's). A restore takes the retired tokens back from their holders. -/
 theorem readerPool_retire (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
     ⊢ £ 1 -∗ readerPool (GF := GF) γ -∗ curAt γ dq o -∗ ownToks γ.tk 1 ={⊤}=∗
-      storeRT γ ∗ curAt γ dq o := by
+      storeRT γ ∗ ownToks γ.tkr 1 ∗ curAt γ dq o := by
   iintro Hlc #Hp Hpin Ht
   iunfold readerPool at Hp
   imod inv_acc (E := ⊤) (N := poolN) (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
@@ -4450,31 +4528,32 @@ theorem readerPool_retire (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
   iunfold poolBody at HP
-  icases HP with ⟨%k, %j, %w, Ha, Hao, Haw, Hs, Hds, Hws, %Hk⟩
+  icases HP with ⟨%k, %j, %w, %r, Ha, Hao, Haw, Har, Hs, Hds, Hws, %Hk⟩
   icombine Ha Ht gives %Hle
   obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
   imod ownTokAuth_delete_S γ.tk k' $$ Ha Ht with Ha
+  imod ownTokAuth_S γ.tkr r $$ Har with ⟨Har, Htr⟩
   rw [List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨H1, Hs⟩
-  imod Hclose $$ [Hc Ha Hao Haw Hs Hds Hws] with -
+  imod Hclose $$ [Hc Ha Hao Haw Har Hs Hds Hws] with -
   · inext
     iexists γ.phys, o'
     rw [StoreNames.withPhys_self]
     iframe Hc
     iunfold poolBody
-    iexists k', j, w
-    iframe Ha Hao Haw Hs Hds Hws
+    iexists k', j, w, r + 1
+    iframe Ha Hao Haw Har Hs Hds Hws
     ipureintro; omega
   iunfold idxSlot at H1
   icases H1 with ⟨-, Hrt⟩
   imodintro
-  iframe Hrt Hpin
+  iframe Hrt Htr Hpin
 
 /-- **An idle reader retires its ticket** (S5a; one later credit; `readerPool_retire`), at a pin: a
 backend token of its own, its slots of the store's locks dropped. -/
 theorem storeReader_retire (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
     ⊢ £ 1 -∗ isStore (GF := GF) s γ -∗ curAt γ dq o -∗ storeReader s γ ={⊤}=∗
-      storeRT γ ∗ curAt γ dq o := by
+      storeRT γ ∗ ownToks γ.tkr 1 ∗ curAt γ dq o := by
   iintro Hlc #Hs Hpin Hr
   iunfold isStore at Hs
   iNamed Hs
@@ -4527,6 +4606,36 @@ theorem storeStop_open (s : Loc) (γ : StoreNames) :
   iunfold storeFields at H
   iNamed H
   iframe #
+
+/-- **The fields' shares gathered** (`store.Restore`, the restore plan's R5f): `s.mu`'s half, the
+caller's quarter and the closer's quarter, at the closer's objects and names, make the whole. -/
+theorem fieldShare_gather (s : Loc) (γ : StoreNames) (o : StoreObjs) :
+    fieldShare (GF := GF) s γ (1 : Qp).half ∗ fieldShare s γ (1 : Qp).half.half ∗
+      fieldShareAt s γ (1 : Qp).half.half o ⊢ fieldShareAt s γ 1 o := by
+  iintro ⟨H1, H2, H3⟩
+  ihave H12 := ((fieldShare_fractional (GF := GF) s γ).fractional (1 : Qp).half (1 : Qp).half.half).2
+    $$ [H1 H2]
+  · iframe H1 H2
+  iunfold fieldShare at H12
+  icases H12 with ⟨%p, %o', H12⟩
+  ihave %Hv := curAt_pin γ p (DFrac.own (1 : Qp).half.half.half)
+    (DFrac.own ((1 : Qp).half + (1 : Qp).half.half).half) o o' $$ [H3 H12]
+  · iunfold fieldShareAt at H3 H12
+    iNamedSuffix H3 "3"
+    iNamedSuffix H12 "12"
+    iframe Hcur3 Hcur12
+  obtain ⟨rfl, rfl⟩ := Hv
+  rw [StoreNames.withPhys_self] at *
+  have h : ((1 : Qp).half + (1 : Qp).half.half) + (1 : Qp).half.half = 1 := by
+    rw [show (1 : Qp).half + (1 : Qp).half.half + (1 : Qp).half.half =
+      (1 : Qp).half + ((1 : Qp).half.half + (1 : Qp).half.half) from by
+        apply Subtype.ext; simp only [Qp.val_add]; grind]
+    rw [Qp.half_add_half, Qp.half_add_half]
+  have hs := (fieldShareAt_split (GF := GF) s γ ((1 : Qp).half + (1 : Qp).half.half)
+    (1 : Qp).half.half o').2
+  rw [h] at hs
+  iapply hs
+  iframe H12 H3
 
 /-- **The right to close the store** `s` (`store.Close`: `close(s.stopc)`, once, and
 `s.fifoSched.Stop()`; `NewStore` returns it): the stop channel's close (`stopCloser`), the
@@ -4597,7 +4706,7 @@ macro "withPhys_simp" : tactic => `(tactic| simp only [Perennial.EtcdGrove.mvcc.
     Perennial.EtcdGrove.mvcc.revMuInv_withPhys, Perennial.EtcdGrove.mvcc.idxCert_withPhys, Perennial.EtcdGrove.mvcc.idxSealed_withPhys,
     Perennial.EtcdGrove.mvcc.idxLogAuth_withPhys, Perennial.EtcdGrove.mvcc.crevUB_withPhys, Perennial.EtcdGrove.mvcc.crevLb_withPhys, Perennial.EtcdGrove.mvcc.certOk_withPhys,
     Perennial.EtcdGrove.mvcc.delKey_withPhys, Perennial.EtcdGrove.mvcc.revToken_withPhys, Perennial.EtcdGrove.mvcc.muInv_withPhys, Perennial.EtcdGrove.mvcc.writerInv_withPhys,
-    Perennial.EtcdGrove.mvcc.readerPool_withPhys, Perennial.EtcdGrove.mvcc.wDep_withPhys, Perennial.EtcdGrove.mvcc.wsDep_withPhys, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_clog, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_leases, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_revs, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cok, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_watchQ, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cur, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_rst, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tk, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tko, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wsd, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkw, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_hist, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_log, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_crev])
+    Perennial.EtcdGrove.mvcc.readerPool_withPhys, Perennial.EtcdGrove.mvcc.wDep_withPhys, Perennial.EtcdGrove.mvcc.wsDep_withPhys, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_clog, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_leases, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_revs, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cok, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_watchQ, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cur, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_rst, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tk, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tko, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wsd, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkw, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_hist, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_log, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_crev])
 
 section physShare
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

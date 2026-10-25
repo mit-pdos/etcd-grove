@@ -294,7 +294,7 @@ theorem StartCluster.wp_proof
   ihave IH1 : iprop(∃ (k : w64) (idv : w64) (M : GMap w64 GoInterface) (S : GMap w64 Loc),
       "i" ∷ i_ptr ↦ k ∗ "id" ∷ id_ptr ↦ idv ∗ "HmP" ∷ mP ↦$ M ∗ "HmS" ∷ mS ↦$ S ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 3⌝ ∗
-      "#Hpeers" ∷ ([∗map] id ↦ nd ∈ M, peerOk γr.raft bud id nd) ∗
+      "#Hpeers" ∷ ([∗map] id ↦ nd ∈ M, kvPeerOk γr.raft bud id nd) ∗
       "Hdone" ∷ ([∗list] id ∈ clusterIds.take (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
         ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr bud id nd st) ∗
       "Htodo" ∷ ([∗list] id ∈ clusterIds.drop (sint.nat k),
@@ -383,10 +383,10 @@ theorem StartCluster.wp_proof
     isplitr
     · ipureintro; constructor <;> word
     isplitr
-    · iapply (BigSepM.bigSepM_insert (Φ := fun id nd => peerOk (GF := GF) γr.raft bud id nd)
+    · iapply (BigSepM.bigSepM_insert (Φ := fun id nd => kvPeerOk (GF := GF) γr.raft bud id nd)
         HM0).2
       iframe Hpeers
-      unfold peerOk
+      unfold kvPeerOk
       iexists γn, n
       iframe HisNode
       ipureintro; exact ⟨Hr, Hb, rfl, Hsn⟩
@@ -516,7 +516,7 @@ theorem StartCluster.wp_proof
         iintro ⟨Hmsl, Hmsok, Hcr, Htks⟩ HΦ'
         rw [Hr, Hb]
         wp_auto
-        wp_apply (wp_deliver γr.raft bud mP «$r0_ptr» M msl ms)
+        wp_apply (wp_deliver γr.raft _ bud mP «$r0_ptr» M msl ms)
           $$ [$Hmsl $Hmsok $Hcr $Htks]
         · iframe #
         iapply HΦ'
@@ -530,9 +530,9 @@ theorem StartCluster.wp_proof
       wp_apply wp_slice_append $$ [$Hks $Hkcap $Hsl2] as %ksl' ⟨Hks, Hkcap, -⟩
       wp_apply wp_map_lookup1 go.uint64 _ mP M id0 DFrac.discard $$ HmP as -
       simp only [HMl, Option.getD_some]
-      ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => peerOk (GF := GF) γr.raft bud id nd)
+      ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => kvPeerOk (GF := GF) γr.raft bud id nd)
         HMl $$ Hpeers
-      unfold peerOk
+      unfold kvPeerOk
       icases Hpeer with ⟨%γn', %n', %Hgn', #HisNode'⟩
       obtain ⟨-, Hb', Hn', -⟩ := Hgn'
       have Hnn : n' = n := by

@@ -31,8 +31,8 @@ theorem mvcc.newTreeIndex.wp_proof
     (hLess : mvcc.keyIndex.Less.spec (GF := GF) (hG := hG)) :
     mvcc.newTreeIndex.spec (GF := GF) (hG := hG) := by
   have wp_btree_New : btree.New.modelSpec (GF := GF) (hG := hG) := btree.New.modelSpec_of wp_btree_New
-  intro γ lg
-  wp_start as ⟨%Hlgnn, Hfresh⟩
+  intro γ lg n log₀
+  wp_start as ⟨%Hlgnn, Hnauth, Hcmp, #Hclb, #Hllb⟩
   wp_auto
   -- `btree.New(32, func(aki, bki) bool { return aki.Less(bki) })`
   wp_apply (wp_btree_New mvcc.kiPtrT (W64 32) _ mvcc.kiItemIs mvcc.kiItemLess) $$ [] as %t Ht
@@ -57,27 +57,10 @@ theorem mvcc.newTreeIndex.wp_proof
   iStructNamed Hti
   ipersist tree
   ipersist lg
-  obtain ⟨γh, γn, γl, γc, γm⟩ := γ
-  iunfold mvcc.idxFresh at Hfresh
-  icases Hfresh with ⟨Hhauth, #Hhlb, Hnauth, #Hnlb, Hlauth, #Hllb, Hcauth, #Hclb, Hcmp⟩
-  have hcmph := (ghostVar_fractional (GF := GF) γm ((-1 : Int), ([] : List Loc))).fractional
+  have hcmph := (ghostVar_fractional (GF := GF) γ.cmp ((-1 : Int), ([] : List Loc))).fractional
     (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hcmph
   icases hcmph.1 $$ Hcmp with ⟨Hcmp, Hcmpr⟩
-  have hhalves := (monoListAuthOwn_fractional (GF := GF) γl ([] : mvcc.Log)).fractional
-    (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at hhalves
-  icases hhalves.1 $$ Hlauth with ⟨Hlauth, Hlother⟩
-  let γ : mvcc.IdxNames := ⟨γh, γn, γl, γc, γm⟩
-  have hshape : mvcc.histShape [] [] = [] := rfl
-  have hevs : (mvcc.evsOf ([] ++ [[]])).length = 0 := rfl
-  have hwf : mvcc.IdxWf [] [] := by
-    refine ⟨⟨fun _ => rfl, fun r cs i k hr hi => ?_⟩, by simp, by simp, fun _ h => by simp at h⟩
-    simp only [List.nil_append, List.getElem?_singleton] at hr
-    split at hr
-    · simp only [Option.some.injEq] at hr; subst hr; simp at hi
-    · simp at hr
-  imod receipt_zero (GF := GF) with Hr0
   wp_auto
   iapply HΦ
   isplitl [RWMutex Ht]
@@ -94,31 +77,15 @@ theorem mvcc.newTreeIndex.wp_proof
     iapply BigSepL.bigSepL_nil_intro; iempintro
   isplitl [Hnauth Hcmp]
   · iunfold mvcc.idxLockG
-    simp only [γ]
     iframe Hnauth
     isplitl []
-    · iunfold mvcc.crevLb; rw [mvcc.crevN_neg]; iexact Hclb
+    · iexact Hclb
     isplitl []
-    · iexists []; iexact Hllb
+    · iexists log₀; iexact Hllb
     iunfold mvcc.idxCmpOwn
     iexists -1, []
     iframe Hcmp
     ipureintro; simp
-  isplitl [Hhauth Hlauth Hr0]
-  · iunfold mvcc.idxWriter
-    simp only [γ]
-    rw [hshape, hevs]
-    iframe Hhauth Hlauth
-    isplitl []
-    · iexact Hnlb
-    isplitl []
-    · ipureintro; exact hwf
-    simp only [mvcc.logCh, List.map_nil, List.sum_nil, List.length_nil, Nat.add_zero]
-    iexact Hr0
-  isplitl [Hlother]
-  · iexact Hlother
-  isplitl [Hcauth]
-  · iunfold mvcc.crevUB; rw [mvcc.crevN_neg]; iexact Hcauth
   iunfold mvcc.idxCompactor; iexact Hcmpr
 
 end proof

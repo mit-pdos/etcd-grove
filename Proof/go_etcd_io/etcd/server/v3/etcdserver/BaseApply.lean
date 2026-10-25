@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.go_etcd_io.raft.v3.InvPbMsg
 
 @[expose] public section
 
@@ -115,11 +116,137 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.xia
 
 end github_com.xiang90.probing
 
+-- (D38, rafthttp's stage 1: the packages its message path names, names only)
+namespace internal.bytealg
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.internal.bytealg :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.internal.bytealg :=
+  build_get_is_pkg_init_wf
+
+end internal.bytealg
+
+namespace path
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path :=
+  build_get_is_pkg_init_wf
+
+end path
+
+namespace go_etcd_io.etcd.pkg.v3.ioutil
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.pkg.v3.ioutil
+
+namespace go_etcd_io.etcd.pkg.v3.httputil
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.httputil :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.httputil :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.pkg.v3.httputil
+
 -- (after `snap`, which it imports since 2026-10-12: the `Transporter` interface)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
+/-- The state of `linkHeartbeatMessage` (`raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}`). -/
+def hbSt : EtcdGrove.MsgSt :=
+  ⟨⟨EtcdGrove.MsgHeartbeat, 0, 0, 0, 0, 0, 0, 0, false, 0⟩, [], none, [], []⟩
+
+/-- rafthttp's package fact (2026-10-22, rafthttp stage 3): `ErrExceedSizeLimit`
+(`msg_codec.go`, `errors.New`), the message decoder's error for a message over its limit, holds a
+non-nil error; `linkHeartbeatMessage` (`stream.go`), which the msgappv2 decoder clones for a
+heartbeat frame, is a heartbeat with no other field set, read-only for good (no code writes it);
+(2026-10-23) `RaftPrefix` (`http.go`), the pipeline's path, is `"/raft"`, read-only for good,
+and (2026-10-24) `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix` its `probing`,
+`stream` and `snapshot` subpaths;
+(stage 5b) `ConnReadTimeout` (`peer.go`) is five seconds, read-only for good. -/
+abbrev rafthttpInit : IProp GF :=
+  iprop(EtcdGrove.errorsNewVar ErrExceedSizeLimit go!"rafthttp: error limit exceeded" ∗
+    EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt ∗
+    -- (2026-10-23, rafthttp stage 4) the pipeline's path (`http.go`, translated)
+    globalAddr RaftPrefix ↦□ go!"/raft" ∗
+    -- (2026-10-24, rafthttp stage 6d) the handlers' and the streams' paths (`http.go`,
+    -- translated: `path.Join(RaftPrefix, ...)`)
+    globalAddr ProbingPrefix ↦□ go!"/raft/probing" ∗
+    globalAddr RaftStreamPrefix ↦□ go!"/raft/stream" ∗
+    globalAddr RaftSnapshotPrefix ↦□ go!"/raft/snapshot" ∗
+    -- (2026-10-23) the `errors.New` errors the pipeline answers with or reports
+    EtcdGrove.errorsNewVar errIncompatibleVersion go!"incompatible version" ∗
+    EtcdGrove.errorsNewVar ErrClusterIDMismatch go!"cluster ID mismatch" ∗
+    EtcdGrove.errorsNewVar errStopped go!"stopped" ∗
+    EtcdGrove.errorsNewVar errMemberRemoved
+      go!"the member has been permanently removed from the cluster" ∗
+    -- (2026-10-23) the pipeline's metric vectors (`metrics.go`), with their label names
+    (∃ v : Loc, globalAddr receivedBytes ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr recvFailures ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr sentBytes ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr sentFailures ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    -- (2026-10-23, rafthttp stage 4d) the peer status's metric vectors (`metrics.go`)
+    (∃ v : Loc, globalAddr activePeers ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝) ∗
+    (∃ v : Loc, globalAddr disconnectedPeers ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝) ∗
+    -- (2026-10-23, rafthttp stage 5b) the stream writer's heartbeat period's base (`peer.go`,
+    -- translated): `DefaultConnReadTimeout`, five seconds, read-only for good (tests change it)
+    globalAddr ConnReadTimeout ↦□ (W64 5000000000) ∗
+    -- (2026-10-23, rafthttp stage 5b) the heartbeat's size (`stream.go`, untranslated), which the
+    -- stream writer counts: some `int`, read-only for good
+    (∃ n : w64, globalAddr linkHeartbeatSize ↦□ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝) ∗
+    -- (2026-10-23, rafthttp stage 5c) the message decoder's limit (`msg_codec.go`, translated):
+    -- 512 MiB, read-only for good
+    globalAddr readBytesLimit ↦□ (W64 536870912) ∗
+    -- (2026-10-23, rafthttp stage 5c) the stream reader's dial error for a stream type an older
+    -- peer does not support (`stream.go`, `fmt.Errorf` without verbs: an `errors.New` error)
+    EtcdGrove.errorsNewVar errUnsupportedStreamType go!"unsupported stream type" ∗
+    -- (2026-10-23, rafthttp stage 6c) the probers' round-trip histogram (`metrics.go`, untranslated):
+    -- some pointer, read-only for good (`AddPeer` hands it to the prober)
+    (∃ v : Loc, globalAddr rttSec ↦□ v) ∗
+    -- (2026-10-24, rafthttp stage 6e) the cells of the errors `checkPostResponse` returns, which
+    -- tell them from `errMemberRemoved` (`errVarCell`; D19k)
+    EtcdGrove.errVarCells [(errIncompatibleVersion, go!"incompatible version"),
+      (ErrClusterIDMismatch, go!"cluster ID mismatch"),
+      (errMemberRemoved, go!"the member has been permanently removed from the cluster")] ∗
+    -- (2026-10-24, rafthttp stage 6e) the stream types each version supports (`stream.go`,
+    -- untranslated): a map of slices, read-only for good (the stream reader's
+    -- `checkStreamSupport` looks a peer's version up)
+    (∃ (m : Loc) (M : GMap GoString GoSlice), globalAddr supportedStream ↦□ m ∗ m ↦$□ M ∗
+      □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts) ∗
+    -- (2026-10-24, rafthttp stage 7d) `errStopped`'s cell, which tells it from `errMemberRemoved`
+    -- (the snapshot sender's `post` returns it)
+    EtcdGrove.errVarCells [(errStopped, go!"stopped")] ∗
+    -- (2026-10-24, rafthttp stage 7d) the snapshot sender's and handler's metric vectors
+    -- (`metrics.go`), with their label names
+    (∃ v : Loc, globalAddr snapshotSend ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotSendInflights ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotSendFailures ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotSendSeconds ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceive ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceiveInflights ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceiveFailures ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceiveSeconds ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    -- (2026-10-24, rafthttp stage 7d) the snapshot sender's response-read timeout
+    -- (`snapshot_sender.go`, untranslated): some duration, read-only for good
+    (∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦□ d) ∗
+    -- (2026-10-24, rafthttp stage 7d) `SendSnapshot`'s error for a message without a peer
+    -- (`util.go`, untranslated): some error, read-only for good
+    (∃ e : GoInterface, globalAddr errMemberNotFound ↦□ e))
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init rafthttpInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   build_get_is_pkg_init_wf
 

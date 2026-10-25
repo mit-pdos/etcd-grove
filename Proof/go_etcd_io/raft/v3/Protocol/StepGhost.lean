@@ -270,7 +270,7 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
     iapply Hh $$ %k.1 %k.2 %(Hacks_term k (by rw [show acks !! k = some u from Hk]; rfl)) Hk
   have Hboot' : (γ.reBoot.length : Int) ≤ uint.Z s'.commit := by omega
   iexists γm, terms, γa, acks, fp', γc, camps, γl, vlogs, γw, wins
-  iframe % # ∗
+  iframe # ∗ <;> iframe %
 
 theorem ownLogGhost_recs (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
     ⊢ ownLogGhost (GF := GF) γ id s kl -∗ ⌜LogOk s⌝ ∗ logRecs γ s.base s.log := by
@@ -375,7 +375,7 @@ theorem ownLogGhost_learn (γ : RaftNames) (id : w64) (s : PState) (kl : Option 
   irename Hkl' => Hkl
   irename Hhists' => Hhists
   iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
-  iframe % # ∗
+  iframe # ∗ <;> iframe %
 
 /-- The same, for a step that leaves the log alone. The caller says how the commit fact
 moves to the new commit index. -/
@@ -604,7 +604,7 @@ theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
   imodintro
   isplitl
   · iexists γm, terms, γa, (<[(s.term, i) := ()]> acks), fp, γc, camps, γl, vlogs, γw, wins
-    iframe % # ∗
+    iframe # ∗ <;> iframe %
   · unfold isAcked
     iright
     isplitr
@@ -681,11 +681,11 @@ theorem ownLogGhost_lead_full (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
       ipureintro; exact ⟨Hf, HF0.1, Hw, fun j x Hx => (Ht j x Hx).1⟩
     · iexact Hcommit
   · iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
-    iframe % # ∗
+    iframe # ∗ <;> iframe %
     rw [leadLogOwn_l γ s terms Hr, campOwn_l γ id s (fp ++ s.log) Hr]
     isplitl [Ha]
     · iexists γt, M, l0
-      iframe % # ∗
+      iframe # ∗ <;> iframe %
     · iexact Hcown
 
 /-- A leader stepping down at its term (2026-10-14, stage B5: `StepR.stepDown`): its term
@@ -772,7 +772,7 @@ theorem ownLogGhost_stepDown (γ : RaftNames) (id : w64) (s s' : PState) (kl : O
   · unfold cprefix; rw [Hlg, Hc]; iexact Hcmt
   have Hboot' : (γ.reBoot.length : Int) ≤ uint.Z s'.commit := by rw [Hc]; exact Hboot
   iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
-  iframe % # ∗
+  iframe # ∗ <;> iframe %
 
 /-- A full log with records that starts with a non-empty bootstrap log has an entry of term `1`
 at index `1`: a bound on its terms bounds `1` (2026-10-16, stage R8b, D12). -/
@@ -1009,7 +1009,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
       show (pbecomeCandidate id s).base = s.base from rfl,
       show (pbecomeCandidate id s).commit = s.commit from rfl,
       show (pbecomeCandidate id s).term = s.term + W64 1 from rfl]
-    iframe % # ∗
+    iframe # ∗ <;> iframe %
   · isplitr; · iexact HcK
     isplitr
     · unfold isVlog
@@ -1074,7 +1074,7 @@ theorem ownLogGhost_vote (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   iexists k, fp ++ s.log
   isplitl
   · iexists γm, terms, γa, acks, fp, γc, camps, γl, (<[k := ((s.term, kl.isSome), fp ++ s.log)]> vlogs), γw, wins
-    iframe % # ∗
+    iframe # ∗ <;> iframe %
   · isplitr
     · unfold isVlog
       iexists γl

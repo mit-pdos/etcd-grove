@@ -177,7 +177,7 @@ PROJECTS = [
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
-                    "net=", "hash=",
+                    "net=", "hash=", "path=", "internal/bytealg=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "github.com/xiang90/probing=", "crypto/tls=",
@@ -208,6 +208,13 @@ PROJECTS = [
             # with bodies (etcdserver/api/v3rpc.toml): the gRPC KV service's handlers, the
             # request checks, the response header, togRPCError (the request path)
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc",
+            # with bodies (etcdserver/api/v3lock.toml, v3election.toml; the auth plan's A3c):
+            # the Lock and Election services' servers over the client's concurrency package,
+            # and their protobuf messages (v3lock/v3lockpb.toml, v3election/v3electionpb.toml)
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3lock",
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb",
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3election",
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb",
             # names only, with the two features the request path reads
             "go.etcd.io/etcd/server/v3/features",
             # with bodies (storage/backend.toml): the backend over bbolt, its buffers and
@@ -336,6 +343,14 @@ PROJECTS = [
             # types only (the interfaces `Hash`, `Hash32`, ...): the type of mvcc's
             # `kvHasher.hash` field, so that Goose translates `kvHasher`
             "hash",
+            # names only (D38, rafthttp's stage 1): what rafthttp's message path calls of the
+            # standard library's `path` (the stream handler's URL parsing) and of etcd's
+            # `pkg/v3/ioutil` (the pipeline handler's limited reader) and `pkg/v3/httputil`
+            "path",
+            # (`path`'s `Split` and `Base` call `LastIndexByteString`, with its body)
+            "internal/bytealg",
+            "go.etcd.io/etcd/pkg/v3/ioutil",
+            "go.etcd.io/etcd/pkg/v3/httputil",
             # names only (item 4, the server start): what `v3rpc.Server` names: grpc-prometheus
             # (its server metrics and interceptors), grpc's health service and its protobuf
             # package (the registration, the serving status), grpc's reflection interface
@@ -359,7 +374,8 @@ PROJECTS = [
                os.path.join("github_com", "Masterminds"),
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
                "go_opentelemetry_io",
-               "net", "hash", os.path.join("encoding", "hex"), os.path.join("crypto", "tls"),
+               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("encoding", "hex"),
+               os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
                os.path.join("github_com", "xiang90"),
@@ -631,12 +647,12 @@ PROJECTS = [
             "encoding/json",
             "encoding/base64",
             "iter",
-            "path",
+            # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
                os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
-               os.path.join("encoding", "base64"), "iter", "path",
+               os.path.join("encoding", "base64"), "iter",
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8setcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),

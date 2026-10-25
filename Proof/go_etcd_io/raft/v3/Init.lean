@@ -10,8 +10,8 @@ variables (non-`nil`, and for the three the proofs compare against, of a pointer
 `errors.New`), `globalRand` with its mutex, `emptyState`, the message tables.
 
 Three things are not facts of the model, and are premises:
-* `os`'s and `strconv`'s initializers are only partly translated (the standard library's
-  names-only `os` and `strconv`, Perennial's), so they call opaque values `X.init`: the
+* `os`'s initializer is only partly translated (the standard library's names-only `os`,
+  Perennial's; `strconv`'s is Perennial's own since it translates `strconv`, 24bef275e), so it calls opaque values `X.init`: the
   trust-boundary axioms `<pkg>.opaqueInitsOk` say these run (the generated `Init.lean` files'
   method, `etc/gen-init.py`), `os.initFuncsOk` that its untranslated `func init()`s (`init.0`, as
   gc names it) return (2026-10-19, when Goose began calling a package's `init`s by name), and
@@ -35,6 +35,7 @@ Three things are not facts of the model, and are premises:
 -/
 module
 
+public import Perennial.Proof.strconv.Link
 public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.context.NewErrorString
@@ -133,20 +134,6 @@ axiom initFuncsOk :
 
 end os
 
-namespace strconv
-
-/-- **The trust boundary: `strconv`'s untranslated variable initializers run.** Perennial
-translates `strconv` names-only, so each `X.init` is an axiom of the translation; Go runs them
-at program start (the `isPrint`/`isNotPrint`/`isGraphic` table literals, `ErrRange =
-errors.New(...)`, `ErrSyntax = errors.New(...)`), and every Go program starts, so each returns
-without panicking. Satisfiable whatever the semantics (the `X.init`s are uninterpreted
-constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrSyntax.init, ErrRange.init, isGraphic.init, isNotPrint32.init, isPrint32.init,
-        isNotPrint16.init, isPrint16.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end strconv
 
 end opaqueInits
 
@@ -211,28 +198,6 @@ theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
 
-omit package_sem in
-theorem strconv.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.strconv get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val strconv.initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.strconv }} := by
-  wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  wp_apply (strconv.opaqueInitsOk strconv.isPrint16.init (by mem_tac))
-  wp_apply (strconv.opaqueInitsOk strconv.isNotPrint16.init (by mem_tac))
-  wp_apply (strconv.opaqueInitsOk strconv.isPrint32.init (by mem_tac))
-  wp_apply (strconv.opaqueInitsOk strconv.isNotPrint32.init (by mem_tac))
-  wp_apply (strconv.opaqueInitsOk strconv.isGraphic.init (by mem_tac))
-  wp_apply (strconv.opaqueInitsOk strconv.ErrRange.init (by mem_tac))
-  wp_apply (strconv.opaqueInitsOk strconv.ErrSyntax.init (by mem_tac))
-  iframe Hown
-  is_pkg_init_finish
-
 end init
 
 section init_lc
@@ -253,6 +218,9 @@ theorem google_golang_org.protobuf.proto.wp_initialize'
   iframe Hown
   iintro Hown
   wp_auto
+  -- (2026-10-22) `internal/pragma`, which `MarshalOptions` (translated since) names
+  wp_apply google_golang_org.protobuf.internal.pragma.wp_initialize' _ Hinit.2.2.1 $$ Hown
+    as ⟨Hown, #H0⟩
   wp_apply google_golang_org.protobuf.reflect.protoreflect.wp_initialize' _ Hinit.2.1 $$ Hown
     as ⟨Hown, #H1⟩
   -- errUnknown, errDecode, errRecursionDepth, wireTypes: their trusted initializers do nothing

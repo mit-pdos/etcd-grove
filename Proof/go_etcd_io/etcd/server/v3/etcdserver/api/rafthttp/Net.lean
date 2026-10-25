@@ -69,11 +69,29 @@ structure NetPayload (GF : BundledGFunctors) [FfiSyntax] where
   img : w64 → backend.Data → IProp GF
   img_pers : ∀ i D, Persistent (img i D)
 
-/-- **A network's names** (see the file header). -/
+def streamRegN : Namespace := nroot.@"rafthttp_stream_reg"
+
+/-- A stream's type (`streamType`). -/
+inductive StreamTy where
+  | msgAppV2
+  | message
+  deriving DecidableEq
+
+instance : Pos.Countable StreamTy :=
+  .ofInjective (fun t => match t with | .msgAppV2 => 1 | .message => 2)
+    (by intro a b h; cases a <;> cases b <;> first | rfl | exact absurd h (by decide))
+
+/-- **A stream connection's ghost names**: the reader's tokens `γw`, the type and the reader. -/
+abbrev StreamKey := GName × StreamTy × w64
+
+/-- **A network's names** (see the file header). (2026-10-23, rafthttp stage 6a, D39) `reg`: the
+streams' registry (`Stream.lean`'s `streamRegInv`), one for the network, so that a member's
+stream reader and its peer's stream handler agree on a connection. -/
 structure NetNames (GF : BundledGFunctors) [FfiSyntax] where
   N : NetPayload GF
   slots : GName
   dir : w64 → List GoString
+  reg : GName
 
 /-- **Member `id`'s slot** (exclusive): held by the transport started for `id`
 (`Transport.Start`), so that one transport receives what is sent to `id`. -/
@@ -87,10 +105,14 @@ def wireEq (st st' : MsgSt) : Prop :=
 
 /-- **A message handed to `Send`**, with its bundle: read-only for good (the transport's writer
 goroutines marshal it after `Send` returns), its persistent part and its one-shot part; (D22 S-i)
-not a `MsgSnap`, which goes by `SendSnapshot` (`netSnapBundle`). -/
-def netBundle (N : NetPayload GF) (m : Loc) : IProp GF :=
+not a `MsgSnap`, which goes by `SendSnapshot` (`netSnapBundle`). (2026-10-22, D38a) With no
+responses: what marshals (`MsgMarshals`), so that the receiver's copy has none either (`netRecv`).
+(2026-10-24, rafthttp stage 6d) Of the sender `lid`: a `MsgApp` of raft's shape (`AppShape`) from
+`lid`, what rafthttp's msgappv2 stream carries whole (raft's `isRaftMsg` says both of its messages). -/
+def netBundle (N : NetPayload GF) (lid : w64) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ (□ N.P st) ∗ N.O st ∗
-    ⌜st.msg.Type' ≠ MsgSnap⌝)
+    ⌜st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid)⌝)
 
 /-- **A snapshot message handed to `SendSnapshot`** (D22 S-i): the raft message `ml` of the merged
 message, a `MsgSnap` with a snapshot of index `i`, with its bundle (read-only for good, as
@@ -99,7 +121,7 @@ complete streams are bbolt images of some `D` (`boltImage`) with the payload's c
 `N.img i D` (for the server, `srvImage`: the committed state through `i`). -/
 def netSnapBundle (N : NetPayload GF) (ml : Loc) (rc : GoInterface) : IProp GF :=
   iprop(∃ (st : MsgSt) (sn : SnapshotM) (D : backend.Data), msgOwn ml DFrac.discard st ∗
-    (□ N.P st) ∗ N.O st ∗ ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sn⌝ ∗
+    (□ N.P st) ∗ N.O st ∗ ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sn ∧ st.resps = []⌝ ∗
     backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗
     □ N.img sn.Metadata'.Index' D)
 
@@ -152,29 +174,33 @@ instance netSnapRecv_persistent (γd : GName) (st : MsgSt) :
 
 /-- **A message received by member `id`** at `ml`: a fresh copy, owned with its entries' slots
 and capacity, of a message `st` sent into the network to `id`, with its bundle; (D22 S-i) a
-`MsgSnap`'s database saved in `id`'s snapshot directory `γd` (`netSnapRecv`). -/
+`MsgSnap`'s database saved in `id`'s snapshot directory `γd` (`netSnapRecv`). (2026-10-22, D38a)
+Unmarshalled from the wire, the copy has no responses (the wire carries none: `MsgMarshals`). -/
 def netRecv (γn : NetNames GF) (id : w64) (γd : GName) (ml : Loc) : IProp GF :=
   iprop(∃ st st' : MsgSt, msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st' ∗
-    ⌜wireEq st st' ∧ st.msg.To' = id⌝ ∗ (□ γn.N.P st) ∗ γn.N.O st ∗ netSnapRecv γd st)
+    ⌜wireEq st st' ∧ st.msg.To' = id ∧ st'.resps = []⌝ ∗ (□ γn.N.P st) ∗ γn.N.O st ∗ netSnapRecv γd st)
 
 /-- **The receiver's `Raft`** (`rafthttp.Raft`, persistent): `Process` of a received message with
 a context the node API takes, given one of the receiver's resources `R` (back after the call),
-returns some error; `IsIDRemoved`, `ReportUnreachable`, `ReportSnapshot` from `True`, each with
-an `R` too. (D22 S-i) `γd` names the receiver's snapshot directory (`netRecv`). -/
+returns raft's error (`nodeErr`: `nil`, `ErrStopped` or the context's; 2026-10-23, rafthttp stage 4:
+the pipeline handler's error branch reads it, until then some error); `IsIDRemoved` (`false`: no
+member is removed, the server's static membership; 2026-10-23, rafthttp stage 6, so the stream
+handler never answers `410`), `ReportUnreachable`, `ReportSnapshot` from `True`, with no `R` (2026-10-23, rafthttp stage 6a: the
+server's need none; only `Process` reads its logger under `lgMu`). (D22 S-i) `γd` names the receiver's snapshot directory (`netRecv`). -/
 def netRaftOk (γn : NetNames GF) (id : w64) (γd : GName) (R : IProp GF) (r : GoInterface) :
     IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜r = GoInterface.ok ri⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (ml : Loc),
       {{ nodeCtx ctx cd ∗ R ∗ netRecv γn id γd ml }}
         (App (App (Val #(methods ri.ty go!"Process" ri.v)) (Val #(GoInterface.ok ctx))) (Val #ml))
-      {{ (err : GoInterface), RET #err; R }}) ∗
-    □ (∀ x : w64, {{ R }} (App (Val #(methods ri.ty go!"IsIDRemoved" ri.v)) (Val #x))
-      {{ (b : Bool), RET #b; R }}) ∗
-    □ (∀ x : w64, {{ R }} (App (Val #(methods ri.ty go!"ReportUnreachable" ri.v)) (Val #x))
-      {{ RET #(); R }}) ∗
-    □ (∀ (x : w64) (s : w64), {{ R }}
+      {{ (err : GoInterface), RET #err; nodeErr cd err ∗ R }}) ∗
+    □ (∀ x : w64, {{ True }} (App (Val #(methods ri.ty go!"IsIDRemoved" ri.v)) (Val #x))
+      {{ RET #false; True }}) ∗
+    □ (∀ x : w64, {{ True }} (App (Val #(methods ri.ty go!"ReportUnreachable" ri.v)) (Val #x))
+      {{ RET #(); True }}) ∗
+    □ (∀ (x : w64) (s : w64), {{ True }}
       (App (App (Val #(methods ri.ty go!"ReportSnapshot" ri.v)) (Val #x)) (Val #s))
-      {{ RET #(); R }}))
+      {{ RET #(); True }}))
 
 /-- **A started transport `tr` of the network `γn`** (persistent; the started transport's part of
 `Transport.Start`'s axiom, D21 M2): `Send` takes the slice of messages, each with its bundle, which
@@ -182,21 +208,24 @@ the transport puts into the network (delivered to the slot holder of its `To`, p
 `Stop` returns; (D22 S-i) `SendSnapshot` takes a merged snapshot message (`snap.msgIs m ml rc`)
 with its bundle (`netSnapBundle`), which the transport streams to the slot holder of its `To`
 (possibly lost), closing the message (`CloseWithError`: its reader closed, one value on its
-`closeC`) when done, or at once with `errMemberNotFound` if no peer is added for `To`. -/
-def netTransport (γn : NetNames GF) (tr : GoInterface) : IProp GF :=
+`closeC`) when done, or at once with `errMemberNotFound` if no peer is added for `To`.
+(2026-10-24, rafthttp stage 6d, the user's choice) `Send` borrows `T`, its caller's resource: the
+transport's read lock needs one of the mutex's reader tokens (the server's raft loop holds one).
+(2026-10-24) Of the member `lid`: its messages are `lid`'s (`netBundle`). -/
+def netTransport (γn : NetNames GF) (lid : w64) (tr : GoInterface) (T : IProp GF) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
-      {{ sl ↦* msL ∗ [∗list] m ∈ msL, netBundle γn.N m }}
+      {{ sl ↦* msL ∗ ([∗list] m ∈ msL, netBundle γn.N lid m) ∗ T }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
-      {{ RET #(); True }}) ∗
+      {{ RET #(); T }}) ∗
     □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}) ∗
     □ (∀ (m ml : Loc) (rc : GoInterface),
       {{ snap.msgIs m ml rc ∗ netSnapBundle γn.N ml rc }}
         (App (Val #(methods ti.ty go!"SendSnapshot" ti.v)) (Val #m))
       {{ RET #(); True }}))
 
-instance netTransport_persistent (γn : NetNames GF) (tr : GoInterface) :
-    Persistent (netTransport γn tr) := by
+instance netTransport_persistent (γn : NetNames GF) (lid : w64) (tr : GoInterface) (T : IProp GF) :
+    Persistent (netTransport γn lid tr T) := by
   unfold netTransport; infer_instance
 
 /-- **The transport's concurrency bound** (D21 M2, the user's (A)): at most `2 ^ 29` calls
@@ -217,13 +246,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **A network's names, allocated** for the members `S` (the closed theorem's, once per
-cluster): its payload and directory chosen, a slot per member. -/
-theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GMap w64 Unit) :
-    ⊢ |==> ∃ γn : NetNames GF, ⌜γn.N = N ∧ γn.dir = dir⌝ ∗
-      [∗map] id ↦ _u ∈ S, netSlot γn id := by
+cluster): its payload and directory chosen, a slot per member, the streams' registry (empty;
+stage 6a). -/
+theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GMap w64 Unit)
+    (E : CoPset) :
+    ⊢ |={E}=> ∃ γn : NetNames GF, ⌜γn.N = N ∧ γn.dir = dir⌝ ∗
+      ([∗map] id ↦ _u ∈ S, netSlot γn id) ∗
+      inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth γn.reg 1 m) := by
   imod ghost_map_alloc (GF := GF) S with ⟨%g, -, Hs⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := GName) (V := StreamKey) with ⟨%gr, Hr⟩
+  imod (inv_alloc streamRegN E iprop(∃ m : GMap GName StreamKey, ghostMapAuth gr 1 m)) $$ [Hr]
+    with #Hi
+  · iexists _; iexact Hr
   imodintro
-  iexists ⟨N, g, dir⟩
+  iexists ⟨N, g, dir, gr⟩
+  iframe Hi
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
   unfold netSlot

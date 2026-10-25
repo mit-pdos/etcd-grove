@@ -265,6 +265,8 @@ private theorem wp_step_pending
         · ipureintro; not_self
         isplitr
         · ipureintro; not_self
+        isplitr
+        · ipureintro; not_self
         imodintro
         iintro %ty %Hty' %_
         iapply Hmsg $$ %ty %Hty'
@@ -342,6 +344,8 @@ private theorem wp_step_pending
         · ipureintro; msg_ne
         isplitr
         · ipureintro; msg_ne
+        isplitr
+        · ipureintro; msg_ne
         imodintro
         iintro %ty %Hty
         rw [Hty0] at Hty
@@ -386,6 +390,8 @@ private theorem wp_step_pending
         · iexact Hmin
         isplitr
         · iempintro
+        isplitr
+        · ipureintro; msg_ne
         isplitr
         · ipureintro; msg_ne
         isplitr
@@ -484,6 +490,8 @@ private theorem wp_step_snapack
       · iexact Hmin
       isplitr
       · iempintro
+      isplitr
+      · ipureintro; msg_ne
       isplitr
       · ipureintro; msg_ne
       isplitr

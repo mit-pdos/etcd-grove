@@ -2,7 +2,7 @@
 
 A triage of every file in this directory (2026-10-18, the files added since placed 2026-10-20, the
 watch-resume findings re-ranked 2026-10-21, the fork's fixes of the alarm store's race and the
-snapshot file's release noted 2026-10-22; upstream states as of 2026-10-21): the order in which we would bring the
+snapshot file's release noted 2026-10-22, the msgappv2 decoder's lengths added 2026-10-22; upstream states as of 2026-10-21): the order in which we would bring the
 findings to etcd's and raft's maintainers, by how much they matter to them and how likely they
 are to act. Criteria, roughly in this order:
 
@@ -289,9 +289,20 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   lightly maintained, our etcd-io/etcd#20704 was closed by the stale bot, and someone else's #21869
   (the same fix as `leasing-evictrange-key`) was closed under the AI-contribution policy. If
   filed again, one umbrella issue with small PRs rather than six issues.
+- **Robustness against a non-etcd peer**:
+  [etcd-rafthttp-msgappv2-unbounded-lengths](etcd-rafthttp-msgappv2-unbounded-lengths.md)
+  (2026-10-22): the msgappv2 stream decoder allocates whatever entry count and sizes the stream
+  says (a panic at `2^63`, or exhaustion), where the other stream codec caps messages at
+  `readBytesLimit`; between etcd members the counts are an encoder's, so only a misbehaving peer or
+  a corrupted stream reaches it. A small fix (the same `ErrExceedSizeLimit` check); low priority.
+  [etcd-rafthttp-stream-dial-bad-server-version-panic](etcd-rafthttp-stream-dial-bad-server-version-panic.md)
+  (2026-10-23): a stream dial's response with a malformed `X-Server-Version` panics the dialing
+  member (`semver.MustParse` outside any handler), with a test; between members the header is
+  always valid. A small fix (`semver.NewVersion` and a failed dial); low priority.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-token-md-empty](etcd-auth-token-md-empty.md),
+  [etcd-auth-simple-token-assign-prefix-panic](etcd-auth-simple-token-assign-prefix-panic.md),
   [etcd-stream-interceptor-err-before-done](etcd-stream-interceptor-err-before-done.md).
 - **Raft-library edge cases unreachable from etcd as configured**:
   [raft-remove-last-voter-panic](raft-remove-last-voter-panic.md) (`stepLeader` does not

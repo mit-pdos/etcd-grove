@@ -3,8 +3,8 @@
 member `name` of a new cluster with token `token` built -- its configuration (as putget's, putget3's
 and their followers' were) and `etcdserver.NewServer`. Lean-first (no Rocq counterpart).
 
-**The triple:** given the member's ghost state (`memberBoot`, `alloc1`'s or `alloc3`'s) and network
-slot, its URLs read-only (the peer URL slice `[http://peerAddr]`, the initial cluster's map `M` with
+**The triple:** given the member's ghost state (`memberBoot`, `alloc1`'s or `alloc3`'s) and the
+network's HTTP side for it (`netHttpOk`), its URLs read-only (the peer URL slice `[http://peerAddr]`, the initial cluster's map `M` with
 each member's peer URL slice, its initial URLs by name `iu`), `bootstrap`'s contract for it
 (`bootPremise`, whose URLs predicate `Uok` the configuration's URLs meet) and the premises the
 members share: an error, or the server built (`memberBuilt`).
@@ -47,7 +47,7 @@ abbrev newServer.spec : Prop :=
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.reCfg = GMap.listToSet ps → γ.reDyn = none → γ.reCCOk = ccOk ps → γ.reBoot = bootLog →
   γ.reNoSnap = true → γ.reNoXfer = true → bootLog.length ≤ 2 ^ 60 →
-  γn.N = srvNet γ bud → γn.dir = dir →
+  γn.N = srvNet γ bud → γn.dir = dir → netDirOk dir →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
@@ -55,12 +55,15 @@ abbrev newServer.spec : Prop :=
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot W γ bud bootLog ρ E₀ Φs id ∗ netSlot γn id }}
+      memberBoot W γ bud bootLog ρ E₀ Φs id ∗
+      -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
+      -- side for it
+      netHttpOk γn id }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.common.newServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ memberBuilt s ρ E₀ lg γn id N bud) }}
+      ⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ memberBuilt s ρ E₀ lg γn id N bud false) }}
 
 end spec
 

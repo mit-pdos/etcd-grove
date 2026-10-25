@@ -40,10 +40,18 @@ some).
   goroutine, which reads their keys (a share of the read transaction, `rdSplit`) and answers the
   last revision, then made a lock-protected index (`isTreeIndex`, with every reader's token:
   `idx_publish`) at `L'`, from the lock's ghost part (`idxLockG`) and the writer's handle there
-  (given back), with a time receipt per entry (the goroutine's steps).
+  (its handle's lower bounds, `idxWriterLb`: the caller keeps the handle), with a receipt per change
+  (the goroutine's steps put each entry, one per change, `logEnts_length`).
 * **`currentRev`** is stored the last revision, `|L'| - 1` (what the goroutine answers: every
-  revision of `R` has an entry), under `s.revMu`, locked and unlocked while it is private memory
-  (back at its zero value, `PlainRWMutex.lean`); the whole of `currentRev` is taken.
+  revision of `R` has an entry), under `s.revMu`, which `restore` locks once: the caller gives the
+  lock's protocol, `RevP` before, its part `q2` of `currentRev` (at `1`) with `RevK` once locked,
+  `RevQ` once unlocked with it at `|L'| - 1`, the view `restore` read through (idle after its
+  `RLock`), the index's lock with every reader's token (made before: `store.Restore` refills its
+  readers' pool from them there) and the restored log's changes below the time receipts' bound (the
+  rebuild's receipts: `store.Restore` certifies `L'` there); `restore` holds the other part `q1` and a part of
+  `compactMainRev` (`-1`), which it reads outside the lock too (`NewStore`:
+  private memory, `PlainRWMutex.lean`; `store.Restore`: the lock in restoring mode, the restore
+  plan's R5e).
 * **No compaction** is found (`kbNoCmp`, the backend records none, consumed: its reads of the
   compaction keys find nothing, `kbNoCmp_metaNone`, the trust boundary): `compactMainRev` stays
   `-1` and no compaction is resumed.
@@ -52,8 +60,8 @@ abbrev mvcc.store.restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
     (HF : val → IProp GF) (RT WT W Wi Dep : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (dqb dqi : DFrac)
-    (R : mvcc.Log),
-  mvcc.restoreLogOk R →
+    (R : mvcc.Log) (RevP RevK RevQ : IProp GF) (dqc : DFrac) (q1 q2 : Qp),
+  mvcc.restoreLogOk R → q1 + q2 = 1 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
       mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF ∗
@@ -61,25 +69,25 @@ abbrev mvcc.store.restore.spec : Prop :=
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length ∗
-      mvcc.idxWriter γ.idx ([[], []] ++ R) [] ∗
+      mvcc.idxWriterLb γ.idx ([[], []] ++ R) ∗
       s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
       ⌜lg ≠ null⌝ ∗
-      s.[store, go!"currentRev"] ↦ (W64 1 : w64) ∗
-      s.[store, go!"compactMainRev"] ↦ (W64 (-1) : w64) ∗
-      s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) }}
+      s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 1 : w64) ∗
+      s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗ RevP ∗
+      mvcc.revLockW s q2 RevP RevK ∗
+      mvcc.revUnlockW s q2 ([[], []] ++ R) RevK
+        iprop(mvcc.restoreViewOut γ q R ∗ mvcc.isTreeIndex ti γ.idx ∗
+          ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+            mvcc.idxReader ti γ.idx) ∗
+          ⌜mvcc.logCh ([[], []] ++ R) < receiptBound GF⌝) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; mvcc.restoreViewOut γ q R ∗ RT ∗
-      mvcc.isTreeIndex ti γ.idx ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-        mvcc.idxReader ti γ.idx) ∗
-      mvcc.idxWriter γ.idx ([[], []] ++ R) [] ∗
-      s.[store, go!"currentRev"] ↦ (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
-      s.[store, go!"compactMainRev"] ↦ (W64 (-1) : w64) ∗
-      s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
+  {{ RET #GoInterface.nil; RT ∗
+      ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
+      s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
+      s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
       s.[store, go!"b"] ↦{dqb} b ∗
       s.[store, go!"kvindex"] ↦{dqi}
-        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
-      ⧗ (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length).length }}
+        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) }}
 
 end spec
 

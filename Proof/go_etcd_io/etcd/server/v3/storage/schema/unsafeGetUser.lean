@@ -40,7 +40,7 @@ theorem schema.unsafeGetUser.wp_proof
   (try wp_auto)
   wp_apply HU $$ [$HUsers $HH $Hkey] as %ks %vs ⟨HH, -, #Hv⟩
   (try wp_auto)
-  unfold schema.userOutD schema.pointValsA
+  unfold schema.userOutDX schema.pointValsA
   cases hl : D.users.lookup name with
   | none =>
     ihave %Hlen := ownSlice_len _ _ _ $$ Hv

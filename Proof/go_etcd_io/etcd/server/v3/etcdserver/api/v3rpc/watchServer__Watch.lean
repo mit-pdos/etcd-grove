@@ -233,6 +233,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
           exact ⟨HcvFl, prometheus.labelValuesOk_two _ _ _ _ (by decide) (by decide)⟩
         subst Hc
         iunfold prometheus.counterSpec at Hcs
+        icases Hcs with ⟨#Hcs, -⟩
         wp_apply Hcs
         wp_apply wp_spsc_send γerr errc PE (fun _ => iprop(False)) [] (GoInterface.ok ei) $$ [$HprodE Hprod]
           as -

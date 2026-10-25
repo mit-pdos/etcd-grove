@@ -92,7 +92,7 @@ def rnStepIfc (γ : RNNames) (n : GoInterface) : IProp GF :=
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (ml : Loc),
       {{ nodeCtx ctx cd ∗ stepP γ.node γ.id ml }}
         (App (App (Val #(methods ni.ty go!"Step" ni.v)) (Val #(GoInterface.ok ctx))) (Val #ml))
-      {{ (err : GoInterface), RET #err; True }}) ∗
+      {{ (err : GoInterface), RET #err; nodeErr cd err }}) ∗
     □ (∀ x : w64, {{ True }} (App (Val #(methods ni.ty go!"ReportUnreachable" ni.v)) (Val #x))
       {{ RET #(); True }}) ∗
     □ (∀ (x : w64) (st : SnapshotStatus), {{ True }}
@@ -520,10 +520,10 @@ theorem rnStepIfc_of_isNode (γ : RNNames)
   · ipureintro; rfl
   isplitr
   · iintro !> %ctx %cd %ml %Φ !> ⟨#Hctx, Hst⟩ HΦ
-    wp_apply wp_Step γ.node γ.id γ.nl ml ctx cd $$ [Hst] as %err -
+    wp_apply wp_Step γ.node γ.id γ.nl ml ctx cd $$ [Hst] as %err #Herr
     · iframe #; iframe Hst
     iapply HΦ
-    itrivial
+    iexact Herr
   isplitr
   · iintro !> %x %Φ !> - HΦ
     wp_apply wp_ReportUnreachable γ.node γ.id γ.nl x $$ []

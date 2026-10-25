@@ -1,13 +1,25 @@
 /-
-The trust boundary: `(*rafthttp.Transport).Start()` (names-only). Lean-first (no Rocq counterpart); the
-server-construction unit, an axiom since unit N4 (2026-10-17, D14d/D14e): why the statement is
-true of the Go code is in its spec's docstring.
+Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Transport__Start.lean`: `(*rafthttp.Transport).Start()`, over its
+callees' specs (`rafthttp.Transport.Start_ok`, `TransportSpecs.lean`; rafthttp stage 6f, 2026-10-24).
+Lean-first.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Start
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.newStreamRoundTripper
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NewRoundTripper
+public import Spec.github_com.xiang90.probing.NewProber
+public import Spec.golang_org.x.time.rate.Every
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Send
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer__stop
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__stop
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__SendSnapshot
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__ActiveSince
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportSpecs
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -21,9 +33,20 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
-axiom rafthttp.Transport.Start.wp_proof : rafthttp.Transport.Start.spec (GF := GF) (hG := hG)
+theorem rafthttp.Transport.Start.wp_proof
+    (hNSRT : rafthttp.newStreamRoundTripper.spec (GF := GF) (hG := hG))
+    (hNRT : rafthttp.NewRoundTripper.spec (GF := GF) (hG := hG))
+    (hNewProber : probing.NewProber.spec (GF := GF) (hG := hG))
+    (hEvery : rate.Every.spec (GF := GF) (hG := hG))
+    (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG))
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
+    (hSS : rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG))
+    (hAS : rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG)) :
+    rafthttp.Transport.Start.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.Start_ok hNSRT hNRT hNewProber hEvery hSend hPeerStop hRemoteStop hSS hAS
 
 end proof
 

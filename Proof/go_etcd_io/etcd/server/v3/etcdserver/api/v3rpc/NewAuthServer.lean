@@ -33,9 +33,14 @@ theorem v3rpc.NewAuthServer.wp_proof : v3rpc.NewAuthServer.spec (GF := GF) (hG :
   wp_start
   wp_auto
   wp_alloc p as Hp
+  ihave %Hpn := typedPointsto_not_null _ _ _ $$ Hp
+  iStructNamed Hp
+  ipersist authenticator
   wp_auto
   iapply HΦ
-  itrivial
+  iunfold v3rpc.authServerIs
+  iframe #
+  ipureintro; exact Hpn
 
 end proof
 

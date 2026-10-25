@@ -209,6 +209,7 @@ attribute_Int:
 strconv_FormatBool:
 time_Duration__Seconds:
 time_Duration__Seconds_ptr:
+time_Duration__String_ptr:
 time_Time__After:
 prometheus_HistogramVec__WithLabelValues:
 traceutil_Trace__LogIfLong: traceutil_Trace__LogWithStepThreshold
@@ -274,6 +275,25 @@ EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
 EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
 EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
+# the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
+# `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`
+# (`reqPropOk` has no auth request), so they have no callee. Authenticate (auth's
+# `ErrAuthNotEnabled`, not in the package's fact) is translated but not proved; UserAdd and
+# UserChangePassword are names only (they hash the password: bcrypt, base64).
+EtcdServer__AuthEnable:
+EtcdServer__AuthDisable:
+EtcdServer__AuthStatus:
+EtcdServer__UserDelete:
+EtcdServer__UserGrantRole:
+EtcdServer__UserGet:
+EtcdServer__UserList:
+EtcdServer__UserRevokeRole:
+EtcdServer__RoleAdd:
+EtcdServer__RoleGrantPermission:
+EtcdServer__RoleGet:
+EtcdServer__RoleList:
+EtcdServer__RoleRevokePermission:
+EtcdServer__RoleDelete:
 EtcdServer__parseProposeCtxErr: errors_IsCtxErr time_Time__After EtcdServer__getLead EtcdServer__MemberID RaftCluster__Members etcdserver_isConnectedToQuorumSince etcdserver_isConnectedSince
 EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr context_ErrDone strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
 EtcdServer__raftRequest: EtcdServer__processInternalRaftRequestOnce trace_SpanFromContext context_ValueStartTime traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong
@@ -415,7 +435,8 @@ traceutil_Trace__LogWithStepThreshold:
 #
 # Unit P2 (2026-10-14): the auth store's request side (server/v3/auth, proved over `auth.authInv`,
 # InvAuth.lean); adt's bytes-affine intervals are linked in adt's Link.lean (`@`). The trust
-# boundary: metadata.FromIncomingContext, AuthInfoFromTLS, hasRootRole, redactToken, zap.ByteString.
+# boundary: metadata.FromIncomingContext, AuthInfoFromTLS, redactToken, zap.ByteString (hasRootRole
+# proved since S4b, 2026-10-24, over Perennial's sort.SearchStrings).
 zap_ByteString:
 zap_Logger__Error:
 metadata_FromIncomingContext:
@@ -438,6 +459,26 @@ auth_authStore__isRangeOpPermitted: zap_String zap_Logger__Error auth_checkKeyIn
 auth_getMergedPerms: NewIntervalTree NewBytesAffineInterval NewBytesAffinePoint
 auth_authStore__refreshRangePermCache: zap_Logger__Debug zap_String zap_Logger__Error auth_getMergedPerms
 auth_isValidPermissionRange: auth_isOpenEnded BytesAffineComparable__Compare
+# The admin side (the auth plan's S4, 2026-10-24): each a step of the model's state appended to the
+# history (`auth/Steps.lean`), over the write side's contracts (`InvAuth.lean`, `authWR`). The trust
+# boundary: zap.Strings, selectPassword (bcrypt, base64).
+zap_Strings:
+auth_authStore__selectPassword:
+auth_authStore__setRevision:
+auth_authStore__commitRevision: auth_authStore__Revision
+auth_authStore__UserAdd: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_authStore__selectPassword zap_String zap_Logger__Info
+auth_authStore__RoleAdd: auth_authStore__commitRevision zap_String zap_Logger__Info
+auth_authStore__UserDelete: auth_authStore__commitRevision auth_authStore__refreshRangePermCache zap_String zap_Strings zap_Logger__Error zap_Logger__Info
+auth_authStore__UserRevokeRole: auth_authStore__commitRevision auth_authStore__refreshRangePermCache zap_String zap_Strings zap_Logger__Error zap_Logger__Info
+auth_authStore__RoleRevokePermission: auth_authStore__commitRevision auth_authStore__refreshRangePermCache zap_String zap_Logger__Info
+auth_authStore__RoleDelete: auth_authStore__commitRevision auth_authStore__refreshRangePermCache zap_String zap_Logger__Error zap_Logger__Info
+auth_authStore__UserGrantRole: auth_authStore__commitRevision auth_authStore__refreshRangePermCache zap_String zap_Strings zap_Logger__Warn zap_Logger__Info
+auth_authStore__RoleGrantPermission: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_isValidPermissionRange zap_String zap_ByteString zap_Logger__Info
+auth_authStore__HasRole: zap_String zap_Logger__Warn
+auth_authStore__UserChangePassword: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_authStore__selectPassword zap_String zap_Strings zap_Logger__Info
+auth_authStore__AuthDisable: auth_authStore__commitRevision zap_Logger__Info
+auth_authStore__AuthEnable: auth_authStore__refreshRangePermCache auth_authStore__setRevision auth_hasRootRole zap_Logger__Info
+auth_authStore__Recover: auth_authStore__refreshRangePermCache auth_authStore__setRevision
 auth_authStore__lockedReadTx:
 auth_authStore__isOpPermitted: auth_authStore__IsAuthEnabled auth_authStore__Revision zap_Uint64 zap_ByteString zap_Error zap_Logger__Warn zap_String zap_Logger__Error auth_hasRootRole auth_authStore__lockedReadTx auth_authStore__isRangeOpPermitted
 auth_authStore__IsPutPermitted: auth_authStore__isOpPermitted
@@ -446,6 +487,13 @@ auth_authStore__IsDeleteRangePermitted: auth_authStore__isOpPermitted
 auth_authStore__IsAdminPermitted: auth_authStore__IsAuthEnabled auth_authStore__lockedReadTx auth_hasRootRole
 auth_authStore__authInfoFromToken: auth_authStore__Revision
 auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromIncomingContext auth_authStore__authInfoFromToken auth_redactToken zap_String zap_Logger__Warn
+# The token binding (the auth plan's S5, 2026-10-24): `Authenticate`, over the token provider's
+# contract (`InvAuth.lean`, `tokenProviderOk`: an issued token's binding, `Tokens.lean`) and the
+# write side's `GetUser`. The trust boundary: zap's `Logger.Check` and zapcore's
+# `CheckedEntry.Write` (logging).
+zap_Logger__Check:
+zapcore_CheckedEntry__Write:
+auth_authStore__Authenticate: auth_authStore__IsAuthEnabled auth_authStore__Revision auth_redactToken zap_String zap_Logger__Check zapcore_CheckedEntry__Write
 # The raft wrapper's construction (raft.go, bootstrap.go; stage R8b-C of the raft v3.7 retarget,
 # 2026-10-16): `newRaftNode` (its callees are contracts in its spec and Perennial's `time.Now`),
 # and the new cluster's `bootstrappedRaft.newRaftNode` over raft's `StartNode` (`@`: proved and
@@ -491,13 +539,9 @@ auth_NewTokenProvider:
 auth_NewAuthStore:
 v3compactor_New:
 v3alarm_NewAlarmStore:
-rafthttp_Transport__Start:
-rafthttp_Transport__AddRemote:
-rafthttp_Transport__AddPeer:
-# (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s `Recover`s and the cluster's
+# (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s lessor `Recover` and the cluster's
 # `SetBackend`, axioms true of the Go code (their specs' docstrings).
 lease_lessor__Recover:
-auth_authStore__Recover:
 membership_RaftCluster__SetBackend:
 apply_NewUberApplier: @
 # (D21 M2, 2026-10-19) the inbound path from the transport (`rafthttp.Raft`, NetBridge.lean):
@@ -515,12 +559,13 @@ EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
 EtcdServer__ReportUnreachable:
 EtcdServer__ReportSnapshot:
 # (notes/partition-plan.md, S1/S2, 2026-10-20) etcd's partition hooks: `CutPeer`/`MendPeer` with
-# their bodies (the type assertion on `s.r.transport`), over rafthttp's `CutPeer`/`MendPeer`, two
-# trust-boundary axioms (they only pause and resume a peer, which the network model allows)
-rafthttp_Transport__CutPeer:
-rafthttp_Transport__MendPeer:
+# their bodies (the type assertion on `s.r.transport`), over rafthttp's `CutPeer`/`MendPeer`
+# (axioms until rafthttp stage 6f; linked below)
 EtcdServer__CutPeer: rafthttp_Transport__CutPeer
 EtcdServer__MendPeer: rafthttp_Transport__MendPeer
+# (rafthttp stage 6d, 2026-10-24) the member's raft handler with its body, over rafthttp's
+# `Transport.Handler` (proved over its callees, `TransportSpecs.lean`; linked below since stage 6f)
+EtcdServer__RaftHandler: rafthttp_Transport__Handler
 node__Ready: @
 node__Advance: @
 node__Tick: @
@@ -557,6 +602,12 @@ io_PipeWriter__CloseWithError:
 snap_NewMessage:
 snap_Message__CloseNotify:
 snap_Message__GetTo:
+# (2026-10-24, rafthttp stage 7d) the snapshot sender's: the merged message's fields and close (D22's
+# interface, pending the D22 owner), `io.MultiReader` (names-only in Perennial)
+snap_Message__fields:
+snap_Snapshotter__SaveDBFrom:
+snap_Message__CloseWithError:
+io_MultiReader:
 snapshot__WriteTo: @
 snapshot__Size: @
 snapshot__Close: @
@@ -564,3 +615,154 @@ proto_CloneConfState: @
 newSnapshotReaderCloser: io_Pipe snapshot__WriteTo zap_Int64 go_humanize_Bytes zap_String zap_Logger__Info zap_Error zap_Logger__Warn io_PipeWriter__CloseWithError snapshot__Close
 EtcdServer__createMergedSnapshotMessage: EtcdServer__Logger EtcdServer__KV newSnapshotReaderCloser proto_CloneConfState snapshot__Size snap_NewMessage
 EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__String zap_String snap_Message__GetTo zap_Int64 go_humanize_Bytes zap_Logger__Info EtcdServer__GoAttach snap_Message__CloseNotify zap_Duration zap_Logger__Warn
+# (rafthttp stage 6f, 2026-10-24) rafthttp linked: the transport's methods over their callees
+# (`TransportSpecs.lean`), rafthttp's functions with their bodies, and the callees they reach;
+# `=` callees are terms (the HTTP boundary's axioms, `Proof/net/http/Axioms.lean`, Perennial's
+# linked results of `time`, `sync`, `context`, `strings`, and `Lemmas.lean`'s facts)
+rafthttp_NewRoundTripper:
+rafthttp_Transport__ActiveSince:
+rafthttp_Transport__AddPeer: types_NewURLs v2stats_LeaderStats__Follower rafthttp_startPeer rafthttp_addPeerToProber types_ID__String types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
+rafthttp_Transport__AddRemote: types_NewURLs rafthttp_startRemote types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
+rafthttp_Transport__CutPeer: rafthttp_peer__Pause
+rafthttp_Transport__Get:
+rafthttp_Transport__Handler: rafthttp_newPipelineHandler rafthttp_newStreamHandler rafthttp_newSnapshotHandler probing_NewHandler rafthttp_Transport__Get rafthttp_pipelineHandler__ServeHTTP rafthttp_streamHandler__ServeHTTP rafthttp_snapshotHandler__ServeHTTP rafthttp_addRemoteFromRequest
+rafthttp_Transport__MendPeer: rafthttp_peer__Resume
+rafthttp_Transport__Send: rafthttp_peer__send rafthttp_remote__send rafthttp_isMsgApp v2stats_ServerStats__SendAppendReq proto_SizeMessage raftpb_Message__GetTo Message__GetType raftpb_MessageType__String types_ID__String types_ID__String_ptr zap_Logger__Debug zap_String
+rafthttp_Transport__SendSnapshot: rafthttp_peer__sendSnap snap_Message__CloseWithError snap_Message__fields raftpb_Message__GetTo
+rafthttp_Transport__Start: rafthttp_newStreamRoundTripper rafthttp_NewRoundTripper probing_NewProber rate_Every rafthttp_Transport__Send rafthttp_peer__stop rafthttp_remote__stop rafthttp_Transport__SendSnapshot rafthttp_Transport__ActiveSince
+rafthttp_addPeerToProber:
+rafthttp_addRemoteFromRequest: =http.HeaderGetPtr_ok types_IDFromString =_root_.Perennial.strings.wp_Split
+rafthttp_checkClusterCompatibilityFromHeader: =http.HeaderGetPtr_ok rafthttp_serverVersion rafthttp_minClusterVersion rafthttp_checkVersionCompatibility Version__String types_ID__String_ptr zap_Logger__Warn zap_String zap_Error
+rafthttp_checkPostResponse: strings_TrimSuffix fmt_ErrorfPlain zap_Logger__Error zap_String types_ID__String_ptr =http.HeaderGetPtr_ok =http.HeaderGetOwnPtr_ok =http.StatusText_ok =http.URLStringAny_ok =http.reqURL_ok
+rafthttp_checkStreamSupport: semver_v3_New v3_Version__Major v3_Version__Minor Version__String
+rafthttp_checkVersionCompatibility: v3_MustParse rafthttp_compareMajorMinorVersion Version__String fmt_Errorf
+rafthttp_closeNotifier__Close:
+rafthttp_closeNotifier__closeNotify:
+rafthttp_compareMajorMinorVersion: semver_v3_New v3_Version__Major v3_Version__Minor v3_Version__LessThan
+rafthttp_createPostRequest: =http.URLString_ok =http.NewRequest_ok =http.HeaderSetPtr_ok types_ID__String_ptr rafthttp_setPeerURLsHeader
+rafthttp_isLinkHeartbeatMessage: Message__GetType Message__GetFrom raftpb_Message__GetTo
+rafthttp_isMsgApp: Message__GetType
+rafthttp_isMsgSnap: Message__GetType
+rafthttp_messageDecoder__decode: rafthttp_messageDecoder__decodeLimit
+rafthttp_messageDecoder__decodeLimit: binary_ReadUint64 proto_UnmarshalPb
+rafthttp_messageEncoder__encode: proto_SizePb binary_WriteUint64 pbutil_MustMarshalMessage
+# (2026-10-24, rafthttp stage 7d) the snapshot sender
+rafthttp_createSnapBody: snap_Message__fields rafthttp_messageEncoder__encode =_root_.Perennial.EtcdGrove.bytes.Buffer.Write.wp_proof io_MultiReader
+rafthttp_snapshotSender__post: rafthttp_checkPostResponse =http.WithContext_ok =http.ReadAll_any_ok =http.respReadAny_of_ok httputil_GracefulClose =_root_.Perennial.time.wp_AfterFunc context_WithCancelBackground =_root_.Perennial.context.wp_Background
+rafthttp_snapshotSender__send: rafthttp_snapshotSender__post rafthttp_createSnapBody rafthttp_createPostRequest rafthttp_urlPicker__pick rafthttp_urlPicker__unreachable rafthttp_peerStatus__activate rafthttp_peerStatus__deactivate snap_Message__fields snap_Message__CloseWithError raftpb_Message__GetTo SnapshotMetadata__GetIndex types_ID__String go_humanize_Bytes zap_Logger__Info zap_Logger__Warn zap_String zap_Uint64 zap_Error prometheus_CounterVec__WithLabelValues prometheus_GaugeVec__WithLabelValues prometheus_HistogramVec__WithLabelValues errors_Is =rafthttp.netErrNotRemoved_ok =_root_.Perennial.time.wp_Now =_root_.Perennial.time.wp_Since time_Duration__Seconds
+rafthttp_peer__sendSnap: rafthttp_snapshotSender__send
+rafthttp_minClusterVersion: =http.HeaderGetPtr_ok v3_MustParse
+rafthttp_msgAppV2Decoder__decode: raftpb_Message__GetIndex raftpb_Message__GetTerm Entry__GetIndex raftpb_MessageType__Enum proto_ClonePb pbutil_MustUnmarshalMessagePb binary_ReadUint64
+rafthttp_msgAppV2Encoder__encode: =_root_.Perennial.time.wp_Now =_root_.Perennial.time.wp_Since rafthttp_isLinkHeartbeatMessage raftpb_Message__GetIndex raftpb_Message__GetLogTerm raftpb_Message__GetTerm raftpb_Message__GetCommit Entry__GetIndex proto_SizePb proto_MarshalAppendPb pbutil_MustMarshalMessage binary_WriteUint8 binary_WriteUint64 v2stats_FollowerStats__Succ
+rafthttp_newCloseNotifier:
+rafthttp_newMsgAppV2Decoder:
+rafthttp_newMsgAppV2Encoder:
+rafthttp_newPeerStatus:
+rafthttp_newPipelineHandler:
+rafthttp_newSnapshotHandler:
+rafthttp_snapshotHandler__ServeHTTP: =http.RespHeader_ok =http.HeaderSet_ok =http.Error_ok =http.respWriteHeader_ok =http.bodyStreamRead_ok =http.ReadFull_stream_ok rafthttp_checkClusterCompatibilityFromHeader rafthttp_messageDecoder__decodeLimit snap_Snapshotter__SaveDBFrom proto_SizeMessage fmt_SprintfArgs errors_AsLeaf context_TODO zap_Logger__Warn zap_Logger__Info zap_String zap_Error zap_Uint64 zap_Int zap_Int64 types_ID__String types_ID__String_ptr prometheus_CounterVec__WithLabelValues prometheus_GaugeVec__WithLabelValues prometheus_HistogramVec__WithLabelValues go_humanize_Bytes Message__GetFrom Message__GetType SnapshotMetadata__GetIndex =_root_.Perennial.time.wp_Now =_root_.Perennial.time.wp_Since time_Duration__String_ptr time_Duration__Seconds =rafthttp_writerToResponse_asTarget
+rafthttp_newSnapshotSender:
+rafthttp_newStreamHandler:
+rafthttp_newStreamRoundTripper:
+rafthttp_newURLPicker:
+rafthttp_peerStatus__activate: zap_Logger__Info zap_String types_ID__String_ptr prometheus_GaugeVec__WithLabelValues =_root_.Perennial.time.wp_Now
+rafthttp_peerStatus__deactivate: zap_Logger__Warn zap_Logger__Debug zap_String zap_Error types_ID__String_ptr prometheus_GaugeVec__WithLabelValues prometheus_CounterVec__WithLabelValues fmt_SprintfID
+rafthttp_peerStatus__isActive:
+rafthttp_peer__Pause: rafthttp_streamReader__pause
+rafthttp_peer__Resume: rafthttp_streamReader__resume
+rafthttp_peer__attachOutgoingConn: rafthttp_streamWriter__attach
+rafthttp_peer__pick: rafthttp_streamWriter__writec rafthttp_isMsgApp rafthttp_isMsgSnap
+rafthttp_peer__send: rafthttp_peer__pick rafthttp_isMsgSnap rafthttp_peerStatus__isActive raftpb_MessageType__String Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String types_ID__String_ptr prometheus_CounterVec__WithLabelValues zap_Logger__Warn zap_String zap_Bool
+rafthttp_peer__stop: rafthttp_streamWriter__stop rafthttp_pipeline__stop rafthttp_streamReader__stop rafthttp_snapshotSender__stop types_ID__String_ptr zap_Logger__Info zap_String
+rafthttp_pipelineHandler__ServeHTTP: =http.RespHeader_ok =http.HeaderSet_ok =http.Error_ok =http.respWriteHeader_ok =http.Flush_ok =http.bodyRead_ok =http.ReadAll_ok rafthttp_checkClusterCompatibilityFromHeader ioutil_NewLimitedBufferReader proto_UnmarshalPb errors_AsLeaf context_TODO zap_Logger__Warn zap_String zap_Error types_ID__String types_ID__String_ptr prometheus_CounterVec__WithLabelValues Message__GetFrom =rafthttp_writerToResponse_asTarget
+rafthttp_pipeline__handle: rafthttp_pipeline__post rafthttp_peerStatus__activate rafthttp_peerStatus__deactivate rafthttp_isMsgApp rafthttp_isMsgSnap v2stats_FollowerStats__Succ v2stats_FollowerStats__Fail pbutil_MustMarshalMessage proto_SizePb raftpb_Message__GetTo types_ID__String prometheus_CounterVec__WithLabelValues =_root_.Perennial.time.wp_Now =_root_.Perennial.time.Time.wp_Sub =_root_.Perennial.sync.WaitGroup.wp_Done
+rafthttp_pipeline__post: rafthttp_urlPicker__pick rafthttp_urlPicker__unreachable rafthttp_createPostRequest rafthttp_checkPostResponse rafthttp_waitSchedule =http.NewBuffer_ok =http.WithContext_ok =http.ReadAll_resp_ok =http.RespClose_ok context_WithCancelBackground =_root_.Perennial.context.wp_Background errors_Is
+rafthttp_pipeline__start: rafthttp_pipeline__handle zap_Logger__Info zap_String types_ID__String_ptr =_root_.Perennial.sync.WaitGroup.wp_Add
+rafthttp_pipeline__stop: zap_Logger__Info zap_String types_ID__String_ptr =_root_.Perennial.sync.WaitGroup.wp_Wait
+rafthttp_remote__send: rafthttp_isMsgSnap rafthttp_peerStatus__isActive raftpb_MessageType__String Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String types_ID__String_ptr prometheus_CounterVec__WithLabelValues zap_Logger__Warn zap_String zap_Bool
+rafthttp_remote__stop: rafthttp_pipeline__stop
+rafthttp_reportCriticalError:
+rafthttp_serverVersion: =http.HeaderGetPtr_ok v3_MustParse
+# (`strings.Join`'s proof itself: its linked result in raft's Link takes `[StorageModel GF]`)
+rafthttp_setPeerURLsHeader: =http.URLStringAny_ok =strings.Join.wp_proof =http.HeaderSetPtr_ok
+rafthttp_snapshotSender__stop:
+rafthttp_startPeer: rafthttp_newPeerStatus rafthttp_newURLPicker rafthttp_newSnapshotSender rafthttp_pipeline__start rafthttp_startStreamWriter rafthttp_streamReader__start types_ID__String_ptr rate_NewLimiter zap_Logger__Info zap_Logger__Warn zap_String zap_Error context_WithCancelBackground =_root_.Perennial.context.wp_Background
+rafthttp_startRemote: rafthttp_newPeerStatus rafthttp_newURLPicker rafthttp_pipeline__start
+rafthttp_startStreamWriter: rafthttp_streamWriter__run
+rafthttp_streamHandler__ServeHTTP: =http.RespHeader_ok =http.HeaderSet_ok =http.HeaderGetPtr_ok =http.Error_ok =http.respWriteHeader_ok =http.Flush_ok rafthttp_checkClusterCompatibilityFromHeader rafthttp_streamType__endpoint path_Dir path_Base types_IDFromString types_ID__String types_ID__String_ptr =_root_.Perennial.strings.wp_Split rafthttp_newCloseNotifier rafthttp_closeNotifier__Close rafthttp_closeNotifier__closeNotify rafthttp_peer__attachOutgoingConn zap_Logger__Warn zap_Logger__Debug zap_String zap_Error
+rafthttp_streamReader__close: =http.RespCloseAny_ok zap_Logger__Warn zap_String zap_Error types_ID__String_ptr
+rafthttp_streamReader__decodeLoop: rafthttp_streamReader__close rafthttp_newMsgAppV2Decoder rafthttp_messageDecoder__decode rafthttp_msgAppV2Decoder__decode =http.ReadFull_resp_ok =http.RespCloseAny_ok rafthttp_peerStatus__isActive rafthttp_isLinkHeartbeatMessage raftpb_MessageType__String proto_SizeMessage Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String types_ID__String_ptr prometheus_CounterVec__WithLabelValues zap_Logger__Warn zap_String zap_Bool
+rafthttp_streamReader__dial: rafthttp_urlPicker__pick rafthttp_urlPicker__unreachable rafthttp_streamType__endpoint path_Join types_ID__String_ptr types_ID__String =http.HeaderGetPtr_ok =http.URLString_ok =http.NewRequest_ok =http.readerHas_nil =http.HeaderSetPtr_ok rafthttp_setPeerURLsHeader =http.WithContext_ok rafthttp_serverVersion v3_MustParse rafthttp_compareMajorMinorVersion rafthttp_checkStreamSupport httputil_GracefulClose =http.respReadAny_of_ok =http.ReadAll_resp_ok =http.RespClose_ok strings_TrimSuffix fmt_ErrorfPlain zap_Logger__Debug zap_Logger__Warn zap_String zap_Error
+rafthttp_streamReader__pause:
+rafthttp_streamReader__resume:
+rafthttp_streamReader__run: rafthttp_streamReader__dial rafthttp_streamReader__decodeLoop rafthttp_streamType__String_ptr rafthttp_peerStatus__activate rafthttp_peerStatus__deactivate types_ID__String_ptr errors_Is transport_IsClosedConnError rate_Limiter__Wait zap_Logger__Info zap_Logger__Warn zap_String zap_Error
+rafthttp_streamReader__start: rafthttp_streamReader__run context_WithCancelBackground =_root_.Perennial.context.wp_Background
+rafthttp_streamReader__stop: rafthttp_streamReader__close
+rafthttp_streamType__String:
+rafthttp_streamType__String_ptr: rafthttp_streamType__String
+rafthttp_streamType__endpoint: path_Join
+rafthttp_streamWriter__attach:
+rafthttp_streamWriter__close: rafthttp_streamWriter__closeUnlocked
+rafthttp_streamWriter__closeUnlocked: zap_Logger__Warn zap_String zap_Error types_ID__String_ptr
+rafthttp_streamWriter__run: rafthttp_streamWriter__close rafthttp_streamWriter__closeUnlocked rafthttp_newMsgAppV2Encoder rafthttp_messageEncoder__encode rafthttp_msgAppV2Encoder__encode =http.respWrite_ok =http.Flush_ok rafthttp_streamType__String_ptr rafthttp_peerStatus__activate rafthttp_peerStatus__deactivate proto_SizePb proto_ClonePb raftpb_Message__GetTo types_ID__String_ptr prometheus_CounterVec__WithLabelValues zap_Logger__Info zap_Logger__Warn zap_String time_NewTicker time_Ticker__Stop
+rafthttp_streamWriter__stop:
+rafthttp_streamWriter__writec:
+rafthttp_urlPicker__pick:
+rafthttp_urlPicker__unreachable:
+rafthttp_waitSchedule:
+types_NewURLs:
+v2stats_LeaderStats__Follower:
+probing_NewHandler:
+v2stats_ServerStats__SendAppendReq:
+raftpb_MessageType__String:
+probing_NewProber:
+rate_Every:
+types_IDFromString:
+strings_TrimSuffix:
+fmt_ErrorfPlain:
+semver_v3_New:
+v3_Version__Major:
+v3_Version__Minor:
+v3_MustParse:
+v3_Version__LessThan:
+binary_ReadUint64:
+proto_UnmarshalPb:
+proto_SizePb:
+binary_WriteUint64:
+pbutil_MustMarshalMessage: proto_MarshalPb
+raftpb_Message__GetIndex: @
+raftpb_Message__GetTerm: @
+raftpb_MessageType__Enum: @
+proto_ClonePb:
+pbutil_MustUnmarshalMessagePb: proto_UnmarshalPb
+raftpb_Message__GetLogTerm: @
+raftpb_Message__GetCommit: @
+proto_MarshalAppendPb:
+binary_WriteUint8:
+v2stats_FollowerStats__Succ:
+prometheus_GaugeVec__WithLabelValues:
+prometheus_CounterVec__WithLabelValues:
+fmt_SprintfID:
+fmt_SprintfArgs:
+zap_Bool:
+ioutil_NewLimitedBufferReader:
+errors_AsLeaf:
+context_TODO:
+v2stats_FollowerStats__Fail:
+context_WithCancelBackground:
+rate_NewLimiter:
+path_Dir: path_Split path_Clean
+path_Base: bytealg_LastIndexByteString
+path_Join: path_Clean
+httputil_GracefulClose:
+transport_IsClosedConnError:
+rate_Limiter__Wait:
+time_NewTicker:
+time_Ticker__Stop:
+proto_MarshalPb:
+path_Split: bytealg_LastIndexByteString
+path_Clean: path_lazybuf__index path_lazybuf__append path_lazybuf__string
+bytealg_LastIndexByteString:
+path_lazybuf__index:
+path_lazybuf__append:
+path_lazybuf__string:

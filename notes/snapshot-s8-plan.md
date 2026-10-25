@@ -206,6 +206,18 @@ KV jump; `srv_be_swap`, item 9). Not done: `RaftCluster.Recover`, `storage.Relea
   store's from `Restore`, the monitor's from `srv_be_swap`, the remainder `qo` and `isStopChans` kept
   by `NewServer` and threaded to `run`).
 
+- **W8, `RemoveAllPeers` and D35's peer coverage** (open, 2026-10-25; the rafthttp track's note,
+  `notes/decisions.md`, D40, "Note for D22 S-j"). The proved transport's `AddRemote` after the
+  freeze returns at once for a recorded peer (`AddRemote_frozen`), and the handlers' premises are
+  discharged from the frozen state and the caller's coverage, "every other member among the recorded
+  peers" (`trAddRemote_of_frozen`, `trRemotesFrozen`). `applySnapshot`'s `RemoveAllPeers`, then the
+  `AddPeer` loop, runs while the transport serves: in the window a handler's `AddRemote` adds a
+  remote (Go's behavior), and the coverage does not hold through it. Their suggestion: state
+  `RemoveAllPeers` keeping the recorded ids, with the window's remotes stopped by the re-add, or a
+  premise; rejected by them: a premise that the handlers' `AddRemote` returns, and letting the
+  handlers add remotes. To settle when `RemoveAllPeers`/`AddPeer` are stated over the proved
+  transport (W3 redone).
+
 Then S8d: the spec (S-j2's item 6 adjusted: the snapshot file and image in the precondition, the
 apply thread's resources before, `applyAll`'s post shape at the new backend after) and the proof in
 `applySnapshot`'s order, with `restorePre_of_apply`, `kv_cert_jump`, `srv_be_swap`,

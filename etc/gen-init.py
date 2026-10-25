@@ -36,7 +36,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 PERENNIAL_CODE = '.lake/packages/perennial/Perennial/Code'
 
-ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.server.v3.etcdserver',
+ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
+         # the auth plan's A3c (2026-10-24): the Lock and Election services' servers
+         'go_etcd_io.etcd.server.v3.etcdserver.api.v3lock',
+         'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
          'github_com.mit_pdos.etcd_grove.examples.putget',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
@@ -164,22 +167,167 @@ states.''',
             'exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩'],
 )
 
+def raft_subpath(seg, tag):
+    """(2026-10-24, rafthttp stage 6d) `X = path.Join(RaftPrefix, seg)` (`http.go`): the slice
+    literal, `path.Join`'s proof (over `path.Clean`'s and `lazybuf`'s), its model's value."""
+    es = f'[go!"/raft", go!"{seg}"]'
+    return ['try wp_auto',
+            f'wp_apply (wp_slice_literal (l := {es})); isplitr; (· ipureintro; rfl); iintro %pj{tag} ⟨Sj{tag}, -⟩',
+            'try wp_auto',
+            'wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof '
+            'EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof '
+            f'EtcdGrove.path.lazybuf.string.wp_proof)) _ {es} _ (by decide) $$ [$Sj{tag}] as %rj{tag} ⟨%Hj{tag}, -⟩',
+            f'subst Hj{tag}',
+            f'rw [show EtcdGrove.path.joinModel {es} = go!"/raft/{seg}" from by decide]',
+            'try wp_auto']
+
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'] = dict(
+    doc='''Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` holds a non-nil
+error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
+variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
+(`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
+states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`'s (`stream.go`);
+`opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`), its subpaths `ProbingPrefix`,
+`RaftStreamPrefix` and `RaftSnapshotPrefix` (`path.Join`, proved), `ConnReadTimeout`
+(`DefaultConnReadTimeout`, five seconds) and `readBytesLimit` (512 MiB) are translated and set.''',
+    newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded",
+        errIncompatibleVersion="incompatible version", ErrClusterIDMismatch="cluster ID mismatch",
+        errStopped="stopped",
+        # `fmt.Errorf` of a format without verbs or `%w`: Go's `Errorf` returns `errors.New(s)`
+        errMemberRemoved="the member has been permanently removed from the cluster",
+        # (2026-10-23, rafthttp stage 5c) `fmt.Errorf` without verbs, as `errMemberRemoved`
+        errUnsupportedStreamType="unsupported stream type"),
+    custom={'linkHeartbeatMessage': dict(
+        doc='/-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/',
+        post='EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt',
+        pat='#H@'),
+        # (2026-10-23, rafthttp stage 5b) the stream writer counts a heartbeat's size
+        'linkHeartbeatSize': dict(
+        doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
+        post='∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝',
+        pat='⟨%n@, H@, %B@⟩'),
+        # (2026-10-24, rafthttp stage 6e) the stream types each version supports, which the stream
+        # reader's `checkStreamSupport` looks up
+        'supportedStream': dict(
+        doc='/-- `supportedStream = map[string][]streamType{"2.0.0": {}, "2.1.0": {streamTypeMsgAppV2, streamTypeMessage}, ...}` (`stream.go`): a map of slices; nothing writes the map or its slices. -/',
+        post='∃ (m : Loc) (M : GMap GoString GoSlice), globalAddr supportedStream ↦ m ∗ m ↦$□ M ∗ □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts',
+        pat='⟨%m@, %M@, H@, #MM@, #ME@⟩')},
+    alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64',
+                 'ProbingPrefix': 'GoString', 'RaftStreamPrefix': 'GoString',
+                 'RaftSnapshotPrefix': 'GoString'},
+    # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step;
+    # (2026-10-24, rafthttp stage 6d) the three subpaths of `RaftPrefix`: `path.Join` (proved)
+    before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto'],
+            'ProbingPrefix': raft_subpath('probing', 'P'),
+            'RaftStreamPrefix': raft_subpath('stream', 'S'),
+            'RaftSnapshotPrefix': raft_subpath('snapshot', 'N')},
+    imports=['Proof.path.Join', 'Proof.path.Clean', 'Proof.path.lazybuf__index',
+             'Proof.path.lazybuf__append', 'Proof.path.lazybuf__string'],
+    finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
+            'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
+            'ipersist HRaftPrefix', 'ipersist HProbingPrefix', 'ipersist HRaftStreamPrefix',
+            'ipersist HRaftSnapshotPrefix', 'ipersist HConnReadTimeout', 'ipersist HlinkHeartbeatSize',
+            'ipersist HreadBytesLimit', 'ipersist HerrUnsupportedStreamType',
+            'ipersist HsupportedStream',
+            'iframe Hown', 'imodintro', 'isplitr',
+            '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
+            'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'isplitr',
+            '· simp only [EtcdGrove.errorsNewVar]; iframe #',
+            'isplitr', '· iexact HlinkHeartbeatMessage',
+            'isplitr', '· iexact HRaftPrefix',
+            'isplitr', '· iexact HProbingPrefix', 'isplitr', '· iexact HRaftStreamPrefix',
+            'isplitr', '· iexact HRaftSnapshotPrefix',
+            'simp only [EtcdGrove.errorsNewVar, EtcdGrove.errVarCells, EtcdGrove.errVarCell]',
+            'iframe #', 'try (ipureintro; exact BlinkHeartbeatSize)'],
+)
+
+
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
 
+# (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
+# package into the closure) its five error variables, translated `errors.New` calls
+_CC = [('ErrElectionNotLeader', 'N'), ('ErrElectionNoLeader', 'O'), ('ErrLocked', 'L'),
+       ('ErrSessionExpired', 'S'), ('ErrLockReleased', 'R')]
+_CCF = ['ErrLocked', 'ErrSessionExpired', 'ErrLockReleased', 'ErrElectionNotLeader',
+        'ErrElectionNoLeader']
+
+SPECIAL['go_etcd_io.etcd.client.v3.concurrency'] = dict(
+    doc='''Its fact (`concurrencyInit`, `Base.lean`): `Mutex`'s three errors and `Election`'s two each
+hold a fixed non-nil error. Its initializer allocates them, initializes its imports and runs their
+translated initializers (`errors.New` calls, `mutex.go`, `election.go`; Perennial's
+`context.wp_New_errorString`).''',
+    imports=['Perennial.Proof.context.NewErrorString'],
+    alloc_types={x: 'GoInterface' for x, _ in _CC},
+    before={'$end': ['try wp_auto'] + [l for _, t in _CC for l in [
+        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+    finish=[f'ipersist H{x}' for x, _ in _CC] + FIN_PRE[:6] + ['imodintro', 'unfold concurrencyInit'] +
+           [l for x in _CCF[:-1] for l in ['isplitr', f'· iexists _; iexact H{x}']] +
+           [f'iexists _; iexact H{_CCF[-1]}'],
+)
+
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3election'] = dict(
+    doc='''Its fact (`v3electionInit`, `etcdserver/api/v3election/Base.lean`; the auth plan's A3c,
+2026-10-24): `ErrMissingLeaderKey` holds a fixed non-nil error. Its initializer allocates it,
+initializes its imports and runs its translated initializer (an `errors.New` call, `election.go`;
+Perennial's `context.wp_New_errorString`).''',
+    imports=['Perennial.Proof.context.NewErrorString'],
+    alloc_types={'ErrMissingLeaderKey': 'GoInterface'},
+    before={'$end': ['try wp_auto',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xM #MM', 'try wp_auto']},
+    finish=['ipersist HErrMissingLeaderKey'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold v3electionInit', 'iexists _; iexact HErrMissingLeaderKey'],
+)
+
+# (2026-10-24, the auth plan's S4e) the permission type's name maps, translated: the store's
+# `RoleGrantPermission` looks the granted type's name up for its log line
+SPECIAL['go_etcd_io.etcd.api.v3.authpb'] = dict(
+    doc='''Its fact (`authpbInit`, `cache/v3/Base.lean`): `Permission_Type_name` holds a map, read-only
+for good, whose entries are the permission types' names (`0` `READ`, `1` `WRITE`, `2`
+`READWRITE`). Its initializer allocates and sets the two translated name maps
+(`Permission_Type_name`, `Permission_Type_value`: `map[int32]string`/`map[string]int32` literals,
+`auth.pb.go`), initializes its imports and runs its other variables' untranslated initializers (the
+generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` says run.''',
+    alloc_types={'Permission_Type_name': 'Loc', 'Permission_Type_value': 'Loc'},
+    before={
+        'Permission_Type_name': [
+            'try wp_auto',
+            'wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mn Hmn',
+            'try wp_auto',
+            'repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hmn as Hmn; try wp_auto)'],
+        'Permission_Type_value': [
+            'try wp_auto',
+            'wp_apply (wp_map_make1 (K := GoString) (V := w32) go.string go.int32) as %mv Hmv',
+            'try wp_auto',
+            'repeat (wp_apply (wp_mapInsert (K := GoString) (V := w32) go.string) $$ Hmv as Hmv; try wp_auto)']},
+    finish=['ipersist HPermission_Type_name', 'ipersist Hmn'] + [
+        'iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+        'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro',
+        'unfold go_etcd_io.etcd.cache.v3.authpbInit',
+        'iexists _, _', 'iframe #', 'ipureintro', 'simp (config := {decide := true})'],
+)
+
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
-    doc='''Its fact (`server/v3/lease/Base.lean`): `Version` and `V3_6` hold fixed values. Its
+    doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
+`MinClusterVersion` `"3.0.0"`. Its
 initializer runs its variables' untranslated initializers (`version.go`): string constants,
 `semver` versions (`*semver.New(3, 6, 0, "", "")`), and `AllVersions`; the trust-boundary axioms
-`Version_init` and `V3_6_init` state the two the fact reads, `opaqueInitsOk` the others.''',
+`Version_init`, `V3_6_init` and `MinClusterVersion_init` state the three the fact reads,
+`opaqueInitsOk` the others.''',
     custom={
-        'Version': dict(doc='/-- `Version = "3.8.0-alpha.0"` (`version.go`): a string. -/',
-                        post='∃ v : GoString, globalAddr Version ↦ v', pat='⟨%v@, H@⟩'),
+        # (2026-10-23, rafthttp stage 5e-2, accepted by the user) its value: the stream handler's
+        # `X-Server-Version`, which the stream reader parses
+        'Version': dict(doc='/-- `Version = "3.8.0-alpha.0"` (`version.go`). -/',
+                        post='globalAddr Version ↦ go!"3.8.0-alpha.0"', pat='H@'),
         'V3_6': dict(doc='/-- `V3_6 = *semver.New(3, 6, 0, "", "")` (`version.go`): a `semver.Version`. -/',
                      post='∃ v : github_com.Masterminds.semver.v3.Version, globalAddr V3_6 ↦ v',
                      pat='⟨%v@, H@⟩'),
+        # (2026-10-23, rafthttp stage 5e-3, accepted by the user) its value: the stream reader's
+        # `X-Min-Cluster-Version` header
+        'MinClusterVersion': dict(doc='/-- `MinClusterVersion = "3.0.0"` (`version.go`). -/',
+                                  post='globalAddr MinClusterVersion ↦ go!"3.0.0"', pat='H@'),
     },
-    finish=['ipersist HVersion', 'ipersist HV3_6'] + FIN_PRE[:6],
+    finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion'] + FIN_PRE[:6],
 )
 
 # The k8s etcd3 store's packages (stage 6g, 2026-10-23): their facts are in
@@ -359,6 +507,48 @@ def promvec(x, kind, labels, file='metrics.go'):
         doc=f'/-- `{x} = prometheus.New{kind}Vec(..., []string{{{golist}}})`\n(`{file}`): a `*{kind}Vec` with those label names (`vecLabels`). -/',
         post=f'∃ v : Loc, globalAddr {x} ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v {ls}⌝',
         pat='⟨%v@, H@, #L@⟩')
+
+# (2026-10-23, rafthttp stage 4) the pipeline's metric vectors
+for _x, _l in [('receivedBytes', 'From'), ('recvFailures', 'From'), ('sentBytes', 'To'),
+               ('sentFailures', 'To')]:
+    SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom'][_x] = promvec(_x, 'Counter', [_l])
+# (2026-10-23, rafthttp stage 4d) the peer status's
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['activePeers'] = promvec(
+    'activePeers', 'Gauge', ['Local', 'Remote'])
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['disconnectedPeers'] = promvec(
+    'disconnectedPeers', 'Counter', ['Local', 'Remote'])
+# (2026-10-23, rafthttp stage 6c) the probers' round-trip histogram, which `AddPeer` hands to
+# `addPeerToProber` (untranslated, the prober's axiom)
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['rttSec'] = dict(
+    doc='/-- `rttSec = prometheus.NewHistogramVec(...)` (`metrics.go`): some pointer, read-only for good. -/',
+    post='∃ v : Loc, globalAddr rttSec ↦ v', pat='⟨%v@, H@⟩')
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
+    'ipersist HreceivedBytes', 'ipersist HrecvFailures', 'ipersist HsentBytes', 'ipersist HsentFailures',
+    'ipersist HactivePeers', 'ipersist HdisconnectedPeers', 'ipersist HrttSec']
+# (2026-10-24, rafthttp stage 7d) the snapshot sender's and handler's metric vectors
+_SNAP_METRICS = [('snapshotSend', 'Counter', 'To'), ('snapshotSendInflights', 'Gauge', 'To'),
+                 ('snapshotSendFailures', 'Counter', 'To'), ('snapshotSendSeconds', 'Histogram', 'To'),
+                 ('snapshotReceive', 'Counter', 'From'), ('snapshotReceiveInflights', 'Gauge', 'From'),
+                 ('snapshotReceiveFailures', 'Counter', 'From'),
+                 ('snapshotReceiveSeconds', 'Histogram', 'From')]
+for _x, _k, _l in _SNAP_METRICS:
+    SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom'][_x] = promvec(_x, _k, [_l])
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
+    f'ipersist H{_x}' for _x, _, _ in _SNAP_METRICS]
+# (2026-10-24, rafthttp stage 7d) the snapshot sender's response-read timeout, which its `post`
+# hands to `time.AfterFunc` (any duration does)
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['snapResponseReadTimeout'] = dict(
+    doc='/-- `snapResponseReadTimeout = 5 * time.Second` (`snapshot_sender.go`): some duration, read-only for good. -/',
+    post='∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦ d', pat='⟨%d@, H@⟩')
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
+    'ipersist HsnapResponseReadTimeout']
+# (2026-10-24, rafthttp stage 7d) the error `SendSnapshot` closes a message with when it has no
+# peer for it (`CloseWithError` takes any error)
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['errMemberNotFound'] = dict(
+    doc='/-- `errMemberNotFound = errors.New("member not found")` (`util.go`): some error, read-only for good. -/',
+    post='∃ e : GoInterface, globalAddr errMemberNotFound ↦ e', pat='⟨%e@, H@⟩')
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
+    'ipersist HerrMemberNotFound']
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
     doc='''Its fact (`etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a fixed pointer
@@ -640,32 +830,38 @@ runs their translated initializers.''',
             'iexact MUR'],
 )
 
+_AUTH_ERRS = ['ErrRootUserNotExist', 'ErrRootRoleNotExist', 'ErrUserAlreadyExist', 'ErrUserEmpty',
+              'ErrUserNotFound', 'ErrRoleAlreadyExist', 'ErrRoleNotFound', 'ErrRoleEmpty',
+              'ErrPermissionNotGiven', 'ErrAuthFailed', 'ErrNoPasswordUser', 'ErrPermissionDenied',
+              'ErrRoleNotGranted', 'ErrPermissionNotGranted', 'ErrAuthNotEnabled', 'ErrAuthOldRevision',
+              'ErrInvalidAuthToken', 'ErrInvalidAuthMgmt']
+def _auth_news(names):
+    return [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{n} #M{n}' for n in names]
 SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
     doc='''Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
-`ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken` (translated `errors.New`
-calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()`
-returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables' initializers
-are untranslated (`opaqueInitsOk`).''',
+`ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`, and the admin side's eleven
+(the auth plan's S4, 2026-10-24: `ErrRootUserNotExist`, ..., `ErrInvalidAuthMgmt`), and S5's two
+(`ErrAuthFailed`, `ErrAuthNotEnabled`; translated
+`errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
+`Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
+initializers are untranslated (`opaqueInitsOk`).''',
     imports=['Proof.errors.NewVar', 'Perennial.Proof.context.NewErrorString'],
     vars=['[EtcdGrove.ErrorStringLeaf]'],
-    alloc_types={x: 'GoInterface' for x in ['ErrInvalidAuthToken', 'ErrAuthOldRevision',
-                 'ErrPermissionDenied', 'ErrUserNotFound', 'ErrUserEmpty']},
+    alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
+                 # the simple provider's TTL default (the auth plan's S5b, 2026-10-24), a `time.Duration`
+                 'simpleTokenTTLDefault': 'w64',
+                 # the keeper's tick (S5c, 2026-10-25), a `time.Duration`
+                 'simpleTokenTTLResolution': 'w64'},
     before={
-        'ErrRoleAlreadyExist': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xUE #MUE',
-                                'wp_apply _root_.Perennial.context.wp_New_errorString as %xUNF #MUNF'],
-        'ErrRoleNotGranted': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xPD #MPD'],
-        'ErrInvalidAuthOpts': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xAO #MAO',
-                               'wp_apply _root_.Perennial.context.wp_New_errorString as %xIA #MIA'],
+        # the recipes run before the next untranslated variable's initializer, consuming the
+        # translated `errors.New` calls that precede it in `store.go`'s order
+        'ErrInvalidAuthOpts': _auth_news(_AUTH_ERRS[0:17]),
+        'ErrInvalidAuthMethod': _auth_news(_AUTH_ERRS[17:18]),
     },
-    finish=['ipersist HErrUserEmpty', 'ipersist HErrUserNotFound', 'ipersist HErrPermissionDenied',
-            'ipersist HErrAuthOldRevision', 'ipersist HErrInvalidAuthToken',
-            'ihave #TUE := EtcdGrove.errorMsg_triple _ _ _ $$ MUE',
-            'ihave #TUNF := EtcdGrove.errorMsg_triple _ _ _ $$ MUNF',
-            'ihave #TPD := EtcdGrove.errorMsg_triple _ _ _ $$ MPD',
-            'ihave #TAO := EtcdGrove.errorMsg_triple _ _ _ $$ MAO',
-            'ihave #TIA := EtcdGrove.errorMsg_triple _ _ _ $$ MIA',
+    finish=[f'ipersist H{n}' for n in _AUTH_ERRS] +
+           [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
-            '· iapply isPkgInit_access $$ Hd11',
+            '· iapply isPkgInit_access $$ Hd16',
             'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩'] + FIN_PRE[:6] + [
             'imodintro', 'unfold authInit authErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))'],
@@ -1237,7 +1433,8 @@ and raft's, leaf errors by the premise `EtcdGrove.ErrorStringLeaf`), and `contex
 
 RAFT_INIT = {'go_etcd_io.raft.v3', 'go_etcd_io.raft.v3.quorum', 'go_etcd_io.raft.v3.tracker',
              'go_etcd_io.raft.v3.confchange', 'go_etcd_io.raft.v3.raftpb',
-             'google_golang_org.protobuf.proto', 'os', 'strconv'}
+             'google_golang_org.protobuf.proto', 'os'}
+# (`strconv` was here until Perennial translated it, 24bef275e: its `wp_initialize'` is Perennial's.)
 
 def plain(ns):
     return ns.replace('«', '').replace('»', '')
@@ -1569,6 +1766,10 @@ def gen(p, cfg=None):
             A(f'  wp_apply wp_GlobalAlloc (V := {cfg.get("alloc_types", {}).get(x, "TODO")}) {x} _ as H{x}')
         else:
             A(f'  -- translated initializer of {x}')
+            # (2026-10-23) steps before a translated initializer too (a constant to unfold)
+            # (the store's match keeps the closing parentheses: `X))`)
+            for l in before.pop(x.rstrip(')'), []):
+                A('  ' + hdsub(l))
     for l in before.pop('$inits', []) + before.pop('$end', []):
         A('  ' + hdsub(l))
     assert not before, before

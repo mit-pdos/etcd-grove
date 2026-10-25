@@ -31,7 +31,8 @@ variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples
 
 /-- Every package of the program's import closure, with its `isPkgInit`. -/
 def pkgInitTable : List (GoString × IProp GF) :=
-  [(pkg_id.context, isPkgInit (PROP := IProp GF) pkg_id.context),
+  [(pkg_id.cmp, isPkgInit (PROP := IProp GF) pkg_id.cmp),
+   (pkg_id.context, isPkgInit (PROP := IProp GF) pkg_id.context),
    (pkg_id.errors, isPkgInit (PROP := IProp GF) pkg_id.errors),
    (pkg_id.fmt, isPkgInit (PROP := IProp GF) pkg_id.fmt),
    (pkg_id.github_com.anishathalye.porcupine, isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine),
@@ -41,6 +42,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.internal.synctest, isPkgInit (PROP := IProp GF) pkg_id.internal.synctest),
    (pkg_id.io, isPkgInit (PROP := IProp GF) pkg_id.io),
    (pkg_id.math.bits, isPkgInit (PROP := IProp GF) pkg_id.math.bits),
+   (pkg_id.slices, isPkgInit (PROP := IProp GF) pkg_id.slices),
    (pkg_id.sort, isPkgInit (PROP := IProp GF) pkg_id.sort),
    (pkg_id.strings, isPkgInit (PROP := IProp GF) pkg_id.strings),
    (pkg_id.sync, isPkgInit (PROP := IProp GF) pkg_id.sync),
@@ -89,35 +91,43 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h7, True.intro⟩
-  have h9 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h8, True.intro⟩
-  have h10 : GetIsPkgInitProp pkg_id.io (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h4, h3, True.intro⟩
-  have h11 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h4, h10, h3, True.intro⟩
-  have h12 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
+  have h9 : GetIsPkgInitProp pkg_id.cmp (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h13 : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (getIsPkgInit (GF := GF)) := by
+  have h10 : GetIsPkgInitProp pkg_id.slices (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h9, h5, h11, h12, True.intro⟩
-  have h14 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest (getIsPkgInit (GF := GF)) := by
+    exact ⟨h9, h8, True.intro⟩
+  have h11 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h3, h0, h5, h13, True.intro⟩
-  have h15 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter (getIsPkgInit (GF := GF)) := by
+    exact ⟨h8, h10, True.intro⟩
+  have h12 : GetIsPkgInitProp pkg_id.io (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h3, h5, h13, h14, True.intro⟩
-  exact h15
+    exact ⟨h4, h3, True.intro⟩
+  have h13 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h4, h12, h3, True.intro⟩
+  have h14 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h15 : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, h11, h5, h13, h14, True.intro⟩
+  have h16 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h3, h0, h5, h15, True.intro⟩
+  have h17 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h3, h5, h15, h16, True.intro⟩
+  exact h17
 
 end table
 

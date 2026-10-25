@@ -56,7 +56,13 @@ store__GuaranteedUpdate: store__prepareKey getTypeName EnforcePtr store__getCurr
 # the constructor (stage 6e, `store.go`'s `New` and what it calls; the trust boundary: the
 # names-only metrics tracker, `path.Join`, `strings.TrimSuffix`)
 NewEtcdMetricsTracker:
-path_Join:
+# (2026-10-24) `path` translated with its bodies (the etcd project's, rafthttp's): `Join` proved
+# over `Clean` (`Proof/path/`); `etcd3.New` uses it through `path.Join_cleanAbs`
+path_Join: path_Clean
+path_Clean: path_lazybuf__index path_lazybuf__append path_lazybuf__string
+path_lazybuf__index:
+path_lazybuf__append:
+path_lazybuf__string:
 TrimSuffix:
 Client__Ctx:
 newLeaseManager:

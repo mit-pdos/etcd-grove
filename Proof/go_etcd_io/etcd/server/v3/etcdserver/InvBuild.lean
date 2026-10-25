@@ -81,9 +81,12 @@ def srvMsgNoSnap (m : Loc) : IProp GF :=
 M1): read-only, a message raft sent (`isRaftMsg`, its protocol abstraction), at a term the
 budget `bud` reached (`termLB`), with its read credit, one for a `MsgReadIndex` (`rdCred`):
 what a peer's `node.Step` takes of a network message (`netP`) but the receiver's own facts
-(`NetMsgOk`) and a `MsgTimeoutNow`'s tick credit. -/
-def srvMsgNet (γ : RaftNames) (bud : BudgetNames) (m : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ isRaftMsg γ st ∗ termLB bud st.msg.Term' ∗
+(`NetMsgOk`) and a `MsgTimeoutNow`'s tick credit. (2026-10-24, rafthttp stage 6d) Of the member
+`id` that sent it (`isRaftMsg`'s sender: a `MsgApp`'s `From`, what the transport's msgappv2 stream
+needs). -/
+def srvMsgNet (γ : RaftNames) (bud : BudgetNames) (id : w64) (m : Loc) : IProp GF :=
+  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ isRaftMsg γ id st ∗
+    termLB bud st.msg.Term' ∗
     rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
     -- (2026-10-19, D21 M6) a forwarded proposal's tickets
     stTks γ st)
@@ -98,7 +101,7 @@ once: the transport's at-most-once promise for a `once` message (`Transport.Star
 cluster's start): what the sender's backend snapshot gives (S-h) and the receiver's
 `OpenSnapshotBackend` reads (S-j). -/
 def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
-  P st := iprop(isRaftMsg γ st ∗ termLB bud st.msg.Term')
+  P st := iprop((∃ sid, isRaftMsg γ sid st) ∗ termLB bud st.msg.Term')
   O st := iprop(rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ stTks γ st)
   once st := st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
   P_pers st := by infer_instance
@@ -131,12 +134,17 @@ theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
   iapply (cellRO_agree pty1 st1.msg.Type' st2.msg.Type') $$ [$cTy1 $cTy2]
 
 /-- A message raft hands the server, with its bundle, not a snapshot (D22 S-i: `Send` takes
-none), is one the network takes (`netBundle`). -/
-theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
-    srvMsgNet (GF := GF) γ bud m ∗ srvMsgNoSnap m ⊢ netBundle (srvNet γ bud) m := by
+none), is one the network takes from its sender (`netBundle`; 2026-10-24, rafthttp stage 6d: in
+the no-transfer mode, a `MsgApp` of raft's shape, `SentMsgOk`, from its sender, `AppFrom`). -/
+theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (id : w64) (m : Loc)
+    (hnx : γ.reNoXfer = true) :
+    srvMsgNet (GF := GF) γ bud id m ∗ srvMsgNoSnap m ⊢ netBundle (srvNet γ bud) id m := by
   iintro ⟨H, Hns⟩
   iunfold srvMsgNet at H
   icases H with ⟨%st, #Hm, #Hr, #Ht, Hc, Htk⟩
+  ihave #Hr' := Hr
+  iunfold isRaftMsg at Hr'
+  icases Hr' with ⟨-, %Hsent, -, -, %Hrs⟩
   iunfold srvMsgNoSnap at Hns
   icases Hns with ⟨%st', #Hm', %Hns⟩
   ihave %Hty := msgOwn_type_agree m st st' $$ [Hm Hm']
@@ -147,25 +155,35 @@ theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
   iframe Hm Hc Htk
   isplitr
   · imodintro
-    iframe Hr Ht
+    iframe Ht
+    iexists id; iexact Hr
   ipureintro
-  rw [Hty]; exact Hns
+  rw [Hty]
+  exact ⟨Hns, Hrs.1, fun ha => ⟨(Hsent hnx).2.2.2.2.2.1 (Hty ▸ ha), Hrs.2 (Hty ▸ ha)⟩⟩
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's
 contract, `rafthttp.Transport`, asking nothing of them) with its bundle (`srvMsgNet`, D21 stage
 M1), a tick's resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's read
-registrations. -/
+registrations. (2026-10-24, rafthttp stage 6d) Of the member `id` (its messages' sender), the
+transport's `Send` borrowing `S` (the server's: the raft loop's key, `srvTrKey`). -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (bud : BudgetNames) : RNEnv GF :=
-  ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud m ∗ srvMsgNoSnap m), iprop(True),
-    ρ.rd, srvRQ ρ.rd.raft⟩
+    (bud : BudgetNames) (id : w64) (S : IProp GF) : RNEnv GF :=
+  ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud id m ∗ srvMsgNoSnap m),
+    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S⟩
+
+/-- The ticker's contract does not read the transport's borrow (`isRNTicker` reads `E.T`). -/
+theorem rnTickerOk_srvEr_S (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
+    (x₀ : apply.ApplyKV) (bud : BudgetNames) (id : w64) (S S' : IProp GF) :
+    rnTickerOk (srvEr ρ E ai₀ c₀ x₀ bud id S) ⊢ rnTickerOk (srvEr ρ E ai₀ c₀ x₀ bud id S') := by
+  unfold rnTickerOk isRNTicker srvEr
+  exact .rfl
 
 /-- **A cluster in the no-snapshot mode sends no snapshot** (D21 M3, 2026-10-19; `isRaftMsg`'s
 clause, from raft's invariant `LogNsOk`). Until then (D19p) of a one-member cluster: with raft's
 tracked bound one node, a `MsgSnap`'s sender and receiver would be the same. -/
-theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (st : MsgSt) :
-    isRaftMsg (GF := GF) γ st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
+theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (sid : w64) (st : MsgSt) :
+    isRaftMsg (GF := GF) γ sid st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
   iintro Hr
   iunfold isRaftMsg at Hr
   icases Hr with ⟨%H, -⟩
@@ -179,7 +197,7 @@ theorem rnSnapMsg_false (γ : NodeNames) (hns : γ.raft.reNoSnap = true) (m : Lo
   iintro H
   iunfold rnSnapMsg at H
   icases H with ⟨%st, -, %Hty, #Hrm, -⟩
-  ihave %Hne := isRaftMsg_not_snap γ.raft hns st $$ Hrm
+  ihave %Hne := isRaftMsg_not_snap γ.raft hns γ.id st $$ Hrm
   exact absurd Hty Hne
 
 /-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
@@ -282,7 +300,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    "Hloop" ∷ rnLoopTok γn [] ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
+    "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗

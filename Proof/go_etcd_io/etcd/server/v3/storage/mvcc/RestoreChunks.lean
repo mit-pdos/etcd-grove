@@ -472,6 +472,31 @@ theorem logEnts_lease (log : Log) (h : LogNoLease log) (lo hi : Nat) :
 theorem sub_succ_nonneg (x : w64) (h : x.toNat < 2 ^ 63 - 1) : 0 ≤ sint.Z (x + W64 1) := by
   word
 
+/-- A revision has one entry per change. -/
+theorem entsOfRev_length (r : Nat) (b : List EtcdKv) (hb : b.Pairwise etcdKvLess)
+    (cs : List Change) : (entsOfRev r b cs).length = cs.length := by
+  rw [entsOfRev_range, List.filterMap_length_eq_length.mpr, List.length_range]
+  intro i hi
+  obtain ⟨kv, hkv⟩ := changeKv_isSome (W64 r) b hb cs (List.mem_range.1 hi)
+  rw [hkv]; simp
+
+/-- **A log's bucket has one entry per change** (`logCh`). -/
+theorem logEnts_length (log : Log) : (logEnts log 0 log.length).length = logCh log := by
+  unfold logEnts logCh
+  rw [List.length_flatten, List.map_map, Nat.sub_zero, ← List.range_eq_range']
+  have : ∀ m ∈ List.range log.length,
+      (List.length ∘ fun m => entsOfRev m (stateAt log (m - 1)) (log.getD m [])) m =
+        (log.getD m []).length := by
+    intro m _
+    exact entsOfRev_length _ _ (stateAt_sorted _ _) _
+  rw [List.map_congr_left this]
+  congr 1
+  apply List.ext_getElem
+  · simp
+  · intro i h1 h2
+    have hi : i < log.length := by simpa using h1
+    simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]
+
 end mvcc
 end EtcdGrove
 end Perennial

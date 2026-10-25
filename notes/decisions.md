@@ -17407,3 +17407,1200 @@ the S8 rules leave to the orchestrator.
   waits for read transactions on `mmaplock`; the backend's stop protocol letting readers keep
   `bOpen` shares after the stop, since they do not commit): a backend proof change, no closed
   theorem; (c) the old backend's `Close` as a premise of `applySnapshot.spec`, postponed.
+
+## A4 of the auth plan: the watch service's request shapes, the registered watcher's authorization in the stream specification (2026-10-24 · `notes/auth-plan.md`, branch `auth-a4`)
+
+**Problem.** A1 proved `serverWatchStream.isWatchPermitted` returns, when it passes, the class
+of the read of `[Key, RangeEnd)` for some principal (`apply.classRes`), and `recvLoop`'s proof
+dropped it: nothing said of a registered watcher that its registration was authorized, and
+nothing tied the interval the check saw to the interval mvcc registers -- which is exactly what
+GHSA-xg4h-6gfc-h4m8 broke (the matrix's `Watch` row: `recvLoop` rewrote `RangeEnd = "\x00"` to
+`[]byte{}` *before* the check, and `IsRangePermitted` of an empty range end is the check of the
+point, so a single-key READ grant let a `WithFromKey` watch through). The pinned code checks
+first and rewrites after; the proof is what says it stays so.
+
+**Where the statement can live.** The stream specification (`watchDn γs γ cid mid j m`, the
+content of every response the handler sends, through `ctrlOk`/`ctrlWatcher`) is written over
+the stream's names `γs` and the store's `γ : mvcc.WsNames`, with no auth mode in scope, and its
+arity is fixed by the client's proofs and the examples' definitions (`linkv3p/Defs.lean`,
+`client/v3/*`: about fifteen files). The mode is a field of the apply environment
+(`AEnv.authMode`), which the stream cannot name; a ghost agreement on the mode needs a name tied
+to something the specification already carries. Options weighed: a parameter on
+`ctrlOk`/`watchDn`/`watchStreamSpec` (the fifteen files, the client learning the server's auth
+mode); a name added to the stream's auxiliary list `auxOf` (its twenty-five client-side uses); a
+ghost field in the *watchable store's* names, which `ctrlWatcher` has in scope. The last is the
+change: `mvcc.WsNames.tag`, the **owner's tag**, a ghost name the store's creator passes to
+`newWatchableStore`/`mvcc.New` (a new binder `γtag`, stated as `γ.tag = γtag` in their posts, of
+no meaning to mvcc), and `auth.modeTag γtag M` (`auth/ModeTag.lean`: `dghostVar` at `.discard`,
+persistent, `modeTag_agree`; `AuthMode` made countable) the server's record of its mode under
+it: `server_kv_watchable_of` (`BuildLemmas.lean`) takes the mode, allocates and tags;
+`srvWatchBuilt`/`srvWatchReaders` (`NewServer`'s export) and `v3rpc.watchSrvOk` (the watch
+server's contract) hold `auth.modeTag γ.tag E.authMode`. No arity of the stream specification
+changes; `watchDn` is stronger by one conjunct.
+
+**The statement.** `ctrlWatcher γ γo (.create c) m` (a created, not canceled, response) gains
+`watchAuthed γ c`: for *some* mode `M` tagged at `γ.tag` (the server's, by agreement) and some
+principal `info`, `apply.watchClass M info c.key c.rangeEnd` -- the class
+`[(watchKey c.key, c.rangeEnd, READ)]`, the key normalized (an empty key is `"\x00"`), the range
+end as the request gave it (`apply/AuthClass.lean`) -- and `auth.reqShape (watchKey c.key)
+c.rangeEnd` (a non-empty key; a range that is a point, open-ended or proper: mvcc's `Watch`
+refuses an inverted one, `ErrEmptyWatcherRange`, so `recvLoop` has `e' = [] ∨ k < e'` of the
+rewritten end). `recvLoop`'s proof keeps the check's class (`Hcls`) and `watchSrvOk`'s tag and
+builds the conjunct at the registration. The pure bridge (`v3rpc/WatchClass.lean`):
+`createRangeOk_inRange`, every key the registered range `r` covers (`mvcc.WatchRange.covers`, the
+affine order) is in the model's `[watchKey c.key, c.rangeEnd)` (`auth.inRange`), by cases on the
+request shape (a point: `r.end? = none`, the key itself; `"\x00"`: `r.end? = some []` or, in the
+model only, `none`, every key at or after the key; a proper range: `some c.rangeEnd`); and
+`watch_permitted_covers`, a permitted request's principal may read every covered key at the
+permitting state. The result, `ctrlWatcher_authorized` (restated as
+`Results.lean`'s `watch_registered_authorized`): in the mode `on γa`, a created response's
+watcher `w` of range `r` comes with a principal `info` and a recorded state `st` at which auth
+was disabled, or `info` named a user with the root role, or one whose READ permissions cover
+every key `r` covers. The shapes: `Key` alone (a point), `RangeEnd` (a range), `RangeEnd = "\x00"`
+(`WithFromKey`), `Key = RangeEnd = "\x00"` (all keys: the normalized key `"\x00"` with the
+open end), `WithPrefix` (a range at the server); `ProgressRequest` and `CancelRequest` carry no
+keys and register nothing (`ctrlWatcher` is `True` of them); `Fragment` and the filters change
+no class.
+
+**The principal, per request.** `isWatchPermitted` calls `sws.ag.AuthInfoFromCtx` on the stream's
+context for each create request (the token-to-principal binding, S5's; A2's `authedRes` style:
+stated as "some principal, the context's or the empty one"). A watcher registered under a token
+later revoked keeps delivering: the check is at registration, and nothing re-checks a live
+watcher; the statement says so in that `watchAuthed` names one recorded state (etcd's documented
+behaviour, not a finding: the auth revision rule applies to requests, not to streams).
+
+**Cost.** Mechanical: `WsNames` (one constructor site, `newWatchableStore`), two specs and proofs
+(`newWatchableStore`, `New`), `server_kv_watchable_of` and `NewServer`'s three frames,
+`srvWatchBuilt`/`srvWatchReaders` and `ServeFromStart`'s two destructurings, `watchSrvOk` and one
+destructuring that named its last conjunct (`ServerWatcher.lean`), `ctrlWatcher` and
+`ctrlWatcher_snap`'s pattern, `recvLoop`'s construction. The client's proofs destructure
+`ctrlWatcher` with a trailing `-` and `watchSrvOk` likewise, so they were untouched. No axiom,
+no closed theorem's statement changed (the examples run in `off`, where `watchClass` is `True`).
+
+**Not done.** The statement over `recvLoop`'s own post (its spec returns only the control
+stream's producer token; the registrations are visible through the control responses, which is
+where the statement went); `issues/` has no file for GHSA-xg4h-6gfc-h4m8 (fixed before the pin;
+the matrix's advisory table records it, and `createRangeOk_inRange` is the proof's word that the
+fix holds at the pinned revision). E's closed theorem will consume `watch_registered_authorized`
+through the client's `watchDn` and the server's `watchSrvOk`.
+
+## A3 of the auth plan, the API layer: the Auth service's entry points and wrappers, the proposal as a contract (2026-10-24 · `notes/auth-plan.md`, branch `auth-a3b`)
+
+**Problem.** The Auth service's seventeen methods (`v3rpc/auth.go`'s `AuthServer`, each the
+server's method of the same name through the `Authenticator` interface, its error through
+`togRPCError`; `v3_server.go`'s `EtcdServer.AuthEnable`, ..., `RoleList`, each a `raftRequest`
+on `&pb.InternalRaftRequest{<field>: r}`) were names only. Their class is admin at apply
+(`needAdminPermission`; the apply layer's statement is A3's `adminPass` for the header's
+principal), `Authenticate` and `AuthStatus` are public, `UserGet` is admin or the user itself.
+What the API layer adds is the path from the gRPC handler to the proposal: no check of its own.
+
+**Decisions.**
+
+- **The proposal is a contract** (`etcdserver/AuthEntry.lean`: `authRaftOk s ctx rq T P Q`).
+  `raftRequest`'s spec (`EtcdServer__raftRequest.lean`) takes `reqPropOk`, which admits a request
+  only if `plainCover` does (`KVModelDefs.lean`: the KV writes and the monitors' requests, none
+  with an auth field: the apply thread's generic proofs cover only those kinds, D19k), so it does
+  not apply to an auth request. An entry point's spec takes `raftRequest` on its request as a
+  contract: for a `*pb.InternalRaftRequest` holding the request but for its header
+  (`irrNoHdrIs p rq`, the request `irrAuthEnable`, ..., `irrRoleGet name` as `irrPut`), over the
+  caller's `P`, an error the apply package's facts describe and, on `nil`, a response of the apply
+  package's type for the request (`*pb.AuthEnableResponse`, ..., which the entry point asserts:
+  `resp.(*pb.X)`) with `Q` of it, else `Q null` of the error. The entry point's spec then says it
+  is that call on that request (`authEntryOut Q`). *Rejected:* extending `plainCover`/`reqPropOk`
+  to the auth kinds (the apply thread's generic proofs and the KV model would have to cover their
+  dispatch: S4's apply requests, E); a per-request restatement of `raftRequest.spec`'s post
+  (`appliedOk` says nothing of an auth request's response type, so the type assertion could not
+  be proved from it).
+- **The wrapper's inner call is a contract too** (`v3rpc/InvAuthServer.lean`: `authServerIs p s`,
+  the `*AuthServer` whose `authenticator` is the server, now `NewAuthServer`'s post;
+  `authInnerOk s m ctx r P Q`, the server's method answering as the entry points do;
+  `authWrapOut`: the response with `Q resp nil`, or `nil` and `togRPCError`'s error with `Q null`
+  of the server's), as A2's maintenance wrappers: the gRPC layer's proofs are closed over the
+  server's contract, the entry points' specs are the server's. Seventeen wrappers proved
+  (`Spec/Proof/.../v3rpc/AuthServer__*.lean`).
+- **Fourteen entry points proved, three not** (`Spec/Proof/.../etcdserver/
+  EtcdServer__{AuthEnable, AuthDisable, AuthStatus, UserDelete, UserGrantRole, UserGet, UserList,
+  UserRevokeRole, RoleAdd, RoleGrantPermission, RoleGet, RoleList, RoleRevokePermission,
+  RoleDelete}.lean`; a request with a name field, `UserGet`/`RoleGet`/`RoleAdd`, holds it
+  read-only, `apply.authUserGetIs`, as the proposal's `irrNoHdrIs` wants). `UserAdd` and
+  `UserChangePassword` stay names only: they hash the password (`bcrypt.GenerateFromPassword`)
+  and encode it with `base64.StdEncoding.EncodeToString`, so translating them makes the server
+  import `golang.org/x/crypto/bcrypt` and `encoding/base64`, whose names-only initializers are
+  trust-boundary axioms (`opaqueInitsOk`, `etc/gen-init.py`) that would then sit under every
+  closed theorem (the first attempt did this: one new axiom, base64's in eight more
+  collections), for two methods that still could not be proved: `StdEncoding` is a package
+  variable whose load needs a points-to the names-only package's fact (`True`) does not give (a
+  Perennial model of `encoding/base64`, `notes/perennial-changes.md`, "Standard library").
+  *Rejected:* that axiom for unproved code. `Authenticate` is translated and not proved: it
+  compares its error with `auth.ErrAuthNotEnabled` (`errors.Is`), a variable the auth package's
+  fact (`auth/Base.lean`'s `authInit`) does not hold (an additive clause of the fact and of the
+  initializer's axiom, in S4's files, the store). `AuthenticateRequest` and
+  `AuthUserChangePasswordRequest` are translated as data (`etcdserverpb.toml`) for the next step.
+- **`UserChangePassword` of oneself is not in the pinned code.** `needAdminPermission`
+  (`apply/auth.go`) names `AuthUserChangePassword` unconditionally, so the matrix's "of oneself"
+  for it (the plan's A3 bullet, from the advisory's wording) is wrong at the pin: the request is
+  admin-only at apply (`adminPass`). The matrix row said so already; the plan's bullet is corrected.
+- **Lock and Election: not started.** `v3lock/lock.go` (58 lines) and `v3election/election.go`
+  (136) are the client's `concurrency` package (`NewSession`, `NewMutex`, `Mutex.Lock`,
+  `NewElection`, `Election.Campaign`, ..., proved: `Proof/go_etcd_io/etcd/client/v3/concurrency/`)
+  over the in-process client `v3client.New(s)`. Their statement is the calls they make with the
+  caller's context, under the concurrency specs' client premises (`isEtcdSessionClient`,
+  `isEtcdMutexClient`, which the in-process client would have to meet: the gRPC proxy adapter,
+  not translated); a day or two of translation (two servers, their protobuf packages as data) and
+  proof, left for A3's next step rather than squeezed in here.
+- **Trust base unchanged** (615 axioms, 4 sorries; `etc/tcb-report.py --check`); no closed
+  theorem's statement changes (`NewAuthServer`'s post is stronger, `Server`'s proof drops it).
+
+**Next:** `Authenticate` once `auth.ErrAuthNotEnabled` is in the auth package's fact (S4);
+`UserAdd`/`UserChangePassword` with a model of `encoding/base64`; Lock/Election as above; the matrix's remaining rows (the lease entry points'
+key checks, the member operations that marshal JSON).
+
+## Restore R4a: `store.restore` takes `s.revMu` as a caller-given lock protocol (2026-10-24 · `notes/restore-plan.md`, R4a, R5e)
+
+**Problem.** `store.restore` locks `s.revMu` once, around its write of `currentRev`, and reads
+`compactMainRev` outside it. Its axiom took `s.revMu ↦ zero_val sync.RWMutex` and gave it back so,
+with both counters as plain points-to. No proof can do that once the mutex has been used as a lock.
+The two callers hold the lock differently. In `NewStore` the store is private memory, and so is
+its `revMu`. In `store.Restore` the lock is live: `hashStorage.HashByRev` reads it without `s.mu`,
+and `Restore` has put it in its restoring mode.
+
+**Decided.** The spec is generic in how its caller holds the lock (`Spec/.../store__restore.lean`,
+the `currentRev` bullet). The caller chooses three propositions: `RevP` before the lock, `RevK`
+while it is held, and `RevQ` after the unlock. It supplies two wands, both in `InvStore.lean`:
+- `revLockW s q2 RevP RevK` is `Lock`'s WP, which gives the lock's part `q2` of `currentRev` at
+  any value, together with `RevK`;
+- `revUnlockW s q2 L' RevK V RevQ` is `Unlock`'s WP, which takes that part at `|L'| - 1`, `RevK`
+  and the unlock's view `V`, and gives `RevQ`.
+`restore` keeps the other part `q1` of `currentRev` and a part of `compactMainRev` at `-1`, which
+are enough for its reads outside the lock. `V` holds whatever the caller needs to rebuild its state
+at the unlock:
+- `restore`'s share of the bucket's view, idle after its `RLock`;
+- the index's lock with every reader's token;
+- the restored log's change count below the time receipts' bound.
+
+Each caller then proves the two wands:
+- `NewStore` proves them over private memory (`PlainRWMutex.lean`'s sequential `Lock`/`Unlock`).
+  `RevP`, `RevK` and `RevQ` carry only the store's own resources.
+- `store.Restore` proves them over the live lock (`Lock_guard`/`Unlock_guard` of `revMuInv`). Its
+  `RevK` holds the restoring mode's state. Its unlock wand runs `restore_switch`
+  (`RestoreMoves.lean`) inside the critical section, which moves the store's current objects to the
+  new backend, index and scheduler and refills the readers' pool from `V`.
+
+R4 first settled the question for `NewStore` alone, with plain memory in and out. R5e generalized
+the spec to these wands so that `Restore` could use the same spec.
+
+*Rejected:*
+- `NewStore` allocating the lock before `restore` and passing it in. This fixes one invariant in
+  the spec, so `Restore`'s restoring mode would need a second spec, or the spec would have to
+  quantify over the invariant, which is what the wands do with less ceremony.
+- A restoring mode inside `revMuInv` that `restore` reads directly. This puts `Restore`'s ghost
+  moves into `restore`'s proof, which then depends on the snapshot path's names.
+
+**What it changed.** `store.restore.spec` is an intermediate spec: `NewStore` and `store.Restore`
+are its only users, and no closed theorem states it. Both functions' axioms are gone.
+`mvcc.store.restore.wp_proof` went at R4 (`a90066a654`), replaced by the narrower trust-boundary
+fact `mvcc.kbNoCmp_metaNone`: the backend's compaction keys read nothing when it records no
+compaction. `mvcc.store.Restore.wp_proof` went at R5f (`ddf5c01a7a`, 615 to 614 axioms).
+
+## S4 of the auth plan: the admin side as steps of the model's state (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4`)
+
+**Problem.** The auth store's admin operations (`AuthEnable`, `UserAdd`, ..., `Recover`) were names
+only, assumed of the real store by the apply layer's contract (`isAuthStoreAdmin`: a critical
+section returning some error), so nothing related A0's history of states (`authHist`) to what the
+store does, and the request side's verdicts were over states nobody recorded.
+
+**Decisions.**
+
+- **The steps are relations of the model** (`auth/Steps.lean`): an operation's `Outcome` at the state
+  it found is a refusal with one of the package's errors (`AuthErr`, the state unchanged), nothing to
+  do (`same`), or the next state (`next`, the records written and the revision bumped, `bump`). Most
+  are functions (`authEnableF`, `authDisableF`, `userAddF`, `userDeleteF`, `userChangePasswordF`,
+  `userRevokeRoleF`, `roleAddF`, `roleDeleteF`); `UserGrantRole` (`sort.Strings`) and
+  `RoleGrantPermission` (an unstable `sort.Sort` of the record, a permission of an unknown type the
+  model drops) and `RoleRevokePermission` (a match among the record's permissions the model may not
+  see) are relations. `AuthEnable` does not bump the revision (it restores the stored one, A0's
+  reason for indexing the history by position).
+- **The flag read outside the lock is a parameter** (`en`): `UserDelete`, `UserRevokeRole` and
+  `RoleDelete` refuse to touch `root` when `as.enabled`, read without `enabledMu` in the apply thread
+  (its only writer); the step is relative to the flag read (`∃ en, enabledVerdict M en ∗ adminOut ...`),
+  in the spirit of the checks' verdicts. To make the read sound, `enabled`'s points-to is split in
+  halves: `enabledMu` guards one (`enabledP`), the admin side holds the other (`enabledHalf`); a write
+  takes the lock and both halves.
+- **The latest state is shared by two halves of a ghost variable** (`AuthNames` is now the history's
+  name and the latest state's, `authCurHalf`): the admin side's authority (`authOwn M hs`: the
+  history's authority and one half) and the store's revision invariant (`revInv`, the other half, with
+  the atomic at its revision, `revCur`). So `commitRevision`'s `AddUint64` adds to the latest state's
+  revision and records `bump sta` atomically (`authOwn_revCur_append`); `setRevision` (`Recover`,
+  `AuthEnable`'s restore) and a ghost-only append at the same revision (`authOwn_append_same`, the
+  invariant reopened) are the other two ways a state is recorded. `Revision()` with the authority
+  returns the latest state's revision exactly (`authOwnOpt`, `revCur_agree`; `commitRevision` needs it
+  for `UnsafeSaveAuthRevision(as.Revision())`).
+- **The write side is a contract** (`InvAuth.lean`, `authBatchTxLk`/`authBatchTxOk`/`authWBackendOk`,
+  the lessor's `leaseBatchTx` shape): `Lock()` under the batch lock's critical-section contract and
+  the write token gives the token `Lk st Post` of the latest state (`histLast M hs st`); the
+  transaction's reads are the state's (`authReaderOk`); `UnsafePutUser`/`DeleteUser`/`PutRole`/
+  `DeleteRole`/`SaveAuthEnabled`/`SaveAuthRevision` move the token's state; `Unlock()` needs the
+  authority at a history whose latest state is the token's (the step appended first). The admin side's
+  write resource `authWR st M P f T` holds the store's user's half of `be` with this contract, the
+  write token and `enabledHalf`. Not yet derived of schema's `authBatchTx` over the real backend (the
+  read side's `authReadTxOk` is not derived either): the next step on the S side.
+- **bcrypt is the trust boundary** (`authStore.selectPassword`, names only: an axiom returning some
+  read-only hash and some error; `ErrNoPasswordUser` is a data-dependent refusal, `adminOut`'s
+  `extra`); the model keeps no passwords. **+2 axioms** (`authStore.selectPassword`, `zap.Strings`);
+  `hasRootRole` stays the S3 axiom (it stays names only: `sort.SearchStrings`).
+  The store's admin methods are translated with bodies (`auth.toml`), and `AuthUserDeleteRequest`/
+  `AuthUserChangePasswordRequest` as data (`etcdserverpb.toml`: an axiomatized type's generated
+  instances are `sorry`s, which the proofs would reach).
+- **The premises**: the revision below `2^64 - 1` and the next state's permissions fitting the
+  cache's trees (`stepOk`, from the caller: the records' growth is unbounded,
+  `issues/etcd-auth-record-too-large-fatal.md`); a new record's name within bbolt's key bound
+  (`UserAdd`, `RoleAdd`: `issues/etcd-auth-useradd-long-name-fatal.md`; `UserChangePassword` too,
+  since the write contract does not record that an existing record's key was accepted).
+
+**Proved** (linked in the server's `Link.lean`): `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`,
+`UserChangePassword`, `RoleAdd`, `Recover`, `commitRevision`, `setRevision` (and `Revision` restated),
+each in every mode, appending the step's state or returning the model's error. **Not done**:
+`UserGrantRole`, `UserRevokeRole`, `RoleDelete`, `RoleGrantPermission`, `RoleRevokePermission`
+(loops over the record, `sort.*` without Perennial specs), the reads `UserGet`/`RoleGet`/`UserList`/
+`RoleList`/`HasRole` (their backend reads need a `backend.UnsafeForEach` spec for the lists; the steps
+and the step relations are in `Steps.lean`); the apply layer: `apply.isAuthStore`'s admin clauses and
+`isAuthStoreAdmin` are unchanged, because stating them as steps needs the authority `authOwn` in the
+apply environment (a resource of the server's apply thread, beside `RW`), which is the next step on
+the A side; the derivation of the write contract from the real backend.
+
+## S4's apply part: the six proved admin operations as model steps at the apply layer (2026-10-24 · `notes/auth-plan.md`, branch `auth-a5`)
+
+**Problem.** S4 proved the auth store's `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`,
+`UserChangePassword` and `RoleAdd` to perform a step of the model's state (`auth/Steps.lean`,
+`adminOut`), from the admin side's authority (`auth.authOwn M hs`) and the store's write resource
+(`auth.authWR st M P f T`); the apply package still saw them through `isAuthStore`'s
+critical-section contracts (`authReqContract`: some error, the write right `RW` given back), so
+nothing said an applied admin request performs the model's step.
+
+**Decisions.**
+
+- **A separate persistent fact, not clauses of `isAuthStore`** (`apply.isAuthSteps st P f M W`,
+  `apply/AuthSteps.lean`): the six operations as the store's specs state them, with the store's
+  write resource abstracted as `W` and the errors the apply layer's (`applyErrIs`, from the
+  package's sixteen error variables: `authErrVar_of_pkg`, `adminOut_applyErrIs`). Appending them
+  to `isAuthStore` would add six conjuncts to a contract with 51 users and put in it resources
+  (the authority, `W`) that no environment of a closed theorem holds: the server's admits no auth
+  request (`AEnv.RW = False`), and the examples run in `off`. Of the real store:
+  `isAuthSteps_of_authInv`, restated with the proofs as `auth_apply_steps`
+  (`etcdserver/Results.lean`).
+- **The authority stays the caller's, not a field of `AEnv`**: the apply thread is the store's only
+  writer (raft applies serially), so the authority and `W` are its own resources; the apply-layer
+  statements take them as preconditions and give them back. Adding a field to `AEnv` (the brief's
+  first choice) would change every environment's construction for a resource nothing above the
+  backend applier passes yet; it belongs with E's closed theorem, whose workload admits auth
+  requests and whose server holds the authority from `NewAuthStore` (S5).
+- **A second triple of each `applierV3backend.X`** (`applierV3backend.X.stepSpec`, proved as
+  `wp_step` from `newHeader`'s spec, restated as `apply_X_step`): from the backend's options'
+  `isAuthSteps` (`backendAuthSteps E p W`: the options' points-to, read-only, with the auth store's
+  steps), the authority at `hs` and `W`, the request performs the model's step on the latest
+  recorded state for its arguments or the model's refusal (`adminOut`), the response's header set.
+  The first triple (`applierV3backend.X.spec`, the contract's) stays: the dispatch proofs use it.
+  The step triple takes neither `mvcc.storeWT` nor `RW`: S4's write side is its own contract, the
+  write token inside `authWR`.
+- **Not carried to `uberApplier`**: the chain's dispatch is stated over the contract's triples and
+  A3's `applyAuthRes`; with A3's `adminPass` (the admin check passed for the request's principal
+  before the backend is reached), an applied admin request in `on γa` is a step made by an admin,
+  but stating it through the chain needs the authority threaded through `chainRes` like A3's
+  principal, which waits for an environment that holds it (E).
+
+**Proved** (linked in `etcdserver/Results.lean`, no axiom added): `auth_apply_steps`,
+`apply_AuthEnable_step`, `apply_AuthDisable_step`, `apply_UserAdd_step`, `apply_UserDelete_step`,
+`apply_UserChangePassword_step`, `apply_RoleAdd_step`. **Not done**: the five operations S4 left
+(`UserGrantRole`, `UserRevokeRole`, `RoleDelete`, `RoleGrantPermission`, `RoleRevokePermission`:
+Perennial's `sort` specs) and the reads keep the contract clause; the authority in the server's
+environment and through the chain (E).
+
+## S5 of the auth plan, in part: the token binding over the provider's contract, `Authenticate` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s5`)
+
+**Problem.** The request side's principal (`AuthInfoFromCtx`) came from the token provider's
+`info`, a contract that returned some auth info: nothing said whose. So every statement over "the
+request's principal" (A1's class, A2's guards, A3's `principalOf rq` at apply, A4's watchers) was
+over a user the code was given, not one that authenticated. And `Authenticate`, which issues the
+tokens, was names only.
+
+**Decision.**
+- **The binding is ghost state named by the mode.** `AuthNames` gains a third name, `tok`
+  (`Model.lean`; `authHist_alloc` takes it, the provider allocates it, `tokAlloc`). Under it, a
+  ghost map from (token, user) pairs to unit whose persistent elements are `tokIssued γa token
+  user` (`auth/Tokens.lean`). The key is the pair, not the token: the simple provider's
+  `disable()` clears its map, so a token string may be issued again, possibly to another user;
+  the binding only says "this token was issued to this user at some point", which is what the
+  checks need. `tokAuth` is the provider's authority, every issued element kept persistent so that
+  issuing one twice is allowed (`tokIssue`). `tokOk M token user` is `tokIssued` in `on γa`,
+  nothing in `off`/`any` (as the verdicts, A0).
+- **The provider's contract carries it** (`InvAuth.lean`, `tokenProviderOk tp M`, now in the
+  mode): `info` returning `true` gives an auth info bound to the token (`infoBound`: not nil, its
+  user one the token was issued to); `assign` (appended) returns a token issued to the user, or an
+  error. `authInv` holds the contract in its mode. The S4 proofs that destructure the contract take
+  one more `-`.
+- **`authInfoFromToken` and `AuthInfoFromCtx` pass it on**: their posts gain `infoBound`/`ctxBound`
+  (`ctxBound M a`: nil, or bound to some token). On the server, `isReqAuthBound st RD M`
+  (`etcdserver/AuthReqDerive.lean`) is `isReqAuth`'s `AuthInfoFromCtx` clause with the binding,
+  derived from the real store (`isReqAuthBound_of_authInv`) and giving the old clause back
+  (`isReqAuthBound_ctx`). It is stated beside `isReqAuth`, not in it: `isReqAuth` is in the post of
+  the `NewAuthStore` axiom and in the request path's statements, and strengthening it would
+  strengthen that axiom.
+- **`Authenticate` is proved** (`authStore__Authenticate.lean`) in the apply thread's resources (S4's
+  `authOwn`/`authWR`, the critical-section contract), over the write side's `GetUser`, appended to
+  `authWBackendOk` (schema's `GetUser` is the batch transaction's `Lock`, `UnsafeGetUser`, `Unlock`:
+  a contract, as S4's write side). Its outcome (`authenticated`): an error and no response; or a
+  response holding a token issued to the user, auth enabled at a recorded state, the user present
+  in the latest state. It does not check the password: the API layer did (`CheckPassword`, before
+  proposing), which stays names only (bcrypt).
+- **The no-op provider meets the contract** in every mode (`TokenNop.lean`): it accepts and issues
+  nothing. The contract's sanity check.
+- **The contract keeps `True` as its precondition.** A proof of the simple provider needs a context
+  premise (its `info` waits on the context's `Done()`, its `assign` reads two context values and
+  panics without the prefix: `issues/etcd-auth-simple-token-assign-prefix-panic.md`), and
+  Perennial's contexts (`mvcc.txnCtx`, `context.isContext`) are stated with later credits, which
+  `InvAuth.lean` is generic over. Adding the premise is part of proving the simple provider.
+
+*Rejected:* the token as the ghost map's key (a token reissued after `disable()` to another user
+would contradict the persistent element); the binding in `isReqAuth` itself (it strengthens the
+`NewAuthStore` axiom); `Authenticate` with the password check (the Go code has none: it trusts the
+API layer's).
+
+**Trust base: +2 axioms on purpose** (616 to 618): `zap.Logger.Check` and
+`zapcore.CheckedEntry.Write`, logging, as zap's other specs. zap's and zapcore's `DebugLevel`
+constants are now translated (`Code/go_uber_org/zap.toml`, `zap/zapcore.toml`): an untranslated
+constant is a value of unknown shape, which a proof cannot step past (the same reason S4 translated
+`rootUser`/`rootRole`).
+
+**Not finished:** the simple provider (`info`, `assign`, `invalidateUser`, `enable`/`disable` with
+the TTL keeper's goroutine, and the context premise above), the JWT provider (its binding is the
+signature's: a trust-boundary contract), `AuthInfoFromTLS`'s binding (the certificate's common name,
+a contract of the gRPC peer), `CheckPassword` (bcrypt), `NewAuthStore` (an axiom since unit N4),
+`WithRoot`, the reads (`UserGet`, `RoleGet`, `HasRole`; the lists need a backend `UnsafeForEach`
+spec), `EtcdServer.Authenticate` (it needs the server's store contract to have `CheckPassword` and
+`GenTokenPrefix`, and the read-index wait), and threading `isReqAuthBound` into A2's guards and A4's
+watch registrations (their statements still name the info `isReqAuth` gives).
+
+## S4c of the auth plan: the decoded messages are the caller's; `UserGrantRole` and `HasRole` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4c`)
+
+**Problem.** S4b left the two grants: `UserGrantRole` appends to the `Roles` of the user message
+the batch transaction's `UnsafeGetUser` returned and sorts it in place (`sort.Strings`);
+`RoleGrantPermission` appends to the role message's `KeyPermission`, sorts it (`sort.Sort` of a
+`permSlice`) or writes an existing entry's `PermType`. S1's two `proto.Unmarshal` axioms gave the
+decoded message read-only (`ownUser`/`ownRole`: its slices `↦*□`, without capacity), which the
+writes cannot use. Go's decoder allocates a fresh message for the caller.
+
+**Decision.**
+- **The axioms' posts restated, no axiom added.** `proto.UnmarshalUser`/`UnmarshalRole` return
+  `auth.ownUserX`/`ownRoleX` (`auth/Buckets.lean`): the message the caller owns, as before, its
+  `Roles`/`KeyPermission` slice owned with its capacity (`↦*` and `ownSliceCap`, Perennial's idiom
+  for a freshly allocated slice), a role's permission messages owned (`ownPermX`). This is what Go
+  does (the decoder's allocation), so the restatement is more faithful, not stronger than the code.
+  `ownUserX_persist`/`ownRoleX_persist` (a basic update) give back the read-only forms.
+- **Where the read-only form is recovered.** Schema's `unsafeGetUser`/`unsafeGetRole` and the read
+  transaction's `UnsafeGetUser`/`UnsafeGetRole` return the owned forms (`schema.userOutDX`,
+  `roleOutDX`, `etcdserver/InvAuthBackend.lean`); `authBackend.GetUser`/`GetRole` persist them after
+  the read (the read transaction's are tail calls, whose post is the caller's: an update cannot be
+  taken there). `authReaderOk` (the read contract) keeps the read-only `userOut`/`roleOut`, so S2's
+  cache, S3's checks and S4's operations are unchanged.
+- **The batch transaction's write-side reads** (`auth.authBatchTxLk`, a contract): two clauses
+  appended, `UnsafeGetUser`/`UnsafeGetRole` with the owned message (`userOutX`/`roleOutX`), what
+  schema's read now gives (so the contract stays derivable from schema's real `authBatchTx`). The
+  ten destructurings of the contract take two more `-`.
+- **`UserGrantRole`** (`authStore__UserGrantRole.lean`) performs `Steps.lean`'s
+  `userGrantRoleR` or returns the model's error, in every mode: the user from the owned read; a
+  role other than `root` must exist (`ErrRoleNotFound`); the binary search over the sorted roles
+  (`sort.wp_SearchStrings`, `mem_iff_search`); a role the user has is "ignored" (`.same`); else the
+  append (`wp_slice_append` over the owned slice and its capacity) and `sort.Strings`, whose
+  sorted (`≤`) permutation of a list without duplicates is sorted strictly
+  (`pairwise_lt_of_sorted_perm`, `GrantLemmas.lean`), the message put back (`typedPointsto_combine`,
+  the roles slice persisted for the put contract's `ownUser`). Premises as S4's: the user name
+  within bbolt's key bound (the put), and the user's roles in the latest state fewer than `2^62`
+  (`sort.Strings`' bound after the append). The proof splits on the `root` comparison with the
+  literal turned into a variable first (`wp_if_destruct` substitutes `rn = "root"`, which would
+  make the two branches' goals differ; it keeps an equation between two variables), so both
+  branches share the tail (`all_goals`). At the apply layer, `apply.isAuthSteps` gains the
+  `UserGrantRole` clause (appended: the nine step proofs take one more `-`),
+  `isAuthSteps_of_authInv` its case, and `applierV3backend.UserGrantRole.wp_step`
+  (`apply_UserGrantRole_step` in `etcdserver/Results.lean`).
+- **`HasRole`** (`authStore__HasRole.lean`), with the admin side's authority (it takes the batch
+  transaction's lock): whether the latest state's user has the role, false for a user the state
+  lacks; the loop returns at the first equal role.
+
+**Not finished.**
+- `RoleGrantPermission`: the owned role message is in place, but the proof needs a sorter instance
+  of `permSlice` over owned permission messages (`isSorter` with `Less` by `bytes.Compare` of the
+  keys: a strict weak order pulled back along the key), `sort.Search` with a closure over the
+  role's permissions, and, for the in-place update of an existing entry, the correspondence
+  between the wire list's index and the model's (`RoleRec.toRole` drops entries of an unknown
+  type). It keeps its contract clause.
+- `UserGet`, `RoleGet` (its `root` case answers `rootPerm`, a package variable; the backend's
+  write contract has `GetUser` but no `GetRole`), `UserList`/`RoleList` (no backend `UnsafeForEach`
+  spec).
+
+
+## E1 of the auth plan: the token binding at the server's guards over the bound store contract; `NewAuthStore` not proved (2026-10-24 · `notes/auth-plan.md`, branch `auth-e1`)
+
+**Problem.** S5 stated the request side with the token binding (`isReqAuthBound`) and derived it
+of the real store (`isReqAuthBound_of_authInv`), but the server's store comes from `NewAuthStore`'s
+axiom, whose post names only the unbound `isReqAuth`: the binding could not reach A2's guards or
+A4's watch check (S5b's "Not finished"). E1 was to prove `NewAuthStore` (removing the axiom), then
+thread the binding and the admin side's authority to the server.
+
+**What was done: the guards' bound variants, over the bound contract as a premise.** A persistent
+`srvAuthBound s E` (the server's `authStore` field's store satisfies `isReqAuthBound` in the
+server's mode) is a premise of a bound variant of each guard, stated beside the guard's spec as a
+`boundSpec` and proved over the same callees (`etcdserver/AuthBound.lean`,
+`v3rpc/GuardBound.lean`, `v3rpc/WatchBound.lean`; restated in the two `Results.lean` with
+`#print axioms`, no `sorry`):
+- `EtcdServer.AuthInfoFromCtx`: the auth info is bound to the request's token or came from the
+  TLS fallback (`ctxBoundOrTLS`: `auth.ctxBound`, or `ClientCertAuthEnabled` is `true`). The server
+  falls back to `AuthInfoFromTLS` when the token path gives no auth info, and TLS identity is out of
+  the plan's scope (D-AU6), so the statement names that disjunct rather than binding it.
+- `checkMembershipOperationPermission`, `AuthAdmin.isPermitted` (the admin guards): `adminOutB`,
+  `adminOut` whose auth info is moreover a bound principal (`principalBound`: none, or a user to
+  whom some token was issued, `auth.tokOk`, or the TLS fallback); `adminOut_of_adminOutB` drops it.
+- `EtcdServer.requireAuthInfo`, `AuthAdmin.requireAuthInfo`, the maintenance server's
+  `requireAuthInfo` (the authenticated-user guards): `authedOutB`, likewise.
+- `isWatchPermitted` (A4's check): the principal checked is the anonymous one (the check's
+  `&auth.AuthInfo{}` when the context has none: the zero string user), or a bound one
+  (`principalBoundI`).
+Once `NewAuthStore` gives `isReqAuthBound` of the server's store, `srvAuthBound` is derivable and
+these become unconditional; the guarded entry points' specs (A2's twelve) can then take the bound
+variants mechanically.
+
+**Why not `NewAuthStore`.** Its axiom (`Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean`)
+covers more than the auth package: proving it needs (1) schema's auth write side over the backend:
+`authBackend.CreateAuthBuckets` (`LockOutsideApply`, three `UnsafeCreateBucket`s, `Unlock`),
+`BatchTx`, `ForceCommit`, `authBatchTx.Lock` (`LockInsideApply`, the post-lock hook) / `Unlock`
+(`Unlock` then `Commit`) / `UnsafeReadAuthEnabled` / `UnsafeReadAuthRevision`, with D22's tracked
+buckets (`rbOwn`), the write-back tokens and the hook, which is also the derivation of S4's write
+contract (`authWBackendOk`, `authBatchTxLk`) from the real code; that needs an abstraction from the
+auth buckets' tracked contents to `AuthState` (S1's encoding, `auth/Buckets.lean`) under the batch
+lock, in the backend's D22 machinery that another session is changing; (2) the allocation of
+`authInv` (the three locks `enabledMu`/`rangePermCacheMu`/`beMu` with the reader slots, the history
+and the latest-state halves, the token and issue-right ghosts); (3) the metrics reporter's package
+variables (`reportCurrentAuthRevMu`, `reportCurrentAuthRev`: package facts in `etc/gen-init.py`);
+(4) the post's `authApplyOk` (`InvBoot.lean`). Each is days; the run did not reach them. The admin
+side's authority to the server (S4's apply part's leftover) waits on the same: only `NewAuthStore`
+can hand the apply thread `authOwn`.
+
+**Trust base.** Unchanged (696 axioms, 4 sorries); no axiom or hypothesis added beyond the premise
+`srvAuthBound`.
+
+## S4b of the auth plan: the pin at Perennial's sort specs, `hasRootRole`, the revocations and `RoleDelete` (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4b`)
+
+**Problem.** S4 left five admin operations unproved (they sort or loop over records) and S3 left
+`hasRootRole` an axiom, both waiting for Perennial's `sort.SearchStrings`/`sort.Strings`.
+
+**Decision.**
+- **The pin** moves to Perennial `beb785eaf` (the two specs; `notes/perennial-changes.md`). No
+  translation changed; the examples' package tables follow `sort`'s new dependency on `slices`
+  (`etc/gen-init.py`). The lakefile's `require` (left at `c25bef57e` by the previous bump) is set to
+  the pin too, which silences Lake's "manifest out of date" warning.
+- **`hasRootRole`** is translated and proved: `SearchStrings` on the user's roles, sorted strictly
+  ascending (S1's `userOut`), and the bounds-checked index decide membership
+  (`auth.mem_iff_search`). S3's axiom is a theorem; its spec is unchanged.
+- **`UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`** perform `Steps.lean`'s steps, in the
+  shape of S4's operations. Their loops build new messages: the roles but the revoked one
+  (`List.filter`, so the roles stay sorted); the permission messages not on `[key, rangeEnd)`
+  (`bytes.Equal` on both), whose model permissions are the model's filtered
+  (`auth.filterMap_filter_keepW`: a wire permission of an unknown type is no model permission);
+  `RoleDelete`'s loop over `UnsafeGetAllUsers` puts back every user who had the role without it
+  and leaves the others, so after the k-th user the users are the first k names' roles filtered
+  (`auth.usersAfter`) and at the end `delRole`'s `GMap.fmap`. Premises as S4's: the record-size
+  fatal behind `stepOk`, the name bound of the put (the revoked user's name; `RoleDelete`: every
+  stored user's name, since it puts back any of them; `issues/etcd-auth-useradd-long-name-fatal.md`).
+- **The requests as data.** `AuthUserRevokeRoleRequest`, `AuthRoleRevokePermissionRequest` and
+  `AuthRoleDeleteRequest` are translated (`etcdserverpb.toml`): names-only, their field instances
+  were `sorry`'d, and a proof reading a field inherited `sorryAx` with no warning (found by
+  `#print axioms`, then by cutting the proof at points and closing it with a local axiom).
+- **The apply layer** (A5's `apply.isAuthSteps`): the three appended, with step triples for
+  `applierV3backend.{UserRevokeRole, RoleRevokePermission, RoleDelete}`, restated in
+  `etcdserver/Results.lean`.
+
+**Not done.** `UserGrantRole` and `RoleGrantPermission` keep their contract clauses: both write
+into the message the read side returned (`append(user.Roles, r.Role)`, which may write past the
+slice's length into its capacity; `role.KeyPermission[idx].PermType = ...` into a permission
+message), and `userOut`/`roleOut` give those messages read-only (`↦*□`, `ownPermW`'s `↦□`) and
+without the capacity. Proving them needs the read side to return owned messages with their
+capacity: a strengthening of S1's `proto.UnmarshalUser`/`UnmarshalRole` axioms (the messages are
+fresh, so it is true of Go) and of the batch transaction's read contract, an assumption change,
+so not made here. The reads (`UserGet`, `RoleGet`, `HasRole`, the lists) are S5's or open.
+
+## D38: rafthttp verified over a bytes-level HTTP boundary (2026-10-22 · (A) approved by the user; `notes/rafthttp-plan.md`)
+
+(D38–D41 were D33–D36 on the branch `rafthttp-plan` until its merge into `lean`, 2026-10-24, whose
+D33–D37 were taken meanwhile.)
+
+**Context.** D21b (A) kept `rafthttp` names-only behind a trusted network contract (`Net.lean`:
+`netBundle`, `netRecv`, `netRaftOk`, the five `Transport` axioms, `RaftHandler`'s and
+`net/http.Serve`'s specs), noting (B) "verify rafthttp over a network model" as very large. The
+user asked (2026-10-22) to push the boundary down below the network contract.
+
+**Decision proposed.** Translate rafthttp's message path (not metrics, probing, nor the snapshot
+stream) and prove `Net.lean`'s contract from trust-boundary specs of `net/http` at the level of
+bytes: routing of a request to the handler served at its address, the request body and a
+response stream each a prefix of the bytes sent (the latter of those written and flushed, from any
+goroutine), connections failing at any time, cancellation, recovered handler panics. Ghost state
+moves through a **mailbox** invariant keyed by a message's wire content (a multiset), with a
+per-connection stream invariant relating a stream's bytes to its messages' encodings; the server
+and example proofs keep `Net.lean`'s contract as their interface.
+
+- **(A, recommended)** the bytes-level boundary above, with the mailbox.
+- **(B)** a resource-passing HTTP boundary (requests and flushed writes carry resources): simpler
+  proofs, a stronger and less standard trust statement.
+- **(C)** keep D21b (A) (today's contract assumed).
+
+**Stays assumed.** `netProcSlots` (as today), no-op specs of zap, prometheus and the probes,
+`rate.Limiter.Wait`, the version checks as arbitrary, `proto` and `encoding/binary`'s existing or
+new boundary specs, and the snapshot stream (`SendSnapshot`'s `netSnapBundle` contract, the D22
+owner's area). **Stages** and risks (the msgappv2 delta codec against `wireEq`, the stream writer)
+in the plan.
+
+## D38a: protobuf at the bytes, as grpc's messages are specified; msgappv2's MsgApp shape from raft's side (2026-10-22 · the user: "(a), add the protobuf specs", "do the same thing we did for protobuf specs for grpc")
+
+**Context.** rafthttp's codecs marshal and unmarshal raft's messages to bytes (`msg_codec.go`,
+`msgappv2_codec.go`). The protobuf specs here were per type and per caller (`proto.Marshal.spec`
+of an `mvccpb.KeyValue`, `MarshalIRR`, `MarshalConfChange`, `SizeMessage`, ...); grpc's are generic
+(`ProtoMsg`, `InvGrpc.lean`): one spec per function for every message type, a record per Go type
+whose instance is a trusted wire model.
+
+**Decision.** The same for protobuf at the bytes (`Proof/google_golang_org/protobuf/proto/
+InvProto.lean`): `PbType` (the Go type, the model `M`, `ro` (read-only for good, persistent),
+`marshals`, `wire m bs`, `blank`, `dec`) and one generic spec each of `proto.Size`
+(`SizePb`), `proto.Marshal` (`MarshalPb`) and `proto.Unmarshal` (`UnmarshalPb`). `Size` and
+`Marshal` of one message agree through `pbEnc T.ty l`, the encoding as a function of the address,
+sound because `ro` is read-only for good (nothing can change the message); `Size` also gives the
+encoding's `wire` fact, since the encoder writes the length before it marshals. The instance for
+`*raftpb.Message` (`pbMessage`, `rafthttp/PbMessage.lean`): `ro` is a frozen message (`msgOwn` at
+`□`); `marshals` is no `responses` and every enum known (proto2's closed enums: an unknown value
+decodes into the unknown fields); `wire` is `msgDecode bs = some (wireOf st)` with `msgDecode`
+opaque, so two messages with one encoding agree on the wire (`pbMessage_wire_eq`, `wireEq`) with no
+axiom; `dec` is an owned message with its capacity, `netRecv`'s. The trust is in the instance
+(read it against `raft.proto`) and in the three generic axioms. The older per-type specs predate
+the vocabulary and stay; moving them onto it is a later clean-up.
+
+Also: `encoding/binary`'s `Write` of a `uint64`/`uint8` and `Read` into a `*uint64` moved from the
+HTTP boundary draft to `Spec/encoding/binary/` as axioms, corrected on review: the draft dropped
+the relation between `binary.Write`'s error and its inner `Write`'s (Go returns the latter), and
+typed `binary.BigEndian` as an interface global (it is an empty struct, loaded without a points-to:
+`bigEndianOrder`). rafthttp's package fact gains `ErrExceedSizeLimit` (`errors.New`, by
+`gen-init.py`'s `errorsNewVarsInit`, the errors packages' axiom kind).
+
+**msgappv2 (option (a), chosen by the user).** The short AppEntries frame rebuilds `From`/`To`
+from the connection and `Term`/`LogTerm`/`Index` from the decoder's state, the rest at defaults. A
+sent `MsgApp` must therefore have `From` = the sender and default `Vote`, `Reject`, `RejectHint`,
+snapshot and context; raft's one `MsgApp` constructor (`maybeSendAppend`, plus `send`) does. That
+goes into the sender's promise, the receiver's guarantee (`wireEq`) unchanged. **Done 2026-10-22**:
+`SentMsgOk` has a sixth clause, `MsgApp → AppShape st` (`InvRaftPhys.lean`: `Vote`, `Reject`,
+`RejectHint` zero, no snapshot, no context, no responses); `raft.send` takes it of its message as a
+premise (`m.Type' = MsgApp → AppShape ⟨m, ents, sn, ctx, rs⟩`), which `maybeSendAppend` proves from
+its literal and every other caller from its type; `send` stamps only `From` and `Term`. It reaches
+`netBundle` through the server's payload (`isRaftMsg`, in the no-transfer mode). `SentMsgOk` now
+reads `snap` and `resps`, so a copy with other responses (the received message, `InvNet.lean`) or
+another snapshot (the merged `MsgSnap`, `SnapSendBundle.lean`) no longer has it by definitional
+unfolding: `SentMsgOk.of_msg` (not a `MsgApp`), and `NetMsgOk` still reads the scalars only. No
+statement of a closed theorem changed, trust base unchanged. *Still open:* `From` = the sending
+member's id (`send` sets it; the transport side needs it against its local id), and `MsgMarshals`
+for every sent message (no responses, known enums: the entries' types, a log-wide fact), which the
+encoder's spec takes.
+*Rejected:* (b) weakening `wireEq` to the fields `Process` reads (a change to `Net.lean`'s
+interface and the server proofs).
+
+**The msgappv2 pair (2026-10-22).** The stream's frames as a pure relation (`V2Frame`, in
+`rafthttp/MsgAppV2.lean`) of the codec state, the wire content carried, the bytes and the next state,
+rather than an encoding function: protobuf's encoding is a relation here (`wire`, an encoding up to
+unknown fields), and the relation is all both sides need. The decoder's spec is stated against what
+it can know of the stream, that the bytes it reads are compatible with some frame (`V2Compat`), not
+against a whole stream: a stream reader (stage 5) gets that from the response protocol and the
+frames it has already read (`V2Frame.unique`). Unlike `messageDecoder`, the msgappv2 decoder panics
+(`MustUnmarshalMessage`) on bytes that are not an encoding, so its proof needs this knowledge for
+each entry, not only at the end: `V2Compat.short_len`, `short_ent`, `short_end`. *Rejected:* a
+`Clone`-free heartbeat branch (the code clones `linkHeartbeatMessage`; a generic `proto.Clone` spec
+with `PbType.eqv`, and the variable's initializer as a package fact, are the honest statement).
+
+**The sent messages' facts: no responses, `From`, open enums (2026-10-22; the user: "do the From =
+sender id and MsgMarshals facts", then "Drop enum bounds").** *Open enums.* `MsgMarshals` asked
+every enum to be a declared value (`MessageType` `0`-`23`, the entries' `EntryType` `0`-`2`), on the
+proto2 spec's closed enums. Proving the entries' bound would have needed a log-wide invariant
+(every entry raft makes, receives or restores is of a declared type; a premise on the WAL's
+entries). A Go test on the pinned raftpb showed protobuf-go keeps undeclared values (types `99`, `5`,
+`-3` round-trip, no unknown fields; `notes/rafthttp-plan.md`, "Open enums"), so the bounds were
+stronger than the code needs: dropped, with the user's agreement. `MsgMarshals` is "no responses",
+`EntWireOk` the decoding alone, `pbEntry.marshals` `True`. The accepted axioms (`pbEnc_ok`, the
+generic `proto` specs) keep their names and now cover more messages, which the test supports.
+*Rejected:* the entry-type invariant (unneeded), and keeping the bounds (a model stricter than Go).
+*No responses.* `SentMsgOk` gains `st.resps = []` and `raft.send` the premise `rs = []`: raft builds
+every message without responses, and forwards three it received (`stepFollower`'s `MsgProp`,
+`MsgReadIndex`, `MsgTransferLeader`), so `raft.Step` takes `Hnors` (in its `"Hm"`, for those types)
+and `stepFollower` the premise; `NetMsgOk` and `fwdP` say a network message has none (the transport's
+`netRecv`: a copy unmarshalled from an encoding of a message with none), the local ones are built
+without. The outbox invariant `XfOk` records it for every queued message in every mode (not only
+`SentMsgOk`'s no-transfer mode: the kv example runs with transfer on), and `isRaftMsg` hands it out.
+The transport's boundary: `netBundle` and `netSnapBundle` (what `Send`/`SendSnapshot` take) require
+no responses, and `netRecv` gives the copy none, consistently (the `Transport.Start` axiom asks more
+and promises more; it holds of rafthttp since the wire carries no responses; **accepted by the user**,
+2026-10-23); stage 6 will need
+`pbMessage`'s decoding to say that a decoded message has none. *`From`.* `AppFrom id st` (`MsgApp →
+From = id`): `send` stamps `From = r.id` but on a forwarded read-index or transfer request, never a
+`MsgApp`. It needs the node's id where the queues and the `Ready`s' messages are described: `XfOk`
+and `isRaftMsg` take it, and `NodeNames` has the node's `id` (`isNode`'s `⌜γ.id = id⌝`, set by
+`StartNode`/`RestartNode`) so that `readyData` states `isRaftMsg γ.raft γ.id`. *Deferred:* the
+server's payload keeps the sender existential (`srvMsgNet`, `srvNet.P`: `∃ sid, isRaftMsg γ sid st`);
+tying `sid` to the transport's local id needs the server's raft environment `srvEr` indexed by the
+member id and `γ.node.id = γ.id`, which `Send`'s spec will ask for in stage 6. No axiom added or
+removed (542); no exported result's statement changed; internal specs changed (`raft.send`,
+`raft.Step`, `stepFollower`, the `Ready` specs, the kv example's `deliver`).
+
+## D38c: an address's protocol registered once; the boundary's statements as axioms (2026-10-23 · rafthttp stage 4e; the user: "do 4e", "follow your recommendations"; accepted by the user 2026-10-23)
+
+**Context.** The HTTP boundary (`Proof/net/http/Boundary.lean`) states its specs over an
+`HttpNet H`, every address's protocol. As axioms stated for any `H`, a client could send under
+one protocol to a server serving under another, and the handler would receive facts nobody
+proved (a server started with a request protocol of `False` could do anything). The draft (D38,
+the boundary note's point 1) said the protocols are ghost facts fixed per address, but its
+statements did not say so. (The request tickets of D38b, the user's choice of 2026-10-23, are in
+`notes/rafthttp-plan.md`, stage 4.)
+
+**Decision.** As grpc's `grpc.serve` ties a method's handler to the address (`grpcServes`):
+`http.register` (an axiom, `Proof/net/http/Axioms.lean`) turns the address's listener
+`netListenerAt l a` (one per address in a run) into `httpListenerAt l a P`, which `Serve` takes,
+and the persistent `httpProtoAt a P`, which `RoundTrip` asks of a request's host. A model: a
+global ghost map from addresses to saved protocols, the entry for `a` set once with the listener;
+so the two sides of an address agree on its protocol. The specs stated for any `H` are then sound:
+their writers and readers come only from `Serve` and `RoundTrip`. rafthttp's sender gets the
+registration of its peer's hosts (`pipeReg Rh to`, in `pipeSenderOk`): stage 6 must establish it
+for the addresses the network's owner map gives to each member (an owner map giving unknown hosts
+no member).
+
+Then the specs the proofs use became axioms (`Axioms.lean`: `bodyRead_ok`, `respWriteHeader_ok`,
+`HeaderSet_ok`, `RespHeader_ok`, `ReadAll_ok`, `Flush_ok`, `Error_ok`, `NewBuffer_ok`,
+`WithContext_ok`, `ReadAll_resp_ok`, `RespClose_ok`); the others stay statements until used.
+Reviewing them as axioms found three over-claims in the draft, fixed:
+- `NewRequest_spec` claimed no error for any host; Go's `NewRequest` fails for a URL whose host
+  `url.Parse` rejects (a Go test: `"a b"`, `"a:b:c"`, `"a/b"`). It now asks `urlHostOk host` (an
+  opaque predicate: a host `url.Parse` accepted, as rafthttp's peer URLs are, `types.NewURLs`),
+  carried by `urlPlain`.
+- `respWriteHeader_spec` and `Error_spec` took any status; Go's `WriteHeader` panics outside
+  `100`-`999` and does not set an informational `1xx` status. Both now ask `200 ≤ st ≤ 999`.
+*Known imprecision, left:* `RespHeader_spec` gives `∃ hs, hdrOwn hm hs` at each call of
+`w.Header()`, which returns the same map each time, so two `hdrOwn` of one map may coexist. Nothing
+reads a response's headers through `hdrOwn` (the client sees them unconstrained) and no axiom makes
+`hdrOwn` exclusive, so no result depends on it; a writer tracking its header map would remove it.
+*Rejected:* one global `httpNetIs H` fact (the protocols fixed for every address at once): it needs
+the whole cluster's addresses before any listener, where the per-address registration needs only
+the listener, as grpc's.
+
+## D38d: the streams' protocol: per-connection tokens registered under the ticket (2026-10-23 · rafthttp stage 5a; the user: "start stage 5", "carry on with 5a"; accepted by the user 2026-10-23)
+
+**Context.** A stream request carries many messages in its one response, each with a one-shot
+part that cannot cross the wire. The pipeline's deposit per request (D38b: `inv (O ∨ ticket)`,
+withdrawn by the ticket's holder) does not do: the ticket goes to the writer's handler, and the
+reader, which must withdraw, holds nothing exclusive of the connection.
+
+**Decision.** The reader owns the authority of a ghost map `γw` of frame indices and withdraws
+the `i`-th frame's deposit (`inv (O st ∨ i ↪[γw] ())`) with the token it inserts for `i` (it reads
+frames in order). The writer learns `γw`, and the reader that the writer's deposits are for its
+`γw`, through a registry: a ghost map from ticket names to `(γw, stream type, reader)`, its
+authority in an invariant, filled by the reader when it allocates the ticket, fresh for the map's
+finite domain (`dghostVar_alloc_strong`), so a ticket's entry is unique. What the writer writes is
+a prefix of a chain of its codec's frames, each a link heartbeat or a message to the reader with
+`□ P` and its deposit; frames are self-delimiting, so the reader's `i`-th decoded frame is the
+chain's `i`-th. All of it is this repository's ghost state and pure Lean: no trust.
+*Rejected:* a resource-carrying response (D38's (B), rejected then); per-frame tickets from the
+client (the client's ticket is consumed by `RoundTrip`); a protocol state machine as raft's (the
+property is per connection, with no order claimed).
+
+## D39: rafthttp's transport proved: the network's two layers joined (2026-10-23 · rafthttp stage 6; the user: "start stage 6", the four stage-6 choices; "accept D39a and the R re-budget, start 6a")
+
+**Context.** Stage 6 proves `rafthttp.Transport` (`Start`, `AddPeer`, `AddRemote`, `Send`,
+`CutPeer`, `MendPeer`, `Handler`) and so removes the trust-boundary axioms that state D21 M2's
+network contract about it, and `EtcdServer.RaftHandler`'s and D21 M5's `net/http.Serve`. The
+stage-5 proofs are over D38's HTTP boundary (`raftProto`, `RaftHttp`); the server's over D21's
+network (`NetNames`: payload, slots, directory). Scoping found what joining them needs.
+
+**Decisions** (`notes/rafthttp-plan.md`, stage 6, for the four choices made at scoping: the
+snapshot stream a smaller axiom, no `410`, `Counter.Add` may panic, the prober an axiom):
+- **D39a, an address's protocol fixed before its listener** (a trust change, accepted by the
+  user). A member starts its transport and adds its peers before they listen (linkv3's members
+  start one after the other), and its sends need `httpProtoAt` of their addresses (`RoundTrip`),
+  which D38c gave only with the listener. Program start (`goose_adequacy_start`, D19d) now also
+  gives `httpProtoFree a` for each of its addresses (exclusive, purely ghost); `http.reserve`
+  turns it into `httpProtoAt a P` and `httpProtoOwn a P`, which `http.register` takes with the
+  listener. The model is D38c's, a global ghost map from addresses to saved protocols set once,
+  now set by `reserve`. A request to a reserved address with no listener yet fails ("connection
+  refused"), an error `RoundTrip`'s spec allows.
+- **The `R` re-budget** (our specs only, accepted by the user). Each call into the server's `Raft`
+  borrows one of `lgMu`'s reader slots (`R`). `Start` took `2^29` of them for every call the
+  transport would make; proved, the calls are the handlers' (one per invocation, given by `Serve`)
+  and each peer's two receiving goroutines' (one each, for good). So `NewServer` gives out `2^29`
+  slots for `Serve` (through `RaftHandler`'s caller) and `AddPeer` takes two per peer from its
+  remaining ones (Go's limit is `2^30` readers); done with 6d, when `Start`'s and `AddPeer`'s
+  axioms go (restated before, they would claim calls with no slot).
+- **`RaftHttp` from `NetNames`** (no trust). `NetNames` gains the streams' registry (`reg`,
+  allocated with its invariant by `netNames_alloc`), so a member's stream reader and its peer's
+  handler agree on a connection; `netRh γn` takes a host's owner from the directory (`netOwner`:
+  the member one of whose URLs is `http://h`, `0` for none), which needs the directory's hosts
+  distinct (`dirHostsDistinct`, a premise where the cluster's directory is chosen).
+- **No `410`** (no trust; the user's choice at scoping). `netRaftOk`'s `IsIDRemoved` returns
+  `false` (the server's proved spec already says so: static membership), so `raftProto` says a
+  member's response is never `410`, the stream handler proves it, and `dial`'s report on
+  `errorc` is dead: `Start`'s "nothing on `ErrorC`" holds of the code.
+*Rejected:* deriving a protocol right from `netAddrFree` (two reservations of an address with
+different protocols would be possible); weakening `RoundTrip` to unregistered hosts (a request to
+an address whose protocol is unknown could not be tied to the handler that later serves it).
+
+## D40: the handlers' `AddRemote` is dead: a request's sender is a peer (2026-10-24 · rafthttp stage 6d; the user: "carry on with 6d")
+
+**Context.** Every raft handler calls `AddRemote` of the request's sender: the pipeline and
+snapshot handlers through `addRemoteFromRequest` (`X-Server-From`, `X-PeerURLs`), the stream
+handler for a reader it has no peer of. They do so at any time, after the transport is given up
+for `Serve`, without `transportLive`'s exclusive half that `AddRemote_core` needs, and with URLs
+from the request's headers. A remote added there would get messages `Send` routes to it, posted
+to URLs no one checked, and `CutPeer`'s premise (`id` not among the remotes' ids) would no longer
+be stable. In Go, `AddRemote` returns at once for a stopped transport or an id that is already a
+peer, and in a static cluster every member adds every other one as a peer before it serves
+(`NewServer`'s `AddPeer` loop, `server.go:437-441`).
+
+**Decision** (no trust; our specs only):
+- the lock's ghost record `γr` also holds the ids `AddPeer` was called for (`trIds`: the remotes'
+  and the peers'), and the lock covers them: while `remotes` is not `nil`, each is a key of
+  `peers` (`trLockP`); `AddPeer` adds its id, `Stop` empties the maps with `remotes` `nil`. After
+  the freeze (`trRemotesFrozen`), `AddRemote` of a recorded peer returns at once
+  (`AddRemote_frozen`), with no `R` and no ghost step;
+- the protocol carries the sender: `RaftHttp.member` (the network's: members are those with peer
+  URLs, `netRh`), a pipeline request's `X-Server-From` is another member's id (`fromOkAt`, in
+  `pipeReq`; `createPostRequest`'s spec states the header), a stream request's reader is another
+  member (`streamReq`). The sending transport's member is a member (`trFixed`), its peers and
+  remotes others (`AddPeer_core`/`AddRemote_core`'s `lid ≠ id`, through `startPeer`,
+  `startRemote`, the pipeline and the stream reader);
+- the handlers' premises take a sender other than their member (`pipeHandlerOk`,
+  `streamHandlerOk`, `newSnapshotHandler`'s axiom), `addRemoteFromRequest` is proved over it, and
+  `trAddRemote_of_frozen` discharges them from the frozen state and the caller's coverage: every
+  other member among the recorded peers (`NewServer`'s, 6d).
+*Note for D22 S-j (the snapshot receiver, the D22 owner's):* `applySnapshot` calls
+`RemoveAllPeers` and then `AddPeer` for every member after the transport is serving; between the
+two a handler's `AddRemote` would add a remote (Go's behavior). The coverage invariant above does
+not hold through that window; S-j must state it differently (e.g. `RemoveAllPeers` keeping the
+recorded ids, and the window's remotes stopped by the re-add, or a premise).
+*Rejected:* a premise that the handlers' `AddRemote` returns (it is the code's behavior and
+provable); letting the handlers add remotes (their URLs come from the request).
+
+## D41: the transport's axioms restated over its proved state; the server and the examples over them (2026-10-24 · rafthttp stage 6d, fourth part; the user: "use the 2^50 physical assumption, carry netBundle's facts, continue 6d")
+
+**The two decisions** (blocked in the third part):
+* `swMsgBound` is a physical assumption, `swMsgBound_phys` (`rafthttp/Transport.lean`): the
+  encoding of a read-only message is below `2^50` bytes. Stated on `msgOwn` at the discarded
+  fraction (a message that can no longer change), used where the network's bundle becomes what
+  `Send` takes (`sendMsg_of_netBundle`). Not derivable: the logic can allocate a slice of any
+  `w64` length; `pbEnc_ok`'s `2^63` is Go's semantics (`Size` returns an `int`).
+* `netBundle` carries raft's facts and its sender: `netBundle N lid m` asks of a `MsgApp` raft's
+  shape (`AppShape`) and `From = lid`; `netTransport γn lid tr T` is of the member `lid`. The
+  server's messages give them from `isRaftMsg` (`AppFrom` of the node's id, `SentMsgOk` in the
+  no-transfer mode), `srvMsgNet` now of the sender `id` (`srvMsgNet_bundle`); raft's node names'
+  id is the configuration's (`NodeStart`'s post, from `isNode`).
+
+**The transport's specs** (`Spec/.../rafthttp/Transport__*.lean`): `Start`, `AddPeer`,
+`AddRemote`, `CutPeer`, `MendPeer` restated over the transport's state (`trLive`, `trFrozen`,
+`trTok`) and `Handler` added; each proved over its callees' specs (`TransportSpecs.lean`), an
+axiom until 6f links rafthttp. `Start`'s post also gives, once frozen, the network's transport
+(`netTransport`, its `Send` borrowing a reader's token) and `isTransporter` (`trFrozen_net`).
+Two new trust-boundary axioms there: `Transport.SendSnapshot` (untranslated, D22's contract, cut
+out of `Start`'s as the stage-6 choice (1) said) and `Transport.ActiveSince` (translated; its
+read lock taken with no reader token: the server's request path calls it from any goroutine, at
+most `2^30 - 1` at once, physically). Gone: the opaque `transportLive`, `transportStarted`,
+`transportRemotes`, `raftHandlerOf`; `netSlot` is no longer used by the server (kept in
+`Net.lean`, D22's interface). `CutPeer`/`MendPeer` take `PeerPausable` as a premise (the link
+cannot supply a class), and the examples that reach them (linkv3p) as an instance.
+
+**The HTTP side**: `netHttpOk γn lid` is of the member: the other members' hosts registered (a
+member never adds itself as a peer); `pipeReg` only for members (`trFixed`'s), and the directory
+gives no member `0` (an unknown host's owner). `netHttpOk_of_dir`, `netHttpOk_single` (a
+one-member network registers nothing), `netHttp_reserve3` (the program start's rights of three
+peer addresses reserved). `http.Serve_ok` (the HTTP boundary's `Serve_spec`, D38) replaces D21
+M5's `net/http.Serve` axiom; `EtcdServer.RaftHandler` is translated and proved over `Handler`.
+
+**The server** (`NewServer.spec`): takes `netHttpOk γn id` (not the member's slot) and
+`netDirOk dir` (no member `0`, distinct hosts, plain URLs); `bootstrap`'s contract (a premise)
+says more: `Members()` returns raft's peers in order, the directory's members are raft's peers,
+at most `2^20` of them (`bootOk`'s `Hmembers`, `Hdirps`; both true of Go: `Members()` and the
+peers are sorted by id, and the examples' directories are exact). `NewServer` adds every other
+member as a peer, eight of `lgMu`'s readers each, then freezes the transport; returns the member
+(`srvNetMember γn s id τ`: the transport frozen, every other member a peer), one reader token
+(`srvTrTok`, for `CutPeer`/`MendPeer`) and `httpProcSlots` copies of `srvServeRes` (an `R` and a
+token, for `Serve`). The raft loop's `S` (`srvEr`'s new argument) is a key (`srvTrKey`) to a
+reader token of the transport, fixed under a ghost name allocated before the raft node, since the
+node's environment is built before the transport (`netTransport_of_key`).
+
+**The examples**: the one-member examples' directories exact (`dirOne`, until then every id's,
+which the stronger contract would have made false); the three-member examples reserve their peer
+addresses at program start (`httpProtoFree`, D39a), register each member's listener and serve
+its handler with `Serve_ok`; linkv3p's partitioner holds each member's reader token
+(`srvPeerCtl`) and takes `PeerPausable`.
+
+**Lean**: `(netRh γn).owner h` against `netOwner γn.dir h` exceeds the default recursion depth by
+`rfl` (the check unfolds `netOwner`'s classical `if` over the `go!` byte literal); `netRh_owner`,
+proved by `simp only [netRh]`, is the rewrite.
+
+## S5b of the auth plan, in part: the simple provider's `info` and `assign` keep the token binding (2026-10-24 · `notes/auth-plan.md`, branch `auth-s5b`)
+
+**Problem.** S5 stated the token binding over the provider's contract (`tokenProviderOk`) and proved
+only the no-op provider meets it; etcd's default is the simple provider (`simple_token.go`).
+
+**What is proved** (`Proof/go_etcd_io/etcd/server/v3/auth/TokenSimple.lean`, theorems with explicit
+hypotheses, not linked: the provider's other methods are not proved yet, so no `tokenProviderOk` of
+`tokenSimple` is concluded):
+
+- **The lock invariant** (`simpleLk p γt γf`, what `simpleTokensMu` guards): the map `simpleTokens`
+  with, for each entry `t ↦ u`, the persistent issued element `(t, u)` under `γt` and the right to
+  issue `t` under `γf` (exclusive; `[∗map]`); the issued tokens' authority (`tokAuth γt`); the
+  current keeper (nil, or one of the keepers created, whose maps it holds: an old keeper's goroutine
+  can still take the lock after `disable()`); a positive TTL (so `enable` never reads the package
+  default; etcd's default TTL is 300 s).
+- **`info`** (`tokenSimple_info`): a returned user was issued the token, in `on γa` with
+  `γa.tok = γt`; the keeper's reset keeps its map (`keeper_reset`).
+- **`assignSimpleTokenToUser`** (`tokenSimple_assignToUser`): given the right to issue `tok`, `tok` is
+  issued to the user (the ghost element always; the map entry when a keeper is set). The panic on a
+  token already in the map is unreachable: the map holds that token's right too
+  (`ghostMapElem_ne`).
+- **`assign`** (`tokenSimple_assign`): on an `Authenticate` context (`authnCtx`), the token
+  `pre ++ "." ++ decimal idx` (`sprintfOut_simpleTok`: `Sprintf("%s.%d")`'s output, an inversion
+  lemma in the style of Perennial's `SprintfOut.str_slash_v_int64`) is issued to the user.
+
+**The contract changed** (additively in spirit, one precondition): `tokenProviderOk`'s `assign` clause
+takes `authnCtx M ctx`: the context's `Value` returns the raft index and the token prefix for the
+two keys (other keys unconstrained), and the caller holds `freshOk M (simpleTok pre idx)` (in `on γa`,
+`tokFresh γa`, a new ghost name `AuthNames.fresh`; `authHist_alloc` takes it). `Authenticate`'s spec
+takes the premise and passes it on. Why a right to issue rather than a pure premise: the token is
+`<prefix>.<raft index>` and the index is unique per applied entry, but the provider cannot see that;
+whoever applies the entry (E's apply thread) mints the right once per index from the `γf` authority.
+
+**Hypotheses, and why:** `isValidSimpleToken` (`ValidSpec`) parses the index with `strconv.ParseUint`,
+which Perennial does not translate, and waits on the raft index or `ctx.Done()`; it is assumed to
+return. Stated for every context, which is stronger than the Go code gives for an arbitrary
+`GoInterface`: the contract's `info` clause has no context premise (`InvAuth` is generic over later
+credits, Perennial's contexts are not), and that is where the gap is. The keeper's `run` and `stop`
+(`time.Ticker`, `Time.After`, a channel protocol) are untranslated; they are needed for `enable` and
+`disable`, which are not proved yet.
+
+**Not finished:** `enable`, `disable`, `invalidateUser`, `newTokenProviderSimple` (so
+`tokenSimple_ok`, the provider meeting the whole contract); the mode `off`/`any` (the contract's
+`assign` premise carries no right to issue there, which the panic's refutation needs); the JWT
+provider; threading the binding into A2's guards and A4's watch (blocked on `NewAuthStore`: its axiom
+states the unbound `isReqAuth`, so the server's guards cannot get `isReqAuthBound` without proving it).
+
+## D42: the snapshot stream proved over a streamed request body (2026-10-24 · rafthttp stage 7a; the user: "go with (A) for D42"; `notes/rafthttp-plan.md`, "Stage 7")
+
+rafthttp's snapshot sender and handler are its last code still assumed (`SendSnapshot`,
+`newSnapshotSender`, `snapshotSender.stop`, `newSnapshotHandler`, the opaque `snapReq`). Their
+transfer is a chunked `POST` whose body is a stream (the envelope, then the merged snapshot's
+pipe) that the sender never sees, which the HTTP boundary's requests (a body fixed at
+`NewRequest`) cannot carry.
+
+- *(A, chosen)* A streamed-body request kind beside the fixed one: its body a reader with a
+  stream contract (`backend.readerStreams`), the protocol stated of what a server reads to `EOF`
+  (the physical assumption: a chunked body read to `EOF` is a complete stream of the client's
+  reader). `snapReq` defined over it: the envelope's encoding, then a bbolt image of `D` with the
+  certificate `N.img i D`, and the message's one-shot part deposited under the request's ticket
+  (as the pipeline's `pipeDeposit`). The sender and handler are then proved; `SaveDBFrom` stays a
+  boundary spec in `snap` (D22's), its statement agreed with the D22 owner.
+- *(B, not taken)* The stream's transfer stays one smaller axiom pair (the sender's `post`, the handler's body
+  reads with `SaveDBFrom`); the rest proved.
+
+Either way `SendSnapshot`'s and the handler's statements are unchanged, so no closed theorem
+changes; (A) leaves fewer assumptions and touches D22's interfaces only through `SaveDBFrom`'s spec.
+
+The user chose (A): it leaves fewer assumptions, and both sides of the transfer are proved. The D22
+owner's agreement on `SaveDBFrom`'s statement and on the streamed body's use of `readerStreams`
+was left open, then settled by the user ("D22's interface settled", below).
+
+**7b's shape (2026-10-24).** The kind of a request's body is the protocol's, not the request's
+(`Proto.streamed`): the server cannot tell a chunked body from a fixed one by anything the
+handler sees, so the handler's body (`reqBody`) is chosen by the protocol, and `RoundTrip` checks
+the client agrees (`reqSendOk`: a fixed body only for a request the protocol does not stream, a
+stream only for one it does, with its `sreq`). Without the check a fixed body sent to the
+snapshot path would reach a handler expecting the protocol's stream contract, which the client
+never gave. A stream's contract has two parts: `Pre` of every prefix (the handler decodes the
+envelope before the stream ends, and needs to know the frame it reads is the sender's: `Pre`
+says every prefix is comparable with that frame, which the sender knows when it builds the body)
+and `Φ` of a complete stream (the image, learned only at `EOF`). The certificates (`N.P`, the
+deposit, `N.img i D`) are in `sreq`, persistent at send time: only the image-ness of the bytes is
+learned at the end. The client's stream reader is a `Read` contract (`streamReaderOk`), not an
+opaque predicate, so that the sender's `ReaderAndCloser` wrapper is proved; D22's opaque
+`readerStreams` enters only through `io.MultiReader`'s spec. `RoundTrip` gives the request back
+after consuming a stream; a second send of it would need another `sreq` (another deposit) and its
+reader yields nothing, so `prefixClosed` asks `Pre []`.
+
+**7d (2026-10-24), the user's two choices.** (1) A response body read by two goroutines (the
+snapshot sender's `io.ReadAll` and its timer's `GracefulClose`): either may take bytes the other
+would have read, so the boundary gives a weaker, shared read (`respReadAny`, given up from the
+exclusive reader) rather than keeping `post` an axiom; the sender reads only the status
+(`checkPostResponse`), so nothing is lost. (2) The server's error channel carries `False` (a static
+cluster's member is never removed), so `send` must show `errors.Is(err, errMemberRemoved)` false of
+every error `post` returns: net/http's errors are tagged (`netErr`) and one rafthttp axiom says they
+are not it, rather than making critical errors reachable in the server's proof.
+
+**7e (2026-10-25).** The handler reads one body twice, the envelope then the rest, with no split
+lemma: the decoder reads the stream (`bodyStream`) through `readFullAt` with what is known of the
+bytes read `⌜Pre⌝`, and `Pre` says every prefix is comparable with the sender's frame, so the
+decoded frame is the sender's (`msgFrame_prefix_eq`); `SaveDBFrom` then continues the same
+`bodyStream` from that frame, and `Φ` of the whole stream gives the rest's image. The user chose a
+`fmt.Sprintf` boundary over `fmt.argsOk` (as `Printf`'s and `Errorf`'s) to keep `ServeHTTP` proved
+rather than an axiom.
+
+**D22's interface settled (2026-10-25).** The user decided the three `snap` statements for the D22
+owner ("can we decide on behalf of D22 owner? it seems small if we need to adjust"):
+`snap.Message.fields` (with `0 ≤ TotalSize`), `snap.Message.CloseWithError` and
+`snap.Snapshotter.SaveDBFrom` (with `0 ≤ n` on success) stand as stated. They are axioms on D22's
+interface and no proof depends on how D22 would prove them, so a revision by the owner is local:
+the statement, and the few lines of `send`/`createSnapBody` or `ServeHTTP` that use it. The owner
+is told, not asked.
+
+## S4d of the auth plan: `RoleGrantPermission` performs the model's step (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4d`)
+
+**Problem.** `RoleGrantPermission` was the last admin operation without a proof (S4c's "Not
+finished"): it searches the role's permissions (`sort.Search` with a closure comparing keys by
+`bytes.Compare`), overwrites the type of the entry of the same key and range end in place, or
+appends the permission and sorts the permissions by key (`sort.Sort(permSlice(...))`).
+
+**Decisions.**
+- **Any index.** Perennial's `sort.Search` spec needs the predicate to go from false to true
+  (`IsMonoPred`), which here means the role's permissions sorted by key; nothing records that of
+  the backend's records (a record is whatever `proto.Unmarshal` decodes). The step relation
+  `roleGrantPermissionR` already holds at any index the search returns (update: the entry there
+  matches; insert: otherwise), so all the proof needs is an index in `[0, n]`:
+  `auth.wp_Search_any` (`auth/SearchAny.lean`) proves that of Perennial's translation of
+  `sort.Search` for any predicate, a local workaround; the general spec belongs to Perennial
+  (`notes/perennial-changes.md`, "Specs: `sort.Search` without monotonicity").
+- **The sorter.** `permSlice`'s `Len`/`Less`/`Swap` meet Perennial's `isSorter` over the pairs
+  (message, wire permission), each message read-only (`auth.permsOwn`, `auth.permSlice_isSorter`,
+  `auth/PermSorter.lean`); the order is the keys' (`keyLt`, a strict weak order pulled back from
+  `GoStringLt`).
+- **The step corrected.** `roleGrantPermissionR`'s case of a permission of an unknown type said
+  the model's list is a sublist of the old one; the sort is unstable, so entries of one key may
+  change places: a sublist up to a permutation (`Steps.lean`; nothing used the relation yet).
+- **`sort.Sort`'s bound.** Perennial's `sort.Sort` needs at most `2^62` elements; the model cannot
+  bound the record's count (it drops permissions of an unknown type). `ownRoleX` (what S4c's
+  restated `proto.UnmarshalRole` returns) now also says the record holds fewer than `2^62`
+  permissions: each takes at least two bytes of the encoding (a length-delimited field: a tag and
+  a length), and the encoding is a Go slice, below `2^63` bytes. A restatement, true of protobuf's
+  wire format; no axiom added (the axiom's name and the baseline unchanged).
+- **The log line's map.** The grant logs `authpb.Permission_Type_name[r.Perm.PermType]`, a map
+  whose initializer is untranslated (`Code/go_etcd_io/etcd/api/v3/authpb.toml`): the spec takes
+  `auth.typeNamesOk` (the variable holds a map, read-only) as a premise, threaded to the apply
+  layer's clause; translating the map literal (Perennial's semantics has it: `make` and one
+  `map.insert` per key) and proving the fact in authpb's initializer would discharge it (it needs
+  a package fact for authpb, `etc/gen-init.py`'s `SPECIAL`). The other route, a `<X>_init`
+  trust-boundary axiom as for `etcdserverpb`'s enum maps, was not taken (no axiom added).
+- **The apply layer**: `apply.isAuthSteps` gains the clause (appended), `isAuthSteps_of_authInv`
+  its case, `applierV3backend.RoleGrantPermission.wp_step`, `apply_RoleGrantPermission_step`
+  (`etcdserver/Results.lean`).
+
+**Result.** Every admin operation of the store is now a proved step of the model at the store and
+at the apply layer: `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`,
+`UserGrantRole`, `UserRevokeRole`, `RoleAdd`, `RoleDelete`, `RoleGrantPermission`,
+`RoleRevokePermission`. Trust base unchanged.
+
+## S4e of the auth plan: `authpb`'s name map a package fact, S4d's premise gone (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4e`)
+
+**Problem.** S4d's `RoleGrantPermission` logs `authpb.Permission_Type_name[...]`, whose initializer
+(a `map[int32]string` literal) was untranslated: the spec and the apply clause took
+`auth.typeNamesOk` (the variable holds a map, read-only) as a premise.
+
+**Decision.** Translate the two name maps (`Permission_Type_name`, `Permission_Type_value`: dropped
+from `authpb.toml`'s exclusions; their `X.init` constants leave the translation and
+`opaqueInitsOk`'s list) and give `authpb` a fact, `authpbInit` (`cache/v3/Base.lean`): the name map's
+points-to, read-only, with its three entries (`0` `READ`, `1` `WRITE`, `2` `READWRITE`). The
+generated initializer proof steps the two literals (`wp_map_make1`, `wp_mapInsert`; the `SPECIAL`
+entry of `etc/gen-init.py`). `auth.typeNamesOk_of_init` derives the old premise from `authpb`'s
+`isPkgInit`, which `RoleGrantPermission`'s proof reaches from the auth package's (`iPkgInit`), so the
+spec, `apply.isAuthSteps`'s clause and `applierV3backend.RoleGrantPermission.stepSpec` drop it.
+
+**Consequences.** No axiom added or removed (the `X.init`s were translation constants under
+`opaqueInitsOk`, which stays for the descriptors); no closed theorem's statement changed.
+
+## A3c of the auth plan: Lock and Election, the servers over the server's client as a contract (2026-10-24 · `notes/auth-plan.md`, branch `auth-a3c`)
+
+**Problem.** The matrix's Lock and Election rows (`Lock`, `Unlock`, `Campaign`, `Proclaim`,
+`Leader`, `Observe`, `Resign`) were neither translated nor stated. Their servers
+(`server/etcdserver/api/v3lock/lock.go`, `v3election/election.go`) check nothing themselves: they
+hold a `*clientv3.Client`, in etcd the in-process client `v3client.New(s)`, and call the client's
+`concurrency` package (proved for the client) on it, with the request's context. So their class is
+that of the requests those calls send, which the server's own handlers check (A1, A2).
+
+**Decision.** Translate the two servers with bodies and their protobuf messages as data
+(`Code/.../api/v3lock.toml`, `v3election.toml`, `v3lock/v3lockpb.toml`, `v3election/v3electionpb.toml`;
+`etc/goose.py`'s etcd project), and prove each handler over the `concurrency` specs (linked as `@`
+callees of two new link modes, `--v3lock` and `--v3election`) and the server's client as a
+**hypothesis**, not an axiom: `v3lock.lockClientOk c` (the session's client contract
+`isEtcdSessionClient` and, for every prefix, the mutex's and election's `isEtcdMutexClient`) and
+`v3lock.unlockKVOk c` (the client's `KV.Delete` on one key, with a readable response header and
+`deleteResult`). `v3client.New(s)` is not translated: deriving these contracts from the in-process
+adapters (`KvServerToKvClient` over `NewQuotaKVServer(s)`, ...) is the next step, and it is where
+the class becomes the server's handlers' checks. The statements per handler:
+
+- `Lock`: a session over the request's lease (`NewSession`, `WithLease`, `WithContext(ctx)`,
+  `Orphan`) and a mutex on the request's name (`NewMutex`, `Mutex.Lock(ctx)`); the response holds a
+  lock key under `name/` (`lockedAt`, or `keyRecreated`). `Unlock`: one `Delete(ctx, key)` of the
+  request's key, with its `deleteResult`. Note that `Unlock` deletes whatever key the caller names
+  (the lock key is the lock's identity): its class is a delete of that key, as the caller.
+- `session`: the orphaned session (its lease the request's, if it names one). `Campaign`: the
+  campaign's key under `name/` with the value (`keyValAt`) and its outcome (`leaderAt` or
+  `campaignLost`). `Leader`: the leader's key-value (`leaderKvAt`) under `name/`.
+  `Proclaim`/`Resign`: `ErrMissingLeaderKey` for a request without a leader; otherwise the
+  proclamation (`proclaimedAt`, at the session's lease) or the resignation (`notLeaderAt`) of the
+  request's leader key, whatever key the caller names (its class: the write of that key).
+- `ResumeElection` keeps the prefix as given (no `/` appended, unlike `NewElection`), and its spec
+  requires a non-empty prefix: `Proclaim`'s and `Resign`'s specs take a non-empty leader name as a
+  premise. That is the spec's limit, not Go's (the prefix is unused by `Proclaim` and `Resign`).
+- `Observe` (a gRPC stream over the election's `Observe` channel, a `select` loop on the stream's
+  context) is translated and not proved.
+
+**Initialization.** The two servers are roots of `etc/gen-init.py`; their packages' facts are in
+`api/v3lock/Base.lean` and `api/v3election/Base.lean`. Doing so brings the client's `concurrency`
+package into the initializer closure for the first time: its five `errors.New` variables are
+translated and proved with Perennial's `context.wp_New_errorString` (a `SPECIAL` entry, as the k8s
+driver's); `ErrMissingLeaderKey` the same (the fact: a fixed non-nil error). The protobuf packages'
+initializers take `opaqueInitsOk` and `initFuncsOk`, as authpb's; no linked result reaches them, so
+the trust base is unchanged (696 axioms, 4 sorries).
+
+**Also.** `concurrency.sessionOptSpec` (a `□`) has no `Persistent` instance; v3lock's `Defs.lean`
+adds one locally (`sessionOptSpec_persistent'`), to be moved next to the definition.
+
+
+## S5c of the auth plan, in part: the pin at Perennial's `strconv` and `time.Ticker`, `isValidSimpleToken` proved on a context (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5c`)
+
+**Problem.** S5b left three hypotheses on the simple token provider: `isValidSimpleToken` (it
+calls `strconv.ParseUint`, which Perennial did not translate) and the keeper's `run`/`stop`
+(`time.Ticker`, `Time.After`). Perennial now has both (`13a60f492`, `c022dbe42`; `notes/
+perennial-changes.md`, "Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`").
+
+**The pin bump** (`24bef275e`). Perennial now translates `strconv`, so its `IsPkgInit` instance and
+`wp_initialize'` are Perennial's: raft's `Base.lean` and `Init.lean` (and the witness copies) drop
+their own (an instance `define_is_pkg_init iprop(True)`, a proof over the trust-boundary axiom
+`strconv.opaqueInitsOk`, which goes: 696 to 695 axioms); `etc/gen-init.py` no longer counts
+`strconv` among raft's packages; the package tables (and kvwitness's hand-written one) gain
+`internal/strconv` and `internal/stringslite`, which `strconv` imports. The worktree built against
+the pinned Perennial through a path manifest and a private `.lake/packages` (Perennial at the
+pinned checkout, the other dependencies the shared ones), so the shared clone stayed at
+`beb785eaf` for the other worktrees.
+
+**`isValidSimpleToken` proved** (`tokenSimple_isValid`, `auth/TokenSimple.lean`): on a context
+(Perennial's `context.isContext ci cd`) and the provider's index waiter (`simpleWaitOk p`: the
+field `indexWaiter` read-only, a function returning, for every index, a channel on which a receive
+may complete with any outcome, `anyRecv`), it returns: `strings.Split`, `strconv.ParseUint` (a
+non-nil `*NumError` is `false`), then the `select` on the waiter's channel and the context's
+`Done` (`isContextDone_receive`). Stated at `HasLC.hasLC`: Perennial's contexts are, the rest of
+the file is generic over later credits. `tokenSimple_info` is generalized over the check's
+precondition (`tokenSimple_info_of`); the old theorem over `ValidSpec` is its corollary, and
+`tokenSimple_info_ctx` is `info` on a context with no hypothesis on the check.
+
+**Why `ValidSpec` stays for the contract.** `tokenProviderOk`'s `info` clause has no context
+premise and is generic over later credits, so `tokenSimple_info_ctx` cannot discharge it: the
+contract needs a context premise at `HasLC.hasLC` (its callers, `authInfoFromToken` and
+`AuthInfoFromCtx`, have the request's context), a change to `InvAuth` and its users.
+
+**Not finished: the keeper and the provider's rest** (`run`, `stop`, `enable`, `disable`,
+`invalidateUser`, `newTokenProviderSimple`; translated, `run`/`stop` since this stage). Two design
+changes, each wider than this stage:
+- **The keeper field is read outside the lock.** `invalidateUser` tests `t.simpleTokenKeeper ==
+  nil` before taking `simpleTokensMu`; `enable`/`disable` write it under the lock. Not a Go bug:
+  all three are called by the auth store's admin side, serialized (`enable`/`disable` under
+  `enabledMu`; `invalidateUser` from `UserDelete`/`UserChangePassword` on the apply thread; `Close`
+  only from `Cleanup`, before the server starts). But the contract's `{{ True }}` clauses for the
+  three cannot be met: the field needs a share the caller holds (the admin side's, `authOwn`'s),
+  half in the lock invariant.
+- **A keeper's goroutine must find its map after relocking.** `simpleLk` holds the maps of the
+  keepers created (`ks`, existential), so `run` cannot know, at its next `Lock`, that its keeper
+  is still among them: the lock invariant needs a ghost set of keepers (an authority, a
+  persistent element per keeper). `run`'s loop is then the map range with deletion
+  (`wp_map_for_range_gen`), the delete callback over the provider's map, the ticker's channel bag
+  and `stopc` (a bag), `donec` a broadcast channel `run` closes and `stop` waits on.
+
+## S5d of the auth plan: the simple token provider meets the contract, with the admin side's share (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5d`)
+
+**Problem.** S5c left the simple provider's `enable`, `disable`, `invalidateUser` and the keeper
+unproved, for two reasons: `invalidateUser` reads the keeper field outside `simpleTokensMu` (so the
+contract's `{{ True }}` clauses could not be met), and a keeper's goroutine could not find its map
+after relocking (the lock invariant's keepers were an existential list).
+
+**The admin side's share.** `tokenProviderOkA tp M A` (`InvAuth.lean`) gives `enable`, `disable`,
+`invalidateUser` the precondition `A` and gives it back; `tokenProviderOk tp M` (the store's
+invariant's) is it at some `A`. The holder is the store's admin side: `tpAdmin st M` (the store's
+provider, its contract at `A`, and `A`), a precondition and postcondition of the five operations
+that call the three (`AuthEnable`, `AuthDisable`, `Recover`, `UserDelete`, `UserChangePassword`;
+`RoleDelete` does not), and part of the write resource of the apply layer's steps of the real store
+(`authWR st M P f T ∗ tpAdmin st M`, `isAuthSteps_of_authInv`, `auth_apply_steps`). Chosen over a
+field of `authWR` (81 destructurings) and over a token-exchange invariant: a provider-chosen `A`
+held by the caller matches the Go discipline (the three are serialized by their callers:
+`enable`/`disable` under `enabledMu`, `invalidateUser` on the apply thread), and the no-op provider
+takes `A = True`. Like `authOwn`, nothing produces `tpAdmin` yet: `NewAuthStore` (an axiom) states
+`authInv` only; E's closed theorem will.
+
+**The simple provider** (`auth/TokenSimpleAdmin.lean`): `simpleAdmin p` is half the keeper field
+(`simpleLk` holds the other) and, for a set keeper, its stop channels (`keeperStop`: `stopc` a
+bag, `donec` a broadcast channel). `simpleLk` keeps the keepers as a ghost set (`γk`, hidden in
+`simpleOk`) with each keeper's element next to its map, so a goroutine holding its element finds
+its map after relocking, and `enable` needs no freshness argument for the new keeper's address
+(Perennial has no typed points-to validity lemma). Proved: `deleteSimpleToken`, `stop` (a send on
+`stopc` or `donec` closed, then `donec`), `disable` (the keeper stopped, the map emptied: S5's
+issued map is keyed by (token, user), so a token may be reissued), `invalidateUser` (the user's
+tokens removed from both maps, `wp_map_for_range_mut`), `enable` (the keeper allocated, the delete
+callback's contract `delfOk` proved, the goroutine forked), and `tokenSimple_okA`: the provider
+meets `tokenProviderOkA` in `on γa` with `A = simpleAdmin p`.
+
+**What stays hypothesis** (not axioms): `ValidSpec` for `info` (the contract's `info` clause has no
+context premise; S5c); `RunSpec`, the keeper goroutine `run` (a `time.Ticker` loop, a `select` on
+the ticker's channel and `stopc`, a range with deletion over the keeper's map under the mutex
+through `delfOk`): true of the Go code, its resources (`keeperRun`) what `enable` gives; not
+proved for lack of turns. The S5b `info` lemmas now take the continuation under a later, as the
+contract's triples give it. Not done: `newTokenProviderSimple` (it would give `simpleOk`,
+`simpleWaitOk` and `simpleAdmin`; the zero mutex by `init_Mutex`), the modes `off`/`any` for the
+simple provider, JWT. Trust base unchanged.
+
+## D22 S8d after the merge of 2026-10-25: W3 reverted, W5/W6 settled, W7 and W8 open (decided by the orchestrator: W5 the user's, W6 (a), W7 (b))
+
+- **The merge.** rafthttp's stages 5-7 proved the transport over its lock's state (`trLive`,
+  `trFrozen`, `trTok`, `TransportState.lean`), replacing the axioms S8c's W3 had restated
+  (`Transport.Start`, `AddPeer`, and the new `RemoveAllPeers`); `auth.authStore.Recover` and
+  `store.Restore` are proved (their statements differ from the axioms S8c and S6 wrote: S8d uses the
+  proved ones). S8c's W3 commit is reverted before the merge (`72a1cb065b`): the peers right
+  (`netPeers`, `netTrIs`, `transportAddRight`, `RNEnv.TS`) is to be re-expressed over the proved
+  transport, with W8. The issue it filed (`issues/etcd-rafthttp-leaderstats-followers-race.md`) is
+  kept.
+- **W5** (the user): `storage.snapOpensOk` stays its own environment premise (not folded into
+  `dbOpensOk`); it may become a premise of closed theorems at S-l.
+- **W6** (option (a) decided; a better home found first, as asked). `bootOk`'s contract already
+  holds the members' directory facts for good: `Hmembers` is a persistent triple of the cluster's
+  `Members()` (members whose peer URLs are `dir`'s, raft's peers in order), not a fact of a moment.
+  So `applySnapshot`'s `AddPeer` loop can use it as `NewServer`'s does, and `rcLockInv` need not
+  change: no closed theorem's statement changes. What `Recover` must not break is that contract's
+  truth, which needs every image a member applies to hold the static cluster's members: a premise
+  on the image (`membership.clusterImageOk c r`, opaque, of the three membership buckets), which
+  `RaftCluster.Recover`'s axiom takes so that it returns (no decode panic, no downgrade panic,
+  `rcLockInv` re-established). The contract reaches `applySnapshot` as a premise of its spec (the
+  same triple, threaded by S-j1 from `NewServer`).
+- **W7** (option (b) decided) **does not go through as stated.** A `Close` while readers may still
+  run is not what the Go code tolerates for the backend's shared read transaction:
+  `CommitAndStop`'s commit leaves `readTx.tx` `nil` (the model: `rtx = null ∗ bStopped`,
+  `ReadSide.lean`), and a reader of `ReadTx()` after it dereferences the nil transaction; only a
+  `ConcurrentReadTx` already holding its bbolt transaction is waited for (bbolt's `Close` on
+  `mmaplock`, which `DB.Close_kv`'s axiom already allows). So `Close` needs that no client of the
+  shared transaction remains, which is what the clients' whole open token (`bOpen 1`) says; the
+  server does hold every old token after `Restore`, `srv_be_swap` and the constructors (no store
+  reader outlives `s.mu`, the monitor is under `bemu`), but the bookkeeping loses it: each
+  reader's `bOpen` share is existential (`kbRT`, `bkRTx`), and `Restore` returns `k + 1` of them,
+  `k` existential. Sound ways out, each the orchestrator's: count the shares (reader tokens at a
+  fixed fraction and `Restore` returning the pool's exact count: `kbRT` and `store.Restore.spec`);
+  or a stop protocol keyed on the readers' tokens rather than their `opn` fractions (`rdTok`
+  already carries a counted `ownToks γ.rdt 1`: a `Close` that takes all `nReaders` reader tokens
+  and the remainder share would exclude every reader by counting, a redesign of `bStopped`'s
+  exclusion `bOpen_stopped` and of `run`'s `CommitAndStop`), still with all reader tokens back.
+  Either way the close-error fact (`closeOk`, bbolt's `Close` failing for I/O) joins
+  `snapOpensOk`.
+- **W8** (open; `notes/snapshot-s8-plan.md`): `RemoveAllPeers` and the proved transport's peer
+  coverage (rafthttp's note in D40). Not resolved here: the window's `AddRemote` adds a remote with
+  the request's URLs (Go's behavior, and Go's `AddPeer` does not stop it afterwards), so either the
+  protocol carries the sender's peer URLs as the directory's (the remote's facts provable) or
+  `RemoveAllPeers` keeps the coverage some other way; a design in rafthttp's invariants, left for
+  S-j1 with the rafthttp track.

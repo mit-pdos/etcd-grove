@@ -1,0 +1,9 @@
+# Names only (D38, rafthttp's stage 1): what rafthttp's message path calls; (stage 4, 2026-10-23)
+# with the body of the pipeline handler's reader, `NewLimitedBufferReader` (a per-read cap);
+# (2026-10-24, stage 7c) the snapshot sender's body, `ReaderAndCloser`'s promoted `Read` and `Close`.
+translate = ["!*", "NewLimitedBufferReader", "limitedBufferReader.Read", "ReaderAndCloser.Read",
+  "ReaderAndCloser.Close"]
+imports = ["!*", "io", "net/http"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

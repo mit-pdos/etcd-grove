@@ -70,12 +70,8 @@ axiom file_auth_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 noncomputable def Permission_Type_name [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.Permission_Type_name"
 
-axiom Permission_Type_name.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def Permission_Type_value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.Permission_Type_value"
-
-axiom Permission_Type_value.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def File_auth_proto [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.File_auth_proto"
@@ -294,6 +290,22 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(W32 0))
+  (Let "$v1" (Val #(go!"READ"))
+  (Let "$k2" (Val #(W32 1))
+  (Let "$v3" (Val #(go!"WRITE"))
+  (Let "$k4" (Val #(W32 2))
+  (Let "$v5" (Val #(go!"READWRITE"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.int32 go.string)))) (LiteralValue [(KeyedElement (some (KeyExpression go.int32 (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k2"))) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyExpression go.int32 (Var "$k4"))) (ElementExpression go.string (Var "$v5")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (Val #(go!"READ"))
+  (Let "$v1" (Val #(W32 0))
+  (Let "$k2" (Val #(go!"WRITE"))
+  (Let "$v3" (Val #(W32 1))
+  (Let "$k4" (Val #(go!"READWRITE"))
+  (Let "$v5" (Val #(W32 2))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.int32)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.int32 (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.int32 (Var "$v5")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -309,13 +321,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val file_auth_proto_enumTypes.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val Permission_Type_value.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.int32)))) (Pair (App (Val (GoInstruction (GlobalVarAddr Permission_Type_value))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val Permission_Type_name.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.int32 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr Permission_Type_name))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Permission_Type_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Permission_Type_value (go.GoType.MapType go.string go.int32))) (Val #()))))))))
 
 abbrev Permission_Type [FfiSyntax] : Type := w32
 

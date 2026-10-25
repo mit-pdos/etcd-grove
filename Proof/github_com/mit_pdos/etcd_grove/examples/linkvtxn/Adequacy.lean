@@ -145,7 +145,7 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.linkvtxn.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.linkvtxn.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok Has
+  iintro #Hinit Htok ⟨Has, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := linkvtxn.wp_Main (GF := linkvtxnGF) n id bootLog clients ops Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs

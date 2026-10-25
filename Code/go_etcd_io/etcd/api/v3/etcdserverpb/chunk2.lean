@@ -711,11 +711,29 @@ attribute [instance] AuthStatusRequest.TypeAssumptions.type_repr
 class AuthenticateRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthenticateRequest.underlying AuthenticateRequest
   underlying : go.UnderlyingDirectedEq AuthenticateRequest.ty AuthenticateRequest.underlying
-  isUnderlying : go.IsUnderlying AuthenticateRequest.underlying AuthenticateRequest.underlying
+  get_state : ∀ (x : AuthenticateRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthenticateRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthenticateRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthenticateRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthenticateRequest)))
+  get_Name : ∀ (x : AuthenticateRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthenticateRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : AuthenticateRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthenticateRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AuthenticateRequest)))
+  get_Password : ∀ (x : AuthenticateRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthenticateRequest.underlying go!"Password") #x (Val #(x.Password'))
+  set_Password : ∀ (x : AuthenticateRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthenticateRequest.underlying go!"Password") (PairV #x #y) (Val #(({ x with Password' := y } : AuthenticateRequest)))
+  get_unknownFields : ∀ (x : AuthenticateRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthenticateRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthenticateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthenticateRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthenticateRequest)))
+  get_sizeCache : ∀ (x : AuthenticateRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthenticateRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthenticateRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthenticateRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthenticateRequest)))
 
 attribute [instance] AuthenticateRequest.TypeAssumptions.type_repr
   AuthenticateRequest.TypeAssumptions.underlying
-  AuthenticateRequest.TypeAssumptions.isUnderlying
+  AuthenticateRequest.TypeAssumptions.get_state
+  AuthenticateRequest.TypeAssumptions.set_state
+  AuthenticateRequest.TypeAssumptions.get_Name
+  AuthenticateRequest.TypeAssumptions.set_Name
+  AuthenticateRequest.TypeAssumptions.get_Password
+  AuthenticateRequest.TypeAssumptions.set_Password
+  AuthenticateRequest.TypeAssumptions.get_unknownFields
+  AuthenticateRequest.TypeAssumptions.set_unknownFields
+  AuthenticateRequest.TypeAssumptions.get_sizeCache
+  AuthenticateRequest.TypeAssumptions.set_sizeCache
 
 class AuthUserAddRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserAddRequest.underlying AuthUserAddRequest
@@ -778,38 +796,110 @@ attribute [instance] AuthUserGetRequest.TypeAssumptions.type_repr
 class AuthUserDeleteRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserDeleteRequest.underlying AuthUserDeleteRequest
   underlying : go.UnderlyingDirectedEq AuthUserDeleteRequest.ty AuthUserDeleteRequest.underlying
-  isUnderlying : go.IsUnderlying AuthUserDeleteRequest.underlying AuthUserDeleteRequest.underlying
+  get_state : ∀ (x : AuthUserDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthUserDeleteRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserDeleteRequest)))
+  get_Name : ∀ (x : AuthUserDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : AuthUserDeleteRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AuthUserDeleteRequest)))
+  get_unknownFields : ∀ (x : AuthUserDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthUserDeleteRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserDeleteRequest)))
+  get_sizeCache : ∀ (x : AuthUserDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthUserDeleteRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserDeleteRequest)))
 
 attribute [instance] AuthUserDeleteRequest.TypeAssumptions.type_repr
   AuthUserDeleteRequest.TypeAssumptions.underlying
-  AuthUserDeleteRequest.TypeAssumptions.isUnderlying
+  AuthUserDeleteRequest.TypeAssumptions.get_state
+  AuthUserDeleteRequest.TypeAssumptions.set_state
+  AuthUserDeleteRequest.TypeAssumptions.get_Name
+  AuthUserDeleteRequest.TypeAssumptions.set_Name
+  AuthUserDeleteRequest.TypeAssumptions.get_unknownFields
+  AuthUserDeleteRequest.TypeAssumptions.set_unknownFields
+  AuthUserDeleteRequest.TypeAssumptions.get_sizeCache
+  AuthUserDeleteRequest.TypeAssumptions.set_sizeCache
 
 class AuthUserChangePasswordRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserChangePasswordRequest.underlying AuthUserChangePasswordRequest
   underlying : go.UnderlyingDirectedEq AuthUserChangePasswordRequest.ty AuthUserChangePasswordRequest.underlying
-  isUnderlying : go.IsUnderlying AuthUserChangePasswordRequest.underlying AuthUserChangePasswordRequest.underlying
+  get_state : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthUserChangePasswordRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserChangePasswordRequest)))
+  get_Name : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : AuthUserChangePasswordRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AuthUserChangePasswordRequest)))
+  get_Password : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"Password") #x (Val #(x.Password'))
+  set_Password : ∀ (x : AuthUserChangePasswordRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"Password") (PairV #x #y) (Val #(({ x with Password' := y } : AuthUserChangePasswordRequest)))
+  get_HashedPassword : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"HashedPassword") #x (Val #(x.HashedPassword'))
+  set_HashedPassword : ∀ (x : AuthUserChangePasswordRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"HashedPassword") (PairV #x #y) (Val #(({ x with HashedPassword' := y } : AuthUserChangePasswordRequest)))
+  get_unknownFields : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthUserChangePasswordRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserChangePasswordRequest)))
+  get_sizeCache : ∀ (x : AuthUserChangePasswordRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthUserChangePasswordRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserChangePasswordRequest)))
 
 attribute [instance] AuthUserChangePasswordRequest.TypeAssumptions.type_repr
   AuthUserChangePasswordRequest.TypeAssumptions.underlying
-  AuthUserChangePasswordRequest.TypeAssumptions.isUnderlying
+  AuthUserChangePasswordRequest.TypeAssumptions.get_state
+  AuthUserChangePasswordRequest.TypeAssumptions.set_state
+  AuthUserChangePasswordRequest.TypeAssumptions.get_Name
+  AuthUserChangePasswordRequest.TypeAssumptions.set_Name
+  AuthUserChangePasswordRequest.TypeAssumptions.get_Password
+  AuthUserChangePasswordRequest.TypeAssumptions.set_Password
+  AuthUserChangePasswordRequest.TypeAssumptions.get_HashedPassword
+  AuthUserChangePasswordRequest.TypeAssumptions.set_HashedPassword
+  AuthUserChangePasswordRequest.TypeAssumptions.get_unknownFields
+  AuthUserChangePasswordRequest.TypeAssumptions.set_unknownFields
+  AuthUserChangePasswordRequest.TypeAssumptions.get_sizeCache
+  AuthUserChangePasswordRequest.TypeAssumptions.set_sizeCache
 
 class AuthUserGrantRoleRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserGrantRoleRequest.underlying AuthUserGrantRoleRequest
   underlying : go.UnderlyingDirectedEq AuthUserGrantRoleRequest.ty AuthUserGrantRoleRequest.underlying
-  isUnderlying : go.IsUnderlying AuthUserGrantRoleRequest.underlying AuthUserGrantRoleRequest.underlying
+  get_state : ∀ (x : AuthUserGrantRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthUserGrantRoleRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserGrantRoleRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserGrantRoleRequest)))
+  get_User : ∀ (x : AuthUserGrantRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleRequest.underlying go!"User") #x (Val #(x.User'))
+  set_User : ∀ (x : AuthUserGrantRoleRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserGrantRoleRequest.underlying go!"User") (PairV #x #y) (Val #(({ x with User' := y } : AuthUserGrantRoleRequest)))
+  get_Role : ∀ (x : AuthUserGrantRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleRequest.underlying go!"Role") #x (Val #(x.Role'))
+  set_Role : ∀ (x : AuthUserGrantRoleRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserGrantRoleRequest.underlying go!"Role") (PairV #x #y) (Val #(({ x with Role' := y } : AuthUserGrantRoleRequest)))
+  get_unknownFields : ∀ (x : AuthUserGrantRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthUserGrantRoleRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserGrantRoleRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserGrantRoleRequest)))
+  get_sizeCache : ∀ (x : AuthUserGrantRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthUserGrantRoleRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserGrantRoleRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserGrantRoleRequest)))
 
 attribute [instance] AuthUserGrantRoleRequest.TypeAssumptions.type_repr
   AuthUserGrantRoleRequest.TypeAssumptions.underlying
-  AuthUserGrantRoleRequest.TypeAssumptions.isUnderlying
+  AuthUserGrantRoleRequest.TypeAssumptions.get_state
+  AuthUserGrantRoleRequest.TypeAssumptions.set_state
+  AuthUserGrantRoleRequest.TypeAssumptions.get_User
+  AuthUserGrantRoleRequest.TypeAssumptions.set_User
+  AuthUserGrantRoleRequest.TypeAssumptions.get_Role
+  AuthUserGrantRoleRequest.TypeAssumptions.set_Role
+  AuthUserGrantRoleRequest.TypeAssumptions.get_unknownFields
+  AuthUserGrantRoleRequest.TypeAssumptions.set_unknownFields
+  AuthUserGrantRoleRequest.TypeAssumptions.get_sizeCache
+  AuthUserGrantRoleRequest.TypeAssumptions.set_sizeCache
 
 class AuthUserRevokeRoleRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserRevokeRoleRequest.underlying AuthUserRevokeRoleRequest
   underlying : go.UnderlyingDirectedEq AuthUserRevokeRoleRequest.ty AuthUserRevokeRoleRequest.underlying
-  isUnderlying : go.IsUnderlying AuthUserRevokeRoleRequest.underlying AuthUserRevokeRoleRequest.underlying
+  get_state : ∀ (x : AuthUserRevokeRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthUserRevokeRoleRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserRevokeRoleRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserRevokeRoleRequest)))
+  get_Name : ∀ (x : AuthUserRevokeRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : AuthUserRevokeRoleRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserRevokeRoleRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AuthUserRevokeRoleRequest)))
+  get_Role : ∀ (x : AuthUserRevokeRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleRequest.underlying go!"Role") #x (Val #(x.Role'))
+  set_Role : ∀ (x : AuthUserRevokeRoleRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserRevokeRoleRequest.underlying go!"Role") (PairV #x #y) (Val #(({ x with Role' := y } : AuthUserRevokeRoleRequest)))
+  get_unknownFields : ∀ (x : AuthUserRevokeRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthUserRevokeRoleRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserRevokeRoleRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserRevokeRoleRequest)))
+  get_sizeCache : ∀ (x : AuthUserRevokeRoleRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthUserRevokeRoleRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserRevokeRoleRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserRevokeRoleRequest)))
 
 attribute [instance] AuthUserRevokeRoleRequest.TypeAssumptions.type_repr
   AuthUserRevokeRoleRequest.TypeAssumptions.underlying
-  AuthUserRevokeRoleRequest.TypeAssumptions.isUnderlying
+  AuthUserRevokeRoleRequest.TypeAssumptions.get_state
+  AuthUserRevokeRoleRequest.TypeAssumptions.set_state
+  AuthUserRevokeRoleRequest.TypeAssumptions.get_Name
+  AuthUserRevokeRoleRequest.TypeAssumptions.set_Name
+  AuthUserRevokeRoleRequest.TypeAssumptions.get_Role
+  AuthUserRevokeRoleRequest.TypeAssumptions.set_Role
+  AuthUserRevokeRoleRequest.TypeAssumptions.get_unknownFields
+  AuthUserRevokeRoleRequest.TypeAssumptions.set_unknownFields
+  AuthUserRevokeRoleRequest.TypeAssumptions.get_sizeCache
+  AuthUserRevokeRoleRequest.TypeAssumptions.set_sizeCache
 
 class AuthRoleAddRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleAddRequest.underlying AuthRoleAddRequest
@@ -878,29 +968,83 @@ attribute [instance] AuthRoleListRequest.TypeAssumptions.type_repr
 class AuthRoleDeleteRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleDeleteRequest.underlying AuthRoleDeleteRequest
   underlying : go.UnderlyingDirectedEq AuthRoleDeleteRequest.ty AuthRoleDeleteRequest.underlying
-  isUnderlying : go.IsUnderlying AuthRoleDeleteRequest.underlying AuthRoleDeleteRequest.underlying
+  get_state : ∀ (x : AuthRoleDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleDeleteRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthRoleDeleteRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleDeleteRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthRoleDeleteRequest)))
+  get_Role : ∀ (x : AuthRoleDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleDeleteRequest.underlying go!"Role") #x (Val #(x.Role'))
+  set_Role : ∀ (x : AuthRoleDeleteRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleDeleteRequest.underlying go!"Role") (PairV #x #y) (Val #(({ x with Role' := y } : AuthRoleDeleteRequest)))
+  get_unknownFields : ∀ (x : AuthRoleDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleDeleteRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthRoleDeleteRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleDeleteRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthRoleDeleteRequest)))
+  get_sizeCache : ∀ (x : AuthRoleDeleteRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleDeleteRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthRoleDeleteRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleDeleteRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthRoleDeleteRequest)))
 
 attribute [instance] AuthRoleDeleteRequest.TypeAssumptions.type_repr
   AuthRoleDeleteRequest.TypeAssumptions.underlying
-  AuthRoleDeleteRequest.TypeAssumptions.isUnderlying
+  AuthRoleDeleteRequest.TypeAssumptions.get_state
+  AuthRoleDeleteRequest.TypeAssumptions.set_state
+  AuthRoleDeleteRequest.TypeAssumptions.get_Role
+  AuthRoleDeleteRequest.TypeAssumptions.set_Role
+  AuthRoleDeleteRequest.TypeAssumptions.get_unknownFields
+  AuthRoleDeleteRequest.TypeAssumptions.set_unknownFields
+  AuthRoleDeleteRequest.TypeAssumptions.get_sizeCache
+  AuthRoleDeleteRequest.TypeAssumptions.set_sizeCache
 
 class AuthRoleGrantPermissionRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleGrantPermissionRequest.underlying AuthRoleGrantPermissionRequest
   underlying : go.UnderlyingDirectedEq AuthRoleGrantPermissionRequest.ty AuthRoleGrantPermissionRequest.underlying
-  isUnderlying : go.IsUnderlying AuthRoleGrantPermissionRequest.underlying AuthRoleGrantPermissionRequest.underlying
+  get_state : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthRoleGrantPermissionRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthRoleGrantPermissionRequest)))
+  get_Name : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : AuthRoleGrantPermissionRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : AuthRoleGrantPermissionRequest)))
+  get_Perm : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"Perm") #x (Val #(x.Perm'))
+  set_Perm : ∀ (x : AuthRoleGrantPermissionRequest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"Perm") (PairV #x #y) (Val #(({ x with Perm' := y } : AuthRoleGrantPermissionRequest)))
+  get_unknownFields : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthRoleGrantPermissionRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthRoleGrantPermissionRequest)))
+  get_sizeCache : ∀ (x : AuthRoleGrantPermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthRoleGrantPermissionRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGrantPermissionRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthRoleGrantPermissionRequest)))
 
 attribute [instance] AuthRoleGrantPermissionRequest.TypeAssumptions.type_repr
   AuthRoleGrantPermissionRequest.TypeAssumptions.underlying
-  AuthRoleGrantPermissionRequest.TypeAssumptions.isUnderlying
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_state
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_state
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_Name
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_Name
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_Perm
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_Perm
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_unknownFields
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_unknownFields
+  AuthRoleGrantPermissionRequest.TypeAssumptions.get_sizeCache
+  AuthRoleGrantPermissionRequest.TypeAssumptions.set_sizeCache
 
 class AuthRoleRevokePermissionRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleRevokePermissionRequest.underlying AuthRoleRevokePermissionRequest
   underlying : go.UnderlyingDirectedEq AuthRoleRevokePermissionRequest.ty AuthRoleRevokePermissionRequest.underlying
-  isUnderlying : go.IsUnderlying AuthRoleRevokePermissionRequest.underlying AuthRoleRevokePermissionRequest.underlying
+  get_state : ∀ (x : AuthRoleRevokePermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthRoleRevokePermissionRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthRoleRevokePermissionRequest)))
+  get_Role : ∀ (x : AuthRoleRevokePermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionRequest.underlying go!"Role") #x (Val #(x.Role'))
+  set_Role : ∀ (x : AuthRoleRevokePermissionRequest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionRequest.underlying go!"Role") (PairV #x #y) (Val #(({ x with Role' := y } : AuthRoleRevokePermissionRequest)))
+  get_Key : ∀ (x : AuthRoleRevokePermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionRequest.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : AuthRoleRevokePermissionRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionRequest.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : AuthRoleRevokePermissionRequest)))
+  get_RangeEnd : ∀ (x : AuthRoleRevokePermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionRequest.underlying go!"RangeEnd") #x (Val #(x.RangeEnd'))
+  set_RangeEnd : ∀ (x : AuthRoleRevokePermissionRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionRequest.underlying go!"RangeEnd") (PairV #x #y) (Val #(({ x with RangeEnd' := y } : AuthRoleRevokePermissionRequest)))
+  get_unknownFields : ∀ (x : AuthRoleRevokePermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthRoleRevokePermissionRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthRoleRevokePermissionRequest)))
+  get_sizeCache : ∀ (x : AuthRoleRevokePermissionRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthRoleRevokePermissionRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleRevokePermissionRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthRoleRevokePermissionRequest)))
 
 attribute [instance] AuthRoleRevokePermissionRequest.TypeAssumptions.type_repr
   AuthRoleRevokePermissionRequest.TypeAssumptions.underlying
-  AuthRoleRevokePermissionRequest.TypeAssumptions.isUnderlying
+  AuthRoleRevokePermissionRequest.TypeAssumptions.get_state
+  AuthRoleRevokePermissionRequest.TypeAssumptions.set_state
+  AuthRoleRevokePermissionRequest.TypeAssumptions.get_Role
+  AuthRoleRevokePermissionRequest.TypeAssumptions.set_Role
+  AuthRoleRevokePermissionRequest.TypeAssumptions.get_Key
+  AuthRoleRevokePermissionRequest.TypeAssumptions.set_Key
+  AuthRoleRevokePermissionRequest.TypeAssumptions.get_RangeEnd
+  AuthRoleRevokePermissionRequest.TypeAssumptions.set_RangeEnd
+  AuthRoleRevokePermissionRequest.TypeAssumptions.get_unknownFields
+  AuthRoleRevokePermissionRequest.TypeAssumptions.set_unknownFields
+  AuthRoleRevokePermissionRequest.TypeAssumptions.get_sizeCache
+  AuthRoleRevokePermissionRequest.TypeAssumptions.set_sizeCache
 
 class AuthEnableResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthEnableResponse.underlying AuthEnableResponse
@@ -1078,179 +1222,6 @@ attribute [instance] AuthUserDeleteResponse.TypeAssumptions.type_repr
   AuthUserDeleteResponse.TypeAssumptions.set_unknownFields
   AuthUserDeleteResponse.TypeAssumptions.get_sizeCache
   AuthUserDeleteResponse.TypeAssumptions.set_sizeCache
-
-class AuthUserChangePasswordResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AuthUserChangePasswordResponse.underlying AuthUserChangePasswordResponse
-  underlying : go.UnderlyingDirectedEq AuthUserChangePasswordResponse.ty AuthUserChangePasswordResponse.underlying
-  get_state : ∀ (x : AuthUserChangePasswordResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : AuthUserChangePasswordResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserChangePasswordResponse)))
-  get_Header : ∀ (x : AuthUserChangePasswordResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : AuthUserChangePasswordResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthUserChangePasswordResponse)))
-  get_unknownFields : ∀ (x : AuthUserChangePasswordResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : AuthUserChangePasswordResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserChangePasswordResponse)))
-  get_sizeCache : ∀ (x : AuthUserChangePasswordResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : AuthUserChangePasswordResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserChangePasswordResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserChangePasswordResponse)))
-
-attribute [instance] AuthUserChangePasswordResponse.TypeAssumptions.type_repr
-  AuthUserChangePasswordResponse.TypeAssumptions.underlying
-  AuthUserChangePasswordResponse.TypeAssumptions.get_state
-  AuthUserChangePasswordResponse.TypeAssumptions.set_state
-  AuthUserChangePasswordResponse.TypeAssumptions.get_Header
-  AuthUserChangePasswordResponse.TypeAssumptions.set_Header
-  AuthUserChangePasswordResponse.TypeAssumptions.get_unknownFields
-  AuthUserChangePasswordResponse.TypeAssumptions.set_unknownFields
-  AuthUserChangePasswordResponse.TypeAssumptions.get_sizeCache
-  AuthUserChangePasswordResponse.TypeAssumptions.set_sizeCache
-
-class AuthUserGrantRoleResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AuthUserGrantRoleResponse.underlying AuthUserGrantRoleResponse
-  underlying : go.UnderlyingDirectedEq AuthUserGrantRoleResponse.ty AuthUserGrantRoleResponse.underlying
-  get_state : ∀ (x : AuthUserGrantRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : AuthUserGrantRoleResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserGrantRoleResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserGrantRoleResponse)))
-  get_Header : ∀ (x : AuthUserGrantRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : AuthUserGrantRoleResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserGrantRoleResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthUserGrantRoleResponse)))
-  get_unknownFields : ∀ (x : AuthUserGrantRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : AuthUserGrantRoleResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserGrantRoleResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserGrantRoleResponse)))
-  get_sizeCache : ∀ (x : AuthUserGrantRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : AuthUserGrantRoleResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserGrantRoleResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserGrantRoleResponse)))
-
-attribute [instance] AuthUserGrantRoleResponse.TypeAssumptions.type_repr
-  AuthUserGrantRoleResponse.TypeAssumptions.underlying
-  AuthUserGrantRoleResponse.TypeAssumptions.get_state
-  AuthUserGrantRoleResponse.TypeAssumptions.set_state
-  AuthUserGrantRoleResponse.TypeAssumptions.get_Header
-  AuthUserGrantRoleResponse.TypeAssumptions.set_Header
-  AuthUserGrantRoleResponse.TypeAssumptions.get_unknownFields
-  AuthUserGrantRoleResponse.TypeAssumptions.set_unknownFields
-  AuthUserGrantRoleResponse.TypeAssumptions.get_sizeCache
-  AuthUserGrantRoleResponse.TypeAssumptions.set_sizeCache
-
-class AuthUserRevokeRoleResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AuthUserRevokeRoleResponse.underlying AuthUserRevokeRoleResponse
-  underlying : go.UnderlyingDirectedEq AuthUserRevokeRoleResponse.ty AuthUserRevokeRoleResponse.underlying
-  get_state : ∀ (x : AuthUserRevokeRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : AuthUserRevokeRoleResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserRevokeRoleResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserRevokeRoleResponse)))
-  get_Header : ∀ (x : AuthUserRevokeRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : AuthUserRevokeRoleResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserRevokeRoleResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthUserRevokeRoleResponse)))
-  get_unknownFields : ∀ (x : AuthUserRevokeRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : AuthUserRevokeRoleResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserRevokeRoleResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserRevokeRoleResponse)))
-  get_sizeCache : ∀ (x : AuthUserRevokeRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : AuthUserRevokeRoleResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserRevokeRoleResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserRevokeRoleResponse)))
-
-attribute [instance] AuthUserRevokeRoleResponse.TypeAssumptions.type_repr
-  AuthUserRevokeRoleResponse.TypeAssumptions.underlying
-  AuthUserRevokeRoleResponse.TypeAssumptions.get_state
-  AuthUserRevokeRoleResponse.TypeAssumptions.set_state
-  AuthUserRevokeRoleResponse.TypeAssumptions.get_Header
-  AuthUserRevokeRoleResponse.TypeAssumptions.set_Header
-  AuthUserRevokeRoleResponse.TypeAssumptions.get_unknownFields
-  AuthUserRevokeRoleResponse.TypeAssumptions.set_unknownFields
-  AuthUserRevokeRoleResponse.TypeAssumptions.get_sizeCache
-  AuthUserRevokeRoleResponse.TypeAssumptions.set_sizeCache
-
-class AuthRoleAddResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AuthRoleAddResponse.underlying AuthRoleAddResponse
-  underlying : go.UnderlyingDirectedEq AuthRoleAddResponse.ty AuthRoleAddResponse.underlying
-  get_state : ∀ (x : AuthRoleAddResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleAddResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : AuthRoleAddResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleAddResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthRoleAddResponse)))
-  get_Header : ∀ (x : AuthRoleAddResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleAddResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : AuthRoleAddResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleAddResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthRoleAddResponse)))
-  get_unknownFields : ∀ (x : AuthRoleAddResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleAddResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : AuthRoleAddResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleAddResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthRoleAddResponse)))
-  get_sizeCache : ∀ (x : AuthRoleAddResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleAddResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : AuthRoleAddResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleAddResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthRoleAddResponse)))
-
-attribute [instance] AuthRoleAddResponse.TypeAssumptions.type_repr
-  AuthRoleAddResponse.TypeAssumptions.underlying
-  AuthRoleAddResponse.TypeAssumptions.get_state
-  AuthRoleAddResponse.TypeAssumptions.set_state
-  AuthRoleAddResponse.TypeAssumptions.get_Header
-  AuthRoleAddResponse.TypeAssumptions.set_Header
-  AuthRoleAddResponse.TypeAssumptions.get_unknownFields
-  AuthRoleAddResponse.TypeAssumptions.set_unknownFields
-  AuthRoleAddResponse.TypeAssumptions.get_sizeCache
-  AuthRoleAddResponse.TypeAssumptions.set_sizeCache
-
-class AuthRoleGetResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AuthRoleGetResponse.underlying AuthRoleGetResponse
-  underlying : go.UnderlyingDirectedEq AuthRoleGetResponse.ty AuthRoleGetResponse.underlying
-  get_state : ∀ (x : AuthRoleGetResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGetResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : AuthRoleGetResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGetResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthRoleGetResponse)))
-  get_Header : ∀ (x : AuthRoleGetResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGetResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : AuthRoleGetResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGetResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthRoleGetResponse)))
-  get_Perm : ∀ (x : AuthRoleGetResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGetResponse.underlying go!"Perm") #x (Val #(x.Perm'))
-  set_Perm : ∀ (x : AuthRoleGetResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGetResponse.underlying go!"Perm") (PairV #x #y) (Val #(({ x with Perm' := y } : AuthRoleGetResponse)))
-  get_unknownFields : ∀ (x : AuthRoleGetResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGetResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : AuthRoleGetResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGetResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthRoleGetResponse)))
-  get_sizeCache : ∀ (x : AuthRoleGetResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGetResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : AuthRoleGetResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleGetResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthRoleGetResponse)))
-
-attribute [instance] AuthRoleGetResponse.TypeAssumptions.type_repr
-  AuthRoleGetResponse.TypeAssumptions.underlying
-  AuthRoleGetResponse.TypeAssumptions.get_state
-  AuthRoleGetResponse.TypeAssumptions.set_state
-  AuthRoleGetResponse.TypeAssumptions.get_Header
-  AuthRoleGetResponse.TypeAssumptions.set_Header
-  AuthRoleGetResponse.TypeAssumptions.get_Perm
-  AuthRoleGetResponse.TypeAssumptions.set_Perm
-  AuthRoleGetResponse.TypeAssumptions.get_unknownFields
-  AuthRoleGetResponse.TypeAssumptions.set_unknownFields
-  AuthRoleGetResponse.TypeAssumptions.get_sizeCache
-  AuthRoleGetResponse.TypeAssumptions.set_sizeCache
-
-class AuthRoleListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AuthRoleListResponse.underlying AuthRoleListResponse
-  underlying : go.UnderlyingDirectedEq AuthRoleListResponse.ty AuthRoleListResponse.underlying
-  get_state : ∀ (x : AuthRoleListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleListResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : AuthRoleListResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleListResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthRoleListResponse)))
-  get_Header : ∀ (x : AuthRoleListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleListResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : AuthRoleListResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleListResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthRoleListResponse)))
-  get_Roles : ∀ (x : AuthRoleListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleListResponse.underlying go!"Roles") #x (Val #(x.Roles'))
-  set_Roles : ∀ (x : AuthRoleListResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleListResponse.underlying go!"Roles") (PairV #x #y) (Val #(({ x with Roles' := y } : AuthRoleListResponse)))
-  get_unknownFields : ∀ (x : AuthRoleListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleListResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : AuthRoleListResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleListResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthRoleListResponse)))
-  get_sizeCache : ∀ (x : AuthRoleListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleListResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : AuthRoleListResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthRoleListResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthRoleListResponse)))
-
-attribute [instance] AuthRoleListResponse.TypeAssumptions.type_repr
-  AuthRoleListResponse.TypeAssumptions.underlying
-  AuthRoleListResponse.TypeAssumptions.get_state
-  AuthRoleListResponse.TypeAssumptions.set_state
-  AuthRoleListResponse.TypeAssumptions.get_Header
-  AuthRoleListResponse.TypeAssumptions.set_Header
-  AuthRoleListResponse.TypeAssumptions.get_Roles
-  AuthRoleListResponse.TypeAssumptions.set_Roles
-  AuthRoleListResponse.TypeAssumptions.get_unknownFields
-  AuthRoleListResponse.TypeAssumptions.set_unknownFields
-  AuthRoleListResponse.TypeAssumptions.get_sizeCache
-  AuthRoleListResponse.TypeAssumptions.set_sizeCache
-
-class AuthUserListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AuthUserListResponse.underlying AuthUserListResponse
-  underlying : go.UnderlyingDirectedEq AuthUserListResponse.ty AuthUserListResponse.underlying
-  get_state : ∀ (x : AuthUserListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserListResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : AuthUserListResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserListResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserListResponse)))
-  get_Header : ∀ (x : AuthUserListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserListResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : AuthUserListResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserListResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthUserListResponse)))
-  get_Users : ∀ (x : AuthUserListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserListResponse.underlying go!"Users") #x (Val #(x.Users'))
-  set_Users : ∀ (x : AuthUserListResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserListResponse.underlying go!"Users") (PairV #x #y) (Val #(({ x with Users' := y } : AuthUserListResponse)))
-  get_unknownFields : ∀ (x : AuthUserListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserListResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : AuthUserListResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserListResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserListResponse)))
-  get_sizeCache : ∀ (x : AuthUserListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserListResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : AuthUserListResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserListResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserListResponse)))
-
-attribute [instance] AuthUserListResponse.TypeAssumptions.type_repr
-  AuthUserListResponse.TypeAssumptions.underlying
-  AuthUserListResponse.TypeAssumptions.get_state
-  AuthUserListResponse.TypeAssumptions.set_state
-  AuthUserListResponse.TypeAssumptions.get_Header
-  AuthUserListResponse.TypeAssumptions.set_Header
-  AuthUserListResponse.TypeAssumptions.get_Users
-  AuthUserListResponse.TypeAssumptions.set_Users
-  AuthUserListResponse.TypeAssumptions.get_unknownFields
-  AuthUserListResponse.TypeAssumptions.set_unknownFields
-  AuthUserListResponse.TypeAssumptions.get_sizeCache
-  AuthUserListResponse.TypeAssumptions.set_sizeCache
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 

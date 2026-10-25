@@ -95,7 +95,8 @@ theorem auth.authStore.isOpPermitted.wp_proof
     · iapply (permVerdict_rev0 M info k e (permOp pt) (GoInterface.ok eUE) (fun h => by cases h)
         (by rw [Hif]; word)) $$ Hev
   have h0 : uint.nat info.Revision' ≠ 0 := fun h => Hif (by word)
-  wp_apply (h_Revision st R M) $$ [$Hinv] as %cur #Hrv
+  wp_apply (h_Revision st R M none) $$ [$Hinv] as %cur ⟨-, #Hrv, -⟩
+  · iunfold authOwnOpt; itrivial
   (try wp_auto)
   wp_if_destruct
   · wp_apply h_Uint64 _ _ as %f1 -

@@ -33,7 +33,7 @@ abbrev schema.unsafeGetRole.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.authReader r H D ∗ H }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeGetRole)) (Val #lg)) (Val #(GoInterface.ok r)))
       (Val #name))
-  {{ (u : Loc), RET #u; H ∗ schema.roleOutD u D.roles name }}
+  {{ (u : Loc), RET #u; H ∗ schema.roleOutDX u D.roles name }}
 
 end spec
 
