@@ -825,7 +825,9 @@ initializers are untranslated (`opaqueInitsOk`).''',
     vars=['[EtcdGrove.ErrorStringLeaf]'],
     alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
                  # the simple provider's TTL default (the auth plan's S5b, 2026-10-24), a `time.Duration`
-                 'simpleTokenTTLDefault': 'w64'},
+                 'simpleTokenTTLDefault': 'w64',
+                 # the keeper's tick (S5c, 2026-10-25), a `time.Duration`
+                 'simpleTokenTTLResolution': 'w64'},
     before={
         # the recipes run before the next untranslated variable's initializer, consuming the
         # translated `errors.New` calls that precede it in `store.go`'s order
@@ -835,7 +837,7 @@ initializers are untranslated (`opaqueInitsOk`).''',
     finish=[f'ipersist H{n}' for n in _AUTH_ERRS] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
-            '· iapply isPkgInit_access $$ Hd15',
+            '· iapply isPkgInit_access $$ Hd16',
             'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩'] + FIN_PRE[:6] + [
             'imodintro', 'unfold authInit authErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))'],

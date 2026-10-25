@@ -13,6 +13,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.adt
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import Perennial.GeneratedProof.sort
+public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
