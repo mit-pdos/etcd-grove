@@ -18285,3 +18285,44 @@ changes, each wider than this stage:
   persistent element per keeper). `run`'s loop is then the map range with deletion
   (`wp_map_for_range_gen`), the delete callback over the provider's map, the ticker's channel bag
   and `stopc` (a bag), `donec` a broadcast channel `run` closes and `stop` waits on.
+
+## S5d of the auth plan: the simple token provider meets the contract, with the admin side's share (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5d`)
+
+**Problem.** S5c left the simple provider's `enable`, `disable`, `invalidateUser` and the keeper
+unproved, for two reasons: `invalidateUser` reads the keeper field outside `simpleTokensMu` (so the
+contract's `{{ True }}` clauses could not be met), and a keeper's goroutine could not find its map
+after relocking (the lock invariant's keepers were an existential list).
+
+**The admin side's share.** `tokenProviderOkA tp M A` (`InvAuth.lean`) gives `enable`, `disable`,
+`invalidateUser` the precondition `A` and gives it back; `tokenProviderOk tp M` (the store's
+invariant's) is it at some `A`. The holder is the store's admin side: `tpAdmin st M` (the store's
+provider, its contract at `A`, and `A`), a precondition and postcondition of the five operations
+that call the three (`AuthEnable`, `AuthDisable`, `Recover`, `UserDelete`, `UserChangePassword`;
+`RoleDelete` does not), and part of the write resource of the apply layer's steps of the real store
+(`authWR st M P f T ∗ tpAdmin st M`, `isAuthSteps_of_authInv`, `auth_apply_steps`). Chosen over a
+field of `authWR` (81 destructurings) and over a token-exchange invariant: a provider-chosen `A`
+held by the caller matches the Go discipline (the three are serialized by their callers:
+`enable`/`disable` under `enabledMu`, `invalidateUser` on the apply thread), and the no-op provider
+takes `A = True`. Like `authOwn`, nothing produces `tpAdmin` yet: `NewAuthStore` (an axiom) states
+`authInv` only; E's closed theorem will.
+
+**The simple provider** (`auth/TokenSimpleAdmin.lean`): `simpleAdmin p` is half the keeper field
+(`simpleLk` holds the other) and, for a set keeper, its stop channels (`keeperStop`: `stopc` a
+bag, `donec` a broadcast channel). `simpleLk` keeps the keepers as a ghost set (`γk`, hidden in
+`simpleOk`) with each keeper's element next to its map, so a goroutine holding its element finds
+its map after relocking, and `enable` needs no freshness argument for the new keeper's address
+(Perennial has no typed points-to validity lemma). Proved: `deleteSimpleToken`, `stop` (a send on
+`stopc` or `donec` closed, then `donec`), `disable` (the keeper stopped, the map emptied: S5's
+issued map is keyed by (token, user), so a token may be reissued), `invalidateUser` (the user's
+tokens removed from both maps, `wp_map_for_range_mut`), `enable` (the keeper allocated, the delete
+callback's contract `delfOk` proved, the goroutine forked), and `tokenSimple_okA`: the provider
+meets `tokenProviderOkA` in `on γa` with `A = simpleAdmin p`.
+
+**What stays hypothesis** (not axioms): `ValidSpec` for `info` (the contract's `info` clause has no
+context premise; S5c); `RunSpec`, the keeper goroutine `run` (a `time.Ticker` loop, a `select` on
+the ticker's channel and `stopc`, a range with deletion over the keeper's map under the mutex
+through `delfOk`): true of the Go code, its resources (`keeperRun`) what `enable` gives; not
+proved for lack of turns. The S5b `info` lemmas now take the continuation under a later, as the
+contract's triples give it. Not done: `newTokenProviderSimple` (it would give `simpleOk`,
+`simpleWaitOk` and `simpleAdmin`; the zero mutex by `init_Mutex`), the modes `off`/`any` for the
+simple provider, JWT. Trust base unchanged.
