@@ -191,7 +191,7 @@ theorem srvBootClient (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → 
   iexists γk
   iframe Hkv Hetcd Hf Hrf
   ipureintro
-  exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-- **A new cluster's raft ghost state, for the servers** (`ownRaftGhost_alloc_boot` at
 `srvBootClient`): raft's names `γ` with the commit invariant, the committed bootstrap log, each
@@ -213,7 +213,7 @@ theorem srvRaftBoot_alloc (E : CoPset) (cfg nodes : GSet w64) (ccOk : w32 → Li
   -- (2026-10-19, D21 M3) in raft's no-snapshot mode; (D22 S-a) and its no-transfer mode
   iapply (ownRaftGhost_alloc_boot E cfg nodes ccOk ps bootLog (srvBootOut ids bootLog) true true
     Hcne Hnz Hcfg hboot)
-  iapply srvBootClient E cfg ccOk ps bootLog ids W hboot hpol
+  iapply srvBootClient E cfg ccOk ps bootLog ids hboot hpol
 
 /-- `c` of raft's read credits for each member of `ps`, out of `n` (D21e (A): `c = 2 ^ 48`). -/
 theorem rdCred_members (γ : RaftNames) (c : Nat) :

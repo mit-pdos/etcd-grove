@@ -57,7 +57,7 @@ theorem kvOpStep_putKey (key val : GoString) (σ : KVState) (hs : σ.kvs.Pairwis
       (findKey key (kvOpStep (.put (putKeyOp key val)) σ).kvs).map EtcdKv.value = some val := by
   have hk : (kvOpStep (.put (putKeyOp key val)) σ).kvs =
       putKv (W64 ((σ.rev + 1 : Nat) : Int)) key val (W64 0) σ.kvs := by
-    simp [kvOpStep, KVState.commit, txn.needsPrev, applyChanges, applyChange, txn.putChangeOf,
+    simp [kvOpStep, KVState.commit_kvs, txn.needsPrev, applyChanges, applyChange, txn.putChangeOf,
       txn.putValOf, txn.putLeaseOf, putKeyOp, txn.putOpOf]
   rw [hk]
   refine ⟨putKv_sorted hs _ key val _, ?_⟩

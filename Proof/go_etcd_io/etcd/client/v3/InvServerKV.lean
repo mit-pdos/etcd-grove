@@ -208,7 +208,7 @@ variable [sem : go.Semantics]
 
 /-- **A step never lowers the state's revision** (a step commits one revision or none). -/
 theorem commit_rev (σ : KVState) (cs : List mvcc.Change) : σ.rev ≤ (σ.commit cs).rev := by
-  unfold KVState.commit; split <;> simp
+  unfold KVState.commit; split <;> simp [KVState.rev]
 
 theorem kvOpStep_rev (op : KVOp) (σ : KVState) : σ.rev ≤ (kvOpStep op σ).rev := by
   cases op <;> simp only [kvOpStep] <;> (try split) <;> (first | exact Nat.le_refl _ | exact commit_rev _ _)
@@ -230,7 +230,6 @@ theorem kvOpAu_range (γk : KVNames) (o : OpFull) (Q : KVState → IProp GF) :
   have h : kvOpStep (KVOp.range o) = fun σ => σ := by funext σ; rfl
   unfold kvOpAu kvReadAu
   rw [h]
-  exact sep_elim_right
 
 instance kvAnyAu_persistent (E : apply.AEnv GF) (γ : ReadNames) :
     Persistent (kvAnyAu (GF := GF) E γ) := by

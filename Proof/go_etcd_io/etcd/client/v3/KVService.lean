@@ -703,6 +703,10 @@ def rangeAns (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
     (Q : KVState → IProp GF) (m : RangeRespM) : IProp GF :=
   iprop(∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗ rangeReplyOk x.E x.γr c F o x.cid x.mid Q m)
 
+instance rangeAns_persistent (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
+    (Q : KVState → IProp GF) (m : RangeRespM) : Persistent (rangeAns ms c F o Q m) := by
+  unfold rangeAns; infer_instance
+
 /-- **A delete's answer**: some member's `deleteReplied`. -/
 def delAns (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVState → IProp GF)
     (m : DelRespM) : IProp GF :=
