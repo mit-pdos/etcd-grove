@@ -40,14 +40,17 @@ theorem auth.authStore.UserChangePassword.wp_proof
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.UserChangePassword.spec (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post r name
-  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Htpa, Hcs, %Hok⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .noPasswordUser $$ Hpkg with ⟨%eNPU, #HeNPU⟩
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
-  iunfold tokenProviderOk at Htpok
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, -, -⟩
+  iunfold tpAdmin at Htpa
+  icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
+  ihave #Htpok := HtpokA
+  iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval, -⟩
   subst Htpi
   iunfold userChangePasswordReqIs at Hr
@@ -88,6 +91,10 @@ theorem auth.authStore.UserChangePassword.wp_proof
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hen]
@@ -146,6 +153,10 @@ theorem auth.authStore.UserChangePassword.wp_proof
       · ipureintro; exact Hl0
       (try wp_auto)
       iapply HΦ
+
+      isplitl [HA]
+
+      · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
       isplitl [HPost]
       · ileft; iexact HPost
       isplitl [Hbe HT Hen]
@@ -219,10 +230,10 @@ theorem auth.authStore.UserChangePassword.wp_proof
       iintro HL
       (try wp_auto)
       wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
-      iapply HInval $$ %name [] [-]
-      · itrivial
+      iapply HInval $$ %name [HA] [-]
+      · iexact HA
       inext
-      iintro -
+      iintro HA
       (try wp_auto)
       wp_apply h_String _ _ as %f1 -
       (try wp_auto)
@@ -249,6 +260,10 @@ theorem auth.authStore.UserChangePassword.wp_proof
         ipureintro; exact Hl1
       (try wp_auto)
       iapply HΦ
+
+      isplitl [HA]
+
+      · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
       isplitl [HPost]
       · ileft; iexact HPost
       isplitl [Hbe HT Hen]
@@ -321,10 +336,10 @@ theorem auth.authStore.UserChangePassword.wp_proof
     iintro HL
     (try wp_auto)
     wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
-    iapply HInval $$ %name [] [-]
-    · itrivial
+    iapply HInval $$ %name [HA] [-]
+    · iexact HA
     inext
-    iintro -
+    iintro HA
     (try wp_auto)
     wp_apply h_String _ _ as %f1 -
     (try wp_auto)
@@ -351,6 +366,10 @@ theorem auth.authStore.UserChangePassword.wp_proof
       ipureintro; exact Hl1
     (try wp_auto)
     iapply HΦ
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hen]

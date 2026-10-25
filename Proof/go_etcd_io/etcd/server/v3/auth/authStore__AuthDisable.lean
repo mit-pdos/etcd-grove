@@ -33,13 +33,16 @@ theorem auth.authStore.AuthDisable.wp_proof
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthDisable.spec (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post
-  wp_start as ⟨#Hinv, Hown, HWR, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, Hown, HWR, Htpa, Hcs, %Hok⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, #Hguard, -⟩
-  iunfold tokenProviderOk at Htpok
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
+  iunfold tpAdmin at Htpa
+  icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
+  ihave #Htpok := HtpokA
+  iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, -, #HDisable, -, -⟩
   subst Htpi
   iunfold authWR at HWR
@@ -69,6 +72,10 @@ theorem auth.authStore.AuthDisable.wp_proof
     · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev
     (try wp_auto)
     iapply HΦ
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hen]
@@ -135,10 +142,10 @@ theorem auth.authStore.AuthDisable.wp_proof
   iintro HT
   (try wp_auto)
   wp_bind (App (Val #(methods tpi.ty go!"disable" tpi.v)) (Val #()))
-  iapply HDisable $$ [] [-]
-  · itrivial
+  iapply HDisable $$ [HA] [-]
+  · iexact HA
   inext
-  iintro -
+  iintro HA
   (try wp_auto)
   wp_apply h_Info
   · ipureintro; exact Hlgnn
@@ -148,6 +155,10 @@ theorem auth.authStore.AuthDisable.wp_proof
   · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev2
   (try wp_auto)
   iapply HΦ
+
+  isplitl [HA]
+
+  · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
   isplitl [Hbe HT Hen]

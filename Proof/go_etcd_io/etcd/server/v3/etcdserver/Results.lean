@@ -1062,14 +1062,16 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
 
 /-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
-`apply.isAuthSteps` with its write resource `auth.authWR st M P f T`, from S4's proofs of
+`apply.isAuthSteps` with its write resource `auth.authWR st M P f T` and the admin side's share of
+the token provider `auth.tpAdmin st M` (S5d), from S4's proofs of
 `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd`, and S4b's of
 `UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`, S4c's of `UserGrantRole` and S4d's of
 `RoleGrantPermission`. -/
 theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val)
     (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
-      EtcdGrove.apply.isAuthSteps (auth.authIface st) P f M (auth.authWR st M P f T) :=
+      EtcdGrove.apply.isAuthSteps (auth.authIface st) P f M
+        iprop(auth.authWR st M P f T ∗ auth.tpAdmin st M) :=
   EtcdGrove.apply.isAuthSteps_of_authInv auth.authStore.wp_AuthEnable auth.authStore.wp_AuthDisable
     auth.authStore.wp_UserAdd auth.authStore.wp_UserDelete auth.authStore.wp_UserChangePassword
     auth.authStore.wp_RoleAdd auth.authStore.wp_UserRevokeRole auth.authStore.wp_RoleRevokePermission

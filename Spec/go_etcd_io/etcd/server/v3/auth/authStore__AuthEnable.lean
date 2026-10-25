@@ -32,10 +32,10 @@ the flag set, the token provider enabled, the cache refreshed and the revision a
 abbrev auth.authStore.AuthEnable.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWR st M P f T ∗ tpAdmin st M ∗ mvcc.csContract P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (authEnableF en))⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthEnable")) (Val #()))
-  {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ authWR st M P f T ∗
+  {{ (err : GoInterface), RET #err; tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T ∗
       ∃ en : Bool, enabledVerdict M en ∗ adminOut M hs (stepOf (authEnableF en)) noExtra err }}
 
 end spec

@@ -310,33 +310,33 @@ theorem isAuthSteps_of_authInv
     (hRoleGrantPermission : auth.authStore.RoleGrantPermission.spec (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val) (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
-      isAuthSteps (auth.authIface st) P f M (auth.authWR st M P f T) := by
+      isAuthSteps (auth.authIface st) P f M iprop(auth.authWR st M P f T ∗ auth.tpAdmin st M) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iunfold isAuthSteps
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, HW, Hcs, %Hok⟩ HΦ
-    iapply (hEnable st R M P f T hs Pre Q Post) $$ [Ho HW Hcs]
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+    iapply (hEnable st R M P f T hs Pre Q Post) $$ [Ho HW HA Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hon
       ipureintro; exact Hok
-    iintro !> %err ⟨HPP, HW, %en, #Hv, Hout⟩
+    iintro !> %err ⟨HA, HPP, HW, %en, #Hv, Hout⟩
     icases adminOut_applyErrIs M hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, HW, Hcs, %Hok⟩ HΦ
-    iapply (hDisable st R M P f T hs Pre Q Post) $$ [Ho HW Hcs]
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+    iapply (hDisable st R M P f T hs Pre Q Post) $$ [Ho HW HA Hcs]
     · iframe; iframe #; ipureintro; exact Hok
-    iintro !> ⟨HPP, HW, %en, #Hv, Hout⟩
+    iintro !> ⟨HA, HPP, HW, %en, #Hv, Hout⟩
     iapply HΦ
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
     iapply (hUserAdd st R M P f T hs Pre Q Post r name) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -347,27 +347,27 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, Ho, HW, Hcs, %Hok⟩ HΦ
-    iapply (hUserDelete st R M P f T hs Pre Q Post r name) $$ [Ho HW Hcs]
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+    iapply (hUserDelete st R M P f T hs Pre Q Post r name) $$ [Ho HW HA Hcs]
     · iframe; iframe #; ipureintro; exact Hok
-    iintro !> %resp %err ⟨HPP, HW, Hresp, %en, #Hv, Hout⟩
+    iintro !> %resp %err ⟨HA, HPP, HW, Hresp, %en, #Hv, Hout⟩
     icases adminOut_applyErrIs M hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hok⟩ HΦ
-    iapply (hUserChangePassword st R M P f T hs Pre Q Post r name) $$ [Ho HW Hcs]
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+    iapply (hUserChangePassword st R M P f T hs Pre Q Post r name) $$ [Ho HW HA Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
-    iintro !> %resp %err ⟨HPP, HW, Hresp, Hout⟩
+    iintro !> %resp %err ⟨HA, HPP, HW, Hresp, Hout⟩
     icases adminOut_applyErrIs M hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
     iapply (hRoleAdd st R M P f T hs Pre Q Post r name) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -379,7 +379,7 @@ theorem isAuthSteps_of_authInv
     iframe #
 
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %role %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %role %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
     iapply (hUserRevokeRole st R M P f T hs Pre Q Post r name role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -390,7 +390,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %role %key %rangeEnd %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %role %key %rangeEnd %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
     iapply (hRoleRevokePermission st R M P f T hs Pre Q Post r role key rangeEnd) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -401,7 +401,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %role %Φ !> ⟨#Hr, Ho, HW, Hcs, %Hok, %Hnm⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %role %Φ !> ⟨#Hr, Ho, ⟨HW, HA⟩, Hcs, %Hok, %Hnm⟩ HΦ
     iapply (hRoleDelete st R M P f T hs Pre Q Post r role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hok
@@ -412,7 +412,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hb, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hb, %Hok⟩ HΦ
     iapply (hUserGrantRole st R M P f T hs Pre Q Post r user role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
@@ -424,7 +424,7 @@ theorem isAuthSteps_of_authInv
     iapply HΦ
     iframe
     iframe #
-  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
     iapply (hRoleGrantPermission st R M P f T hs Pre Q Post r name w) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn

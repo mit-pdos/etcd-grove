@@ -38,7 +38,7 @@ theorem auth.authStore.AuthEnable.wp_proof
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthEnable.spec (GF := GF) (hG := hG) := by
   intro st R M P f T hs Pre Q Post
-  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Hcs, %Hok⟩
+  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   icases authErrVar_of_init .rootUserNotExist $$ Hpkg with ⟨%eRUN, #HeRUN⟩
@@ -46,8 +46,11 @@ theorem auth.authStore.AuthEnable.wp_proof
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, #Hguard, -⟩
-  iunfold tokenProviderOk at Htpok
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
+  iunfold tpAdmin at Htpa
+  icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
+  ihave #Htpok := HtpokA
+  iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
   subst Htpi
   iunfold authWR at HWR
@@ -80,6 +83,10 @@ theorem auth.authStore.AuthEnable.wp_proof
     · inext; iunfold enabledP; iexists true; iframe Hen'; iexact Hev
     (try wp_auto)
     iapply HΦ
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hen]
@@ -140,6 +147,10 @@ theorem auth.authStore.AuthEnable.wp_proof
     · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev
     (try wp_auto)
     iapply HΦ
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hen]
@@ -182,6 +193,10 @@ theorem auth.authStore.AuthEnable.wp_proof
     · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev
     (try wp_auto)
     iapply HΦ
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hen]
@@ -212,10 +227,10 @@ theorem auth.authStore.AuthEnable.wp_proof
   iintro HL
   (try wp_auto)
   wp_bind (App (Val #(methods tpi.ty go!"enable" tpi.v)) (Val #()))
-  iapply HEnable $$ [] [-]
-  · itrivial
+  iapply HEnable $$ [HA] [-]
+  · iexact HA
   inext
-  iintro -
+  iintro HA
   (try wp_auto)
   -- the new state appended (the revision unchanged), and recorded
   have hoff : M = .off → ({ st0 with enabled := true } : AuthState).enabled = false := by
@@ -278,6 +293,10 @@ theorem auth.authStore.AuthEnable.wp_proof
   · inext; iunfold enabledP; iexists true; iframe Hen'; iexact Hev2
   (try wp_auto)
   iapply HΦ
+
+  isplitl [HA]
+
+  · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
   isplitl [Hbe HT Hen]

@@ -425,21 +425,23 @@ def authnCtx (M : AuthMode) (ctx : GoInterface) : IProp GF :=
                 v = interface.mkOk go.string #pre)⌝ }}) ∗
     freshOk M (simpleTok pre idx))
 
-/-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract) in the mode `M`:
+/-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract) in the mode `M`, with the
+admin side's resource `A` (the auth plan's S5d, 2026-10-25):
 - `info(ctx, token, rev)` returns an auth info (`authInfoRO`) and a
   boolean; when the boolean is true, the info is bound to the token (`infoBound`: in `on γa`, its
   user is one the token was issued to; the auth plan's S5, 2026-10-24);
-- `enable()`, `disable()` and `invalidateUser(name)` return (the admin side, S4);
+- `enable()`, `disable()` and `invalidateUser(name)` return, from `A` and giving it back: the
+  admin side's share of the provider (the simple provider's: its keeper field, which
+  `invalidateUser` reads outside the provider's mutex; etcd's callers serialize the three:
+  `enable`/`disable` under the store's `enabledMu`, `invalidateUser` on the apply thread);
 - `assign(ctx, username, rev)` (appended, S5) returns a token and an error; with no error the
   token was issued to `username` (`tokOk`); on an `Authenticate` context (`authnCtx`: its index
   and prefix, and the right to issue the token; S5b).
-No real provider is proved to meet it yet (`notes/decisions.md`, "S5 of the auth plan"): the
-simple provider's `info` waits on the raft index its token names and on the context's `Done()`,
-and its `assign` reads the index and the token's prefix from the context's values (it panics
-without the prefix), so a proof of it needs a context premise here, which this module (generic in
-the later credits, Perennial's contexts are not) cannot state; the JWT provider's binding is its
-signature's. -/
-def tokenProviderOk (tp : GoInterface) (M : AuthMode) : IProp GF :=
+The simple provider meets it (`auth/TokenSimple.lean`, S5b-S5d) but for `info`'s context premise:
+its `info` waits on the raft index its token names and on the context's `Done()`, which this
+module (generic in the later credits, Perennial's contexts are not) cannot state; the JWT
+provider's binding is its signature's. -/
+def tokenProviderOkA (tp : GoInterface) (M : AuthMode) (A : IProp GF) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗
     □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
       {{ True }}
@@ -447,10 +449,35 @@ def tokenProviderOk (tp : GoInterface) (M : AuthMode) : IProp GF :=
           (Val #token)) (Val #rev))
       {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
           (if ok then infoBound M token a else iprop(True)) }}) ∗
-    □ ({{ True }} (App (Val #(methods ti.ty go!"enable" ti.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods ti.ty go!"disable" ti.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ ({{ A }} (App (Val #(methods ti.ty go!"enable" ti.v)) (Val #())) {{ RET #(); A }}) ∗
+    □ ({{ A }} (App (Val #(methods ti.ty go!"disable" ti.v)) (Val #())) {{ RET #(); A }}) ∗
     □ (∀ name : GoString,
-      {{ True }} (App (Val #(methods ti.ty go!"invalidateUser" ti.v)) (Val #name)) {{ RET #(); True }}) ∗
+      {{ A }} (App (Val #(methods ti.ty go!"invalidateUser" ti.v)) (Val #name)) {{ RET #(); A }}) ∗
+    □ (∀ (ctx : GoInterface) (user : GoString) (rev : w64),
+      {{ authnCtx M ctx }}
+        (App (App (App (Val #(methods ti.ty go!"assign" ti.v)) (Val #ctx))
+          (Val #user)) (Val #rev))
+      {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
+          ⌜err ≠ GoInterface.nil⌝ ∨ tokOk M t user }}))
+
+instance tokenProviderOkA_persistent (tp : GoInterface) (M : AuthMode) (A : IProp GF) :
+    Persistent (tokenProviderOkA (GF := GF) tp M A) := by
+  unfold tokenProviderOkA; infer_instance
+
+/-- **The token provider's contract** (what the store's invariant holds, `authInv`): some admin
+resource `A` (`tokenProviderOkA`), whose holder is the store's admin side (`tpAdmin`). -/
+def tokenProviderOk (tp : GoInterface) (M : AuthMode) : IProp GF :=
+  iprop(∃ (A : IProp GF) (ti : GoInterfaceOk), ⌜tp = GoInterface.ok ti⌝ ∗
+    □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
+      {{ True }}
+        (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #ctx))
+          (Val #token)) (Val #rev))
+      {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
+          (if ok then infoBound M token a else iprop(True)) }}) ∗
+    □ ({{ A }} (App (Val #(methods ti.ty go!"enable" ti.v)) (Val #())) {{ RET #(); A }}) ∗
+    □ ({{ A }} (App (Val #(methods ti.ty go!"disable" ti.v)) (Val #())) {{ RET #(); A }}) ∗
+    □ (∀ name : GoString,
+      {{ A }} (App (Val #(methods ti.ty go!"invalidateUser" ti.v)) (Val #name)) {{ RET #(); A }}) ∗
     □ (∀ (ctx : GoInterface) (user : GoString) (rev : w64),
       {{ authnCtx M ctx }}
         (App (App (App (Val #(methods ti.ty go!"assign" ti.v)) (Val #ctx))
@@ -617,6 +644,15 @@ admin side's half of `enabled` (`enabledHalf`). -/
 def authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) : IProp GF :=
   iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
     T ∗ enabledHalf st M)
+
+/-- **The admin side's share of the token provider** of the store `st` in the mode `M` (the auth
+plan's S5d, 2026-10-25): the store's provider with its contract at some admin resource `A`, and
+`A`. The operations that call the provider's `enable`, `disable` or `invalidateUser` (`AuthEnable`,
+`AuthDisable`, `Recover`, `UserDelete`, `UserChangePassword`) take and give it back; like the
+authority `authOwn` it is the apply thread's (the store's only admin caller). -/
+def tpAdmin (st : Loc) (M : AuthMode) : IProp GF :=
+  iprop(∃ (tp : TokenProvider) (A : IProp GF), aF go!"tokenProvider" st ↦□ tp ∗
+    tokenProviderOkA tp M A ∗ A)
 
 /-- The revision the batch transaction holds after `commitRevision` at the pending state `sta`:
 in `on γa` the model's (`bump`); in the other modes the atomic's value plus one, not tied to the

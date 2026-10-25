@@ -114,7 +114,7 @@ theorem auth.authStore.RoleDelete.wp_proof
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
   iunfold tokenProviderOk at Htpok
-  icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval, -⟩
+  icases Htpok with ⟨%Atp, %tpi, %Htpi, -, -, -, #HInval, -⟩
   subst Htpi
   iunfold roleDeleteReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩

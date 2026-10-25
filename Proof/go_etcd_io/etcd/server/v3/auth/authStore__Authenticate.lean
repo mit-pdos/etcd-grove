@@ -51,7 +51,7 @@ theorem auth.authStore.Authenticate.wp_proof
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
   iunfold tokenProviderOk at Htpok
-  icases Htpok with ⟨%tpi, %Htpi, -, -, -, -, #HAssign⟩
+  icases Htpok with ⟨%Atp, %tpi, %Htpi, -, -, -, -, #HAssign⟩
   subst Htpi
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Henh⟩
