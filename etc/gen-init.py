@@ -49,6 +49,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
          'github_com.mit_pdos.etcd_grove.examples.watchkv',
          'github_com.mit_pdos.etcd_grove.examples.cachekv',
+         # the auth plan's E2b (2026-10-25): the authentication example
+         'github_com.mit_pdos.etcd_grove.examples.authkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
          'github_com.mit_pdos.etcd_grove.examples.k8setcd3']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
@@ -1904,6 +1906,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.cachekv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.authkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/authkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.kv':
