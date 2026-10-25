@@ -18403,3 +18403,105 @@ proved for lack of turns. The S5b `info` lemmas now take the continuation under 
 contract's triples give it. Not done: `newTokenProviderSimple` (it would give `simpleOk`,
 `simpleWaitOk` and `simpleAdmin`; the zero mutex by `init_Mutex`), the modes `off`/`any` for the
 simple provider, JWT. Trust base unchanged.
+
+## D43: one stated spec per KV method; the client's KV calls specified over one KV, its members hidden (2026-10-25 · the user; branch `kv-stated-specs`)
+
+*Supersedes in part* "A generic gRPC specification" (the client's KV specs generic in a `GrpcSpec`)
+and "The client meets the server (unit C1)"'s branch note "Where the two sides meet" (the client
+keeping its specs generic, `client_put_etcd` instantiating them).
+
+**The user's request.** `kv.Put.spec` (and `kv.Get`, ...) said only "whatever spec is registered at
+the gRPC endpoint, the call provides": too generic. There should be one stated gRPC spec for `Put`
+(each KV method) that the client and the server both refer to, and a precondition of the client's
+calls (`isKv`) that holds the registrations of every server the client talks to. Asked which
+statement should be the functions' specs (the members' or one KV's), the user chose one KV's, the
+members' statements internal lemmas ("Abstract only").
+
+**Three layers.**
+- *The stated gRPC specs* (`client/v3/KVService.lean`, moved from `client/v3/Results.lean`):
+  `etcdPutSpec`, `etcdRangeSpec`, `etcdDeleteSpec`, `etcdTxnSpec` and their replies (`putReplied`,
+  `rangeReplyOk`, `deleteReplied`, `txnReplied`), at a member's apply environment, read names and
+  ids; `SrvAt` and `kvRegsAt` (a member's four registrations), `anySpec` (a call through a client
+  of several members passes the conjunction). The server's handlers are proved against these
+  definitions (`Results.lean`'s `etcd_putMethodOk`, ..., `etcd_kv_served`, `etcd_kv_started`); the
+  client's proofs use the same ones. Only the transport stays generic in a `GrpcSpec`:
+  `ClientConn.Invoke`, the generated stub (`kVClient.*`), the retry client (`retryKVClient.*`).
+- *The members' lemmas* (`KVMembers.lean`'s `kv.Put.specM`, ...; proved as `kv.Put.wp_members`,
+  ..., linked in `LinkMembers.lean` as `v3.kv.wp_PutM`, ...): over `isKV api ms` (the `*kv`'s
+  connection to the members' endpoints and every member's `kvRegsAt`), the caller's side at each
+  member (`floorsAt`, `knownAt`, `putUpd`, ...), the reply some member's (`putAns`, ...). What the
+  results about the server's own model use (`ServerKV*.lean`, the recipes', the cache's,
+  `Results.lean`'s `client_*_any` and `client_*_end_to_end`): a member's reply carries the server's
+  certificates, the revision's token and the applied index's witness, which no KV-level statement
+  can (they are per member).
+- *The functions' specs* (`Spec/go_etcd_io/etcd/client/v3/{kv__Put,kv__Get,kv__Delete,kv__Do,
+  txn__Commit}.lean`): over `isKv kv γ dup`, the `*kv` a client of etcd's KV `γ`: `∃ ms` (hidden),
+  `isKV`'s facts, every member's start (`srvStart`: the floor `[]`, the committed index `0`, free),
+  every member at `γ`'s state name (`x.γr.kv.st = γ.st`: a cluster booted together), and, unless
+  `dup` (a write may be delivered more than once), every member refusal-free. The caller gives the
+  atomic update itself, written out in the spec: `□?dup (AU <{ ∃∃ σ, etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \
+  ↑kvN, ∅ <{ etcdKV γ (kvOpStep op σ), COMM Q σ }>)` for a write (persistent only if `dup`), a
+  persistent read AU (or none) for a range. The postcondition is written out too: `nil` and the
+  reply's message with `Q σ` and the reply's fields as functions of `σ`, or a client error
+  (`kvErr`). The parameters are named after the Go arguments (`kv`, `ctx`, `key`, `val`,
+  `opts_sl`/`opts`, `op`). The proofs: the
+  member-level `kv.Do`/`txn.Commit` at the hidden members (`putUpd_of`, ...: one update at `γ` is
+  each member's, `kvOpAu1_names`), the replies read back as the state's (`putAns_st`, ...).
+
+**Choices made in the abstract specs** (the open points of the design, decided here):
+- *A write's update* under `□?dup` (the user: the AU in the spec; the optional `□` is Iris's
+  `intuitionisticallyIf`): persistent if the client's retry interceptor may resend the write
+  (`issues/etcd-client-retry-put-ctx-error.md`), fired at most once on a refusal-free client (D29).
+- *Ranges at the latest revision only* (`kv.Get.spec`, `kv.Do.spec`'s range case: `rev = 0`): a
+  reply at an earlier revision is not a function of the current state. Every client-level caller
+  reads at `0`; the server-model results (the recipes' gets at a revision) use the members' lemma.
+- *Leases, `WithFromKey` deletes*: excluded as before (`leaseID = 0`, `rangeEnd ≠ [0]`: what
+  etcd's specs cover).
+- *The update's mask* is `kvAu1`'s (`(⊤ \ ↑srvRaftN) \ ↑kvN`).
+- *The workload's `writes`* (D23's premise `γ.wl.writes op` of every update) removed (D44): the
+  server admits every KV write (`admits_kv`). watchkv's `srvNoDupKeys_wk`, which used it, is
+  broken until redone in watchkv's own proof.
+- *`kv.Txn`, `txn.If`/`Then`/`Else`* unchanged (no request: generic in the builder's addresses);
+  `txn.Commit.spec` takes the builder, its `txnKvIs tp api` and `isKv api γ rf`, the builder's
+  connection swapped for the `*kv`'s (`txnObjAt_conn`, by the `kv` field's agreement).
+
+**One set of read names per member.** The server registers `Put`/`DeleteRange` at the request
+path's read names `ρ.rd`, `Range` at the read loop's `γr`, `Txn` at both; a started server has
+`ρ.rd = γr` (`InvStart`, `InvBuild`, `ReadServer`). `SrvAt`/`kvRegsAt` take one (`γr`), so the
+results that carried both (`ServerKV*`'s `γw γr`, the recipes', `client_txn_any`'s `γw`,
+`kvWritesOk`) take one now; `etcd_kv_started` still gives the four registrations at `ρ.rd`/`γr`,
+from which a caller with `ρ.rd = γr` assembles `kvRegsAt`.
+
+**Rejected.** Keeping the client's specs generic and instantiating them in `Results.lean` (branch
+`kv-put-link`, 2026-10-15, never merged): the generic triple says nothing about etcd. The members'
+statements as the functions' specs (`isKV api ms`, an update per member, a member's reply): the
+user's choice was one KV; the members' are kept for the results that need a member's reply's
+server facts. A cluster-level gname (`KVCluster`) distinct from `KVNames`: `isKv` takes a
+`KVNames` and uses only its `st`, the field the boot makes common.
+
+## D44: the client spec supports what the proof supports; a client's own facts in its invariant; no built-in restriction on the raft log (2026-10-25 · the user)
+
+*Supersedes* D19q's workload parameter (`SrvWorkload`: the requests the server admits, the
+lessor's grant guard) and D23's `writes` (the operations a client may deposit, which watchkv
+restricted to its plan's puts to get `srvNoDupKeys`).
+
+**The decision.**
+- *The etcd client's specs allow any operation the proof supports so far.* What is not supported
+  yet is a precondition stated directly in the spec (e.g. `kv.Put`'s `leaseID = 0`, `kv.Delete`'s
+  range end not `[0]`, `txn.Commit`'s plain transactions); widening it is future work on the
+  proof, not a parameter.
+- *Facts a particular client needs belong to that client's proof*, maintained with an invariant of
+  its own (over `etcdKV γ σ` and its own ghost state), not a restriction built into the server or
+  the client specs. watchkv's "no key written twice in one revision" is the case in point: it
+  moves from a workload restriction to watchkv's own argument (to be redone).
+- *No built-in restriction on the requests that enter the raft log.* The server's proofs are not
+  parameterized by an admission predicate: what enters the log is what the server's verified
+  proposers send (`EtcdServer.Put`/`DeleteRange`/`Txn`, the monitors), and any shape fact the apply
+  proof needs of committed entries follows from that, not from a configurable workload. So
+  `SrvWorkload` goes: D43 removed `writes`; `admits` and `grant` follow (the grant guard is the
+  lessor's fact that no lease is granted, which no supported request does).
+
+**Why.** An arbitrary predicate in a ghost-name record (`γ.wl`), with separate obligations that it
+let the expected operations through, made the specs say less than they seemed to and was hard to
+audit; the client spec should say directly what it supports. (D23 considered a fact in the
+client's proof and rejected it; see this file's header: decisions are not binding.)
