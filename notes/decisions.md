@@ -19290,3 +19290,35 @@ authority at most `ai`; `snapOpensOk`, `dbOpensOk`, the feature gate, `pathOwn` 
 the old backend's `isStopChans` and `bOpen ½` (W7, the user's (c)); the transport's `trLive` and
 W8's coverage (the user's), `Members()`' boot contract (`Hmembers`), `8 · |peers|` of `lgMu`'s reader
 slots for the `AddPeer`s; `receiptBound ≤ wbInit` (the new backend's write-backs).
+
+## D22 S8d: the auth store's Recover a named premise (2026-10-25 · the user's decision, (a))
+
+`applySnapshot.spec` takes the triple of `st.Recover(ab)` in the server's terms as a named premise
+(`srvAuthRecoverOk`: S8c's statement, `authBeOn st oldbe` to `authBeOn st newbe` given the new
+backend's contract, an open share, a write-back token and its tracked buckets with the auth buckets
+at the server's), which the auth track discharges in its E stage when the authority reaches the
+server (`notes/auth-plan.md`, E).
+
+## D22 S8d, second pass against the callees: two of S8's own axioms to restate (2026-10-25 · questions for the user)
+
+Laying the proof against the apply thread's resources found two statements of this track (S8c, W6)
+that do not fit, one of them too strong:
+
+- **`RaftCluster.Recover`'s axiom ignores the cluster's in-memory members (a gap in a trusted
+  statement, W6, 2026-10-25).** `Recover` replaces `c.members` with the image's (`UnsafeLoad`), but
+  the axiom neither takes nor gives `membership.clusterMem c mem` (opaque: "`c.members` is
+  `mem`"), which the apply thread holds in its rest resource (`srvRestOwn`) and the cluster's
+  contracts read (`UpdateAttributes`, `AddMember`). As stated, a caller keeps `clusterMem c mem`
+  of the old members after `Recover`: too strong whenever the image's members differ from the
+  apply thread's model (their attributes, say). No proof uses the axiom yet (S8d is its first
+  caller), so nothing proved rests on the gap. Options: (a) restate it: take `clusterMem c mem`,
+  give `clusterMem c mem'`, with the image premise naming the members it decodes to
+  (`clusterImageOk c r mem'`); (b) keep it and take `clusterMem`'s refresh as a separate premise of
+  `applySnapshot.spec`. Recommendation: (a), the statement true of the code.
+- **`lessor.Recover`'s axiom wants the lease owner's live set empty (`leaseOwn γl []`), but the
+  apply thread holds it at some `L`** (`apply.leasesLive`, existential: nothing in the apply
+  thread's state says `L = []`, though the workload grants none). Options: (a) restate it: any `L`,
+  `leaseOwn γl []` after (true of Go: `Recover`'s `initAndRecover` rebuilds the lease map from the
+  new backend's lease bucket, empty in the image), the ghost's other half in `lessorInv` updated by
+  the axiom; (b) a premise `L = []` of `applySnapshot.spec`, from the workload (`noGrant`), which
+  S-j1 would have to carry as an invariant. Recommendation: (a).
