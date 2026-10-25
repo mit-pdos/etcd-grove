@@ -72,7 +72,8 @@ theorem stepCandidate.wp_proof
   iNamed H
   -- a candidate is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
-  have Hcfg : id ∈ c.voters := Hvoter (by rcases Hrole with h | h <;> rw [h] <;> decide)
+  have Hcfg : id ∈ c.voters :=
+    Hvoter (by rcases Hrole with h | h <;> rw [h] <;> decide) (by rcases Hrole with h | h <;> rw [h] <;> decide)
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
@@ -145,7 +146,7 @@ theorem stepCandidate.wp_proof
       wp_apply raft.wp_load_stateC $$ Hphys as Hphys
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
-      wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide)
+      wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide) (by simp only [Hrole]; decide)
           (by exact Hterm' ▸ Hmnz) $$ [$Hphys]
         as %pvs1 ⟨Hphys, %Hmb⟩
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one

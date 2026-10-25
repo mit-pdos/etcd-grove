@@ -554,6 +554,7 @@ theorem SnapStep.of_handle {id : w64} {m : MessageM} {s t s' : NState} {sv : Sna
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun h => ?_⟩ <;>
     simp only [sendMsgs, logRestore] at * <;>
     first
+    | (rw [Hr] at h; cases h)
     | (rw [Hl])
     | exact Hpv
     | exact Hgh

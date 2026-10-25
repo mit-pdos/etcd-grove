@@ -48,6 +48,19 @@ Conclusions, in short:
   bootstrap applies its conf entries on every node before any message; a node added later
   starts with an empty configuration and log and is unpromotable until it has applied a
   snapshot or the bootstrap prefix: until then its configuration does not matter, see 4.12.)
+* **The boot log** (2026-10-25, T-M M2a, the Lean proof's `raft_dyn_alloc_boot`): the initial log
+  may be a boot log `B` (`Bootstrap`'s conf entries, `AddNode` of each peer, committed on every
+  node with no quorum: D12's `commitJ` boot arm), with `c0` the peers' configuration and the
+  configuration index `0` (Go's `applied = 0`: the application re-applies `B`'s entries through
+  the first `Ready`, each in order, through the ordinary `ApplyConfChange` rule). **A conf entry
+  of `B` needs no witness** (section 2's `W`, 4.7): witnesses are read only in the far cases
+  (section 7's `j_c ≤ j_m - 2`, the winners table's, section 8's), each at a conf entry `k2` of
+  one log with one more conf entry before it than the configuration prefix of the other side,
+  which holds I1 there. Every commit fact's log and every campaign log extends `B`, so at
+  `k2 < |B|` the two logs agree through `k2`: two conf entries past the other side's index,
+  against its I1, with no witness needed. The adjacent cases read none. Nothing asks `B`'s fold
+  to be `c0` (Go's is: a voter's `AddNode` is a no-op), only that each re-application succeed
+  (no panic, below).
 * **A3**: a snapshot's `ConfState` is the configuration of the committed prefix up to its
   index (the application's `CreateSnapshot` passes the `ConfState` its `ApplyConfChange`s
   produced). Like A1 an obligation of the application; `MsgSnap` is accepted by the step

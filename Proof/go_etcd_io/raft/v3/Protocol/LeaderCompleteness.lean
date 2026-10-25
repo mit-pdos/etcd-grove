@@ -520,16 +520,24 @@ theorem lc_far_older (γ : RaftNames) (T t : w64) (F : List EntryM) (a : w64)
     ConfI1 F0 (uint.Z kw).toNat →
     CfgAt γ (F0.take (uint.Z kw).toNat) cW → JQuorum cW V →
     confCount (F0.take (uint.Z kw).toNat) + 2 ≤ confCount (F.take (uint.Z a).toNat) →
+    -- (2026-10-25, T-M M2a) the commit fact's log starts with the boot log (`cq_boot`)
+    γ.reBoot <+: F →
     ⊢ votesTbl (GF := GF) γ -∗ cqDyn γ t F a -∗ isWin γ c T V -∗ isCamp γ c T F0 -∗
       logRecs γ base0 F0 -∗ isCommitted γ (F0.take (uint.Z kw).toNat) -∗ ⌜False⌝ := by
-  intro HtT Hcok HI1 HcfgW HjW Hcc
+  intro HtT Hcok HI1 HcfgW HjW Hcc HbF
   iintro HS #Hd #Hwin #Hc #HrF0 #HcF0
   have HwF0 := Hcok.1
   iunfold cqDyn at Hd
   icases Hd with ⟨-, #Hwit⟩
   obtain ⟨k2, hk2, hp2, hc2⟩ :=
     exists_confPos F (uint.Z a).toNat (confCount (F0.take (uint.Z kw).toNat) + 1) (by omega)
-  ihave Hw := Hwit $$ %k2 %(And.intro hp2 hk2)
+  -- (2026-10-25, T-M M2a) an entry of the boot log has no witness: it is in the campaign log too
+  rcases Nat.lt_or_ge k2 γ.reBoot.length with Hb | Hb
+  · icases isCamp_boot γ c T F0 $$ Hc with %HbF0
+    ipureintro
+    exact far_older HI1 (by rw [take_of_prefix HbF0.1 (by omega), take_of_prefix HbF (by omega)])
+      hp2 hc2
+  ihave Hw := Hwit $$ %k2 %(And.intro hp2 hk2) %Hb
   icases Hw with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
   icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, -, #HcGw, #Hackw, -⟩
   icases isCommitted_agree γ _ _ $$ HcGw HcF0 with %Hpre
@@ -629,7 +637,8 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
       with Hfar | Hfar
     · iapply lc_far_newer γ T t n F a F0 G kw tmc IH HtT Hcp.1 HwG HGl Hcok Hkle HI1F Hfar
         $$ HS Hcq HrF0c HcmF0 HrG
-    · icases lc_far_older γ T t F a c F0 kw cW V IH HtT Hcok Hcp.2.1 Hw.2.2 Hw.2.1 Hfar
+    · icases cq_boot γ t n F $$ Hcq with %HbF
+      icases lc_far_older γ T t F a c F0 kw cW V IH HtT Hcok Hcp.2.1 Hw.2.2 Hw.2.1 Hfar HbF.1
         $$ HS HdF' Hwin Hc HrF0c HcF0 with %Hf
       exact Hf.elim
 
@@ -1224,7 +1233,14 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
       exists_confPos F0 (uint.Z k).toNat (confCount (F0'.take (uint.Z k').toNat) + 1) (by omega)
     ihave #Hws := commitIn_w γ F0 k tmc Hdyn $$ HcmF0
     iunfold witsB at Hws
-    ihave Hw2 := Hws $$ %k2 %(And.intro hp2 hk2)
+    -- (2026-10-25, T-M M2a) an entry of the boot log: in both campaign logs
+    rcases Nat.lt_or_ge k2 γ.reBoot.length with Hb | Hb
+    · icases isCamp_boot γ id T F0 $$ Hc with %HbF0
+      icases isCamp_boot γ id' T F0' $$ Hc' with %HbF0'
+      ipureintro; exfalso
+      exact far_older Hcp'.2.1
+        (by rw [take_of_prefix HbF0'.1 (by omega), take_of_prefix HbF0.1 (by omega)]) hp2 hc2
+    ihave Hw2 := Hws $$ %k2 %(And.intro hp2 hk2) %Hb
     icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
     icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, -, #HcGw, #Hackw, -⟩
     icases isCommitted_agree γ _ _ $$ HcGw HcF0' with %Hpre2
@@ -1251,7 +1267,14 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
       exists_confPos F0' (uint.Z k').toNat (confCount (F0.take (uint.Z k).toNat) + 1) (by omega)
     ihave #Hws := commitIn_w γ F0' k' tmc' Hdyn $$ HcmF0'
     iunfold witsB at Hws
-    ihave Hw2 := Hws $$ %k2 %(And.intro hp2 hk2)
+    -- (2026-10-25, T-M M2a) an entry of the boot log: in both campaign logs
+    rcases Nat.lt_or_ge k2 γ.reBoot.length with Hb | Hb
+    · icases isCamp_boot γ id T F0 $$ Hc with %HbF0
+      icases isCamp_boot γ id' T F0' $$ Hc' with %HbF0'
+      ipureintro; exfalso
+      exact far_older Hcp.2.1
+        (by rw [take_of_prefix HbF0.1 (by omega), take_of_prefix HbF0'.1 (by omega)]) hp2 hc2
+    ihave Hw2 := Hws $$ %k2 %(And.intro hp2 hk2) %Hb
     icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
     icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, -, #HcGw, #Hackw, -⟩
     icases isCommitted_agree γ _ _ $$ HcGw HcF0 with %Hpre2

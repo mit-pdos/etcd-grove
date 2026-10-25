@@ -18448,6 +18448,83 @@ lock's resource; `AddPeer`/`AddRemote` already take it). W3's text predates D41 
   `rs`; `netTransport` (`Net.lean`, shared with D22) keeps its statement if its `Send` does not
   name the ids (to check in M5).
 
+**M2b: pre-vote in the dynamic mode (2026-10-25, branch `membership-m2`).** Q2 (A) carried out, with
+no premise and the trust base unchanged. A pre-candidate in the dynamic mode carries its campaign
+guard instead of being excluded:
+- `PreGuard fp s` (`StepLemmasR.lean`): a pre-candidate has no snapshot pending and no conf entry at
+  the full log's positions `[applied, committed)`, which is `StepR.campaign`'s guard on `rOf s g`.
+  `PreGuardF` is the same at a full prefix of the boundary's length (what the `RawNode` keeps without
+  `FullOk` at hand). `DynHyp` and `GMode.Pre` take the guard where they took "no pre-candidate";
+  `GMode.Guard` is it at the mode's ghost part.
+- Kept across a step through `PreCandStep` (`raft.Step`'s `TermStep`), strengthened: a pre-candidate
+  that stays one kept its boundary, log, commit index and `applied` order, with no snapshot pending
+  appearing (`PreKeep`); one that a `MsgHup` made one has `hup`'s check (`HupFact`), which
+  `noConfIn_of_unapplied` turns into the guard. `PreGuardF.pc`/`.step` (spec level). The local
+  branches state `PreKeep` at a pre-candidate (`%Hpk`: a pre-candidate drops proposals, `stableTo`
+  only moves entries stable, `appliedTo` and a snapshot's acknowledgement touch neither log nor commit).
+- The win: `stepR_prevoteRespResult` (`prevote_lemmas.lean`): waiting is no step, a loss `abandon`, a
+  win `StepR.campaign` from the guard; `StepCD.of_excluded` only excludes a `MsgSnap` now.
+- The `RawNode` layer: `RNPv rs fp s`'s first conjunct is the guard (was `isDyn → prevote = false`);
+  `PreFacts md s` takes the mode; `tickElection`/`tickHeartbeat` take `md.Guard s` and `TickStep`
+  carries the guard; `Advance`'s loop carries it (`%Hpg1`); `acceptReady` keeps it
+  (`readyNstate_guard`); `wp_applyConf_dyn` excludes a pre-candidate by the guard as it excluded a
+  candidate by `RInv.cand`.
+- `RestartNode.spec` loses its premise `md.isDyn = true → cv.PreVote' = false`.
+
+**M2c: `StepDownOnRemoval` off in the dynamic mode (2026-10-25, branch `membership-m2`).** Q3 (A)
+carried out, with no premise and the trust base unchanged. As 4.11 said, the protocol's ghost
+needed nothing; what required the flag was the code level's "a leader is a voter":
+- `ownRaftPhysC`'s `Hvoter` is now `role ≠ follower → role ≠ leader → id ∈ V` (a candidate or
+  pre-candidate is a voter; a leader need not be). `becomeLeader.spec` takes "not a leader" (it is
+  a candidate's, `stepCandidate`).
+- `switchToConfig`: a removed or demoted leader steps down with `stepDownOnRemoval` and otherwise
+  returns, still leader (`SwitchOkC`'s new branch; the premise `id ∉ voters → s.sdr = true` is gone,
+  a voter keeps `MatchKept`). `applyCCOkC_step`/`applyCCOkC_stepR`: that case is `reMatch` only, in
+  both models. `applyConfChange.spec` loses its `sdr` premise; `specS` (static) takes `id ∈ cfg`,
+  which its static callers have (`ownRawNode`'s `Hin`).
+- `stepLeader`: a proposal at a leader without its own `Progress` is dropped (Go's
+  `Progress[r.id] == nil` branch, `raft.go:1298-1302`, reachable now); the heartbeat response's
+  quorum needs a voter in the configuration, which `stepLeader` now takes (`Hhr`'s third conjunct)
+  and `raft.Step` reads off the ghost state (`ghostRest_voters_ne`: statically `reCfg_ne`,
+  dynamically `cfgFold_ok`); the append response did not use it.
+- `sdrOk` is the read-only field only; `RestartNode.spec` loses `md.isDyn → StepDownOnRemoval' = true`.
+
+**M2a: `StartNode`/`Bootstrap` in the dynamic mode (2026-10-25, branch `membership-m2`).** A new
+cluster's boot log in the dynamic mode, with the trust base unchanged. Until now the allocation
+took "static unless the boot log is empty" (`ownRaftGhost_alloc_core`'s `dyn = none ∨ L = []`):
+the boot log's conf entries are committed with no quorum (D12's `commitJ` boot arm), and the dynamic
+ghost wants a commit-fact **witness** for every conf entry below a commit index (`witsB`) or a
+commit fact's configuration index (`cqAt`'s dynamic part).
+- *The paper check* (`notes/reconfiguration-safety.md`, section 0, "The boot log"): witnesses are
+  read only in the far cases (`lc_far_older`, the winners table's two far cases, the read index's
+  two): a conf entry `k2` of one log with one more conf entry before it than the other side's
+  configuration prefix has, the other side holding I1 there. Every commit fact's log and every
+  campaign log starts with the boot log (`cq_boot`, `isCamp_boot`, `leadFull_boot`), so at
+  `k2 < |boot|` the two logs agree through `k2`, and `far_older` (I1) already closes the case. So a
+  conf entry of the boot log needs no witness: `cqAt`, `cqDyn`, `witsB` and `doomed`'s witnesses
+  take `γ.reBoot.length ≤ k` (a binder after the position's), and each far case splits on it.
+  Nothing else changed in the protocol proof; the adjacent cases did not use witnesses.
+- *The configuration index starts at `0`* (`rboot c0 bootLog`, `ResultsDyn.lean`): Go's `Bootstrap`
+  installs the peers in the tracker but applies nothing (`applied = 0`), and the application
+  re-applies the boot entries through the first `Ready` (`ApplyConfChange` of `AddNode` of a voter,
+  a no-op). With `capplied = 0` and the configuration `c0` (the peers', `cfg = cfgFold c0 []`),
+  that re-application is the dynamic mode's ordinary `ApplyConfChange` (`DynCCPreOp`, in order from
+  `0`); `RInv_rboot` holds (I1 at the commit index, the log's end, holds of any log). Starting at
+  `|boot|` instead would have needed a new "re-application below the configuration index" case in
+  `ApplyConfChange` and the fold of the boot log to be `c0`; at `0` neither is needed, and nothing
+  asks the boot entries' fold to be `c0` (that `dec` decodes them so that `ccStepB` succeeds is the
+  application's `ApplyConfChange` premise, as for any conf entry: M3's).
+- The allocation: `ownRaftGhost_alloc_core` loses `dyn = none ∨ L = []` (the initial `witsB` holds
+  vacuously below `|boot|`); `raft_dyn_alloc_boot` (`ResultsDyn.lean`) is the dynamic instance, every
+  member at `rboot c0 bootLog` (`ownRaftGhostR`), in the no-snapshot and no-transfer modes or not.
+- The code: `bootInit γ md id V bootLog` (`InvBoot.lean`, as `rnInit` for `RestartNode`: statically
+  `ownRaftGhost γ id (bootPState bootLog)`, dynamically `rboot` at `c0 = cfgState V ∅`);
+  `RawNode.Bootstrap.spec`, `setupNode.spec` and `StartNode.spec` take the mode `md` and close the
+  node in it (`StartNode`'s `snapIn` premise gains `md = .static`, as `RestartNode`'s). `Bootstrap`'s
+  dynamic case closes `ownRawNode` as `RestartNode`'s does (`ownStepGhost_dyn` at
+  `⟨0, cfgState V ∅, []⟩`, the tracker's learners empty). The server's `newRaftNode` passes `.static`
+  (M3 moves it).
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
@@ -18516,3 +18593,101 @@ through `ownTracker_toC`/`ownTrackerC_toSimple`) and its own interface (`ownRaft
   declarations removed, ...", the server's static mode). No exported result's statement reached
   `ownRaftPhys`, `ownTracker`, `ApplyCCOk`, `SwitchOk` or `CommitOk` (`.lake/tcb.json`), so no
   top-level statement changed.
+
+## E2b of the auth plan: `examples/authkv`, its client-side contract, the closed theorem stated (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2b`)
+
+The example side of D-AU5, in parallel with E2a (`NewAuthStore` over provisional schema axioms,
+the user's 2026-10-25 decision to proceed past D22).
+
+**The program** (`examples/authkv/authkv.go`, project `authkv` of `etc/goose.py`). One member
+started as `common.StartServer` does but with `AuthToken: "simple"` (etcd's default; with no
+`AuthToken`, `NewTokenProvider` gives the no-op provider, whose tokens no request can use). It
+has its own `startServer` rather than a parameter of `common`'s `newServer`, so the other
+examples' specs are untouched. `SetUp`, through a client with no user name while auth is off:
+puts the keys the deletes may remove (`x/<who>/d`), then `UserAdd root`, `UserGrantRole root
+root`, `RoleAdd r`, `RoleGrantPermission r [a, b) READWRITE`, `UserAdd u`, `UserGrantRole u r`,
+`UserAdd v`, `AuthEnable`. Then clients that authenticate as root, `u` and `v`, and four
+principals run `Work` at once: `u`, `v`, `anon` (the set-up's client, no token) and `bad` (the
+same client, each request's context carrying `token: badtoken` through
+`metadata.AppendToOutgoingContext`). `Work`: puts, ranges (`[a, b)`, the prefix `c/`, `[a, d)`),
+transactions (one in `[a, b)` with a read, then ones writing outside it in the then branch, in
+the else branch and in a nested transaction), deletes, and a watch of `c/` from revision 1.
+
+**The checks are the theorem** (as in every example: `Main` does not panic):
+- every request the auth state refuses returned an error, and every refused watch reported no
+  event: the API layer's and the apply layer's checks together (A1, A4);
+- every reply holds only keys its principal may read: `u`'s range and transaction reads, `u`'s
+  watch of `[a, b)` from revision 1;
+- the history: root's watch of every key from revision 1, read up to root's last write `z/end`,
+  shows only writes their principal was permitted. A key names its principal (`x/<who>/...`:
+  once auth is on only `<who>` touches it), so attribution needs no ghost state in the program.
+  Writes after `z/end` are not seen: a refused write cannot be applied later either, but the Go
+  check covers the history up to `z/end` only.
+The Go test (`authkv_test.go`) also asks, after `Main`, why each principal's requests are refused
+(`ErrPermissionDenied` for `u` outside `[a, b)` and for `v`, `ErrUserEmpty` with no token,
+`ErrInvalidAuthToken` for the bad token, `ErrAuthFailed` for a wrong password) and which keys
+exist, so that the checks are not vacuous. It passes, also under `-race` (about 40s: the bad
+principal's writes are retried by the client, below).
+
+**The bad token has no dot.** A token of the simple provider's shape (`x.1`) could in principle be
+issued (its random prefix), and then the bad principal would act as that user. `badtoken` cannot:
+`assign` issues only `<prefix>.<index>` (`auth.simpleTok`, `fmt.Sprintf("%s.%d")`), and
+`isValidSimpleToken` refuses a token with no dot before the map is read
+(`simpleTok_ne_badToken`, `ClientAuth.lean`).
+
+**Passwords do not matter to the theorem.** Only the user clients call `Authenticate`, each for
+its own name, so whatever `CheckPassword` (bcrypt) answers, a token is only ever issued to the
+name its client asked for. A wrong answer can only make `Main` return `Failed`. bcrypt stays a
+contract that need not say more than "returns".
+
+**The client's auth side as a contract** (D-AU6 keeps clientv3's auth outside the verified code;
+`ClientAuth.lean` states the decision, `Main.lean` lists it as a need). Four parts:
+- C1. A client `clientv3.New` built with a user name `u` (and `getToken`'s `Authenticate`, its
+  retry interceptor's `refreshToken`) sends with each attempt no token, or one `t` with
+  `tokIssued γa t u` at the auth names `γa` of the member at its endpoint. The server side of
+  this is S5's `Authenticate` (the reply's token is issued to the request's name); the wire
+  carries the fact as it carries the KV replies' (the handler's theorem transported). Today
+  `Client.getToken`'s axiom promises only `nil` or a client error.
+- C2. A client with no user name adds no token: an attempt's outgoing metadata is its caller's
+  context's.
+- C3. `metadata.AppendToOutgoingContext(ctx, "token", t)` returns a context whose outgoing
+  metadata has `token: t` (grpc: untranslated, a trust-boundary spec).
+- C4. gRPC delivers an attempt's outgoing metadata as the handler's incoming metadata, which
+  `AuthInfoFromCtx` reads (grpc's transport; the same kind as D21j's at-most-once).
+
+**What the server side must say, found in stating this** (for E2a and after):
+- `AuthInfoFromCtx`'s binding must name the context's token. Today `ctxBound M a` says the info
+  is `nil` or bound to *some* token issued to its user, which a bad principal's request satisfies
+  as soon as anyone holds a token: it cannot tell the bad principal from root. Needed:
+  `a = null ∨ ∃ t, ctxToken ctx t ∗ infoBound M t a`.
+- Every token issued in the server's mode is the simple provider's (`tokIssued γa t u → ∃ pre
+  idx, t = simpleTok pre idx`): `authnCtx`'s right to issue (`freshOk`) is only ever given for a
+  `simpleTok`, a fact `NewAuthStore`'s allocation of the fresh-token names must state.
+- A token is issued to one user (`tokIssued γa t u ∗ tokIssued γa t u' → u = u'`: the right to
+  issue `t` is exclusive and spent).
+- The history after `SetUp` is `setupSt rev` at every later position (`Model.lean`): the
+  set-up's admin requests are the only ones applied (no later request is an admin one, and the
+  program is closed), so every later check reads states of that shape.
+- **Refusal-freedom is false here.** D29's `noRefusalAt` (and the axiom `etcd_noRefusal`) is for
+  members with auth off; this member refuses the bad principal's KV requests with
+  `"etcdserver: invalid auth token"`, a refusal, and the client's retry interceptor resends a
+  refused write (`refreshToken` returns `nil` with no token bundle) until its retries or its
+  context end. Every attempt is refused again, so nothing is applied, but the client's write
+  spec must be proved without `noRefusalAt` for this client: a write sent many times, each
+  attempt with the same principal.
+
+**Proved now.** `InRange` and `Permitted` (the program's verdict, `Permitted.lean`), and the
+model's verdict at the set-up's state (`Model.lean`: `setupSt`, `granted_setupSt_iff` -- for a
+point request of a non-empty key by `u` or `v` with a revision, granted exactly when `Permitted`
+says so; `granted_rev0` for a principal without one; `granted_setupSt_range` for `u`'s `[a, b)`;
+`not_coversRange_past`, `not_coversRange_c` for the two ranges the role does not cover), and
+`simpleTok_ne_badToken`. Restated in `Results.lean`; collection `etc/tcb-collections/authkv.txt`.
+
+**Not proved.** `Main` (`Main.lean`: a `sorry`, `authkv.Main.wp_proof`): its spec states the
+closed theorem's triple with watchkv's premises for the server's start, which an auth-enabled
+start may change. Left, in order: E2a's server start with auth's authority; the server-side
+facts above; the client contract C1-C4 (axioms at the client's and grpc's trust boundary, or
+C1 proved over `getToken`); the client's write path without refusal-freedom; `SetUp`'s admin
+calls (the client's `Auth` methods over the API layer's A3 entry points); the workload's and the
+checks' proofs (`keyOf`, `refused`, `checkKVs`, `checkTxnReads`, `Writer`, `CheckHistory`,
+`LastIn`, `Work`, `SetUp`).

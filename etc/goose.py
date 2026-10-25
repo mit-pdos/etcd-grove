@@ -503,6 +503,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "watchkv")],
     ),
     Project(
+        name="authkv",
+        # The authentication example (notes/auth-plan.md, D-AU5): one member started in-process
+        # with the simple token provider, auth set up and enabled through a client, four
+        # principals (two users, no token, an invalid token) running a workload inside and outside
+        # the one granted range, and checks that the server refused what the auth state does not
+        # permit. A package of the examples' Go module (examples/go.mod); its imports are the
+        # etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "authkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "authkv")],
+    ),
+    Project(
         name="cachekv",
         # watchkv with the watch read through etcd's cache: one member started in-process, as in
         # putget, a cache of the prefix over the client, a cache watch from revision 2, writer

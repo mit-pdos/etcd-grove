@@ -8,7 +8,7 @@ error only logged; none under `RawNode.Bootstrap.spec`'s premises) and `newNode(
 by pointer. The premises are `NewRawNode.spec`'s (the conf state empty: a new cluster's) and
 `RawNode.Bootstrap.spec`'s (the peers, the bootstrap log, this node's ghost state); the result is
 the `node` value at `n` with its channels (`newNodeChans`) over the `RawNode` closed at the
-peers' configuration (`ownRawNode`, static, term `1`, nothing delivered), as `StartNode` hands it
+peers' configuration (`ownRawNode`, in the mode `md`, term `1`, nothing delivered), as `StartNode` hands it
 to `run` (2026-10-16, stage R8b, D12).
 -/
 module
@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev setupNode.spec : Prop :=
-  ∀ (γ : RaftNames) (c : Loc) (cv : Config)
+  ∀ (γ : RaftNames) (md : RNMode) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk)
     (σ : StorState)
     (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
@@ -82,7 +82,8 @@ abbrev setupNode.spec : Prop :=
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
-      ownRaftGhost γ cv.ID' (bootPState bootLog) ∗ isCommitted γ bootLog ∗
+      -- (2026-10-25, T-M M2a) in the mode `md`
+      bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
       -- (2026-10-19, D21 M3) `Bootstrap`'s: in the no-snapshot mode, a storage never compacted
       -- past `1`
       NsCap γ.reNoSnap (interface.ok si) ∗
@@ -95,7 +96,7 @@ abbrev setupNode.spec : Prop :=
         n ↦ nv ∗ ⌜nv.rn' = rn⌝ ∗ newNodeChans nv ∗
         ownRawNode γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
-            storage := interface.ok si, mode := RNMode.static,
+            storage := interface.ok si, mode := md,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 } ∗
         peers ↦*{dq} pv }}
 

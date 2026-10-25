@@ -1003,8 +1003,10 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF)
   "%Hgh_unst" ∷ ⌜GhLogOk s.gh s.logst⌝ ∗
   -- only a voter leaves the follower role (2026-10-13, reconfiguration stage L): a learner
   -- never campaigns (`promotable`), so the role stores of `becomeCandidate`,
-  -- `becomePreCandidate` and `becomeLeader` (`raft.wp_store_stateC`) are at a voter
-  "%Hvoter" ∷ ⌜s.role ≠ .follower → id ∈ V⌝ ∗
+  -- `becomePreCandidate` and `becomeLeader` (`raft.wp_store_stateC`) are at a voter; (2026-10-25,
+  -- T-M M2c) a candidate or pre-candidate is one, a leader need not be: removed without
+  -- `StepDownOnRemoval` it stays leader outside the configuration (`switchToConfig`)
+  "%Hvoter" ∷ ⌜s.role ≠ .follower → s.role ≠ .leader → id ∈ V⌝ ∗
   -- the leader's progress bound (2026-10-16, stage R8a, D11): every tracked peer's `Next` within
   -- `[1, lastIndex + 1]`, its `Match` and pending snapshot at most `lastIndex` (`PrvalsOk`,
   -- `Defs.lean`); vacuous at a non-leader
@@ -1126,7 +1128,7 @@ theorem ownRaftPhysCV_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : 
     (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
     s.gh.outlb ≤ msgs.length + msgsAA.length →
     GhLogOk s.gh s.logst →
-    (s.role ≠ .follower → id ∈ V) →
+    (s.role ≠ .follower → s.role ≠ .leader → id ∈ V) →
     PrvalsOk s →
     LogNsOk s →
     XfOk id s (msgs ++ msgsAA) →
@@ -1201,7 +1203,7 @@ theorem ownRaftPhysCVW_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s :
     (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
     s.gh.outlb ≤ msgs.length + msgsAA.length →
     GhLogOk s.gh s.logst →
-    (s.role ≠ .follower → id ∈ V) →
+    (s.role ≠ .follower → s.role ≠ .leader → id ∈ V) →
     PrvalsOk s →
     LogNsOk s →
     XfOk id s (msgs ++ msgsAA) →
@@ -1590,7 +1592,7 @@ theorem ownRaftPhysC_prvals_ok (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s
 /-- Only a voter (of either half) is out of the follower role. -/
 theorem ownRaftPhysC_voter (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ⌜s.role ≠ .follower → id ∈ V⌝ ∗ ownRaftPhysCV c V r id s := by
+      ⌜s.role ≠ .follower → s.role ≠ .leader → id ∈ V⌝ ∗ ownRaftPhysCV c V r id s := by
   iintro H
   iNamed_physC H
   isplitr
@@ -2114,7 +2116,7 @@ theorem raft.wp_store_leadC (r : Loc) (id : w64) (s : NState) (v : w64) :
 constant (`StateFollower` = `W64 0`), which unifies with `stateW64 .follower` by
 computation. -/
 theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
-    (Hro : ro ≠ .follower → id ∈ V)
+    (Hro : ro ≠ .follower → ro ≠ .leader → id ∈ V)
     (Hpc : ro = .preCandidate → s.prevote = true := by intro h; cases h)
     (Hpr : ro = .leader → ∀ v p, s.prvals !! v = some p → PrOkN s.gh.ns s.logst p := by intro h; cases h) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}
@@ -2124,7 +2126,8 @@ theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
   iintro %Φ H HΦ
   iNamed_physC H
   wp_apply wp_store_access _ rv.state' (stateW64 ro) _ _ (raftOwn_access_store_state _ _ _) $$ Hr as Hr
-  have Hvoter' : ({ s with role := ro } : NState).role ≠ .follower → id ∈ V := Hro
+  have Hvoter' : ({ s with role := ro } : NState).role ≠ .follower →
+      ({ s with role := ro } : NState).role ≠ .leader → id ∈ V := Hro
   have Hpv' : rv.preVote' = ({ s with role := ro } : NState).prevote ∧
       (({ s with role := ro } : NState).role = .preCandidate →
         ({ s with role := ro } : NState).prevote = true) := ⟨Hprevote.1, Hpc⟩
@@ -2900,7 +2903,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
 
 /-- The tracker replaced while the log is in use (at any configurations): `restore` at a node of any configuration `c0` installs the snapshot's `c`. -/
 theorem ownRaftPhysC_retrack (c0 : CfgM) (V0 V' : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (Hv : s.role ≠ .follower → id ∈ V') :
+    (Hv : s.role ≠ .follower → s.role ≠ .leader → id ∈ V') :
     ⊢ ownRaftPhysCV (GF := GF) c0 V0 r id s -∗
       ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
         ownTrackerC c0 tv ⟨s.votes, s.progress, s.prvals⟩ ∗
@@ -2947,11 +2950,11 @@ theorem ownRaftPhysC_retrack (c0 : CfgM) (V0 V' : GSet w64) (r : Loc) (id : w64)
 /-- `Hvoter`'s set changed to any `V'` that holds of the role (a superset, or any set at a
 follower). -/
 theorem ownRaftPhysCV_widen (V' : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (Hv : (s.role ≠ .follower → id ∈ V) → s.role ≠ .follower → id ∈ V') :
+    (Hv : (s.role ≠ .follower → s.role ≠ .leader → id ∈ V) → s.role ≠ .follower → s.role ≠ .leader → id ∈ V') :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownRaftPhysCV c V' r id s := by
   iintro H
   iNamed_physC H
-  have Hvoter' : s.role ≠ .follower → id ∈ V' := Hv Hvoter
+  have Hvoter' : s.role ≠ .follower → s.role ≠ .leader → id ∈ V' := Hv Hvoter
   iapply ownRaftPhysCV_intro c V' _ _ s _ msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
     HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
@@ -2961,7 +2964,7 @@ theorem ownRaftPhysCV_widen (V' : GSet w64) (r : Loc) (id : w64) (s : NState)
 /-- At any `Hvoter` set: the tracker at `c0` handed out, taken back at
 `c` with `Hvoter` at `V'` (which must hold of the role now). -/
 theorem ownRaftPhysCV_reconfig (c' : CfgM) (V' : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (Hv : s.role ≠ .follower → id ∈ V') :
+    (Hv : s.role ≠ .follower → s.role ≠ .leader → id ∈ V') :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
       ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
         ownTrackerC c tv ⟨s.votes, s.progress, s.prvals⟩ ∗
@@ -3111,7 +3114,7 @@ theorem ownRaftPhys_progress_size (r : Loc) (id : w64) (s : NState) :
 anything. -/
 theorem ownRaftPhys_voter (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ⌜s.role ≠ .follower → id ∈ cfg⌝ ∗ ownRaftPhys cfg r id s := by
+      ⌜s.role ≠ .follower → s.role ≠ .leader → id ∈ cfg⌝ ∗ ownRaftPhys cfg r id s := by
   iintro H
   ihave H := ownRaftPhys_toC cfg r id s $$ H
   icases ownRaftPhysC_voter _ r id s $$ H with ⟨%Hv, H⟩
@@ -3233,7 +3236,7 @@ theorem ownRaftPhys_intro_trk (r : Loc) (id : w64) (s : NState) (rv : raft)
     (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
     s.gh.outlb ≤ msgs.length + msgsAA.length →
     GhLogOk s.gh s.logst →
-    (s.role ≠ .follower → id ∈ cfg) →
+    (s.role ≠ .follower → s.role ≠ .leader → id ∈ cfg) →
     LogNsOk s →
     XfOk id s (msgs ++ msgsAA) →
     ⊢ raftOwn (GF := GF) r rv -∗
@@ -3265,7 +3268,7 @@ theorem ownRaftPhys_intro_trk (r : Loc) (id : w64) (s : NState) (rv : raft)
       { rv with trk' := tv' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
     HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
-    Hgh_unst (fun h => by rw [CfgM.voters_simple]; exact Hvoter h) Hok Hnsl Hxf
+    Hgh_unst (fun h hl => by rw [CfgM.voters_simple]; exact Hvoter h hl) Hok Hnsl Hxf
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
 
 end physS

@@ -34,8 +34,8 @@ theorem RestartNode.wp_proof
     (wp_newNode : newNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) := by
-  intro γ md bud c cv lok si σ hs csm sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
-    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28 HsnIn
+  intro γ md bud c cv lok si σ hs csm sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P11 P12 P13 P14
+    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P28 HsnIn
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0, #Hcl⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
@@ -102,11 +102,11 @@ theorem RestartNode.wp_proof
   have Hdlen0 : ([] : List EntryM).length = (uint.Z s.logst.applying).toNat := by
     rw [Hapg]; rfl
   -- (2026-10-17) the term ceiling at the term, `0`
-  have Hrnpv : RNPv
+  have Hrnpv : ∀ fp, RNPv
       { delivered := [], unpersisted := [], steps := [], term := W64 0,
         storage := interface.ok si, mode := md,
-        cfg := cfgState (GMap.listToSet csm.Voters') ∅ } s :=
-    ⟨fun h => by rw [Hpvoff]; exact P10 h, by rw [Hgh], by rw [Ht0, Hgh]; exact Int.le_refl _,
+        cfg := cfgState (GMap.listToSet csm.Voters') ∅ } fp s := fun _ =>
+    ⟨fun _ _ h => (by rw [Hr] at h; cases h), by rw [Hgh], by rw [Ht0, Hgh]; exact Int.le_refl _,
       fun h => by rw [Hr] at h; cases h⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   icases ownRaftPhysC_sdr _ rnv.raft' cv.ID' s $$ Hphys with ⟨#Hsd0, Hphys⟩
@@ -125,7 +125,7 @@ theorem RestartNode.wp_proof
     | static =>
       iunfold rnInit at Hghost
       ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' RNMode.static $$ []
-      · iunfold sdrOk; iexists s.sdr; iframe Hsd0; ipureintro; intro h; cases h
+      · iunfold sdrOk; iexists s.sdr; iexact Hsd0
       ihave Hphys := ownRaftPhysC_toS $$ Hphys
       ihave Hphys : ownRaftPhys γ.reCfg rnv.raft' cv.ID' s $$ [Hphys]
       · rw [P25]; iexact Hphys
@@ -136,7 +136,7 @@ theorem RestartNode.wp_proof
           s initPState rnv sv hprev [] rfl Hrel
           (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26) Hasync
           Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
-          (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
+          (by rw [Ht0]) (by rw [Hsg]) (Hrnpv []) (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
           -- (D22 S-d3a) no snapshot lent
           ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ _ h => (by cases h)⟩,
@@ -155,7 +155,7 @@ theorem RestartNode.wp_proof
       obtain ⟨HD, rfl⟩ := HD
       ihave #Hsdrf : sdrOk (GF := GF) rnv.raft'
           (RNMode.dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1) $$ []
-      · iunfold sdrOk; iexists s.sdr; iframe Hsd0; ipureintro; intro _; rw [Hsdr]; exact P27 rfl
+      · iunfold sdrOk; iexists s.sdr; iexact Hsd0
       have Hro : rOf s ⟨0, cfgState (GMap.listToSet csm.Voters') ∅, []⟩ =
           rinit (cfgState (GMap.listToSet csm.Voters') ∅) := by
         unfold rOf rinit pciR
@@ -188,7 +188,7 @@ theorem RestartNode.wp_proof
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
           s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) rfl Hasync
           Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
-          (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
+          (by rw [Ht0]) (by rw [Hsg]) (Hrnpv _) (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
           -- (D22 S-d3a) no snapshot lent
           ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ _ h => (by cases h)⟩,

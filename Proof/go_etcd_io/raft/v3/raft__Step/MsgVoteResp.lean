@@ -308,7 +308,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         icases ownTrackerC_progress_map c tv _ $$ Htrk with ⟨-, %Hprd, Htrk⟩
         ihave Hphys := Hback $$ %tv Htrkf Htrk
         icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
-        have Hcfg : id ∈ c.voters := Hvoter (by rw [Hrole]; decide)
+        have Hcfg : id ∈ c.voters := Hvoter (by rw [Hrole]; decide) (by rw [Hrole]; decide)
         have Hid : id ∈ domSet s.prvals := by
           have h1 : domSet s.prvals = domSet s.progress := Hpd
           wp_gets
