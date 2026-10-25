@@ -1,8 +1,9 @@
 # Membership changes in the server (track T-M, D21d (B)) — plan
 
 Planned 2026-10-25. Status: **M0 in part**: Q1-Q4 decided (D43: removal only; pre-vote and
-`StepDownOnRemoval = false` proved in the dynamic mode; the removed member's own stop); W3 with the
-D22 owner, the example and the client path still open.
+`StepDownOnRemoval = false` proved in the dynamic mode; the removed member's own stop); W3 settled
+(the user for the D22 owner: the peers right is `trLive`, D43); the example and the client path
+still open.
 
 ## Goal
 
@@ -96,8 +97,8 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
 
 ## Stages
 
-- **M0. Scope** (this section): Q1-Q4 with the user (**decided 2026-10-25, D43**: each (A)); W3's statement agreed with the D22 owner (the
-  peers right is shared with S8c-S8d); the example chosen (below). Writes D43.
+- **M0. Scope** (this section): Q1-Q4 with the user (**decided 2026-10-25, D43**: each (A)); W3's statement (the peers right, shared with
+  S8c-S8d; **settled 2026-10-25**: `trLive`, D43 "W3 settled"); the example chosen (below). Writes D43.
 - **M1. Raft clean-up (optional, warm-up)**: the static `ownRaftPhys` as the sealed alias of
   `ownRaftPhysC` (STATUS "Clean-up: unused declarations removed, ...": about 3-4 hours, rebuilds raft
   and the server), then `applyConfChange.specS`, `ApplyCCOk`, `SwitchOk`. Independent of the rest;
@@ -120,8 +121,8 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
 - **M5. `applyConfChange` proved** for `AddNode` of a known member and `RemoveNode`: raft's
   `ApplyConfChange` in the dynamic mode, the cluster writers (M4), `transport.RemovePeer`, and
   `removed = (id = local)`. rafthttp: `RemovePeer`/`removePeer` proved over a transport state with a
-  **peers right** after the freeze (W3: exclusive, held by the apply thread, consumed by `Stop`;
-  `trFrozen` split into the persistent part and the right); `Process`'s removed-sender branch and the
+  **peers right** (W3, settled: `trLive`, not frozen by `NewServer`, held by the apply thread,
+  consumed by `Stop`; the readers restated over `trState`, D43 "W3 settled"); `Process`'s removed-sender branch and the
   `403` it answers made reachable: the raft protocol's "no 403" weakened to "no 403 to a member not
   removed", `checkPostResponse`'s `errMemberRemoved` then a real error.
 - **M6. The stopping server** (Q4 (A)): `apply`'s `shouldStop`, `stopWithDelay` translated, `errorc`

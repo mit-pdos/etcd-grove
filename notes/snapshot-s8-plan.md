@@ -158,7 +158,10 @@ to settle before the axiom can be written true.
     `server.go:818-825`: "must stop raft after scheduler"). A true `AddPeer` after `Start` needs
     an exclusive right that `Stop` consumes: `Transport.Start`'s axiom and the raft node's
     transport contract restated, the right passed from the apply thread to the raft node's stop
-    when `run` returns. `RemoveAllPeers` alone (no panic) is true over `transportStarted`.
+    when `run` returns. `RemoveAllPeers` alone (no panic) is true over `transportStarted`. *Settled 2026-10-25 (the user for the D22
+    owner; `notes/decisions.md`, D43, "W3 settled"): the right is the transport's `trLive` (D41),
+    not frozen by `NewServer`, held by the apply thread, consumed by `Stop`; carried out in T-M's M5
+    (`notes/membership-plan.md`).*
 17. `cluster.Members()` ✓, `MemberID()` ✓, the `ep` stores, `NewUberApplier` ✓ (at `E'`).
 18. The post: `isServer` at the new names and `E' = E.onBe …` (`beSucc`), `applyBackend`
     (`ciOwner` from `SetBackend`, `isMetaBackend newbe (readView …)` from the open's backend),

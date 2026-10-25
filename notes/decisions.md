@@ -18429,3 +18429,21 @@ starts with `StartNode`.
 
 **Why.** Removal is the change that needs no other track's unfinished work, and both raft
 extensions keep the verified code as etcd ships it.
+
+**W3 settled (2026-10-25, the user for the D22 owner; `notes/snapshot-s8-plan.md` item 16).** The
+peers right that a true `AddPeer`/`RemovePeer` after `Start` needs, and that `Stop` consumes, is the
+transport's `trLive γn t c rs` (D41, stage 6d: half of the ids record `γr`, the other half in the
+lock's resource; `AddPeer`/`AddRemote` already take it). W3's text predates D41 (the opaque
+`transportStarted`). What changes, in T-M's M5 (and S8d uses the same):
+- `NewServer` no longer freezes the transport (`trLive_freeze`): the right goes to the apply
+  thread, which uses it for `applyConfChange`'s `RemovePeer`/`AddPeer` and `applySnapshot`'s
+  `RemoveAllPeers`/`AddPeer` loop, and hands it to the raft node's stop when `run` returns (Go's
+  order, `server.go:818-825`).
+- `Transport.Stop` on `trLive` (a `Stop_live` beside `Stop_full`): consumes the right, sets the
+  flag; after it no `AddPeer` can be called, so its panic on a stopped transport is unreachable.
+- `RemovePeer`/`RemoveAllPeers`/`removePeer` specs on `trLive`: the ids `rs` lose the peer.
+- The readers (`Send`, `CutPeer`, `MendPeer`, `Handler`, `ActiveSince`, `SendSnapshot`) are restated
+  over `trState` and a reader's token with the ids read under the lock (a message to a removed
+  peer is dropped, as Go's `Send` logs and ignores an unknown id), instead of `trFrozen`'s fixed
+  `rs`; `netTransport` (`Net.lean`, shared with D22) keeps its statement if its `Send` does not
+  name the ids (to check in M5).
