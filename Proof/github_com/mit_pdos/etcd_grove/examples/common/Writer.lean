@@ -75,7 +75,7 @@ theorem Writer.wp_proof
       as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
     (try wp_auto)
     ihave #Hput1 : [∗list] y ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
-        isGrpcRpc y.addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec y.E y.γr y.cid y.mid) $$ []
+        client.kvRegsAt y $$ []
     · iapply BigSepL.bigSepL_singleton.2; iexact Hput
     ihave #HF1 : [∗list] y ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
         mvcc.idxCert y.E.γ.idx [] $$ []

@@ -306,8 +306,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Hserr
   wp_auto
-  iunfold common.etcdKVAt at Hkv
-  icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn⟩
+  ihave #Hregs := common.etcdKVAt_regs clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid
+    rfl $$ Hkv
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration)
   wp_apply (wp_NewClient clientAddr₁ lg
       (EtcdGrove.client.srvWEnv R clientAddr₁ [] null null [] null) Hlg

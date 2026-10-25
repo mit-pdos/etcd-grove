@@ -1809,7 +1809,7 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
   iapply (v3.kv.wp_PutM api ms ci cd key val sl [] Q F) $$ [Hau]
   · iframe #
     isplitl []
-    · iunfold isKV kvRegs; iframe #
+    · unfold isKV kvRegs; iframe #
     isplitl []
     · ipureintro; exact Hpm
     isplitl []
@@ -1819,14 +1819,14 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     · ileft
       imodintro
       inext
-      iexact Hau
+      iExactEq Hau; rfl
     · iright
       iunfold writeOnce at Ho
       icases Ho with %Hnr
       isplitl []
       · ipureintro; exact Hnr
       inext
-      iexact Hau
+      iExactEq Hau; rfl
   inext
   iintro %resp %err Hout
   iapply HΦ
@@ -1838,7 +1838,7 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     iexists m
     iframe Hm
     iunfold putAns at Hq
-    iexact Hq
+    iExactEq Hq; rfl
   · iright
     isplitl
     · ipureintro; exact ⟨Herr.1, Herr.2.2⟩
@@ -1871,7 +1871,7 @@ theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoIn
   · iframe #
     iframe Hopts HR Hsn
     isplitl []
-    · iunfold isKV kvRegs; iframe #
+    · unfold isKV kvRegs; iframe #
     isplitl []
     · ipureintro; exact Hg
     isplitl []
@@ -1918,7 +1918,7 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
   iapply (v3.kv.wp_DeleteM api ms ci cd key sl [] Q F) $$ [Hau]
   · iframe #
     isplitl []
-    · iunfold isKV kvRegs; iframe #
+    · unfold isKV kvRegs; iframe #
     isplitl []
     · ipureintro
       refine ⟨?_, rfl, ?_⟩
@@ -1931,14 +1931,14 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
     · ileft
       imodintro
       inext
-      iexact Hau
+      iExactEq Hau; rfl
     · iright
       iunfold writeOnce at Ho
       icases Ho with %Hnr
       isplitl []
       · ipureintro; exact Hnr
       inext
-      iexact Hau
+      iExactEq Hau; rfl
   inext
   iintro %resp %err Hout
   iapply HΦ
@@ -1950,7 +1950,7 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
     iexists m
     iframe Hm
     iunfold delAns at Hq
-    iexact Hq
+    iExactEq Hq; rfl
   · iright
     isplitl
     · ipureintro; exact ⟨Herr.1, Herr.2.2⟩

@@ -44,7 +44,7 @@ abbrev Writer.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient cl [ep] V ∗ EtcdGrove.client.clientWriteOnce cl [ep] ∗
-      isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
+      client.kvRegsAt (⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF) ∗
       tsl ↦*□ tried ∗
       iprop(□ ∀ (k v : GoString), ⌜(k, v) ∈ tried.map pairOf⌝ -∗
         kvOpAu1 γr.kv (.put (client.putKeyOp k v)) (fun _ => iprop(True))) ∗

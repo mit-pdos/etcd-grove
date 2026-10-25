@@ -138,8 +138,8 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Hserr
   wp_auto
-  iunfold common.etcdKVAt at Hkv
-  icases Hkv with ⟨#HPut, #HRange, -, -⟩
+  ihave #Hregs := common.etcdKVAt_regs go!"127.0.0.1:23790" E { ρ with wait := γw } ρ.rd cid mid
+    rfl $$ Hkv
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23790" lg
       (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23790" [] null null [] null) Hlg

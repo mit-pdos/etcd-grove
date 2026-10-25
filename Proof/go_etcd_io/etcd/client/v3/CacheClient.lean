@@ -55,7 +55,7 @@ theorem isEtcdClient_of_server_r (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗ kvObjAt api addr ∗
       clientKVAddr cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
       clientWatcherAddr cl ↦□ GoInterface.ok (watcherIfaceOf w) ∗ isClientWatcher V w ∗
-      isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+      kvRegs (srvsAt addr E γr cid mid) ∗
       kvRangeAu E γr ⊢
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
   subst hE
@@ -99,7 +99,7 @@ theorem isEtcdClient_of_server (wp_Watch : watcher.Watch.spec (GF := GF) (hG := 
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗ kvObjAt api addr ∗
       clientKVAddr cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
       clientWatcherAddr cl ↦□ GoInterface.ok (watcherIfaceOf w) ∗ isClientWatcher V w ∗
-      isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+      kvRegs (srvsAt addr E γr cid mid) ∗
       sortNamesOk ∗ kvAnyAu E γr ⊢
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
   iintro ⟨#P1, #P2, #P3, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hrpc, #Hsn, #Hany⟩
