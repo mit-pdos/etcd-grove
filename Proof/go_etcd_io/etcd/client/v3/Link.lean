@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Proof.go_etcd_io.etcd.client.v3.Client__GetLogger
 public import Proof.go_etcd_io.etcd.client.v3.Client__SetEndpoints
+public import Proof.go_etcd_io.etcd.client.v3.Client__WithLogger
 public import Proof.go_etcd_io.etcd.client.v3.Client__autoSync
 public import Proof.go_etcd_io.etcd.client.v3.Client__credentialsForEndpoint
 public import Proof.go_etcd_io.etcd.client.v3.Client__dial
@@ -30,6 +31,7 @@ public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse__GetHeader
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse__GetHeader
+public import Proof.go_etcd_io.etcd.client.v3.NewCtxClient
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewKVClient
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewLeaseClient
 public import Proof.go_etcd_io.etcd.client.v3.NewLeaseFromLeaseClient
@@ -52,6 +54,7 @@ public import Proof.go_etcd_io.etcd.client.v3.RetryLeaseClient
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithRequireLeader
+public import Proof.go_etcd_io.etcd.client.v3.WithZapLogger
 public import Proof.go_etcd_io.etcd.client.v3.authority
 public import Proof.go_etcd_io.etcd.client.v3.blockLogger__recordWait
 public import Proof.go_etcd_io.etcd.client.v3.canceledByCaller
@@ -191,6 +194,7 @@ public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint
 
@@ -299,6 +303,10 @@ theorem v3.wp_IsOptsWithPrefix :
     EtcdGrove.IsOptsWithPrefix.spec (GF := GF) (hG := hG) :=
   EtcdGrove.IsOptsWithPrefix.wp_proof v3.wp_NewOp
 
+theorem zap.wp_NewNop :
+    EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.NewNop.wp_proof
+
 theorem v3.Op.wp_applyOpts :
     EtcdGrove.Op.applyOpts.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Op.applyOpts.wp_proof
@@ -385,6 +393,10 @@ theorem resolver.EtcdManualResolver.wp_SetEndpoints :
 theorem v3.Client.wp_SetEndpoints :
     EtcdGrove.Client.SetEndpoints.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.SetEndpoints.wp_proof resolver.EtcdManualResolver.wp_SetEndpoints
+
+theorem v3.Client.wp_WithLogger :
+    EtcdGrove.Client.WithLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.WithLogger.wp_proof
 
 theorem v3.Client.wp_autoSync :
     EtcdGrove.Client.autoSync.spec (GF := GF) (hG := hG) :=
@@ -534,6 +546,10 @@ theorem LeaseKeepAliveResponse.wp_GetHeader :
     EtcdGrove.LeaseKeepAliveResponse.GetHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.LeaseKeepAliveResponse.GetHeader.wp_proof
 
+theorem v3.wp_NewCtxClient :
+    EtcdGrove.NewCtxClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewCtxClient.wp_proof zap.wp_NewNop
+
 theorem wp_NewKVClient :
     EtcdGrove.NewKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewKVClient.wp_proof
@@ -585,6 +601,10 @@ theorem v3.wp_RetryKVClient :
 theorem v3.wp_RetryLeaseClient :
     EtcdGrove.RetryLeaseClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryLeaseClient.wp_proof wp_NewLeaseClient
+
+theorem v3.wp_WithZapLogger :
+    EtcdGrove.WithZapLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithZapLogger.wp_proof
 
 theorem v3.blockLogger.wp_recordWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.blockLogger.recordWait.spec (GF := GF) (hG := hG) :=

@@ -3813,6 +3813,43 @@ theorem client_new_isEtcdLeaseClient_served [v3rpc.ServerMethodSets] (cl : Loc) 
   iframe
   iframe #
 
+/-- **`NewCtxClient` followed by `SetEndpoints`** (PR etcd#22658, `TestCtxClientEndpoints`):
+a client `c` created by `NewCtxClient(ctx, opts...)` has `c.resolver = null`; calling
+`c.SetEndpoints(eps...)` on `c` skips `c.resolver.SetEndpoints(eps)` (`if c.resolver != nil`) and
+sets `c.endpoints` to `sl` (`sl ↦*□ eps`). -/
+theorem client_ctxClient_setEndpoints (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
+    (optsSl : GoSlice) (opts : List GoFunc) (sl : GoSlice) (eps : List GoString) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        context.isContext ctx cs ∗
+        optsSl ↦*□ opts ∗
+        □ (∀ (i : Nat) (opt : GoFunc), ⌜opts[i]? = some opt⌝ -∗ ctxClientOptOk opt) ∗
+        sl ↦*□ eps }}
+      (Let "c" (App (App (Val (@! go_etcd_io.etcd.client.v3.NewCtxClient)) (Val #(GoInterface.ok ctx)))
+        (Val #optsSl))
+      (Seq (App (App (Val (GoInstruction (MethodResolve
+        (go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty) go!"SetEndpoints")))
+        (Var "c")) (Val #sl))
+      (Var "c")))
+    {{ (c : Loc), RET #c; ⌜c ≠ null⌝ ∗ isClientLogger c ∗
+        (∃ mu : Loc, clientF c go!"epMu" ↦□ mu ∗ sync.isRWMutexGuard mu (fun _ => iprop(True))) ∗
+        clientF c go!"endpoints" ↦ sl ∗
+        clientF c go!"resolver" ↦□ (null : Loc) }} := by
+  iintro %Φ ⟨#Hpkg, #Hctx, #HoptsSl, #Hopts, #Hsl⟩ HΦ
+  wp_apply (v3.wp_NewCtxClient ctx cs optsSl opts) $$ []
+    as %c ⟨%Hcnn, #Hlg, ⟨%mu, #HepMu, #Hguard⟩, Heps, #Hres, -⟩
+  · iframe #
+  wp_apply (v3.Client.wp_SetEndpoints c mu null slice.nil [] sl eps) $$ [Heps]
+    as ⟨Heps, -⟩
+  · iframe # Heps
+    rw [ite_eq_left rfl]
+    itrivial
+  iapply HΦ
+  isplitr
+  · ipureintro; exact Hcnn
+  iframe Hlg Heps Hres
+  iexists mu
+  iframe HepMu Hguard
+
 end lease_served
 
 end client
@@ -3857,6 +3894,11 @@ end client
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Do
 #print axioms Perennial.EtcdGrove.client.v3.wp_NewKV
 #print axioms Perennial.EtcdGrove.client.v3.wp_ContextError
+#print axioms Perennial.EtcdGrove.client.v3.Client.wp_SetEndpoints
+#print axioms Perennial.EtcdGrove.client.v3.wp_NewCtxClient
+#print axioms Perennial.EtcdGrove.client.v3.wp_WithZapLogger
+#print axioms Perennial.EtcdGrove.client.v3.Client.wp_WithLogger
+#print axioms Perennial.EtcdGrove.client.client_ctxClient_setEndpoints
 #print axioms Perennial.EtcdGrove.client.etcd_kv_started
 #print axioms Perennial.EtcdGrove.v3rpc.wp_Server
 

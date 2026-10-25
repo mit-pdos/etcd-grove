@@ -37,10 +37,18 @@ theorem Client.SetEndpoints.wp_proof
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard mu (fun _ => iprop(True)) $$ [$Hsync $Hguard] as ⟨Hwl, -⟩
-  wp_apply wp_rSetEndpoints r eps0 sl eps $$ [$Hres $Hro $Hsl] as Hro
-  wp_apply sync.RWMutex.wp_Unlock_guard mu (fun _ => iprop(True)) $$ [$Hsync $Hwl]
-  iapply HΦ
-  iframe
+  wp_if_destruct
+  · wp_apply sync.RWMutex.wp_Unlock_guard mu (fun _ => iprop(True)) $$ [$Hsync $Hwl]
+    iapply HΦ
+    iframe
+  · ihave Hro : etcdResolverOwn r eps0 $$ [Hro]
+    · rw [ite_eq_right Hif]; iexact Hro
+    rw [ite_eq_right Hif]
+    wp_apply wp_rSetEndpoints r eps0 sl eps $$ [$Hres $Hro $Hsl] as Hro
+    · ipureintro; exact Hif
+    wp_apply sync.RWMutex.wp_Unlock_guard mu (fun _ => iprop(True)) $$ [$Hsync $Hwl]
+    iapply HΦ
+    iframe
 
 end proof
 

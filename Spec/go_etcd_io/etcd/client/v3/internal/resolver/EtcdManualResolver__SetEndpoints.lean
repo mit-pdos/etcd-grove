@@ -21,12 +21,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `r.SetEndpoints(eps)` of a resolver not yet dialed, with the endpoints `eps` (read-only): the
-resolver has them. -/
+/-- `r.SetEndpoints(eps)` of a non-nil resolver not yet dialed, with the endpoints `eps`
+(read-only): the resolver has them. -/
 abbrev resolver.EtcdManualResolver.SetEndpoints.spec : Prop :=
   ∀ (r : Loc) (eps0 : List GoString) (sl : GoSlice) (eps : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver ∗
-      etcdResolverOwn r eps0 ∗ sl ↦*□ eps }}
+      ⌜r ≠ null⌝ ∗ etcdResolverOwn r eps0 ∗ sl ↦*□ eps }}
     (App (Val (r @!! go.GoType.PointerType
       go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty @!! go!"SetEndpoints"))
       (Val #sl))

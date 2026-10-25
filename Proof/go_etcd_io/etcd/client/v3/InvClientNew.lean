@@ -175,6 +175,21 @@ def clientCoreAt (c : Loc) : IProp GF :=
 instance clientCoreAt_persistent (c : Loc) : Persistent (clientCoreAt (GF := GF) c) := by
   unfold clientCoreAt; infer_instance
 
+/-- **An `Option` function `opt` for `NewCtxClient`** (persistent; PR etcd#22658): updates only
+`c.lg` (as `WithZapLogger` does). -/
+def ctxClientOptOk (opt : GoFunc) : IProp GF :=
+  iprop(□ ∀ (c lg0 : Loc),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        sync.atomic.ownPointer (hG := hG) (T' := go_uber_org.zap.Logger) (clientLgAddr c)
+          (DFrac.own 1) lg0 }}
+      (App (Val #opt) (Val #c))
+    {{ RET #(); ∃ lg1 : Loc,
+        sync.atomic.ownPointer (hG := hG) (T' := go_uber_org.zap.Logger) (clientLgAddr c)
+          (DFrac.own 1) lg1 }})
+
+instance ctxClientOptOk_persistent (opt : GoFunc) : Persistent (ctxClientOptOk (GF := GF) opt) := by
+  unfold ctxClientOptOk; infer_instance
+
 /-- **The keepalive option of a configuration's dial** (D28): grpc's `WithKeepaliveParams` when
 `DialKeepAliveTime` is positive (`dialSetupOpts`), none otherwise. -/
 def kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) : List GrpcDialOpt :=

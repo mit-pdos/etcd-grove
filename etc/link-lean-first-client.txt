@@ -230,3 +230,8 @@ Client__dialWithBalancer: Client__Endpoints Client__credentialsForEndpoint grpc_
 Client__autoSync:
 newClient: context_TODO context_WithCancelTodo resolver_New Client__SetEndpoints resolver_EtcdManualResolver__Close Client__dialWithBalancer v3_NewCluster v3_NewKV v3_NewLease NewWatcher v3_NewAuth v3_NewMaintenance Client__getToken Client__autoSync
 client_v3_New: newClient
+# PR etcd#22658: NewCtxClient, WithZapLogger, Client.WithLogger
+zap_NewNop:
+WithZapLogger:
+Client__WithLogger:
+NewCtxClient: zap_NewNop

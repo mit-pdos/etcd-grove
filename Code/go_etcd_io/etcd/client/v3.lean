@@ -1202,6 +1202,103 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
+/-- NewCtxClient creates a client with a context but no underlying grpc
+    connection. This is useful for embedded cases that override the
+    service interface implementations and do not need connection management.
+
+    go: client.go:97:6 -/
+noncomputable def NewCtxClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Option.ty)))) (Var "opts"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithCancel []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "cctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Client.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "cctx"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel"))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.RWMutex.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.RWMutex.ty))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral Client.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ctx")) (ElementExpression _root_.Perennial.context.Context.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"cancel")) (ElementExpression _root_.Perennial.context.CancelFunc.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"epMu")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) (Var "$v2")))]))))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Client.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty _root_.Perennial.go_uber_org.zap.Logger.ty)) go!"Load"))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty _root_.Perennial.go_uber_org.zap.Logger.ty)) go!"Store"))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Option.ty)))) (Var "opts"))
+  (Let "opt" (App (Val (GoInstruction (GoAlloc Option.ty))) (App (Val (GoInstruction (GoZeroVal Option.ty))) (Val #())))
+  (App (App (Val (slice.forRange Option.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (App (Val (GoInstruction (GoLoad Option.ty))) (Var "opt")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Option.ty))) (Pair (Var "opt") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Client.ty)))) (Pair (Var "c") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "cctx") (Var "$r0")))))))))))))))))
+
+/-- WithZapLogger is a NewCtxClient option that overrides the logger
+
+    go: client.go:123:6 -/
+noncomputable def WithZapLogger.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (App (Val exceptionDo)
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (Val doReturn)
+  (Lam "c"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty _root_.Perennial.go_uber_org.zap.Logger.ty)) go!"Store"))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Var "$a0"))))))))))))
+
+/-- WithLogger overrides the logger.
+
+    Deprecated: Please use WithZapLogger or Logger field in clientv3.Config
+
+    Does not changes grpcLogger, that can be explicitly configured
+    using grpc_zap.ReplaceGrpcLoggerV2(..) method.
+
+    go: client.go:135:18 -/
+noncomputable def Client.WithLogger.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "lg"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty _root_.Perennial.go_uber_org.zap.Logger.ty)) go!"Store"))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Var "$a0"))))))))))
+
 /-- GetLogger gets the logger.
     NOTE: This method is for internal use of etcd-client library and should not be used as general-purpose logger.
 
@@ -1244,9 +1341,12 @@ noncomputable def Client.SetEndpoints.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"resolver"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty)))) (Val UntypedNil))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty) go!"SetEndpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"resolver"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty) go!"SetEndpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"resolver"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef Client.ty go!"endpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1258,7 +1358,7 @@ noncomputable def Client.SetEndpoints.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"epMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))) (Val #())))))))))))
 
-/-- go: client.go:207:18 -/
+/-- go: client.go:209:18 -/
 noncomputable def Client.autoSync.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1322,7 +1422,7 @@ noncomputable def Client.autoSync.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- dialSetupOpts gives the dial opts prior to any authentication.
 
-    go: client.go:228:18 -/
+    go: client.go:230:18 -/
 noncomputable def Client.dialSetupOpts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "creds"
@@ -1440,7 +1540,7 @@ noncomputable def Client.dialSetupOpts.impl [FfiSyntax] [GoGlobalContext] : val 
 
 /-- dial configures and dials any grpc balancer target.
 
-    go: client.go:318:18 -/
+    go: client.go:320:18 -/
 noncomputable def Client.dial.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "creds"
@@ -1492,7 +1592,7 @@ noncomputable def Client.dial.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)))) (Pair (Var "opts") (Var "$r0"))))))))))))))
 
-/-- go: client.go:331:6 -/
+/-- go: client.go:333:6 -/
 noncomputable def authority.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "endpoint"
   (App (Val exceptionDo)
@@ -1533,7 +1633,7 @@ noncomputable def authority.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "spl") (Var "$r0"))))))))))
 
-/-- go: client.go:345:18 -/
+/-- go: client.go:347:18 -/
 noncomputable def Client.credentialsForEndpoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ep"
@@ -1570,7 +1670,7 @@ noncomputable def Client.credentialsForEndpoint.impl [FfiSyntax] [GoGlobalContex
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.internal.endpoint.CredsRequirement.ty))) (Pair (Var "r") (Var "$r0"))))))))))))
 
-/-- go: client.go:362:6 -/
+/-- go: client.go:364:6 -/
 noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cfg"
   (App (Val exceptionDo)
@@ -1904,7 +2004,7 @@ noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- isHaltErr returns true if the given error and context indicate no forward
     progress can be made, even after reconnecting.
 
-    go: client.go:570:6 -/
+    go: client.go:572:6 -/
 noncomputable def isHaltErr.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "err"
@@ -1941,7 +2041,7 @@ noncomputable def isHaltErr.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- isUnavailableErr returns true if the given error is an unavailable error
 
-    go: client.go:588:6 -/
+    go: client.go:590:6 -/
 noncomputable def isUnavailableErr.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "err"
@@ -1986,7 +2086,7 @@ noncomputable def isUnavailableErr.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- ContextError converts the error into an EtcdError if the error message matches one of
     the defined messages; otherwise, it tries to retrieve the context error.
 
-    go: client.go:606:6 -/
+    go: client.go:608:6 -/
 noncomputable def ContextError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "err"
@@ -2056,7 +2156,7 @@ noncomputable def ContextError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: client.go:629:6 -/
+/-- go: client.go:631:6 -/
 noncomputable def canceledByCaller.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "stopCtx"
   (Lam "err"
@@ -9360,6 +9460,7 @@ class Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_SetEndpoints_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SetEndpoints" Client.SetEndpoints.impl
   ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Txn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Txn"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
+  ptr_WithLogger_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"WithLogger" Client.WithLogger.impl
   ptr_autoSync_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"autoSync" Client.autoSync.impl
   ptr_credentialsForEndpoint_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"credentialsForEndpoint" Client.credentialsForEndpoint.impl
   ptr_dial_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" Client.dial.impl
@@ -9421,6 +9522,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_Put_unfold
   Client.TypeAssumptions.ptr_SetEndpoints_unfold
   Client.TypeAssumptions.ptr_Txn_unfold
+  Client.TypeAssumptions.ptr_WithLogger_unfold
   Client.TypeAssumptions.ptr_autoSync_unfold
   Client.TypeAssumptions.ptr_credentialsForEndpoint_unfold
   Client.TypeAssumptions.ptr_dial_unfold
@@ -12329,6 +12431,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   valCtx_instance : valCtx.TypeAssumptions
   newBlockLogger_unfold : FuncUnfold newBlockLogger [] newBlockLogger.impl
   New_unfold : FuncUnfold New [] New.impl
+  NewCtxClient_unfold : FuncUnfold NewCtxClient [] NewCtxClient.impl
+  WithZapLogger_unfold : FuncUnfold WithZapLogger [] WithZapLogger.impl
   authority_unfold : FuncUnfold authority [] authority.impl
   newClient_unfold : FuncUnfold newClient [] newClient.impl
   isHaltErr_unfold : FuncUnfold isHaltErr [] isHaltErr.impl
@@ -12529,6 +12633,8 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.valCtx_instance
   Assumptions.newBlockLogger_unfold
   Assumptions.New_unfold
+  Assumptions.NewCtxClient_unfold
+  Assumptions.WithZapLogger_unfold
   Assumptions.authority_unfold
   Assumptions.newClient_unfold
   Assumptions.isHaltErr_unfold

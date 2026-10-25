@@ -23,15 +23,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.SetEndpoints(eps...)` (the endpoints `eps`, read-only) on a client whose `epMu` guards
-nothing of the proof's (`isRWMutexGuard` of `True`) and whose resolver is not dialed yet: the
-client's `endpoints` and the resolver's are `eps`. -/
+nothing of the proof's (`isRWMutexGuard` of `True`) and whose resolver `r` is either `null`
+(`NewCtxClient`, PR etcd#22658) or not dialed yet (`etcdResolverOwn r eps0`): the client's
+`endpoints` (and the resolver's, when `r ≠ null`) are `eps`. -/
 abbrev Client.SetEndpoints.spec : Prop :=
   ∀ (c mu r : Loc) (esl0 : GoSlice) (eps0 : List GoString) (sl : GoSlice) (eps : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientF c go!"epMu" ↦□ mu ∗
       sync.isRWMutexGuard mu (fun _ => iprop(True)) ∗ clientF c go!"endpoints" ↦ esl0 ∗
-      clientF c go!"resolver" ↦□ r ∗ etcdResolverOwn r eps0 ∗ sl ↦*□ eps }}
+      clientF c go!"resolver" ↦□ r ∗
+      (if r = null then iprop(True) else etcdResolverOwn r eps0) ∗ sl ↦*□ eps }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"SetEndpoints")) (Val #sl))
-  {{ RET #(); clientF c go!"endpoints" ↦ sl ∗ etcdResolverOwn r eps }}
+  {{ RET #(); clientF c go!"endpoints" ↦ sl ∗
+      (if r = null then iprop(True) else etcdResolverOwn r eps) }}
 
 end spec
 

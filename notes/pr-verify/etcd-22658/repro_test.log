@@ -1,0 +1,11 @@
+=== RUN   TestBeforePR22658_SetEndpointsOnNewCtxClientPanics
+    repro_test.go:68: Confirmed pre-PR #22658 panic on NewCtxClient.SetEndpoints: runtime error: invalid memory address or nil pointer dereference
+--- PASS: TestBeforePR22658_SetEndpointsOnNewCtxClientPanics (0.00s)
+=== RUN   TestAfterPR22658_SetEndpointsOnNewCtxClientSucceeds
+    repro_test.go:81: Confirmed PR #22658 fix: NewCtxClient.SetEndpoints succeeded with resolver == nil; Endpoints() = [http://254.0.0.1:12345]
+--- PASS: TestAfterPR22658_SetEndpointsOnNewCtxClientSucceeds (0.00s)
+=== RUN   TestAfterPR22658_SetEndpointsWithNonNilResolverUpdatesBoth
+    repro_test.go:97: Confirmed PR #22658 preserves resolver update when resolver != nil: [http://127.0.0.1:2379 http://127.0.0.2:2379]
+--- PASS: TestAfterPR22658_SetEndpointsWithNonNilResolverUpdatesBoth (0.00s)
+PASS
+ok  	etcd-22658-repro	0.004s

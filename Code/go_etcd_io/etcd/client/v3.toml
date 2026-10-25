@@ -227,6 +227,9 @@ translate = [
   # `internal/endpoint`, `client/pkg/v3/logutil`), names only; and `io`, so that the `Maintenance`
   # interface (a field of `Client`, which `newClient` allocates) is translated, not axiomatized
   "New",
+  "NewCtxClient",
+  "WithZapLogger",
+  "Client.WithLogger",
   "newClient",
   "Client.SetEndpoints",
   # (not `Client.dialWithBalancer`, names only: its `grpc.WithResolvers(c.resolver)` converts to

@@ -139,8 +139,11 @@ theorem newClient.wp_proof
   imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
   · inext; itrivial
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hguard⟩
+  ihave HroOpt : (if r = null then iprop(True) else etcdResolverOwn r eps) $$ [Hro]
+  · rw [ite_eq_right Hrnn]; iexact Hro
   wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil eps cfg.Endpoints' eps
-    $$ [$epMu $Hguard $endpoints $resolver $Hro $Heps] as ⟨endpoints, Hro⟩
+    $$ [$epMu $Hguard $endpoints $resolver $HroOpt $Heps] as ⟨endpoints, Hro⟩
+  rw [ite_eq_right Hrnn]
   ipersist endpoints
   ihave #Hrc : retryClientOk (GF := GF) «$r0_ptr» $$ []
   · iunfold retryClientOk
