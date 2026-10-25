@@ -466,6 +466,40 @@ theorem tokenSimple_enable (hRun : RunSpec (GF := GF) (hG := hG))
   iright
   iunfold keeperStop; iexists sc, dc, γs, γd; iframe #
 
+/-- **The simple provider meets the token provider's contract** in the mode `on γa`, with the admin
+side's resource `simpleAdmin p` (the auth plan's S5d): `info` over `ValidSpec` (the contract's
+`info` clause has no context premise: `tokenSimple_info_ctx` is `info` on a context with no
+hypothesis), `enable` over `RunSpec`, `disable`, `invalidateUser`, `assign`. -/
+theorem tokenSimple_okA (hValid : ValidSpec (GF := GF) (hG := hG)) (hRun : RunSpec (GF := GF) (hG := hG))
+    (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG)) (p : Loc) (γa : AuthNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γa.tok γa.fresh ⊢
+      tokenProviderOkA (interface.mkOk (go.GoType.PointerType tokenSimple.ty) #p) (.on γa) (simpleAdmin p) := by
+  iintro ⟨#Hpkg, #Hok⟩
+  iunfold tokenProviderOkA
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iintro !> %ctx %token %rev %Φ !> - HΦ
+    iapply (tokenSimple_info hValid p γa.tok γa.fresh γa rfl ctx token rev Φ)
+    iframe #; iexact HΦ
+  isplitr
+  · iintro !> %Φ !> HA HΦ
+    iapply (tokenSimple_enable hRun h_Debug h_String p γa.tok γa.fresh) $$ [HA] HΦ
+    iframe #; iexact HA
+  isplitr
+  · iintro !> %Φ !> HA HΦ
+    iapply (tokenSimple_disable p γa.tok γa.fresh) $$ [HA] HΦ
+    iframe #; iexact HA
+  isplitr
+  · iintro !> %name %Φ !> HA HΦ
+    iapply (tokenSimple_invalidateUser p γa.tok γa.fresh name) $$ [HA] HΦ
+    iframe #; iexact HA
+  · iintro !> %ctx %user %rev %Φ !> Hctx HΦ
+    iapply (tokenSimple_assign p γa.tok γa.fresh γa rfl rfl ctx user rev) $$ [Hctx] HΦ
+    iframe #; iexact Hctx
+
 end proof
 
 end auth

@@ -246,7 +246,7 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
       {{ (b : Bool), RET #b; True }})
     (Φ : val → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γt γf ∗ P ∗
-      (∀ (a : Loc) (ok : Bool), authInfoRO a ∗
+      ▷ (∀ (a : Loc) (ok : Bool), authInfoRO a ∗
         (if ok then infoBound (.on γa) token a else iprop(True)) -∗ Φ (PairV #a #ok)) ⊢
       WP (App (App (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"info" #p))
         (Val #ctx)) (Val #token)) (Val #rev)) {{ Φ }} := by
@@ -328,7 +328,7 @@ theorem tokenSimple_info (hValid : ValidSpec (GF := GF) (hG := hG)) (p : Loc) (�
     (γa : AuthNames) (hγt : γa.tok = γt) (ctx : GoInterface) (token : GoString) (rev : w64)
     (Φ : val → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γt γf ∗
-      (∀ (a : Loc) (ok : Bool), authInfoRO a ∗
+      ▷ (∀ (a : Loc) (ok : Bool), authInfoRO a ∗
         (if ok then infoBound (.on γa) token a else iprop(True)) -∗ Φ (PairV #a #ok)) ⊢
       WP (App (App (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"info" #p))
         (Val #ctx)) (Val #token)) (Val #rev)) {{ Φ }} := by
@@ -550,7 +550,7 @@ theorem tokenSimple_info_ctx (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt
     (Φ : val → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γt γf ∗
       simpleWaitOk p ∗ context.isContext ci cd ∗
-      (∀ (a : Loc) (ok : Bool), authInfoRO a ∗
+      ▷ (∀ (a : Loc) (ok : Bool), authInfoRO a ∗
         (if ok then infoBound (.on γa) token a else iprop(True)) -∗ Φ (PairV #a #ok)) ⊢
       WP (App (App (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"info" #p))
         (Val #(GoInterface.ok ci))) (Val #token)) (Val #rev)) {{ Φ }} := by
