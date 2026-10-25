@@ -218,7 +218,9 @@ given (`ErrPermissionNotGiven`, `w = none`); an invalid range (`ErrInvalidAuthMg
 is one, gets `w`'s type, else `w` is appended and the record sorted by key (`sort.Sort`,
 unstable): in the model, some permutation of the permissions with the new one, or one entry on
 `w`'s range replaced; a permission of an unknown type (`permOfWire w = none`) is dropped by the
-model (`RoleRec.toRole`), so the model's list loses at most the entry it replaced. -/
+model (`RoleRec.toRole`), so the model's list loses at most the entry it replaced, and is
+reordered when the record is sorted (unstable: entries of one key may change places; S4d,
+2026-10-24: a sublist up to a permutation). -/
 def roleGrantPermissionR (role : GoString) (w : Option PermW) : StepRel := fun st o =>
   match w with
   | none => o = .err .permissionNotGiven
@@ -233,7 +235,8 @@ def roleGrantPermissionR (role : GoString) (w : Option PermW) : StepRel := fun s
               ∃ (i : Nat) (p : Perm), ps[i]? = some p ∧ permAt w.key w.rangeEnd p ∧
                 ps' = ps.set i perm) ∧
             o = .next (bump (putRole st role ps'))
-        | none => ∃ ps' : Role, ps'.Sublist ps ∧ o = .next (bump (putRole st role ps'))
+        | none => ∃ ps' ps'' : Role, ps''.Sublist ps ∧ ps'.Perm ps'' ∧
+            o = .next (bump (putRole st role ps'))
 
 /-! ## The steps keep the history's invariants -/
 

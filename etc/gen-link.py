@@ -22,6 +22,8 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
        etc/gen-link.py --leasing > Proof/go_etcd_io/etcd/client/v3/leasing/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
+       etc/gen-link.py --v3lock > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/Link.lean
+       etc/gen-link.py --v3election > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3election/Link.lean
        etc/gen-link.py --kv > Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean
        etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/kvwitness/Link.lean
@@ -234,6 +236,17 @@ LEAN_FIRST = {
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
                   "The `client/v3/experimental/recipes` package's proofs and the functions they "
                   "call", [""]),
+    # the Lock and Election services' servers (etcd's server/v3/etcdserver/api/v3lock,
+    # v3election; the auth plan's A3c), over the client's concurrency package (`@`) and the
+    # server's client as contracts
+    "--v3lock": ("link-lean-first-v3lock.txt",
+                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3lock go_etcd_io.etcd.client.v3.concurrency",
+                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Assumptions",
+                 "The Lock service's server's proofs (`server/v3/etcdserver/api/v3lock`)", [""]),
+    "--v3election": ("link-lean-first-v3election.txt",
+                     "go_etcd_io.etcd.server.v3.etcdserver.api.v3election go_etcd_io.etcd.client.v3.concurrency",
+                     "go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assumptions",
+                     "The Election service's server's proofs (`server/v3/etcdserver/api/v3election`)", [""]),
     # etcd's linearizable read loop (etcd's server/v3/etcdserver/read), over its contracts
     "--read": ("link-lean-first-read.txt", "go_etcd_io.etcd.server.v3.etcdserver.read",
                "go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions",
@@ -355,7 +368,7 @@ LEAN_FIRST = {
                  "The examples' shared start's proofs (`examples/common`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
+NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
               "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
@@ -376,7 +389,7 @@ EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3r
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr"]}
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
-EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes"}
+EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
 mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")

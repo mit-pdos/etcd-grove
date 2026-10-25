@@ -40,6 +40,7 @@ public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__UserDelete
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__UserRevokeRole
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__UserGrantRole
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__RoleGrantPermission
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__RoleRevokePermission
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__RoleDelete
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__UserChangePassword
@@ -162,7 +163,17 @@ def isAuthSteps (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode) 
         (App (Val #(methods ai.ty go!"UserGrantRole" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserGrantRoleResponse resp err ∗
-          auth.adminOut M hs (auth.userGrantRoleR user role) auth.noExtra err }}))
+          auth.adminOut M hs (auth.userGrantRoleR user role) auth.noExtra err }}) ∗
+    -- the auth plan's S4d (2026-10-24): `RoleGrantPermission`, appended
+    □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString)
+        (w : Option auth.PermW),
+      {{ auth.roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+          auth.authOwn M hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
+          ⌜auth.stepOk M hs (auth.roleGrantPermissionR name w)⌝ }}
+        (App (Val #(methods ai.ty go!"RoleGrantPermission" ai.v)) (Val #r))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+          applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
+          auth.adminOut M hs (auth.roleGrantPermissionR name w) auth.noExtra err }}))
 
 instance isAuthSteps_persistent (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode)
     (W : IProp GF) : Persistent (isAuthSteps st P f M W) := by
@@ -296,6 +307,7 @@ theorem isAuthSteps_of_authInv
     (hRoleRevokePermission : auth.authStore.RoleRevokePermission.spec (GF := GF) (hG := hG))
     (hRoleDelete : auth.authStore.RoleDelete.spec (GF := GF) (hG := hG))
     (hUserGrantRole : auth.authStore.UserGrantRole.spec (GF := GF) (hG := hG))
+    (hRoleGrantPermission : auth.authStore.RoleGrantPermission.spec (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val) (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       isAuthSteps (auth.authIface st) P f M (auth.authWR st M P f T) := by
@@ -399,12 +411,23 @@ theorem isAuthSteps_of_authInv
     iapply HΦ
     iframe
     iframe #
+  isplitr
   · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hb, %Hok⟩ HΦ
     iapply (hUserGrantRole st R M P f T hs Pre Q Post r user role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       isplitr
       · ipureintro; exact Hb
+      ipureintro; exact Hok
+    iintro !> %resp %err ⟨HPP, HW, Hresp, Hout⟩
+    icases adminOut_applyErrIs M hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe
+    iframe #
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HW, Hcs, %Hok⟩ HΦ
+    iapply (hRoleGrantPermission st R M P f T hs Pre Q Post r name w) $$ [Ho HW Hcs]
+    · iframe; iframe #; isplitr
+      · ipureintro; exact Hn
       ipureintro; exact Hok
     iintro !> %resp %err ⟨HPP, HW, Hresp, Hout⟩
     icases adminOut_applyErrIs M hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
@@ -527,6 +550,23 @@ abbrev applierV3backend.UserGrantRole.stepSpec : Prop :=
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       auth.adminOut E.authMode hs (auth.userGrantRoleR user role) auth.noExtra err }}
+
+/-- **`a.RoleGrantPermission(r)` performs the model's step** (the auth plan's S4d). -/
+abbrev applierV3backend.RoleGrantPermission.stepSpec : Prop :=
+  ∀ (E : AEnv GF) (W : IProp GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (hs : List auth.AuthState) (name : GoString)
+    (w : Option auth.PermW),
+    name.length ≤ backend.maxKeySize →
+    auth.stepOk E.authMode hs (auth.roleGrantPermissionR name w) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+        apply.backendIs E p ∗ backendAuthSteps E p W ∗ auth.roleGrantPermissionReqIs r name w ∗
+        auth.authOwn E.authMode hs ∗ W ∗
+        apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleGrantPermission")) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
+      applyErrIs err ∗ W ∗
+      auth.adminOut E.authMode hs (auth.roleGrantPermissionR name w) auth.noExtra err }}
 
 /-- **`a.RoleRevokePermission(r)` performs the model's step** (the auth plan's S4b). -/
 abbrev applierV3backend.RoleRevokePermission.stepSpec : Prop :=
@@ -859,7 +899,7 @@ theorem applierV3backend.UserGrantRole.wp_step
   iunfold apply.backendAuthSteps at Hs'
   icases Hs' with ⟨%opts, #Hopts, #Hst⟩
   iunfold apply.isAuthSteps at Hst
-  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, #HM⟩
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, #HM, -⟩
   iStructNamed Hopts
   wp_auto
   rw [Hai]
@@ -868,6 +908,48 @@ theorem applierV3backend.UserGrantRole.wp_step
     · ipureintro; exact hn
     isplitr
     · ipureintro; exact hb
+    ipureintro; exact hok
+  iunfold auth.respOk at Hresp
+  icases Hresp with ⟨%Hnn, Hhdr⟩
+  wp_if_destruct
+  · -- no response
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iunfold apply.kvOwn
+    iframe
+  · -- a response: its header
+    icases Hhdr with (%Hn | ⟨%h0, Hh⟩)
+    · exact absurd Hn Hif
+    wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
+    iapply HΦ
+    iframe
+    iframe #
+    iapply apply.mPost_backend
+    iunfold apply.kvOwn
+    iframe
+
+theorem applierV3backend.RoleGrantPermission.wp_step
+    (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
+    applierV3backend.RoleGrantPermission.stepSpec (GF := GF) (hG := hG) := by
+  intro E W p r log Pre Q Post info hs name w hn hok
+  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HW, Hpre⟩
+  iunfold apply.mPre at Hpre
+  icases Hpre with ⟨Hkv, Hres, Hcs⟩
+  iunfold apply.kvOwn at Hkv
+  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
+  ihave #Hs' := Hs
+  iunfold apply.backendAuthSteps at Hs'
+  icases Hs' with ⟨%opts, #Hopts, #Hst⟩
+  iunfold apply.isAuthSteps at Hst
+  icases Hst with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, #HM⟩
+  iStructNamed Hopts
+  wp_auto
+  rw [Hai]
+  wp_apply HM $$ %hs %Pre %Q %Post %r %name %w [$Ho $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
+  · iframe Hr; isplitr
+    · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩

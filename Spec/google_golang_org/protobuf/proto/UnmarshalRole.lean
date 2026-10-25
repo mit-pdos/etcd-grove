@@ -26,7 +26,8 @@ variable [sem : go.Semantics]
 /-- `proto.Unmarshal(b, m)` of the encoding of the record `x` into the `*authpb.Role` at `p`
 (whatever it held) makes it hold `x` (`auth.ownRoleX`: a fresh message the caller owns, its byte fields read-only
 slices, its `KeyPermission` slice owned with its capacity and its permission messages owned, the message's internal fields as it
-likes; the auth plan's S4c, 2026-10-24: Go's decoder allocates them) and returns `nil`. -/
+likes; the auth plan's S4c, 2026-10-24: Go's decoder allocates them; fewer than `2^62` permissions,
+S4d: each takes at least two bytes of the encoding, a slice below `2^63` bytes) and returns `nil`. -/
 abbrev proto.UnmarshalRole.spec : Prop :=
   ∀ (b : GoSlice) (x : auth.RoleRec) (p : Loc) (v : authpb.Role) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗

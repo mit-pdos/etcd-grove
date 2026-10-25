@@ -17,17 +17,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`
+### Specs: `sort.Search` without monotonicity
 
-- **Missing.** Perennial does not translate `strconv` (`Perennial/Code/strconv.toml` translates
-  nothing) nor `time.NewTicker`, `Ticker.Stop` and `Time.After` (`time.toml`).
-- **Needed by.** etcd's simple token provider (`server/auth/simple_token.go`):
-  `isValidSimpleToken` parses a token's raft index with `strconv.ParseUint`; the TTL keeper's `run`
-  ticks with a `time.Ticker` and compares with `Time.After` (the auth plan's S5b, 2026-10-24).
-- **Workaround here.** Both stay names only; `auth/TokenSimple.lean` takes their specs as hypotheses
-  of its theorems (not axioms).
-- **Proposed change.** `strconv.ParseUint` (and `Itoa`/`FormatUint`, its usual partners) translated
-  with specs over the decimal model `fmt.decimal` already has; `time.Ticker` modelled like `Timer`.
+- **Missing.** A spec of `sort.Search(n, f)` for a predicate that need not go from false to true:
+  Perennial's (`Perennial/Spec/sort/Search.lean`) takes `IsMonoPred f n`; without it, the binary
+  search still returns an index in `[0, n]` (its loop keeps `0 ≤ i ≤ j ≤ n`).
+- **Needed by.** `authStore.RoleGrantPermission` (`server/auth/store.go`): it searches a role's
+  permissions by key, and nothing records that a role record's permissions are sorted (the auth
+  plan's S4d, 2026-10-24).
+- **Workaround here.** `auth.wp_Search_any` (`Proof/go_etcd_io/etcd/server/v3/auth/SearchAny.lean`),
+  a proof of that weaker fact over Perennial's translation of `sort.Search`.
+- **Proposed change.** `sort.wp_Search_any` (or a spec whose monotonicity premise is optional)
+  in Perennial's `Proof/sort`, general; then the local copy goes.
+- **Status.** Open.
+
+### Goose: a parenthesized untyped constant expression in a bitwise operation
+
+- **Missing.** Goose translates `c | ('x' - 'X')` (`internal/strconv.lower`) as an untyped
+  subtraction the semantics cannot step, whereas a lone constant (`c | 0x20`) comes out as
+  `#(W8 32)`: an untyped constant expression is not folded before it meets a typed operand.
+- **Met by.** Perennial's `strconv` change (`c022dbe42`, 2026-10-25): `lower` is a trusted model,
+  goose's translation of `return c | 0x20`.
+- **Proposed change.** Fold untyped constant expressions in goose (Go's `go/constant` gives their
+  values), under Perennial's semantics-change workflow; then `lower`'s model goes.
 - **Status.** Open.
 
 ### Tactics: `word`'s caches shared between parallel declarations
@@ -386,6 +398,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Status.** Not started (found 2026-10-23).
 
 ## Landed
+
+### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`
+
+- **Was missing.** Perennial translated nothing of `strconv` and none of `time.NewTicker`,
+  `Ticker.Stop`, `Time.After`.
+- **Needed by.** etcd's simple token provider (`server/auth/simple_token.go`):
+  `isValidSimpleToken` parses a token's raft index with `strconv.ParseUint`; the TTL keeper's `run`
+  ticks with a `time.Ticker` and compares with `Time.After`.
+- **Landed.** Perennial `13a60f492` (2026-10-24, branch `time-ticker`: `NewTicker`, `Ticker.Stop`,
+  `Ticker.Reset` trusted models, a ticker's channel a bag of arbitrary times; `Time.After`
+  translated, returning some `bool`) and `c022dbe42` (2026-10-25, branch `strconv-parse`:
+  `strconv.ParseUint` for bases 2 to 36, over the pure model `internal.strconv.parseUint`; three
+  trusted models: `stringslite.Clone`, `internal/strconv.lower`, six constant tables' no-op
+  initializers). The pin moved to `24bef275e` (the auth plan's S5c); `strconv`'s initializer is
+  Perennial's (raft's local `strconv.opaqueInitsOk` axiom gone), and `isValidSimpleToken` is proved
+  (`tokenSimple_isValid`). Left: `FormatUint`, `Itoa`, `ParseInt`, `FormatInt`, base 0.
 
 ### Specs: `sort.SearchStrings`, `sort.Strings`
 
