@@ -18525,3 +18525,71 @@ commit fact's configuration index (`cqAt`'s dynamic part).
   `⟨0, cfgState V ∅, []⟩`, the tracker's learners empty). The server's `newRaftNode` passes `.static`
   (M3 moves it).
 
+## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
+
+**Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
+keeper's goroutine (`RunSpec`) and `isValidSimpleToken` on any context (`ValidSpec`, because the
+contract's `info` clause has no context premise); and the constructor unproved.
+
+**Done** (`auth/TokenKeeperRun.lean`):
+- `keeper_run` proves `simpleTokenTTLKeeper.run`, discharging `RunSpec`: the ticker loop
+  (Perennial's `time.NewTicker`, a channel bag of arbitrary times), its `select` over the tick and
+  `stopc`; on a tick, under the provider's mutex, the keeper's own map found through its element of
+  the keepers' ghost set (S5d's `simpleLk`), and every token `Time.After` calls expired (some
+  boolean: Perennial has no order on times) deleted through the callback `delfOk` and from the
+  keeper's map; on `stopc`, the deferred `Ticker.Stop` and the close of `donec`. The later credits
+  the select's receive needs come from the calls before it (`NewTicker`, then `Now` on each tick),
+  carried in the loop's invariant: the loop head has too few steps.
+- **The keeper's tick is a package fact.** `NewTicker` needs a positive duration; the tick is the
+  package variable `simpleTokenTTLResolution`, read-only in the package's code (etcd's tests write
+  it, outside what is verified). It is appended to the auth package's fact `authInit` (read-only,
+  positive), `etc/gen-init.py` persisting it; the two full destructurings of `authInit`
+  (`InvAuth.lean`'s `authErrVar_of_init`, `AuthSteps.lean`'s) take one more `-`.
+- `tokenSimple_new` proves `newTokenProviderSimple`: for a positive TTL and an index waiter whose
+  channels are `anyRecv`, under fresh names, `simpleOk`, `simpleWaitOk`, the admin share
+  `simpleAdmin` (no keeper), and the authority over the rights to issue tokens (`ghostMapAuth γf 1
+  ∅`: whoever chooses tokens, the apply thread, mints one right per raft index).
+- **`info`'s context premise, as a lemma.** `tokenProviderOkCtx` is `tokenProviderOkA` at
+  `HasLC.hasLC` with `info` given `context.isContext ci cd`; `tokenSimple_okCtx` proves the simple
+  provider meets it in mode `on γa` with no hypothesis. `tokenProviderOkA` itself is unchanged: it,
+  `tokenProviderOk` and the store's invariant over them are generic in the later credits (67
+  files), and Perennial's contexts exist only at `HasLC.hasLC`; specializing them is the wider
+  change E (or `NewAuthStore`'s proof) would make. `ValidSpec` remains only on S5d's
+  `tokenSimple_okA`, the generic form.
+- A local `(*Time).After` lemma (`time_wp_ptr_After`): Perennial has the pointer-receiver form of
+  `Before` only (`notes/perennial-changes.md`).
+- Restated in the server's `Results.lean`: `token_simple_new`, `token_simple_ok`.
+
+**Not done.** The JWT provider; the `off`/`any` modes of the simple provider; the store's
+invariant over the context-premised contract (with `NewAuthStore`).
+
+## The static `ownRaftPhys` as an alias of `ownRaftPhysC` (2026-10-24 · branch `cleanup/2026-10-24`)
+
+Until now the static `ownRaftPhys cfg r id s` was a sealed predicate of its own, `ownRaftPhysG
+(ownTracker cfg) ownRaftLog cfg` (`ownRaftPhysDef`), beside `ownRaftPhysCV c V` (stage A1's one body
+over two tracker predicates), with conversions both ways (`ownRaftPhys_toC`, `ownRaftPhysC_toPhys`
+through `ownTracker_toC`/`ownTrackerC_toSimple`) and its own interface (`ownRaftPhys_intro`, the
+`iNamed_phys`/`reseal` macros, a static copy of every accessor's proof).
+
+- **The alias.** `ownRaftPhys cfg r id s` is now the sealed alias of `ownRaftPhysC (CfgM.simple cfg
+  (domSet s.progress \ cfg)) r id s` (`InvRaftPhys.lean`; `ownRaftPhys_toC`/`ownRaftPhys_ofC`). The
+  learners are the tracked ids outside `cfg`, so the alias is a function of the state, as the old
+  predicate was. Every static accessor keeps its statement and is a corollary of its `C`
+  counterpart; `ownRaftPhysDef`, `ownRaftPhys_intro` (callers seal at `C` and convert),
+  `ownRaftPhys_tracker` and the static macros are gone.
+- **No second tracker predicate.** `ownTracker cfg` (`InvTracker.lean`) went with its lemmas and
+  the conversions: the static tracker is `ownTrackerC` at the simple configuration
+  (`ownTrackerC_resimple`: a non-joint tracker is at its simple configuration;
+  `ownTrackerC_empty` for `newRaft`). `ownRaftPhys_tracker_same`/`ownRaftPhys_intro_trk`
+  (intermediate) hand out and take `ownTrackerC (CfgM.simple cfg (domSet prs \ cfg))`.
+- **One conf-change result.** `raft.applyConfChange.specS` (the static derivation three callers
+  share) returns `ApplyCCOkC (CfgM.simple cfg lrn') id s s'` with `lrn' = domSet s'.progress \ cfg`
+  (was `ApplyCCOk cfg id s s'` with `domSet s'.progress ⊆ cfg ∪ lrn'`), read by `applyCCOkC_step`;
+  the static `ApplyCCOk`/`applyCCOk_step` (a 90-line second proof of the same protocol step),
+  `SwitchOk`, `LeaderSwitch`, `CommitOk` are gone.
+- **What is left static**: `ownRaftPhys` itself, the static callers' view (`rawNodeFresh`,
+  `newRaft.spec`, `raft.loadState.spec`, `RestartNode`, `RawNode.Bootstrap`,
+  `ownRawNode_static_open`); it goes with the static mode (`notes/STATUS.md`, "Clean-up: unused
+  declarations removed, ...", the server's static mode). No exported result's statement reached
+  `ownRaftPhys`, `ownTracker`, `ApplyCCOk`, `SwitchOk` or `CommitOk` (`.lake/tcb.json`), so no
+  top-level statement changed.

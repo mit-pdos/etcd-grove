@@ -99,7 +99,7 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
 
 - **M0. Scope** (this section): Q1-Q4 with the user (**decided 2026-10-25, D43**: each (A)); W3's statement (the peers right, shared with
   S8c-S8d; **settled 2026-10-25**: `trLive`, D43 "W3 settled"); the example chosen (below). Writes D43.
-- **M1. Raft clean-up (optional, warm-up)**: the static `ownRaftPhys` as the sealed alias of
+- **M1. Raft clean-up (optional, warm-up)**: **done** (2026-10-25, the clean-up branch `cleanup/2026-10-24`, merged into `lean`; merged into `membership-m2` over M2c's weaker `Hvoter`). the static `ownRaftPhys` as the sealed alias of
   `ownRaftPhysC` (STATUS "Clean-up: unused declarations removed, ...": about 3-4 hours, rebuilds raft
   and the server), then `applyConfChange.specS`, `ApplyCCOk`, `SwitchOk`. Independent of the rest;
   it shrinks what M3 has to carry across modes.

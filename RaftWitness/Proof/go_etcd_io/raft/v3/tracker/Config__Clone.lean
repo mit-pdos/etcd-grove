@@ -148,25 +148,6 @@ theorem wp_cloneMap (f : GoFunc) (hf : f = func.mk BAnon (BNamed "m") cloneMapBo
   · iright; iexact Hm
   · iright; iframe Hmref; ipureintro; exact Hvnn
 
-/-- An id set's clone, as an id set. -/
-theorem clonedMap_Q (m m' : Loc) (dq : DFrac) (s : GMap w64 Unit) :
-    ownIdsetQ (GF := GF) m dq s -∗ clonedMap m m' s -∗
-      ownIdsetQ m dq s ∗ ownIdsetQ m' (DFrac.own 1) s := by
-  iintro Hm Hc
-  unfold ownIdsetQ clonedMap
-  icases Hm with (%H | Hm)
-  · isplitr
-    · ileft; ipureintro; exact H
-    icases Hc with (%H' | ⟨%Hnn, -⟩)
-    · ileft; ipureintro; exact ⟨H'.2, H.2⟩
-    · exact absurd H.1 Hnn
-  · icases Hc with (%H' | ⟨-, H'⟩)
-    · ihave %Hnn := ownMap_not_nil _ _ _ $$ Hm
-      exact absurd H'.1 Hnn
-    · isplitl [Hm]
-      · iright; iexact Hm
-      · iright; iexact H'
-
 /-- A canonical id set's clone is canonical. -/
 theorem clonedMap_C (m m' : Loc) (dq : DFrac) (s : GMap w64 Unit) :
     ownIdsetC (GF := GF) m dq s -∗ clonedMap m m' s -∗

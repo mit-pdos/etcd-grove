@@ -2,9 +2,7 @@
 The progress tracker at any configuration (2026-10-13, reconfiguration stage A1),
 Lean-first.
 
-`ownTracker cfg tv t` (`InvTracker.lean`) is the tracker at a non-joint configuration with
-the voters `cfg` (the learners the other tracked ids). `ownTrackerC c tv t` is the tracker at
-any configuration `c : CfgM` the `confchange` package can produce -- joint (an outgoing voter
+`ownTrackerC c tv t` is the tracker at any configuration `c : CfgM` the `confchange` package can produce -- joint (an outgoing voter
 set), with learners and staged learners (`LearnersNext`), `AutoLeave` set or not:
 
 * the configuration value is `ownCfgCC tv.Config' (DFrac.own 1) c` (`InvConfchange.lean`:
@@ -16,10 +14,11 @@ set), with learners and staged learners (`LearnersNext`), `AutoLeave` set or not
   `IsLearner` is whether its id is a learner (`LearnerFlagsC`), and the configuration is
   one `checkInvariants` accepts (`CfgInv`, on the flags);
 * the vote map, the progress map (read-only, `DFrac.discard`) with the `Progress` objects,
-  and the two bounds, as in `ownTracker`.
+  and the two bounds (the tracked ids at most `2^62`, the inflight window below `2^62`).
 
-`ownTracker` is the special case: `ownTracker_toC` and `ownTrackerC_toSimple` convert at
-`CfgM.simple cfg (domSet t.prs \ cfg)`. The quorum and tracker specs are stated on
+A non-joint configuration is `CfgM.simple cfg (domSet t.prs \ cfg)`: the voters `cfg`, the
+learners the other tracked ids (`ownTrackerC_resimple`). (Until 2026-10-24 that case was a
+predicate of its own, `ownTracker cfg tv t` in `InvTracker.lean`.) The quorum and tracker specs are stated on
 `ownTrackerC` (their old statements derived, in their `Spec` files); `ownRaftPhysC`
 (`InvRaftPhys.lean`) is the raft struct over it.
 
@@ -157,32 +156,19 @@ theorem learnerFlagsC_simple (cfg : GSet w64) (prs : GMap w64 Loc) (pvs : GMap w
   · have : k ∈ domSet prs \ cfg := (GMap.elem_of_difference _ _ _).2 ⟨hk, hc⟩
     simp [hc, this]
 
-/-- Back: at a non-joint configuration, `LearnerFlagsC` is `ownTracker`'s `LearnerFlags` at the
-incoming voters, and the learners are the tracked ids outside them. -/
-theorem learnerFlags_of_C (c : CfgM) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
-    (Hd : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome)
-    (Hinv : CfgInv ⟨c, trkFlags pvs⟩) (Hdom : domSet prs = c.ids) (Hfl : LearnerFlagsC c pvs)
-    (ho : c.outgoing = ∅) :
-    LearnerFlags c.incoming pvs ∧ c.learners = domSet prs \ c.incoming := by
-  have Hl : c.learners = domSet prs \ c.incoming := by
-    apply GMap.set_eq; intro k
-    rw [Hdom, GMap.elem_of_difference]
-    unfold CfgM.ids CfgM.voters
-    rw [ho, GMap.union_empty_r_L, GMap.elem_of_union]
-    constructor
-    · intro h; exact ⟨.inr h, (Hinv.2.2.1 k h).2.1⟩
-    · rintro ⟨h | h, h'⟩
-      · exact absurd h h'
-      · exact h
-  refine ⟨fun k p hp => ?_, Hl⟩
-  rw [Hfl k p hp]
-  have hk : k ∈ domSet prs := by
-    rw [GMap.elem_of_dom', GMap.mem_iff, Hd, hp]; rfl
-  by_cases hc : k ∈ c.incoming
-  · have : k ∉ c.learners := fun h => (Hinv.2.2.1 k h).2.1 hc
-    simp [hc, this]
-  · have : k ∈ c.learners := by rw [Hl]; exact (GMap.elem_of_difference _ _ _).2 ⟨hk, hc⟩
-    simp [hc, this]
+/-- At a non-joint configuration the learners are the tracked ids outside the incoming voters. -/
+theorem learners_of_C (c : CfgM) (prs : GMap w64 Loc) (f : GMap w64 Bool)
+    (Hinv : CfgInv ⟨c, f⟩) (Hdom : domSet prs = c.ids) (ho : c.outgoing = ∅) :
+    c.learners = domSet prs \ c.incoming := by
+  apply GMap.set_eq; intro k
+  rw [Hdom, GMap.elem_of_difference]
+  unfold CfgM.ids CfgM.voters
+  rw [ho, GMap.union_empty_r_L, GMap.elem_of_union]
+  constructor
+  · intro h; exact ⟨.inr h, (Hinv.2.2.1 k h).2.1⟩
+  · rintro ⟨h | h, h'⟩
+    · exact absurd h h'
+    · exact h
 
 /-- The voters of a configuration are tracked. -/
 theorem voters_sub_ids (c : CfgM) : c.voters ⊆ c.ids := by
@@ -231,7 +217,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The tracker at the configuration `c` (see the file header): like `ownTracker`, what the
+/-- The tracker at the configuration `c` (see the file header): what the
 tracker value `tv` points at, indexed by `t`, with the configuration as `confchange`
 represents it. -/
 def ownTrackerC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) : IProp GF :=
@@ -269,65 +255,74 @@ theorem ownTrackerC_intro (c : CfgM) (tv : tracker.ProgressTracker) (votes : GMa
   ipureintro
   exact ⟨Hinv, Hdom, Hflags, Hsize, HmaxInfl⟩
 
-/-- `ownTracker` is `ownTrackerC` at its simple configuration. -/
-theorem ownTracker_toC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk) :
-    ownTracker (GF := GF) cfg tv t ⊢ ownTrackerC (CfgM.simple cfg (domSet t.prs \ cfg)) tv t := by
-  iintro Hown
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
-  iNamed Hown
-  obtain ⟨Hldom, Hlnx, Hfl⟩ := Hno_learners
-  subst Hlnx
-  have Hv : voters = cfg := by rw [← Hvoters_dom, domSet_gset]
-  subst Hv
-  have Hlrn : learners = domSet t.prs \ voters := by rw [← Hldom, domSet_gset]
-  subst Hlrn
-  ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
-  have Hd : ∀ k, (t.prs !! k).isSome ↔ (t.peers !! k).isSome := Hdom0
-  iapply ownTrackerC_intro (CfgM.simple voters (domSet t.prs \ voters)) tv t.votes t.prs t.peers
-    (cfgInv_simple voters t.prs t.peers Hprs_dom Hd Hfl) (ids_simple voters t.prs Hprs_dom)
-    (learnerFlagsC_simple voters t.prs t.peers Hd Hfl) Hcfg_size HmaxInfl
-    $$ Hvotes Hprs Hprogs [Hvoters Hlearners HlearnersNext]
-  iapply ownCfgCC_intro tv.Config' (DFrac.own 1) (CfgM.simple voters (domSet t.prs \ voters))
-    voters_ref map.nil Hvoters_arr Hautoleave $$ [Hvoters] [] [Hlearners] [HlearnersNext]
-  · simp only [CfgM.simple]; iexact Hvoters
-  · simp only [CfgM.simple]; iapply ownIdsetC_nil
-  · simp only [CfgM.simple]; iexact Hlearners
-  · simp only [CfgM.simple]; iexact HlearnersNext
-
-/-- Back: at a non-joint configuration, `ownTrackerC` is `ownTracker` at the incoming voters,
-the learners the tracked ids outside them. -/
-theorem ownTrackerC_toSimple (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
+/-- At a non-joint configuration the tracker is at the simple configuration of its incoming
+voters, the learners the tracked ids outside them. -/
+theorem ownTrackerC_resimple (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
     (ho : c.outgoing = ∅) :
     ownTrackerC (GF := GF) c tv t ⊢
-      ownTracker c.incoming tv t ∗ ⌜c.learners = domSet t.prs \ c.incoming⌝ := by
+      ownTrackerC (CfgM.simple c.incoming (domSet t.prs \ c.incoming)) tv t ∗
+      ⌜c.learners = domSet t.prs \ c.incoming⌝ := by
   iintro Hown
   iunfold ownTrackerC at Hown
   iNamed Hown
-  ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
-  have Hd : ∀ k, (t.prs !! k).isSome ↔ (t.peers !! k).isSome := Hdom0
-  obtain ⟨Hfl, Hl⟩ := learnerFlags_of_C c t.prs t.peers Hd Hinv Hdom Hflags ho
-  have Hln : c.learnersNext = ∅ := (Hinv.2.2.2 ho).1
-  have Hal : c.autoLeave = false := (Hinv.2.2.2 ho).2
-  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl', Hln', %Hal'⟩
-  ihave %Hvout := ownIdsetC_nil_of _ _ _ ho $$ Hout
-  subst Hvout
+  have Hl := learners_of_C c t.prs _ Hinv Hdom ho
+  have Hc : CfgM.simple c.incoming (domSet t.prs \ c.incoming) = c := by
+    obtain ⟨Hln, Hal⟩ := Hinv.2.2.2 ho
+    rw [← Hl]
+    cases c
+    simp only at ho Hln Hal
+    simp only [CfgM.simple, ho, Hln, Hal]
+  rw [Hc]
   isplitl
-  · have Hsub : c.incoming ⊆ domSet t.prs := by
-      rw [Hdom]; unfold CfgM.ids CfgM.voters
-      rw [GMap.elem_of_subseteq]; intro k hk
-      exact GMap.elem_of_union_l _ (GMap.elem_of_union_l _ hk)
-    iapply ownTracker_intro c.incoming tv t.votes t.prs t.peers vin c.incoming c.learners
-      c.learnersNext Hsub Harr (Hal'.trans Hal) (domSet_gset _)
-      ⟨by rw [domSet_gset]; exact Hl, Hln, Hfl⟩ Hsize HmaxInfl
-      $$ Hvotes Hprs Hprogs Hin Hl' Hln'
+  · iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl
+      $$ Hvotes Hprs Hprogs Hcfg
   · ipureintro; exact Hl
 
-/-- `ownTrackerC_toSimple` at `CfgM.simple`. -/
-theorem ownTrackerC_toTracker (cfg lrn : GSet w64) (tv : tracker.ProgressTracker) (t : Trk) :
-    ownTrackerC (GF := GF) (CfgM.simple cfg lrn) tv t ⊢
-      ownTracker cfg tv t ∗ ⌜lrn = domSet t.prs \ cfg⌝ :=
-  ownTrackerC_toSimple (CfgM.simple cfg lrn) tv t rfl
+/-- `ownTrackerC_resimple` at `CfgM.simple`. -/
+theorem ownTrackerC_simple_resimple (cfg lrn : GSet w64) (tv : tracker.ProgressTracker)
+    (votes : GMap w64 Bool) (prs : GMap w64 Loc) (pvs : GMap w64 Progress) :
+    ownTrackerC (GF := GF) (CfgM.simple cfg lrn) tv ⟨votes, prs, pvs⟩ ⊢
+      ownTrackerC (CfgM.simple cfg (domSet prs \ cfg)) tv ⟨votes, prs, pvs⟩ ∗
+      ⌜lrn = domSet prs \ cfg⌝ :=
+  ownTrackerC_resimple (CfgM.simple cfg lrn) tv _ rfl
+
+/-- The tracker `MakeProgressTracker` builds, over the empty configuration. -/
+theorem ownTrackerC_empty (tv : tracker.ProgressTracker) (v0 : Loc)
+    (Harr : tv.Config'.Voters'.arr = [v0, map.nil])
+    (Hl : tv.Config'.Learners' = map.nil)
+    (Hln : tv.Config'.LearnersNext' = map.nil)
+    (Hal : tv.Config'.AutoLeave' = false)
+    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
+    ⊢ (v0 ↦$ (∅ : GMap w64 Unit) : IProp GF) -∗
+      tv.Votes' ↦$ (∅ : GMap w64 Bool) -∗
+      tv.Progress' ↦$□ (∅ : GMap w64 Loc) -∗
+      ownTrackerC (CfgM.simple ∅ ∅) tv ⟨∅, ∅, ∅⟩ := by
+  iintro Hv0 Hvotes #Hprs
+  ihave Hprogs : ([∗map] _k ↦ pr;p ∈ (∅ : GMap w64 Loc); (∅ : GMap w64 Progress),
+      ownProgress (GF := GF) pr p) $$ []
+  · iapply (BigSepM2.bigSepM2_empty _).2; iempintro
+  have Hsub : (∅ : GSet w64) ⊆ domSet (∅ : GMap w64 Loc) := by
+    rw [GMap.dom_empty]; exact GMap.subseteq_refl _
+  have Hd : ∀ k, ((∅ : GMap w64 Loc) !! k).isSome ↔ ((∅ : GMap w64 Progress) !! k).isSome :=
+    fun _ => Iff.rfl
+  have Hfl : LearnerFlags ∅ (∅ : GMap w64 Progress) := fun k p h => by simp at h
+  have He : domSet (∅ : GMap w64 Loc) \ (∅ : GSet w64) = ∅ := by
+    apply GMap.set_eq; intro k
+    exact ⟨fun h => absurd ((GMap.elem_of_difference _ _ _).1 h).1
+        (by rw [GMap.dom_empty]; exact GMap.not_elem_of_empty _),
+      fun h => absurd h (GMap.not_elem_of_empty _)⟩
+  have Hinv := cfgInv_simple ∅ (∅ : GMap w64 Loc) (∅ : GMap w64 Progress) Hsub Hd Hfl
+  have Hids := ids_simple ∅ (∅ : GMap w64 Loc) Hsub
+  have Hflc := learnerFlagsC_simple ∅ (∅ : GMap w64 Loc) (∅ : GMap w64 Progress) Hd Hfl
+  rw [He] at Hinv Hids Hflc
+  iapply ownTrackerC_intro (CfgM.simple ∅ ∅) tv ∅ ∅ ∅ Hinv Hids Hflc
+    (by rw [GMap.map_size_empty]; decide) Hmi $$ Hvotes Hprs Hprogs [Hv0]
+  iapply ownCfgCC_intro tv.Config' (DFrac.own 1) (CfgM.simple ∅ ∅) v0 map.nil Harr Hal
+    $$ [Hv0] [] [] []
+  · simp only [CfgM.simple]; iexact Hv0
+  · simp only [CfgM.simple]; iapply ownIdsetC_nil
+  · simp only [CfgM.simple]; rw [Hl]; iapply ownIdsetC_nil
+  · simp only [CfgM.simple]; rw [Hln]; iapply ownIdsetC_nil
 
 /-! ### Readers -/
 

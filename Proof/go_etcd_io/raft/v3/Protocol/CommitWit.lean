@@ -50,10 +50,6 @@ instance hsWit_timeless (γ : RaftNames) (h : HardStateM) (n : Nat) :
     Timeless (hsWit (GF := GF) γ h n) := by
   unfold hsWit; infer_instance
 
-theorem hsWit_zero (γ : RaftNames) (n : Nat) :
-    ⊢ hsWit (GF := GF) γ (HardStateM.mk (W64 0) (W64 0) (W64 0)) n := by
-  unfold hsWit; ileft; ipureintro; rfl
-
 /-- (D22l) Hard states in ghost variables (`node.go`'s `dlv`, `rof`). -/
 instance hardStateM_countable : Pos.Countable HardStateM :=
   .ofInjective (fun h => Pos.Countable.encode (h.Term', h.Vote', h.Commit'))

@@ -514,17 +514,6 @@ def chShape (c : Change) : GoString × Bool := (c.key, c.isDel)
 /-- A log's shape: each revision's changes' keys and kinds (not the values and leases). -/
 def logShape (log : Log) : List (List (GoString × Bool)) := log.map (·.map chShape)
 
-/-- An event's key and kind. -/
-def evShape (e : Ev) : GoString × Bool := (e.key, e.tomb)
-
-theorem evsOfRev_shape (i : Nat) (cs : List Change) :
-    (evsOfRev i cs).map evShape = cs.map chShape := by
-  unfold evsOfRev
-  rw [List.map_map]
-  have : (evShape ∘ fun p : Change × Nat =>
-      ({ rev := ⟨W64 i, W64 p.2⟩, change := p.1 } : Ev)) = chShape ∘ Prod.fst := rfl
-  rw [this, ← List.map_map, List.zipIdx_map_fst]
-
 end txn
 end EtcdGrove
 end Perennial

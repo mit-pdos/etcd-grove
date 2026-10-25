@@ -28,53 +28,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-! ### Conf states, by fractions -/
 
-theorem csPts_combine (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bool) :
-    csPts (GF := GF) p dq1 c al1 ∗ csPts p dq2 c al2 ⊢ csPts p (dq1 • dq2) c al1 := by
-  iintro ⟨H1, H2⟩
-  iNamed H1
-  iunfold csPts at H2
-  icases H2 with ⟨%sv2, %sl2, %so2, %sn2, %pa2, %pw2, %pwo2, -, HV2, Hv2, HL2, Hl2, HO2, Ho2, HN2, Hn2,
-    HA2, -, -, HW2, -, HWO2, -, -⟩
-  icombine HV HV2 gives %E1
-  icombine HL HL2 gives %E2
-  icombine HO HO2 gives %E3
-  icombine HN HN2 gives %E4
-  icombine HA HA2 gives %E5
-  icombine HW HW2 gives %E6
-  icombine HWO HWO2 gives %E7
-  subst E1 E2 E3 E4 E5 E6 E7
-  iunfold csPts
-  iexists sv, sl, so, sn, pa, pw, pwo
-  isplitr
-  · ipureintro; exact Hnn
-  isplitl [HV HV2]
-  · iapply ((typedPointsto_dfractional (GF := GF) _ sv).dfractional dq1 dq2).2; iframe
-  isplitl [Hv Hv2]
-  · iapply ((ownSlice_dfractional (GF := GF) sv _).dfractional dq1 dq2).2; iframe
-  isplitl [HL HL2]
-  · iapply ((typedPointsto_dfractional (GF := GF) _ sl).dfractional dq1 dq2).2; iframe
-  isplitl [Hl Hl2]
-  · iapply ((ownSlice_dfractional (GF := GF) sl _).dfractional dq1 dq2).2; iframe
-  isplitl [HO HO2]
-  · iapply ((typedPointsto_dfractional (GF := GF) _ so).dfractional dq1 dq2).2; iframe
-  isplitl [Ho Ho2]
-  · iapply ((ownSlice_dfractional (GF := GF) so _).dfractional dq1 dq2).2; iframe
-  isplitl [HN HN2]
-  · iapply ((typedPointsto_dfractional (GF := GF) _ sn).dfractional dq1 dq2).2; iframe
-  isplitl [Hn Hn2]
-  · iapply ((ownSlice_dfractional (GF := GF) sn _).dfractional dq1 dq2).2; iframe
-  isplitl [HA HA2]
-  · iapply ((typedPointsto_dfractional (GF := GF) _ pa).dfractional dq1 dq2).2; iframe
-  iframe cA
-  isplitr
-  · ipureintro; exact Hal
-  isplitl [HW HW2]
-  · iapply ((typedPointsto_dfractional (GF := GF) _ pw).dfractional dq1 dq2).2; iframe
-  iframe cW
-  isplitl [HWO HWO2]
-  · iapply ((typedPointsto_dfractional (GF := GF) _ pwo).dfractional dq1 dq2).2; iframe
-  iframe cWO Hpb
-
 /-! ### A snapshot whose metadata is set, its conf state apart -/
 
 /-- Everything of `ownSnapE sp dq sv` but the conf state, at the metadata `pm` and the conf state

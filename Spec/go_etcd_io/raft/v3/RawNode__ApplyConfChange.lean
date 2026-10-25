@@ -14,7 +14,7 @@ tracked ids, which this layer cannot state without the learner set in `RNState`.
 voters or joint consensus is not specified: the voter set the ghost state is about (`γ.reCfg`)
 is fixed. The `RawNode`'s client-facing state is unchanged; inside, the node installs new
 `Progress` objects and, at a leader, commits what the (same) quorums allow and sends appends:
-one ghost step (`Step.reMatch`, `Step.commit`, `Step.sendApps`; `applyCCOk_step`).
+one ghost step (`StepC.reMatch`, `StepC.commit`, `StepC.sendApps`; `applyCCOkC_step`).
 
 **The order of `ApplyConfChange` and `Advance`** (`issues/raft-advance-before-applyconfchange.md`):
 etcd-raft's guards against a second pending conf change (`hasUnappliedConfChanges` at a

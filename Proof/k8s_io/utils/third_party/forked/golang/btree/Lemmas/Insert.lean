@@ -103,8 +103,6 @@ theorem lookup_cons_eq (x : V × K) (B : List (V × K)) (k : K) (hx : x.2 = k) :
     lookup (x :: B) k = some x.1 := by
   simp [lookup, hx]
 
-theorem lookup_nil (k : K) : lookup ([] : List (V × K)) k = none := rfl
-
 /-! ### Sorted lists -/
 
 theorem sorted_mid {lt : K → K → Prop} {A B : List (V × K)} {x : V × K}

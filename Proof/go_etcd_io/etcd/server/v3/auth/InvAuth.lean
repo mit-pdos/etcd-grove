@@ -931,7 +931,7 @@ theorem authErrVar_of_init (e : AuthErr) :
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨#H1, #H2, #H3, #H4, #H5, -, -, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14,
-    #H15, #H16, #H17, #H18⟩
+    #H15, #H16, #H17, #H18, -⟩
   cases e <;> simp only [AuthErr.var] <;>
     first
     | (iunfold authErrVar at H1; icases H1 with ⟨%x, #Hx, -⟩; iexists x; iexact Hx)

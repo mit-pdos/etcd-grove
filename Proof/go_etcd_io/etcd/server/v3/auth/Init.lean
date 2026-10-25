@@ -227,6 +227,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrAuthOldRevision
   ipersist HErrInvalidAuthToken
   ipersist HErrInvalidAuthMgmt
+  ipersist HsimpleTokenTTLResolution
   ihave #TErrRootUserNotExist := EtcdGrove.errorMsg_triple _ _ _ $$ MErrRootUserNotExist
   ihave #TErrRootRoleNotExist := EtcdGrove.errorMsg_triple _ _ _ $$ MErrRootRoleNotExist
   ihave #TErrUserAlreadyExist := EtcdGrove.errorMsg_triple _ _ _ $$ MErrUserAlreadyExist
@@ -260,6 +261,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   dsimp only
   iframe #
   repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))
+  ipureintro
+  decide
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

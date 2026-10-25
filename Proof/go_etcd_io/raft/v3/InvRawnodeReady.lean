@@ -116,7 +116,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
--- Named apart from `LemmasSendRD.csPts_combine` (which keeps the first `AutoLeave`): both reach `Link.lean`.
+-- The two halves joined at `AutoLeave = false` (the shares may disagree on it).
 theorem csPts_combine_open (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bool) :
     csPts (GF := GF) p dq1 c al1 ∗ csPts p dq2 c al2 ⊢ csPts p (dq1 • dq2) c false := by
   iintro ⟨H1, H2⟩
@@ -316,12 +316,6 @@ batch recorded as the application's (`logHanded`) and, with a snapshot (`lt`), t
 (`ownRaftLog_lend`). -/
 def rdyLog (h lt : Bool) (ls : LogState) : LogState :=
   if h then (if lt then logHanded { ls with lent := true, sat := false } else logHanded ls) else ls
-
-theorem rdyLog_false (lt : Bool) (ls : LogState) : rdyLog false lt ls = ls := rfl
-
-theorem rdyLog_none (h : Bool) (ls : LogState) :
-    rdyLog h false ls = if h then logHanded ls else ls := by
-  unfold rdyLog; cases h <;> rfl
 
 /-- (D22 S-d3a) What a snapshot `Ready` records of its loan (`SnapLoan`) at the node's state `s`:
 the snapshot pending and not in progress, a snapshot the node may send, past index `0`; the

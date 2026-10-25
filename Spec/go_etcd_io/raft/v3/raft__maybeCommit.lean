@@ -1,6 +1,6 @@
 /- Port of election_proof/spec_raft__maybeCommit.v (feb5c73d4).
 
-Lean notes: Rocq's `commit_ok` (a Prop-valued definition) is `CommitOk`.
+Lean notes: Rocq's `commit_ok` (a Prop-valued definition) is `CommitOkC` (at a configuration; until 2026-10-24 also `CommitOk`, at a simple one).
 -/
 module
 
@@ -18,29 +18,16 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section commit_ok
 variable [FfiSyntax]
 
-/-- `CommitOk cfg ps n`: a leader in protocol state `ps` may advance its commit index to
-`n` -- exactly the premises of the model's `Step.commit` other than the role: `n` is
-past the current commit index and inside the log, the entry there is of the leader's
-own term, and a quorum of voters has acknowledged `n` (`ackedBy`, over `matched`).
-Shared with `Spec/stepLeader.lean`. -/
-def CommitOk (cfg : GSet w64) (ps : PState) (n : w64) : Prop :=
-  uint.Z ps.commit < uint.Z n ∧
-  uint.Z n ≤ plogLastIndexZ ps.base ps.log ∧
-  plogTermAt ps.base ps.log n = some ps.term ∧
-  IsQuorum cfg (ackedBy ps n)
-
-/-- `CommitOk` at a joint configuration (2026-10-13, reconfiguration stage A2): the premises
-of `StepC.commit` other than the role, a joint quorum (`JQuorum`) acknowledging `n`. -/
+/-- `CommitOkC c ps n`: a leader in protocol state `ps` may advance its commit index to `n` at
+the configuration `c` -- exactly the premises of `StepC.commit` other than the role: `n` is past
+the current commit index and inside the log, the entry there is of the leader's own term, and a
+joint quorum (`JQuorum`) has acknowledged `n` (`ackedBy`, over `matched`). (Until 2026-10-24
+also `CommitOk`, at a simple configuration's voters.) -/
 def CommitOkC (c : CfgM) (ps : PState) (n : w64) : Prop :=
   uint.Z ps.commit < uint.Z n ∧
   uint.Z n ≤ plogLastIndexZ ps.base ps.log ∧
   plogTermAt ps.base ps.log n = some ps.term ∧
   JQuorum c (ackedBy ps n)
-
-/-- At a simple configuration with voters, `CommitOkC` is `CommitOk`. -/
-theorem CommitOkC.simple {cfg lrn : GSet w64} {ps : PState} {n : w64} (hne : cfg ≠ ∅)
-    (h : CommitOkC (CfgM.simple cfg lrn) ps n) : CommitOk cfg ps n :=
-  ⟨h.1, h.2.1, h.2.2.1, (JQuorum_of_out (c := CfgM.simple cfg lrn) hne rfl _).1 h.2.2.2⟩
 
 end commit_ok
 

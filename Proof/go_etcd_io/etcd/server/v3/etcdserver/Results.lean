@@ -50,6 +50,7 @@ stage R7c).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
@@ -1165,6 +1166,40 @@ end backend
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
+
+section tokens
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The simple token provider's constructor** (`newTokenProviderSimple`, the auth plan's S5e;
+`auth/TokenKeeperRun.lean`): the provider's facts, its index waiter, the admin side's share and the
+authority over the rights to issue tokens, under fresh names. -/
+theorem token_simple_new (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (hpos : 0 < sint.Z ttl) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+        □ (∀ idx : w64, {{ True }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; auth.anyRecv ch }}) }}
+      (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple)) (Val #lg)) (Val #iw))
+        (Val #ttl))
+    {{ (p : Loc), RET #p; ∃ γt γf : GName, auth.simpleOk p γt γf ∗ auth.simpleWaitOk p ∗
+        auth.simpleAdmin p ∗ ghostMapAuth γf 1 (∅ : GMap GoString Unit) }} :=
+  auth.tokenSimple_new zap.NewNop.wp_proof lg iw ttl hpos
+
+/-- **The simple token provider meets the token contract** with `info`'s context premise
+(`auth.tokenProviderOkCtx`, S5e), in the mode `on γa`, with the admin side's share, and no
+hypothesis on the provider (the keeper's goroutine proved, `keeper_run`). -/
+theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.simpleOk p γa.tok γa.fresh ∗
+        auth.simpleWaitOk p ⊢
+      auth.tokenProviderOkCtx (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
+        (.on γa) (auth.simpleAdmin p) :=
+  auth.tokenSimple_okCtx zap.Logger.Debug.wp_proof zap.String.wp_proof p γa
+
+end tokens
+
+#print axioms Perennial.EtcdGrove.token_simple_new
+#print axioms Perennial.EtcdGrove.token_simple_ok
 
 section goroutines
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

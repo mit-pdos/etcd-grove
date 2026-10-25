@@ -156,8 +156,6 @@ abbrev ApplyNames.m0 (γ : ApplyNames) : MetaCI := γ.ph.m0
 abbrev ApplyNames.withPh (γ : ApplyNames) (π : ApplyPhys) : ApplyNames :=
   ⟨γ.ci, γ.st, γ.fz, γ.cur, γ.reg, γ.fut, π⟩
 
-theorem ApplyNames.withPh_ph (γ : ApplyNames) : γ.withPh γ.ph = γ := rfl
-
 /-- The consistent index as an index of the backend: while `ci` is 0 (unloaded) the stored
 meta index, which then is still the one the backend was opened with; else `ci`. -/
 def ciEff (γ : ApplyNames) (k : w64) : w64 := if k = W64 0 then γ.m0.1 else k

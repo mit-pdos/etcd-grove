@@ -42,8 +42,6 @@ namespace v3rpc
 
 /-! ## Strings and intervals -/
 
-theorem goEmpty : (go!"" : GoString) = [] := rfl
-
 theorem strLt_append_zero (k : GoString) (hk : k ≠ []) : go.GoStringLt k (k ++ [W8 0]) := by
   induction k with
   | nil => exact absurd rfl hk

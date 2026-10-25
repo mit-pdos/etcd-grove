@@ -141,24 +141,9 @@ def memSnapCreated (σ : StorState) (i t : w64) (oc : Option ConfStateM) (bs : L
 theorem memSnapCreated_confState (σ : StorState) (i t : w64) (c : ConfStateM) (bs : List w8) :
     (memSnapCreated σ i t (some c) bs).Metadata'.ConfState' = c := rfl
 
-theorem memSnapCreated_confState_none (σ : StorState) (i t : w64) (bs : List w8) :
-    (memSnapCreated σ i t none bs).Metadata'.ConfState' = storCS σ := rfl
-
 /-- The created snapshot's id: the index given, the term of that index. -/
 theorem memSnapCreated_snapId (σ : StorState) (i t : w64) (oc : Option ConfStateM)
     (bs : List w8) : snapId (memSnapCreated σ i t oc bs) = entryID.mk t i := rfl
-
-theorem storCS_lists (σ : StorState) : (storCS σ).lists = σ.scs := rfl
-
-/-- A list between `H` and `H ++ [x]` in the prefix order is one of the two. -/
-theorem prefix_between {A : Type _} (H D : List A) (x : A) (H1 : H <+: D)
-    (H2 : D <+: H ++ [x]) : D = H ∨ D = H ++ [x] := by
-  have L1 := H1.length_le
-  have L2 := H2.length_le
-  simp only [List.length_append, List.length_singleton] at L2
-  by_cases h : D.length = H.length
-  · exact .inl (H1.eq_of_length h.symm).symm
-  · exact .inr (H2.eq_of_length (by simp; omega))
 
 /-- `storApp` agrees with the stored entries below the batch. -/
 theorem storApp_take (σ : StorState) (p : List EntryM) (m : Nat)
@@ -808,13 +793,6 @@ def memSnapTok (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF :=
   "Hsv" ∷ ghostVar γs.sn memQ (snapPart σ) ∗
   "Hcbt" ∷ ghostVar γs.cb (1 : Qp).half σ.prev)
 
-theorem memSnapTok_congr (ms : Loc) (γs : MemStorNames) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)
-    (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) (h4 : σ'.prev = σ.prev) :
-    memSnapTok (GF := GF) ms γs σ ⊢ memSnapTok ms γs σ' := by
-  have : snapPart σ' = snapPart σ := by simp only [snapPart, h1, h2, h3]
-  unfold memSnapTok
-  rw [this, h4]
-
 /-- The owner's ghost view at `σ` (2026-10-10; D19i part 1): the history `hist` it has
 sanctioned (`HistOk`), and either nothing pending -- all of `hist`'s authority, ending at `σ`, the
 writer's half of `done` at a prefix `D` of it that only lacks floor raises, and all of `ep` -- or a
@@ -969,14 +947,6 @@ theorem monoHalves_update (γ : GName) (H H' : List StorState) (h : H <+: H') :
   icases (monoAuth_halves γ H').1 $$ Hf with ⟨H1, H2⟩
   imodintro
   iframe H1 H2
-
-/-- `Append`'s ghost step for `done`: the two halves record one more state. -/
-theorem memDone_append (γs : MemStorNames) (H : List StorState) (x : StorState) :
-    ⊢ monoListAuthOwn (GF := GF) γs.done (1 : Qp).half H -∗
-      monoListAuthOwn γs.done (1 : Qp).half H ==∗
-      monoListAuthOwn γs.done (1 : Qp).half (H ++ [x]) ∗
-      monoListAuthOwn γs.done (1 : Qp).half (H ++ [x]) :=
-  monoHalves_update γs.done H (H ++ [x]) (List.prefix_append _ _)
 
 /-- A whole typed points-to is two halves (2026-10-12: `memStorMeta` and the lock
 share `hardState` and `snapshot`). -/

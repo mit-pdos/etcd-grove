@@ -442,11 +442,6 @@ def stepErr (err : GoInterface) : IProp GF :=
 instance stepErr_persistent (err : GoInterface) : Persistent (stepErr (GF := GF) err) := by
   unfold stepErr; infer_instance
 
-theorem stepErr_nil : ⊢ stepErr (GF := GF) interface.nil := by
-  unfold stepErr
-  ileft
-  ipureintro; rfl
-
 /-- A proposal on `propc`: the message `Propose` builds, with its one-entry batch owned,
 the data read-only and its record (`entData`, 2026-10-10), and its result channel, of
 which `run` is the producer (a `Handoff`: `run` sends the error, `stepErr`, and closes); or

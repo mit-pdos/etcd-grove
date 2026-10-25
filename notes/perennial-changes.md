@@ -17,6 +17,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Specs: `(*Time).After`
+
+- **Missing.** The pointer-receiver form of `time.Time.After` (Perennial's `Proof/time/PtrMethods.lean`
+  has `Add`, `Before`, `Sub` only).
+- **Needed by.** etcd's TTL keeper (`simpleTokenTTLKeeper.run`: `nowtime.After(tokenendtime)` on an
+  addressable `Time`; the auth plan's S5e, 2026-10-25).
+- **Workaround here.** `auth/TokenKeeperRun.lean`'s `time_wp_ptr_After`, the shape of
+  `Time.wp_ptr_Before_of`.
+- **Proposed change.** `Time.wp_ptr_After_of`/`Time.wp_ptr_After` beside `Before`'s.
+- **Status.** Open.
+
 ### Specs: `sort.Search` without monotonicity
 
 - **Missing.** A spec of `sort.Search(n, f)` for a predicate that need not go from false to true:

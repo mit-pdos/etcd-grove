@@ -593,22 +593,6 @@ local macro "raftOwn_access " f:ident : tactic =>
                 H_witnessMsgs H_witnessVoteAsked
              try (ipureintro; simp_all)))
 
-/-- (2026-10-19) The witness fields: loads, and the stores of `nil` (`reset`, `acceptReady`). -/
-theorem raftOwn_access_load_witnessMsgs (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"witnessMsgs"] ↦ v.witnessMsgs') (l.[raft, go!"witnessMsgs"] ↦ v.witnessMsgs')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_witnessMsgs
-
-theorem raftOwn_access_store_witnessMsgs_nil (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"witnessMsgs"] ↦ v.witnessMsgs') (l.[raft, go!"witnessMsgs"] ↦ slice.nil)
-      (raftOwn l v) (raftOwn l { v with witnessMsgs' := slice.nil }) := by
-  raftOwn_access H_witnessMsgs
-
-theorem raftOwn_access_load_witnessVoteAsked (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"witnessVoteAsked"] ↦ v.witnessVoteAsked') (l.[raft, go!"witnessVoteAsked"] ↦ v.witnessVoteAsked')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_witnessVoteAsked
-
 theorem raftOwn_access_store_witnessVoteAsked_nil (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"witnessVoteAsked"] ↦ v.witnessVoteAsked') (l.[raft, go!"witnessVoteAsked"] ↦ map.nil)
       (raftOwn l v) (raftOwn l { v with witnessVoteAsked' := map.nil }) := by
@@ -634,24 +618,9 @@ theorem raftOwn_access_store_Vote (l : Loc) (v : raft) (x : w64) :
       (raftOwn l v) (raftOwn l { v with Vote' := x }) := by
   raftOwn_access H_Vote
 
-theorem raftOwn_access_load_readStates (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"readStates"] ↦ v.readStates') (l.[raft, go!"readStates"] ↦ v.readStates')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_readStates
-
-theorem raftOwn_access_store_readStates (l : Loc) (v : raft) (x : GoSlice) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"readStates"] ↦ v.readStates') (l.[raft, go!"readStates"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with readStates' := x }) := by
-  raftOwn_access H_readStates
-
 theorem raftOwn_access_load_raftLog (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"raftLog"] ↦ v.raftLog') (l.[raft, go!"raftLog"] ↦ v.raftLog')
       (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_raftLog
-
-theorem raftOwn_access_store_raftLog (l : Loc) (v : raft) (x : Loc) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"raftLog"] ↦ v.raftLog') (l.[raft, go!"raftLog"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with raftLog' := x }) := by
   raftOwn_access H_raftLog
 
 theorem raftOwn_access_load_maxMsgSize (l : Loc) (v : raft) :
@@ -659,30 +628,10 @@ theorem raftOwn_access_load_maxMsgSize (l : Loc) (v : raft) :
       (raftOwn l v) (raftOwn l v) := by
   raftOwn_access H_maxMsgSize
 
-theorem raftOwn_access_store_maxMsgSize (l : Loc) (v : raft) (x : entryEncodingSize) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"maxMsgSize"] ↦ v.maxMsgSize') (l.[raft, go!"maxMsgSize"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with maxMsgSize' := x }) := by
-  raftOwn_access H_maxMsgSize
-
 theorem raftOwn_access_load_maxUncommittedSize (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"maxUncommittedSize"] ↦ v.maxUncommittedSize') (l.[raft, go!"maxUncommittedSize"] ↦ v.maxUncommittedSize')
       (raftOwn l v) (raftOwn l v) := by
   raftOwn_access H_maxUncommittedSize
-
-theorem raftOwn_access_store_maxUncommittedSize (l : Loc) (v : raft) (x : entryPayloadSize) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"maxUncommittedSize"] ↦ v.maxUncommittedSize') (l.[raft, go!"maxUncommittedSize"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with maxUncommittedSize' := x }) := by
-  raftOwn_access H_maxUncommittedSize
-
-theorem raftOwn_access_load_trk (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"trk"] ↦ v.trk') (l.[raft, go!"trk"] ↦ v.trk')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_trk
-
-theorem raftOwn_access_store_trk (l : Loc) (v : raft) (x : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"trk"] ↦ v.trk') (l.[raft, go!"trk"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with trk' := x }) := by
-  raftOwn_access H_trk
 
 theorem raftOwn_access_load_state (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"state"] ↦ v.state') (l.[raft, go!"state"] ↦ v.state')
@@ -703,26 +652,6 @@ theorem raftOwn_access_store_isLearner (l : Loc) (v : raft) (x : Bool) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"isLearner"] ↦ v.isLearner') (l.[raft, go!"isLearner"] ↦ x)
       (raftOwn l v) (raftOwn l { v with isLearner' := x }) := by
   raftOwn_access H_isLearner
-
-theorem raftOwn_access_load_msgs (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"msgs"] ↦ v.msgs') (l.[raft, go!"msgs"] ↦ v.msgs')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_msgs
-
-theorem raftOwn_access_store_msgs (l : Loc) (v : raft) (x : GoSlice) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"msgs"] ↦ v.msgs') (l.[raft, go!"msgs"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with msgs' := x }) := by
-  raftOwn_access H_msgs
-
-theorem raftOwn_access_load_msgsAfterAppend (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"msgsAfterAppend"] ↦ v.msgsAfterAppend') (l.[raft, go!"msgsAfterAppend"] ↦ v.msgsAfterAppend')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_msgsAfterAppend
-
-theorem raftOwn_access_store_msgsAfterAppend (l : Loc) (v : raft) (x : GoSlice) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"msgsAfterAppend"] ↦ v.msgsAfterAppend') (l.[raft, go!"msgsAfterAppend"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with msgsAfterAppend' := x }) := by
-  raftOwn_access H_msgsAfterAppend
 
 theorem raftOwn_access_load_lead (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"lead"] ↦ v.lead') (l.[raft, go!"lead"] ↦ v.lead')
@@ -759,11 +688,6 @@ theorem raftOwn_access_load_disableConfChangeValidation (l : Loc) (v : raft) :
       (raftOwn l v) (raftOwn l v) := by
   raftOwn_access H_disableConfChangeValidation
 
-theorem raftOwn_access_store_disableConfChangeValidation (l : Loc) (v : raft) (x : Bool) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"disableConfChangeValidation"] ↦ v.disableConfChangeValidation') (l.[raft, go!"disableConfChangeValidation"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with disableConfChangeValidation' := x }) := by
-  raftOwn_access H_disableConfChangeValidation
-
 theorem raftOwn_access_load_uncommittedSize (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"uncommittedSize"] ↦ v.uncommittedSize') (l.[raft, go!"uncommittedSize"] ↦ v.uncommittedSize')
       (raftOwn l v) (raftOwn l v) := by
@@ -773,16 +697,6 @@ theorem raftOwn_access_store_uncommittedSize (l : Loc) (v : raft) (x : entryPayl
     AccessStrict (PROP := IProp GF) (l.[raft, go!"uncommittedSize"] ↦ v.uncommittedSize') (l.[raft, go!"uncommittedSize"] ↦ x)
       (raftOwn l v) (raftOwn l { v with uncommittedSize' := x }) := by
   raftOwn_access H_uncommittedSize
-
-theorem raftOwn_access_load_readOnly (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"readOnly"] ↦ v.readOnly') (l.[raft, go!"readOnly"] ↦ v.readOnly')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_readOnly
-
-theorem raftOwn_access_store_readOnly (l : Loc) (v : raft) (x : Loc) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"readOnly"] ↦ v.readOnly') (l.[raft, go!"readOnly"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with readOnly' := x }) := by
-  raftOwn_access H_readOnly
 
 theorem raftOwn_access_load_electionElapsed (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"electionElapsed"] ↦ v.electionElapsed') (l.[raft, go!"electionElapsed"] ↦ v.electionElapsed')
@@ -809,19 +723,9 @@ theorem raftOwn_access_load_checkQuorum (l : Loc) (v : raft) :
       (raftOwn l v) (raftOwn l v) := by
   raftOwn_access H_checkQuorum
 
-theorem raftOwn_access_store_checkQuorum (l : Loc) (v : raft) (x : Bool) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"checkQuorum"] ↦ v.checkQuorum') (l.[raft, go!"checkQuorum"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with checkQuorum' := x }) := by
-  raftOwn_access H_checkQuorum
-
 theorem raftOwn_access_load_preVote (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"preVote"] ↦ v.preVote') (l.[raft, go!"preVote"] ↦ v.preVote')
       (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_preVote
-
-theorem raftOwn_access_store_preVote (l : Loc) (v : raft) (x : Bool) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"preVote"] ↦ v.preVote') (l.[raft, go!"preVote"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with preVote' := x }) := by
   raftOwn_access H_preVote
 
 theorem raftOwn_access_load_heartbeatTimeout (l : Loc) (v : raft) :
@@ -829,19 +733,9 @@ theorem raftOwn_access_load_heartbeatTimeout (l : Loc) (v : raft) :
       (raftOwn l v) (raftOwn l v) := by
   raftOwn_access H_heartbeatTimeout
 
-theorem raftOwn_access_store_heartbeatTimeout (l : Loc) (v : raft) (x : w64) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"heartbeatTimeout"] ↦ v.heartbeatTimeout') (l.[raft, go!"heartbeatTimeout"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with heartbeatTimeout' := x }) := by
-  raftOwn_access H_heartbeatTimeout
-
 theorem raftOwn_access_load_electionTimeout (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"electionTimeout"] ↦ v.electionTimeout') (l.[raft, go!"electionTimeout"] ↦ v.electionTimeout')
       (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_electionTimeout
-
-theorem raftOwn_access_store_electionTimeout (l : Loc) (v : raft) (x : w64) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"electionTimeout"] ↦ v.electionTimeout') (l.[raft, go!"electionTimeout"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with electionTimeout' := x }) := by
   raftOwn_access H_electionTimeout
 
 theorem raftOwn_access_load_randomizedElectionTimeout (l : Loc) (v : raft) :
@@ -857,11 +751,6 @@ theorem raftOwn_access_store_randomizedElectionTimeout (l : Loc) (v : raft) (x :
 theorem raftOwn_access_load_disableProposalForwarding (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"disableProposalForwarding"] ↦ v.disableProposalForwarding') (l.[raft, go!"disableProposalForwarding"] ↦ v.disableProposalForwarding')
       (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_disableProposalForwarding
-
-theorem raftOwn_access_store_disableProposalForwarding (l : Loc) (v : raft) (x : Bool) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"disableProposalForwarding"] ↦ v.disableProposalForwarding') (l.[raft, go!"disableProposalForwarding"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with disableProposalForwarding' := x }) := by
   raftOwn_access H_disableProposalForwarding
 
 theorem raftOwn_access_load_tick (l : Loc) (v : raft) :
@@ -883,26 +772,6 @@ theorem raftOwn_access_store_step (l : Loc) (v : raft) (x : stepFunc) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"step"] ↦ v.step') (l.[raft, go!"step"] ↦ x)
       (raftOwn l v) (raftOwn l { v with step' := x }) := by
   raftOwn_access H_step
-
-theorem raftOwn_access_load_pendingReadIndexMessages (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"pendingReadIndexMessages"] ↦ v.pendingReadIndexMessages') (l.[raft, go!"pendingReadIndexMessages"] ↦ v.pendingReadIndexMessages')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_pendingReadIndexMessages
-
-theorem raftOwn_access_store_pendingReadIndexMessages (l : Loc) (v : raft) (x : GoSlice) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"pendingReadIndexMessages"] ↦ v.pendingReadIndexMessages') (l.[raft, go!"pendingReadIndexMessages"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with pendingReadIndexMessages' := x }) := by
-  raftOwn_access H_pendingReadIndexMessages
-
-theorem raftOwn_access_load_traceLogger (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"traceLogger"] ↦ v.traceLogger') (l.[raft, go!"traceLogger"] ↦ v.traceLogger')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_traceLogger
-
-theorem raftOwn_access_store_traceLogger (l : Loc) (v : raft) (x : TraceLogger) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"traceLogger"] ↦ v.traceLogger') (l.[raft, go!"traceLogger"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with traceLogger' := x }) := by
-  raftOwn_access H_traceLogger
 
 /-- What a new log state `ls'` must keep of `NGhost.unst` (2026-10-10): if some unstable
 entry had not been handed out, some still has not (or a snapshot is pending). Every

@@ -1373,14 +1373,6 @@ theorem psendMsgs_outbox (s : PState) (ms : List Msg) :
     (psendMsgs s ms).outbox = s.outbox ++ ms := rfl
 theorem psendMsgs_term (s : PState) (ms : List Msg) : (psendMsgs s ms).term = s.term := rfl
 theorem psendMsgs_role (s : PState) (ms : List Msg) : (psendMsgs s ms).role = s.role := rfl
-theorem psendMsgs_votes (s : PState) (ms : List Msg) : (psendMsgs s ms).votes = s.votes := rfl
-theorem psendMsgs_log (s : PState) (ms : List Msg) : (psendMsgs s ms).log = s.log := rfl
-theorem psendMsgs_commit (s : PState) (ms : List Msg) :
-    (psendMsgs s ms).commit = s.commit := rfl
-theorem psendMsgs_matched (s : PState) (ms : List Msg) :
-    (psendMsgs s ms).matched = s.matched := rfl
-theorem psendMsgs_base (s : PState) (ms : List Msg) : (psendMsgs s ms).base = s.base := rfl
-
 /-- `lastIndex()` of the log, as a `w64`. -/
 def plastIndex (s : PState) : w64 :=
   W64 (plogLastIndexZ s.base s.log)

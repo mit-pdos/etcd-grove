@@ -447,11 +447,6 @@ theorem firstOcc_append_prefix (a b : List (Option (List w8))) :
     firstOcc a <+: firstOcc (a ++ b) := by
   unfold firstOcc; rw [List.foldl_append]; exact foldl_occStep_prefix _ _
 
-theorem firstOcc_take_prefix (ods : List (Option (List w8))) (n : Nat) :
-    firstOcc (ods.take n) <+: firstOcc ods := by
-  have := firstOcc_append_prefix (ods.take n) (ods.drop n)
-  rwa [List.take_append_drop] at this
-
 theorem mem_foldl_occStep (L : List (List w8)) (b : List (Option (List w8))) (d : List w8) :
     d ∈ b.foldl occStep L ↔ d ∈ L ∨ some d ∈ b := by
   induction b generalizing L with
@@ -526,16 +521,6 @@ theorem prefix_before_unique (L L0 L1 : List (List w8)) (d : List w8) (Hnd : L.N
 section pure
 variable [FfiSyntax]
 
-/-- `appendEntry`'s stamping loop: `es[k].Term = r.Term` and `es[k].Index = li+1+k`;
-nothing else about an entry changes (its `Type` and `Data` are the proposal's). (Moved here from `Defs.lean` on 2026-10-01: the model's
-`Step.win` and `Step.propose` stamp too.)
-
-An entry stamped at term `t` and index `i`: what a proposed (unstamped) entry `e0`
-becomes in the log (`stamp` is the same at `i = li + 1 + k`). And the list position of
-index `i` in a full log (from `base0`). -/
-def stampAt (e0 : EntryM) (t i : w64) : EntryM :=
-  { e0 with Term' := t, Index' := i }
-
 def pos (i : w64) : Nat := (uint.Z i - 1).toNat
 
 /-- `appendEntry`'s stamp: the leader's term, the next index, and (2026-10-19, witness support)
@@ -548,9 +533,6 @@ def stamp (tm li : w64) (k : Nat) (e : EntryM) : EntryM :=
 term, the next index and its current subterm. `stamp` is it at subterm `0`. -/
 def stampS (tm sb li : w64) (k : Nat) (e : EntryM) : EntryM :=
   { e with Term' := tm, Index' := li + W64 1 + W64 k, Subterm' := sb }
-
-theorem stampS_zero (tm li : w64) (k : Nat) (e : EntryM) :
-    stampS tm (W64 0) li k e = stamp tm li k e := rfl
 
 theorem stampS_zero_fun (tm li : w64) : stampS tm (W64 0) li = stamp tm li := rfl
 
@@ -566,20 +548,6 @@ def plogLastSub (es : List EntryM) : w64 :=
 theorem plogLastIndexZ_nonneg (b : entryID) (es : List EntryM) :
     0 ≤ plogLastIndexZ b es := by
   unfold plogLastIndexZ; have := uint_Z_nonneg b.index'; omega
-
-omit [FfiSyntax] in
-theorem stamp_index_le (L : Int) (k : Nat) :
-    0 ≤ L → uint.Z (W64 L + W64 1 + W64 (k : Int)) ≤ L + 1 + k := by
-  intro HL
-  simp only [uint.Z, W64, BitVec.toNat_add, BitVec.toNat_ofInt]
-  omega
-
-omit [FfiSyntax] in
-theorem leader_index_le (L : Int) :
-    0 ≤ L → uint.Z (W64 L + W64 1 + W64 0) ≤ L + 1 := by
-  intro HL
-  have H := stamp_index_le L 0 HL
-  simpa using H
 
 omit [FfiSyntax] in
 theorem stamp_index_eq (L : Int) (k : Nat) :
@@ -1157,16 +1125,6 @@ def FullOk (b : entryID) (fp : List EntryM) : Prop :=
 
 theorem base0_index : uint.Z (base0 : entryID).index' = 0 := rfl
 
-/-- Entry `k` of a committed log (well-formed from `base0`: `isCommitted_wf`, `Facts.lean`) has
-index `k + 1` (2026-10-16, stage R7: named for the server's contract). -/
-theorem isCommitted_index (L : List EntryM) (k : Nat) (e : EntryM) :
-    PlogWf base0 L → L[k]? = some e → uint.Z e.Index' = (k : Int) + 1 := by
-  intro Hwf Hk
-  have := Hwf k e Hk
-  rw [base0_index] at this
-  push_cast at this
-  omega
-
 theorem FullOk_base0 : FullOk base0 [] :=
   ⟨rfl, fun _ _ h => by simp at h, rfl⟩
 
@@ -1402,14 +1360,6 @@ theorem psendMsgs_outbox (s : PState) (ms : List Msg) :
     (psendMsgs s ms).outbox = s.outbox ++ ms := rfl
 theorem psendMsgs_term (s : PState) (ms : List Msg) : (psendMsgs s ms).term = s.term := rfl
 theorem psendMsgs_role (s : PState) (ms : List Msg) : (psendMsgs s ms).role = s.role := rfl
-theorem psendMsgs_votes (s : PState) (ms : List Msg) : (psendMsgs s ms).votes = s.votes := rfl
-theorem psendMsgs_log (s : PState) (ms : List Msg) : (psendMsgs s ms).log = s.log := rfl
-theorem psendMsgs_commit (s : PState) (ms : List Msg) :
-    (psendMsgs s ms).commit = s.commit := rfl
-theorem psendMsgs_matched (s : PState) (ms : List Msg) :
-    (psendMsgs s ms).matched = s.matched := rfl
-theorem psendMsgs_base (s : PState) (ms : List Msg) : (psendMsgs s ms).base = s.base := rfl
-
 /-- `lastIndex()` of the log, as a `w64`. -/
 def plastIndex (s : PState) : w64 :=
   W64 (plogLastIndexZ s.base s.log)
