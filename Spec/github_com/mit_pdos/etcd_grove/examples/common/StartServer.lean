@@ -38,8 +38,7 @@ abbrev StartServer.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client : GoString) (lg : Loc)
     (bootLog : List EntryM) (dir : w64 → List GoString) (id : w64)
     (γ : RaftNames) (bud : BudgetNames) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (W : SrvWorkload),
-  W.noGrant →
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.reCfg = GMap.listToSet [id] → γ.reDyn = none → γ.reCCOk = ccOk [id] → γ.reBoot = bootLog →
   γ.reNoSnap = true → γ.reNoXfer = true → bootLog.length ≤ 2 ^ 60 →
@@ -50,7 +49,7 @@ abbrev StartServer.spec : Prop :=
       threadTok ∗
       bootPremise N [id] bootLog dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot W γ bud bootLog ρ E₀ Φs id ∗
+      memberBoot γ bud bootLog ρ E₀ Φs id ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id }}

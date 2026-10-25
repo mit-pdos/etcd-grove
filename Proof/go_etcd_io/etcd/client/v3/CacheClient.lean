@@ -110,7 +110,8 @@ theorem isEtcdClient_of_server (wp_Watch : watcher.Watch.spec (GF := GF) (hG := 
 /-- **`clientv3.New`'s client is the cache's** (`isNewClient`, D19f): its `KV` field the `*kv`
 `New` made over the connection to `ep`, its `Watcher` field etcd's client watcher, given the watch
 server's facts at `ep` (`watchAddrFacts V`, `isNewClient_watcher`) and the KV's premises at `ep`
-(as `isEtcdClient_of_server_r`: the ranges' updates, `kvRangeAu`). -/
+(the KV's registrations at `ep`, `kvRegs`, and, as `isEtcdClient_of_server_r`, the ranges'
+updates, `kvRangeAu`). -/
 theorem isEtcdClient_of_new_r [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
@@ -125,11 +126,10 @@ theorem isEtcdClient_of_new_r [_root_.Perennial.errors.Assumptions] [_root_.Pere
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isNewClient cl [ep] V ∗ watchAddrFacts V ∗
-      isServerRead s E γr ∗ isGrpcRpc ep go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+      isServerRead s E γr ∗ kvRegs (srvsAt [ep] E γr cid mid) ∗
       kvRangeAu E γr ⊢
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
-  iintro ⟨#P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc0, #Hany⟩
-  ihave #Hrpc := (isGrpcRpcs_singleton ep _ _).1 $$ Hrpc0
+  iintro ⟨#P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hany⟩
   ihave ⟨%w, %conn, %wc, %lg, %ics, #HW, #Hw⟩ := isNewClient_watcher wp_ErrAny hAs cl [ep] V
     (by rw [hV]) hm hn $$ [$P1 $P2 $P3 $Hnc $Hf]
   ihave #Hnc' := Hnc
@@ -157,7 +157,7 @@ theorem isEtcdClient_of_new [_root_.Perennial.errors.Assumptions] [_root_.Perenn
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isNewClient cl [ep] V ∗ watchAddrFacts V ∗
-      isServerRead s E γr ∗ isGrpcRpc ep go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+      isServerRead s E γr ∗ kvRegs (srvsAt [ep] E γr cid mid) ∗
       sortNamesOk ∗ kvAnyAu E γr ⊢
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
   iintro ⟨#P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hsn, #Hany⟩

@@ -41,7 +41,7 @@ abbrev startCluster.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
     (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (lg : Loc) (W : SrvWorkload)
     (pfx : GoString),
-  BootFacts id₁ id₂ id₃ bootLog → W.noGrant → lg ≠ null →
+  BootFacts id₁ id₂ id₃ bootLog →  lg ≠ null →
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   storage.dbOpensOk → v3rpc.ServerMethodSets →

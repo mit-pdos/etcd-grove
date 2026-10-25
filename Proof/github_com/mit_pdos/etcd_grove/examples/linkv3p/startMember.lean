@@ -104,7 +104,7 @@ theorem startMember.wp_proof
   wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" peer cluster lg
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog dir id γ bud ρ E₀ Φs γn
-      W hW (by omega) Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir
+      (by omega) Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hpown] as %srv %err Hres
   · iframe; iframe #
     iExactEq Hpeer; rfl

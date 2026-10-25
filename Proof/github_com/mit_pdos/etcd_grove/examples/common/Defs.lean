@@ -162,12 +162,12 @@ def env₀ (idx : mvcc.IdxNames) (cok rev : GName) : apply.AEnv GF :=
 /-- **What member `id`'s `NewServer` takes of the ghost state** (its pure facts, the cluster's
 resources at its names, its share): `NewServer.spec`'s precondition but the network's and the
 premises'. -/
-def memberBoot (W : SrvWorkload) (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM)
+def memberBoot (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM)
     (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) :
     IProp GF :=
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ srvCCPolicy ρ.rd.raft ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
-      ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧ ρ.rd.kv.wl = W ∧
+      ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
     ownRaftGhost γ id (bootPState bootLog) ∗ isCommitted γ bootLog ∗ raftCommitInv γ ∗
     inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗

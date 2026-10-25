@@ -133,12 +133,12 @@ theorem startCluster.wp_proof
   -- the three members, each served
   iunfold memberBoot at Hmb₁
   icases Hmb₁ with ⟨%Hp₁, Hmb₁⟩
-  ihave Hmb₁ : memberBoot W γ bud bootLog ρ₁ E₁ Φs id₁ $$ [Hmb₁]
+  ihave Hmb₁ : memberBoot γ bud bootLog ρ₁ E₁ Φs id₁ $$ [Hmb₁]
   · iunfold memberBoot; iframe; ipureintro; exact Hp₁
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn W hW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
       Hdok (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
@@ -156,12 +156,12 @@ theorem startCluster.wp_proof
   icases Hgo₁ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₂
   icases Hmb₂ with ⟨%Hp₂, Hmb₂⟩
-  ihave Hmb₂ : memberBoot W γ bud bootLog ρ₂ E₂ Φs id₂ $$ [Hmb₂]
+  ihave Hmb₂ : memberBoot γ bud bootLog ρ₂ E₂ Φs id₂ $$ [Hmb₂]
   · iunfold memberBoot; iframe; ipureintro; exact Hp₂
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn W hW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
@@ -180,12 +180,12 @@ theorem startCluster.wp_proof
   icases Hgo₂ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₃
   icases Hmb₃ with ⟨%Hp₃, Hmb₃⟩
-  ihave Hmb₃ : memberBoot W γ bud bootLog ρ₃ E₃ Φs id₃ $$ [Hmb₃]
+  ihave Hmb₃ : memberBoot γ bud bootLog ρ₃ E₃ Φs id₃ $$ [Hmb₃]
   · iunfold memberBoot; iframe; ipureintro; exact Hp₃
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn W hW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #

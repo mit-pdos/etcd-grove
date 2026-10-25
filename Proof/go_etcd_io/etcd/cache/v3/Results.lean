@@ -137,7 +137,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's cache over etcd's client, end to end** (K3): `New(cl, pfx, opts...)` for a client
 `cl` whose `KV` field is a real `*kv` (`kvObjAt api [addr]`, over a connection to a server where
-etcd's `Range` is registered: `etcd_kv_served`) and whose `Watcher` field is etcd's client
+etcd's KV methods are registered, `kvRegs`: `etcd_kv_served`) and whose `Watcher` field is etcd's client
 watcher (`isClientWatcher V w`, over the same server, `V.R.E = E`; `NewWatcher`'s result), for
 the watcher's prefix (not all `0xff`; non-empty by `watchConnFacts`), returns what `New` returns
 (`newCacheResult`) at the server's model (`v3rpc.etcdModelOfServer E`): the cache's `Get`s and
@@ -153,7 +153,7 @@ theorem cache_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w api : Loc) (a
         isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗ kvObjAt api [addr] ∗
         clientKVAddr cl ↦□ GoInterface.ok (client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok (client.watcherIfaceOf w) ∗ client.isClientWatcher V w ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
+        client.kvRegs (client.srvsAt [addr] E γr cid mid) ∗
         sortNamesOk ∗ client.kvAnyAu E γr ∗ cfgOptsAt sl gs ∗
         ⌜CfgValid (cfgApply gs defaultConfigVal) → CfgBounded (cfgApply gs defaultConfigVal)⌝ ∗
         ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝ }}
@@ -189,7 +189,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         isPkgInit (PROP := IProp GF) pkg_id.context ∗ isNewClient cl [ep] V ∗ watchAddrFacts V ∗
         isServerRead s E γr ∗
-        isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
+        client.kvRegs (client.srvsAt [ep] E γr cid mid) ∗
         sortNamesOk ∗ client.kvAnyAu E γr ∗ cfgOptsAt sl gs ∗
         ⌜CfgValid (cfgApply gs defaultConfigVal) → CfgBounded (cfgApply gs defaultConfigVal)⌝ ∗
         ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝ }}
@@ -211,8 +211,8 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
 the ghost step between `net.Listen` and `go gs.Serve(lis)`): the server `v3rpc.Server` built and a
 listener at `addr` (`etcd_kv_started`'s premises) and the watch service's (the `*watchServer` `p`
 with its stream registration in `sregs`, the stream chain `[ims, is]`'s contracts, `n` watch run
-slots: `etcd_watch_served_chain`'s) give the right to serve `gs` on `lis`, etcd's `Range` at
-`addr`, and the watch server's facts at `addr` (`watchAddrFacts V`), given the wire's and the
+slots: `etcd_watch_served_chain`'s) give the right to serve `gs` on `lis`, etcd's KV methods
+at `addr` (`kvRegs`, the server's request names' read names `γr`), and the watch server's facts at `addr` (`watchAddrFacts V`), given the wire's and the
 packages' facts `watchAddrFacts` lists beyond the stream's. With `clientv3.New`'s result at `addr`
 these are what `cache_end_to_end_new` takes (and `isServerRead`, `sortNamesOk`, `kvAnyAu`). -/
 theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString)
@@ -220,7 +220,7 @@ theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : 
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
     (regs sregs : List (GoString × val × GoInterface)) (N nw : Nat)
     (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) (hV : V.addr = addr) (hE : V.R.E = E)
-    (hp : V.pfx ≠ [])
+    (hp : V.pfx ≠ []) (hrd : ρ.rd = γr)
     (hset : go.typeSetContains
       (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
       go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true)
@@ -247,12 +247,11 @@ theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : 
         ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗
         client.srvNoDupKeys V.R ∗ client.eofOk ⊢
       |={⊤}=> grpcServeTok gs lis ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
-        watchAddrFacts V := by
+        client.kvRegs (client.srvsAt [addr] E γr cid mid) ∗ watchAddrFacts V := by
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
     #Hws, #Hims, #His, Hwslots, #Hnd, #Heof⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
-    hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, -, #Hrange, -, -⟩
+    hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
   · iframe; iframe #
   imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
     with #Hst
@@ -264,7 +263,12 @@ theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : 
     rw [hE]; iexact Hsrd
   ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink
   imodintro
-  iframe Htok' Hrange
+  iframe Htok'
+  isplitl []
+  · iapply client.kvRegs_one
+    unfold client.kvRegsAt
+    subst hrd
+    iframe #
   unfold watchAddrFacts
   rw [hV]
   iframe #

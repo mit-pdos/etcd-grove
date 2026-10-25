@@ -68,7 +68,7 @@ theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString
   imod inv_alloc kvClientN Em (iprop(∃ (σ : KVState) (n : Nat), etcdKV γr.kv σ ∗
       monoNatAuthOwn γf 1 n ∗ ⌜putGetOk key val σ n⌝)) $$ [Hσ Hm] with #Hinv
   · inext; iexists kvStateOf l, 0; iframe Hσ Hm
-    ipureintro; exact ⟨mvcc.stateAfter_sorted l, fun h => absurd h (by omega)⟩
+    ipureintro; exact ⟨KVState.kvs_sorted _, fun h => absurd h (by omega)⟩
   imodintro
   iexists γf
   iunfold putGetInv
@@ -424,11 +424,10 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
     iexists m, kvStateOf y.log
     iframe Hm HQ
     ipureintro
-    refine ⟨hdel, ?_, ?_⟩
+    refine ⟨by rw [kvStateOf_kvs]; exact hdel, ?_, ?_⟩
     · rw [hrev]
       unfold kvOpStep
-      rw [kvStateOf_commit_rev _ _ hlen]
-      rfl
+      rw [kvStateOf_commit_rev _ _ hlen, kvStateOf_kvs]
     · simp only [kvStateOf_rev, kvStateOf_kvs]; omega
   · iright
     isplitl
