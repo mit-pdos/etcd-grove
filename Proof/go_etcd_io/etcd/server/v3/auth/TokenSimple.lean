@@ -76,23 +76,27 @@ def keeperMap (k : Loc) : IProp GF :=
     kpF go!"tokens" k ↦□ km ∗ km ↦$ tm ∗ kpF go!"simpleTokenTTL" k ↦□ ttl)
 
 /-- **What `simpleTokensMu` guards** (the provider `p`, the issued tokens' names `γt`, the fresh
-tokens' `γf`): the map `simpleTokens` with, for each entry `t ↦ u`, the persistent issued element
-`(t, u)` and the right to issue `t`; the issued tokens' authority; the current keeper (`nil`, or one
-of the keepers created, `ks`, whose maps it holds); the TTL (positive: `enable` then never reads
-the package default). -/
-def simpleLk (p : Loc) (γt γf : GName) : IProp GF :=
-  iprop(∃ (mp : Loc) (m : GMap GoString GoString) (k : Loc) (ks : List Loc) (ttl : time.Duration)
+tokens' `γf`, the keepers' `γk`): the map `simpleTokens` with, for each entry `t ↦ u`, the persistent
+issued element `(t, u)` and the right to issue `t`; the issued tokens' authority; half the current
+keeper field (the other half is the admin side's, `simpleAdmin`: `invalidateUser` reads the field
+outside the mutex; the auth plan's S5d) and the keeper (`nil`, or one of the keepers created, `K`,
+a ghost set whose elements their goroutines hold, so that a keeper's `run` finds its map after
+relocking: S5d), with the maps of all of them; the TTL (positive: `enable` then never reads the
+package default). -/
+def simpleLk (p : Loc) (γt γf γk : GName) : IProp GF :=
+  iprop(∃ (mp : Loc) (m : GMap GoString GoString) (k : Loc) (K : GMap Loc Unit) (ttl : time.Duration)
       (S : GMap (GoString × GoString) Unit),
     tsF go!"simpleTokens" p ↦ mp ∗ mp ↦$ m ∗
     ([∗map] t ↦ u ∈ m, ghostMapElem γt (t, u) DFrac.discard () ∗ ghostMapElem γf t (DFrac.own 1) ()) ∗
     tokAuth γt S ∗
-    tsF go!"simpleTokenKeeper" p ↦ k ∗ ⌜k = null ∨ k ∈ ks⌝ ∗ ([∗list] k' ∈ ks, keeperMap k') ∗
+    tsF go!"simpleTokenKeeper" p ↦{DFrac.own (1 : Qp).half} k ∗ ⌜k = null ∨ K.lookup k = some ()⌝ ∗
+    ghostMapAuth γk 1 K ∗ ([∗map] k' ↦ _u ∈ K, keeperMap k') ∗
     tsF go!"simpleTokenTTL" p ↦ ttl ∗ ⌜0 < sint.Z ttl⌝)
 
 /-- The provider's read-only fields and its mutex (persistent). -/
 def simpleOk (p : Loc) (γt γf : GName) : IProp GF :=
-  iprop(∃ (lg : Loc), tsF go!"lg" p ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
-    sync.isMutex (tsF go!"simpleTokensMu" p) (simpleLk p γt γf))
+  iprop(∃ (lg : Loc) (γk : GName), tsF go!"lg" p ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    sync.isMutex (tsF go!"simpleTokensMu" p) (simpleLk p γt γf γk))
 
 instance simpleOk_persistent (p : Loc) (γt γf : GName) :
     Persistent (simpleOk (GF := GF) p γt γf) := by
@@ -107,21 +111,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- A keeper of the list, its map out and back. -/
-theorem keepers_acc (ks : List Loc) (k : Loc) (hk : k ∈ ks) :
-    ([∗list] k' ∈ ks, keeperMap (GF := GF) k') ⊢
-      keeperMap k ∗ (keeperMap k -∗ [∗list] k' ∈ ks, keeperMap k') := by
-  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.mp hk
-  refine (BigSepL.bigSepL_lookup_acc (Φ := fun _ x => keeperMap (GF := GF) x) hi).1.trans
-    (sep_mono_right ?_)
-  iintro H Hk
-  have hset : ks.set i k = ks := by
-    apply List.ext_getElem?; intro j
-    rw [List.getElem?_set]; split
-    · next h => subst h; obtain ⟨h1, h2⟩ := List.getElem?_eq_some_iff.mp hi; simp [h1, h2]
-    · rfl
-  ihave H' := H $$ %k Hk
-  rw [hset]; iexact H'
+/-- A keeper of the set, its map out and back. -/
+theorem keepers_acc (K : GMap Loc Unit) (k : Loc) (hk : K.lookup k = some ()) :
+    ([∗map] k' ↦ _u ∈ K, keeperMap (GF := GF) k') ⊢
+      keeperMap k ∗ (keeperMap k -∗ [∗map] k' ↦ _u ∈ K, keeperMap k') :=
+  (BigSepM.bigSepM_lookup_acc (Φ := fun k' (_ : Unit) => keeperMap (GF := GF) k') hk).1
 
 /-- The issued element of a token the map holds (persistent), the map's resources kept. -/
 theorem big_issued (γt γf : GName) (m : GMap GoString GoString) (t : GoString) :
@@ -263,16 +257,16 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
     itrivial
   (try wp_auto)
   iunfold simpleOk at Hok
-  icases Hok with ⟨%lg, #Hlg, %Hlgnn, #Hmu⟩
+  icases Hok with ⟨%lg, %γk, #Hlg, %Hlgnn, #Hmu⟩
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HI⟩
   iunfold simpleLk at HI
-  icases HI with ⟨%mp, %m, %k, %ks, %ttl, %S, Hmp, Hm, Hbig, Hauth, Hk, %Hkks, Hks, Httl, %Httlpos⟩
+  icases HI with ⟨%mp, %m, %k, %ks, %ttl, %S, Hmp, Hm, Hbig, Hauth, Hk, %Hkks, HKa, Hks, Httl, %Httlpos⟩
   (try wp_auto)
   wp_apply (wp_map_lookup2 go.string go.string mp m token) $$ [$Hm] as Hm
   (try wp_auto)
   -- the keeper's reset, when the token is in the map and the keeper is set
-  wp_join iprop(t_ptr ↦ p ∗ token_ptr ↦ token ∗ tsF go!"simpleTokenKeeper" p ↦ k ∗
-      ([∗list] k' ∈ ks, keeperMap k'))
+  wp_join iprop(t_ptr ↦ p ∗ token_ptr ↦ token ∗ tsF go!"simpleTokenKeeper" p ↦{DFrac.own (1 : Qp).half} k ∗
+      ([∗map] k' ↦ _u ∈ ks, keeperMap k'))
     with [t token Hk Hks] as ⟨t, token, Hk, Hks⟩
   · (try wp_auto)
     wp_if_destruct
@@ -288,10 +282,10 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
     iframe t token Hk Hks
     ipureintro; rfl
   icases big_issued γt γf m token $$ Hbig with ⟨Hbig, #Hiss⟩
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk Hks Httl]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk HKa Hks Httl]
   · iunfold simpleLk
     iexists mp, m, k, ks, ttl, S
-    iframe Hmp Hm Hbig Hauth Hk Hks Httl
+    iframe Hmp Hm Hbig Hauth Hk HKa Hks Httl
     ipureintro; exact ⟨Hkks, Httlpos⟩
   (try wp_auto)
   wp_alloc a as Ha
@@ -347,13 +341,13 @@ theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (
     {{ RET #(); tokIssued γa tok user }} := by
   wp_start as ⟨#Hok, Hfr⟩
   iunfold simpleOk at Hok
-  icases Hok with ⟨%lg, #Hlg, %Hlgnn, #Hmu⟩
+  icases Hok with ⟨%lg, %γk, #Hlg, %Hlgnn, #Hmu⟩
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HI⟩
   iunfold simpleLk at HI
-  icases HI with ⟨%mp, %m, %k, %ks, %ttl, %S, Hmp, Hm, Hbig, Hauth, Hk, %Hkks, Hks, Httl, %Httlpos⟩
+  icases HI with ⟨%mp, %m, %k, %ks, %ttl, %S, Hmp, Hm, Hbig, Hauth, Hk, %Hkks, HKa, Hks, Httl, %Httlpos⟩
   -- issue the token (whichever branch is taken)
   iunfold tokFresh at Hfr
   rw [hγf]
@@ -362,10 +356,10 @@ theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (
   wp_if_destruct
   · -- no keeper (auth disabled): the token is not stored
     (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk Hks Httl]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk HKa Hks Httl]
     · iunfold simpleLk
       iexists mp, m, null, ks, ttl, S'
-      iframe Hmp Hm Hbig Hauth Hk Hks Httl
+      iframe Hmp Hm Hbig Hauth Hk HKa Hks Httl
       ipureintro; exact ⟨Or.inl rfl, Httlpos⟩
     (try wp_auto)
     iapply HΦ
@@ -394,10 +388,10 @@ theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (
   · iapply (BigSepM.bigSepM_insert hlk).2
     iframe Hbig Hfr
     iunfold tokIssued at Hiss; iexact Hiss
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk Hks Httl]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hmp Hm Hbig Hauth Hk HKa Hks Httl]
   · iunfold simpleLk
     iexists mp, _, k, ks, ttl, S'
-    iframe Hmp Hm Hbig Hauth Hk Hks Httl
+    iframe Hmp Hm Hbig Hauth Hk HKa Hks Httl
     ipureintro; exact ⟨Or.inr Hkm, Httlpos⟩
   (try wp_auto)
   iapply HΦ
