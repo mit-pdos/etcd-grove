@@ -986,9 +986,12 @@ This is D22's interface: its statement is agreed with the D22 owner before 7b.
     success (the handler adds it to a counter; D22's, pending its owner).
   - `wp_todoCtx_Done'` moved to `TodoCtx.lean` (both handlers use it).
   - The trust base: `newSnapshotHandler`'s axiom gone, 5 new: 717 entries.
-- **7f. Link and notes**: the entries in `etc/link-lean-first-server.txt` (gen-link), the trust
-  check (expected: the five snapshot axioms and the opaque `snapReqRaw` gone; the new boundary
-  items in), the collections, STATUS, decisions.
+- **7f. Link and notes** (done 2026-10-25): the `etc/link-lean-first-server.txt` entries and `Link.lean`
+  came with 7d and 7e; the trust check as expected but for the count: the four snapshot axioms gone
+  (not five: `ServeHTTP` never had one, `newSnapshotHandler` stood for it), the opaque `snapReqRaw`
+  gone with 7b, 21 boundary items in (696 to 713 axioms, `notes/STATUS.md`, "Trust base"). Of
+  the collections only `server`, `linkv3p` and `putget3` reach the snapshot stream; the others
+  check unchanged. No new decisions.
 
 **Risks.** (1) The streamed body is a new kind of request in a boundary every rafthttp proof
 uses; (A) adds it beside the fixed-body kind (7b: the stage 4-6 proofs changed by a few lines, a
