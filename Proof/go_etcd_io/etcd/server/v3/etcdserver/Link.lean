@@ -314,6 +314,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Get
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Handler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__MendPeer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__RemoveAllPeers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Send
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__SendSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Start
@@ -2474,6 +2475,10 @@ theorem raftNode.wp_getLatestTickTs :
 theorem raftNode.wp_stop :
     raftNode.stop.spec (GF := GF) (hG := hG) :=
   raftNode.stop.wp_proof
+
+theorem rafthttp.Transport.wp_RemoveAllPeers :
+    rafthttp.Transport.RemoveAllPeers.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.RemoveAllPeers.wp_proof
 
 theorem rafthttp.wp_reportCriticalError :
     rafthttp.reportCriticalError.spec (GF := GF) (hG := hG) :=

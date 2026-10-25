@@ -190,7 +190,10 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   New Perennial gaps go to `notes/perennial-changes.md` (v2store's paths).
 - **M5. `applyConfChange` proved** for `AddNode` of a known member and `RemoveNode`: raft's
   `ApplyConfChange` in the dynamic mode, the cluster writers (M4), `transport.RemovePeer`, and
-  `removed = (id = local)`. rafthttp: `RemovePeer`/`removePeer` proved over a transport state with a
+  `removed = (id = local)`. (2026-10-25, D22 S8d: `rafthttp.Transport.RemoveAllPeers.spec` exists
+  over `trLive` (`Spec/.../rafthttp/Transport__RemoveAllPeers.lean`, ids `(rs.1, [])` after; its proof
+  a `sorry` on purpose, the user's decision): M5 proves it rather than restating it, beside
+  `RemovePeer`; `applySnapshot` uses it.) rafthttp: `RemovePeer`/`removePeer` proved over a transport state with a
   **peers right** (W3, settled: `trLive`, not frozen by `NewServer`, held by the apply thread,
   consumed by `Stop`; the readers restated over `trState`, D43 "W3 settled"); `Process`'s removed-sender branch and the
   `403` it answers made reachable: the raft protocol's "no 403" weakened to "no 403 to a member not

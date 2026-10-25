@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExis
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsLearner
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isRPCSupportedForLearner
 public import Spec.google_golang_org.grpc.metadata.FromIncomingContext
+public import Proof.google_golang_org.grpc.metadata.FromIncomingWeak
 public import Spec.google_golang_org.grpc.metadata.MD__Get
 public import Spec.unicode.utf8.ValidString
 public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
@@ -71,6 +72,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
     (wp_WithLabelValues : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG))
     (wp_Leader : EtcdServer.Leader.spec (GF := GF) (hG := hG)) :
     v3rpc.newUnaryInterceptor.spec (GF := GF) (hG := hG) := by
+  have wp_FromIncoming := metadata.FromIncomingContext.weaken wp_FromIncoming
   intro s c mid
   wp_start as ⟨#Hmid, #Hlead, #Hcl, #Hrc', #Hkept⟩
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []

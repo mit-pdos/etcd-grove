@@ -1,4 +1,5 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
+axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -430,6 +431,7 @@ axiom grpc.Server.Serve.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
+axiom grpc.WithPerRPCCredentials.wp_proof
 axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
@@ -722,3 +724,4 @@ sorry k8setcd3.clientErr_other
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
+sorry rafthttp.Transport.RemoveAllPeers.wp_proof

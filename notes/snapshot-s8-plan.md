@@ -225,3 +225,15 @@ Then S8d: the spec (S-j2's item 6 adjusted: the snapshot file and image in the p
 apply thread's resources before, `applyAll`'s post shape at the new backend after) and the proof in
 `applySnapshot`'s order, with `restorePre_of_apply`, `kv_cert_jump`, `srv_be_swap`,
 `ci_announce`/`ci_swap_au`, `hooksOk_server_fut` and the axioms above.
+
+## For S-j1 (2026-10-25)
+
+- **The old backend's close resources (W7's second part, the user's (c)).** `applySnapshot.spec`
+  takes the current backend's stop channels and the constructors' half of its open token as a
+  named premise. S-j1 threads them: the reverted patch of 2026-10-25 put them in `srvBeOwn`
+  (`backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB ½`, `srvBeOwn_frag` keeping them), framed
+  them at `NewServer`'s `srvBeOwn` (`HSC` from `bootBackend_of_newPost`, `Hopen` after the last
+  constructor: it must be carried to that split, the one missing step), and had `srv_be_swap`
+  return the old ones; `applySnapshot` then puts the new backend's (from `OpenSnapshotBackend`'s
+  `newPostK`) in. It changes `srvBeOwn`, which `Results.lean:431` reaches through `srvApplyKV`.
+- **W8** (the user's): a named premise of `applySnapshot.spec`, discharged with the rafthttp track.

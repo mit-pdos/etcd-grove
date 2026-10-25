@@ -17,10 +17,10 @@ metadata.
 What this file proves is the one fact of the contract about a token rather than a client: the
 bad principal's token (`badToken`, `"badtoken"`) is not one the simple provider makes
 (`simpleTok_ne_badToken`): every token its `assign` issues is `<prefix>.<raft index>`
-(`auth.simpleTok`), which has a dot. With the invariant that every token issued in the server's
-mode is the simple provider's (a fact E2a's `NewAuthStore` will have to state: the right to issue
-a token, `authnCtx`'s `freshOk`, is only ever given for a `simpleTok`), the bad principal's
-requests have no principal (`ctxBound`'s `null` case, refused: `granted_rev0`).
+(`auth.simpleTok`), which has a dot. Every token issued in the server's mode has the simple
+provider's shape (`auth.tokIssued_shape`, the auth plan's E2c), so the bad token was issued to no
+one (`tokIssued_badToken`), and the bad principal's requests have no principal (`ctxBound`'s `null`
+case, refused: `granted_rev0`).
 -/
 module
 
@@ -35,6 +35,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace authkv
 
+open Iris Iris.BI Iris.ProofMode
+
 /-- The token the bad principal sends (`authkv.go`'s `badToken`). -/
 abbrev badToken : GoString := go!"badtoken"
 
@@ -47,6 +49,15 @@ theorem simpleTok_ne_badToken (pre : GoString) (idx : w64) : auth.simpleTok pre 
   rw [h] at hmem
   revert hmem
   decide
+
+/-- **The bad token was issued to no one** (E2c): an issued token has the simple provider's shape
+(`auth.tokIssued_shape`). -/
+theorem tokIssued_badToken {GF : BundledGFunctors} [AllG GF] (γa : auth.AuthNames) (u : GoString) :
+    auth.tokIssued (GF := GF) γa badToken u ⊢ False := by
+  iintro H
+  ihave %Hsh := auth.tokIssued_shape γa badToken u $$ H
+  obtain ⟨pre, idx, h⟩ := Hsh
+  exact absurd h.symm (simpleTok_ne_badToken pre idx)
 
 end authkv
 end EtcdGrove

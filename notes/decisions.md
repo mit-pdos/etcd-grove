@@ -19130,3 +19130,177 @@ stop channels): a two-conjunct addition, `srv_be_swap` returning the old ones; a
 resources as a premise of `applySnapshot.spec` for S-j1 (it then has to thread them anyway).
 Recommendation: (a), the smallest change, in the predicate whose meaning is "the apply thread's
 part of the current backend".
+
+## E2c of the auth plan: the server's token facts -- the context's own token, the simple shape, one user per token (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2c`)
+
+The server-side facts E2b found `Main`'s proof needs ("E2b of the auth plan", "What the server
+side must say"), but the auth history fixed after the set-up, which S4f gave
+(`authHistHalf_lookup`).
+
+**The context's own token.** `ctxBound M a` said the auth info `AuthInfoFromCtx` returns is `nil`
+or bound to *some* token issued to its user, which a bad principal's request satisfies as soon as
+anyone holds a token. The token is now the context's:
+- `metadata.incomingOf ctx` (`Proof/google_golang_org/grpc/metadata/Incoming.lean`, opaque): a
+  context's incoming metadata, `none` or each key's values. A context is immutable, so its metadata
+  is a function of the context value. `metadata.FromIncomingContext`'s trust-boundary spec now says
+  `ok` exactly when it is `some md0`, and the map has `md0`'s keys, each slice holding that key's
+  strings (still at least one). Its callers that only read the map (`newUnaryInterceptor`) take
+  the old shape, `weakSpec`, through `FromIncomingContext.weaken` (`FromIncomingWeak.lean`).
+- `rpctypes.TokenFieldNameGRPC`/`TokenFieldNameSwagger`'s initializer axioms now state the strings
+  (`"token"`, `"authorization"`; `metadatafields.go`), so `rpctypesInit` and `authInit` hold them
+  as such (`etc/gen-init.py`). Same axioms, stronger statements.
+- `auth.ctxTokenOf ctx` (`InvAuth.lean`): what `AuthInfoFromCtx` reads -- the first value under
+  `token`, else under `authorization`, `"Bearer "` trimmed.
+- **Changed statements**, each gaining the request context:
+  - `auth.ctxBound M ctx a := a = null ∨ ∃ t, ctxTokenOf ctx = some t ∗ infoBound M t a`;
+  - `authStore.AuthInfoFromCtx.spec`'s post: `ctxBound M ctx a`;
+  - `isReqAuthBound`'s `AuthInfoFromCtx` clause: `ctxBound M (ok ctx) a`;
+  - `ctxBoundOrTLS s M ctx a`;
+  - `principalBound s M ctx ai`: the user is the one the context's token was issued to;
+  - `adminOutB`/`authedOutB s M ctx err`, `principalBoundI s M ctx info`;
+  - the guards' bound variants, for `ctx` the guarded request's:
+    - `EtcdServer.AuthInfoFromCtx`;
+    - `checkMembershipOperationPermission`;
+    - `requireAuthInfo`;
+    - `AuthAdmin.isPermitted`/`requireAuthInfo`;
+    - the maintenance server's `requireAuthInfo`;
+    - `isWatchPermitted`, at the stream's `r.ci`.
+
+  Their proofs changed only by threading `ctx`.
+
+**One user per token, the simple shape.** `tokIssued γa t u` was an element of a ghost map keyed by
+the pair `(t, u)`, so that a token could be issued again after `disable()` cleared the simple
+provider's map, possibly to another user. But every issue spends a right `tokFresh γa t` that is
+exclusive and comes once per token, `<prefix>.<raft index>`. So the key is now the token:
+- **`tokIssued`.** `tokIssued γa t u := t ↪[γa.tok]□ u ∗ ⌜tokShape t⌝`, where `tokShape t` is
+  `∃ pre idx, t = simpleTok pre idx`.
+- **Issuing.** `tokIssue` spends the right: it makes it read-only, and it needs the shape.
+- **The authority.** `tokAuth γt γf S` (token to user) keeps, for each issued token, its element,
+  its spent right and its shape. A held right is therefore not that of an issued token
+  (`tokSpent_ne`), and `tokIssue` inserts.
+- **New facts:**
+  - `tokIssued_agree`: a token is issued to one user;
+  - `tokIssued_shape`;
+  - authkv's `tokIssued_badToken`, restated in its `Results.lean` with `authkv_token_one_user`.
+- **The simple provider's map entries** hold the spent right instead of the exclusive one.
+  `assignSimpleTokenToUser`'s panic on a token already in the map is refuted against it before
+  issuing (`big_fresh_none`). `info` reads the shape from the authority (`big_issued`,
+  `tokAuth_lookup`).
+
+**The shape is the simple provider's.** No other provider is proved. The JWT provider, when it is,
+issues signed tokens of another shape. `tokShape` would then be the mode's (a provider's shape in
+the contract), or JWT tokens recorded under names of their own. Recorded, not done.
+
+**Trust base.** Unchanged (718 axioms, 5 sorries). `FromIncomingContext.wp_proof` and the two
+`rpctypes` initializer axioms say more than before. `incomingOf` is an `opaque`, not an axiom.
+
+**Not done (E2's server side, for `Main`):**
+- the client's contract C1-C4 over `metadata.incomingOf`: what `AppendToOutgoingContext` and gRPC's
+  delivery make of a call's context;
+- where the server allocates `γa` and the fresh rights (`Authenticate`'s `<prefix>.<index>`, once
+  per raft index);
+- `NewAuthStore`'s server statement, still an axiom;
+- the client's write path without refusal-freedom (E2d).
+
+## E2d of the auth plan: the client's write path with refusals, and `clientv3.New` with a user name (2026-10-25 · `notes/auth-plan.md`)
+
+**The question.** E2b found D29's refusal-freedom (`noRefusalAt`, the axiom `etcd_noRefusal`)
+false of `examples/authkv`'s member: with auth on, the server refuses the bad principal's KV
+requests with `"etcdserver: invalid auth token"` and the no-token client's with `"user name is
+empty"`, and a user's write after a revision bump with `"revision of auth store is old"`. Which
+client specs does a client of such a member use?
+
+**What the retry interceptor does with them** (the fork's `retry_interceptor.go` at the pin):
+`shouldRefreshToken` is true for `ErrUserEmpty` only with a token bundle (a client with a user
+name), and for `ErrInvalidAuthToken`/`ErrAuthOldRevision` with `retryAuth` (the default); then
+`refreshToken` (`getToken`: `Authenticate` with the bundle, nothing without) and the write is sent
+again, up to `MaxUnaryRetries` (100) attempts. So the bad principal's write is sent 100 times,
+every attempt refused, then fails with the last error; the no-token client's fails at once
+(`isSafeRetry` is false for a `nonRepeatable` call on an etcd error); `PermissionDenied`
+(`"etcdserver: permission denied"`, a user without the role, a key outside its range) is no
+refusal and fails at once. No refused attempt applies anything: the invalid-token and user-empty
+refusals are made before the proposal (`AuthInfoFromCtx`), the old-revision one at apply (the
+entry applied as a refusal), the learner one by the server's interceptor.
+
+**Decision: no new client spec for the KV calls.** The client's KV results already have a write
+path with no `noRefusalAt`: a persistent update (`□`, `client_put_any`'s, `client_delete_any`'s
+and `client_txn_any`'s first case, the `client_*_end_to_end` results'), sent any number of times
+through the retry interceptor's contract for any number of attempts (`etcdInterceptorOk`, proved
+over `refreshToken`/`getToken`), the update firing at each committed occurrence and none for a
+refused attempt. That is authkv's case: its theorem attributes a write by the key's writer and
+reads the server's permission verdicts, so its updates need not be fired at most once. Documented
+in `client/v3/Results.lean`'s section header; every existing spec and example theorem unchanged.
+*Rejected:* an at-most-once variant for refusing members (the attempt contract giving back the
+request's precondition after a refusal), which needs a new members' axiom (a refused attempt does
+not use its request's precondition) and, for the old-revision refusal at apply, a hand-back of the
+precondition through the wait registry; nothing needs it yet.
+
+**What authkv's clients did lack: `clientv3.New` with a user name and password.** `New`'s
+configuration premise (`clientCfgOk`) required `Username`/`Password` empty. Now any (the `Token`
+still empty): with both, `newClient` sets them and makes a token bundle
+(`credentials.NewPerRPCCredentialBundle`, translated with bodies with
+`perRPCCredentialBundle.PerRPCCredentials`, both proved: `tokenBundleAt`), `Client.dial` passes
+the bundle's credentials to grpc (`WithPerRPCCredentials`, a new dial option descriptor
+`.perRPCCreds`, which sets no interceptor and no resolver: `unaryIcsOf_perRPCCreds`,
+`dialOk_perRPCCreds`), and the token is fetched once the connection is up (`getToken`, the existing
+axiom); if that fails, `newClient` closes the client and returns the error. The dial specs take the
+bundle, if any (`tokenBundleOk`). Which token an attempt then carries stays E2b's contract C1 (the
+attempt contract says nothing of metadata).
+
+**Trust base: +2 axioms.** `grpc.WithPerRPCCredentials.wp_proof` (grpc's option constructor, as
+`WithKeepaliveParams`'s) and `Client.Close.wp_proof` (`client.go`'s `Close`, names only: it returns;
+its steps keep the invariants of the client's objects). Translating `Close` instead was tried and
+dropped: it reaches `lessor.Close` (not translated), grpc's `ClientConn.Close` (no axiom) and
+`ContextError`, whose spec needs the client context's error facts (`ctxErrClient`, the class
+premises `ContextReadErrs`/`ContextErrsClient`), which `newClient`'s spec does not take.
+Since `New`'s proof covers both configurations, the closed theorems of the examples whose clients
+`New` builds (collections `cachekv`, `client`, `k8s`, `k8setcd3`, `linkv3p`, `linkvtxn`, `putget`,
+`putget3`, `watchkv`) list the two axioms, although their clients have no user name.
+
+**Not a Go issue, noted:** a client with no token bundle that sends a token of its own in its
+metadata (authkv's bad principal) gets its refused write retried 100 times, `refreshToken` doing
+nothing each time: wasteful, not wrong (nothing is applied).
+
+## D22 S8d: the user's answers on W7's second part and `RemoveAllPeers` (2026-10-25 · the user's decisions, via the orchestrator)
+
+- **W7, second part: (c).** The old backend's stop channels and the constructors' half of its open
+  token (`backend.isStopChans`, `backend.bOpen ½`) are a named premise of `applySnapshot.spec`;
+  S-j1 threads them from `NewServer` to the apply thread (the reverted patch putting them in
+  `srvBeOwn`, `srv_be_swap` returning the old ones, is described in `notes/snapshot-s8-plan.md`,
+  "For S-j1").
+- **`RemoveAllPeers`: (b).** Its spec is stated now over `trLive` (the ids `(rs.1, [])` after,
+  the remotes kept); its proof is a `sorry` on purpose, for the membership track's M5 to prove
+  rather than restate (`notes/membership-plan.md`, M5). The trust base gains the `sorry` on purpose
+  (`etc/tcb-baseline.txt` updated with `--check --update`).
+
+## D22 S8d, laid against the callees after the merge: one question before the proof (2026-10-25 · for the user)
+
+**`authStore.Recover` on the snapshot's backend.** The merge took the auth track's *proved*
+`auth.authStore.Recover.spec` (over `authInv st R M`, `authOwn`, `authWR`, `tpAdmin`, `R` and the
+new backend's `authBackendOk`/`authWBackendOk`) in place of S8c's server-level axiom (over
+`authBeOn st oldbe` and `authApplyOk` in mode `.off`). The server does not hold those predicates:
+its auth store comes from `NewAuthStore`'s axiom, which gives `authBeOn`, `isReqAuth st RD` and
+`authApplyOk stl RD`, not `authInv` (the auth plan's E stage, "the authority to the server", is not
+done), and nothing proves `authBackendOk` of schema's auth backend over a real backend. So
+`applySnapshot`'s `s.authStore.Recover(NewAuthBackend(lg, newbe))` has no usable spec. Options:
+- (a) a named premise of `applySnapshot.spec`: the triple of `st.Recover(ab)` in the server's terms
+  (S8c's statement: `authBeOn st oldbe` to `authBeOn st newbe`, the new backend's contract, an open
+  share, a write-back token, its tracked buckets with the auth buckets at the server's), discharged
+  when the auth track brings `authInv` to the server (its E stage);
+- (b) the auth track restates `NewAuthStore`'s server statement to give `authInv`, `authWR`,
+  `tpAdmin` and the backend contracts (their E stage), and S8d waits;
+- (c) a server-mode wrapper axiom for `Recover` beside the proved spec (two specs of one function:
+  against the layout).
+Recommendation: (a): S8d proceeds now, and the premise is exactly what (b) will prove.
+
+**The named premises S8d takes otherwise** (S-j1's inputs and threading, as the orchestrator
+directed; listed so S-j1 sees them): the snapshot message (non-nil, read-only metadata at index `i`
+and term, `i > ep.appliedi`, `ciEff ≤ i`); the snapshot file `fileHolds (snapDBPath ss i) D` with
+its image certificate (the KV log `A'` of the image, `A <+: A'`, the image's buckets: the key bucket
+at `kvModel A'`, the meta bucket's consistent index `i`, the rest buckets at `restModel A'`, the
+lease and alarm buckets empty, `clusterImageOk`, the auth buckets the server's) and its `certOk` in
+the server's `cok` map; `storageSnap`, the snapshot directory's invariant and the counter `γt`'s
+authority at most `ai`; `snapOpensOk`, `dbOpensOk`, the feature gate, `pathOwn` of the backend path;
+the old backend's `isStopChans` and `bOpen ½` (W7, the user's (c)); the transport's `trLive` and
+W8's coverage (the user's), `Members()`' boot contract (`Hmembers`), `8 · |peers|` of `lgMu`'s reader
+slots for the `AddPeer`s; `receiptBound ≤ wbInit` (the new backend's write-backs).

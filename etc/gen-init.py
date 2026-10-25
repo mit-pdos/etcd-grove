@@ -779,10 +779,12 @@ backoff function returns; the trust-boundary axiom `defaultOptions_init`), and i
 )
 
 SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['custom'].update({
-    'TokenFieldNameGRPC': dict(doc='/-- `TokenFieldNameGRPC = "token"` (`metadatafields.go`): a string. -/',
-                               post='∃ s : GoString, globalAddr TokenFieldNameGRPC ↦ s', pat='⟨%s@, H@⟩'),
-    'TokenFieldNameSwagger': dict(doc='/-- `TokenFieldNameSwagger = "authorization"` (`metadatafields.go`): a string. -/',
-                               post='∃ s : GoString, globalAddr TokenFieldNameSwagger ↦ s', pat='⟨%s@, H@⟩'),
+    # (the auth plan's E2c, 2026-10-25) the strings themselves: `AuthInfoFromCtx`'s token is the
+    # context's metadata under these keys
+    'TokenFieldNameGRPC': dict(doc='/-- `TokenFieldNameGRPC = "token"` (`metadatafields.go`): that string. -/',
+                               post='globalAddr TokenFieldNameGRPC ↦ go!"token"', pat='H@'),
+    'TokenFieldNameSwagger': dict(doc='/-- `TokenFieldNameSwagger = "authorization"` (`metadatafields.go`): that string. -/',
+                               post='globalAddr TokenFieldNameSwagger ↦ go!"authorization"', pat='H@'),
 })
 SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['finish'] = (
     ['ipersist HTokenFieldNameGRPC', 'ipersist HTokenFieldNameSwagger'] +

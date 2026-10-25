@@ -8,6 +8,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/client/v3/kubernetes/Link\.lean$
 roots ^Proof/k8s_io/apiserver/pkg/storage/etcd3/Link\.lean$
+axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -35,6 +36,7 @@ axiom grpc.NewClient.wp_proof
 axiom grpc.Peer.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
+axiom grpc.WithPerRPCCredentials.wp_proof
 axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
