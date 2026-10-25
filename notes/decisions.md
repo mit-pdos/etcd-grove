@@ -18969,7 +18969,8 @@ of which `HasRole`, `Authenticate` (with `CheckPassword`), `UserGet`, `RoleGet`,
    `revInv` and the S4 proofs' appends. In the mode `off` the contract is derivable (an invariant
    "every unlocked state is disabled").
 
-**What D22 must discharge** (the provisional boundary, once (2) is fixed): that schema's
+**What D22 must discharge** (the provisional boundary, once (2) is fixed; (2) fixed by S4f, which
+restates this list against the backend's own contract, "S4f of the auth plan"): that schema's
 `authBackend` over the real backend `d` meets, for the auth names `γa` allocated at
 `NewAuthStore`, `authBackendOk ab R (on γa)` (every read transaction sees a recorded state),
 `authWBackendOk ab (on γa) Pk f (wbTok d.γB ∗ …)` (the batch transaction's reads and writes are the
@@ -18984,6 +18985,75 @@ history fixed after the set-up (`notes/decisions.md`, "E2b of the auth plan").
 names-only package's); the root collections reaching the auth package's initializer
 (`cachekv`, `k8setcd3`, `linkv3p`, `linkvtxn`, `putget`, `putget3`, `watchkv`) list it.
 `newAuthStore_on` adds none (its callees are proved but `zap`'s, axioms already).
+
+## S4f of the auth plan: the history's authority split between the admin side and the batch lock (2026-10-25 · `notes/auth-plan.md`, decided by the user: option (b))
+
+E2a found S4's write contract not derivable in the mode `on` ("E2a of the auth plan", item 2):
+`authBatchTxLk`'s `Lock()` promised the buckets hold the latest state of whatever history the
+caller's authority names, with nothing on the backend's side tied to that authority, and the
+authority could be appended to without a transaction. Of the two fixes put to the user, (a) a
+third share of the latest state's ghost variable under the lock, (b) the history's ownership
+under the batch lock, the user chose (b).
+
+**The design** (`auth/Model.lean`, `Steps.lean`, `InvAuth.lean`):
+- The history's authority (`authHist γa hs`, the mono list's whole fraction) is two halves: the
+  admin side's (`authHistHalf`, with the states' valid permission keys) and the batch lock's
+  (`authLockHalf`; `authHist_split`, `authHistHalf_lock_agree`). An append needs both, so it
+  happens only while the lock is held.
+- `authOwn M hs`, the admin side's authority (the apply thread's, as before), is in `on γa` the
+  admin side's half and half the latest state's ghost variable; `authLockShare M hs` is the lock's
+  half (nothing in `off`/`any`); `authOwnF M hs`, the authority inside a transaction, is the old
+  `authOwn` (the whole history), `authOwnF_split : authOwnF ⊣⊢ authOwn ∗ authLockShare`.
+- What the lock holds with the buckets at `st`: `authLockI M st`, its share of some history whose
+  latest state (`histLast`) is `st`.
+- **The backend's contract** (what D22 discharges): `authBatchTxLkR`, as S4's but `Lock()` takes
+  only the critical-section contract and the write token and gives the token of the buckets'
+  state `st` with `authLockI M st`; `Unlock()` takes the token and `authLockI M st` back and gives
+  the token's `X` and `T`. No admin-side resource is mentioned: a real backend meets it with
+  `∃ st, buckets(st) ∗ authLockI M st` among what its batch lock protects.
+  `authBatchTxOkR`/`authWBackendOkR` wrap it as `authBatchTxOk`/`authWBackendOk` wrap the store's
+  view (`GetUser`, schema's `Lock`/`UnsafeGetUser`/`Unlock`, is kept a clause, with `authOwn`:
+  it follows from the transaction's clauses with the join).
+- **The store's view** (`authBatchTxLk`, `authWBackendOk`, unchanged in name, what the operations'
+  proofs use): `Lock()` from `authOwn M hs` gives `authOwnF M hs` and the latest state
+  (`authOwn_lockI_join`: the two halves agree, so the buckets hold the admin side's latest
+  state), `Unlock()` from `authOwnF M hs` at the token's state gives `authOwn M hs` back
+  (`authOwnF_lockI_split`). Derived: `authBatchTxLk_of_R`, `authBatchTxOk_of_R`,
+  `authWBackendOk_of_R`.
+- The specs called inside a transaction take `authOwnF` (`commitRevision`, `setRevision`); the
+  admin operations' specs, `adminOut`/`outRes`, `isAuthSteps` keep `authOwn` (now the admin side's
+  half): their statements are textually unchanged. `Revision`'s optional authority
+  (`authOwnOpt`) is the admin side's (`revCur_agree_own`; `Authenticate` reads the revision
+  outside a transaction), so `commitRevision` and `newAuthStore_on` split the lock's share off
+  around the call.
+- `NewAuthStore` (`newAuthStore_on`) takes the backend's contract (`authWBackendOkR`) and the
+  admin side's authority; the lock's share is the backend's from the start (whoever allocates
+  `γa` installs it with the buckets, D22).
+- `Recover` takes no batch lock but appends the new backend's state, so it takes and gives the
+  whole authority (`authOwnF`): the backend swap (D22's restore, its caller) hands it the old
+  backend's lock share and installs the share with the new state appended under the new
+  backend's lock, whose write side is given as the backend states it (`authWBackendOkR`).
+- **E2b's "the auth history stays fixed after the set-up"**: `authHistHalf_lookup` (while the
+  admin side holds its half at `hs`, every recorded state, which the readers' verdicts are
+  relative to, is in `hs`): with no admin request applied after the set-up, the apply thread's
+  `authOwn M hs` pins the history. What is left is threading that authority through the
+  server's apply thread to `examples/authkv` (with `NewAuthStore`'s server statement).
+
+**What D22 must discharge** (the list of "E2a of the auth plan", restated): that schema's
+`authBackend` over the real backend `d` meets, for the auth names `γa` allocated with the store,
+- `authBackendOk ab R (on γa)` (every read transaction sees a recorded state);
+- `authWBackendOkR ab (on γa) Pk f (wbTok d.γB ∗ …)`: the batch transaction's reads and writes are
+  its token's state's, its `Lock` is `LockInsideApply` under the frozen hook, its `Unlock` one
+  write-back, and its lock protects `∃ st, buckets(st) ∗ authLockI (on γa) st` (the buckets'
+  tracked contents, in `rbOwn`, at the encoding of `st`, S1's `auth/Buckets.lean`);
+- `CreateAuthBuckets` (one transaction, from `rbOwn` with the auth buckets absent or empty);
+- at a backend swap (`applySnapshot`'s restore, `Recover`), the old lock's `authLockI` given out
+  and the new one's installed (the share with the restored state appended, `Recover`'s post).
+The allocation of `γa` with the lock's share installed is where the server's boot creates the
+store (with `NewAuthStore`'s server statement, still an axiom).
+
+**Trust base.** Unchanged (718 axioms, 5 sorries): no axiom or `sorry` added; every changed
+statement is a contract or a spec of this repository's own proofs.
 
 ## D22 S8d, W7 carried out (first part): the readers' shares counted, `store.Restore` exact (2026-10-25 · decided by the orchestrator: option 1)
 
