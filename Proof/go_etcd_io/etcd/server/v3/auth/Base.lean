@@ -80,7 +80,10 @@ abbrev authInit : IProp GF :=
     authErrVar ErrRoleNotGranted ∗ authErrVar ErrPermissionNotGranted ∗
     authErrVar ErrInvalidAuthMgmt ∗
     -- the token binding's (the auth plan's S5, 2026-10-24), appended
-    authErrVar ErrAuthFailed ∗ authErrVar ErrAuthNotEnabled)
+    authErrVar ErrAuthFailed ∗ authErrVar ErrAuthNotEnabled ∗
+    -- the TTL keeper's tick (the auth plan's S5e, 2026-10-25), appended: read-only (the package's
+    -- code never writes it; etcd's tests do, outside the verified code), positive
+    (∃ d : w64, globalAddr simpleTokenTTLResolution ↦□ d ∗ ⌜0 < sint.Z d⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
   define_is_pkg_init authInit

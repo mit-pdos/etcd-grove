@@ -206,7 +206,7 @@ theorem authErrVar_of_pkg (e : auth.AuthErr) :
     ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ [] <;>
     (try iapply isPkgInit_access $$ Hpkg) <;>
     icases Hai with ⟨#V1, #V2, #V3, #V4, #V5, -, -, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13,
-      #V14, #V15, #V16, #V17, #V18⟩ <;>
+      #V14, #V15, #V16, #V17, #V18, -⟩ <;>
     first | iexact V1 | iexact V2 | iexact V3 | iexact V4 | iexact V5 | iexact V6 | iexact V7 | iexact V8 | iexact V9 | iexact V10 | iexact V11 | iexact V12 | iexact V13 | iexact V14 | iexact V15 | iexact V16 | iexact V17 | iexact V18
 
 theorem outRes_err (M : auth.AuthMode) (hs : List auth.AuthState) (e : auth.AuthErr)

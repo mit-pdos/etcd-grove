@@ -858,13 +858,15 @@ initializers are untranslated (`opaqueInitsOk`).''',
         'ErrInvalidAuthOpts': _auth_news(_AUTH_ERRS[0:17]),
         'ErrInvalidAuthMethod': _auth_news(_AUTH_ERRS[17:18]),
     },
-    finish=[f'ipersist H{n}' for n in _AUTH_ERRS] +
+    finish=[f'ipersist H{n}' for n in _AUTH_ERRS] + ['ipersist HsimpleTokenTTLResolution'] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
             '· iapply isPkgInit_access $$ Hd16',
             'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩'] + FIN_PRE[:6] + [
             'imodintro', 'unfold authInit authErrVar', 'iframe #', 'dsimp only', 'iframe #',
-            'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))'],
+            'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))',
+            # the keeper's tick (S5e): `1 * time.Second`, read-only
+            'ipureintro', 'decide'],
 )
 
 # Item 8, step 3 (2026-10-17): facts moved into their owners' packages.
