@@ -36,7 +36,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 PERENNIAL_CODE = '.lake/packages/perennial/Perennial/Code'
 
-ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.server.v3.etcdserver',
+ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
+         # the auth plan's A3c (2026-10-24): the Lock and Election services' servers
+         'go_etcd_io.etcd.server.v3.etcdserver.api.v3lock',
+         'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
          'github_com.mit_pdos.etcd_grove.examples.putget',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
@@ -238,8 +241,71 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
             'iframe #', 'try (ipureintro; exact BlinkHeartbeatSize)'],
 )
 
+
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
+
+# (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
+# package into the closure) its five error variables, translated `errors.New` calls
+_CC = [('ErrElectionNotLeader', 'N'), ('ErrElectionNoLeader', 'O'), ('ErrLocked', 'L'),
+       ('ErrSessionExpired', 'S'), ('ErrLockReleased', 'R')]
+_CCF = ['ErrLocked', 'ErrSessionExpired', 'ErrLockReleased', 'ErrElectionNotLeader',
+        'ErrElectionNoLeader']
+
+SPECIAL['go_etcd_io.etcd.client.v3.concurrency'] = dict(
+    doc='''Its fact (`concurrencyInit`, `Base.lean`): `Mutex`'s three errors and `Election`'s two each
+hold a fixed non-nil error. Its initializer allocates them, initializes its imports and runs their
+translated initializers (`errors.New` calls, `mutex.go`, `election.go`; Perennial's
+`context.wp_New_errorString`).''',
+    imports=['Perennial.Proof.context.NewErrorString'],
+    alloc_types={x: 'GoInterface' for x, _ in _CC},
+    before={'$end': ['try wp_auto'] + [l for _, t in _CC for l in [
+        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+    finish=[f'ipersist H{x}' for x, _ in _CC] + FIN_PRE[:6] + ['imodintro', 'unfold concurrencyInit'] +
+           [l for x in _CCF[:-1] for l in ['isplitr', f'· iexists _; iexact H{x}']] +
+           [f'iexists _; iexact H{_CCF[-1]}'],
+)
+
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3election'] = dict(
+    doc='''Its fact (`v3electionInit`, `etcdserver/api/v3election/Base.lean`; the auth plan's A3c,
+2026-10-24): `ErrMissingLeaderKey` holds a fixed non-nil error. Its initializer allocates it,
+initializes its imports and runs its translated initializer (an `errors.New` call, `election.go`;
+Perennial's `context.wp_New_errorString`).''',
+    imports=['Perennial.Proof.context.NewErrorString'],
+    alloc_types={'ErrMissingLeaderKey': 'GoInterface'},
+    before={'$end': ['try wp_auto',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xM #MM', 'try wp_auto']},
+    finish=['ipersist HErrMissingLeaderKey'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold v3electionInit', 'iexists _; iexact HErrMissingLeaderKey'],
+)
+
+# (2026-10-24, the auth plan's S4e) the permission type's name maps, translated: the store's
+# `RoleGrantPermission` looks the granted type's name up for its log line
+SPECIAL['go_etcd_io.etcd.api.v3.authpb'] = dict(
+    doc='''Its fact (`authpbInit`, `cache/v3/Base.lean`): `Permission_Type_name` holds a map, read-only
+for good, whose entries are the permission types' names (`0` `READ`, `1` `WRITE`, `2`
+`READWRITE`). Its initializer allocates and sets the two translated name maps
+(`Permission_Type_name`, `Permission_Type_value`: `map[int32]string`/`map[string]int32` literals,
+`auth.pb.go`), initializes its imports and runs its other variables' untranslated initializers (the
+generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` says run.''',
+    alloc_types={'Permission_Type_name': 'Loc', 'Permission_Type_value': 'Loc'},
+    before={
+        'Permission_Type_name': [
+            'try wp_auto',
+            'wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mn Hmn',
+            'try wp_auto',
+            'repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hmn as Hmn; try wp_auto)'],
+        'Permission_Type_value': [
+            'try wp_auto',
+            'wp_apply (wp_map_make1 (K := GoString) (V := w32) go.string go.int32) as %mv Hmv',
+            'try wp_auto',
+            'repeat (wp_apply (wp_mapInsert (K := GoString) (V := w32) go.string) $$ Hmv as Hmv; try wp_auto)']},
+    finish=['ipersist HPermission_Type_name', 'ipersist Hmn'] + [
+        'iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+        'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro',
+        'unfold go_etcd_io.etcd.cache.v3.authpbInit',
+        'iexists _, _', 'iframe #', 'ipureintro', 'simp (config := {decide := true})'],
+)
 
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
     doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
@@ -762,7 +828,9 @@ initializers are untranslated (`opaqueInitsOk`).''',
     vars=['[EtcdGrove.ErrorStringLeaf]'],
     alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
                  # the simple provider's TTL default (the auth plan's S5b, 2026-10-24), a `time.Duration`
-                 'simpleTokenTTLDefault': 'w64'},
+                 'simpleTokenTTLDefault': 'w64',
+                 # the keeper's tick (S5c, 2026-10-25), a `time.Duration`
+                 'simpleTokenTTLResolution': 'w64'},
     before={
         # the recipes run before the next untranslated variable's initializer, consuming the
         # translated `errors.New` calls that precede it in `store.go`'s order
@@ -772,7 +840,7 @@ initializers are untranslated (`opaqueInitsOk`).''',
     finish=[f'ipersist H{n}' for n in _AUTH_ERRS] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
-            '· iapply isPkgInit_access $$ Hd15',
+            '· iapply isPkgInit_access $$ Hd16',
             'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩'] + FIN_PRE[:6] + [
             'imodintro', 'unfold authInit authErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))'],
@@ -1342,7 +1410,8 @@ and raft's, leaf errors by the premise `EtcdGrove.ErrorStringLeaf`), and `contex
 
 RAFT_INIT = {'go_etcd_io.raft.v3', 'go_etcd_io.raft.v3.quorum', 'go_etcd_io.raft.v3.tracker',
              'go_etcd_io.raft.v3.confchange', 'go_etcd_io.raft.v3.raftpb',
-             'google_golang_org.protobuf.proto', 'os', 'strconv'}
+             'google_golang_org.protobuf.proto', 'os'}
+# (`strconv` was here until Perennial translated it, 24bef275e: its `wp_initialize'` is Perennial's.)
 
 def plain(ns):
     return ns.replace('«', '').replace('»', '')

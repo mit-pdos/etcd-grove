@@ -1,0 +1,24 @@
+# v3electionpb is protobuf-go v2 (v3election.pb.go by protoc-gen-go, v3election_grpc.pb.go by protoc-gen-go-grpc):
+# the messages are structs read through getters. The messages' types and getters are translated
+# (the auth plan's A3c, 2026-10-24: the v3election server's handlers read the requests and build the
+# responses); the protobuf runtime plumbing (as authpb's, Code/go_etcd_io/etcd/api/v3/authpb.toml)
+# and the gRPC service plumbing (the client, the handler functions, the service descriptor) are
+# names only.
+translate = ["*",
+  "!*.ProtoReflect", "!*.Descriptor", "!*.Reset", "!*.String", "!*.ProtoMessage",
+  "!file_v3election_proto*", "!File_v3election_proto", "!init.*",
+  "!*Client", "!*Client.*", "!New*Client", "!_*_Handler", "!*_ServiceDesc", "!Register*",
+  "!Unimplemented*", "!Unimplemented*.*", "!*_*Server", "!*_*Server.*", "!*_*Client",
+  "!*_*Client.*", "!*_FullMethodName",
+  # `Observe`'s stream (an alias of grpc's generic `ServerStreamingServer`: an untranslated alias
+  # is emitted without the `.ty` its users name)
+  "Election_ObserveServer"]
+
+imports = ["google.golang.org/protobuf/runtime/protoimpl",
+  "google.golang.org/protobuf/reflect/protoreflect", "go.etcd.io/etcd/api/v3/etcdserverpb",
+  "go.etcd.io/etcd/api/v3/mvccpb"]
+
+trust_proofgen = true
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

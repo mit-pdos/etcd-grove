@@ -18169,3 +18169,119 @@ appends the permission and sorts the permissions by key (`sort.Sort(permSlice(..
 at the apply layer: `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`,
 `UserGrantRole`, `UserRevokeRole`, `RoleAdd`, `RoleDelete`, `RoleGrantPermission`,
 `RoleRevokePermission`. Trust base unchanged.
+
+## S4e of the auth plan: `authpb`'s name map a package fact, S4d's premise gone (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4e`)
+
+**Problem.** S4d's `RoleGrantPermission` logs `authpb.Permission_Type_name[...]`, whose initializer
+(a `map[int32]string` literal) was untranslated: the spec and the apply clause took
+`auth.typeNamesOk` (the variable holds a map, read-only) as a premise.
+
+**Decision.** Translate the two name maps (`Permission_Type_name`, `Permission_Type_value`: dropped
+from `authpb.toml`'s exclusions; their `X.init` constants leave the translation and
+`opaqueInitsOk`'s list) and give `authpb` a fact, `authpbInit` (`cache/v3/Base.lean`): the name map's
+points-to, read-only, with its three entries (`0` `READ`, `1` `WRITE`, `2` `READWRITE`). The
+generated initializer proof steps the two literals (`wp_map_make1`, `wp_mapInsert`; the `SPECIAL`
+entry of `etc/gen-init.py`). `auth.typeNamesOk_of_init` derives the old premise from `authpb`'s
+`isPkgInit`, which `RoleGrantPermission`'s proof reaches from the auth package's (`iPkgInit`), so the
+spec, `apply.isAuthSteps`'s clause and `applierV3backend.RoleGrantPermission.stepSpec` drop it.
+
+**Consequences.** No axiom added or removed (the `X.init`s were translation constants under
+`opaqueInitsOk`, which stays for the descriptors); no closed theorem's statement changed.
+
+## A3c of the auth plan: Lock and Election, the servers over the server's client as a contract (2026-10-24 · `notes/auth-plan.md`, branch `auth-a3c`)
+
+**Problem.** The matrix's Lock and Election rows (`Lock`, `Unlock`, `Campaign`, `Proclaim`,
+`Leader`, `Observe`, `Resign`) were neither translated nor stated. Their servers
+(`server/etcdserver/api/v3lock/lock.go`, `v3election/election.go`) check nothing themselves: they
+hold a `*clientv3.Client`, in etcd the in-process client `v3client.New(s)`, and call the client's
+`concurrency` package (proved for the client) on it, with the request's context. So their class is
+that of the requests those calls send, which the server's own handlers check (A1, A2).
+
+**Decision.** Translate the two servers with bodies and their protobuf messages as data
+(`Code/.../api/v3lock.toml`, `v3election.toml`, `v3lock/v3lockpb.toml`, `v3election/v3electionpb.toml`;
+`etc/goose.py`'s etcd project), and prove each handler over the `concurrency` specs (linked as `@`
+callees of two new link modes, `--v3lock` and `--v3election`) and the server's client as a
+**hypothesis**, not an axiom: `v3lock.lockClientOk c` (the session's client contract
+`isEtcdSessionClient` and, for every prefix, the mutex's and election's `isEtcdMutexClient`) and
+`v3lock.unlockKVOk c` (the client's `KV.Delete` on one key, with a readable response header and
+`deleteResult`). `v3client.New(s)` is not translated: deriving these contracts from the in-process
+adapters (`KvServerToKvClient` over `NewQuotaKVServer(s)`, ...) is the next step, and it is where
+the class becomes the server's handlers' checks. The statements per handler:
+
+- `Lock`: a session over the request's lease (`NewSession`, `WithLease`, `WithContext(ctx)`,
+  `Orphan`) and a mutex on the request's name (`NewMutex`, `Mutex.Lock(ctx)`); the response holds a
+  lock key under `name/` (`lockedAt`, or `keyRecreated`). `Unlock`: one `Delete(ctx, key)` of the
+  request's key, with its `deleteResult`. Note that `Unlock` deletes whatever key the caller names
+  (the lock key is the lock's identity): its class is a delete of that key, as the caller.
+- `session`: the orphaned session (its lease the request's, if it names one). `Campaign`: the
+  campaign's key under `name/` with the value (`keyValAt`) and its outcome (`leaderAt` or
+  `campaignLost`). `Leader`: the leader's key-value (`leaderKvAt`) under `name/`.
+  `Proclaim`/`Resign`: `ErrMissingLeaderKey` for a request without a leader; otherwise the
+  proclamation (`proclaimedAt`, at the session's lease) or the resignation (`notLeaderAt`) of the
+  request's leader key, whatever key the caller names (its class: the write of that key).
+- `ResumeElection` keeps the prefix as given (no `/` appended, unlike `NewElection`), and its spec
+  requires a non-empty prefix: `Proclaim`'s and `Resign`'s specs take a non-empty leader name as a
+  premise. That is the spec's limit, not Go's (the prefix is unused by `Proclaim` and `Resign`).
+- `Observe` (a gRPC stream over the election's `Observe` channel, a `select` loop on the stream's
+  context) is translated and not proved.
+
+**Initialization.** The two servers are roots of `etc/gen-init.py`; their packages' facts are in
+`api/v3lock/Base.lean` and `api/v3election/Base.lean`. Doing so brings the client's `concurrency`
+package into the initializer closure for the first time: its five `errors.New` variables are
+translated and proved with Perennial's `context.wp_New_errorString` (a `SPECIAL` entry, as the k8s
+driver's); `ErrMissingLeaderKey` the same (the fact: a fixed non-nil error). The protobuf packages'
+initializers take `opaqueInitsOk` and `initFuncsOk`, as authpb's; no linked result reaches them, so
+the trust base is unchanged (696 axioms, 4 sorries).
+
+**Also.** `concurrency.sessionOptSpec` (a `□`) has no `Persistent` instance; v3lock's `Defs.lean`
+adds one locally (`sessionOptSpec_persistent'`), to be moved next to the definition.
+
+
+## S5c of the auth plan, in part: the pin at Perennial's `strconv` and `time.Ticker`, `isValidSimpleToken` proved on a context (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5c`)
+
+**Problem.** S5b left three hypotheses on the simple token provider: `isValidSimpleToken` (it
+calls `strconv.ParseUint`, which Perennial did not translate) and the keeper's `run`/`stop`
+(`time.Ticker`, `Time.After`). Perennial now has both (`13a60f492`, `c022dbe42`; `notes/
+perennial-changes.md`, "Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`").
+
+**The pin bump** (`24bef275e`). Perennial now translates `strconv`, so its `IsPkgInit` instance and
+`wp_initialize'` are Perennial's: raft's `Base.lean` and `Init.lean` (and the witness copies) drop
+their own (an instance `define_is_pkg_init iprop(True)`, a proof over the trust-boundary axiom
+`strconv.opaqueInitsOk`, which goes: 696 to 695 axioms); `etc/gen-init.py` no longer counts
+`strconv` among raft's packages; the package tables (and kvwitness's hand-written one) gain
+`internal/strconv` and `internal/stringslite`, which `strconv` imports. The worktree built against
+the pinned Perennial through a path manifest and a private `.lake/packages` (Perennial at the
+pinned checkout, the other dependencies the shared ones), so the shared clone stayed at
+`beb785eaf` for the other worktrees.
+
+**`isValidSimpleToken` proved** (`tokenSimple_isValid`, `auth/TokenSimple.lean`): on a context
+(Perennial's `context.isContext ci cd`) and the provider's index waiter (`simpleWaitOk p`: the
+field `indexWaiter` read-only, a function returning, for every index, a channel on which a receive
+may complete with any outcome, `anyRecv`), it returns: `strings.Split`, `strconv.ParseUint` (a
+non-nil `*NumError` is `false`), then the `select` on the waiter's channel and the context's
+`Done` (`isContextDone_receive`). Stated at `HasLC.hasLC`: Perennial's contexts are, the rest of
+the file is generic over later credits. `tokenSimple_info` is generalized over the check's
+precondition (`tokenSimple_info_of`); the old theorem over `ValidSpec` is its corollary, and
+`tokenSimple_info_ctx` is `info` on a context with no hypothesis on the check.
+
+**Why `ValidSpec` stays for the contract.** `tokenProviderOk`'s `info` clause has no context
+premise and is generic over later credits, so `tokenSimple_info_ctx` cannot discharge it: the
+contract needs a context premise at `HasLC.hasLC` (its callers, `authInfoFromToken` and
+`AuthInfoFromCtx`, have the request's context), a change to `InvAuth` and its users.
+
+**Not finished: the keeper and the provider's rest** (`run`, `stop`, `enable`, `disable`,
+`invalidateUser`, `newTokenProviderSimple`; translated, `run`/`stop` since this stage). Two design
+changes, each wider than this stage:
+- **The keeper field is read outside the lock.** `invalidateUser` tests `t.simpleTokenKeeper ==
+  nil` before taking `simpleTokensMu`; `enable`/`disable` write it under the lock. Not a Go bug:
+  all three are called by the auth store's admin side, serialized (`enable`/`disable` under
+  `enabledMu`; `invalidateUser` from `UserDelete`/`UserChangePassword` on the apply thread; `Close`
+  only from `Cleanup`, before the server starts). But the contract's `{{ True }}` clauses for the
+  three cannot be met: the field needs a share the caller holds (the admin side's, `authOwn`'s),
+  half in the lock invariant.
+- **A keeper's goroutine must find its map after relocking.** `simpleLk` holds the maps of the
+  keepers created (`ks`, existential), so `run` cannot know, at its next `Lock`, that its keeper
+  is still among them: the lock invariant needs a ghost set of keepers (an authority, a
+  persistent element per keeper). `run`'s loop is then the map range with deletion
+  (`wp_map_for_range_gen`), the delete callback over the provider's map, the ticker's channel bag
+  and `stopc` (a bag), `donec` a broadcast channel `run` closes and `stop` waits on.

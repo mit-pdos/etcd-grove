@@ -148,6 +148,8 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.go_etcd_io.raft.v3, isPkgInit pkg_id.go_etcd_io.raft.v3),
    (pkg_id.go_etcd_io.raft.v3.tracker, isPkgInit pkg_id.go_etcd_io.raft.v3.tracker),
    (pkg_id.go_etcd_io.raft.v3.quorum, isPkgInit pkg_id.go_etcd_io.raft.v3.quorum),
+   (pkg_id.internal.stringslite, isPkgInit pkg_id.internal.stringslite),
+   (pkg_id.internal.strconv, isPkgInit pkg_id.internal.strconv),
    (pkg_id.strconv, isPkgInit pkg_id.strconv),
    (pkg_id.strings, isPkgInit pkg_id.strings),
    (pkg_id.go_etcd_io.raft.v3.confchange, isPkgInit pkg_id.go_etcd_io.raft.v3.confchange),

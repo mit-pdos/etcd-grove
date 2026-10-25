@@ -272,7 +272,6 @@ axiom Perennial.os.initFuncsOk
 axiom Perennial.os.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
-axiom Perennial.strconv.opaqueInitsOk
 axiom Perennial.unicode.utf8.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
