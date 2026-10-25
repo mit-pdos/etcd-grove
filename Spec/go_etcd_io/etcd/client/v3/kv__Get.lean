@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `kv.Get(ctx, key, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D43): `OpGet(key, opts...)`
 (`opts`: the models of the Go options `opts...` (`WithPrevKV()`, ...), one transformer of the operation each, `optsAt`
-ties the slice `sl` of their closures to them; `[]` for none) (options that do not panic, keep the range type, read at the latest revision, and may need a
+ties the slice `opts_sl` of their closures to them; `[]` for none) (options that do not panic, keep the range type, read at the latest revision, and may need a
 resource `R`, given back: `optsAtRes`; any sort option, checked against `etcdserverpb`'s
 enumerations, `sortNamesOk`), then `kv.Do`, with the caller's persistent atomic read of `γ`'s
 state (a read may be answered by any member, and again) or, `Q` trivial, none; the error through
@@ -31,19 +31,19 @@ state (a read may be answered by any member, and again) or, `Q` trivial, none; t
 update's, `□ Q σ`, if linearizable) whose selection, count and revision are the reply's; or a
 client error (`kvErr`) and no reply. -/
 abbrev kv.Get.spec : Prop :=
-  ∀ (api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
+  ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
+    (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
     (opts : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ dup ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl opts R ∗ R ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAtRes opts_sl opts R ∗ R ∗
       sortNamesIf (opGetModel key opts).base.sortSet ∗
       ⌜¬ opGetPanics opts ∧ (opGetModel key opts).t = W64 1 ∧
         (rangeWireOf (opGetModel key opts)).base.rev = W64 0⌝ ∗
       □ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜(rangeWireOf (opGetModel key opts)).base.serializable = false⌝ ∗
         AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ, COMM □ Q σ }>)) }}
-    (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
-        go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
+    (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
+        go!"Get")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       R ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
           (if (rangeWireOf (opGetModel key opts)).base.serializable then iprop(True) else iprop(□ Q σ)) ∗

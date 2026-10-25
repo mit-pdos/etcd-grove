@@ -33,11 +33,11 @@ reply's verdict, responses and revision as the run's at `σ`; or a client error 
 `ContextError`) and no reply. The builder is spent (its slices are now the
 request's). -/
 abbrev txn.Commit.spec : Prop :=
-  ∀ (tp : Loc) (addr : List GoString) (api : Loc) (γ : KVNames) (dup : Bool)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
+  ∀ (txn_ptr : Loc) (addr : List GoString) (kv : Loc) (γ : KVNames) (dup : Bool)
+    (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (Q : KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      txnObjAt tp addr ci cd b ∗ txnKvIs tp api ∗ isKv api γ dup ∗
+      txnObjAt txn_ptr addr ctx ctx_desc b ∗ txnKvIs txn_ptr kv ∗ isKv kv γ dup ∗
       ⌜TxnModel.plain b.model ∧ txnModelIn (txnWireOf b.model)⌝ ∗
       □?dup (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
@@ -47,7 +47,7 @@ abbrev txn.Commit.spec : Prop :=
             γ.wl.writes (.txn (txnWireOf b.model))⌝ ∗
           AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
             <{ etcdKV γ (kvOpStep (.txn (txnWireOf b.model)) σ), COMM Q σ }>)) }}
-    (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
+    (App (Val (txn_ptr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
       (Val #()))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗

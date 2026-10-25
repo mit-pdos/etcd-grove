@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `kv.Delete(ctx, key, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D43): `kv.Do` of
 `OpDelete(key, opts...)` (`opts`: the models of the Go options `opts...` (`WithPrevKV()`, ...), one transformer of the operation each, `optsAt`
-ties the slice `sl` of their closures to them; `[]` for none), options that do not make `OpDelete` panic nor change the
+ties the slice `opts_sl` of their closures to them; `[]` for none), options that do not make `OpDelete` panic nor change the
 operation's type, a delete whose range end is not `[0]` (etcd's `DeleteRange` spec
 covers no other: `WithFromKey`'s) that `γ`'s workload admits, with the caller's atomic update of
 `γ`'s state by the delete the server reads (`deleteWireOf`; `kvOpStep`), persistent if the client's
@@ -31,18 +31,18 @@ writes may be delivered more than once (`□?dup`); the error through `ContextEr
 `Q σ` for the state `σ` the update fired at, the reply's count, previous key-values and revision as
 `σ`'s; or a client error (`kvErr`) and no reply. -/
 abbrev kv.Delete.spec : Prop :=
-  ∀ (api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
+  ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
+    (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
     (opts : List (OpFull → OpFull)) (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ dup ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl opts ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜¬ opDeletePanics key opts ∧ (opDeleteModel key opts).t = W64 3 ∧
         (deleteWireOf (opDeleteModel key opts)).base.rangeEnd ≠ [W8 0] ∧
         γ.wl.writes (.deleteRange (deleteWireOf (opDeleteModel key opts)))⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ (kvOpStep (.deleteRange (deleteWireOf (opDeleteModel key opts))) σ), COMM Q σ }>) }}
-    (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
-        go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
+    (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
+        go!"Delete")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : DelRespM) (σ : KVState), delRespMsg resp m ∗ Q σ ∗
         ⌜m.deleted = W64 ((rangeIn σ.kvs (deleteWireOf (opDeleteModel key opts))).length : Int) ∧

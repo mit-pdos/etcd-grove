@@ -42,22 +42,22 @@ def doRunOk (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → IProp GF) 
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ (kvOpStep (.deleteRange (deleteWireOf o)) σ), COMM Q σ }>)))
 
-/-- `kv.Do(ctx, op)` on a `*kv` of etcd's KV `γ` (`isKv`, D43), for an `Op` `op` modelled by `o`
+/-- `kv.Do(ctx, op)` on a `*kv` of etcd's KV `γ` (`isKv`, D43), for an `Op` `op` modelled by `op_m`
 that is a range, a put or a delete (`doRunOk`): the request `op.toRangeRequest()`,
 `&pb.PutRequest{...}` or `&pb.DeleteRangeRequest{...}` through the retry client's `Range`, `Put`
 or `DeleteRange`, with the client's call options; `doOut` with the reply's fields as functions of
 the state the update fired at (`rangeStOk`, `putStOk`, `delStOk`). -/
 abbrev kv.Do.spec : Prop :=
-  ∀ (api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
+  ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
+    (ctx_desc : context.ContextDesc (IProp GF)) (op : go_etcd_io.etcd.client.v3.Op) (op_m : OpFull)
     (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ dup ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ opFullAt opv o ∗ doRunOk γ dup o Q }}
-    (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
-      (Val #(GoInterface.ok ci))) (Val #opv))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ opFullAt op op_m ∗ doRunOk γ dup op_m Q }}
+    (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
+      (Val #(GoInterface.ok ctx))) (Val #op))
   {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-      doOut o (putStOk (putWireOf o) Q) (rangeStOk (rangeWireOf o) Q)
-        (delStOk (deleteWireOf o) Q) r err }}
+      doOut op_m (putStOk (putWireOf op_m) Q) (rangeStOk (rangeWireOf op_m) Q)
+        (delStOk (deleteWireOf op_m) Q) r err }}
 
 end spec
 
