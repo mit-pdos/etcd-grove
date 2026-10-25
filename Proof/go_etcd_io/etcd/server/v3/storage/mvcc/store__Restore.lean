@@ -134,7 +134,7 @@ theorem mvcc.store.Restore.wp_proof
   · ipureintro; exact Hlgnn
   (try wp_auto)
   wp_apply +noauto chan.wp_make1 (V := Unit) as %stopc %γstop ⟨#Hstc', %Hstcap, Hstown⟩
-  wp_auto_lc 2
+  wp_auto_lc 3
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γstop stopc $$ Hstc' Hstown with Hstop
   ihave #Hstop0 := ownBroadcastChan_Unknown _ _ _ _ $$ Hstop
   -- the new backend's names, fresh: the batch lock's invariant `P'`, its key and view log, the
@@ -208,11 +208,11 @@ theorem mvcc.store.Restore.wp_proof
         mvcc.curAt (γ.withPhys p') (DFrac.own (1 : Qp).half) ⟨b', ti, sc, stopc⟩ ∗
         mvcc.writerFrag (γ.withPhys p') ∗
         mvcc.curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) ⟨b', ti, sc, stopc⟩ ∗
-        ownToks γ.tkr 1 ∗ mvcc.restoreWriter γ ([[], []] ++ R) ∗
+        mvcc.retiredAt γ 2 ∗ mvcc.wsDep γ ∗ mvcc.restoreWriter γ ([[], []] ++ R) ∗
         ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
         (if γ.watchQ then mvcc.logQ γ ([[], []] ++ R) else iprop(True)) ∗
-        (∃ k : Nat, ⌜k + 1 ≤ mvcc.nReaders⌝ ∗ ([∗list] _x ∈ List.replicate k (), mvcc.storeRT γ) ∗
-          ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - k) (), mvcc.storeRT (γ.withPhys p'))) ∗
+        ([∗list] _x ∈ List.replicate (mvcc.nReaders - 2) (), mvcc.storeRT γ) ∗
+        mvcc.storeRT (γ.withPhys p') ∗
         (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half.half} (W64 (-1) : w64) : IProp GF) ∗
         mvcc.isTreeIndex ti (γ.withPhys p').idx)
       (DFrac.own (1 : Qp).half.half) (1 : Qp).half (1 : Qp).half hR (Qp.half_add_half 1)
@@ -258,30 +258,31 @@ theorem mvcc.store.Restore.wp_proof
         mvcc.curAt (γ.withPhys p') (DFrac.own (1 : Qp).half) ⟨b', ti, sc, stopc⟩ ∗
         mvcc.writerFrag (γ.withPhys p') ∗
         mvcc.curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) ⟨b', ti, sc, stopc⟩ ∗
-        ownToks γ.tkr 1 ∗ mvcc.restoreWriter γ ([[], []] ++ R) ∗
+        mvcc.retiredAt γ 2 ∗ mvcc.wsDep γ ∗ mvcc.restoreWriter γ ([[], []] ++ R) ∗
         ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
         (if γ.watchQ then mvcc.logQ γ ([[], []] ++ R) else iprop(True)) ∗
-        (∃ k : Nat, ⌜k + 1 ≤ mvcc.nReaders⌝ ∗ ([∗list] _x ∈ List.replicate k (), mvcc.storeRT γ) ∗
-          ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - k) (), mvcc.storeRT (γ.withPhys p'))) ∗
+        ([∗list] _x ∈ List.replicate (mvcc.nReaders - 2) (), mvcc.storeRT γ) ∗
+        mvcc.storeRT (γ.withPhys p') ∗
         (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half.half} (W64 (-1) : w64) : IProp GF) ∗
         mvcc.isTreeIndex ti (γ.withPhys p').idx)
-      $$ [Hcur Hfrag HcurR HcurW Htkr Hheld Hrts]
+      $$ [Hcur Hfrag HcurR HcurW Htkr Hheld Hrts Hlc3 Hwsd]
   · iunfold mvcc.revUnlockW
     iintro %Ψ Hcur2 ⟨Hwl2, Hr, Hr2, Hcm2, HcmK, Hlc4⟩ ⟨Hv, #Hti', Hrd, %Hrc⟩ HΨ
     imod (mvcc.restore_switch s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ ⟨b', ti, sc, stopc⟩ p' R hR) $$
-        Hlc4 Hpool Hcur Hfrag HcurR HcurW Htkr Hr Hr2 Hheld Hcur2 Hcm2 Hnlb Hok' Hv Hrd [] [] Hrts
-      with ⟨HR, Hrst', Hn1, Hfrag', Hn3, Htkr, Hw, Hrv', HlogQ, Hks⟩
+        Hlc4 Hlc3 Hwi Hwsd Hpool Hcur Hfrag HcurR HcurW Htkr Hr Hr2 Hheld Hcur2 Hcm2 Hnlb Hok' Hv Hrd
+        [] [] Hrts
+      with ⟨HR, Hrst', Hn1, Hfrag', Hn3, Htkr, Hwsd, Hw, Hrv', HlogQ, Hold, Hnew⟩
     · ipureintro; exact Hrc
     · ipureintro; exact Hrb
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl2 HR]
     · inext; iexact HR
     iapply HΨ
-    iframe Hrst' Hn1 Hfrag' Hn3 Htkr Hw Hrv' HlogQ Hks HcmK Hti'
+    iframe Hrst' Hn1 Hfrag' Hn3 Htkr Hwsd Hw Hrv' HlogQ Hold Hnew HcmK Hti'
   wp_apply +noauto hR' $$ [$Hfb $Hrt1 $Hnc $Hrv $Hfidx $Hix $Hig $Hcr $HcmR $HLk $HUl Hrst Hlc1 Hlc2]
     as ⟨Hrt1, Hrc, HRevQ, Hcr, HcmR, Hfb, Hfidx⟩
   · iframe #; iframe Hrst Hlc1 Hlc2; ipureintro; exact Hlgnn
   wp_auto_lc 1
-  icases HRevQ with ⟨Hrst', Hn1, Hfrag', Hn3, Htkr, Hw, Hrv, HlogQ, ⟨%k, %Hk1, Hold, Hnew⟩, HcmK,
+  icases HRevQ with ⟨Hrst', Hn1, Hfrag', Hn3, Htkr, Hwsd, Hw, Hrv, HlogQ, Hold, Hnew, HcmK,
     #Hti'⟩
   -- the writer's state at `L'`, the new backend's registration pending (`restore_finish`)
   ihave Hcres : mvcc.compactRes (GF := GF) (γ.withPhys p') $$ [Hmeta' Hfin']
@@ -339,10 +340,10 @@ theorem mvcc.store.Restore.wp_proof
     iexact HfsM
   (try wp_auto)
   iapply HΦ
-  iexists p', k
+  iexists p'
   iframe Hwsd Hfrag' HcertL Hrv HlogQ
   isplitl []
-  · ipureintro; exact ⟨hb, hk, Hk1⟩
+  · ipureintro; exact ⟨hb, hk⟩
   isplitl [HfsC Hstop HsStop Hq0 Hcmp0]
   · iunfold mvcc.storeCloser
     iexists ⟨b', ti, sc, stopc⟩
@@ -368,14 +369,16 @@ theorem mvcc.store.Restore.wp_proof
   isplitl [HfsW]
   · iunfold mvcc.fieldShare; iexists p', ⟨b', ti, sc, stopc⟩; iexact HfsW
   isplitl [Hrt1 Htkr]
-  · iunfold mvcc.writerOwn; simp only [mvcc.StoreNames.withPhys_tkr]; iframe Hrt1 Htkr
+  · unfold mvcc.writerOwn mvcc.retiredAt; simp only [mvcc.StoreNames.withPhys_tkr]
+    iframe Hrt1 Htkr
   isplitl []
   · iunfold mvcc.hookP; simp only [mvcc.StoreNames.withPhys_hook]; iexact Hh'
   isplitl [HrtOld Hold]
-  · rw [List.replicate_succ]
+  · have h2 := sync.actualMaxReaders_ge_2
+    rw [show mvcc.nReaders - 1 = (mvcc.nReaders - 2) + 1 by unfold mvcc.nReaders; omega,
+      List.replicate_succ]
     iapply BigSepL.bigSepL_cons.2
     iframe HrtOld Hold
-  rw [show mvcc.nReaders - (k + 1) = mvcc.nReaders - 1 - k by omega]
   iexact Hnew
 
 end proof

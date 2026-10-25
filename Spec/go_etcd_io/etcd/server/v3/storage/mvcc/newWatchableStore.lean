@@ -53,7 +53,7 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.watchReader s st γ) ∗
       (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc) ∗
-      mvcc.storeCloser st γ.st ∗ mvcc.writerFrag γ.st ∗
+      mvcc.storeCloser st γ.st ∗ mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st 0 ∗
       typedPointsto (mvcc.wsWgAddr s) (zero_val sync.WaitGroup) (DFrac.own 1) }}
 
 end spec

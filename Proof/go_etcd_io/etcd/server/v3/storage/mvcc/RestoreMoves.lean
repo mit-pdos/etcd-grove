@@ -291,16 +291,19 @@ theorem restoreViewOut_bucketView (γ : StoreNames) (q : Qp) (R : Log) :
 holding `s.mu` exclusively): `cur`'s eight parts gathered (the shares' half, the writer's fragment,
 `s.revMu`'s and the writer's invariant's eighths from the takeover, the readers' pool's) and moved to
 the new objects `o'` and names `p'`; the readers' pool refilled with `k` slots of the new index and
-backend (the old ones' backend tokens returned; with the writer's retired ticket, `k + 1` are at most
-`nReaders`); the restoring flag down; `s.revMu`'s resource at the new names, with the restored log's
+backend (the old ones' backend tokens returned; D22 receiver epochs, S8d, W7, 2026-10-25: exactly
+`nReaders - 2`, the pool's retired count being `2`, `retiredAt`, and no slot out: none under the
+watchable store's lock, whose deposit the caller holds, none under `s.mu`, whose deposit ghost the
+writer's invariant holds whole in its restoring state, a second later credit); the restoring flag
+down; `s.revMu`'s resource at the new names, with the restored log's
 bucket view (`restoreViewOut`), its certificate (its changes below the receipts' bound, which the
 rebuild's receipts give) and the revision budget's tokens of `L'` made. -/
 theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : PhysNames) (R : Log)
     (hR : restoreLogOk R) :
-    ⊢ £ 1 -∗ readerPool (GF := GF) γ -∗
+    ⊢ £ 1 -∗ £ 1 -∗ writerInv (GF := GF) s γ -∗ wsDep γ -∗ readerPool (GF := GF) γ -∗
       curAt γ (DFrac.own (1 : Qp).half) o -∗ writerFrag γ -∗
       curAt γ (DFrac.own (1 : Qp).half.half.half) o -∗ curAt γ (DFrac.own (1 : Qp).half.half.half) o -∗
-      ownToks γ.tkr 1 -∗
+      retiredAt γ 2 -∗
       dghostVar γ.rst (DFrac.own (1 : Qp).half) true -∗ dghostVar γ.rst (DFrac.own (1 : Qp).half) true -∗
       restoreHeld γ ([[], []] ++ R) -∗
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
@@ -313,13 +316,12 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
       ([∗list] _x ∈ List.replicate (nReaders - 1) (), storeRT (γ.withPhys p')) ={⊤}=∗
       revMuInv s γ 1 ∗ dghostVar γ.rst (DFrac.own (1 : Qp).half) false ∗
       curAt (γ.withPhys p') (DFrac.own (1 : Qp).half) o' ∗ writerFrag (γ.withPhys p') ∗
-      curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' ∗ ownToks γ.tkr 1 ∗
+      curAt (γ.withPhys p') (DFrac.own (1 : Qp).half.half.half) o' ∗ retiredAt γ 2 ∗ wsDep γ ∗
       restoreWriter γ ([[], []] ++ R) ∗ ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
       (if γ.watchQ then logQ γ ([[], []] ++ R) else iprop(True)) ∗
-      ∃ k : Nat, ⌜k + 1 ≤ nReaders⌝ ∗ ([∗list] _x ∈ List.replicate k (), storeRT γ) ∗
-        ([∗list] _x ∈ List.replicate (nReaders - 1 - k) (), storeRT (γ.withPhys p')) := by
-  iintro Hlc #Hpool Hc1 Hfrag Hc2 Hc3 Htkr Hr1 Hr2 Hheld Hrev Hcmp #Hnv #Hok Hview Hrds %Hrc %Hrb
-    Hrts
+      ([∗list] _x ∈ List.replicate (nReaders - 2) (), storeRT γ) ∗ storeRT (γ.withPhys p') := by
+  iintro Hlc Hlc' #Hwi Hwsd #Hpool Hc1 Hfrag Hc2 Hc3 Htkr Hr1 Hr2 Hheld Hrev Hcmp #Hnv #Hok Hview
+    Hrds %Hrc %Hrb Hrts
   have hlen := restoreLogOk_len hR
   obtain ⟨-, hwf, -⟩ := hR
   have hwfL : LogWf' ([[], []] ++ R) := hwf.1.prefix
@@ -353,6 +355,22 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
     isplitl [Hc2 Hc3]
     · iapply (curAt_halves γ _ o).2; iframe Hc2 Hc3
     · iapply (curAt_halves γ _ o).2; iframe Hc4 Hc5
+  -- (W7) the writer's invariant: restoring (all of `cur` is here), with `s.mu`'s deposit ghost
+  ihave #Hwi' := Hwi
+  iunfold writerInv at Hwi'
+  imod inv_acc (E := ⊤ \ ↑poolN) (N := writerN) (P := writerInvBody (GF := GF) s γ)
+    (by solve_ndisj) $$ Hwi' with ⟨HW, Hclose2⟩
+  imod (lc_fupd_elim_later (P := writerInvBody (GF := GF) s γ)) $$ Hlc' HW with HW
+  iunfold writerInvBody at HW
+  icases HW with (⟨%pw, %ow, Hcw, -⟩ | ⟨Hwr, Hwh⟩)
+  · iunfold curAt at Hcur Hcw
+    simp only [StoreNames.withPhys_cur]
+    ihave %Hv := dghostVar_valid_2 (GF := GF) γ.cur _ _ _ _ $$ Hcur Hcw
+    exfalso
+    have := DFrac.valid_own_op Hv.1
+    have h1 : (1 : Qp).val = 1 := rfl
+    have h2 : 0 < (1 : Qp).half.half.half.val := Subtype.property _
+    grind
   iunfold curAt at Hcur
   imod dghostVar_update ((o', p') : StoreObjs × PhysNames) γ.cur _ $$ Hcur with Hcur
   ihave Hcur : curAt (GF := GF) (γ.withPhys p') (DFrac.own 1) o' $$ [Hcur]
@@ -364,7 +382,26 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
   -- the readers' pool refilled: `k` slots of the new index and backend
   iunfold poolBody at HP
   icases HP with ⟨%k, %j, %w, %r, Ha, Hao, Haw, Har, Hs, Hds, Hws, %Hk⟩
-  icombine Har Htkr gives %Hr
+  -- (W7) the retired count is the caller's `2`
+  iunfold retiredAt at Htkr
+  ihave %Hr := ghostVar_agree (GF := GF) γ.tkr r _ 2 _ $$ Har Htkr
+  subst Hr
+  -- no slot out under the watchable store's lock: its deposit is the caller's
+  obtain ⟨w', rfl⟩ | rfl : (∃ w', w = w' + 1) ∨ w = 0 := by cases w <;> simp
+  · rw [List.replicate_succ]
+    icases BigSepL.bigSepL_cons.1 $$ Hws with ⟨Hw1, -⟩
+    iunfold wsDep at Hw1 Hwsd
+    ihave %Hv := ghostVar_valid_2 (GF := GF) γ.wsd () 1 () 1 $$ Hw1 Hwsd
+    exact absurd Hv.1 (Qp_one_add_not_le 1)
+  -- none under `s.mu`: its deposit ghost is whole in the writer's invariant
+  obtain ⟨j', rfl⟩ | rfl : (∃ j', j = j' + 1) ∨ j = 0 := by cases j <;> simp
+  · rw [List.replicate_succ]
+    icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hd1, -⟩
+    iunfold wDep at Hd1
+    ihave %Hv := ghostVar_valid_2 (GF := GF) γ.wr () 1 () _ $$ Hwr Hd1
+    exact absurd Hv.1 (Qp_one_add_not_le _)
+  imod Hclose2 $$ [Hwr Hwh] with -
+  · inext; iunfold writerInvBody; iright; iframe Hwr Hwh
   have hk1 : k + 1 ≤ nReaders := by omega
   icases idxSlots_out γ o k $$ Hs with ⟨-, Hold⟩
   obtain ⟨m, hm⟩ : ∃ m, nReaders = k + 1 + m := ⟨nReaders - (k + 1), by omega⟩
@@ -378,7 +415,7 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
     iexists p', o'
     iframe Hn5
     iunfold poolBody
-    iexists k, j, w, r
+    iexists k, 0, 0, 2
     withPhys_simp
     iframe Ha Hao Haw Har Hnew Hds Hws
     ipureintro; omega
@@ -419,7 +456,9 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
       isplitl [Hn2]
       · iexists o'; iexact Hn2
       ipureintro; rfl
-  iframe Hr2 Hn1 Hn4 Htkr Hrv HlogQ
+  ihave Htkr : retiredAt (GF := GF) γ 2 $$ [Htkr]
+  · iunfold retiredAt; iexact Htkr
+  iframe Hr2 Hn1 Hn4 Hrv HlogQ Hwsd Htkr
   isplitl [Hn3]
   · iunfold writerFrag; iexists o'; iexact Hn3
   isplitl [HclogW Hlw HtoksW Hlrd Hhist]
@@ -428,10 +467,13 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
     simp only [named]
     iframe HclogW Hlw HtoksW Hlrd Hhist Hcert
     ipureintro; omega
-  iexists k
-  rw [show k + m - k = m by omega]
-  iframe Hold Hrts
-  ipureintro; omega
+  have hm1 : m = 1 := by omega
+  subst hm1
+  rw [show k + (1 + 1) - 2 = k by omega]
+  iframe Hold
+  simp only [List.replicate]
+  icases BigSepL.bigSepL_cons.1 $$ Hrts with ⟨H, -⟩
+  iexact H
 
 /-- **The writer's state checked in at the restored log** (one later credit; after `restore`, which
 gives `currentRev`'s other half and the rebuild's receipts): the writer's invariant is in its

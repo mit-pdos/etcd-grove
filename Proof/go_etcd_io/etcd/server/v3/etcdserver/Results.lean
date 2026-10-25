@@ -876,17 +876,25 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st ∗ auth.modeTag γw.tag M }} :=
-  server_kv_watchable_of mvcc.wp_New backend.backend.wp_ConcurrentReadTx
-    backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
-    backend.backend.wp_Size backend.backend.wp_SizeInUse
-    backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
-    backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
-    backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
-    backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
-    backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
-    backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok M hcfg hrb
+        mvcc.wsCloser ws st γw.st ∗ auth.modeTag γw.tag M }} := by
+  iintro %Φ Hpre HΦ
+  iapply (server_kv_watchable_of mvcc.wp_New backend.backend.wp_ConcurrentReadTx
+      backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
+      backend.backend.wp_Size backend.backend.wp_SizeInUse
+      backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
+      backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
+      backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
+      backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
+      backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
+      backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
+      schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok M hcfg hrb) $$ [Hpre]
+  · iexact Hpre
+  inext
+  iintro %ws ⟨%st, %γw, %Hγ, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, -, H11⟩
+  iapply HΦ
+  iexists st, γw
+  iframe
+  ipureintro; exact Hγ
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's

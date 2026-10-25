@@ -48,32 +48,26 @@ theorem bOpen_halves (γ : backend.BNames) (q : Qp) :
   icases ghostVar_split (GF := GF) γ.cls () q.half q.half $$ Hc with ⟨Hc1, Hc2⟩
   iframe Ho1 Ho2 Hc1 Hc2
 
-/-- Each reader slot's token with a share of the open token (`mvcc.bkRTx`), and a share left. -/
-theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) (n : Nat) :
-    ∀ q : Qp, ([∗list] _x ∈ List.replicate n (), backend.rdTok (GF := GF) γ P b) ∗
-      backend.bOpen γ q ⊢
-      ([∗list] _x ∈ List.replicate n (), mvcc.bkRTx γ P b) ∗ ∃ q' : Qp, backend.bOpen γ q' := by
-  induction n with
-  | zero =>
-    intro q
+/-- Each reader slot's token with the reader's share of the open token (`mvcc.bkRTx`; D22 receiver
+epochs, S8d, W7, 2026-10-25: a fixed share, `backend.rdOpen`). -/
+theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) : ∀ n : Nat,
+    ([∗list] _x ∈ List.replicate n (), backend.rdTok (GF := GF) γ P b) ∗
+      ([∗list] _x ∈ List.replicate n (), backend.bOpen γ backend.rdOpen) ⊢
+      [∗list] _x ∈ List.replicate n (), mvcc.bkRTx γ P b
+  | 0 => by
     simp only [List.replicate]
-    iintro ⟨-, Ho⟩
-    isplitr
-    · iapply BigSepL.bigSepL_nil.2; itrivial
-    · iexists q; iexact Ho
-  | succ n ih =>
-    intro q
+    iintro -
+    iapply BigSepL.bigSepL_nil.2; itrivial
+  | n + 1 => by
     simp only [List.replicate]
     iintro ⟨Hr, Ho⟩
     icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hr1, Hr⟩
-    icases bOpen_halves γ q $$ Ho with ⟨Ho1, Ho⟩
-    icases ih q.half $$ [$Hr $Ho] with ⟨Hrs, Ho⟩
-    iframe Ho
+    icases BigSepL.bigSepL_cons.1 $$ Ho with ⟨Ho1, Ho⟩
     iapply BigSepL.bigSepL_cons.2
-    iframe Hrs
-    unfold mvcc.bkRTx
-    iframe Hr1
-    iexists q.half; iexact Ho1
+    isplitl [Hr1 Ho1]
+    · unfold mvcc.bkRTx; iframe Hr1 Ho1
+    iapply bkRTx_of_rdToks γ P b n
+    iframe Hr Ho
 
 /-- **The backend `NewServer` uses, from `backend.New`'s postcondition** (see the file header):
 bbolt's data with an empty key bucket gives the store's key view `∅`, and `N + 7` of the
@@ -82,15 +76,16 @@ theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
     (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
     (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit) :
     backend.newPost γ P W Pk b D ⊢
-      backend.isBackend γ P (W γ) (Pk γ) b ∗ backend.plHook γ func.nil ∗
-      (∃ qo : Qp, backend.bOpen γ qo) ∗ mvcc.bkView γ 1 (∅ : mvcc.Bucket) ∗
+      backend.isBackend γ P (W γ) (Pk γ) b ∗ backend.isStopChans γ b ∗ backend.plHook γ func.nil ∗
+      backend.bOpen γ (1 : Qp).half ∗ mvcc.bkView γ 1 (∅ : mvcc.Bucket) ∗
       ownToks γ.wb (N + 7) ∗ backend.rbOwn γ (backend.rbData P D) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.bkRTx γ P b) := by
   unfold backend.newPost
-  iintro ⟨#Hb, -, Ho, Hv, Hh, Hw, Hrb, Hrd⟩
-  iframe Hb Hh Hrb
-  icases bkRTx_of_rdToks γ P b _ 1 $$ [$Hrd $Ho] with ⟨Hrts, Ho⟩
+  iintro ⟨#Hb, #Hsc, Ho, Hv, Hh, Hw, Hrb, Hrd⟩
+  iframe Hb Hsc Hh Hrb
+  icases (backend.bOpen_one_shares γ).1 $$ Ho with ⟨Ho, Hos⟩
+  ihave Hrts := bkRTx_of_rdToks γ P b _ $$ [$Hrd $Hos]
   iframe Hrts Ho
   isplitl [Hv]
   · unfold mvcc.bkView

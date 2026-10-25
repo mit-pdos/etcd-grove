@@ -264,7 +264,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
   (try wp_auto)
   wp_apply (hRestore st γ.st b' d' γb' P' L R hLR hR) $$ [Hcl Hfs Hwsd Hfrag Hown Htoks HlogQ
       Hview Hnc Hrr Hrts]
-    as ⟨%p', %k, %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, #HhP, #HcL', Htoks, HlogQ, Hold, Hnew'⟩
+    as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, #HhP, #HcL', Htoks, HlogQ, Hold, Hnew'⟩
   · simp only [mvcc.wBudget, Hwq, ↓reduceIte]
     iframe Hcl Hfs Hfrag Hown Htoks Hview Hnc Hrr Hrts
     iframe #
@@ -275,7 +275,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
     iunfold mvcc.logQ
     rw [HLL]; iexact HlogQ
   simp only [Hwq, ↓reduceIte]
-  obtain ⟨hbk', hkb', hk⟩ := Hp'
+  obtain ⟨hbk', hkb'⟩ := Hp'
   generalize hL' : ([[], []] ++ R : mvcc.Log) = L' at *
   have hLL' : σ.Lmu.length ≤ L'.length := by rw [← HLL]; exact hLR.length_le
   (try wp_auto)
@@ -455,10 +455,10 @@ theorem mvcc.watchableStore.Restore.wp_proof
       mvcc.WsState.restoreSt_unsRst Hurst L' hLL'⟩
   (try wp_auto)
   iapply HΦ
-  iexists p', k
+  iexists p'
   iframe Hcl Hfrag Hown HhP Hold Hnew'
   isplitr
-  · ipureintro; exact ⟨hbk', hkb', hk⟩
+  · ipureintro; exact ⟨hbk', hkb'⟩
   iunfold mvcc.watchWriter
   simp only [mvcc.wBudget]
   iframe HcL' Htoks HwlW

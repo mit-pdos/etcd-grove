@@ -418,3 +418,9 @@ do not hold `s.mu`: the metrics closures (etcd's comment: "During restore the me
 'special' values") and `hashStorage.HashByRev` (the Maintenance service's `HashKV`, the corruption
 checker). A `HashKV` served during a snapshot restore may report revision `1`; not reproduced, not
 in `issues/`.
+
+**2026-10-25 (D22 S8d, W7; the orchestrator's decision, `notes/decisions.md`, "D22 S8d, W7 carried
+out (first part)").** `store.Restore` re-proved over an exact count: the readers' pool's slots in,
+out and retired are exactly `nReaders`, the retired count is the creator's (`retiredAt`), and
+`restore_switch` shows no slot out, so `Restore` returns exactly `nReaders - 1` old tokens (no `k`);
+the readers' tokens carry the fixed share `backend.rdOpen`.

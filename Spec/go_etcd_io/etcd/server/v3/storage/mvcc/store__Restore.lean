@@ -80,8 +80,10 @@ steps):
   Its lock of `s.revMu` finds the restoring mode; its unlock is the switch (`restore_switch`): all
   of `cur` (the fields' half, the writer's fragment, `s.revMu`'s and the writer's invariant's eighths
   from the takeover, the readers' pool's) moved to the new objects and `p'`; the readers' pool
-  refilled with `k` slots of the new index and backend, the old ones' tokens out (with the writer's
-  retired ticket, `k + 1 ≤ nReaders`); the revision budget's tokens of `L'` made; `s.revMu`'s body at
+  refilled with `k` slots of the new index and backend, the old ones' tokens out (D22 receiver
+  epochs, S8d, W7, 2026-10-25: `k = nReaders - 2`, the pool's retired count being the writer's
+  `retiredAt γ 2`, and no slot out: none under the watchable store's lock, whose deposit the caller
+  holds, none under `s.mu`, whose deposit ghost the writer's invariant holds whole while restoring); the revision budget's tokens of `L'` made; `s.revMu`'s body at
   `γ'` (the restored bucket's view, `certOk γ L'`, the index's count of `L'`, the certificate of
   `L'`: its changes below the receipts' bound, which the rebuild's receipts give, `restore`'s unlock
   argument); the flag down.
@@ -98,9 +100,10 @@ the new right to close (`storeCloser s γ'`), the watchable store's quarter and 
 writer's fragment at `γ'`, its retired token of the new backend (`writerOwn γ'`), the new batch
 lock's invariant recorded (`hookP γ' P'`: the server's hook is installed on the new backend later,
 `hookOk_of_init`), the certificate of `L'`, the revision tokens not spent at `L'`, for a watchable
-store's the outer quarter at `L'`; the old backend's reader tokens (`k + 1`: the pool's and the
-writer's, for the old backend's `Close`, which needs every `bOpen` share) and the new backend's not
-used (`nReaders - (k + 1)`, the storage-version monitor's among them). Nothing persistent is
+store's the outer quarter at `L'`; the old backend's reader tokens (`nReaders - 1`: the pool's and
+the writer's, exactly; with the storage-version monitor's retired one, all of them, for the old
+backend's `Close`, which needs every `bOpen` share: D22 receiver epochs, S8d, W7, 2026-10-25, until
+then `k + 1` with `k` unknown) and the new backend's one not used (the monitor's). Nothing persistent is
 promised: no fact of the old physical names (`physOk`, `hookOk`, `storeRegd`, `isTreeIndex`,
 `idxNevLb`, `compactedAt`) claims they are current (that is `cur`'s, which the old parts no longer
 hold), and no fact names a field `Restore` writes (`b`, `kvindex`, `fifoSched`, `stopc`,
@@ -125,16 +128,16 @@ abbrev mvcc.store.Restore.spec : Prop :=
       mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbRegRight (some d') ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #b'))
-  {{ RET #GoInterface.nil; ∃ (p' : mvcc.PhysNames) (k : Nat),
-      ⌜p'.bucket = γb' ∧ p'.kb = some d' ∧ k + 1 ≤ mvcc.nReaders⌝ ∗
+  {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
+      ⌜p'.bucket = γb' ∧ p'.kb = some d'⌝ ∗
       mvcc.storeCloser s (γ.withPhys p') ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
       mvcc.writerFrag (γ.withPhys p') ∗ mvcc.writerOwn (γ.withPhys p') ∗
       mvcc.hookP (γ.withPhys p') P' ∗
       mvcc.idxCert γ.idx ([[], []] ++ R) ∗
       ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗
       (if γ.watchQ then mvcc.logQ γ ([[], []] ++ R) else iprop(True)) ∗
-      ([∗list] _x ∈ List.replicate (k + 1) (), mvcc.storeRT γ) ∗
-      ([∗list] _x ∈ List.replicate (mvcc.nReaders - (k + 1)) (), mvcc.storeRT (γ.withPhys p')) }}
+      ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (), mvcc.storeRT γ) ∗
+      mvcc.storeRT (γ.withPhys p') }}
 
 end spec
 
