@@ -8,6 +8,7 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.Client__Close
 public import Proof.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Proof.go_etcd_io.etcd.client.v3.Client__GetLogger
 public import Proof.go_etcd_io.etcd.client.v3.Client__SetEndpoints
@@ -62,6 +63,8 @@ public import Proof.context.ValueKeepAlive
 public import Proof.context.WithCancelTodo
 public import Proof.context.WithCancelValCtx
 public import Proof.context.WithValue
+public import Proof.go_etcd_io.etcd.client.v3.credentials.NewPerRPCCredentialBundle
+public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle__PerRPCCredentials
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.RequiresCredentials
 public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
 public import Proof.errors.IsStatusErr
@@ -78,6 +81,7 @@ public import Proof.google_golang_org.grpc.NewClient
 public import Proof.google_golang_org.grpc.Peer
 public import Proof.google_golang_org.grpc.StaticMethod
 public import Proof.google_golang_org.grpc.WithKeepaliveParams
+public import Proof.google_golang_org.grpc.WithPerRPCCredentials
 public import Proof.google_golang_org.grpc.WithResolvers
 public import Proof.google_golang_org.grpc.WithStreamInterceptor
 public import Proof.google_golang_org.grpc.WithTransportCredentials
@@ -267,6 +271,10 @@ theorem fmt.wp_SprintfClientPtr :
     EtcdGrove.fmt.SprintfClientPtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.fmt.SprintfClientPtr.wp_proof
 
+theorem credentials.perRPCCredentialBundle.wp_PerRPCCredentials :
+    EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof
+
 theorem proto.wp_Clone :
     EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
   EtcdGrove.proto.Clone.wp_proof
@@ -339,6 +347,10 @@ theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.TODO.wp_proof
 
+theorem credentials.wp_NewPerRPCCredentialBundle :
+    EtcdGrove.credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.NewPerRPCCredentialBundle.wp_proof
+
 theorem time.Time.wp_IsZero :
     EtcdGrove.time.Time.IsZero.spec (GF := GF) (hG := hG) :=
   EtcdGrove.time.Time.IsZero.wp_proof
@@ -369,6 +381,10 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+theorem v3.Client.wp_Close :
+    EtcdGrove.Client.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.Close.wp_proof
 
 theorem v3.Client.wp_Endpoints :
     EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG) :=
@@ -510,9 +526,13 @@ theorem grpc.wp_NewClient :
     EtcdGrove.grpc.NewClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.NewClient.wp_proof
 
+theorem grpc.wp_WithPerRPCCredentials :
+    EtcdGrove.grpc.WithPerRPCCredentials.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.WithPerRPCCredentials.wp_proof
+
 theorem v3.Client.wp_dial :
     EtcdGrove.Client.dial.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Client.dial.wp_proof v3.Client.wp_dialSetupOpts v3.wp_authority grpc.wp_NewClient fmt.wp_SprintfClientPtr
+  EtcdGrove.Client.dial.wp_proof v3.Client.wp_dialSetupOpts v3.wp_authority grpc.wp_NewClient fmt.wp_SprintfClientPtr credentials.perRPCCredentialBundle.wp_PerRPCCredentials grpc.wp_WithPerRPCCredentials
 
 theorem grpc.wp_WithResolvers :
     EtcdGrove.grpc.WithResolvers.spec (GF := GF) (hG := hG) :=
@@ -628,7 +648,7 @@ theorem v3.wp_NewMaintenance :
 
 theorem v3.wp_newClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.newClient.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.newClient.wp_proof context.wp_TODO context.wp_WithCancelTodo resolver.wp_New v3.Client.wp_SetEndpoints resolver.EtcdManualResolver.wp_Close v3.Client.wp_dialWithBalancer v3.wp_NewCluster v3.wp_NewKV v3.wp_NewLease v3.wp_NewWatcher v3.wp_NewAuth v3.wp_NewMaintenance v3.Client.wp_getToken v3.Client.wp_autoSync
+  EtcdGrove.newClient.wp_proof context.wp_TODO context.wp_WithCancelTodo resolver.wp_New v3.Client.wp_SetEndpoints resolver.EtcdManualResolver.wp_Close v3.Client.wp_dialWithBalancer v3.wp_NewCluster v3.wp_NewKV v3.wp_NewLease v3.wp_NewWatcher v3.wp_NewAuth v3.wp_NewMaintenance v3.Client.wp_getToken v3.Client.wp_autoSync v3.Client.wp_Close credentials.wp_NewPerRPCCredentialBundle
 
 theorem v3.clientv3.wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.clientv3.New.spec (GF := GF) (hG := hG) :=

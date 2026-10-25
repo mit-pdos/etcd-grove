@@ -19109,3 +19109,62 @@ stop channels): a two-conjunct addition, `srv_be_swap` returning the old ones; a
 resources as a premise of `applySnapshot.spec` for S-j1 (it then has to thread them anyway).
 Recommendation: (a), the smallest change, in the predicate whose meaning is "the apply thread's
 part of the current backend".
+
+## E2d of the auth plan: the client's write path with refusals, and `clientv3.New` with a user name (2026-10-25 · `notes/auth-plan.md`)
+
+**The question.** E2b found D29's refusal-freedom (`noRefusalAt`, the axiom `etcd_noRefusal`)
+false of `examples/authkv`'s member: with auth on, the server refuses the bad principal's KV
+requests with `"etcdserver: invalid auth token"` and the no-token client's with `"user name is
+empty"`, and a user's write after a revision bump with `"revision of auth store is old"`. Which
+client specs does a client of such a member use?
+
+**What the retry interceptor does with them** (the fork's `retry_interceptor.go` at the pin):
+`shouldRefreshToken` is true for `ErrUserEmpty` only with a token bundle (a client with a user
+name), and for `ErrInvalidAuthToken`/`ErrAuthOldRevision` with `retryAuth` (the default); then
+`refreshToken` (`getToken`: `Authenticate` with the bundle, nothing without) and the write is sent
+again, up to `MaxUnaryRetries` (100) attempts. So the bad principal's write is sent 100 times,
+every attempt refused, then fails with the last error; the no-token client's fails at once
+(`isSafeRetry` is false for a `nonRepeatable` call on an etcd error); `PermissionDenied`
+(`"etcdserver: permission denied"`, a user without the role, a key outside its range) is no
+refusal and fails at once. No refused attempt applies anything: the invalid-token and user-empty
+refusals are made before the proposal (`AuthInfoFromCtx`), the old-revision one at apply (the
+entry applied as a refusal), the learner one by the server's interceptor.
+
+**Decision: no new client spec for the KV calls.** The client's KV results already have a write
+path with no `noRefusalAt`: a persistent update (`□`, `client_put_any`'s, `client_delete_any`'s
+and `client_txn_any`'s first case, the `client_*_end_to_end` results'), sent any number of times
+through the retry interceptor's contract for any number of attempts (`etcdInterceptorOk`, proved
+over `refreshToken`/`getToken`), the update firing at each committed occurrence and none for a
+refused attempt. That is authkv's case: its theorem attributes a write by the key's writer and
+reads the server's permission verdicts, so its updates need not be fired at most once. Documented
+in `client/v3/Results.lean`'s section header; every existing spec and example theorem unchanged.
+*Rejected:* an at-most-once variant for refusing members (the attempt contract giving back the
+request's precondition after a refusal), which needs a new members' axiom (a refused attempt does
+not use its request's precondition) and, for the old-revision refusal at apply, a hand-back of the
+precondition through the wait registry; nothing needs it yet.
+
+**What authkv's clients did lack: `clientv3.New` with a user name and password.** `New`'s
+configuration premise (`clientCfgOk`) required `Username`/`Password` empty. Now any (the `Token`
+still empty): with both, `newClient` sets them and makes a token bundle
+(`credentials.NewPerRPCCredentialBundle`, translated with bodies with
+`perRPCCredentialBundle.PerRPCCredentials`, both proved: `tokenBundleAt`), `Client.dial` passes
+the bundle's credentials to grpc (`WithPerRPCCredentials`, a new dial option descriptor
+`.perRPCCreds`, which sets no interceptor and no resolver: `unaryIcsOf_perRPCCreds`,
+`dialOk_perRPCCreds`), and the token is fetched once the connection is up (`getToken`, the existing
+axiom); if that fails, `newClient` closes the client and returns the error. The dial specs take the
+bundle, if any (`tokenBundleOk`). Which token an attempt then carries stays E2b's contract C1 (the
+attempt contract says nothing of metadata).
+
+**Trust base: +2 axioms.** `grpc.WithPerRPCCredentials.wp_proof` (grpc's option constructor, as
+`WithKeepaliveParams`'s) and `Client.Close.wp_proof` (`client.go`'s `Close`, names only: it returns;
+its steps keep the invariants of the client's objects). Translating `Close` instead was tried and
+dropped: it reaches `lessor.Close` (not translated), grpc's `ClientConn.Close` (no axiom) and
+`ContextError`, whose spec needs the client context's error facts (`ctxErrClient`, the class
+premises `ContextReadErrs`/`ContextErrsClient`), which `newClient`'s spec does not take.
+Since `New`'s proof covers both configurations, the closed theorems of the examples whose clients
+`New` builds (collections `cachekv`, `client`, `k8s`, `k8setcd3`, `linkv3p`, `linkvtxn`, `putget`,
+`putget3`, `watchkv`) list the two axioms, although their clients have no user name.
+
+**Not a Go issue, noted:** a client with no token bundle that sends a token of its own in its
+metadata (authkv's bad principal) gets its refused write retried 100 times, `refreshToken` doing
+nothing each time: wasteful, not wrong (nothing is applied).

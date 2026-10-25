@@ -24,16 +24,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.dialWithBalancer()` on a client `New` builds (`retryClientOk`; its configuration `cfg` with
-no dial options of the caller's; no token bundle; its credentials, read-only;
+no dial options of the caller's; its token bundle, if any (`tokenBundleOk`, read-only); its credentials, read-only;
 its endpoints `eps`, read-only, plain, at least one (D27); its resolver, not dialed, with them):
 an etcd connection to the servers at `eps` (`isEtcdConn`), or an error. -/
 abbrev Client.dialWithBalancer.spec : Prop :=
   ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (cr : GoInterface) (r : Loc)
-    (esl : GoSlice) (eps : List GoString),
+    (esl : GoSlice) (eps : List GoString) (atb : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗
       cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
-      clientF c go!"authTokenBundle" ↦□ GoInterface.nil ∗ clientF c go!"creds" ↦□ cr ∗
+      clientF c go!"authTokenBundle" ↦□ atb ∗ tokenBundleOk atb ∗ clientF c go!"creds" ↦□ cr ∗
       clientF c go!"endpoints" ↦□ esl ∗ esl ↦*□ eps ∗ ⌜plainEndpoints eps⌝ ∗
       clientF c go!"resolver" ↦□ r ∗ etcdResolverOwn r eps }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dialWithBalancer")) (Val #slice.nil))

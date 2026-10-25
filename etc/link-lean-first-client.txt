@@ -206,6 +206,13 @@ grpc_WithStreamInterceptor:
 grpc_WithTransportCredentials:
 grpc_WithKeepaliveParams:
 grpc_WithResolvers:
+# (2026-10-25, the auth plan's E2d) a client with a user name and password: the token bundle
+# (`client/v3/credentials`, with bodies) as grpc's per-RPC credentials (an axiom), and `Close`
+# (names only, an axiom) when the token's fetch fails
+grpc_WithPerRPCCredentials:
+credentials_NewPerRPCCredentialBundle:
+credentials_perRPCCredentialBundle__PerRPCCredentials:
+Client__Close:
 insecure_NewCredentials:
 resolver_New:
 resolver_EtcdManualResolver__SetEndpoints:
@@ -225,8 +232,8 @@ Client__SetEndpoints: resolver_EtcdManualResolver__SetEndpoints
 Client__credentialsForEndpoint: endpoint_RequiresCredentials
 authority: strings_SplitN
 Client__dialSetupOpts: Client__roundRobinQuorumBackoff withBackoff withMax Client__streamClientInterceptor Client__unaryClientInterceptor insecure_NewCredentials grpc_WithKeepaliveParams grpc_WithTransportCredentials grpc_WithStreamInterceptor grpc_WithUnaryInterceptor
-Client__dial: Client__dialSetupOpts authority grpc_NewClient fmt_SprintfClientPtr
+Client__dial: Client__dialSetupOpts authority grpc_NewClient fmt_SprintfClientPtr credentials_perRPCCredentialBundle__PerRPCCredentials grpc_WithPerRPCCredentials
 Client__dialWithBalancer: Client__Endpoints Client__credentialsForEndpoint grpc_WithResolvers Client__dial
 Client__autoSync:
-newClient: context_TODO context_WithCancelTodo resolver_New Client__SetEndpoints resolver_EtcdManualResolver__Close Client__dialWithBalancer v3_NewCluster v3_NewKV v3_NewLease NewWatcher v3_NewAuth v3_NewMaintenance Client__getToken Client__autoSync
+newClient: context_TODO context_WithCancelTodo resolver_New Client__SetEndpoints resolver_EtcdManualResolver__Close Client__dialWithBalancer v3_NewCluster v3_NewKV v3_NewLease NewWatcher v3_NewAuth v3_NewMaintenance Client__getToken Client__autoSync Client__Close credentials_NewPerRPCCredentialBundle
 client_v3_New: newClient

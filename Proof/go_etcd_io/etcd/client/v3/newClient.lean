@@ -18,6 +18,8 @@ public import Spec.go_etcd_io.etcd.client.v3.NewWatcher
 public import Spec.go_etcd_io.etcd.client.v3.NewAuth
 public import Spec.go_etcd_io.etcd.client.v3.NewMaintenance
 public import Spec.go_etcd_io.etcd.client.v3.Client__getToken
+public import Spec.go_etcd_io.etcd.client.v3.Client__Close
+public import Spec.go_etcd_io.etcd.client.v3.credentials.NewPerRPCCredentialBundle
 public import Spec.go_etcd_io.etcd.client.v3.Client__autoSync
 public import Perennial.Proof.sync
 public import Perennial.Proof.context
@@ -59,7 +61,9 @@ theorem newClient.wp_proof
     (wp_NewAuth : NewAuth.spec (GF := GF) (hG := hG))
     (wp_NewMaintenance : NewMaintenance.spec (GF := GF) (hG := hG))
     (wp_getToken : Client.getToken.spec (GF := GF) (hG := hG))
-    (wp_autoSync : Client.autoSync.spec (GF := GF) (hG := hG)) :
+    (wp_autoSync : Client.autoSync.spec (GF := GF) (hG := hG))
+    (wp_Close : Client.Close.spec (GF := GF) (hG := hG))
+    (wp_NewBundle : credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG)) :
     newClient.spec (GF := GF) (hG := hG) := by
   intro p cfg eps V
   wp_start as ⟨#Hp, #Hcfg, %HV⟩
@@ -67,7 +71,7 @@ theorem newClient.wp_proof
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
   icases Hcfg with ⟨#Heps, #Hdo, %Hc⟩
-  obtain ⟨Hplain, Htls, Hun, Hpw, Htok, Hctx, Hlg, Hms, Hmr, Hrej, Has⟩ := Hc
+  obtain ⟨Hplain, Htls, Htok, Hctx, Hlg, Hms, Hmr, Hrej, Has⟩ := Hc
   ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp
   ihave #Hpf := Hp
   iStructNamed Hpf
@@ -76,7 +80,7 @@ theorem newClient.wp_proof
   wp_auto
   rw [Htls]
   wp_auto
-  rw [Htok, Hun, Hctx]
+  rw [Htok, Hctx]
   wp_auto
   wp_apply wp_TODO
   wp_apply wp_WithCancelTodo as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx'⟩
@@ -109,7 +113,42 @@ theorem newClient.wp_proof
   ihave #HcLg' : isClientLogger (GF := GF) «$r0_ptr» $$ []
   · iunfold isClientLogger; iexact HcLg
   imodintro
+  -- (2026-10-25, the auth plan's E2d) a user name and password: the client's token bundle
+  irename : (cfg_ptr ↦ p : IProp GF) => Hcfgp
   wp_auto
+  wp_join iprop(∃ (un pw : GoString) (atb : GoInterface),
+      cfg_ptr ↦ p ∗ client_ptr ↦ «$r0_ptr» ∗
+      clientF «$r0_ptr» go!"Username" ↦ un ∗ clientF «$r0_ptr» go!"Password" ↦ pw ∗
+      clientF «$r0_ptr» go!"authTokenBundle" ↦ atb ∗ tokenBundleOk atb)
+    at next with [Hcfgp client Username Password authTokenBundle]
+    as ⟨%un, %pw, %atb, Hcfgp, client, Username, Password, authTokenBundle, #Htb⟩
+  · by_cases hu : cfg.Username' = []
+    · rw [decide_eq_true hu]
+      wp_auto
+      wp_join_done
+      iexists _, _, GoInterface.nil
+      iframe
+      iunfold tokenBundleOk
+      ileft; ipureintro; rfl
+    rw [decide_eq_false hu]
+    wp_auto
+    by_cases hp : cfg.Password' = []
+    · rw [decide_eq_true hp]
+      wp_auto
+      wp_join_done
+      iexists _, _, GoInterface.nil
+      iframe
+      iunfold tokenBundleOk
+      ileft; ipureintro; rfl
+    rw [decide_eq_false hp]
+    wp_auto
+    wp_apply wp_NewBundle $$ [] as %atb #Hb
+    (try wp_auto)
+    wp_join_done
+    iexists _, _, atb
+    iframe
+    iunfold tokenBundleOk
+    iright; iexact Hb
   rw [decide_eq_false (show ¬ (sint.Z (W64 0) < sint.Z cfg.MaxCallSendMsgSize') by
     have : sint.Z (W64 0) = 0 := by decide
     word)]
@@ -147,13 +186,13 @@ theorem newClient.wp_proof
     isplitr
     · ipureintro; exact Hcnn
     iframe HcLg'
-    iexists [], GoInterface.nil
+    iexists [], atb
     iframe Token authTokenBundle
     ipureintro; intro h; exact absurd rfl h
   ihave #HDOpt : p.[go_etcd_io.etcd.client.v3.Config, go!"DialOptions"] ↦□ cfg.DialOptions' $$ []
   · iexact DialOptions
-  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps
-    $$ [$Hrc $cfg $Hdo $authTokenBundle $creds $endpoints $Heps $resolver $Hro]
+  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps atb
+    $$ [$Hrc $cfg $Hdo $authTokenBundle $Htb $creds $endpoints $Heps $resolver $Hro]
     as %conn %derr Hres
   · ipureintro; exact Hplain
   icases Hres with (⟨%Hderr, #Hconn⟩ | %Hderr)
@@ -197,8 +236,6 @@ theorem newClient.wp_proof
     ipersist KV
     ipersist Watcher
     ipersist Lease
-    ihave #Hu : clientF «$r0_ptr» go!"Username" ↦□ ([] : GoString) $$ []
-    · rw [← Hun]; iexact Username
     ihave #Hcfgf := cfg
     iStructNamed Hcfgf
     wp_auto
@@ -221,10 +258,21 @@ theorem newClient.wp_proof
       iintro !> %Φ' HΦ'
       wp_auto
       iexact HΦ'
-    wp_apply wp_getToken «$r0_ptr» cx cd $$ [$Hrc] as %terr ⟨-, #Hterr⟩
+    wp_apply wp_getToken «$r0_ptr» cx cd $$ [$Hrc] as %terr ⟨-, -⟩
     · iapply ctxOk_of_isContext; iexact Hcx
-    ihave %Hnil := Hterr $$ Hu
-    subst Hnil
+    -- (E2d) the token's fetch failed (a client with a user name): the client closed, an error
+    cases terr with
+    | ok e =>
+      wp_auto
+      wp_apply wp_Close «$r0_ptr» $$ [$Hcore] as %cerr -
+      wp_bind (App (Val #cf) (Val #()))
+      iapply Hcf
+      inext
+      wp_auto
+      iapply HΦ
+      iright
+      ipureintro; exact ⟨by simp, rfl⟩
+    | nil =>
     wp_auto
     wp_bind (App (Val #cf) (Val #()))
     iapply Hcf

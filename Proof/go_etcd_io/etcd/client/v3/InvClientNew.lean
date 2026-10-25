@@ -6,7 +6,10 @@
 **The configuration** (`clientCfgOk cfg eps`, the premise of `New`): the endpoints `eps`, at least
 one, each plain (`host:port`: no `://`, not a `unix:`/`unixs:` socket, `plainEndpoint`), the
 addresses servers are served at (several since 2026-10-21, `notes/decisions.md` D27: each attempt
-goes to one of them); no TLS (`TLS` nil), no authentication (`Username`, `Password`, `Token` empty), no
+goes to one of them); no TLS (`TLS` nil), no token of the caller's (`Token` empty; a user name and password are any
+since 2026-10-25, the auth plan's E2d: with both, `newClient` makes a token bundle, the dial passes
+it to grpc as per-RPC credentials, and the token is fetched once the connection is up, `getToken`,
+the client closed if that fails, `Client.Close`), no
 context of the caller's (`Context` nil: the client's context is `context.TODO()`'s child), a
 logger of the caller's (`Logger` non-nil: no default logger is built, `logutil`), the default call
 options (`MaxCallSendMsgSize`, `MaxCallRecvMsgSize` not positive), no dial options of the caller's (`DialOptions` empty:
@@ -41,6 +44,7 @@ module
 
 public import Proof.google_golang_org.grpc.InvDial
 public import Proof.go_etcd_io.etcd.client.v3.InvRetry
+public import Proof.go_etcd_io.etcd.client.v3.credentials.Defs
 public import GeneratedProof.go_etcd_io.etcd.client.v3.internal.endpoint
 public import GeneratedProof.go_etcd_io.etcd.client.v3.internal.resolver
 public import GeneratedProof.google_golang_org.grpc.credentials
@@ -164,6 +168,15 @@ theorem clientNewVars_of_init :
   ipureintro
   exact Hv.2
 
+/-- **The client's token bundle, if any** (persistent; the auth plan's E2d, 2026-10-25): `nil`, or
+the bundle `NewPerRPCCredentialBundle` makes for a client with a user name and password
+(`tokenBundleAt`), which the dial passes to grpc as per-RPC credentials. -/
+def tokenBundleOk (atb : GoInterface) : IProp GF :=
+  iprop(⌜atb = GoInterface.nil⌝ ∨ tokenBundleAt atb)
+
+instance tokenBundleOk_persistent (atb : GoInterface) : Persistent (tokenBundleOk (GF := GF) atb) := by
+  unfold tokenBundleOk; infer_instance
+
 /-- **What the client's API constructors read of a `*Client`** (persistent; `NewCluster`,
 `NewLease`, `NewAuth`, `NewMaintenance`): non-nil, its logger, its connection, call options and
 configuration, read-only. -/
@@ -200,7 +213,7 @@ theorem dialOk_kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) (ds : List GrpcDi
 of one plain endpoint `ep`. -/
 def clientCfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) : IProp GF :=
   iprop(cfg.Endpoints' ↦*□ eps ∗ cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
-    ⌜plainEndpoints eps ∧ cfg.TLS' = null ∧ cfg.Username' = [] ∧ cfg.Password' = [] ∧
+    ⌜plainEndpoints eps ∧ cfg.TLS' = null ∧
       cfg.Token' = [] ∧ cfg.Context' = GoInterface.nil ∧ cfg.Logger' ≠ null ∧
       sint.Z cfg.MaxCallSendMsgSize' ≤ 0 ∧ sint.Z cfg.MaxCallRecvMsgSize' ≤ 0 ∧
       cfg.RejectOldCluster' = false ∧

@@ -23,17 +23,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.dial(creds, dopts...)` on a client `New` builds (`retryClientOk`; its configuration
-`cfg` with no dial options of the caller's; no token bundle; its endpoints
+`cfg` with no dial options of the caller's; its token bundle, if any (`tokenBundleOk`, read-only); its endpoints
 `eps`, read-only, plain, at least one, D27), with the one option `WithResolvers(rb)` of a resolver of
 etcd's scheme to `eps` (taken): an etcd connection to the servers at `eps` (`isEtcdConn`: the retry
 interceptor installed), or an error. -/
 abbrev Client.dial.spec : Prop :=
   ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (cr : GoInterface) (sl : GoSlice)
-    (rb : GoInterface) (esl : GoSlice) (eps : List GoString),
+    (rb : GoInterface) (esl : GoSlice) (eps : List GoString) (atb : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗
       cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
-      clientF c go!"authTokenBundle" ↦□ GoInterface.nil ∗
+      clientF c go!"authTokenBundle" ↦□ atb ∗ tokenBundleOk atb ∗
       clientF c go!"endpoints" ↦□ esl ∗ esl ↦*□ eps ∗ ⌜plainEndpoints eps⌝ ∗
       dialOptsAt sl [.resolvers [rb]] ∗ grpcResolverAt rb etcdScheme eps }}
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dial")) (Val #cr)) (Val #sl))

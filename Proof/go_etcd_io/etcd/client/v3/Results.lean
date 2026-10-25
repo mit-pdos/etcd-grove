@@ -2086,6 +2086,16 @@ client), or fired at most once on a client that sends a write at most once (`wri
 client of refusal-free members, whose retry interceptor never sends a write again,
 `noRefusalAt`). A read's update is persistent.
 
+**Members that refuse** (2026-10-25, the auth plan's E2d; `notes/decisions.md`, "E2d of the auth
+plan"): the persistent case needs no `noRefusalAt`, so it is the write path of a client of members
+that may refuse, an auth-enabled member's (`"etcdserver: invalid auth token"`, `"user name is
+empty"`, `"revision of auth store is old"`): the retry interceptor's contract for any number of
+attempts (`etcdInterceptorOk`, proved over the token refresh, `refreshToken`/`getToken`) sends the
+write again after each refusal, and the update fires at each committed occurrence, none for a
+refused attempt. A refusal, a permission error and any other error alike end in an error result
+(`kvErr`) with nothing about the write; that nothing was applied for a refused principal is the
+server's (its permission check at apply), not the client's.
+
 **One server over its endpoints** (`srvsAt addr E γr cid mid`: every address of `addr` a member at
 one environment, read names and ids) is the `client_*_end_to_end` results' case: they are the
 `_any` results there, with a persistent update (one family since 2026-10-22, D35).

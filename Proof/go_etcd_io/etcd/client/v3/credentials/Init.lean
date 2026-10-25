@@ -8,6 +8,7 @@ variable).
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Perennial.Proof.sync.Link
 public import Proof.google_golang_org.grpc.credentials.Init
 public import Proof.runtime.PkgInitExt
 
@@ -49,7 +50,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.google_golang_org.grpc.credentials.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.credentials.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish
 
