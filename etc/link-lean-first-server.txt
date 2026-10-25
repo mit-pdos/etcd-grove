@@ -209,6 +209,7 @@ attribute_Int:
 strconv_FormatBool:
 time_Duration__Seconds:
 time_Duration__Seconds_ptr:
+time_Duration__String_ptr:
 time_Time__After:
 prometheus_HistogramVec__WithLabelValues:
 traceutil_Trace__LogIfLong: traceutil_Trace__LogWithStepThreshold
@@ -594,6 +595,7 @@ snap_Message__GetTo:
 # (2026-10-24, rafthttp stage 7d) the snapshot sender's: the merged message's fields and close (D22's
 # interface, pending the D22 owner), `io.MultiReader` (names-only in Perennial)
 snap_Message__fields:
+snap_Snapshotter__SaveDBFrom:
 snap_Message__CloseWithError:
 io_MultiReader:
 snapshot__WriteTo: @
@@ -613,7 +615,7 @@ rafthttp_Transport__AddPeer: types_NewURLs v2stats_LeaderStats__Follower rafthtt
 rafthttp_Transport__AddRemote: types_NewURLs rafthttp_startRemote types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
 rafthttp_Transport__CutPeer: rafthttp_peer__Pause
 rafthttp_Transport__Get:
-rafthttp_Transport__Handler: rafthttp_newPipelineHandler rafthttp_newStreamHandler rafthttp_newSnapshotHandler probing_NewHandler rafthttp_Transport__Get rafthttp_pipelineHandler__ServeHTTP rafthttp_streamHandler__ServeHTTP rafthttp_addRemoteFromRequest
+rafthttp_Transport__Handler: rafthttp_newPipelineHandler rafthttp_newStreamHandler rafthttp_newSnapshotHandler probing_NewHandler rafthttp_Transport__Get rafthttp_pipelineHandler__ServeHTTP rafthttp_streamHandler__ServeHTTP rafthttp_snapshotHandler__ServeHTTP rafthttp_addRemoteFromRequest
 rafthttp_Transport__MendPeer: rafthttp_peer__Resume
 rafthttp_Transport__Send: rafthttp_peer__send rafthttp_remote__send rafthttp_isMsgApp v2stats_ServerStats__SendAppendReq proto_SizeMessage raftpb_Message__GetTo Message__GetType raftpb_MessageType__String types_ID__String types_ID__String_ptr zap_Logger__Debug zap_String
 rafthttp_Transport__SendSnapshot: rafthttp_peer__sendSnap snap_Message__CloseWithError snap_Message__fields raftpb_Message__GetTo
@@ -648,6 +650,7 @@ rafthttp_newMsgAppV2Encoder:
 rafthttp_newPeerStatus:
 rafthttp_newPipelineHandler:
 rafthttp_newSnapshotHandler:
+rafthttp_snapshotHandler__ServeHTTP: =http.RespHeader_ok =http.HeaderSet_ok =http.Error_ok =http.respWriteHeader_ok =http.bodyStreamRead_ok =http.ReadFull_stream_ok rafthttp_checkClusterCompatibilityFromHeader rafthttp_messageDecoder__decodeLimit snap_Snapshotter__SaveDBFrom proto_SizeMessage fmt_SprintfArgs errors_AsLeaf context_TODO zap_Logger__Warn zap_Logger__Info zap_String zap_Error zap_Uint64 zap_Int zap_Int64 types_ID__String types_ID__String_ptr prometheus_CounterVec__WithLabelValues prometheus_GaugeVec__WithLabelValues prometheus_HistogramVec__WithLabelValues go_humanize_Bytes Message__GetFrom Message__GetType SnapshotMetadata__GetIndex =_root_.Perennial.time.wp_Now =_root_.Perennial.time.wp_Since time_Duration__String_ptr time_Duration__Seconds =rafthttp_writerToResponse_asTarget
 rafthttp_newSnapshotSender:
 rafthttp_newStreamHandler:
 rafthttp_newStreamRoundTripper:
@@ -730,6 +733,7 @@ v2stats_FollowerStats__Succ:
 prometheus_GaugeVec__WithLabelValues:
 prometheus_CounterVec__WithLabelValues:
 fmt_SprintfID:
+fmt_SprintfArgs:
 zap_Bool:
 ioutil_NewLimitedBufferReader:
 errors_AsLeaf:

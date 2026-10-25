@@ -210,6 +210,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpType
 public import Proof.fmt.ErrorfPlain
+public import Proof.fmt.SprintfArgs
 public import Proof.fmt.SprintfID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
 public import Proof.container.heap.Fix
@@ -361,6 +362,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.remote__st
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.reportCriticalError
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.serverVersion
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.setPeerURLsHeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler__ServeHTTP
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender__post
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender__send
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotSender__stop
@@ -421,6 +423,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__GetTo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__fields
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.NewMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter__DBFilePath
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter__SaveDBFrom
 public import Proof.sort.Sort
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
@@ -430,6 +433,7 @@ public import Proof.strconv.FormatBool
 public import Proof.strings.TrimSuffix
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
+public import Proof.time.Duration__String_ptr
 public import Proof.time.Time__After
 public import Proof.time.Time__IsZero
 public import Proof.go_opentelemetry_io.otel.trace.WithAttributes
@@ -705,6 +709,26 @@ theorem zap.Logger.wp_Debug :
     zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
   zap.Logger.Debug.wp_proof
 
+theorem binary.wp_ReadUint64 :
+    binary.ReadUint64.spec (GF := GF) (hG := hG) :=
+  binary.ReadUint64.wp_proof
+
+theorem fmt.wp_SprintfArgs :
+    fmt.SprintfArgs.spec (GF := GF) (hG := hG) :=
+  fmt.SprintfArgs.wp_proof
+
+theorem zap.wp_Uint64 :
+    zap.Uint64.spec (GF := GF) (hG := hG) :=
+  zap.Uint64.wp_proof
+
+theorem prometheus.GaugeVec.wp_WithLabelValues :
+    prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
+  prometheus.GaugeVec.WithLabelValues.wp_proof
+
+theorem time.Duration.wp_String_ptr :
+    time.Duration.String_ptr.spec (GF := GF) (hG := hG) :=
+  time.Duration.String_ptr.wp_proof
+
 theorem «attribute».wp_Int64 :
     «attribute».Int64.spec (GF := GF) (hG := hG) :=
   «attribute».Int64.wp_proof
@@ -764,10 +788,6 @@ theorem RangeRequest.wp_String :
 theorem proto.wp_Size :
     proto.Size.spec (GF := GF) (hG := hG) :=
   proto.Size.wp_proof
-
-theorem zap.wp_Uint64 :
-    zap.Uint64.spec (GF := GF) (hG := hG) :=
-  zap.Uint64.wp_proof
 
 theorem membership.RaftCluster.wp_ID :
     membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
@@ -1045,10 +1065,6 @@ theorem auth.wp_isValidPermissionRange :
     auth.isValidPermissionRange.spec (GF := GF) (hG := hG) :=
   auth.isValidPermissionRange.wp_proof auth.wp_isOpenEnded adt.BytesAffineComparable.wp_Compare
 
-theorem binary.wp_ReadUint64 :
-    binary.ReadUint64.spec (GF := GF) (hG := hG) :=
-  binary.ReadUint64.wp_proof
-
 theorem binary.wp_WriteUint64 :
     binary.WriteUint64.spec (GF := GF) (hG := hG) :=
   binary.WriteUint64.wp_proof
@@ -1132,10 +1148,6 @@ theorem proto.wp_MarshalPb :
 theorem pbutil.wp_MustMarshalMessage :
     pbutil.MustMarshalMessage.spec (GF := GF) (hG := hG) :=
   pbutil.MustMarshalMessage.wp_proof proto.wp_MarshalPb
-
-theorem prometheus.GaugeVec.wp_WithLabelValues :
-    prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
-  prometheus.GaugeVec.WithLabelValues.wp_proof
 
 theorem fmt.wp_SprintfID :
     fmt.SprintfID.spec (GF := GF) (hG := hG) :=
@@ -1688,13 +1700,25 @@ theorem rafthttp.streamHandler.wp_ServeHTTP :
     rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG) :=
   rafthttp.streamHandler.ServeHTTP.wp_proof http.RespHeader_ok http.HeaderSet_ok http.HeaderGetPtr_ok http.Error_ok http.respWriteHeader_ok http.Flush_ok rafthttp.wp_checkClusterCompatibilityFromHeader rafthttp.streamType.wp_endpoint path.wp_Dir path.wp_Base types.wp_IDFromString types.ID.wp_String types.ID.wp_String_ptr _root_.Perennial.strings.wp_Split rafthttp.wp_newCloseNotifier rafthttp.closeNotifier.wp_Close rafthttp.closeNotifier.wp_closeNotify rafthttp.peer.wp_attachOutgoingConn zap.Logger.wp_Warn zap.Logger.wp_Debug zap.wp_String zap.wp_Error
 
+theorem rafthttp.messageDecoder.wp_decodeLimit [EtcdGrove.ErrorStringLeaf] :
+    rafthttp.messageDecoder.decodeLimit.spec (GF := GF) (hG := hG) :=
+  rafthttp.messageDecoder.decodeLimit.wp_proof binary.wp_ReadUint64 proto.wp_UnmarshalPb
+
+theorem snap.Snapshotter.wp_SaveDBFrom :
+    snap.Snapshotter.SaveDBFrom.spec (GF := GF) (hG := hG) :=
+  snap.Snapshotter.SaveDBFrom.wp_proof
+
+theorem rafthttp.snapshotHandler.wp_ServeHTTP [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
+    rafthttp.snapshotHandler.ServeHTTP.spec (GF := GF) (hG := hG) :=
+  rafthttp.snapshotHandler.ServeHTTP.wp_proof http.RespHeader_ok http.HeaderSet_ok http.Error_ok http.respWriteHeader_ok http.bodyStreamRead_ok http.ReadFull_stream_ok rafthttp.wp_checkClusterCompatibilityFromHeader rafthttp.messageDecoder.wp_decodeLimit snap.Snapshotter.wp_SaveDBFrom proto.wp_SizeMessage fmt.wp_SprintfArgs errors.wp_AsLeaf context.wp_TODO zap.Logger.wp_Warn zap.Logger.wp_Info zap.wp_String zap.wp_Error zap.wp_Uint64 zap.wp_Int' zap.wp_Int64 types.ID.wp_String types.ID.wp_String_ptr prometheus.CounterVec.wp_WithLabelValues prometheus.GaugeVec.wp_WithLabelValues prometheus.HistogramVec.wp_WithLabelValues go_humanize.wp_Bytes raftpb.Message.wp_GetFrom raftpb.Message.wp_GetType raftpb.SnapshotMetadata.wp_GetIndex _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_Since time.Duration.wp_String_ptr time.Duration.wp_Seconds rafthttp_writerToResponse_asTarget
+
 theorem rafthttp.wp_addRemoteFromRequest :
     rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG) :=
   rafthttp.addRemoteFromRequest.wp_proof http.HeaderGetPtr_ok types.wp_IDFromString _root_.Perennial.strings.wp_Split
 
 theorem rafthttp.Transport.wp_Handler [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
     rafthttp.Transport.Handler.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.Handler.wp_proof rafthttp.wp_newPipelineHandler rafthttp.wp_newStreamHandler rafthttp.wp_newSnapshotHandler probing.wp_NewHandler rafthttp.Transport.wp_Get rafthttp.pipelineHandler.wp_ServeHTTP rafthttp.streamHandler.wp_ServeHTTP rafthttp.wp_addRemoteFromRequest
+  rafthttp.Transport.Handler.wp_proof rafthttp.wp_newPipelineHandler rafthttp.wp_newStreamHandler rafthttp.wp_newSnapshotHandler probing.wp_NewHandler rafthttp.Transport.wp_Get rafthttp.pipelineHandler.wp_ServeHTTP rafthttp.streamHandler.wp_ServeHTTP rafthttp.snapshotHandler.wp_ServeHTTP rafthttp.wp_addRemoteFromRequest
 
 theorem EtcdServer.wp_RaftHandler [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
     EtcdServer.RaftHandler.spec (GF := GF) (hG := hG) :=
@@ -2339,10 +2363,6 @@ theorem rafthttp.streamReader.wp_dial [EtcdGrove.ErrorStringLeaf] :
 theorem rafthttp.wp_newMsgAppV2Decoder :
     rafthttp.newMsgAppV2Decoder.spec (GF := GF) (hG := hG) :=
   rafthttp.newMsgAppV2Decoder.wp_proof
-
-theorem rafthttp.messageDecoder.wp_decodeLimit [EtcdGrove.ErrorStringLeaf] :
-    rafthttp.messageDecoder.decodeLimit.spec (GF := GF) (hG := hG) :=
-  rafthttp.messageDecoder.decodeLimit.wp_proof binary.wp_ReadUint64 proto.wp_UnmarshalPb
 
 theorem rafthttp.messageDecoder.wp_decode [EtcdGrove.ErrorStringLeaf] :
     rafthttp.messageDecoder.decode.spec (GF := GF) (hG := hG) :=

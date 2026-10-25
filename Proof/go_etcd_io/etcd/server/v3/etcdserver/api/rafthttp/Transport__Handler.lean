@@ -13,6 +13,7 @@ public import Spec.github_com.xiang90.probing.NewHandler
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Get
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler__ServeHTTP
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler__ServeHTTP
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler__ServeHTTP
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.addRemoteFromRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportSpecs
 
@@ -42,9 +43,10 @@ theorem rafthttp.Transport.Handler.wp_proof
     (hGet : rafthttp.Transport.Get.spec (GF := GF) (hG := hG))
     (hPServe : rafthttp.pipelineHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hSServe : rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG))
+    (hSnServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hARR : rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.Handler.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.Handler_ok hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe hARR
+  rafthttp.Transport.Handler_ok hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe hSnServe hARR
 
 end proof
 

@@ -971,10 +971,21 @@ This is D22's interface: its statement is agreed with the D22 owner before 7b.
   - The trust base: 3 axioms gone (`SendSnapshot`, `newSnapshotSender`, `snapshotSender.stop`), 16
     new (the 10 `_init` facts, `respReadAny_of_ok`, `ReadAll_any_ok`, `netErrNotRemoved_ok`,
     `io.MultiReader`, the two `snap` statements): 713 entries.
-- **7e. The handler**: `newSnapshotHandler`, `snapshotHandler.ServeHTTP`: the method check, the
-  compatibility check, the envelope's `decodeLimit` over the body's prefix, the type check,
-  `SaveDBFrom` of the rest, `Process` of the decoded message with `netRecv` and its
-  `netSnapRecv` (the index saved), the deposit withdrawn; each error path's status.
+- **7e. The handler** (done 2026-10-25): `newSnapshotHandler` and `snapshotHandler.ServeHTTP`
+  proved (`snapHandlerOk`, as the pipeline's `pipeHandlerOk`; `newSnapshotHandler`'s spec restated
+  as `newPipelineHandler`'s, its logger a premise; `Transport.Handler` gains the handler's spec and
+  `snap_handlerFor`). The envelope decoded from the body's prefix is the sender's
+  (`msgFrame_prefix_eq`: a frame comparable with the sender's is it), so the type check passes and
+  `SaveDBFrom`'s rest is the image; its `snapSaved` is `netSnapRecv`'s, the deposit withdrawn as the
+  pipeline's. What it took beyond the plan:
+  - *`decodeLimit`'s spec*: on an error the message is `nil` (the handler reads `GetFrom` of it).
+  - *Trust boundary*: `fmt.SprintfArgs` (`Sprintf` of `fmt.argsOk` arguments, as `Printf`'s and
+    `Errorf`'s; the user's choice: the handler formats `%v` of errors); `(*time.Duration).String`
+    (the pointer wrapper, as `Seconds_ptr`); the D42 boundary's `bodyStreamRead_ok` and
+    `ReadFull_stream_ok` (7b's statements, now axioms); `SaveDBFrom` an axiom, now with `0 ≤ n` on
+    success (the handler adds it to a counter; D22's, pending its owner).
+  - `wp_todoCtx_Done'` moved to `TodoCtx.lean` (both handlers use it).
+  - The trust base: `newSnapshotHandler`'s axiom gone, 5 new: 717 entries.
 - **7f. Link and notes**: the entries in `etc/link-lean-first-server.txt` (gen-link), the trust
   check (expected: the five snapshot axioms and the opaque `snapReqRaw` gone; the new boundary
   items in), the collections, STATUS, decisions.

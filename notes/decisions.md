@@ -18175,3 +18175,11 @@ exclusive reader) rather than keeping `post` an axiom; the sender reads only the
 cluster's member is never removed), so `send` must show `errors.Is(err, errMemberRemoved)` false of
 every error `post` returns: net/http's errors are tagged (`netErr`) and one rafthttp axiom says they
 are not it, rather than making critical errors reachable in the server's proof.
+
+**7e (2026-10-25).** The handler reads one body twice, the envelope then the rest, with no split
+lemma: the decoder reads the stream (`bodyStream`) through `readFullAt` with what is known of the
+bytes read `⌜Pre⌝`, and `Pre` says every prefix is comparable with the sender's frame, so the
+decoded frame is the sender's (`msgFrame_prefix_eq`); `SaveDBFrom` then continues the same
+`bodyStream` from that frame, and `Φ` of the whole stream gives the rest's image. The user chose a
+`fmt.Sprintf` boundary over `fmt.argsOk` (as `Printf`'s and `Errorf`'s) to keep `ServeHTTP` proved
+rather than an axiom.

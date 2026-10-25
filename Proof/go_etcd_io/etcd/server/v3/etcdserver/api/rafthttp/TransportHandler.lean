@@ -17,6 +17,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.addRemoteFr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportAdd
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.pipelineHandler__ServeHTTP
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamHandler__ServeHTTP
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.snapshotHandler__ServeHTTP
 
 @[expose] public section
 
@@ -90,6 +91,13 @@ theorem http.route_stream_snap (pats : List GoString) (p : GoString)
   subst hp
   revert this
   decide
+
+/-- A path routed to the snapshot path is the snapshot path (stage 7e). -/
+theorem http.route_snap (pats : List GoString) (p : GoString)
+    (h : http.route pats p = some snapPath) : p = snapPath := by
+  have := http.route_matches _ _ _ h
+  simp [http.patMatches, snapPath] at this
+  exact this.symm
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -223,6 +231,26 @@ theorem stream_handlerFor (hServe : rafthttp.streamHandler.ServeHTTP.spec (GF :=
   iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_stream _ _ Hr.2)) $$ Hpkg Hh Hra Hreq
     Htk Hbody Hw Hhd %Hfl HRs
 
+/-- **A snapshot handler is a handler of what is routed to the snapshot path** (stage 7e). -/
+theorem snap_handlerFor (hServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF := GF) (hG := hG))
+    (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (hl : Loc)
+    (pats : List GoString) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
+      snapHandlerOk Rh a γd Rs hl -∗
+      http.handlerFor (raftHttpNet Rh) a Rs pats snapPath
+        (interface.mkOk (go.GoType.PointerType rafthttp.snapshotHandler.ty) #hl) := by
+  iintro #Hpkg #Hh
+  unfold http.handlerFor
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  iintro !> %wi %r %R %γk %rd Hra %Hr #Hreq0 Htk Hbody Hw Hhd %Hfl HRs
+  ihave #Hreq : (raftProto Rh).req R γk $$ []
+  · rw [show (raftProto Rh).req R γk = ((raftHttpNet Rh).proto a).req R γk from rfl]
+    iexact Hreq0
+  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_snap _ _ Hr.2)) $$ Hpkg Hh Hra Hreq Htk
+    Hbody Hw Hhd HRs
+
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in
 /-- **`t.Handler()`** of a started transport of the member `lid` owning `a` (`trFixed`), with its
@@ -237,6 +265,7 @@ theorem rafthttp.Transport.Handler_core
     (hGet : rafthttp.Transport.Get.spec (GF := GF) (hG := hG))
     (hPServe : rafthttp.pipelineHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hSServe : rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG))
+    (hSnServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
     (a : GoString) (ss : Loc) (Rm : w64 → IProp GF) (Hown : Rh.owner a = lid) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
@@ -280,7 +309,8 @@ theorem rafthttp.Transport.Handler_core
       · ipureintro; exact Hp
       iapply peerStreams_of_peerOk $$ Hpok
   (try wp_auto)
-  wp_apply hNSnH Rh a γd R t r ss cid lid Rm Hown $$ [] as %hsn #Hsnok
+  wp_apply hNSnH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r ss cid lg lid Rm Hlgnn Hown
+    $$ [] as %hsn ⟨%hsnl, %Hhsn, #Hsnok⟩
   · iunfold trAddRemoteReq at Harr
     iframe #
   (try wp_auto)
@@ -306,7 +336,7 @@ theorem rafthttp.Transport.Handler_core
   wp_apply hHdl $$ [$Hm] as Hm
   · ipureintro; simp [snapPath, probingPath]
   (try wp_auto)
-  subst Hhp Hhs
+  subst Hhp Hhs Hhsn
   iapply HΦ
   ihave Hmux := http.mux_handlerOk_ok (raftHttpNet Rh) m _ a
     iprop(R ∗ trReadTok Rh t lid γd R γs γr) $$ Hm
@@ -321,8 +351,10 @@ theorem rafthttp.Transport.Handler_core
     · iapply stream_handlerFor hSServe $$ Hpkg Hhsok
     iapply BigSepL.bigSepL_cons.2
     isplitr
-    · iunfold snapPath at Hsnok
-      iapply Hsnok
+    · ihave #Hsnf := snap_handlerFor hSnServe Rh a γd _ hsnl
+        [go!"/raft", go!"/raft/stream/", go!"/raft/snapshot", go!"/raft/probing"] $$ Hpkg Hsnok
+      iunfold snapPath at Hsnf
+      iapply Hsnf
     iapply BigSepL.bigSepL_cons.2
     isplitr
     · iapply Hprok

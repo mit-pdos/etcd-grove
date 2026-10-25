@@ -11,7 +11,8 @@ of the stream contract (`http.streamReaderOk`: the snapshot handler's body after
 (`snapDirInv`, `Proof/.../rafthttp/Net.lean`, D22 S-i): on success the rest was read to its end
 (`Φ`) and the index is saved (`snapSaved`; its ghost steps on the directory: at the rename, the
 index added to the files `M` with the file and to the saved `E`; nothing at a kept file). An error
-reads some of it. The trust boundary (an axiom once the handler's proof uses it, stage 7e).
+reads some of it. On success the count `n` (`io.Copy`'s) is not negative (2026-10-25, stage 7e: the
+handler adds it to a counter). The trust boundary (an axiom since the handler's proof, stage 7e).
 Lean-first (no Rocq counterpart).
 -/
 module
@@ -48,7 +49,7 @@ abbrev snap.Snapshotter.SaveDBFrom.spec : Prop :=
         go!"SaveDBFrom")) (Val #rd)) (Val #id))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); http.errStrOk err ∗
       ∃ t : List w8, Src (r0 ++ t) ∗
-        (⌜err = GoInterface.nil⌝ -∗ ⌜Φ (r0 ++ t)⌝ ∗ snapSaved γd id) }}
+        (⌜err = GoInterface.nil⌝ -∗ ⌜Φ (r0 ++ t) ∧ 0 ≤ sint.Z n⌝ ∗ snapSaved γd id) }}
 
 end spec
 

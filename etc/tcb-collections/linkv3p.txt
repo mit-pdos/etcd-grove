@@ -334,6 +334,7 @@ axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
+axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -415,6 +416,7 @@ axiom http.ReadAll_any_ok
 axiom http.ReadAll_ok
 axiom http.ReadAll_resp_ok
 axiom http.ReadFull_resp_ok
+axiom http.ReadFull_stream_ok
 axiom http.RespCloseAny_ok
 axiom http.RespClose_ok
 axiom http.RespHeader_ok
@@ -424,6 +426,7 @@ axiom http.URLStringAny_ok
 axiom http.URLString_ok
 axiom http.WithContext_ok
 axiom http.bodyRead_ok
+axiom http.bodyStreamRead_ok
 axiom http.mux_handlerOk_ok
 axiom http.readerHas_nil
 axiom http.register
@@ -496,7 +499,6 @@ axiom rafthttp.NewRoundTripper.wp_proof
 axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom rafthttp.newSnapshotHandler.wp_proof
 axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
@@ -520,6 +522,7 @@ axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.Message.CloseWithError.wp_proof
 axiom snap.Message.fields.wp_proof
+axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
@@ -534,6 +537,7 @@ axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
+axiom time.Duration.String_ptr.wp_proof
 axiom time.NewTicker.wp_proof
 axiom time.Ticker.Reset.wp_proof
 axiom time.Ticker.Stop.wp_proof
