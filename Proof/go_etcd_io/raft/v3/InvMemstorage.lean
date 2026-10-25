@@ -142,14 +142,9 @@ def memSnapCreated (σ : StorState) (i t : w64) (oc : Option ConfStateM) (bs : L
 theorem memSnapCreated_confState (σ : StorState) (i t : w64) (c : ConfStateM) (bs : List w8) :
     (memSnapCreated σ i t (some c) bs).Metadata'.ConfState' = c := rfl
 
-theorem memSnapCreated_confState_none (σ : StorState) (i t : w64) (bs : List w8) :
-    (memSnapCreated σ i t none bs).Metadata'.ConfState' = storCS σ := rfl
-
 /-- The created snapshot's id: the index given, the term of that index. -/
 theorem memSnapCreated_snapId (σ : StorState) (i t : w64) (oc : Option ConfStateM)
     (bs : List w8) : snapId (memSnapCreated σ i t oc bs) = entryID.mk t i := rfl
-
-theorem storCS_lists (σ : StorState) : (storCS σ).lists = σ.scs := rfl
 
 /-- `storApp` agrees with the stored entries below the batch. -/
 theorem storApp_take (σ : StorState) (p : List EntryM) (m : Nat)

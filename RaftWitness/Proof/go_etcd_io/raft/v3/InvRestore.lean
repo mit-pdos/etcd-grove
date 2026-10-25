@@ -167,19 +167,7 @@ theorem simpleFold_step (l : List ConfChangeSingleM) (s s' : CCState) (j : Nat)
       rw [ht, simpleFold_append, h1]
       simp [simpleFold, h2]
 
-theorem simpleFold_ok_prefix (l : List ConfChangeSingleM) (s s' : CCState) (j : Nat)
-    (H : simpleFold l s = some s') : ∃ sj, simpleFold (l.take j) s = some sj := by
-  have hl : l = l.take j ++ l.drop j := (List.take_append_drop j l).symm
-  rw [hl, simpleFold_append] at H
-  cases h1 : simpleFold (l.take j) s with
-  | none => rw [h1] at H; cases H
-  | some sj => exact ⟨sj, rfl⟩
-
 /-! ### The simple path -/
-
-theorem listToSet_cons (x : w64) (l : List w64) (k : w64) :
-    k ∈ GMap.listToSet (x :: l) ↔ k = x ∨ k ∈ GMap.listToSet l := by
-  rw [GMap.elem_of_list_to_set, GMap.elem_of_list_to_set, List.mem_cons]
 
 theorem simpleFold_addNodes (v : List w64) (V L : GSet w64)
     (H0 : ∀ x, x ∈ v → x ≠ W64 0 ∧ x ∉ L) (Hd : ∀ k, k ∈ L → k ∉ V) :
@@ -569,14 +557,10 @@ no learner (2026-10-20, witness support): what `newRaft` installs from a witness
 (`stW V w`'s). -/
 def cfgW (V : GSet w64) (w : w64) : CfgM := { CfgM.simple V ∅ with wit := w }
 
-theorem stW_cfg (V : GSet w64) (w : w64) : (stW V w).cfg = cfgW V w := rfl
-
 theorem cfgW_zero (V : GSet w64) : cfgW V (W64 0) = CfgM.simple V ∅ := rfl
 
 theorem cfgW_voters (V : GSet w64) (w : w64) : (cfgW V w).voters = V := by
   exact CfgM.voters_simple V ∅
-
-theorem stW_zero (V : GSet w64) : stW V (W64 0) = cfgState V ∅ := rfl
 
 /-- `Simple([AddNode id])` on `stW V wc`, `id` neither the witness nor `0`: `id` joins. -/
 theorem simpleM_stW_addNode (V : GSet w64) (wc id : w64) (hid : id ≠ W64 0) (hw : id ≠ wc) :

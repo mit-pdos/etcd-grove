@@ -251,7 +251,7 @@ local macro "snap_close" : tactic => `(tactic| (
   a term in the log) and `false`;
 - otherwise `raftLog.restore(s)`; the tracker replaced by the empty one
   `MakeProgressTracker` builds -- `ownRaftPhys` at the empty configuration, as in
-  `newRaft` (`ownRaftPhysC_retrack`, `ownTracker_empty`; the tally was already empty,
+  `newRaft` (`ownRaftPhysC_retrack`, `ownTrackerC_empty`; the tally was already empty,
   `s.votes = ∅`); `confchange.Restore` on it, its `v0` read back out of the empty
   tracker; then `switchToConfig` to the snapshot's configuration and `assertConfStatesEquivalent`;
   `lastEntryID`, an `Infof` and `true`. -/
@@ -530,8 +530,8 @@ theorem raft.restore.wp_proof
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)
       %(fun h => absurd (Hrole.symm.trans h) (by decide))
     -- the tracker replaced by the empty one, the log used meanwhile
-    icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)).voters
-        (c := CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)) _ _ _
+    icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ ∅).voters
+        (c := CfgM.simple ∅ ∅) _ _ _
         (by intro h; exact absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
     icases ownTrackerC_maxinflight $$ Htrk with ⟨%Hmi, -⟩
     wp_auto
@@ -575,8 +575,7 @@ theorem raft.restore.wp_proof
     icases ownConfigC_of_restore (snapCfg sv sv.Metadata'.ConfState'.lists) cfgv prsm prs Hinv Hprs Hsz' _ (fun _ _ h => h) $$ Hcfg Hprsm Hprogs
       with ⟨%pvs, Hnew⟩
     -- the struct, re-sealed over the empty configuration
-    ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
-    ihave Htrk0 := ownTracker_toC _ _ _ $$ Htrk0
+    ihave Htrk0 := ownTrackerC_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
       %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)
       %(PrvalsOk.not_leader (fun h => absurd (Hrole.symm.trans h) (by decide)))

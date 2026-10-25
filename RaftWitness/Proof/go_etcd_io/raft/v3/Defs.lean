@@ -68,13 +68,6 @@ def proleRole : PRole → Role
 theorem proleRole_leader (ro : PRole) : proleRole ro = .leader ↔ ro = .leader := by
   cases ro <;> simp [proleRole]
 
-theorem proleRole_candidate (ro : PRole) : proleRole ro = .candidate ↔ ro = .candidate := by
-  cases ro <;> simp [proleRole]
-
-theorem proleRole_follower (ro : PRole) :
-    proleRole ro = .follower ↔ ro = .follower ∨ ro = .preCandidate := by
-  cases ro <;> simp [proleRole]
-
 theorem proleRole_not_leader (ro : PRole) (Hne : ro ≠ .leader) : proleRole ro ≠ .leader :=
   fun Hr => Hne ((proleRole_leader ro).1 Hr)
 
@@ -167,7 +160,6 @@ theorem mtypeOf_MsgHeartbeat : mtypeOf MsgHeartbeat = some .heartbeat := rfl
 theorem mtypeOf_MsgHeartbeatResp : mtypeOf MsgHeartbeatResp = some .heartbeatResp := rfl
 theorem mtypeOf_MsgSnap : mtypeOf MsgSnap = some .snap := rfl
 theorem mtypeOf_MsgProp : mtypeOf MsgProp = some .propose := rfl
-theorem mtypeOf_MsgPreVote : mtypeOf MsgPreVote = some .preVote := rfl
 theorem mtypeOf_MsgPreVoteResp : mtypeOf MsgPreVoteResp = some .preVoteResp := rfl
 
 /-- Only `MsgSnap` is abstracted as a `snap`. -/
@@ -472,9 +464,6 @@ theorem prstateW64_inj (p1 p2 : PRState) (H : prstateW64 p1 = prstateW64 p2) : p
   rw [prstateOfW64_w64] at H'
   exact (Option.some.inj H')
 
-theorem prstateW64_ne (p1 p2 : PRState) (Hne : p1 ≠ p2) : prstateW64 p1 ≠ prstateW64 p2 :=
-  fun H => Hne (prstateW64_inj _ _ H)
-
 section abs
 variable [FfiSyntax]
 
@@ -738,10 +727,6 @@ theorem PrOk.clearSnap {ls : LogState} {p : Progress} (H : PrOk ls p) :
 where `Match + 1` or `Next + k` must not wrap, `logLast + 1 < 2^64` (`ownRaftLog`'s `Hnowrap`,
 `logLast_nowrap`). -/
 
-theorem PrOk.resetState {ls : LogState} {p : Progress} (H : PrOk ls p) (st : PRState) :
-    PrOk ls (progressResetState p st) :=
-  H.fields0 rfl rfl rfl
-
 theorem PrOk.becomeProbe {ls : LogState} {p : Progress} (Hnw : LogNoWrap ls)
     (H : PrOk ls p) : PrOk ls (progressBecomeProbe p) := by
   have Hnw := Hnw.logLast
@@ -811,9 +796,6 @@ theorem PrOk.maybeDecrTo {ls : LogState} {p : Progress} {rejected matchHint : w6
 
 /-! `PrOkN`, one lemma per `Progress` method (2026-10-19, D21 M3): `PrOk`'s, and `PrLo`'s under the
 premise the method needs in the no-snapshot mode. -/
-
-theorem PrOkN.prOk {ns : Bool} {ls : LogState} {p : Progress} (H : PrOkN ns ls p) : PrOk ls p :=
-  H.1
 
 theorem PrOkN.of_off {ls : LogState} {p : Progress} (H : PrOk ls p) : PrOkN false ls p :=
   ⟨H, fun h => by cases h⟩
@@ -1068,7 +1050,6 @@ structure NGhost where
   mode implies it. -/
   xf : Bool := true
 deriving DecidableEq
-
 
 
 structure NState [FfiSyntax] where
@@ -1549,11 +1530,6 @@ theorem toPState_ep_nl (s : NState) (em : EpochM) (Hr : s.role ≠ .leader) :
     toPState { s with ep := em } = toPState s := by
   simp only [toPState, Hr, ite_false, false_and]
 
-/-- A leader's epoch is read only for its subterm and excluded voter. -/
-theorem toPState_ep_same (s : NState) (em : EpochM) (Hs : em.sub = s.ep.sub)
-    (Hx : epochRsx em = epochRsx s.ep) : toPState { s with ep := em } = toPState s := by
-  simp only [toPState, Hs, Hx]
-
 /-- `becomeLeader`, with the `Progress` values `reset` left: the protocol's win, up to
 its broadcast; at an epoch of subterm 0 excluding the witness (2026-10-20). -/
 theorem toPState_becomeLeader (id : w64) (s : NState) (pvs : GMap w64 Progress) (em : EpochM)
@@ -1610,19 +1586,10 @@ theorem followerVotesOk_phys (s : NState) (Hfv : FollowerVotesOk (toPState s))
   have := Hfv Hrole
   simpa [toPState, Hr] using this
 
-theorem toPState_vote (s : NState) (v : w64) :
-    toPState { s with vote := v } = { toPState s with vote := v } := rfl
-
 theorem nstateWf_becomeFollower (s : NState) (term lead : w64) :
     NStateWf (becomeFollower s term lead) := ⟨rfl, rfl⟩
 
-theorem nstateWf_becomeCandidate (id : w64) (s : NState) :
-    NStateWf (becomeCandidate id s) := ⟨rfl, rfl⟩
-
 theorem nstateWf_becomeLeader (id : w64) (s : NState) : NStateWf (becomeLeader id s) :=
-  ⟨rfl, rfl⟩
-
-theorem nstateWf_becomePrecandidate (s : NState) : NStateWf (becomePrecandidate s) :=
   ⟨rfl, rfl⟩
 
 /-- A state with new `Progress` values is as well-formed as before: `r.step` and the
@@ -1656,13 +1623,6 @@ theorem replOk_proper (id : w64) (ps ps' : PState) (m : Msg)
     (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m) : ReplOk id ps' m := by
   unfold ReplOk AppOk SnapOk at *
   rw [Ht, Hb, Hl, Hc]; exact H
-
-/-- `replOk_proper` for `ReplSends`'s element (with `AppCommitEq`, 2026-10-14). -/
-theorem replAC_proper (id : w64) (ps ps' : PState) (m : Msg)
-    (Ht : ps'.term = ps.term) (Hb : ps'.base = ps.base) (Hl : ps'.log = ps.log)
-    (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m ∧ AppCommitEq ps m) :
-    ReplOk id ps' m ∧ AppCommitEq ps' m :=
-  ⟨replOk_proper id ps ps' m Ht Hb Hl Hc H.1, fun h => by rw [Hc]; exact H.2 h⟩
 
 /-- `replAC_proper` for `ReplSends`'s element (D19p: with the snapshot's peer), at a state with
 the same progress map. -/

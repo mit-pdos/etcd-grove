@@ -163,8 +163,6 @@ def snapHit [FfiSyntax] (snap : Option entryID) (i : w64) : Bool :=
   | some sid => decide (sid.index' = i)
   | none => false
 
-theorem snapHit_none [FfiSyntax] (i : w64) : snapHit none i = false := rfl
-
 /-- (D22 S-d1) `unstable.stableSnapTo(i)`: on a hit the snapshot is dropped and no longer in
 progress; otherwise nothing changes. -/
 def unstableSnapTo [FfiSyntax] (us : UnstableSt) (i : w64) : UnstableSt :=

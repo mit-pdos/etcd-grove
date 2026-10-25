@@ -34,8 +34,6 @@ variable [ext : FfiSyntax]
 /-- A key-value's `VR`, as `vrOf` builds it. -/
 def kvVR (kv : EtcdKv) : VR := ⟨kv.value, kv.modRev, kv.version⟩
 
-theorem kvVR_eq (kv : EtcdKv) : kvVR kv = encVR (linkv.absVR kv) := rfl
-
 /-- **A get's output**: the header revision, the first key-value if any. -/
 def getOut (rev : w64) : List EtcdKv → Output
   | [] => { zOut with Rev' := rev }

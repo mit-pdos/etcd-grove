@@ -83,20 +83,6 @@ def ownWitnessI (γ : RaftNames) (N : Namespace) (wi : GoInterface) : IProp GF :
 /-- `NewWitness`'s cache, the zero state, is W2's initial one. -/
 theorem WHS.zero_ws [FfiSyntax] : WHS.zero.ws = wInit := rfl
 
-/-- A `*witness` of the witness `γ.reWit` from `NewWitness` (`ownWitness … WHS.zero true`), over
-a storage following the protocol's witness history (`wGhost γ wInit` at its allocation gives
-`wSt γ wInit`, `wGhost_read`), as a `Witness`. -/
-theorem ownWitnessI_intro (γ : RaftNames) (N : Namespace) (w : Loc) (s : GoInterface)
-    (cq pv : Bool) (c : WHS) (h : Bool) :
-    ⊢ ownWitness (GF := GF) w γ.reWit s cq pv c h -∗
-      isWitnessStorage s N (fun σ => wGhost γ σ.ws) -∗ wSt γ c.ws -∗
-      ownWitnessI γ N (interface.mkOk (go.GoType.PointerType witness.ty) #w) := by
-  iintro Hw #Hs #Hc
-  unfold ownWitnessI
-  iexists w, s, cq, pv, c, h
-  iframe Hw Hs Hc
-  ipureintro; rfl
-
 /-- `Witness.Process` (`wi.Process(m)`) on the `Witness` of the witness `γ.reWit`: a
 legitimate request answered, if at all, legitimately. -/
 abbrev Witness.Process.spec : Prop :=

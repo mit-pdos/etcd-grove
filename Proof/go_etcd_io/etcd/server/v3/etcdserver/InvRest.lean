@@ -164,22 +164,6 @@ theorem restModel_append [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : Lis
 
 /-! ## The model's steps -/
 
-/-- A request whose `dispatch` kind is not the cluster version's has none. -/
-theorem cvs_none_of_kind (rq : apply.IRRModel)
-    (h : apply.dispatchKind rq ≠ .clusterVersionSet) : rq.clusterVersionSet = none := by
-  cases hc : rq.clusterVersionSet with
-  | none => rfl
-  | some v => exact absurd (by unfold apply.dispatchKind; simp [hc]) h
-
-/-- A request whose `dispatch` kind is neither cluster request's has no member attributes. -/
-theorem cma_none_of_kind (rq : apply.IRRModel)
-    (h1 : apply.dispatchKind rq ≠ .clusterVersionSet)
-    (h2 : apply.dispatchKind rq ≠ .clusterMemberAttrSet) : rq.clusterMemberAttrSet = none := by
-  have h0 := cvs_none_of_kind rq h1
-  cases hc : rq.clusterMemberAttrSet with
-  | none => rfl
-  | some v => exact absurd (by unfold apply.dispatchKind; simp [h0, hc]) h2
-
 /-- **`apply.Apply`'s effect on a covered request** (`plainCover`): it is neither skipped nor
 rejected (a covered request has no side-effect-free and no admin field), so the effect is
 `dispatch`'s. -/

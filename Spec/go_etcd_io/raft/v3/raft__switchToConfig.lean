@@ -10,7 +10,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
--- `CommitOk`
+-- `CommitOkC`
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 
 @[expose] public section
@@ -25,28 +25,13 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section switch
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- What a leader does after installing the new configuration `s1` (`switchToConfig`'s
-leader branch, when it stays a voter): `maybeCommit` moves the commit index to `c` (or not:
-`c` is the old one), `bcastAppend` (after a commit) or a `Visit` of `maybeSendAppend(id,
-false)` sends `ms`, which `ReplOk` allows, moving no `Match`; the leader-transfer target may
-be cleared (`abortLeaderTransfer`, when it left the voters). -/
-def LeaderSwitch (cfg : GSet w64) (id : w64) (s1 s' : NState) : Prop :=
-  ∃ (c : w64) (ms : List Msg) (pvs2 : GMap w64 Progress) (lt' : w64),
-    (c = s1.logst.committed ∨ CommitOk cfg (toPState s1) c) ∧
-    ReplSends id { s1 with logst := { s1.logst with committed := c } } ms ∧
-    prvalsMatch pvs2 = prvalsMatch s1.prvals ∧
-    s' = { sendMsgs { s1 with logst := { s1.logst with committed := c } } ms with
-             prvals := pvs2, lt := lt' }
-
-/-- `switchToConfig`'s result from the state `s1` with the new configuration installed: a
-non-leader stops there; a leader goes on (`LeaderSwitch`). -/
-def SwitchOk (cfg : GSet w64) (id : w64) (s1 s' : NState) : Prop :=
-  if s1.role = .leader then LeaderSwitch cfg id s1 s' else s' = s1
-
-/-- `LeaderSwitch` at the configuration `c` (2026-10-13, reconfiguration stage A2): the commit
-by a joint quorum (`CommitOkC`). Includes doing nothing (`c` the old commit index, no sends,
-the same values and target): what happens when the new configuration has no incoming voter
-(`len(cs.Voters) == 0`). -/
+/-- What a leader does after installing the new configuration `s1` at the configuration `c`
+(`switchToConfig`'s leader branch, when it stays a voter; 2026-10-13, reconfiguration stage A2):
+`maybeCommit` moves the commit index to `n` by a joint quorum (`CommitOkC`), or not;
+`bcastAppend` or a `Visit` of `maybeSendAppend(id, false)` sends `ms` (`ReplSends`), moving no
+`Match`; the leader-transfer target may be cleared (`abortLeaderTransfer`). Includes doing
+nothing (`n` the old commit index, no sends, the same values and target): what happens when the
+new configuration has no incoming voter (`len(cs.Voters) == 0`). -/
 def LeaderSwitchC (c : CfgM) (id : w64) (s1 s' : NState) : Prop :=
   ∃ (n : w64) (ms : List Msg) (pvs2 : GMap w64 Progress) (lt' : w64),
     (n = s1.logst.committed ∨ CommitOkC c (toPState s1) n) ∧
@@ -68,11 +53,6 @@ def SwitchOkC (c : CfgM) (id : w64) (s1 s' : NState) : Prop :=
 /-- What `switchToConfig` stores in `r.isLearner` at the configuration `c`: whether the node is
 a learner of `c` (`ok && pr.IsLearner`; every learner is tracked, `LearnerFlagsC`). -/
 def learnerOfC (c : CfgM) (id : w64) : Bool := decide (id ∈ c.learners)
-
-theorem LeaderSwitchC.simple {cfg lrn : GSet w64} {id : w64} {s1 s' : NState} (hne : cfg ≠ ∅)
-    (h : LeaderSwitchC (CfgM.simple cfg lrn) id s1 s') : LeaderSwitch cfg id s1 s' := by
-  obtain ⟨n, ms, pvs2, lt', hn, h2, h3, h4⟩ := h
-  exact ⟨n, ms, pvs2, lt', hn.imp_right (fun h => h.simple hne), h2, h3, h4⟩
 
 theorem learnerOfC_simple (cfg : GSet w64) (prs : GMap w64 Loc) (id : w64) :
     learnerOfC (CfgM.simple cfg (domSet prs \ cfg)) id = learnerOf cfg prs id := by

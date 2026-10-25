@@ -114,7 +114,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
--- Named apart from `LemmasSendRD.csPts_combine` (which keeps the first `AutoLeave`): both reach `Link.lean`.
+-- The two halves joined at `AutoLeave = false` (the shares may disagree on it).
 theorem csPts_combine_open (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bool) :
     csPts (GF := GF) p dq1 c al1 ∗ csPts p dq2 c al2 ⊢ csPts p (dq1 • dq2) c false := by
   iintro ⟨H1, H2⟩
@@ -802,11 +802,6 @@ A queued `MsgProp` carries its entries' tickets (`entTk`); the abstract outbox k
 def stTks (γ : RaftNames) (st : MsgSt) : IProp GF :=
   if st.msg.Type' = MsgProp then iprop([∗list] e ∈ st.ents, entTk γ e) else iprop(emp)
 
-/-- A message with no tickets. -/
-theorem stTks_nonprop (γ : RaftNames) (st : MsgSt) (h : st.msg.Type' ≠ MsgProp) :
-    ⊢ stTks (GF := GF) γ st := by
-  unfold stTks; rw [if_neg h]; iempintro
-
 omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
 /-- Only `MsgProp` is abstracted as a `propose`. -/
 theorem mtypeOf_propose (t : w32) (H : mtypeOf t = some .propose) : t = MsgProp := by
@@ -1470,28 +1465,6 @@ theorem readStateOk_readOk (γ : RaftNames) (st : ReadStateM) (c : List w8)
   icases Hst with ⟨%c', %Hc', #Hok⟩
   rw [← Hc, Hc']
   iexact Hok
-
-/-- ... and with the client's handle on its deposited read (2026-10-14, stage R), the read
-witness: the update's results at every committed log at least `st.Index'` long
-(`read_collect`). -/
-theorem readStateOk_readWit (γ : RaftNames) (st : ReadStateM) (c : List w8)
-    (Qr : List EntryM → IProp GF) (Hc : st.RequestCtx' = c) :
-    ⊢ readStateOk (GF := GF) γ st -∗ isRead γ c Qr -∗ readWit γ c Qr st.Index' := by
-  iintro #Hst #Hrd
-  unfold readWit
-  iframe Hrd
-  iapply readStateOk_readOk γ st c Hc $$ Hst
-
-/-- ... and with `readOk_prefix`: every committed log at least `st.Index'` long extends the
-committed log `Lc` the read was created knowing (`readReq γ c Lc`), so applying the log up
-to an index of at least `st.Index'` reads a state at least as new as the request. -/
-theorem readStateOk_prefix (γ : RaftNames) (st : ReadStateM) (c : List w8)
-    (Lc D : List EntryM) (Hc : st.RequestCtx' = c) (Hle : uint.Z st.Index' ≤ (D.length : Int)) :
-    ⊢ readStateOk (GF := GF) γ st -∗ readReq γ c Lc -∗
-      isCommitted γ D -∗ ⌜Lc <+: D⌝ := by
-  iintro #Hst #Hrq #HD
-  ihave #Hok := readStateOk_readOk γ st c Hc $$ Hst
-  iapply readOk_prefix γ c st.Index' Lc D Hle $$ Hok Hrq HD
 
 /-- The physical `ReadState`s are the protocol state's. -/
 theorem toPState_rd_states (s : NState) : (toPState s).rd.states = s.rd.states := by

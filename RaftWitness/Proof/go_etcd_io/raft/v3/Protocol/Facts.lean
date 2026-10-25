@@ -121,25 +121,6 @@ theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bo
   iintro - ⟨%Hpay, -⟩
   ipureintro; exact Hpay
 
-/-- `maybeAppend`'s `commitTo(min(committed, lastnewi))` panics if the log ends before
-it: it never does (`plogMaybeAppend_last`, from the batch's `AppPayloadOk`). -/
-theorem app_commit_le_lastnewi (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool}
-    (lastnewi : w64) (es' : List EntryM) :
-    m.ty = .app →
-    m.dst = id →
-    uint.Z ps.term ≤ uint.Z m.term →
-    plogMaybeAppend ps.base ps.log
-      (entryID.mk m.logterm m.index) m.entries
-      = some (lastnewi, es') →
-    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m -∗
-      ⌜uint.Z lastnewi ≤ plogLastIndexZ ps.base es'⌝ := by
-  intro Hty Hto _ Happ
-  iintro Hown #Hm
-  icases app_recv_wf γ id ps m Hty Hto $$ Hown Hm with %Hp
-  obtain ⟨Hwf, Hnw⟩ := Hp
-  ipureintro
-  exact plogMaybeAppend_last _ _ _ _ _ _ Hwf Hnw Happ
-
 /-- `maybeAppend` panics if the first conflicting index is at or below the commit index
 (`ci ≤ l.committed`). Under `maybeAppend`'s caller's premise `committed ≤ m.Index` that is
 arithmetic: a conflict is the index of one of the batch's entries, which are at
@@ -646,26 +627,6 @@ theorem entsData_lookup (γ : RaftNames) (l : List EntryM) (ods : List (Option (
   iexists o
   iframe Hed
   ipureintro; exact Ho
-
-/-- A committed log is well-formed from `base0` (entry `k` has index `k + 1`,
-`isCommitted_index`): it is a prefix of the invariant's justified log (2026-10-16, stage R7,
-for the server's contract). -/
-theorem isCommitted_wf (γ : RaftNames) (E : CoPset) (L : List EntryM)
-    (HE : ↑raftLogN ⊆ E) :
-    ⊢ raftCommitInv γ -∗ isCommitted γ L ={E}=∗ ⌜PlogWf base0 L⌝ := by
-  iintro #Hinv #HL
-  ihave #Hli := raftCommitInv_log γ $$ Hinv
-  unfold raftLogInv raftLogInvBody logRest
-  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
-  ihave %Hpre := isCommitted_prefix γ L P $$ HL HP
-  ihave %Hwf := committedJust_wf γ P $$ Hj
-  imod Hclose $$ [HP Htbl Hwt Hq1] with -
-  · inext
-    iexists P
-    iframe HP Hj Htbl Hwt Hds Hq1
-  imodintro
-  ipureintro
-  exact PlogWf_prefix _ _ _ Hpre Hwf
 
 /-- The client's log is raft's committed log: the client's half of `rLog` and the log half's
 quarter agree (the register's `reg_log_committed`, 2026-10-14, stage R; here since 2026-10-16,
@@ -1769,41 +1730,6 @@ variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 theorem rdCred_zero (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
   unfold rdCred
   exact own_unit _
-
-/-- Taking a step that consumes a single known message, with its read credit (2026-10-13:
-one for a `MsgReadIndex`) and (2026-10-14, stage R) a later credit; (D19p, 2026-10-18) a step of
-`StepC` at a static configuration within the tracked bound (until then of `Step`). -/
-theorem ownRaftGhost_step_1c (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
-    (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64) (s : PState)
-    (m : Msg) (s' : PState) :
-    StepC c id B s [m] s' →
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ rdCred γ (rdCount [m]) -∗
-      msgTks γ m -∗ £ 1 -∗
-      ownRaftGhost γ id s ={⊤}=∗
-      ownRaftGhost γ id s' := by
-  intro Hstep
-  iintro #Hrc #Hm Hcr Htk Hlc Hown
-  iapply ownRaftGhost_stepC γ c HC id HT B HB s [m] s' Hstep $$ Hrc [] Hcr [Htk] Hlc Hown
-  · iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
-    iexact Hm
-  · iapply (msgsTks_singleton γ m).2; iexact Htk
-
-/-- Taking a step that consumes a single known message other than a `MsgReadIndex`. -/
-theorem ownRaftGhost_step_1 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
-    (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64) (s : PState)
-    (m : Msg) (s' : PState) :
-    m.ty ≠ .readIndex → m.ty ≠ .propose →
-    StepC c id B s [m] s' →
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ £ 1 -∗
-      ownRaftGhost γ id s ={⊤}=∗
-      ownRaftGhost γ id s' := by
-  intro Hty Htp Hstep
-  iintro #Hrc #Hm Hlc Hown
-  imod rdCred_zero (GF := GF) γ with Hcr
-  iapply ownRaftGhost_step_1c γ c HC id HT B HB s m s' Hstep $$ Hrc Hm [Hcr] [] Hlc Hown
-  · rw [rdCount_singleton, ite_eq_right Hty]
-    iexact Hcr
-  · rw [msgTks_nonprop γ m Htp]; iempintro
 
 /-- Taking a step that consumes nothing. -/
 theorem ownRaftGhost_step_0 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)

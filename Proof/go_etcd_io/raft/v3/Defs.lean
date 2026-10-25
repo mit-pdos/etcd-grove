@@ -160,7 +160,6 @@ theorem mtypeOf_MsgHeartbeat : mtypeOf MsgHeartbeat = some .heartbeat := rfl
 theorem mtypeOf_MsgHeartbeatResp : mtypeOf MsgHeartbeatResp = some .heartbeatResp := rfl
 theorem mtypeOf_MsgSnap : mtypeOf MsgSnap = some .snap := rfl
 theorem mtypeOf_MsgProp : mtypeOf MsgProp = some .propose := rfl
-theorem mtypeOf_MsgPreVote : mtypeOf MsgPreVote = some .preVote := rfl
 theorem mtypeOf_MsgPreVoteResp : mtypeOf MsgPreVoteResp = some .preVoteResp := rfl
 
 /-- Only `MsgSnap` is abstracted as a `snap`. -/
@@ -696,10 +695,6 @@ theorem PrOk.clearSnap {ls : LogState} {p : Progress} (H : PrOk ls p) :
 where `Match + 1` or `Next + k` must not wrap, `logLast + 1 < 2^64` (`ownRaftLog`'s `Hnowrap`,
 `logLast_nowrap`). -/
 
-theorem PrOk.resetState {ls : LogState} {p : Progress} (H : PrOk ls p) (st : PRState) :
-    PrOk ls (progressResetState p st) :=
-  H.fields0 rfl rfl rfl
-
 theorem PrOk.becomeProbe {ls : LogState} {p : Progress} (Hnw : LogNoWrap ls)
     (H : PrOk ls p) : PrOk ls (progressBecomeProbe p) := by
   have Hnw := Hnw.logLast
@@ -769,9 +764,6 @@ theorem PrOk.maybeDecrTo {ls : LogState} {p : Progress} {rejected matchHint : w6
 
 /-! `PrOkN`, one lemma per `Progress` method (2026-10-19, D21 M3): `PrOk`'s, and `PrLo`'s under the
 premise the method needs in the no-snapshot mode. -/
-
-theorem PrOkN.prOk {ns : Bool} {ls : LogState} {p : Progress} (H : PrOkN ns ls p) : PrOk ls p :=
-  H.1
 
 theorem PrOkN.of_off {ls : LogState} {p : Progress} (H : PrOk ls p) : PrOkN false ls p :=
   ⟨H, fun h => by cases h⟩
@@ -941,11 +933,6 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
 def snapTrip (sv : SnapshotM) (cl : CSLists) : SnapTrip :=
   ⟨snapId sv, cl, sv.Metadata'.ConfState'.AutoLeave', sv.Data'⟩
 
-/-- (D22 S-b′3) A `MsgSnap`'s abstraction carries its snapshot's trip, but its data (D22 S-r: the
-protocol's message has none). -/
-theorem msgSnapTrip_absSnapFrom (m : MessageM) (src term : w64) (sv : SnapshotM) (cl : CSLists) :
-    msgSnapTrip (absSnapFrom m src term sv cl) = { snapTrip sv cl with dat := [] } := rfl
-
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/
 
@@ -1057,7 +1044,6 @@ structure NGhost [FfiSyntax] where
 
 -- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
 noncomputable instance [FfiSyntax] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)
-
 
 
 structure NState [FfiSyntax] where
@@ -1564,9 +1550,6 @@ theorem followerVotesOk_phys (s : NState) (Hfv : FollowerVotesOk (toPState s))
   have Hrole : (toPState s).role = .follower := by simp [toPState, Hr, proleRole]
   have := Hfv Hrole
   simpa [toPState, Hr] using this
-
-theorem toPState_vote (s : NState) (v : w64) :
-    toPState { s with vote := v } = { toPState s with vote := v } := rfl
 
 theorem nstateWf_becomeFollower (s : NState) (term lead : w64) :
     NStateWf (becomeFollower s term lead) := ⟨rfl, rfl⟩

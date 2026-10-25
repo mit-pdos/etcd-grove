@@ -520,10 +520,6 @@ def CCVoterKeep (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
     ∃ lrn' : GSet w64, (∀ k, k ∈ lrn' → k ∉ cfg) ∧
       ccApplyM t ccs (cfgState cfg lrn) = some (cfgState cfg lrn')
 
-theorem CCNoop.voterKeep {cfg : GSet w64} {t : raftpb.ConfChangeTransition}
-    {ccs : List ConfChangeSingleM} (H : CCNoop cfg t ccs) : CCVoterKeep cfg t ccs :=
-  fun lrn Hd => ⟨lrn, Hd, H lrn Hd⟩
-
 /-- A change whose model answer is a non-joint configuration with the voters it started from
 is a `Simple` one (`ccApplyM_noop`, for any learners on either side). -/
 theorem ccApplyM_simple (cfg lrn lrn' : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)

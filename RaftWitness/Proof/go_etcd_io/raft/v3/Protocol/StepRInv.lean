@@ -267,11 +267,6 @@ theorem RInv.cfgOk {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r)
     (h0 : CfgOk c0) : CfgOk r.cfg :=
   cfgFold_ok H.cfg h0
 
-/-- A leader's I1 comes from its I3. -/
-theorem RInv.i1_of_i3 {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r)
-    (hl : r.p.role = .leader) : ConfI1 r.full (uint.nat r.p.commit) :=
-  ConfI1_of_drop_le (H.i3 hl).2 (Nat.le_trans H.applied_cidx H.cidx_commit)
-
 /-- A rule that moves none of the fields the invariant reads, and keeps the role (with
 `pci`) or makes a follower. -/
 theorem RInv.frame {dec : CCDec} {c0 : CCState} {r r' : RState} (H : RInv dec c0 r)
@@ -1197,17 +1192,6 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
     | exact RInv_keep _ H rfl rfl rfl (Or.inr ⟨rfl, rfl, rfl⟩)
     | exact RInv_keep _ H rfl rfl rfl (Or.inl rfl)
     | exact H.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl)
-
-/-- A derivation that receives nothing keeps `RInv` with no message knowledge. -/
-theorem RInv_stepR_nil {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : CCState}
-    {id : w64} {B : Int} (hAdm : ∀ l cs, Adm l cs → cfgFold dec c0 l = some cs)
-    {r r' : RState} (h : StepR Adm dec id B r [] r') (hB : B < 2 ^ 64) (H : RInv dec c0 r) :
-    RInv dec c0 r' :=
-  RInv_stepR hAdm h hB (fun _ _ hm => by simp at hm) H
-
-/-- The dynamic model's admissible configurations satisfy `RInv_stepR`'s premise. -/
-theorem AdmFold_fold (dec : CCDec) (c0 : CCState) :
-    ∀ l cs, AdmFold dec c0 l cs → cfgFold dec c0 l = some cs := fun _ _ h => h
 
 end inv
 

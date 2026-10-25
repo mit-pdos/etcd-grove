@@ -462,11 +462,6 @@ theorem chainClass_quota (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.a
     chainClass (GF := GF) M info c rq oc ⊢ chainClass M info (.quota c) rq oc := by
   simp only [chainClass]; iintro H; iexact H
 
-theorem chainClass_quota_out (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
-    (c : Chain) (rq : IRRModel) (oc : Outcome) :
-    chainClass (GF := GF) M info (.quota c) rq oc ⊢ chainClass M info c rq oc := by
-  simp only [chainClass]; iintro H; iexact H
-
 theorem chainClass_capped (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (c : Chain) (rq : IRRModel) (oc : Outcome) :
     chainClass (GF := GF) M info c rq oc ⊢ chainClass M info (.capped c) rq oc := by
@@ -476,11 +471,6 @@ theorem chainClass_capped_rejected (M : auth.AuthMode) (info : go_etcd_io.etcd.s
     (c : Chain) (rq : IRRModel) :
     ⊢ chainClass (GF := GF) M info (.capped c) rq (.rejected .noSpace) := by
   simp only [chainClass]; iintro %h; exact absurd rfl h
-
-theorem chainClass_corrupt (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
-    (c : Chain) (rq : IRRModel) (oc : Outcome) :
-    chainClass (GF := GF) M info c rq oc ⊢ chainClass M info (.corrupt c) rq oc := by
-  simp only [chainClass]; iintro #H %_; iexact H
 
 theorem chainClass_corrupt_rejected (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (c : Chain) (rq : IRRModel) :
@@ -818,19 +808,6 @@ theorem chainClass_backend {M : auth.AuthMode} {info : go_etcd_io.etcd.server.v3
 
 theorem chainResAny_backend {a : GoInterface} : ⊢ chainResAny (GF := GF) .backend a := by
   iintro; iunfold chainResAny; iexists zeroValDef; simp only [chainRes]; itrivial
-
-theorem kvPost_backend {E : AEnv GF} {a : GoInterface} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
-    {rq : IRRModel} {log : mvcc.Log} {R : Outcome → IProp GF} {Pre Post : IProp GF} :
-    (∃ oc : Outcome, ⌜chainStep backendStep .backend rq log oc⌝ ∗ R oc ∗
-      kvOwn E (oc.logAfter log) ∗ chainRes .backend a info ∗ (Post ∨ Pre)) ⊢
-      kvPost E .backend a info rq log R Pre Post := by
-  iintro ⟨%oc, %H, HR, Hkv, Hres, HPP⟩
-  unfold kvPost
-  iexists oc
-  iframe HR Hkv Hres HPP
-  isplitr
-  · ipureintro; exact H
-  iapply chainClass_backend
 
 theorem kvPostF_backend {E : AEnv GF} {a : GoInterface} {info : go_etcd_io.etcd.server.v3.auth.AuthInfo}
     {rq : IRRModel} {log F : mvcc.Log} {R : Outcome → IProp GF} {Pre Post : IProp GF} :

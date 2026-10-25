@@ -92,11 +92,6 @@ def restBuckets : List GoString :=
   [go!"lease", go!"alarm", go!"auth", go!"authUsers", go!"authRoles", go!"members",
    go!"members_removed", go!"cluster"]
 
-theorem key_not_rest : keyName ∉ restBuckets := by decide
-
-theorem meta_not_rest :
-    go_etcd_io.etcd.server.v3.storage.schema.metaName ∉ restBuckets := by decide
-
 /-- The backend's parameters of a real instance: the hook's buckets all but `Key`, `Key` the one
 safe-range bucket, the hook's own keys the consistent index's two in `Meta` (2026-10-13, unit 7:
 only the server's pre-commit hook writes them), the tracked buckets the rest buckets (D22,
@@ -2849,16 +2844,6 @@ theorem muHeld_phys (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   iframe Hph
   ipureintro; exact Ho
 
-/-- A transaction's tree index (persistent; S5b: until then `isStore`'s). -/
-theorem muHeld_tree' (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
-    muHeld (GF := GF) s γ c ti ⊢ isTreeIndex ti γ.idx := by
-  iintro H
-  ihave ⟨%o, %Ho, #Hph⟩ := muHeld_phys s γ c ti $$ H
-  iunfold physOk at Hph
-  iNamed Hph
-  subst Ho
-  iexact Hti
-
 /-- A transaction's tree index, keeping the transaction. -/
 theorem muHeld_tree (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
     muHeld (GF := GF) s γ c ti ⊢ muHeld s γ c ti ∗ isTreeIndex ti γ.idx := by
@@ -4404,12 +4389,6 @@ theorem readerPool_checkin (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
     ipureintro; omega
   imodintro
   iframe Ht Hd Hpin
-
-/-- `readerPool_checkin` at a pin of some physical names `p` (S5b). -/
-theorem readerPool_checkin_p (γ : StoreNames) (p : PhysNames) (dq : DFrac) (o : StoreObjs) :
-    ⊢ £ 1 -∗ readerPool (GF := GF) γ -∗ curAt (γ.withPhys p) dq o -∗ idxSlot (γ.withPhys p) o -∗
-      ownToks γ.tko 1 ={⊤}=∗ ownToks γ.tk 1 ∗ wDep γ ∗ curAt (γ.withPhys p) dq o :=
-  readerPool_checkin (γ.withPhys p) dq o
 
 /-- **The watchable store's `syncWatchers` checks a slot out** (D22 receiver epochs, S5a; one later
 credit), with an idle reader's ticket and the watchable store's deposit (it holds the watchable
