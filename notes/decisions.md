@@ -18764,3 +18764,23 @@ and return the count), `mvcc.NewStore.spec`, `mvcc.newWatchableStore.spec`, `mvc
 posts gain `retiredAt γ 0`), `mvcc.restore_switch`, `mvcc.store.Restore.spec`,
 `mvcc.watchableStore.Restore.spec`, `server_kv_watchable_of`, `bkRTx_of_rdToks`,
 `bootBackend_of_newPost`. No axiom added or removed.
+
+**User-confirmed (2026-10-25, via the orchestrator).** W7 = count the shares (fixed-fraction reader
+tokens, `store.Restore` returning the exact count: carried out above); W8 = a named premise of
+`applySnapshot.spec`, discharged in S-j1 with the rafthttp track. From now on a design choice that
+would change a trusted statement, a closed theorem, a premise or another track's statement goes to
+the orchestrator as a question with options and a recommendation.
+
+**W7's second part, open (a question for the user).** `Close` of the old backend needs, besides
+the reader tokens (now all counted and back after `Restore` and `srv_be_swap`), the old backend's
+stop channels and the constructors' half `bOpen ½`, which `NewServer` now keeps but drops at its
+end: they must reach `applySnapshot` through the apply thread's state. Every route goes through a
+predicate a closed theorem's statement reaches (`srvApplyKV`, in `Results.lean:431`, and the run
+loop's state). Options: (a) in `srvBeOwn` (the apply thread's part of `s.be`, already per current
+backend; `applySnapshot` moves it to the new backend with `OpenSnapshotBackend`'s own half and
+stop channels): a two-conjunct addition, `srv_be_swap` returning the old ones; a patch is ready
+(not committed); (b) a separate conjunct of the run loop's state beside `srvApplyKV`, which leaves
+`srvApplyKV`'s closed theorem alone but changes `run`'s and `applyAll`'s specs; (c) leave `Close`'s
+resources as a premise of `applySnapshot.spec` for S-j1 (it then has to thread them anyway).
+Recommendation: (a), the smallest change, in the predicate whose meaning is "the apply thread's
+part of the current backend".
