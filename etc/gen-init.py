@@ -1186,6 +1186,8 @@ _srv_custom = {x: _metric(x, 'gauge', ['gaugeSetSpec']) for x in ['hasLeader', '
 _srv_custom.update({x: _metric(x, 'counter', ['go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec'])
                     for x in ['leaderChanges', 'heartbeatSendFailures', 'proposalsFailed']})
 _srv_custom['proposalsPending'] = _metric('proposalsPending', 'gauge', ['go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec'])
+# (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s `Inc`/`Dec`
+_srv_custom['applySnapshotInProgress'] = _metric('applySnapshotInProgress', 'gauge', ['go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec'])
 # the construction's gauge vectors (unit N4, 2026-10-17: `NewServer` reads them)
 _srv_custom['serverFeatureEnabled'] = promvec('serverFeatureEnabled', 'Gauge', ['name', 'stage'])
 _srv_custom['serverID'] = promvec('serverID', 'Gauge', ['server_id'])

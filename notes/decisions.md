@@ -17244,6 +17244,170 @@ risk false trusted statements or a second restatement; S8a and S8b do not depend
 `applyAll` still calls the empty case (its proof unchanged); the general spec and its wiring wait
 for S8d.
 
+## D22 S8's four questions decided (2026-10-24 · decided by the orchestrator for the user's goal)
+
+The questions W1-W4 of "D22 receiver epochs, S8 carried out" (`notes/snapshot-s8-plan.md`, "S8c/S8d,
+callee by callee"), decided by the orchestrating session for the user's goal (finish the snapshot
+code's proofs):
+- **W1.** The snapshot directory's removal fact is `Rm j := snapTaken j ∨ appliedAtLeast γr (j + 1)`,
+  `snapTaken` minted from an exclusive claim raft's hand-off gives `applySnapshot(i)` (S-j1 supplies
+  the claim). S8d takes the snapshot file in its precondition; `storage.Release`'s axiom is stated
+  over this `Rm`. If `Rm` is false of the Go code (with the fork fix), stop and say why.
+- **W2.** `NewAuthStore`'s reader resource `RD` is restated, minimally, as a reader resource of
+  whichever backend the auth store currently uses (keyed by its backend half or the server's
+  `γbe`, whichever is smaller and true); `authStore.Recover` is written over it. Only what W2
+  needs is touched, with a dated note in `notes/auth-plan.md`.
+- **W3.** An exclusive peers right that the transport's `Stop` consumes: `Transport.Start`'s axiom
+  and the raft node's transport contract restated, the right passed from the apply thread to the
+  raft node's stop when `run` returns; `RemoveAllPeers` over `transportStarted`, `AddPeer` over the
+  right. Stop and report if a closed theorem's statement would change.
+- **W4.** Designed and done here (`kvApplied` at the image's prefix through `kvInv`, the committed
+  prefix's certificate); raft-side facts only S-j1 can give become premises of `applySnapshot.spec`,
+  listed for S-j1.
+
+## D22 receiver epochs, S8c carried out (2026-10-24)
+
+The callees' trust boundary for `applySnapshot` (`notes/snapshot-s8-plan.md`, items 1-17), with the
+four questions as decided above. Each commit a full build.
+
+**W3, the transport's peers right** (`Net.lean`, `InvBoot.lean`, `InvRaftNode.lean`,
+`InvNodeStart.lean`, `InvBuild.lean`, `NewServer.lean`, `raftNode.{start,stop,onStop}`,
+`newRaftNode`).
+- `netPeers γn id` (opaque, exclusive): member `id`'s transport's peers right; `netTrIs γn id tr`
+  (persistent, `□` of an opaque core): `tr` is the transport started for `id`.
+  `Transport.Start`'s axiom gives both (restated: the conversion of `transportLive` gives them
+  besides `transportStarted` and `transportRemotes`; true: ghost resources minted once per start,
+  which takes the member's `netSlot`); `netTransport`'s `Stop` takes them (restated: weaker).
+- `AddPeer`'s axiom (restated) takes `transportAddRight γn t rs live`: `transportLive` (`live`,
+  `NewServer`'s) or `transportPeers γn t ∗ transportStarted γn t` (`applySnapshot`'s); true since
+  `Stop`, the only way to a stopped transport, takes the right. `RemoveAllPeers`, a new axiom over
+  `transportStarted` (no panic on a stopped transport).
+- `RNEnv.TS`, what the transport's `Stop` takes (`isRNTransport`); the `stopped` channel carries it
+  (`rnStopBag`: `raftNode.stop` sends it, `start`'s loop receives it for `onStop`); `srvEr` takes it
+  (`netPeers γn id`); `isRNTransport_of_net` with `netTrIs`. `NewServer` gets the right from
+  `Start` and keeps it for `applySnapshot` (to be threaded to `run` with S8d); `run` never returns
+  in the runs covered, so the raft node's stop is not reached, but its spec now asks for the right.
+- Statements changed: trusted `Transport.Start`, `Transport.AddPeer` (restated), new axiom
+  `Transport.RemoveAllPeers`; definitions `netTransport`, `isRNTransport`, `RNEnv`, `srvEr`
+  (+ `TS`), `rnParts`, `isRaftNode`; intermediate specs `raftNode.stop`, `raftNode.onStop`,
+  `NewServer` (`srvEr … (netPeers γn id)`); the examples' `memberBuilt` (the same). No closed
+  theorem's text changed.
+- Found on the way: `issues/etcd-rafthttp-leaderstats-followers-race.md` (`removePeer` writes the
+  leader stats' map without its lock, `JSON` marshals it unlocked).
+
+**W2, the auth store across `Recover`: no restatement of `NewAuthStore` needed.** The server's auth
+store is in mode `.off` for its whole life (`E.authOn = false`, `authApplyOk … .off`: `AuthEnable`
+only at `on = true`), and with auth disabled the permission checks return before reading the
+backend (`IsPutPermitted` and the others: `if !as.IsAuthEnabled() { return nil }`); so `RD`, which
+the checks borrow, is used only for `enabledMu`'s read and never names a backend's read rights:
+it stays a valid reader resource after `Recover` moves the store, as `isReqAuth st RD` (persistent)
+and `authApplyOk stl RD` (for whichever backend `authBeOn` names, S7c) need. The decided
+restatement is thus a docstring clarification (`NewAuthStore`'s `RD`, backend-independent in mode
+`.off`), and `authStore.Recover`'s axiom is stated in mode `.off`, over an image whose auth buckets
+are the boot ones (the workload: `bkRestAt_boot`). A server with auth on would need `RD` to carry
+the current backend's read rights and the old backend's `Close` to wait for in-flight readers
+(Go's `Close` does, bbolt's `db.Close` waits for read transactions; the backend's `Close` spec takes
+all of `bOpen`): not needed for the runs covered.
+
+**W1, the snapshot directory's `Rm`: the decided form is not establishable at `Release`.** With
+`Rm j := snapTaken j ∨ appliedAtLeast γr (j + 1)`, `storage.Release(snap)` (called inside
+`applySnapshot(i)` after the open, the fork fix) removes every `.snap.db` file `j < i`, including
+files of snapshots saved by the transport but never applied (raft took a later one; or `j ≤ a0`,
+the index applied by entries), and at that point nothing has published `appliedAtLeast γr (j + 1)`
+(the applied index moves to `i` only after `applySnapshot` returns, `applyAll`'s
+`setAppliedIndex`/`Trigger`), nor was `j` taken. So the removal would need `Rm j` that no one can
+show. A form that works: a monotone counter of the highest snapshot index opened, `Rm j :=
+snapTakenLb γt j` (some snapshot at index `≥ j` was opened), whose authority the apply thread keeps
+at most its applied index: at `applySnapshot(i)`'s start `Rm i` is refuted (opened ≤ applied `< i`),
+the open raises it to `i` (minting `Rm i`), and `Release(i)`'s removals `j < i` follow from `Rm i`.
+Per the decision ("stop and say why"), `storage.Release`'s axiom is not written over the decided
+`Rm`; S8d takes the file in its precondition regardless, and the counter variant is proposed for
+the orchestrator's confirmation (it needs no claim from raft's hand-off).
+
+**The other callees** (second S8c commit).
+- `schema.NewMembershipBackend` translated (`schema.toml`) and proved from its body (returns the
+  `*membershipBackend`, its fields read-only).
+- New trust-boundary axioms, each over S7's per-backend fragments and true of the Go code (their
+  docstrings argue it line by line): `membership.RaftCluster.SetBackend` (`clusterBeOn c oldbe` to
+  `clusterBeOn c newbe`, `MustCreateBackendBuckets` over present buckets: one write-back),
+  `lease.lessor.Recover` (`lessorBeOn` moved, no lease live before or after, the image's lease
+  bucket empty: two write-backs), `auth.authStore.Recover` (mode `.off`, `authBeOn` moved, the image's
+  auth buckets the boot ones, a reader token borrowed); the gauge `applySnapshotInProgress`'s
+  initializer (`etc/gen-init.py`: an opaque initializer turned into a gauge fact, `srvApplyLoopInit`).
+- Lemmas for S8d (`etcdserver/SnapApply.lean`): `kv_cert_jump` (W4: the apply thread's KV ghost
+  state moved to a longer committed prefix in one step, the image's model certified there) and
+  `srv_be_swap` (`s.be`'s swap: the current backend's ghost variable gathered from `bemuP 1`,
+  `srvBeOwn` and the write budget, moved to the new backend, the budget refilled, the old tokens out).
+
+**Where S8 stops now (S8d not started).** Four more questions surfaced while laying `applySnapshot`'s
+proof against the callees (`notes/snapshot-s8-plan.md`, "Where S8 stops, second pass"):
+W5 an environment premise for the snapshot file's directory read and rename (`DBFilePath`'s and
+`os.Rename`'s axioms allow I/O errors, on which `applySnapshot` panics), W6 `RaftCluster.Recover`'s
+members (the network directory facts `AddPeer` needs and the in-memory members' agreement with the
+rest model), W7 the old backend's `Close` (its `isStopChans` dropped at boot by `NewServer`, and all
+of its open token to gather), and W1's `Rm` (the variant to confirm).
+
+## D22 S8d's premises: W1's `Rm` and W5's named premise (2026-10-24 · W1 decided by the orchestrator)
+
+- **W1 (supersedes the earlier W1 decision).** The snapshot directory's removal fact is
+  `Rm j := snapTakenLb γt j` (`rafthttp/Net.lean`): a lower bound of a monotone counter `γt` of the
+  highest snapshot index `applySnapshot` has opened, whose authority the apply thread keeps at most
+  its applied index. Sound as long as raft never hands `applySnapshot` an index at or below the
+  applied one (Go's panic guard, `server.go:1039`) and the apply thread keeps the counter at most its
+  applied index. `storage.storage.Release`'s axiom is stated over it (a new axiom,
+  `Spec/.../storage/storage__Release.lean`: the removals below `i` from `snapTakenLb γt i`); the
+  server's storage is named by `storageSnap p ss` (opaque: `NewStorage`'s storage over `ss`; its
+  struct is not translated), which `applySnapshot`'s spec takes for S-j1 to supply.
+- **W5, pending the user's decision.** `applySnapshot` panics when the snapshot directory's read,
+  the rename onto the backend's path, or the release fails. Three named environment facts, opaque
+  `Prop`s each stated where the operation is: `snap.dirReadOk ss`, `backend.renameOk src dst`,
+  `storage.releaseOk`; their trust-boundary axioms say an error implies the fact fails
+  (`snap.Snapshotter.DBFilePath`, now over the held file, `os.Rename`, `storage.storage.Release`;
+  true: each fact is defined as that operation not failing for the environment's reasons), and
+  `OpenSnapshotBackend`'s spec carries it. `storage.snapOpensOk` (`InvOpen.lean`) bundles them; S8d's
+  spec takes it as a premise; where it comes from (a premise of `NewServer.spec` and the closed
+  theorems, as `dbOpensOk` is) is the user's decision, not made here.
+
+## D22 S8d: W6 and W7 as decided do not go through (2026-10-24 · stopped, for the orchestrator)
+
+Both were laid against the code and the definitions before writing anything; each needs a change
+the S8 rules leave to the orchestrator.
+
+- **W6 (`RaftCluster.Recover`'s members with their directory facts).** The `AddPeer` loop reads the
+  members through `s.cluster.Members()` (`server.go:1155`), after `Recover`: clones of the map's
+  members, read under `c`'s mutex, whose invariant is `rcLockInv c` (`isRaftCluster`). `rcLockInv`
+  holds each member as `ownMember` (owned fields, `peerURLsOk`), with nothing about the network
+  directory, so whatever `Recover`'s axiom says of the members it installs cannot reach
+  `Members()`'s result: the facts would have to live in the mutex's invariant. Making `rcLockInv`
+  say "each member's peer URLs are `dir id`" changes `isRaftCluster`'s body (or adds a `dir`
+  parameter), and `isRaftCluster` is in a closed theorem's statement
+  (`api/v3rpc/Results.lean:729`) and in `bootOk`'s contract. (A second invariant on the same mutex is
+  not possible; a separate Iris invariant cannot speak of the members' fields, which `rcLockInv`
+  owns.) Options: (a) `rcLockInv` with the directory (each member `memberDirIs dir m id`, `dir` the
+  network's, a parameter of `isRaftCluster` or fixed by the cluster's names), `Members()`' spec
+  giving `memberDirIs`, `bootstrap`'s contract giving the stronger cluster (true of Go: the boot
+  cluster's members are the configured peers); a closed theorem's statement changes. (b) Leave the
+  `AddPeer` loop to a premise of `applySnapshot.spec` (a fact about `Members()` after `Recover`), which
+  is (a) postponed.
+- **W7 (the old backend's `Close`: its stop channels and open token kept from `NewServer`).** Keeping
+  `isStopChans` is easy (persistent; `bootBackend_of_newPost` drops it). The open token is not:
+  `backend.Close.spec` takes `bOpen γ 1` (the stop protocol's `stop_take`: no client may commit after
+  the stop), and the boot backend's token is split into `qo` and the readers' tokens, each `bkRTx` /
+  `mvcc.kbRT` = `rdTok ∗ ∃ q, bOpen γ q`: an existential fraction, so the shares, even all of them,
+  do not add up to a known `1`. Moreover `store.Restore.spec` (the restore track's, not to be
+  changed) returns `k + 1` of the old tokens with `k` existential (`k + 1 ≤ nReaders`), and the
+  monitor's (`srv_be_swap`) is one more: nothing says these are all of them. And `Close`'s
+  post is `True` about `err`, while the goroutine panics on an error (`server.go:1137`): a fourth
+  environment fact (bbolt's `DB.Close` failing: munmap, file close, flock) would be needed, with
+  `DB.Close_kv`'s axiom saying an error implies it fails. Options: (a) the readers' tokens at a fixed
+  fraction (`kbRT`'s `bOpen` at `1 / (2 · nReaders)`, say) and `Restore` returning exactly the
+  pool's count (no slot out under `s.mu`: `k = nReaders - 2` at the server, the two retired ones
+  known), plus a `closeOk` premise: changes `kbRT` (`InvStore.lean`) and `store.Restore.spec`
+  (another track's); (b) a `Close` for a backend whose readers may be in flight (bbolt's `Close`
+  waits for read transactions on `mmaplock`; the backend's stop protocol letting readers keep
+  `bOpen` shares after the stop, since they do not commit): a backend proof change, no closed
+  theorem; (c) the old backend's `Close` as a premise of `applySnapshot.spec`, postponed.
+
 ## A4 of the auth plan: the watch service's request shapes, the registered watcher's authorization in the stream specification (2026-10-24 · `notes/auth-plan.md`, branch `auth-a4`)
 
 **Problem.** A1 proved `serverWatchStream.isWatchPermitted` returns, when it passes, the class
@@ -18485,6 +18649,55 @@ contract's `info` clause has no context premise); and the constructor unproved.
 
 **Not done.** The JWT provider; the `off`/`any` modes of the simple provider; the store's
 invariant over the context-premised contract (with `NewAuthStore`).
+
+## D22 S8d after the merge of 2026-10-25: W3 reverted, W5/W6 settled, W7 and W8 open (decided by the orchestrator: W5 the user's, W6 (a), W7 (b))
+
+- **The merge.** rafthttp's stages 5-7 proved the transport over its lock's state (`trLive`,
+  `trFrozen`, `trTok`, `TransportState.lean`), replacing the axioms S8c's W3 had restated
+  (`Transport.Start`, `AddPeer`, and the new `RemoveAllPeers`); `auth.authStore.Recover` and
+  `store.Restore` are proved (their statements differ from the axioms S8c and S6 wrote: S8d uses the
+  proved ones). S8c's W3 commit is reverted before the merge (`72a1cb065b`): the peers right
+  (`netPeers`, `netTrIs`, `transportAddRight`, `RNEnv.TS`) is to be re-expressed over the proved
+  transport, with W8. The issue it filed (`issues/etcd-rafthttp-leaderstats-followers-race.md`) is
+  kept.
+- **W5** (the user): `storage.snapOpensOk` stays its own environment premise (not folded into
+  `dbOpensOk`); it may become a premise of closed theorems at S-l.
+- **W6** (option (a) decided; a better home found first, as asked). `bootOk`'s contract already
+  holds the members' directory facts for good: `Hmembers` is a persistent triple of the cluster's
+  `Members()` (members whose peer URLs are `dir`'s, raft's peers in order), not a fact of a moment.
+  So `applySnapshot`'s `AddPeer` loop can use it as `NewServer`'s does, and `rcLockInv` need not
+  change: no closed theorem's statement changes. What `Recover` must not break is that contract's
+  truth, which needs every image a member applies to hold the static cluster's members: a premise
+  on the image (`membership.clusterImageOk c r`, opaque, of the three membership buckets), which
+  `RaftCluster.Recover`'s axiom takes so that it returns (no decode panic, no downgrade panic,
+  `rcLockInv` re-established). The contract reaches `applySnapshot` as a premise of its spec (the
+  same triple, threaded by S-j1 from `NewServer`).
+- **W7** (option (b) decided) **does not go through as stated.** A `Close` while readers may still
+  run is not what the Go code tolerates for the backend's shared read transaction:
+  `CommitAndStop`'s commit leaves `readTx.tx` `nil` (the model: `rtx = null ∗ bStopped`,
+  `ReadSide.lean`), and a reader of `ReadTx()` after it dereferences the nil transaction; only a
+  `ConcurrentReadTx` already holding its bbolt transaction is waited for (bbolt's `Close` on
+  `mmaplock`, which `DB.Close_kv`'s axiom already allows). So `Close` needs that no client of the
+  shared transaction remains, which is what the clients' whole open token (`bOpen 1`) says; the
+  server does hold every old token after `Restore`, `srv_be_swap` and the constructors (no store
+  reader outlives `s.mu`, the monitor is under `bemu`), but the bookkeeping loses it: each
+  reader's `bOpen` share is existential (`kbRT`, `bkRTx`), and `Restore` returns `k + 1` of them,
+  `k` existential. Sound ways out, each the orchestrator's: count the shares (reader tokens at a
+  fixed fraction and `Restore` returning the pool's exact count: `kbRT` and `store.Restore.spec`);
+  or a stop protocol keyed on the readers' tokens rather than their `opn` fractions (`rdTok`
+  already carries a counted `ownToks γ.rdt 1`: a `Close` that takes all `nReaders` reader tokens
+  and the remainder share would exclude every reader by counting, a redesign of `bStopped`'s
+  exclusion `bOpen_stopped` and of `run`'s `CommitAndStop`), still with all reader tokens back.
+  The close-error fact is in already: `backend.dbCloseOk` (opaque, `InvBbolt.lean`), bbolt's
+  `DB.Close_kv` axiom restated (an error implies `¬ dbCloseOk`; true: the fact is defined as the
+  close not failing for the environment's reasons), `backend.Close`'s spec with it (its proof passes
+  bbolt's result on), and the fourth member of `storage.snapOpensOk`.
+- **W8** (open; `notes/snapshot-s8-plan.md`): `RemoveAllPeers` and the proved transport's peer
+  coverage (rafthttp's note in D40). Not resolved here: the window's `AddRemote` adds a remote with
+  the request's URLs (Go's behavior, and Go's `AddPeer` does not stop it afterwards), so either the
+  protocol carries the sender's peer URLs as the directory's (the remote's facts provable) or
+  `RemoveAllPeers` keeps the coverage some other way; a design in rafthttp's invariants, left for
+  S-j1 with the rafthttp track.
 
 ## The static `ownRaftPhys` as an alias of `ownRaftPhysC` (2026-10-24 · branch `cleanup/2026-10-24`)
 

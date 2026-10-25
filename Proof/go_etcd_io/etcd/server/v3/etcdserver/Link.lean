@@ -247,12 +247,15 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__GetLease
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Grant
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Promote
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Recover
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__shouldPersistCheckpoints
 public import Proof.math.Ceil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Recover
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetVersionChangedNotifier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__String
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
@@ -399,6 +402,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.NewAlarmBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.NewAuthBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.NewMembershipBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
@@ -430,6 +434,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitU
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.storage__Release
 public import Proof.strconv.FormatBool
 public import Proof.strings.TrimSuffix
 public import Proof.time.Duration__Seconds
@@ -1285,6 +1290,10 @@ theorem proto.wp_UnmarshalUser :
 theorem schema.wp_MustUnsafeSaveConfStateToBackend :
     schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
   schema.MustUnsafeSaveConfStateToBackend.wp_proof
+
+theorem schema.wp_NewMembershipBackend :
+    schema.NewMembershipBackend.spec (GF := GF) (hG := hG) :=
+  schema.NewMembershipBackend.wp_proof
 
 theorem schema.wp_UnsafeUpdateConsistentIndexForce :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) :=
@@ -2437,6 +2446,18 @@ theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] [Etc
     NewServer.spec (GF := GF) (hG := hG) :=
   NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer mvcc.watchableStore.wp_Close schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket node.wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion MemoryStorage.wp_Snapshot node.wp_ApplyConfChange node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot
 
+theorem lease.lessor.wp_Recover :
+    lease.lessor.Recover.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Recover.wp_proof
+
+theorem membership.RaftCluster.wp_Recover :
+    membership.RaftCluster.Recover.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.Recover.wp_proof
+
+theorem membership.RaftCluster.wp_SetBackend :
+    membership.RaftCluster.SetBackend.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.SetBackend.wp_proof
+
 theorem raftNode.wp_advanceTicks :
     raftNode.advanceTicks.spec (GF := GF) (hG := hG) :=
   raftNode.advanceTicks.wp_proof raftNode.wp_tick
@@ -2460,6 +2481,10 @@ theorem storage.wp_OpenBackend :
 theorem storage.wp_OpenSnapshotBackend :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) :=
   storage.OpenSnapshotBackend.wp_proof raftpb.SnapshotMetadata.wp_GetIndex snap.Snapshotter.wp_DBFilePath fmt.wp_Errorf os.wp_Rename config.ServerConfig.wp_BackendPath storage.wp_OpenBackend
+
+theorem storage.storage.wp_Release :
+    storage.storage.Release.spec (GF := GF) (hG := hG) :=
+  storage.storage.Release.wp_proof
 
 theorem wait.wp_NewWithResponse :
     wait.NewWithResponse.spec (GF := GF) (hG := hG) :=

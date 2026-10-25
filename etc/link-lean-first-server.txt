@@ -530,6 +530,8 @@ addFeatureGateMetrics:
 newCorruptionChecker:
 schema_NewAuthBackend:
 schema_NewAlarmBackend:
+# (D22 receiver epochs, S8c) proved from its body, for `applySnapshot`'s `cluster.SetBackend`.
+schema_NewMembershipBackend:
 mvcc_store__HashStorage:
 math_Ceil:
 lease_NewLessor:
@@ -537,6 +539,13 @@ auth_NewTokenProvider:
 auth_NewAuthStore:
 v3compactor_New:
 v3alarm_NewAlarmStore:
+# (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s lessor `Recover` and the cluster's
+# `SetBackend`, axioms true of the Go code (their specs' docstrings).
+lease_lessor__Recover:
+membership_RaftCluster__SetBackend:
+# (D22 receiver epochs, S8d, W6, 2026-10-25) `applySnapshot`'s cluster `Recover`, an axiom true of
+# the Go code over an image good for the cluster (its spec's docstring).
+membership_RaftCluster__Recover:
 apply_NewUberApplier: @
 # (D21 M2, 2026-10-19) the inbound path from the transport (`rafthttp.Raft`, NetBridge.lean):
 # `Process` and the reports with their bodies, raft's node methods linked in raft's Link (`@`),
@@ -581,6 +590,9 @@ snap_Snapshotter__DBFilePath:
 os_Rename:
 config_ServerConfig__BackendPath:
 storage_OpenBackend:
+# (D22 receiver epochs, S8d, 2026-10-24) `applySnapshot`'s release of the WAL and older snapshot
+# files, an axiom true of the Go code (its spec's docstring).
+storage_storage__Release:
 storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
 # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
 # SnapSendBundle.lean, SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`

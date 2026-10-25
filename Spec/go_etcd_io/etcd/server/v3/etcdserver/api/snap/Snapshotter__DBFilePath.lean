@@ -10,6 +10,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import Spec.fmt.Errorf
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 
 @[expose] public section
 
@@ -26,15 +27,19 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `ss.DBFilePath(id)`: `snapDBPath ss id` and nil, or an error `fmt` can format. -/
+/-- `ss.DBFilePath(id)`, the file of index `id` held (holding `D`): `snapDBPath ss id` and nil, or
+an error `fmt` can format, the directory's read having failed (`¬ dirReadOk ss`: D22 receiver
+epochs, S8d, 2026-10-24; with the file there, `ErrNoDBSnapshot` is not returned). -/
 abbrev snap.Snapshotter.DBFilePath.spec : Prop :=
-  ∀ (ss : Loc) (id : w64),
-  {{ isSnapshotter (GF := GF) ss }}
+  ∀ (ss : Loc) (id : w64) (D : backend.Data),
+  {{ isSnapshotter (GF := GF) ss ∗ backend.fileHolds (snapDBPath ss id) D }}
     (App (Val (ss @!! go.GoType.PointerType
         _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty @!!
         go!"DBFilePath")) (Val #id))
   {{ (p : GoString) (err : GoInterface), RET (PairV #p #err);
-      ⌜err = GoInterface.nil ∧ p = snapDBPath ss id⌝ ∨ (⌜err ≠ GoInterface.nil⌝ ∗ fmt.argOk err) }}
+      backend.fileHolds (snapDBPath ss id) D ∗
+      (⌜err = GoInterface.nil ∧ p = snapDBPath ss id⌝ ∨
+        (⌜err ≠ GoInterface.nil ∧ ¬ dirReadOk ss⌝ ∗ fmt.argOk err)) }}
 
 end spec
 
