@@ -1,6 +1,8 @@
 # Membership changes in the server (track T-M, D21d (B)) — plan
 
-Planned 2026-10-25. Status: **M0 (scope) open**, nothing started.
+Planned 2026-10-25. Status: **M0 in part**: Q1-Q4 decided (D43: removal only; pre-vote and
+`StepDownOnRemoval = false` proved in the dynamic mode; the removed member's own stop); W3 with the
+D22 owner, the example and the client path still open.
 
 ## Goal
 
@@ -94,7 +96,7 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
 
 ## Stages
 
-- **M0. Scope** (this section): Q1-Q4 with the user; W3's statement agreed with the D22 owner (the
+- **M0. Scope** (this section): Q1-Q4 with the user (**decided 2026-10-25, D43**: each (A)); W3's statement agreed with the D22 owner (the
   peers right is shared with S8c-S8d); the example chosen (below). Writes D43.
 - **M1. Raft clean-up (optional, warm-up)**: the static `ownRaftPhys` as the sealed alias of
   `ownRaftPhysC` (STATUS "Clean-up: unused declarations removed, ...": about 3-4 hours, rebuilds raft

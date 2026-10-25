@@ -18401,3 +18401,31 @@ proved for lack of turns. The S5b `info` lemmas now take the continuation under 
 contract's triples give it. Not done: `newTokenProviderSimple` (it would give `simpleOk`,
 `simpleWaitOk` and `simpleAdmin`; the zero mutex by `init_Mutex`), the modes `off`/`any` for the
 simple provider, JWT. Trust base unchanged.
+
+## D43: membership changes, the scope of track T-M (2026-10-25 · `notes/membership-plan.md`, M0)
+
+**Problem.** etcd's server runs raft in the static mode (D21d (A)); T-M is D21d (B), a closed
+theorem whose cluster changes at run time. Raft's dynamic mode is proved, but not as etcd's server
+configures it: the dynamic mode assumes pre-vote off and `StepDownOnRemoval` on, and its start is
+`RestartNode` only; etcd runs pre-vote on (`embed/config.go:544`), `StepDownOnRemoval` off, and
+starts with `StartNode`.
+
+**Decisions (the user's, each the recommended option):**
+- *Q1 (A), removal only first*: `RemoveMember` of another member and of oneself. No member joins,
+  so no join bootstrap (`bootstrapExistingClusterNoWAL`, `GetClusterFromRemotePeers`), no snapshot
+  to a newcomer (T-S's bound untouched), no `encoding/json`, no learners. Adding a voter is a later
+  plan (M9).
+- *Q2 (A), pre-vote in the dynamic mode proved* (M2b), keeping etcd's default: the paper argument
+  (`notes/reconfiguration-safety.md` 4.1) already covers a pre-candidate (the campaign's guard,
+  checked at `hup`, still holds when the pre-vote is won); the Lean dynamic mode never carried it.
+  Fallback, if M2b fails: the example's `PreVote: false` as a premise.
+- *Q3 (A), `StepDownOnRemoval = false` in the dynamic mode proved* (M2c), not a fork change: 4.11
+  says the safety argument does not need the step-down (a removed leader stays leader,
+  unpromotable, committing with its configuration's quorums); what stage A2's code-level spec
+  wanted it for is M2c's first question.
+- *Q4 (A), the removed member's own stop*: `stopWithDelay` -> `errorc` -> `run` returns -> its
+  deferred shutdown, with D19m (B)'s "server open" token so that the requests in flight end with
+  `ErrStopped`. The application's `Stop`/`HardStop` stay out.
+
+**Why.** Removal is the change that needs no other track's unfinished work, and both raft
+extensions keep the verified code as etcd ships it.
