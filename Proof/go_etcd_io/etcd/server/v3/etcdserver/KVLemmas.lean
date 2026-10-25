@@ -214,7 +214,6 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     obtain ⟨hplain, hop, -, hshape, hQr⟩ := Hop
     subst hQr
     iunfold kvOpAu at Hau
-    icases Hau with ⟨-, Hau⟩
     iunfold kvAu at Hau
     imodintro
     unfold srvPropAu1
@@ -277,7 +276,6 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     obtain ⟨hplain, hop, -, hshape, hQr⟩ := Hop
     subst hQr
     iunfold kvOpAu1 at Hau
-    icases Hau with ⟨-, Hau⟩
     iunfold kvAu1 at Hau
     imodintro
     unfold srvPropAu1

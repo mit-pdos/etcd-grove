@@ -321,7 +321,7 @@ theorem doRunOk_kind (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → I
     · ipureintro; exact Or.inr (Or.inl H.1)
     iright; ileft; iframe Hu; ipureintro; exact H
   · isplitr
-    · ipureintro; exact Or.inr (Or.inr ⟨H.1, H.2.1⟩)
+    · ipureintro; exact Or.inr (Or.inr H)
     iright; iright; iframe Hu; ipureintro; exact H
 
 /-- `kv.Do` on a `*kv` of etcd's KV `γ` (D43): `kv.Do.wp_members` at its hidden members, from the
@@ -377,19 +377,19 @@ theorem kv.Do.wp_proof
     · iright
       ileft
       isplitl []
-      · ipureintro; exact ⟨Hp.1, Hp.2.1⟩
+      · ipureintro; exact Hp
       isplitl []
       · iunfold floorsAt; iexact HF
-      ihave Hu := writeAu_upd dup γ _ Q Hp.2.2 $$ Hu
+      ihave Hu := writeAu_upd dup γ _ Q $$ Hu
       iapply (kvReqPre_of_upd api ms (!dup) (noRefusal_of_dup ms dup Hr) _ _
         (putUpd_of ms γ Hn (putWireOf o) Q)) $$ Hu
     · iright
       iright
       isplitl []
-      · ipureintro; exact ⟨Hd.1, Hd.2.1⟩
+      · ipureintro; exact Hd
       isplitl []
       · iunfold floorsAt; iexact HF
-      ihave Hu := writeAu_upd dup γ _ Q Hd.2.2 $$ Hu
+      ihave Hu := writeAu_upd dup γ _ Q $$ Hu
       iapply (kvReqPre_of_upd api ms (!dup) (noRefusal_of_dup ms dup Hr) _ _
         (delUpd_of ms γ Hn (deleteWireOf o) Q)) $$ Hu
   inext

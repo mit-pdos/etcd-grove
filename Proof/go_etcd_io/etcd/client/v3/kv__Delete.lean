@@ -85,7 +85,7 @@ theorem kv.Delete.wp_proof
     kv.Delete.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key sl gs Q
   wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun⟩
-  obtain ⟨Hnp, Ht, Hz, Hw⟩ := Hnp
+  obtain ⟨Hnp, Ht, Hz⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
@@ -96,7 +96,7 @@ theorem kv.Delete.wp_proof
     iright
     iright
     iframe # Hrun
-    ipureintro; exact ⟨Ht, Hz, Hw⟩
+    ipureintro; exact ⟨Ht, Hz⟩
   ihave Hout' : deleteCallOut (delStOk (deleteWireOf (opDeleteModel key gs)) Q) r.del' err
       $$ [Hout]
   · have Heq : doOut (opDeleteModel key gs) (putStOk (putWireOf (opDeleteModel key gs)) Q)

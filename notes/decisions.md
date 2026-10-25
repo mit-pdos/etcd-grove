@@ -4,6 +4,16 @@ Why the Lean port is the way it is. Newest last. The design of the proof itself 
 recorded on `main` (`notes/decisions.md`); this file only covers choices the port
 had to make.
 
+**These decisions are not binding** (the user, 2026-10-25). Many of them were made to get a proof
+through and later turned out wrong or worse than an alternative: too-generic specs (the client's
+KV specs generic in a `GrpcSpec`, D43), indirections that hide what a spec supports (the
+workload's `writes` predicate, D23, removed by D43), choices recorded as "rejected" that were
+later adopted. Read an entry as the reasoning at the time, not as a rule. When a change would
+improve a spec or a proof (simpler, more direct, more faithful to the Go code, easier to audit),
+do not keep a design because a decision here chose it: say what the entry got wrong, mark it
+*superseded* (in part, if so) with a pointer to the new entry, and record the new choice. What
+does bind is in `CLAUDE.md` and what the user has asked for.
+
 ---
 
 ## The Rocq module discipline, in Lean

@@ -24,8 +24,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `kv.Put(ctx, key, val, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D43: its members hidden):
 `kv.Do` of `OpPut(key, val, opts...)` (`opts`: the models of the Go options `opts...` (`WithPrevKV()`, ...), one transformer of the operation each, `optsAt`
 ties the slice `opts_sl` of their closures to them; `[]` for none), options that do not make `OpPut` panic nor change
-the operation's type, a put with no lease (etcd's `Put` spec covers no other)
-that `γ`'s workload admits, with the caller's atomic update of `γ`'s state by the put the server
+the operation's type, a put with no lease (etcd's `Put` spec covers no other),
+with the caller's atomic update of `γ`'s state by the put the server
 reads (`putWireOf`; `kvOpStep`), persistent if the client's writes may be delivered more than once
 (`□?dup`); the error through `ContextError`:
 `nil` and the reply's message `m` with `Q σ` for the state `σ` the update fired at, the reply's
@@ -38,7 +38,7 @@ abbrev kv.Put.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
       ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜¬ (opPutModel key val opts).putPanics ∧ (opPutModel key val opts).t = W64 2 ∧
-        (putWireOf (opPutModel key val opts)).leaseID = W64 0 ∧ γ.wl.writes (.put (putWireOf (opPutModel key val opts)))⌝ ∗
+        (putWireOf (opPutModel key val opts)).leaseID = W64 0⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ), COMM Q σ }>) }}
     (App (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!

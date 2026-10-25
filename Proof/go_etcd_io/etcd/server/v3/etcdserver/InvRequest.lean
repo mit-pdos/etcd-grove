@@ -1084,10 +1084,9 @@ instance kvAu_persistent (γk : KVNames) (f : KVState → KVState) (Q : KVState 
   unfold kvAu; infer_instance
 
 /-- **A client's update for the operation `op`**: its step (`kvOpStep`; a rejected request's the
-identity); (D23, 2026-10-20) of an operation the server's workload lets its clients deposit
-(`γk.wl.writes`: every one for `putgetWorkload`). -/
+identity). (D23's premise of the workload, `γk.wl.writes`, is gone since D43.) -/
 def kvOpAu (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜γk.wl.writes op⌝ ∗ kvAu γk (kvOpStep op) Q)
+  kvAu γk (kvOpStep op) Q
 
 instance kvOpAu_persistent (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     Persistent (kvOpAu (GF := GF) γk op Q) := by
@@ -1101,25 +1100,16 @@ def kvAu1 (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
           <{ etcdKV γk (f σ), COMM Q σ }>)
 
-/-- **A client's update for the operation `op`, fired at most once** (D21 M6); (D23) of an
-operation the workload lets its clients deposit, as `kvOpAu`. -/
+/-- **A client's update for the operation `op`, fired at most once** (D21 M6). -/
 def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜γk.wl.writes op⌝ ∗ kvAu1 γk (kvOpStep op) Q)
+  kvAu1 γk (kvOpStep op) Q
 
 open Iris.ProofMode in
-open Iris.ProofMode in
-theorem kvOpAu1_writes (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
-    kvOpAu1 (GF := GF) γk op Q ⊢ ⌜γk.wl.writes op⌝ ∗ kvOpAu1 γk op Q := by
-  unfold kvOpAu1
-  iintro ⟨%h, H⟩
-  iframe H
-  isplitr <;> ipureintro <;> exact h
-
 /-- A persistent update fires once, its result persistent. -/
 theorem kvOpAu_one (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     kvOpAu (GF := GF) γk op Q ⊢ kvOpAu1 γk op (fun σ => iprop(□ Q σ)) := by
   unfold kvOpAu kvAu kvOpAu1 kvAu1
-  exact sep_mono_right intuitionistically_elim
+  exact intuitionistically_elim
 
 /-- The results' namespace (D21 M6): where an update fired at most once leaves its result. -/
 def kvResN : Namespace := nroot .@ "server_kv_res"

@@ -26,7 +26,7 @@ request `&pb.TxnRequest{Compare: cmps, Success: sus, Failure: fas}` (the transac
 `txnWireOf b.model` on the wire, of plain operations within the txn package's model) through the
 `*kv`'s retry client's `Txn`, with the client's call options, with the caller's update of `γ`'s
 state: none or a persistent atomic read if read-only; if writing (plain in the KV model, no range
-end `[0]`, admitted by `γ`'s workload), an atomic update by the transaction (`kvOpStep`); persistent
+end `[0]`), an atomic update by the transaction (`kvOpStep`); persistent
 if the client's writes may be delivered more than once (`□?dup`): `nil` and the reply's message
 `m` with the state `σ` the update fired at (`Q σ` if writing, `□ Q σ` if a linearizable read), the
 reply's verdict, responses and revision as the run's at `σ`; or a client error (`kvErr`, through
@@ -43,8 +43,7 @@ abbrev txn.Commit.spec : Prop :=
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
           □ AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
             <{ etcdKV γ σ, COMM □ Q σ }>) ∨
-        (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model) ∧
-            γ.wl.writes (.txn (txnWireOf b.model))⌝ ∗
+        (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model)⌝ ∗
           AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
             <{ etcdKV γ (kvOpStep (.txn (txnWireOf b.model)) σ), COMM Q σ }>)) }}
     (App (Val (txn_ptr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))

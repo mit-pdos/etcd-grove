@@ -24,8 +24,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **What `kv.Do` needs of its `Op`** `o` on a `*kv` of etcd's KV `γ` (D43): a range at the latest
 revision (any sort option, checked against `etcdserverpb`'s enumerations, `sortNamesOk` if there
 is one) with the caller's persistent atomic read of `γ`'s state or, `Q` trivial, none; a put with
-no lease or a delete whose range end is not `[0]` (what etcd's specs cover) that `γ`'s workload
-admits, with the caller's atomic update of `γ`'s state by it (`kvOpStep`), persistent if the
+no lease or a delete whose range end is not `[0]` (what etcd's specs cover), with the caller's atomic update of `γ`'s state by it (`kvOpStep`), persistent if the
 client's writes may be delivered more than once (`□?dup`), all of the request the server reads (`rangeWireOf o`, `putWireOf o`, `deleteWireOf o`); a transaction
 (`OpTxn`, `Op.toTxnRequest`) is not specified here (`kv.Txn`'s builder sends one:
 `txn.Commit`). -/
@@ -34,11 +33,10 @@ def doRunOk (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → IProp GF) 
       □ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜(rangeWireOf o).base.serializable = false⌝ ∗
         AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ, COMM □ Q σ }>))) ∨
-    (⌜o.t = W64 2 ∧ (putWireOf o).leaseID = W64 0 ∧ γ.wl.writes (.put (putWireOf o))⌝ ∗
+    (⌜o.t = W64 2 ∧ (putWireOf o).leaseID = W64 0⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ (kvOpStep (.put (putWireOf o)) σ), COMM Q σ }>)) ∨
-    (⌜o.t = W64 3 ∧ (deleteWireOf o).base.rangeEnd ≠ [W8 0] ∧
-        γ.wl.writes (.deleteRange (deleteWireOf o))⌝ ∗
+    (⌜o.t = W64 3 ∧ (deleteWireOf o).base.rangeEnd ≠ [W8 0]⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ (kvOpStep (.deleteRange (deleteWireOf o)) σ), COMM Q σ }>)))
 

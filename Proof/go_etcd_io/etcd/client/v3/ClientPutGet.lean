@@ -61,8 +61,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **The client's invariant at a log's state** (allocated with the put not fired; every log's
 state is sorted by key, `mvcc.stateAfter_sorted`): from the client's `etcdKV` at `kvStateOf l`
 (the bootstrap log's model, as the server's allocation gives it, `srvBootOut`). -/
-theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString)
-    (hW : γr.kv.wl.writes (.put (putKeyOp key val))) (Em : CoPset) :
+theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString) (Em : CoPset) :
     etcdKV (GF := GF) γr.kv (kvStateOf l) ⊢ |={Em}=> ∃ γf : GName, putGetInv γr γf key val := by
   iintro Hσ
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γf, Hm, -⟩
@@ -73,8 +72,7 @@ theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString
   imodintro
   iexists γf
   iunfold putGetInv
-  iframe Hinv
-  ipureintro; exact hW
+  iexact Hinv
 
 /-- **`cli.Put(ctx, key, val)` by `New`'s client `cl`** (`client_put_end_to_end` at `putAu_of_putGetInv`, through the
 `KV` field):

@@ -102,24 +102,18 @@ fixed for a run. `admits`: the requests the instance lets into the log, within t
 leases the lessor may grant (`srvGrantGuard`, `NewServer`'s argument to `lease.NewLessor`). The
 fields after are the instance's obligations: its admission does not depend on the header the
 server stamps (`admits_header`, `apply.withHeader`), and it admits what the server's own
-proposers send: the KV writes of the operations its clients may deposit (`writes`, D23,
-2026-10-20: `EtcdServer.Put`/`DeleteRange`/`Txn`, `admits_write`; until then every KV write,
-`admits_kv`), reads always (`writes_range`), and the monitors' requests (`admits_cluster`). The
-leases-off instance is `putgetWorkload` (every operation). -/
+proposers send: every KV write (`EtcdServer.Put`/`DeleteRange`/`Txn`'s proposals, `admits_kv`;
+D43, 2026-10-25: D23's `writes`, the client operations an instance let its clients deposit, is
+gone, so a client's update carries no premise of the workload) and the monitors' requests
+(`admits_cluster`). The leases-off instance is `putgetWorkload`. -/
 structure SrvWorkload where
   admits : apply.IRRModel → Prop
   grant : w64 → Prop
-  /-- (D23, 2026-10-20) the client operations the instance's clients may deposit (`kvOpAu`,
-  `kvOpAu1` carry it), reads always -/
-  writes : KVOp → Prop
   admits_header : ∀ (rq : apply.IRRModel) (hm : apply.HeaderModel),
     admits rq → admits { rq with header := some hm }
-  /-- (D23) a KV write (`EtcdServer.Put`/`DeleteRange`/`Txn`'s proposal) of a deposited
-  operation is admitted; until D23 every KV write was (`admits_kv`) -/
-  admits_write : ∀ (rq : apply.IRRModel) (op : KVOp), (apply.dispatchKind rq = .put ∨
-    apply.dispatchKind rq = .deleteRange ∨ apply.dispatchKind rq = .txn) →
-    reqKVOp rq = some op → writes op → admits rq
-  writes_range : ∀ o : OpFull, writes (.range o)
+  /-- a KV write (`EtcdServer.Put`/`DeleteRange`/`Txn`'s proposal) is admitted -/
+  admits_kv : ∀ rq : apply.IRRModel, (apply.dispatchKind rq = .put ∨
+    apply.dispatchKind rq = .deleteRange ∨ apply.dispatchKind rq = .txn) → admits rq
   admits_cluster : ∀ rq : apply.IRRModel, (apply.dispatchKind rq = .clusterMemberAttrSet ∨
     apply.dispatchKind rq = .clusterVersionSet) → admits rq
 
@@ -138,11 +132,9 @@ lease granted (the grant guard `False`, D19n). -/
 def putgetWorkload : SrvWorkload where
   admits rq := putgetKind (apply.dispatchKind rq)
   grant _ := False
-  writes _ := True
   admits_header _ _ h := h
-  admits_write _ _ h _ _ := by
+  admits_kv _ h := by
     unfold putgetKind; rcases h with h | h | h <;> simp [h]
-  writes_range _ := trivial
   admits_cluster _ h := by
     unfold putgetKind; rcases h with h | h <;> simp [h]
 
