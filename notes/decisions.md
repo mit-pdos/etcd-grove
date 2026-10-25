@@ -19272,6 +19272,13 @@ done), and nothing proves `authBackendOk` of schema's auth backend over a real b
   against the layout).
 Recommendation: (a): S8d proceeds now, and the premise is exactly what (b) will prove.
 
+**Decided (2026-10-25, the user, via the auth session): (a).** `applySnapshot.spec` takes the auth
+store's `Recover` on the new backend as a named premise in the server's terms; the auth track
+discharges it when it brings the store's invariant to the server (its E stage, the server's boot).
+State the premise against S4f's contracts ("S4f of the auth plan"): `Recover` takes the admin
+side's whole authority (`authOwnF`), and the backend swap hands the batch lock's half of the history
+(`authLockI`) from the old backend to the new one (the new backend's `authWBackendOkR`).
+
 **The named premises S8d takes otherwise** (S-j1's inputs and threading, as the orchestrator
 directed; listed so S-j1 sees them): the snapshot message (non-nil, read-only metadata at index `i`
 and term, `i > ep.appliedi`, `ciEff ≤ i`); the snapshot file `fileHolds (snapDBPath ss i) D` with
