@@ -18044,7 +18044,7 @@ axiom until 6f links rafthttp. `Start`'s post also gives, once frozen, the netwo
 Two new trust-boundary axioms there: `Transport.SendSnapshot` (untranslated, D22's contract, cut
 out of `Start`'s as the stage-6 choice (1) said) and `Transport.ActiveSince` (translated; its
 read lock taken with no reader token: the server's request path calls it from any goroutine, at
-most `2^30 - 1` at once, physically). Gone: the opaque `transportLive`, `transportStarted`,
+most `2^30 - 1` at once, physically; why it stays an axiom: "`ActiveSince` stays an axiom", below). Gone: the opaque `transportLive`, `transportStarted`,
 `transportRemotes`, `raftHandlerOf`; `netSlot` is no longer used by the server (kept in
 `Net.lean`, D22's interface). `CutPeer`/`MendPeer` take `PeerPausable` as a premise (the link
 cannot supply a class), and the examples that reach them (linkv3p) as an instance.
@@ -18191,6 +18191,14 @@ owner ("can we decide on behalf of D22 owner? it seems small if we need to adjus
 interface and no proof depends on how D22 would prove them, so a revision by the owner is local:
 the statement, and the few lines of `send`/`createSnapBody` or `ServeHTTP` that use it. The owner
 is told, not asked.
+
+**`ActiveSince` stays an axiom (2026-10-25, the user's choice).** Its body is translated; what
+keeps it an axiom is the read lock taken without a reader token. Checked and rejected: minting a
+token (`trState ⊢ |==> trTok`) is unsound, ghost steps alone mint `2^30` of them; one axiom giving
+`RLock` without a token is unsound too, since Perennial's `RUnlock` returns a real token, so one
+goroutine looping `RLock`/`RUnlock` collects them. The sound form is two axioms (a token-free
+`RLock` giving an opaque read-locked fact, an `RUnlock` consuming it, contradicted only by `2^30`
+goroutines at once, as `netProcSlots`): one more axiom than now, for a map lookup and a status read.
 
 ## S4d of the auth plan: `RoleGrantPermission` performs the model's step (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4d`)
 
