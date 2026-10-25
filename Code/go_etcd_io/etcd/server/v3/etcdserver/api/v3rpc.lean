@@ -2451,7 +2451,7 @@ noncomputable def LeaseServer.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
-/-- go: maintenance.go:97:6 -/
+/-- go: maintenance.go:98:6 -/
 noncomputable def NewMaintenanceServer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "healthNotifier"
@@ -2491,7 +2491,7 @@ noncomputable def NewMaintenanceServer.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType maintenanceServer.ty)))) (Pair (Var "srv") (Var "$r0"))))))))))))
 
-/-- go: maintenance.go:335:35 -/
+/-- go: maintenance.go:351:35 -/
 noncomputable def authMaintenanceServer.Defragment.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ams"
   (Lam "ctx"
@@ -2521,7 +2521,7 @@ noncomputable def authMaintenanceServer.Defragment.impl [FfiSyntax] [GoGlobalCon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
-/-- go: maintenance.go:343:35 -/
+/-- go: maintenance.go:359:35 -/
 noncomputable def authMaintenanceServer.Snapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ams"
   (Lam "sr"
@@ -2548,7 +2548,7 @@ noncomputable def authMaintenanceServer.Snapshot.impl [FfiSyntax] [GoGlobalConte
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
-/-- go: maintenance.go:351:35 -/
+/-- go: maintenance.go:367:35 -/
 noncomputable def authMaintenanceServer.Hash.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ams"
   (Lam "ctx"
@@ -2578,7 +2578,7 @@ noncomputable def authMaintenanceServer.Hash.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
-/-- go: maintenance.go:359:35 -/
+/-- go: maintenance.go:375:35 -/
 noncomputable def authMaintenanceServer.HashKV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ams"
   (Lam "ctx"
@@ -2608,7 +2608,7 @@ noncomputable def authMaintenanceServer.HashKV.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
-/-- go: maintenance.go:366:35 -/
+/-- go: maintenance.go:382:35 -/
 noncomputable def authMaintenanceServer.Alarm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ams"
   (Lam "ctx"
@@ -2652,7 +2652,7 @@ noncomputable def authMaintenanceServer.Alarm.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))))
 
-/-- go: maintenance.go:380:35 -/
+/-- go: maintenance.go:396:35 -/
 noncomputable def authMaintenanceServer.Status.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ams"
   (Lam "ctx"
@@ -2682,7 +2682,7 @@ noncomputable def authMaintenanceServer.Status.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
-/-- go: maintenance.go:388:35 -/
+/-- go: maintenance.go:404:35 -/
 noncomputable def authMaintenanceServer.MoveLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ams"
   (Lam "ctx"
@@ -2712,7 +2712,7 @@ noncomputable def authMaintenanceServer.MoveLeader.impl [FfiSyntax] [GoGlobalCon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
-/-- go: maintenance.go:396:35 -/
+/-- go: maintenance.go:412:35 -/
 noncomputable def authMaintenanceServer.Downgrade.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ams"
   (Lam "ctx"

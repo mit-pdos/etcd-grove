@@ -71,6 +71,11 @@ def snapshot.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] snapshot.ty
 
+def defragmentedSnapshot.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.defragmentedSnapshot" [])
+
+attribute [irreducible] defragmentedSnapshot.ty
+
 def zapBoltLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.zapBoltLogger" [])
 
@@ -176,6 +181,9 @@ def bucketBuffer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] bucketBuffer.ty
 
+@[reducible] noncomputable def snapshotCompactTxMaxBytes [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 16777216)
+
 @[reducible] noncomputable def bucketBufferInitialSize [FfiSyntax] [GoGlobalContext] : val :=
   #(512 : Int)
 
@@ -262,6 +270,9 @@ noncomputable def NewDefaultBackend [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newBackend [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.newBackend"
 
+noncomputable def newSnapshot [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/backend.newSnapshot"
+
 noncomputable def defragdb [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragdb"
 
@@ -328,7 +339,7 @@ noncomputable def VerifyBackendConsistency [FfiSyntax] [GoGlobalContext] : GoStr
 noncomputable def unsafeVerifyTxConsistency [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.unsafeVerifyTxConsistency"
 
-/-- go: backend.go:180:6 -/
+/-- go: backend.go:182:6 -/
 noncomputable def DefaultBackendConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lg"
   (App (Val exceptionDo)
@@ -340,7 +351,7 @@ noncomputable def DefaultBackendConfig.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (Val (GoInstruction (CompositeLiteral BackendConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"BatchInterval")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"BatchLimit")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"MmapSize")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v3")))]))))))))))
 
-/-- go: backend.go:189:6 -/
+/-- go: backend.go:191:6 -/
 noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bcfg"
   (App (Val exceptionDo)
@@ -349,7 +360,7 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Convert (go.GoType.PointerType backend.ty) Backend.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad BackendConfig.ty))) (Var "bcfg"))
   (App (App (Val (GoInstruction (FuncResolve newBackend []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: backend.go:193:6 -/
+/-- go: backend.go:195:6 -/
 noncomputable def WithMmapSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "size"
   (App (Val exceptionDo)
@@ -365,7 +376,7 @@ noncomputable def WithMmapSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef BackendConfig.ty go!"MmapSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendConfig.ty)))) (Var "bcfg"))) (Var "$r0")))))))))))))
 
-/-- go: backend.go:199:6 -/
+/-- go: backend.go:201:6 -/
 noncomputable def WithTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "timeout"
   (App (Val exceptionDo)
@@ -381,7 +392,7 @@ noncomputable def WithTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (StructFieldRef BackendConfig.ty go!"Timeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendConfig.ty)))) (Var "bcfg"))) (Var "$r0")))))))))))))
 
-/-- go: backend.go:205:6 -/
+/-- go: backend.go:207:6 -/
 noncomputable def NewDefaultBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "path"
@@ -419,7 +430,7 @@ noncomputable def NewDefaultBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore BackendConfig.ty))) (Pair (Var "bcfg") (Var "$r0"))))))))))))))
 
-/-- go: backend.go:215:6 -/
+/-- go: backend.go:217:6 -/
 noncomputable def newBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bcfg"
   (App (Val exceptionDo)
@@ -549,7 +560,7 @@ noncomputable def newBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
     write operations. The write result can be retrieved within the same tx immediately.
     The write result is isolated with other txs until the current one get committed.
 
-    go: backend.go:284:19 -/
+    go: backend.go:286:19 -/
 noncomputable def backend.BatchTx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -558,7 +569,7 @@ noncomputable def backend.BatchTx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.PointerType batchTxBuffered.ty) BatchTx.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))))))))
 
-/-- go: backend.go:288:19 -/
+/-- go: backend.go:290:19 -/
 noncomputable def backend.SetTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "hook"
@@ -583,7 +594,7 @@ noncomputable def backend.SetTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGloba
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #())))))))))))
 
-/-- go: backend.go:296:19 -/
+/-- go: backend.go:298:19 -/
 noncomputable def backend.ReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -596,7 +607,7 @@ noncomputable def backend.ReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
     A) creates and keeps a copy of backend.readTx.txReadBuffer,
     B) references the boltdb read Tx (and its bucket cache) of current batch interval.
 
-    go: backend.go:301:19 -/
+    go: backend.go:303:19 -/
 noncomputable def backend.ConcurrentReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -700,7 +711,7 @@ noncomputable def backend.ConcurrentReadTx.impl [FfiSyntax] [GoGlobalContext] : 
 
 /-- ForceCommit forces the current batching tx to commit.
 
-    go: backend.go:377:19 -/
+    go: backend.go:379:19 -/
 noncomputable def backend.ForceCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -712,7 +723,74 @@ noncomputable def backend.ForceCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #()))))))))
 
-/-- go: backend.go:455:19 -/
+/-- go: backend.go:383:19 -/
+noncomputable def backend.Snapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType backend.ty)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (Val #false)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty) go!"Begin"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "tx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "tx"))
+  (App (App (App (Val (GoInstruction (FuncResolve newSnapshot []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc snapshot.ty))) (App (Val (GoInstruction (GoZeroVal snapshot.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType snapshot.ty) Snapshot.ty))) (Var "s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore snapshot.ty))) (Pair (Var "s") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to begin tx"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Fatal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (Var "tx") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #())))))))))
+
+/-- go: backend.go:431:19 -/
+noncomputable def backend.SnapshotDefragmented.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType backend.ty)))) (Var "b"))
+  (Let "__p" (Let "$a0" (Val snapshotCompactTxMaxBytes)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType backend.ty) go!"snapshotDefragmented"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))))
+
+/-- go: backend.go:536:19 -/
 noncomputable def backend.Size.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -722,7 +800,7 @@ noncomputable def backend.Size.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef backend.ty go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: backend.go:459:19 -/
+/-- go: backend.go:540:19 -/
 noncomputable def backend.SizeInUse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -732,7 +810,7 @@ noncomputable def backend.SizeInUse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef backend.ty go!"sizeInUse"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: backend.go:463:19 -/
+/-- go: backend.go:544:19 -/
 noncomputable def backend.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -789,7 +867,7 @@ noncomputable def backend.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Var "$a0"))
   (App (Var "$oldf") (Val #())))))))))))))))))
 
-/-- go: backend.go:481:19 -/
+/-- go: backend.go:562:19 -/
 noncomputable def backend.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -818,7 +896,7 @@ noncomputable def backend.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Commits returns total number of commits since start
 
-    go: backend.go:490:19 -/
+    go: backend.go:571:19 -/
 noncomputable def backend.Commits.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -828,7 +906,7 @@ noncomputable def backend.Commits.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef backend.ty go!"commits"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: backend.go:1086:19 -/
+/-- go: backend.go:1167:19 -/
 noncomputable def backend.begin.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
@@ -880,7 +958,7 @@ noncomputable def backend.begin.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #())))))))))
 
-/-- go: backend.go:1101:19 -/
+/-- go: backend.go:1182:19 -/
 noncomputable def backend.unsafeBegin.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
@@ -914,7 +992,7 @@ noncomputable def backend.unsafeBegin.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (Var "tx") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:1111:19 -/
+/-- go: backend.go:1192:19 -/
 noncomputable def backend.OpenReadTxN.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -924,7 +1002,7 @@ noncomputable def backend.OpenReadTxN.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef backend.ty go!"openReadTxN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: backend.go:1115:19 -/
+/-- go: backend.go:1196:19 -/
 noncomputable def backend.LockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -936,7 +1014,7 @@ noncomputable def backend.LockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalConte
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #()))))))))
 
-/-- go: backend.go:1119:19 -/
+/-- go: backend.go:1200:19 -/
 noncomputable def backend.UnlockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -948,7 +1026,7 @@ noncomputable def backend.UnlockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalCon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #()))))))))
 
-/-- go: backend.go:1129:20 -/
+/-- go: backend.go:1210:20 -/
 noncomputable def snapshot.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -963,6 +1041,23 @@ noncomputable def snapshot.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef snapshot.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType snapshot.ty)))) (Var "s"))))
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))))
+
+/-- go: backend.go:1221:32 -/
+noncomputable def defragmentedSnapshot.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType defragmentedSnapshot.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType snapshot.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldRef defragmentedSnapshot.ty go!"snapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType defragmentedSnapshot.ty)))) (Var "s")))) (Val #())))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (StructFieldRef defragmentedSnapshot.ty go!"closer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType defragmentedSnapshot.ty)))) (Var "s"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #())))))))))))))))
 
 /-- Lock is supposed to be called only by the unit test.
 
@@ -3169,7 +3264,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 abbrev Backend [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"BatchTx" (go.signature.Signature [] false [BatchTx.ty])), (go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"ConcurrentReadTx" (go.signature.Signature [] false [ReadTx.ty])), (go.InterfaceElem.MethodElem go!"Defrag" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"ForceCommit" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Hash" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.bool]))] false [go.uint32, go.error])), (go.InterfaceElem.MethodElem go!"LockForSafeRangeDelete" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"OpenReadTxN" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"ReadTx" (go.signature.Signature [] false [ReadTx.ty])), (go.InterfaceElem.MethodElem go!"SetTxPostLockInsideApplyHook" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [])), (go.InterfaceElem.MethodElem go!"Size" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"SizeInUse" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"Snapshot" (go.signature.Signature [] false [Snapshot.ty])), (go.InterfaceElem.MethodElem go!"UnlockForSafeRangeDelete" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"BatchTx" (go.signature.Signature [] false [BatchTx.ty])), (go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"ConcurrentReadTx" (go.signature.Signature [] false [ReadTx.ty])), (go.InterfaceElem.MethodElem go!"Defrag" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"ForceCommit" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Hash" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.bool]))] false [go.uint32, go.error])), (go.InterfaceElem.MethodElem go!"LockForSafeRangeDelete" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"OpenReadTxN" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"ReadTx" (go.signature.Signature [] false [ReadTx.ty])), (go.InterfaceElem.MethodElem go!"SetTxPostLockInsideApplyHook" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [])), (go.InterfaceElem.MethodElem go!"Size" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"SizeInUse" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"Snapshot" (go.signature.Signature [] false [Snapshot.ty])), (go.InterfaceElem.MethodElem go!"SnapshotDefragmented" (go.signature.Signature [] false [Snapshot.ty, go.error])), (go.InterfaceElem.MethodElem go!"UnlockForSafeRangeDelete" (go.signature.Signature [] false []))])
 
 class Backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Backend.ty Backend.underlying
@@ -3355,6 +3450,8 @@ class backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   ptr_SetTxPostLockInsideApplyHook_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"SetTxPostLockInsideApplyHook" backend.SetTxPostLockInsideApplyHook.impl
   ptr_Size_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"Size" backend.Size.impl
   ptr_SizeInUse_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"SizeInUse" backend.SizeInUse.impl
+  ptr_Snapshot_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"Snapshot" backend.Snapshot.impl
+  ptr_SnapshotDefragmented_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"SnapshotDefragmented" backend.SnapshotDefragmented.impl
   ptr_UnlockForSafeRangeDelete_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"UnlockForSafeRangeDelete" backend.UnlockForSafeRangeDelete.impl
   ptr_begin_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"begin" backend.begin.impl
   ptr_run_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"run" backend.run.impl
@@ -3415,6 +3512,8 @@ attribute [instance] backend.TypeAssumptions.type_repr
   backend.TypeAssumptions.ptr_SetTxPostLockInsideApplyHook_unfold
   backend.TypeAssumptions.ptr_Size_unfold
   backend.TypeAssumptions.ptr_SizeInUse_unfold
+  backend.TypeAssumptions.ptr_Snapshot_unfold
+  backend.TypeAssumptions.ptr_SnapshotDefragmented_unfold
   backend.TypeAssumptions.ptr_UnlockForSafeRangeDelete_unfold
   backend.TypeAssumptions.ptr_begin_unfold
   backend.TypeAssumptions.ptr_run_unfold
@@ -3556,7 +3655,15 @@ class snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_stopc : ∀ (x : snapshot) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : snapshot)))
   get_donec : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"donec") #x (Val #(x.donec'))
   set_donec : ∀ (x : snapshot) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : snapshot)))
+  Size_unfold : MethodUnfold snapshot.ty go!"Size" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Size"))) (App (Val (GoInstruction (StructFieldGet snapshot.ty go!"Tx"))) (Var "$r"))))
+  WriteTo_unfold : MethodUnfold snapshot.ty go!"WriteTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"WriteTo"))) (App (Val (GoInstruction (StructFieldGet snapshot.ty go!"Tx"))) (Var "$r"))))
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"Close" snapshot.Close.impl
+  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"Size" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef snapshot.ty go!"Tx"))) (Var "$r")))))
+  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"WriteTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"WriteTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef snapshot.ty go!"Tx"))) (Var "$r")))))
 
 attribute [instance] snapshot.TypeAssumptions.type_repr
   snapshot.TypeAssumptions.underlying
@@ -3566,7 +3673,62 @@ attribute [instance] snapshot.TypeAssumptions.type_repr
   snapshot.TypeAssumptions.set_stopc
   snapshot.TypeAssumptions.get_donec
   snapshot.TypeAssumptions.set_donec
+  snapshot.TypeAssumptions.Size_unfold
+  snapshot.TypeAssumptions.WriteTo_unfold
   snapshot.TypeAssumptions.ptr_Close_unfold
+  snapshot.TypeAssumptions.ptr_Size_unfold
+  snapshot.TypeAssumptions.ptr_WriteTo_unfold
+
+structure defragmentedSnapshot [FfiSyntax] where
+  mk ::
+  snapshot' : snapshot
+  closer' : GoFunc
+
+instance defragmentedSnapshot.zero_val [FfiSyntax] : ZeroVal defragmentedSnapshot :=
+  ⟨defragmentedSnapshot.mk zeroValDef zeroValDef⟩
+
+@[reducible] def defragmentedSnapshot.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"snapshot" snapshot.ty),
+(go.field_decl.FieldDecl go!"closer" (go.GoType.FunctionType (go.signature.Signature [] false [])))]
+
+@[irreducible] def defragmentedSnapshot.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  defragmentedSnapshot.fieldsUnsealed
+
+instance equals_unfold_defragmentedSnapshot [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold defragmentedSnapshot.fields defragmentedSnapshot.fieldsUnsealed :=
+  ⟨by unfold defragmentedSnapshot.fields; rfl⟩
+
+@[reducible] def defragmentedSnapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType defragmentedSnapshot.fields)
+
+class defragmentedSnapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying defragmentedSnapshot.underlying defragmentedSnapshot
+  underlying : go.UnderlyingDirectedEq defragmentedSnapshot.ty defragmentedSnapshot.underlying
+  get_snapshot : ∀ (x : defragmentedSnapshot), go.IsGoStepPureDetTagged under (StructFieldGet defragmentedSnapshot.underlying go!"snapshot") #x (Val #(x.snapshot'))
+  set_snapshot : ∀ (x : defragmentedSnapshot) (y : snapshot), go.IsGoStepPureDetTagged under (StructFieldSet defragmentedSnapshot.underlying go!"snapshot") (PairV #x #y) (Val #(({ x with snapshot' := y } : defragmentedSnapshot)))
+  get_closer : ∀ (x : defragmentedSnapshot), go.IsGoStepPureDetTagged under (StructFieldGet defragmentedSnapshot.underlying go!"closer") #x (Val #(x.closer'))
+  set_closer : ∀ (x : defragmentedSnapshot) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet defragmentedSnapshot.underlying go!"closer") (PairV #x #y) (Val #(({ x with closer' := y } : defragmentedSnapshot)))
+  Size_unfold : MethodUnfold defragmentedSnapshot.ty go!"Size" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve snapshot.ty go!"Size"))) (App (Val (GoInstruction (StructFieldGet defragmentedSnapshot.ty go!"snapshot"))) (Var "$r"))))
+  WriteTo_unfold : MethodUnfold defragmentedSnapshot.ty go!"WriteTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve snapshot.ty go!"WriteTo"))) (App (Val (GoInstruction (StructFieldGet defragmentedSnapshot.ty go!"snapshot"))) (Var "$r"))))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType defragmentedSnapshot.ty) go!"Close" defragmentedSnapshot.Close.impl
+  ptr_Size_unfold : MethodUnfold (go.GoType.PointerType defragmentedSnapshot.ty) go!"Size" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType snapshot.ty) go!"Size"))) (App (Val (GoInstruction (StructFieldRef defragmentedSnapshot.ty go!"snapshot"))) (Var "$r"))))
+  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType defragmentedSnapshot.ty) go!"WriteTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType snapshot.ty) go!"WriteTo"))) (App (Val (GoInstruction (StructFieldRef defragmentedSnapshot.ty go!"snapshot"))) (Var "$r"))))
+
+attribute [instance] defragmentedSnapshot.TypeAssumptions.type_repr
+  defragmentedSnapshot.TypeAssumptions.underlying
+  defragmentedSnapshot.TypeAssumptions.get_snapshot
+  defragmentedSnapshot.TypeAssumptions.set_snapshot
+  defragmentedSnapshot.TypeAssumptions.get_closer
+  defragmentedSnapshot.TypeAssumptions.set_closer
+  defragmentedSnapshot.TypeAssumptions.Size_unfold
+  defragmentedSnapshot.TypeAssumptions.WriteTo_unfold
+  defragmentedSnapshot.TypeAssumptions.ptr_Close_unfold
+  defragmentedSnapshot.TypeAssumptions.ptr_Size_unfold
+  defragmentedSnapshot.TypeAssumptions.ptr_WriteTo_unfold
 
 structure zapBoltLogger [FfiSyntax] where
   mk ::
@@ -4272,6 +4434,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   BackendConfig_instance : BackendConfig.TypeAssumptions
   BackendConfigOption_instance : BackendConfigOption.TypeAssumptions
   snapshot_instance : snapshot.TypeAssumptions
+  defragmentedSnapshot_instance : defragmentedSnapshot.TypeAssumptions
   zapBoltLogger_instance : zapBoltLogger.TypeAssumptions
   BucketID_instance : BucketID.TypeAssumptions
   Bucket_instance : Bucket.TypeAssumptions
@@ -4327,6 +4490,7 @@ attribute [instance] Assumptions.Backend_instance
   Assumptions.BackendConfig_instance
   Assumptions.BackendConfigOption_instance
   Assumptions.snapshot_instance
+  Assumptions.defragmentedSnapshot_instance
   Assumptions.zapBoltLogger_instance
   Assumptions.BucketID_instance
   Assumptions.Bucket_instance

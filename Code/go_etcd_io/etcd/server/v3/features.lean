@@ -47,6 +47,9 @@ axiom FastLeaseKeepAlive [FfiSyntax] [GoGlobalContext] : val
 
 axiom NonBlockingDefrag [FfiSyntax] [GoGlobalContext] : val
 
+@[reducible] noncomputable def DefragmentedSnapshot [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"DefragmentedSnapshot")
+
 noncomputable def DefaultEtcdServerFeatureGates [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/features.DefaultEtcdServerFeatureGates"
 

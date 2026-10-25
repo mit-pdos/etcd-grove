@@ -62,7 +62,7 @@ theorem newServer.wp_proof
   iintro %curls ⟨Hcurls, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
-  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc⟩
+  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc, #_⟩
   (try wp_auto)
   -- the member's storage registry (D19r (B)), its `bootstrap`'s to join
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%γreg, Hreg⟩

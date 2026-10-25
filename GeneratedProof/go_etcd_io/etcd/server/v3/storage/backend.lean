@@ -770,6 +770,63 @@ instance snapshot_access_store_donec (l : Loc) (v : go_etcd_io.etcd.server.v3.st
 end def_
 end snapshot
 
+namespace defragmentedSnapshot
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+instance defragmentedSnapshot_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot where
+  typedPointstoDef l v dq := iprop(
+    "snapshot" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"snapshot" l) v.snapshot' dq ∗
+    "closer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"closer" l) v.closer' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance defragmentedSnapshot_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot.underlying := by
+  solve_into_val_typed_struct
+
+instance defragmentedSnapshot_access_load_snapshot (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"snapshot" l) v.snapshot' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"snapshot" l) v.snapshot' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance defragmentedSnapshot_access_store_snapshot (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot) (snapshot' : go_etcd_io.etcd.server.v3.storage.backend.snapshot) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"snapshot" l) v.snapshot' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"snapshot" l) snapshot' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshot' := snapshot' } : go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance defragmentedSnapshot_access_load_closer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"closer" l) v.closer' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"closer" l) v.closer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance defragmentedSnapshot_access_store_closer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot) (closer' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"closer" l) v.closer' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot go!"closer" l) closer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closer' := closer' } : go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end defragmentedSnapshot
+
 namespace zapBoltLogger
 section def_
 

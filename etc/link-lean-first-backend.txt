@@ -137,3 +137,10 @@ snapshot__WriteTo:
 # over the opaque `snapRO`): axioms, linked for the sender.
 snapshot__Size:
 snapshot__Close:
+# (etcd#21776) defragmented snapshots: `backend.snapshotDefragmented` (trust boundary),
+# `backend.SnapshotDefragmented`, and `defragmentedSnapshot.{Size,WriteTo,Close}` (proved).
+backend__snapshotDefragmented:
+backend__SnapshotDefragmented: backend__snapshotDefragmented
+defragmentedSnapshot__Size: snapshot__Size
+defragmentedSnapshot__WriteTo: snapshot__WriteTo
+defragmentedSnapshot__Close: snapshot__Close

@@ -34,7 +34,9 @@ translate = ["!*",
   "backend.ReadTx", "backend.ConcurrentReadTx", "backend.ForceCommit", "backend.Size",
   "backend.SizeInUse", "backend.run", "backend.Close", "backend.Commits", "backend.begin",
   "backend.unsafeBegin", "backend.OpenReadTxN", "backend.LockForSafeRangeDelete",
-  "backend.UnlockForSafeRangeDelete", "snapshot.Close",
+  "backend.UnlockForSafeRangeDelete", "snapshot.Close", "snapshot.Size", "snapshot.WriteTo",
+  "backend.Snapshot", "snapshotCompactTxMaxBytes", "backend.SnapshotDefragmented",
+  "defragmentedSnapshot.Close", "defragmentedSnapshot.Size", "defragmentedSnapshot.WriteTo",
   # config_linux.go (boltOpenOptions names only: it is syscall's MAP_POPULATE, which Perennial
   # does not translate)
   "BackendConfig.mmapSize",

@@ -1,0 +1,44 @@
+=== RUN   TestPR21776Finding1_SnapshotDefragmentedHoldsBMuRLockAndStallsBatchTxDuringDefrag
+    repro_pr21776_test.go:121: FINDING 1 REPRODUCED:
+    repro_pr21776_test.go:122:   snapshotDefragmented(1) duration (holding b.mu.RLock): 11.905526ms
+    repro_pr21776_test.go:123:   batchTx.LockInsideApply stall while Defrag queued on b.mu.Lock: 11.189607ms
+    repro_pr21776_test.go:124:   concurrent b.Snapshot() stall behind queued b.mu.Lock:          11.131969ms
+--- PASS: TestPR21776Finding1_SnapshotDefragmentedHoldsBMuRLockAndStallsBatchTxDuringDefrag (0.02s)
+=== RUN   TestPR21776Finding2_SnapshotDefragmentedIgnoresBoptsAndRunsWithNoSyncFalse
+    logger.go:146: 2026-10-24T20:59:33.517-0400	INFO	bbolt	Opening db file (/tmp/TestPR21776Finding2_SnapshotDefragmentedIgnoresBoptsAndRunsWithN2520767538/001/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: true, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: hashmap, ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 67108864, PageSize: 0, MaxSize: 0, NoSync: true, OpenFile: 0x0, Mlock: false, Logger: 0x340cab582080, NoStatistics: false}
+    logger.go:146: 2026-10-24T20:59:33.517-0400	INFO	bbolt	Opening bbolt db (/tmp/TestPR21776Finding2_SnapshotDefragmentedIgnoresBoptsAndRunsWithN2520767538/001/db) successfully
+    logger.go:146: 2026-10-24T20:59:33.517-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T20:59:33.517-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T20:59:33.517-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T20:59:33.517-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T20:59:33.517-0400	INFO	bbolt	Opening db file (/tmp/TestPR21776Finding2_SnapshotDefragmentedIgnoresBoptsAndRunsWithN2520767538/001/db.tmp.234274321) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: true, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: hashmap, ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 67108864, PageSize: 0, MaxSize: 0, NoSync: true, OpenFile: 0x9083a0, Mlock: false, Logger: 0x340cab582080, NoStatistics: false}
+    logger.go:146: 2026-10-24T20:59:33.517-0400	INFO	bbolt	Opening bbolt db (/tmp/TestPR21776Finding2_SnapshotDefragmentedIgnoresBoptsAndRunsWithN2520767538/001/db.tmp.234274321) successfully
+    logger.go:146: 2026-10-24T20:59:33.517-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T20:59:33.517-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T20:59:33.518-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T20:59:33.518-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    repro_pr21776_test.go:165: FINDING 2 REPRODUCED:
+    repro_pr21776_test.go:166:   live backend b.bopts:     NoSync=true NoGrowSync=true FreelistType=hashmap InitialMmapSize=67108864
+    repro_pr21776_test.go:168:   createDefragTmpDB tmpdb:  NoSync=true NoGrowSync=true FreelistType=hashmap
+    repro_pr21776_test.go:170:   snapshotDefragmented db:  NoSync=false NoGrowSync=false FreelistType=
+    logger.go:146: 2026-10-24T20:59:33.518-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T20:59:33.518-0400	DEBUG	bbolt	Committing transaction 2 successfully
+--- PASS: TestPR21776Finding2_SnapshotDefragmentedIgnoresBoptsAndRunsWithNoSyncFalse (0.00s)
+=== RUN   TestPR21776Finding3_DefragmentedSnapshotCloseSwallowsCloserErrors
+    logger.go:146: 2026-10-24T20:59:33.519-0400	INFO	bbolt	Opening db file (/tmp/TestPR21776Finding3_DefragmentedSnapshotCloseSwallowsCloserError1210808832/001/db) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: true, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: true, OpenFile: 0x0, Mlock: false, Logger: 0x340cab81a060, NoStatistics: false}
+    logger.go:146: 2026-10-24T20:59:33.519-0400	INFO	bbolt	Opening bbolt db (/tmp/TestPR21776Finding3_DefragmentedSnapshotCloseSwallowsCloserError1210808832/001/db) successfully
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-24T20:59:33.519-0400	WARN	failed to remove temp defragmented snapshot file	{"path": "/tmp/TestPR21776Finding3_DefragmentedSnapshotCloseSwallowsCloserError1210808832/001/db.tmp.snap.194654949", "error": "remove /tmp/TestPR21776Finding3_DefragmentedSnapshotCloseSwallowsCloserError1210808832/001/db.tmp.snap.194654949: no such file or directory"}
+    repro_pr21776_test.go:221: FINDING 3 REPRODUCED: snap.Close() returned <nil> despite removeTemp() failing on pre-removed db.tmp.snap.194654949
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-24T20:59:33.519-0400	DEBUG	bbolt	Committing transaction 2 successfully
+--- PASS: TestPR21776Finding3_DefragmentedSnapshotCloseSwallowsCloserErrors (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/backend	0.041s

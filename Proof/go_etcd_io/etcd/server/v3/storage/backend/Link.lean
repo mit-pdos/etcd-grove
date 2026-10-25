@@ -26,9 +26,11 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPost
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__Size
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__SizeInUse
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__SnapshotDefragmented
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__UnlockForSafeRangeDelete
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__begin
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__run
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__snapshotDefragmented
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__unsafeBegin
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeRange
@@ -94,6 +96,9 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__RUnlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__Unlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__UnsafeRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot__Close
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot__Size
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot__WriteTo
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.hooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBatchTxBuffered
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap
@@ -399,6 +404,14 @@ theorem backend.wp_Snapshot :
     EtcdGrove.backend.backend.Snapshot.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.Snapshot.wp_proof
 
+theorem backend.wp_snapshotDefragmented :
+    EtcdGrove.backend.backend.snapshotDefragmented.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.backend.snapshotDefragmented.wp_proof
+
+theorem backend.wp_SnapshotDefragmented :
+    EtcdGrove.backend.backend.SnapshotDefragmented.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.backend.SnapshotDefragmented.wp_proof backend.wp_snapshotDefragmented
+
 theorem backend.wp_UnlockForSafeRangeDelete :
     EtcdGrove.backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.UnlockForSafeRangeDelete.wp_proof
@@ -587,6 +600,30 @@ theorem concurrentReadTx.wp_UnsafeRange :
     EtcdGrove.backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.concurrentReadTx.UnsafeRange.wp_proof baseReadTx.wp_UnsafeRange
 
+theorem snapshot.wp_Close :
+    EtcdGrove.backend.snapshot.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.Close.wp_proof
+
+theorem defragmentedSnapshot.wp_Close :
+    EtcdGrove.backend.defragmentedSnapshot.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.defragmentedSnapshot.Close.wp_proof snapshot.wp_Close
+
+theorem snapshot.wp_Size :
+    EtcdGrove.backend.snapshot.Size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.Size.wp_proof
+
+theorem defragmentedSnapshot.wp_Size :
+    EtcdGrove.backend.defragmentedSnapshot.Size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.defragmentedSnapshot.Size.wp_proof snapshot.wp_Size
+
+theorem snapshot.wp_WriteTo :
+    EtcdGrove.backend.snapshot.WriteTo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.WriteTo.wp_proof
+
+theorem defragmentedSnapshot.wp_WriteTo :
+    EtcdGrove.backend.defragmentedSnapshot.WriteTo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.defragmentedSnapshot.WriteTo.wp_proof snapshot.wp_WriteTo
+
 theorem readTx.wp_RLock :
     EtcdGrove.backend.readTx.RLock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.readTx.RLock.wp_proof
@@ -598,18 +635,6 @@ theorem readTx.wp_RUnlock :
 theorem readTx.wp_UnsafeRange :
     EtcdGrove.backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.readTx.UnsafeRange.wp_proof baseReadTx.wp_UnsafeRange
-
-theorem snapshot.wp_Close :
-    EtcdGrove.backend.snapshot.Close.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.snapshot.Close.wp_proof
-
-theorem snapshot.wp_Size :
-    EtcdGrove.backend.snapshot.Size.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.snapshot.Size.wp_proof
-
-theorem snapshot.wp_WriteTo :
-    EtcdGrove.backend.snapshot.WriteTo.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.snapshot.WriteTo.wp_proof
 
 theorem txReadBuffer.wp_ForEach :
     EtcdGrove.backend.txReadBuffer.ForEach.spec (GF := GF) (hG := hG) :=

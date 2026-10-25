@@ -45,6 +45,22 @@ abbrev newSnapshotReaderCloser.spec : Prop :=
       backend.snapOpenQ sp D γ (1 : Qp).half -∗
         backend.readerStreams rc (fun bs => backend.boltImage bs D) }}
 
+/-- `newSnapshotReaderCloser(lg, ds)` (`etcd#21776`), of a non-nil logger and half of a
+defragmented snapshot (`*defragmentedSnapshot`) open over bbolt's committed data `D`
+(`defragSnapOpenQ`, consumed: the goroutine streams it, then closes and removes the temporary
+database): a reader whose complete streams are bbolt images of `D`, given for the other half. -/
+abbrev newSnapshotReaderCloser_defrag.spec : Prop :=
+  ∀ (lg ds : Loc) (D : backend.Data) (γ : GName × GName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜lg ≠ null⌝ ∗
+      backend.defragSnapOpenQ ds D γ (1 : Qp).half }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser)) (Val #lg))
+      (Val #(interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.defragmentedSnapshot.ty)
+        #ds)))
+  {{ (rc : GoInterface), RET #rc;
+      backend.defragSnapOpenQ ds D γ (1 : Qp).half -∗
+        backend.readerStreams rc (fun bs => backend.boltImage bs D) }}
+
 end spec
 
 end EtcdGrove

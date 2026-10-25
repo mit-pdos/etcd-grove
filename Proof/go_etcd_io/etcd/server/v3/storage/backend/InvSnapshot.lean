@@ -56,6 +56,19 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 /-- **The bytes `bs` are a bbolt database file holding `D`** (opaque; see the file header). -/
 opaque boltImage (bs : List w8) (D : Data) : Prop
 
+section addrs
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- The embedded `snapshot` field of a `*defragmentedSnapshot` `ds` (`etcd#21776`). -/
+abbrev dsSnapOf (ds : Loc) : Loc :=
+  structFieldRef defragmentedSnapshot go!"snapshot" ds
+
+/-- The `closer` field of a `*defragmentedSnapshot` `ds` (`etcd#21776`). -/
+abbrev dsCloserOf (ds : Loc) : Loc :=
+  structFieldRef defragmentedSnapshot go!"closer" ds
+
+end addrs
+
 section preds
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -117,6 +130,42 @@ which `newSnapshotReaderCloser` calls only when `WriteTo` succeeded: S-h) makes 
 opaque readerStreams (r : GoInterface) (Φ : List w8 → Prop) : IProp GF
 
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+/-- **A share `q` of the defragmented snapshot `ds` (`*defragmentedSnapshot`) open over `D`**
+(`etcd#21776`): the share `q` of its embedded `snapshot` (`dsSnapOf ds`) open over `D`, its
+`closer` field read-only (`dsCloserOf ds ↦□ cl`), and the share `q` of the closer's token `γ.2`,
+with the contract that once the whole (`q = 1`) of the closer's token is held, `cl()` closes and
+removes the temporary defragmented database and returns `()`. -/
+def defragSnapOpenQ (ds : Loc) (D : Data) (γ : GName × GName) (q : Qp) : IProp GF :=
+  iprop(snapOpenQ (dsSnapOf ds) D γ.1 q ∗ ghostVar γ.2 q () ∗
+    ∃ cl : GoFunc, dsCloserOf ds ↦□ cl ∗
+      □ ({{ ghostVar γ.2 1 () }} (App (Val #cl) (Val #())) {{ RET #(); True }}))
+
+/-- **The defragmented snapshot `ds` is open over bbolt's committed data `D`** (exclusive,
+`etcd#21776`): the whole of it. -/
+def defragSnapOpen (ds : Loc) (D : Data) : IProp GF :=
+  iprop(∃ γ : GName × GName, defragSnapOpenQ ds D γ 1)
+
+/-- A share of an open defragmented snapshot as two halves, both ways (`etcd#21776`). -/
+theorem defragSnapOpenQ_half (ds : Loc) (D : Data) (γ : GName × GName) (q : Qp) :
+    defragSnapOpenQ (GF := GF) ds D γ q ⊣⊢
+      defragSnapOpenQ ds D γ q.half ∗ defragSnapOpenQ ds D γ q.half := by
+  unfold defragSnapOpenQ
+  constructor
+  · iintro ⟨Hs, Hg, %cl, #Hcl, #Hwp⟩
+    icases (snapOpenQ_half (GF := GF) (dsSnapOf ds) D γ.1 q).1 $$ Hs with ⟨Hs1, Hs2⟩
+    icases (ghostVar_split_half (GF := GF) γ.2 q ()).1 $$ Hg with ⟨Hg1, Hg2⟩
+    isplitl [Hs1 Hg1]
+    · iframe Hs1 Hg1 Hcl Hwp
+    · iframe Hs2 Hg2 Hcl Hwp
+  · iintro ⟨⟨Hs1, Hg1, %cl, #Hcl, #Hwp⟩, ⟨Hs2, Hg2, -⟩⟩
+    isplitl [Hs1 Hs2]
+    · iapply (snapOpenQ_half (GF := GF) (dsSnapOf ds) D γ.1 q).2
+      iframe Hs1 Hs2
+    isplitl [Hg1 Hg2]
+    · iapply (ghostVar_split_half (GF := GF) γ.2 q ()).2
+      iframe Hg1 Hg2
+    iframe Hcl Hwp
 
 /-- **The batch lock's quarter of the readers' view** at `vd` (see the file header). -/
 def viewAt (γ : BNames) (vd : VData) : IProp GF := ghostVar γ.view (1 : Qp).half.half vd
