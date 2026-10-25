@@ -35,7 +35,7 @@ theorem rafthttp.messageDecoder.decode.wp_proof
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HRBL, -⟩
   wp_auto
   wp_apply hLimit dec r Rd B rs (W64 536870912) (by decide) $$ [HRd]
-    as %ml %err ⟨#Herr, %rs', HRd, Hok⟩
+    as %ml %err ⟨#Herr, -, %rs', HRd, Hok⟩
   · iframe; iframe #
   iapply HΦ
   iframe Herr

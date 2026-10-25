@@ -1,12 +1,11 @@
 # rafthttp's message path with bodies (D38, `notes/rafthttp-plan.md` stage 1, 2026-10-22): the
 # transport, peers, stream writers and readers, the pipeline, remotes, the pipeline and stream
-# handlers, the two codecs, the URL picker, the peer status and the request helpers. Names only:
-# the snapshot stream (the sender, its handler and `SendSnapshot`: D22's contract, an axiom), the
-# probes, the package variables' and metrics' initializers and `init`, and the round trippers' and listener's
-# constructors (the HTTP boundary's).
-translate = ["*", "!init.*",
-  "!newSnapshotSender", "!snapshotSender.*", "!createSnapBody", "!snapResponseReadTimeout",
-  "!newSnapshotHandler", "!snapshotHandler.*", "!Transport.SendSnapshot", "!peer.sendSnap",
+# handlers, the two codecs, the URL picker, the peer status and the request helpers; (2026-10-24,
+# stage 7c) the snapshot stream (the sender, its handler, `SendSnapshot`, `peer.sendSnap`). Names
+# only: the probes, the package variables' and metrics' initializers (`snapResponseReadTimeout`'s
+# too: any duration does) and `init`, and the round trippers' and listener's constructors (the HTTP
+# boundary's).
+translate = ["*", "!init.*", "!snapResponseReadTimeout",
   "!addPeerToProber", "!monitorProbingStatus",
   "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper", "!waitSchedule",
   "!activePeers", "!disconnectedPeers", "!sentBytes", "!receivedBytes", "!sentFailures",

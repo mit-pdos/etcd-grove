@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.ioutil.NewLimitedBufferReader
 public import Spec.google_golang_org.protobuf.proto.UnmarshalPb
 public import Spec.errors.AsLeaf
 public import Spec.context.TODO
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TodoCtx
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Error
@@ -36,17 +37,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 variable [ErrorStringNotWriter] [ErrorStringLeaf]
-
-/-- `context.TODO()`'s `Done()` is `nil` (as `mvcc`'s `wp_todoCtx_Done`, for `todoCtx`). -/
-theorem wp_todoCtx_Done' :
-    {{ (True : IProp GF) }}
-      (App (Val #(methods context.todoCtx.ty go!"Done" #(zero_val context.todoCtx))) (Val #()))
-    {{ RET #chan.nil; True }} := by
-  wp_start
-  wp_method_call
-  wp_auto
-  iapply HΦ
-  itrivial
 
 theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
     (hRespHeader : http.RespHeader_spec (GF := GF))

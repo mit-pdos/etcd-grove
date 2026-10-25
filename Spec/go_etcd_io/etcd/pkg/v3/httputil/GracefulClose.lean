@@ -22,12 +22,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `httputil.GracefulClose(resp)` of a received response with its body's reader: drains the body
-(`io.Copy(io.Discard, resp.Body)`) and closes it, then returns. -/
+/-- `httputil.GracefulClose(resp)` of a received response, its body read without a guarantee
+(`respReadAny`; 2026-10-24, rafthttp stage 7d, was its exclusive reader: the snapshot sender's
+timer drains the body while the sender reads it): drains the body (`io.Copy(io.Discard,
+resp.Body)`) and closes it, then returns. -/
 abbrev httputil.GracefulClose.spec : Prop :=
-  ∀ (H : http.HttpNet GF) (resp : Loc) (st : w64) (rd : GoInterface)
-    (Hd : List (GoString × GoString) → Prop) (R : http.HReq) (γk : GName) (r : List w8),
-  {{ http.respAt resp st rd Hd ∗ http.respReader H rd R γk st r }}
+  ∀ (resp : Loc) (st : w64) (rd : GoInterface) (Hd : List (GoString × GoString) → Prop),
+  {{ http.respAt (GF := GF) resp st rd Hd ∗ http.respReadAny rd }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.httputil.GracefulClose)) (Val #resp))
   {{ RET #(); True }}
 

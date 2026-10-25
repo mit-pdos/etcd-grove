@@ -24,16 +24,16 @@ variable [sem : go.Semantics]
 at `path` with that body (and some headers): `NewRequest` does not fail (`http.NewRequest_spec`),
 so its `lg.Panic` is dead. -/
 abbrev rafthttp.createPostRequest.spec : Prop :=
-  ∀ (lg : Loc) (u : net.url.URL) (path : GoString) (body : GoInterface) (bs : List w8)
+  ∀ (lg : Loc) (u : net.url.URL) (path : GoString) (body : GoInterface) (K : http.Body)
     (ct : GoString) (urls : GoSlice) (uvs : List net.url.URL)
     (fr cid : go_etcd_io.etcd.client.pkg.v3.types.ID),
   lg ≠ null → urlPlain u →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      http.readerHas body bs ∗ urls ↦*□ uvs }}
+      http.bodyHas body K ∗ urls ↦*□ uvs }}
     (App (App (App (App (App (App (App (App (Val (@! rafthttp.createPostRequest)) (Val #lg))
       (Val #u)) (Val #path)) (Val #body)) (Val #ct)) (Val #urls)) (Val #fr)) (Val #cid))
   {{ (req : Loc), RET #req; ∃ hdrs : List (GoString × GoString),
-        http.reqOwn req ⟨go!"POST", u.Host', path, hdrs, bs⟩ ∗
+        http.reqOwn req ⟨go!"POST", u.Host', path, hdrs, K.bytes⟩ ∗ http.reqStream req K ∗
         ⌜http.hdrGet hdrs go!"X-Server-From" = types.idStr fr⌝ }}
 
 end spec

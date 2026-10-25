@@ -18125,6 +18125,73 @@ credits, Perennial's contexts are not), and that is where the gap is. The keeper
 provider; threading the binding into A2's guards and A4's watch (blocked on `NewAuthStore`: its axiom
 states the unbound `isReqAuth`, so the server's guards cannot get `isReqAuthBound` without proving it).
 
+## D42: the snapshot stream proved over a streamed request body (2026-10-24 · rafthttp stage 7a; the user: "go with (A) for D42"; `notes/rafthttp-plan.md`, "Stage 7")
+
+rafthttp's snapshot sender and handler are its last code still assumed (`SendSnapshot`,
+`newSnapshotSender`, `snapshotSender.stop`, `newSnapshotHandler`, the opaque `snapReq`). Their
+transfer is a chunked `POST` whose body is a stream (the envelope, then the merged snapshot's
+pipe) that the sender never sees, which the HTTP boundary's requests (a body fixed at
+`NewRequest`) cannot carry.
+
+- *(A, chosen)* A streamed-body request kind beside the fixed one: its body a reader with a
+  stream contract (`backend.readerStreams`), the protocol stated of what a server reads to `EOF`
+  (the physical assumption: a chunked body read to `EOF` is a complete stream of the client's
+  reader). `snapReq` defined over it: the envelope's encoding, then a bbolt image of `D` with the
+  certificate `N.img i D`, and the message's one-shot part deposited under the request's ticket
+  (as the pipeline's `pipeDeposit`). The sender and handler are then proved; `SaveDBFrom` stays a
+  boundary spec in `snap` (D22's), its statement agreed with the D22 owner.
+- *(B, not taken)* The stream's transfer stays one smaller axiom pair (the sender's `post`, the handler's body
+  reads with `SaveDBFrom`); the rest proved.
+
+Either way `SendSnapshot`'s and the handler's statements are unchanged, so no closed theorem
+changes; (A) leaves fewer assumptions and touches D22's interfaces only through `SaveDBFrom`'s spec.
+
+The user chose (A): it leaves fewer assumptions, and both sides of the transfer are proved. The D22
+owner's agreement on `SaveDBFrom`'s statement and on the streamed body's use of `readerStreams`
+was left open, then settled by the user ("D22's interface settled", below).
+
+**7b's shape (2026-10-24).** The kind of a request's body is the protocol's, not the request's
+(`Proto.streamed`): the server cannot tell a chunked body from a fixed one by anything the
+handler sees, so the handler's body (`reqBody`) is chosen by the protocol, and `RoundTrip` checks
+the client agrees (`reqSendOk`: a fixed body only for a request the protocol does not stream, a
+stream only for one it does, with its `sreq`). Without the check a fixed body sent to the
+snapshot path would reach a handler expecting the protocol's stream contract, which the client
+never gave. A stream's contract has two parts: `Pre` of every prefix (the handler decodes the
+envelope before the stream ends, and needs to know the frame it reads is the sender's: `Pre`
+says every prefix is comparable with that frame, which the sender knows when it builds the body)
+and `Φ` of a complete stream (the image, learned only at `EOF`). The certificates (`N.P`, the
+deposit, `N.img i D`) are in `sreq`, persistent at send time: only the image-ness of the bytes is
+learned at the end. The client's stream reader is a `Read` contract (`streamReaderOk`), not an
+opaque predicate, so that the sender's `ReaderAndCloser` wrapper is proved; D22's opaque
+`readerStreams` enters only through `io.MultiReader`'s spec. `RoundTrip` gives the request back
+after consuming a stream; a second send of it would need another `sreq` (another deposit) and its
+reader yields nothing, so `prefixClosed` asks `Pre []`.
+
+**7d (2026-10-24), the user's two choices.** (1) A response body read by two goroutines (the
+snapshot sender's `io.ReadAll` and its timer's `GracefulClose`): either may take bytes the other
+would have read, so the boundary gives a weaker, shared read (`respReadAny`, given up from the
+exclusive reader) rather than keeping `post` an axiom; the sender reads only the status
+(`checkPostResponse`), so nothing is lost. (2) The server's error channel carries `False` (a static
+cluster's member is never removed), so `send` must show `errors.Is(err, errMemberRemoved)` false of
+every error `post` returns: net/http's errors are tagged (`netErr`) and one rafthttp axiom says they
+are not it, rather than making critical errors reachable in the server's proof.
+
+**7e (2026-10-25).** The handler reads one body twice, the envelope then the rest, with no split
+lemma: the decoder reads the stream (`bodyStream`) through `readFullAt` with what is known of the
+bytes read `⌜Pre⌝`, and `Pre` says every prefix is comparable with the sender's frame, so the
+decoded frame is the sender's (`msgFrame_prefix_eq`); `SaveDBFrom` then continues the same
+`bodyStream` from that frame, and `Φ` of the whole stream gives the rest's image. The user chose a
+`fmt.Sprintf` boundary over `fmt.argsOk` (as `Printf`'s and `Errorf`'s) to keep `ServeHTTP` proved
+rather than an axiom.
+
+**D22's interface settled (2026-10-25).** The user decided the three `snap` statements for the D22
+owner ("can we decide on behalf of D22 owner? it seems small if we need to adjust"):
+`snap.Message.fields` (with `0 ≤ TotalSize`), `snap.Message.CloseWithError` and
+`snap.Snapshotter.SaveDBFrom` (with `0 ≤ n` on success) stand as stated. They are axioms on D22's
+interface and no proof depends on how D22 would prove them, so a revision by the owner is local:
+the statement, and the few lines of `send`/`createSnapBody` or `ServeHTTP` that use it. The owner
+is told, not asked.
+
 ## S4d of the auth plan: `RoleGrantPermission` performs the model's step (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4d`)
 
 **Problem.** `RoleGrantPermission` was the last admin operation without a proof (S4c's "Not
