@@ -18044,7 +18044,7 @@ axiom until 6f links rafthttp. `Start`'s post also gives, once frozen, the netwo
 Two new trust-boundary axioms there: `Transport.SendSnapshot` (untranslated, D22's contract, cut
 out of `Start`'s as the stage-6 choice (1) said) and `Transport.ActiveSince` (translated; its
 read lock taken with no reader token: the server's request path calls it from any goroutine, at
-most `2^30 - 1` at once, physically). Gone: the opaque `transportLive`, `transportStarted`,
+most `2^30 - 1` at once, physically; why it stays an axiom: "`ActiveSince` stays an axiom", below). Gone: the opaque `transportLive`, `transportStarted`,
 `transportRemotes`, `raftHandlerOf`; `netSlot` is no longer used by the server (kept in
 `Net.lean`, D22's interface). `CutPeer`/`MendPeer` take `PeerPausable` as a premise (the link
 cannot supply a class), and the examples that reach them (linkv3p) as an instance.
@@ -18191,6 +18191,14 @@ owner ("can we decide on behalf of D22 owner? it seems small if we need to adjus
 interface and no proof depends on how D22 would prove them, so a revision by the owner is local:
 the statement, and the few lines of `send`/`createSnapBody` or `ServeHTTP` that use it. The owner
 is told, not asked.
+
+**`ActiveSince` stays an axiom (2026-10-25, the user's choice).** Its body is translated; what
+keeps it an axiom is the read lock taken without a reader token. Checked and rejected: minting a
+token (`trState ⊢ |==> trTok`) is unsound, ghost steps alone mint `2^30` of them; one axiom giving
+`RLock` without a token is unsound too, since Perennial's `RUnlock` returns a real token, so one
+goroutine looping `RLock`/`RUnlock` collects them. The sound form is two axioms (a token-free
+`RLock` giving an opaque read-locked fact, an `RUnlock` consuming it, contradicted only by `2^30`
+goroutines at once, as `netProcSlots`): one more axiom than now, for a map lookup and a status read.
 
 ## S4d of the auth plan: `RoleGrantPermission` performs the model's step (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4d`)
 
@@ -18393,6 +18401,52 @@ proved for lack of turns. The S5b `info` lemmas now take the continuation under 
 contract's triples give it. Not done: `newTokenProviderSimple` (it would give `simpleOk`,
 `simpleWaitOk` and `simpleAdmin`; the zero mutex by `init_Mutex`), the modes `off`/`any` for the
 simple provider, JWT. Trust base unchanged.
+
+## D43: membership changes, the scope of track T-M (2026-10-25 · `notes/membership-plan.md`, M0)
+
+**Problem.** etcd's server runs raft in the static mode (D21d (A)); T-M is D21d (B), a closed
+theorem whose cluster changes at run time. Raft's dynamic mode is proved, but not as etcd's server
+configures it: the dynamic mode assumes pre-vote off and `StepDownOnRemoval` on, and its start is
+`RestartNode` only; etcd runs pre-vote on (`embed/config.go:544`), `StepDownOnRemoval` off, and
+starts with `StartNode`.
+
+**Decisions (the user's, each the recommended option):**
+- *Q1 (A), removal only first*: `RemoveMember` of another member and of oneself. No member joins,
+  so no join bootstrap (`bootstrapExistingClusterNoWAL`, `GetClusterFromRemotePeers`), no snapshot
+  to a newcomer (T-S's bound untouched), no `encoding/json`, no learners. Adding a voter is a later
+  plan (M9).
+- *Q2 (A), pre-vote in the dynamic mode proved* (M2b), keeping etcd's default: the paper argument
+  (`notes/reconfiguration-safety.md` 4.1) already covers a pre-candidate (the campaign's guard,
+  checked at `hup`, still holds when the pre-vote is won); the Lean dynamic mode never carried it.
+  Fallback, if M2b fails: the example's `PreVote: false` as a premise.
+- *Q3 (A), `StepDownOnRemoval = false` in the dynamic mode proved* (M2c), not a fork change: 4.11
+  says the safety argument does not need the step-down (a removed leader stays leader,
+  unpromotable, committing with its configuration's quorums); what stage A2's code-level spec
+  wanted it for is M2c's first question.
+- *Q4 (A), the removed member's own stop*: `stopWithDelay` -> `errorc` -> `run` returns -> its
+  deferred shutdown, with D19m (B)'s "server open" token so that the requests in flight end with
+  `ErrStopped`. The application's `Stop`/`HardStop` stay out.
+
+**Why.** Removal is the change that needs no other track's unfinished work, and both raft
+extensions keep the verified code as etcd ships it.
+
+**W3 settled (2026-10-25, the user for the D22 owner; `notes/snapshot-s8-plan.md` item 16).** The
+peers right that a true `AddPeer`/`RemovePeer` after `Start` needs, and that `Stop` consumes, is the
+transport's `trLive γn t c rs` (D41, stage 6d: half of the ids record `γr`, the other half in the
+lock's resource; `AddPeer`/`AddRemote` already take it). W3's text predates D41 (the opaque
+`transportStarted`). What changes, in T-M's M5 (and S8d uses the same):
+- `NewServer` no longer freezes the transport (`trLive_freeze`): the right goes to the apply
+  thread, which uses it for `applyConfChange`'s `RemovePeer`/`AddPeer` and `applySnapshot`'s
+  `RemoveAllPeers`/`AddPeer` loop, and hands it to the raft node's stop when `run` returns (Go's
+  order, `server.go:818-825`).
+- `Transport.Stop` on `trLive` (a `Stop_live` beside `Stop_full`): consumes the right, sets the
+  flag; after it no `AddPeer` can be called, so its panic on a stopped transport is unreachable.
+- `RemovePeer`/`RemoveAllPeers`/`removePeer` specs on `trLive`: the ids `rs` lose the peer.
+- The readers (`Send`, `CutPeer`, `MendPeer`, `Handler`, `ActiveSince`, `SendSnapshot`) are restated
+  over `trState` and a reader's token with the ids read under the lock (a message to a removed
+  peer is dropped, as Go's `Send` logs and ignores an unknown id), instead of `trFrozen`'s fixed
+  `rs`; `netTransport` (`Net.lean`, shared with D22) keeps its statement if its `Send` does not
+  name the ids (to check in M5).
 
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
