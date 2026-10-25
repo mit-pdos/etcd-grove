@@ -40,6 +40,41 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth
 
 namespace auth
 
+/-! ## The contract with `info`'s context premise -/
+
+section ctxpred
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The token provider's contract with `info`'s context premise** (`InvAuth.lean`'s
+`tokenProviderOkA` at `HasLC.hasLC`, its `info` clause given the context Perennial's contexts are:
+`context.isContext ci cd`; the auth plan's S5e). `tokenProviderOkA` cannot state the premise: it
+and the store's invariant over it are generic in the later credits (67 files), Perennial's contexts
+are at `HasLC.hasLC`. The simple provider meets this form with no hypothesis
+(`tokenSimple_okCtx`); it meets `tokenProviderOkA` over `ValidSpec`. -/
+def tokenProviderOkCtx (tp : GoInterface) (M : AuthMode) (A : IProp GF) : IProp GF :=
+  iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗
+    □ (∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (token : GoString) (rev : w64),
+      {{ context.isContext ci cd }}
+        (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #(GoInterface.ok ci)))
+          (Val #token)) (Val #rev))
+      {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
+          (if ok then infoBound M token a else iprop(True)) }}) ∗
+    □ ({{ A }} (App (Val #(methods ti.ty go!"enable" ti.v)) (Val #())) {{ RET #(); A }}) ∗
+    □ ({{ A }} (App (Val #(methods ti.ty go!"disable" ti.v)) (Val #())) {{ RET #(); A }}) ∗
+    □ (∀ name : GoString,
+      {{ A }} (App (Val #(methods ti.ty go!"invalidateUser" ti.v)) (Val #name)) {{ RET #(); A }}) ∗
+    □ (∀ (ctx : GoInterface) (user : GoString) (rev : w64),
+      {{ authnCtx M ctx }}
+        (App (App (App (Val #(methods ti.ty go!"assign" ti.v)) (Val #ctx))
+          (Val #user)) (Val #rev))
+      {{ (t : GoString) (err : GoInterface), RET (PairV #t #err);
+          ⌜err ≠ GoInterface.nil⌝ ∨ tokOk M t user }}))
+
+end ctxpred
+
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -305,6 +340,40 @@ theorem tokenSimple_new (h_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     iexists null
     iframe Hk2
     ileft; ipureintro; rfl
+
+/-- **The simple provider meets the context-premised contract** (`tokenProviderOkCtx`) in the mode
+`on γa`, with no hypothesis on the provider: `info` over `isValidSimpleToken`'s proof on a context
+(`tokenSimple_info_ctx`), the keeper's goroutine over `keeper_run`. -/
+theorem tokenSimple_okCtx
+    (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG)) (p : Loc) (γa : AuthNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γa.tok γa.fresh ∗
+        simpleWaitOk p ⊢
+      tokenProviderOkCtx (interface.mkOk (go.GoType.PointerType tokenSimple.ty) #p) (.on γa) (simpleAdmin p) := by
+  iintro ⟨#Hpkg, #Hok, #Hw⟩
+  iunfold tokenProviderOkCtx
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iintro !> %ci %cd %token %rev %Φ !> #Hctx HΦ
+    iapply (tokenSimple_info_ctx p γa.tok γa.fresh γa rfl ci cd token rev Φ)
+    iframe #; iexact HΦ
+  isplitr
+  · iintro !> %Φ !> HA HΦ
+    iapply (tokenSimple_enable keeper_run h_Debug h_String p γa.tok γa.fresh) $$ [HA] HΦ
+    iframe #; iexact HA
+  isplitr
+  · iintro !> %Φ !> HA HΦ
+    iapply (tokenSimple_disable p γa.tok γa.fresh) $$ [HA] HΦ
+    iframe #; iexact HA
+  isplitr
+  · iintro !> %name %Φ !> HA HΦ
+    iapply (tokenSimple_invalidateUser p γa.tok γa.fresh name) $$ [HA] HΦ
+    iframe #; iexact HA
+  · iintro !> %ctx %user %rev %Φ !> Hctx HΦ
+    iapply (tokenSimple_assign p γa.tok γa.fresh γa rfl rfl ctx user rev) $$ [Hctx] HΦ
+    iframe #; iexact Hctx
 
 end proof
 
