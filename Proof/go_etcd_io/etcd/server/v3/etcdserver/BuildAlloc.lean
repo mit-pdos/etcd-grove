@@ -106,7 +106,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
       show (ccDecodeV1 e.Data').isSome = true
       rw [hd]; rfl
   have hent' := hent
-  have hok : plainLog γk.wl (bootEntries bootLog) ∧ srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
+  have hok : plainLog (bootEntries bootLog) ∧ srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
       uint.Z γk.c0 ≤ uint.Z γs.ai0 + (bootEntries bootLog).length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
     refine ⟨?_, ?_, ?_, hch, hlog⟩
@@ -150,7 +150,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
-      ⌜plainLog γk.wl L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
+      ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
         γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft.reCfg γk L))
     $$ [HL Hv1] with #Hinv
   · inext
