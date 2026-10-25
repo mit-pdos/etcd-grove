@@ -857,9 +857,9 @@ theorem mvcc.store.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Compact.spec (GF := GF) (hG := hG) :=
   mvcc.store.Compact.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.Trace.wp_Step mvcc.store.wp_compact
 
-theorem mvcc.store.wp_Restore :
+theorem mvcc.store.wp_Restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) :=
-  mvcc.store.Restore.wp_proof
+  mvcc.store.Restore.wp_proof schedule.Scheduler.wp_Stop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.store.wp_restore
 
 theorem mvcc.store.wp_Rev :
     mvcc.store.Rev.spec (GF := GF) (hG := hG) :=
@@ -973,7 +973,7 @@ theorem mvcc.watchableStore.wp_NewWatchStream :
     mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.NewWatchStream.wp_proof mvcc.watchableStore.wp_watch mvcc.watchableStore.wp_progress mvcc.watchableStore.wp_progressAll mvcc.watchableStore.wp_rev
 
-theorem mvcc.watchableStore.wp_Restore :
+theorem mvcc.watchableStore.wp_Restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.Restore.wp_proof mvcc.store.wp_Restore mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add
 

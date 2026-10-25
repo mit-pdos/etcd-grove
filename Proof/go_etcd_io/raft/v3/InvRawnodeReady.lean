@@ -622,14 +622,16 @@ theorem qCerts_of_srcs (γ : RaftNames) (st : Storage) (l : List QMsg)
 (`isRaftMsg`, 2026-10-16): what `readyWithoutAccept` says of the messages it hands out, and
 `acceptReady` of the self-addressed responses it queues. (D22 S-b′3) With its certificate
 (`qCert`). -/
-theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMsg) (q : QMsg)
+theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (o : List Msg) (ms1 ms2 : List QMsg) (q : QMsg)
     (Hp : outboxRelP o ms1 ms2) (Hq : q ∈ ms1 ++ ms2)
     -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`)
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
     -- (2026-10-19, D21 M2r) and the message `SentMsgOk` in the no-transfer mode (`XfOk`; D22
     -- S-a to S-c: in it and the no-snapshot mode)
-    (Hsent : γ.reNoXfer = true → SentMsgOk q.st) :
-    ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCert γ q -∗ isRaftMsg γ q.st := by
+    (Hsent : γ.reNoXfer = true → SentMsgOk q.st)
+    -- (2026-10-22, D38a) and no responses (`XfOk`)
+    (Hrs : q.st.resps = [] ∧ AppFrom id q.st) :
+    ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCert γ q -∗ isRaftMsg γ id q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
     have hsub : ∀ (l : List QMsg) (as_ : List (Option Msg)),
@@ -669,6 +671,10 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
   isplitr
   · ipureintro; exact Hsent
   isplitr
+  rotate_left
+  isplitr
+  rotate_left
+  · ipureintro; exact Hrs
   rotate_left
   · -- (D22 S-r) the data certificate: the queue's, from the storage's registry
     unfold msgDat
@@ -714,9 +720,9 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
 
 /-- The abstraction of a message `isRaftMsg` covers, for a type the model describes but a
 snapshot (2026-10-16): what `raft.Step`'s `Hmsg` asks of it. -/
-theorem isRaftMsg_isMessage (γ : RaftNames) (st : MsgSt) (ty : MsgType)
+theorem isRaftMsg_isMessage (γ : RaftNames) (id : w64) (st : MsgSt) (ty : MsgType)
     (Hty : mtypeOf st.msg.Type' = some ty) (Hns : ty ≠ .snap) :
-    isRaftMsg (GF := GF) γ st ⊢ isMessage γ (absMsg ty st.msg st.ents st.ctx) := by
+    isRaftMsg (GF := GF) γ id st ⊢ isMessage γ (absMsg ty st.msg st.ents st.ctx) := by
   iintro #H
   unfold isRaftMsg
   icases H with ⟨-, -, ⟨%a, %Ha, #H⟩, -⟩
@@ -762,7 +768,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     "%Hgh_out" ∷ ⌜s.gh.outlb ≤ ms1.length + ms2.length⌝ ∗
     "%Hgh_unst" ∷ ⌜LogGhOk s s.logst⌝ ∗
     -- (2026-10-19, D21 M2r) the modes' facts of the queues
-    "%Hxf" ∷ ⌜XfOk s (ms1 ++ ms2)⌝ ∗
+    "%Hxf" ∷ ⌜XfOk id s (ms1 ++ ms2)⌝ ∗
     -- (D22 S-b′3) the queues' certificates' source (`ownRaftPhys`'s `Hscert`)
     "#Hscert" ∷ qSrcs s.logst.storage (ms1 ++ ms2) ∗
     "%Hmslen" ∷ ⌜ms.length ≤ ms1.length + ms2.length⌝ ∗
@@ -796,7 +802,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ⌜GhLogOk g ls'⌝ -∗
         ⌜g.ns = s.gh.ns ∧ LogNsKeep s ls' ∧ ∀ m ∈ o, m ∈ s.outbox⌝ -∗
         ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
-        ⌜XfOk { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
+        ⌜XfOk id { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
         qSrcs ls'.storage (ms1' ++ ms2') -∗
         ownRaftLog s.log ls' -∗
         ownRaftPhysCV c c.voters r id { s with outbox := o, logst := ls', gh := g, rd := rd' }))

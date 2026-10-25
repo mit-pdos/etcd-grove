@@ -47,7 +47,7 @@ theorem backend.batchTx.safePending.wp_proof :
     · by_cases hp : st.pend = W64 0
       · ileft; ipureintro; exact hp
       · iright
-        have := (Hbg.2.2.2.2.2.2.2.2 rfl).2 hp
+        have := (Hbg.2.2.2.2.2.2.2.2.1 rfl).2 hp
         iapply monoNatLbOwn_le (u + 1) (by omega) $$ Hlb
     wp_auto
     wp_apply sync.Mutex.wp_Unlock $$ [$Hm $Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn' Hhkd HWR]

@@ -77,7 +77,7 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   iunfold srvServeFacts at Hf
   icases Hf with ⟨-, #Hcf⟩
   iunfold srvWatchBuilt at Hwb
-  icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool⟩
+  icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, #Htag⟩
   iunfold srvServeCfg at Hcf
   icases Hcf with ⟨#Hlg0, #Hqb, #Hn, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
   iunfold isServerReq at Hsrv
@@ -150,7 +150,7 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   iunfold srvServeFacts at Hf
   icases Hf with ⟨-, #Hcf⟩
   iunfold srvWatchReaders at Hwb
-  icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, Hrds⟩
+  icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, #Htag, Hrds⟩
   iunfold srvServeCfg at Hcf
   icases Hcf with ⟨#Hlg0, #Hqb, #Hn, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
   iunfold isServerReq at Hsrv

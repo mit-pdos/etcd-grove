@@ -1,13 +1,17 @@
 # Plan: prove `store.restore` and close `store.Restore`
 
-Status: R0 done (2026-10-23, branch `restore-r0`); R1 done (2026-10-23, branch `restore-r1`, see
-"R1's findings"); R3 done (2026-10-23, branch `restore-r3`, see "R3's progress"); R2 done and R4 done
-for the empty bucket (2026-10-23, branches `restore-r4`, `restore-r4b`, see "R4's progress"); R5
-(with `restore` of a bucket with data), R6 to do. Removes two of mvcc's trust-boundary axioms,
-`mvcc.store.restore.wp_proof` and `mvcc.store.Restore.wp_proof` (539 to 537), both on the snapshot
-receiver's path (D22: `applySnapshot` → `watchableStore.Restore` → `store.Restore` → `restore`) and
-`restore` on every boot (`NewStore`). Follows the spec check of 2026-10-23 (`notes/STATUS.md`): both
-specs agree with the code at the etcd pin (`188113160`), with one gap (below, R2).
+Status: **done** (2026-10-24). R0-R3 done on 2026-10-23 (branches `restore-r0`, `restore-r1`,
+`restore-r3`, `restore-r4`; see "R1's findings" and "R3's progress"). R4 done for the empty bucket
+on 2026-10-23 (`restore-r4`, `restore-r4b`; "R4's progress"). R5 done on 2026-10-24
+(`restore-r5`, `restore-r5d`, `restore-r5e`; "R5's stages"), which includes `restore` of a
+bucket with data. R6 done on 2026-10-24 (`restore-r6`, below). Both of the plan's axioms are gone.
+`mvcc.store.restore.wp_proof` went at R4, replaced by the narrower trust-boundary fact
+`mvcc.kbNoCmp_metaNone`. `mvcc.store.Restore.wp_proof` went at R5f, 615 to 614 axioms (the plan's
+"539 to 537" counted from the trust base of 2026-10-23, before other work moved it). Both
+functions are on the snapshot receiver's path (D22: `applySnapshot` → `watchableStore.Restore` →
+`store.Restore` → `restore`), and `restore` also runs on every boot (`NewStore`). The plan
+follows the spec check of 2026-10-23 (`notes/STATUS.md`): both specs agree with the code at the
+etcd pin (`188113160`), with one gap (below, R2).
 
 ## Goal
 
@@ -264,8 +268,45 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
   `kbNoCmp_metaNone`'s premise widened to the clean snapshot (`keyReadSnapC`), the same fact. The
   code after the loop is written twice (one per exit: a tactic macro cannot hold Iris's `$$`).
 - **R5d. `newTreeIndex` over the store's names** (not `idxFresh`'s): the variant `Restore` needs.
+  *Done (2026-10-24)*: `newTreeIndex`'s one spec takes the event count's authority at any `n` and
+  the compactor's state (fresh), with lower bounds of the compaction revision and the committed log,
+  and gives the private index, `idxLockG γ n` and the compactor's token; `NewStore` splits its
+  fresh names (`idxFresh_split`), `store.Restore` will make new event-count and compactor names
+  around the store's (`idx_renew`).
 - **R5e. The ghost moves** (the list below) as `InvStore` lemmas.
+  *Done (2026-10-24)*, in `RestoreMoves.lean`: `restore_takeover` (at the first lock of
+  `s.revMu`: its body and the writer's state out, the committed log is the caller's `L`, the
+  committed log, its authority and the history moved to `L'`, `histOf_mono`), `restore_switch` (at
+  `restore`'s unlock: `cur`'s eight parts gathered and moved, the pool refilled, `s.revMu`'s body at
+  the new names, the budget's tokens of `L'`), `restore_finish` (after `restore`: the writer's state
+  at `L'` checked in, the registration pending). What the design needed on the way:
+  - `restore`'s spec: its lock and unlock are the caller's wands (`revLockW`, `revUnlockW`: hidden
+    behind definitions, `wp_auto` cannot work under a WP-shaped premise); the index is published
+    before the unlock, which takes the view, the index's lock with its readers, and the restored
+    log's changes below the receipts' bound (the rebuild's receipts are what certifies `L'`
+    there: `idxCert` needs it, and the unlock is where `s.revMu`'s body at `L'` is made); `restore`
+    keeps its part `q1` of `currentRev` (it reads `currentRev` after the unlock, for the log line)
+    and a part of `compactMainRev`; it takes `idxWriterLb`, not the writer's handle.
+  - The writer's invariant has a third state, `store.Restore`'s (`writerInvBody`): `s.mu`'s whole
+    deposit ghost (no writer checks out) and half the history's authority (no writer checks in;
+    `Restore` keeps the other half, so the history is still `L'` when it checks the state back in),
+    and no eighth of `cur`: `Restore` keeps it, so that holding every other eighth it can tell the
+    state at the switch without reopening the invariant, and after `restore` the new key and view
+    log (whole in its hands) exclude the other two states. (A first design kept the eighth inside;
+    then `Restore` could not exclude a writer's deposit when reopening it, since the deposit ghost
+    was in the state itself.)
+  - The readers' pool counts the retired tickets (`StoreNames.tkr`, `poolBody`'s `r`), and
+    `writerOwn` holds one: so `k + 1 ≤ nReaders`, which the switch needs (the pool's `k` slots are
+    refilled with new backend tokens while `restore` holds one) and the spec's postcondition
+    states. (No other bound exists: the backend's reader tokens are bounded by `rdMax = 2^31 - 2`,
+    above `nReaders`.)
+  - `revMuRest` keeps `compactMainRev` at any value; the switch learns `-1` from a quarter
+    `Restore` keeps out of `restore`'s part.
 - **R5f. `Restore`'s proof** over R5c-R5e; `NewStore` and `watchableStore.Restore` unchanged.
+  *Done (2026-10-24)*: `mvcc.store.Restore.wp_proof` is a theorem (the axiom gone); the link list
+  gives it `Scheduler.Stop`, `newTreeIndex`, `NewFIFOScheduler` and `restore`. `NewStore` changed
+  only for the pool's retired count and `restore`'s receipt bound; `watchableStore.Restore`
+  unchanged.
 
 **R5. `store.Restore`.** The translated body over R4's spec, the ghost moves its spec's "why it is
 true" paragraph lists, as `InvStore` lemmas:
@@ -283,6 +324,55 @@ Then `mvcc.store.Restore.wp_proof` is a theorem; `watchableStore.Restore` uses i
 **R6. Close.** `etc/tcb-report.py --check --update` (537), the fingerprint (no closed theorem
 changed; `restore`'s spec changes with R4a, an intermediate spec), `etc/gates.sh`,
 `notes/STATUS.md`, a decision entry for R4a.
+*Done (2026-10-24, branch `restore-r6`)*:
+- **Trust base.** It matches `etc/tcb-baseline.txt`: 614 axioms and 4 sorries, with every
+  collection matching (the baseline was updated at R4 and R5f). `etc/gates.sh` passes except the
+  issues gate (`INDEX-reviewed.md`), which already failed on `lean`.
+- **Decision entry.** R4a is in `notes/decisions.md`, "Restore R4a: `store.restore` takes
+  `s.revMu` as a caller-given lock protocol".
+- **Fingerprint.** No closed theorem's text changed. The check was done over the trust report
+  (`etc/tcb-report.py --defs --json`) rather than by diffing two fingerprints, since building a
+  pre-restore tree for `fingerprint.py --diff` would mix in two days of other work. Its steps:
+  - collect the declarations whose lines the plan's commits changed (R0 `17b01d4303` to R5f
+    `ddf5c01a7a`; 138 definitions, an over-approximation that also counts docstring-only edits);
+  - intersect them with the definitions each root's statement reaches.
+
+  Of the examples' closed theorems:
+  - The raft-only ones (`kv_porcupine_safe`, `kv_witness_porcupine_safe`, `lintest`'s) reach none
+    of them.
+  - The server-based ones (`putget_safe`, `putget3_safe`, `linkv3p_safe`, `linkv3p_watch_safe`,
+    `linkvtxn_safe`, `k8setcd3_safe`, `cache_safe`, `watch_safe`) each reach the same 16.
+
+  All 16 come through one premise, `bootstrap`'s contract. Its `bootOk` holds `backend.newPost`,
+  the postcondition of `backend.New`. They are:
+  - **`newPost`, `bView`/`bViewC`, `RdSt`, `BNames`, `clnPart`, `rbClean`, `rtCore`, `rtHeld`,
+    `rtIntv`, `rtResAt`, `rtRest`, `mvcc.bucketView`, `mvcc.kbView`** (R5a). `newPost` now says
+    the readers' view is clean (`γ.cln = true`: the read buffer has nothing off the hook's
+    buckets), with the flag's ghost halves. So the premise asks a little more of `bootstrap`: the
+    backend it returns is clean. It was already the claim that `bootstrap`'s backend is as
+    `backend.New` leaves it (an empty key bucket, the write-back budget unspent), and `New`'s
+    proved spec now gives the clean view. The addition is true of the code at the pin.
+    `bootstrap`'s writes to the backend before it returns only create buckets, and none of them
+    puts an entry:
+    - `bootstrapBackend`'s `schema.CreateMetaBucket`;
+    - `membership`'s `SetBackend` → `MustCreateBackendBuckets`, on the path the examples take (a
+      new cluster with no WAL, so no snapshot recovery).
+
+    So their `Unlock`s write nothing back, and the read buffer stays as `New` left it, empty. The
+    optional `maybeDefragBackend` commits, which also empties it. `bootstrapContract`'s docstring
+    does not say this yet.
+  - **`freeOk`**: a false positive. Its text is unchanged; `rbClean` was added after it, and the
+    heuristic counts the added lines as part of `freeOk`.
+  - **`mvcc.StoreNames`** (R5e's field `tkr`). The contract quantifies over every `StoreNames`,
+    and its body does not use the new field.
+
+  The `*_Main` results also reach mvcc's package fact (`mvccInit`, `reportVar`, `reportP`: R2's
+  reporters' locks), as part of the `isPkgInit` precondition. The `*_safe` theorems discharge it
+  from the initializer.
+- **Specs the plan's commits touched.** None is a closed theorem: `store.restore.spec`,
+  `store.Restore.spec`, `newTreeIndex.spec`, `readTx.UnsafeRange.spec`,
+  `UnsafeReadFinishedCompact.spec`, `UnsafeReadScheduledCompact.spec`,
+  `watchableStore.Restore.spec`, and the `treeIndex`/`keyIndex` specs.
 
 ## R1's findings (2026-10-23)
 

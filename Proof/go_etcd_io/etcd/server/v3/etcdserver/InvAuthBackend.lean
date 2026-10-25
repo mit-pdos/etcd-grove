@@ -101,6 +101,39 @@ def roleOutD (r : Loc) (m : backend.BktData) (name : GoString) : IProp GF :=
   | none => iprop(⌜r = null⌝)
   | some v => iprop(∃ rr : auth.RoleRec, ⌜v = auth.roleEncode rr⌝ ∗ auth.ownRole r rr)
 
+/-- `userOutD` with the message as `proto.Unmarshal` returns it (`auth.ownUserX`; the auth plan's
+S4c): what schema's `unsafeGetUser` returns. -/
+def userOutDX (u : Loc) (m : backend.BktData) (name : GoString) : IProp GF :=
+  match m.lookup name with
+  | none => iprop(⌜u = null⌝)
+  | some v => iprop(∃ ur : auth.UserRec, ⌜v = auth.userEncode ur⌝ ∗ auth.ownUserX u ur)
+
+/-- `roleOutD` with the message as `proto.Unmarshal` returns it (`auth.ownRoleX`). -/
+def roleOutDX (r : Loc) (m : backend.BktData) (name : GoString) : IProp GF :=
+  match m.lookup name with
+  | none => iprop(⌜r = null⌝)
+  | some v => iprop(∃ rr : auth.RoleRec, ⌜v = auth.roleEncode rr⌝ ∗ auth.ownRoleX r rr)
+
+theorem userOutDX_persist (u : Loc) (m : backend.BktData) (name : GoString) :
+    userOutDX (GF := GF) u m name ⊢ |==> userOutD u m name := by
+  unfold userOutDX userOutD
+  cases m.lookup name with
+  | none => iintro H; imodintro; iexact H
+  | some v =>
+    iintro ⟨%ur, %H, Hu⟩
+    imod auth.ownUserX_persist u ur $$ Hu with Hu
+    imodintro; iexists ur; iframe Hu; ipureintro; exact H
+
+theorem roleOutDX_persist (r : Loc) (m : backend.BktData) (name : GoString) :
+    roleOutDX (GF := GF) r m name ⊢ |==> roleOutD r m name := by
+  unfold roleOutDX roleOutD
+  cases m.lookup name with
+  | none => iintro H; imodintro; iexact H
+  | some v =>
+    iintro ⟨%rr, %H, Hr⟩
+    imod auth.ownRoleX_persist r rr $$ Hr with Hr
+    imodintro; iexists rr; iframe Hr; ipureintro; exact H
+
 /-! ## The buckets hold the state -/
 
 /-- **The auth buckets `D` hold the state `st`**: well formed; the enabled flag `st.enabled`; the

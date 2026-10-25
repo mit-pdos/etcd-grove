@@ -293,7 +293,8 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames) (rv : raftNode),
           ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.stor = memStorIface bv.storage' ∧
-            γw.node.mode = RNMode.static ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧
+            γw.node.mode = RNMode.static ∧ γw.id = cv.ID' ∧ γw.node.id = cv.ID' ∧ γw.pre = [] ∧
+            γw.ms = bv.storage' ∧
             γw.γs = γs ∧ γw.reg = reg ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
@@ -389,12 +390,21 @@ theorem raftNode_of_StartNode (reg : GName)
     $$ [Hdrv Hncfg Hprod Hcons Hcum Hcum0]
   · rw [Hwnode, Hwid, Hwnl]
     iframe Hdrv Hncfg Hprod Hcons Hcum Hcum0
+  -- (2026-10-24, rafthttp stage 6d) the node's names' id is the node's (`isNode`'s)
+  ihave %Hnid : ⌜γw.node.id = γw.id⌝ $$ []
+  · ihave #Hisnode' := Hisnode
+    iunfold rnIsNode at Hisnode'
+    iunfold isNode at Hisnode'
+    icases Hisnode' with ⟨%nv, %r, %lok, Hrest⟩
+    iNamed Hrest
+    ipureintro; exact Hgid
   iapply HΦ
   iexists γw, rv
   isplitr
   · ipureintro
     refine ⟨by rw [Hwnode]; exact Hγraft, by rw [Hwnode]; exact Hγbud,
-      by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, Hwid, Hwpre, Hwms, Hwγs, rfl,
+      by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, Hwid, Hnid.trans Hwid, Hwpre,
+      Hwms, Hwγs, rfl,
       Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     simp only [rnNodeIface, Hwnl]
   iframe Hr Hmu Hloop Happly Hlinv Hb Hpeers Htok

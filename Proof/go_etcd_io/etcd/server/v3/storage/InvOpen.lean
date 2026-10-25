@@ -17,7 +17,8 @@ their specs share. Lean-first (no Rocq counterpart).
   `dbOpensOk`, the configuration's logger (its `Info` at the end), its feature gate (nil, or one
   that answers `NonBlockingDefrag`), the parameters `P` (`P.Wf`, the batch limit `openLimit`),
   and, as `backend.New`'s spec, the hooks' contract of `h` and the creator's batch-lock resources
-  `W γ ∗ Pk γ` from the hook's own keys of `D`.
+  `W γ ∗ Pk γ` from the hook's own keys of `D` and (D22 receiver epochs, S8a, 2026-10-24) the fresh
+  backend's payment rights (`bFresh`), traded for `K γ` (`newPostK`; `openPre_keep`: kept).
 -/
 module
 
@@ -58,10 +59,27 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- **What opening a database file holding `D` needs besides the file** (see the file header). -/
 def openPre (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface) (P : BParams)
-    (D : Data) (W Pk : BNames → IProp GF) : IProp GF :=
+    (D : Data) (W Pk K : BNames → IProp GF) : IProp GF :=
   iprop(⌜dbOpensOk ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
     (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ))
+    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ))
+
+/-- A creator that keeps the fresh backend's payment rights (`K := bFresh`, `newPost_of_K`). -/
+theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface)
+    (P : BParams) (D : Data) (W Pk : BNames → IProp GF) :
+    iprop(⌜dbOpensOk ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
+      (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
+      hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ)) ⊢
+      openPre (GF := GF) cfg h P D W Pk bFresh := by
+  iintro ⟨%Hc, Hg, #Hh, Hmk⟩
+  iunfold openPre
+  iframe Hg Hh
+  isplitr
+  · ipureintro; exact Hc
+  iintro %γ ⟨Hk, Hf⟩
+  imod Hmk $$ %γ Hk with ⟨HW, HPk⟩
+  imodintro
+  iframe HW HPk Hf
 
 end preds
 

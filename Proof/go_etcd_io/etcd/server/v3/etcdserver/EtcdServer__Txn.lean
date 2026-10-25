@@ -465,52 +465,52 @@ theorem EtcdServer.Txn.wp_proof
   icases Hf with ⟨%csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm, #Hfl, #Hfs, #Hfm⟩
   (try wp_auto)
   wp_apply hRO r t $$ []
-  · iframe #
+  · iframe Hrt
   (try wp_auto)
   wp_apply hGC r csl $$ []
-  · iframe #; ipureintro; exact Hrn
+  · iframe Hc; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply hFCK csl cps t.cmps $$ [] as %k1 -
-  · iframe #
+  · iframe Hcm Hcs
   (try wp_auto)
   wp_apply hAS as %a1 -
   (try wp_auto)
   wp_apply hGS r ssl $$ []
-  · iframe #; ipureintro; exact Hrn
+  · iframe Hs; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply hFOK ssl sps t.thenOps $$ [] as %k2 -
-  · iframe #
+  · iframe Hsm Hss
   (try wp_auto)
   wp_apply hAS as %a2 -
   (try wp_auto)
   wp_apply hGS r ssl $$ []
-  · iframe #; ipureintro; exact Hrn
+  · iframe Hs; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply hFOT ssl sps t.thenOps $$ [] as %k3 -
-  · iframe #
+  · iframe Hsm Hss
   (try wp_auto)
   wp_apply hAS as %a3 -
   (try wp_auto)
   wp_apply hGS r ssl $$ []
-  · iframe #; ipureintro; exact Hrn
+  · iframe Hs; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply hFOL ssl sps t.thenOps $$ [] as %k4 -
-  · iframe #
+  · iframe Hsm Hss
   (try wp_auto)
   wp_apply hAI64 as %a4 -
   (try wp_auto)
   wp_apply hGC r csl $$ []
-  · iframe #; ipureintro; exact Hrn
+  · iframe Hc; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply hAI as %a5 -
   (try wp_auto)
   wp_apply hGS r ssl $$ []
-  · iframe #; ipureintro; exact Hrn
+  · iframe Hs; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply hAI as %a6 -
   (try wp_auto)
   wp_apply hGF r fsl $$ []
-  · iframe #; ipureintro; exact Hrn
+  · iframe Hfl; ipureintro; exact Hrn
   (try wp_auto)
   wp_apply hAI as %a7 -
   (try wp_auto)
@@ -529,14 +529,14 @@ theorem EtcdServer.Txn.wp_proof
   iintro %osl ⟨-, -⟩
   (try wp_auto)
   wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
-  · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
+  · iframe Htr; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi
   (try wp_auto)
   wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hlgn
+  · iframe Hlgf; iframe Hlr; ipureintro; exact Hlgn
   (try wp_auto)
   wp_apply wp_slice_literal
   isplitr
@@ -545,7 +545,7 @@ theorem EtcdServer.Txn.wp_proof
   (try wp_auto)
   wp_apply hET ctx1 _ ot te w.lg _ _ $$ [Hto Hfl Hflc]
     as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %vs2, #Hctx2, Hctx2w⟩
-  · iframe #
+  · iframe Hctx1t
     isplitr
     · iapply Hctr1 $$ Hct
     iframe Hto
@@ -562,7 +562,7 @@ theorem EtcdServer.Txn.wp_proof
     wp_apply time.wp_Now as %now -
     (try wp_auto)
     wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, -⟩
-    · iframe #; ipureintro; right; right; left; rfl
+    · ipureintro; right; right; left; rfl
     ihave ⟨%ctx3, %vs3, %Hc3e, #Hctx3⟩ := Hc3w $$ %_ Hctx2i
     subst Hc3e
     (try wp_auto)
@@ -608,7 +608,7 @@ theorem EtcdServer.Txn.wp_proof
       · have h0 : (W64 0 : w64) = 0 := by decide
         rw [h0]; iexact ID
       repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
-      iexists _; iframe #; try (ipureintro; simp)
+      iexists _; iframe DowngradeVersionTest; try (ipureintro; simp)
     (try wp_auto)
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
@@ -697,7 +697,7 @@ theorem EtcdServer.Txn.wp_proof
     ipersist ctx
     (try wp_auto)
     wp_apply hSer r t $$ []
-    · iframe #
+    · iframe Hrt
     -- `if !IsTxnSerializable(r)`, joined (`wp_join`): the read index (or its error's return), or
     -- nothing; the rest, from the deferred closure on (`txn_tail`), is verified once
     wp_join (Q := fun v => iprop(trace_ptr ↦ trc ∗ srvReadReader s γr ∗
@@ -721,7 +721,7 @@ theorem EtcdServer.Txn.wp_proof
         · simp only [hro, ↓reduceIte]; iexact Hnp
         wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr]
           as %rerr ⟨Hrr, #HrE, Hri⟩
-        · iframe #; iframe Hrr
+        · iframe Hdep Hg Hctx2 Hcal; iframe Hrr
         ihave Hrr : srvReadReader s γr $$ [Hrr]
         · iunfold srvReadReader; iexists _; iframe Hread Hrr
         (try wp_auto)

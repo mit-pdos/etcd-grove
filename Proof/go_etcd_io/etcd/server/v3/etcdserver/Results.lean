@@ -50,8 +50,10 @@ stage R7c).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthSteps
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadRaft
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
@@ -841,7 +843,7 @@ loops', the right to close it). The index's names `γi` and the map `γok` are t
 theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
-    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (M : auth.AuthMode) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
     (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
@@ -873,7 +875,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st }} :=
+        mvcc.wsCloser ws st γw.st ∗ auth.modeTag γw.tag M }} :=
   server_kv_watchable_of mvcc.wp_New backend.backend.wp_ConcurrentReadTx
     backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
     backend.backend.wp_Size backend.backend.wp_SizeInUse
@@ -883,7 +885,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok hcfg hrb
+    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok M hcfg hrb
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's
@@ -899,7 +901,7 @@ theorem cindex_hook_backend (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) 
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗
-      inv applyN (consInv γA) ⊢
+      inv applyN (consInv γA) ∗ applyRegd γA ⊢
       {{ backend.batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ ⌜backend.hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
@@ -922,7 +924,7 @@ theorem cindex_hookFnSpec (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
       backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗
-      inv applyN (consInv γA) ∗
+      inv applyN (consInv γA) ∗ regdOrLink γA γ ∗
       □ (∀ (v : val) (Ψ : val → IProp GF),
           WP (App (Val (ci @!! go.GoType.PointerType
             go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
@@ -953,7 +955,7 @@ theorem backend_server_hooks (γA : ApplyNames) (ci : Loc) (γ : backend.BNames)
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ regdOrLink γA γ ⊢
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b :=
   backend_server_hooks_of storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave
     backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
@@ -985,7 +987,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
         storage.isBackendHooks bh
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
             #ci⟩ lgh ∗
-        isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ backend.plHookRO d.γB f ∗
+        isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ regdOrLink γA d.γB ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         ownToks d.γB.wb (N + 2) ∗
@@ -1006,10 +1008,10 @@ theorem server_kv_backend_hooks (lg lp : Loc)
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.storeReader s γ) ∗
         txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s γ }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hspkg, #Hcpkg, #Hnh, #Hh, #Hci, #Hinv, #Hhk, #Hsz, Hv, Hncmp, Hrg,
-    Hw, Hrts, #Hlpkg, #Hlinv, Hlrd⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hspkg, #Hcpkg, #Hnh, #Hh, #Hci, #Hinv, #Hrl, #Hhk, #Hsz, Hv,
+    Hncmp, Hrg, Hw, Hrts, #Hlpkg, #Hlinv, Hlrd⟩ HΦ
   ihave #Hb := backend_server_hooks γA ci d.γB d.P (mvcc.lateW d.gx) d.be bh lgh hci hH $$
-    [$Hspkg $Hbpkg $Hsch $Hcpkg $Hh $Hnh $Hci $Hinv]
+    [$Hspkg $Hbpkg $Hsch $Hcpkg $Hh $Hnh $Hci $Hinv $Hrl]
   ihave #Hle := lease.isLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lp γl $$ [$Hlpkg $Hlinv]
   iapply (server_kv_backend lg (lease.lessorIface lp) cfg d hP γb γl
@@ -1058,10 +1060,108 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
     lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lp s γ P f RW
 
+/-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
+apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
+`apply.isAuthSteps` with its write resource `auth.authWR st M P f T` and the admin side's share of
+the token provider `auth.tpAdmin st M` (S5d), from S4's proofs of
+`AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd`, and S4b's of
+`UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`, S4c's of `UserGrantRole` and S4d's of
+`RoleGrantPermission`. -/
+theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val)
+    (T : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
+      EtcdGrove.apply.isAuthSteps (auth.authIface st) P f M
+        iprop(auth.authWR st M P f T ∗ auth.tpAdmin st M) :=
+  EtcdGrove.apply.isAuthSteps_of_authInv auth.authStore.wp_AuthEnable auth.authStore.wp_AuthDisable
+    auth.authStore.wp_UserAdd auth.authStore.wp_UserDelete auth.authStore.wp_UserChangePassword
+    auth.authStore.wp_RoleAdd auth.authStore.wp_UserRevokeRole auth.authStore.wp_RoleRevokePermission
+    auth.authStore.wp_RoleDelete auth.authStore.wp_UserGrantRole auth.authStore.wp_RoleGrantPermission
+    st R M P f T
+
+/-- **The apply layer's admin requests perform the model's step** (`apply/AuthSteps.lean`):
+`applierV3backend.X` from the backend's options' `isAuthSteps`, the admin side's authority and
+the store's write resource. -/
+theorem apply_AuthEnable_step :
+    EtcdGrove.apply.applierV3backend.AuthEnable.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.AuthEnable.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_AuthDisable_step :
+    EtcdGrove.apply.applierV3backend.AuthDisable.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.AuthDisable.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_UserAdd_step :
+    EtcdGrove.apply.applierV3backend.UserAdd.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserAdd.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_UserDelete_step :
+    EtcdGrove.apply.applierV3backend.UserDelete.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserDelete.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_UserChangePassword_step :
+    EtcdGrove.apply.applierV3backend.UserChangePassword.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserChangePassword.wp_step
+    EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_RoleAdd_step :
+    EtcdGrove.apply.applierV3backend.RoleAdd.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleAdd.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+/-- **The token binding at the server's guards** (the auth plan's E1, `AuthBound.lean`): the
+server's `AuthInfoFromCtx` returns an auth info bound to the request's token (or from the TLS
+fallback), and the member operations' admin guard checks such a principal, over a store with the
+bound request side (`srvAuthBound`, of the real store once `NewAuthStore` is proved). -/
+theorem server_AuthInfoFromCtx_bound :
+    EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG) :=
+  EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore
+
+theorem server_membership_guard_bound :
+    EtcdServer.checkMembershipOperationPermission.boundSpec (GF := GF) (hG := hG) :=
+  EtcdServer.checkMembershipOperationPermission_bound EtcdServer.wp_AuthStore
+
+theorem server_requireAuthInfo_bound :
+    EtcdServer.requireAuthInfo.boundSpec (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo_bound EtcdServer.wp_AuthStore
+
+theorem apply_UserGrantRole_step :
+    EtcdGrove.apply.applierV3backend.UserGrantRole.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserGrantRole.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_RoleGrantPermission_step :
+    EtcdGrove.apply.applierV3backend.RoleGrantPermission.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleGrantPermission.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_UserRevokeRole_step :
+    EtcdGrove.apply.applierV3backend.UserRevokeRole.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserRevokeRole.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_RoleRevokePermission_step :
+    EtcdGrove.apply.applierV3backend.RoleRevokePermission.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleRevokePermission.wp_step
+    EtcdGrove.apply.applierV3backend.wp_newHeader
+
+theorem apply_RoleDelete_step :
+    EtcdGrove.apply.applierV3backend.RoleDelete.stepSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleDelete.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
+
 end backend
 
 #print axioms Perennial.EtcdGrove.lessor_server_contract
 #print axioms Perennial.EtcdGrove.lessor_apply_contract
+#print axioms Perennial.EtcdGrove.auth_apply_steps
+#print axioms Perennial.EtcdGrove.apply_AuthEnable_step
+#print axioms Perennial.EtcdGrove.apply_AuthDisable_step
+#print axioms Perennial.EtcdGrove.apply_UserAdd_step
+#print axioms Perennial.EtcdGrove.apply_UserDelete_step
+#print axioms Perennial.EtcdGrove.apply_UserChangePassword_step
+#print axioms Perennial.EtcdGrove.apply_RoleAdd_step
+#print axioms Perennial.EtcdGrove.server_AuthInfoFromCtx_bound
+#print axioms Perennial.EtcdGrove.server_membership_guard_bound
+#print axioms Perennial.EtcdGrove.server_requireAuthInfo_bound
+#print axioms Perennial.EtcdGrove.apply_UserGrantRole_step
+#print axioms Perennial.EtcdGrove.apply_RoleGrantPermission_step
+#print axioms Perennial.EtcdGrove.apply_UserRevokeRole_step
+#print axioms Perennial.EtcdGrove.apply_RoleRevokePermission_step
+#print axioms Perennial.EtcdGrove.apply_RoleDelete_step
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable

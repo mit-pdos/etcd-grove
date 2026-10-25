@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.internal.bytealg
 public import Perennial.Golang.Theory
 public import Code.path
 

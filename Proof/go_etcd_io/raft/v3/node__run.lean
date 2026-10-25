@@ -168,6 +168,7 @@ theorem node.run.wp_proof
         iexists ce, es, ms, L
         iframe Hrn
         unfold freshOk
+        rw [Hgid]
         iframe Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hsnapz
         isplitr
         · iexists sts
@@ -280,7 +281,7 @@ theorem node.run.wp_proof
       ihave #Hm0 := isMessage_propMsg γ.raft d $$ Hent
       ihave #Hm1 := isMessage_propose_from γ.raft propMsgM [propEntryM d] id $$ Hm0
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
-        ⟨{ propMsgM with From' := id }, [propEntryM d], none, [], []⟩ rfl rfl
+        ⟨{ propMsgM with From' := id }, [propEntryM d], none, [], []⟩ rfl rfl rfl
         $$ [$Hrn $Hrnraft $Hm $Hm1 Htk $Hlc1] as %err ⟨Hrn, #Hstep⟩
       · iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
         iexact Htk
@@ -317,7 +318,7 @@ theorem node.run.wp_proof
       icases Hhead with ⟨%rs, Hrn, Hrest⟩
       ihave #Hm1 := isMessage_propose_from γ.raft st.msg st.ents id $$ Hm0
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
-        { st with msg := { st.msg with From' := id } } Hty rfl
+        { st with msg := { st.msg with From' := id } } Hty.1 rfl Hty.2
         $$ [$Hrn $Hrnraft $Hm $Hm1 $Htk $Hlc1] as %err ⟨Hrn, -⟩
       rw [Hres]
       wp_if_destruct
@@ -797,7 +798,7 @@ theorem node.run.wp_proof
         entsRO rdv'.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
         entsRO rdv'.Entries' es ∗ rdv'.Messages' ↦* ms.map QMsg.loc ∗
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-        ([∗list] q ∈ ms, isRaftMsg γ.raft q.st) ∗
+        ([∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateOk γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗

@@ -3,7 +3,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/common/NewMember.lean` (2
 Lean-first (no Rocq counterpart).
 
 The steps (putget3's `startMember` up to `Start`): `newServer`; `net.Listen` at the peer address;
-`s.RaftHandler()` (from `memberBuilt`'s `srvNetMember`); `go http.Serve(l, h)` (the peer address
+`s.RaftHandler()` (from `memberBuilt`'s `srvNetMember`); `go http.Serve(l, h)` (`http.Serve_ok`; the peer address
 one of the member's URLs in the directory). Every step's error returns it.
 -/
 module
@@ -12,7 +12,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.newServer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Spec.net.Listen
-public import Spec.net.http.Serve
+public import Proof.net.http.Axioms
 
 @[expose] public section
 
@@ -38,20 +38,19 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 theorem NewMember.wp_proof
     (wp_newServer : newServer.spec (GF := GF) (hG := hG))
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
-    (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
-    (wp_Serve : net.http.Serve.spec (GF := GF) (hG := hG)) :
+    (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG)) :
     NewMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog dir id γ bud ρ E₀ Φs
-    γn W HW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir HU Hlg Hck Haf Hbuq
+    γn W HW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq
     Hdbo
-  wp_start as ⟨Haddr, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, Hslot⟩
+  wp_start as ⟨Haddr, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
   -- `newServer(name, peer, client, cluster, token, lg)`
   wp_apply (wp_newServer N name peerAddr client token peer cluster lg M iu Uok ps bootLog dir id
-      γ bud ρ E₀ Φs γn W HW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 HU Hlg Hck
-      Haf Hbuq Hdbo) $$ [Hmb Hslot] as %s %err Hres
+      γ bud ρ E₀ Φs γn W HW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok HU Hlg
+      Hck Haf Hbuq Hdbo) $$ [Hmb] as %s %err Hres
   · iframe; iframe #
   icases Hres with (%Herr | ⟨%Herr, Hmb⟩)
   · -- `newServer` failed: the error returned
@@ -74,23 +73,34 @@ theorem NewMember.wp_proof
     iapply HΦ; ileft; ipureintro; simp
   subst Hlerr
   wp_auto
-  -- `go http.Serve(l, s.RaftHandler())`
   iunfold memberBuilt at Hmb
-  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff, Hlgm,
-    Hrc, #Hnm, HWR⟩
-  wp_apply (wp_RaftHandler s γn id) as %h #Hh
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+    Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR⟩
+  -- (2026-10-24, rafthttp stage 6d) the listener serves the peer address with the raft protocol
+  -- (the program start's reservation)
+  imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with Hlis
+  -- `go http.Serve(l, s.RaftHandler())`: the member owns its peer address (the directory's)
+  have Hown : (netRh γn).owner peerAddr = id := by
+    rw [netRh_owner]
+    exact netOwner_of_mem γn.dir (by rw [Hγn2]; exact Hdirok.2.1) id peerAddr (by rw [Hγn2]; exact Hdir)
+  wp_apply (wp_RaftHandler s γn id τ peerAddr Hown) as %h Hh
   · iframe #
   (try wp_auto)
-  wp_apply wp_fork $$ [Hlis]
-  · wp_apply (wp_Serve lis h peerAddr γn id) $$ [Hlis] as %serr -
-    · iframe Hlis Hh; ipureintro; rw [Hγn2]; exact Hdir
+  wp_apply wp_fork $$ [Hlis Hh HServeR]
+  · wp_apply (http.Serve_ok (raftHttpNet (netRh γn)) lis h peerAddr (srvServeRes γn τ))
+      $$ [Hlis Hh HServeR] as %serr -
+    · iframe Hh HServeR
+      rw [show (raftHttpNet (netRh γn)).proto peerAddr = raftProto (netRh γn) from rfl]
+      iexact Hlis
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
   iunfold memberBuilt
-  iexists γA, ci, TM, E, γrn, b, cfg
+  iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
+  simp only [↓reduceIte]
   iframe
   iframe #
   ipureintro; exact HE

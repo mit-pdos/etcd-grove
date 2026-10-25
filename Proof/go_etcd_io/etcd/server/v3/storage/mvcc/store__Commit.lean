@@ -58,9 +58,10 @@ theorem mvcc.store.Commit.wp_proof : mvcc.store.Commit.spec (GF := GF) (hG := hG
   (try wp_auto)
   -- `s.b.ForceCommit()`
   wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
+  iunfold mvcc.writerOwn at Hro
+  icases Hro with ⟨Hro, Htkr⟩
   iapply HForce $$ %X %Y [Hro Hwt HX] [-]
-  · iunfold mvcc.writerOwn at Hro
-    iframe Hro Hwt HX
+  · iframe Hro Hwt HX
     iframe #
   inext
   iintro ⟨Hro, HY⟩
@@ -80,7 +81,7 @@ theorem mvcc.store.Commit.wp_proof : mvcc.store.Commit.spec (GF := GF) (hG := hG
   (try wp_auto)
   iapply HΦ
   iunfold mvcc.writerOwn
-  iframe Hro HY
+  iframe Hro Htkr HY
   iunfold mvcc.writerFrag
   iexists o
   iexact Hpin

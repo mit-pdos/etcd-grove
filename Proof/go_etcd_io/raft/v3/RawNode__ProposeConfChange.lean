@@ -80,6 +80,8 @@ theorem RawNode.ProposeConfChange.wp_proof
         intro _
         exact ⟨List.cons_ne_nil _ _, by simp⟩
       isplitr
+      · ipureintro; simp
+      isplitr
       · ipureintro
         intro Hc
         simp [MsgStorageApplyResp] at Hc

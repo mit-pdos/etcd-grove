@@ -54,7 +54,6 @@ axiom klog.Verbose.Infof.wp_proof
 axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
 axiom metrics.RecordEtcdRequest.wp_proof
-axiom path.Join.wp_proof
 axiom peer.Peer.String.wp_proof
 axiom proto.Clone.wp_proof
 axiom reflect.New.wp_proof

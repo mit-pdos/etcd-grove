@@ -476,6 +476,8 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       isplitr
       · ipureintro; not_net
       isplitr
+      · ipureintro; intro _; exact Hok.resps
+      isplitr
       · ipureintro; not_net
       imodintro
       iintro %ty %Hty' %Hne
@@ -733,7 +735,9 @@ slices' invariant (D6).) The error is `raft.Step`'s for a proposal (`"Herr"`): `
 `ErrProposalDropped`, non-`nil` by `isInitialized` (`stepErr`; stage R7c, 2026-10-16). -/
 theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (ml : Loc) (st : MsgSt)
-    (Hty : st.msg.Type' = MsgProp) (Hfr : st.msg.From' = id) :
+    (Hty : st.msg.Type' = MsgProp) (Hfr : st.msg.From' = id)
+    -- (2026-10-22, D38a) no responses (`raft.Step`'s `Hnors`)
+    (Hrs : st.resps = []) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         msgIn ml (DFrac.own 1) st ∗
@@ -743,7 +747,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs ∗ stepErr err }} := by
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
-  simp only at Hty Hfr ⊢
+  simp only at Hty Hfr Hrs ⊢
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hm, Htk, Hlc⟩ HΦ
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
@@ -790,6 +794,8 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       · ipureintro
         intro _
         exact ⟨Hne, Hlen⟩
+      isplitr
+      · ipureintro; intro _; exact Hrs
       isplitr
       · ipureintro
         intro Hc
@@ -1444,7 +1450,7 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     entsRO rd.Entries' es ∗ rd.Messages' ↦* ms.map QMsg.loc ∗
     ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-    ([∗list] q ∈ ms, isRaftMsg γ.raft q.st) ∗
+    ([∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
     -- (D22 S-b) with its witness (`hsWit`)
@@ -1696,8 +1702,8 @@ stage R5: with the messages' ownership, as `readyData` holds them.) -/
 theorem readyMsgs_termLB (γ : NodeNames) (t : w64) (ms : List QMsg)
     (H : ∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z t) :
     ⊢ ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st) -∗
-      ([∗list] q ∈ ms, isRaftMsg (GF := GF) γ.raft q.st) -∗ termLB γ.bud t -∗
-      [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft q.st ∗
+      ([∗list] q ∈ ms, isRaftMsg (GF := GF) γ.raft γ.id q.st) -∗ termLB γ.bud t -∗
+      [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
         termLB γ.bud q.st.msg.Term' := by
   induction ms with
   | nil =>

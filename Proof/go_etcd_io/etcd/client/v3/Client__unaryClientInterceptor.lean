@@ -73,10 +73,10 @@ theorem Client.unaryClientInterceptor.wp_proof
   wp_auto
   ipersist c
   wp_apply_raw wp_reuse dp sl ros true $$ []
-  · iframe #
+  · iframe Hros Hsl Hpkg
     unfold retryOptsAt
     iexists dov
-    iframe #
+    iframe Hdov
     unfold optionsOk
     iexact Hdbf
   inext
@@ -86,7 +86,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   · iapply Hiopol $$ %rfl
     unfold retryOptsPol
     iexists dov
-    iframe #
+    iframe Hdov
     ipureintro; exact Hdpol
   wp_pures
   wp_alloc intOpts_ptr as intOpts
@@ -134,7 +134,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   ipersist Hr
   ihave #Hros'' := optApplyKeep_of_retryApplyOks ros' $$ Hros'
   wp_apply wp_reuse io r ros' false $$ [] as %co ⟨#Hco, %Hco0, -⟩
-  · iframe #
+  · iframe Hros'' Hr Hio
   have Hopt : ∀ w ∈ gs ++ [pv], grpcOptOk [p_ptr] w := by
     intro w hw
     rcases List.mem_append.1 hw with hw | hw
@@ -158,7 +158,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       subst Heq
       ipureintro; intro _; exact Hp2
   ihave #Hcop : retryOptsPol co cov.retryPolicy' $$ []
-  · unfold retryOptsPol; iexists cov; iframe #; ipureintro; first | rfl | trivial
+  · unfold retryOptsPol; iexists cov; iframe Hcov; ipureintro; first | rfl | trivial
   icases options_fields_ro co cov $$ Hcov with ⟨#Hrp, #Hmax, #Hbf, #Hra⟩
   iunfold grpcInvokerOk at Hinv
   (try wp_auto)
@@ -171,7 +171,7 @@ theorem Client.unaryClientInterceptor.wp_proof
     wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
         %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
       as %err ⟨Hsend, -, Hres⟩
-    · iframe #
+    · iframe Hg' Hctx' Hrpc
       iframe
       isplitl []
       · ipureintro; exact Hopt
@@ -181,7 +181,7 @@ theorem Client.unaryClientInterceptor.wp_proof
     iframe
     icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, -⟩)
     · ileft; iframe; ipureintro; exact He
-    · iright; iframe #; ipureintro; exact He
+    · iright; iframe Hcl Hse; ipureintro; exact He
   have Hmax0 := Hif
   ihave IHL : iprop(∃ (a : w64) (le : GoInterface),
       -- (D29) a write is never retried: its first attempt is its only one
@@ -221,7 +221,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       iright
       iunfold clientErrOk at Hwerr
       icases Hwerr with ⟨%Hce, #Hse, #Hcl⟩
-      iframe #
+      iframe Hcl Hse
       ipureintro; exact ⟨by simp, Hce (by simp)⟩
     | nil =>
       (try wp_auto)
@@ -237,7 +237,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       (try wp_auto)
       wp_apply wp_GetLogger c $$ [$Hlg] as %lg %Hlgn
       wp_apply wp_Debug lg _ _ $$ []
-      · iframe #; ipureintro; exact Hlgn
+      · ipureintro; exact Hlgn
       -- the attempt: (D29) with an ordinary precondition (a write), the first and only one
       have Hlt1 : once = true → a = W64 0 := fun h => by
         subst hon
@@ -260,7 +260,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
           %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
         as %err ⟨Hsend, Hpbs, Hres⟩
-      · iframe #
+      · iframe Hg' Hctx' Hrpc
         iframe
         isplitl []
         · ipureintro; exact Hopt
@@ -294,7 +294,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       (try wp_auto)
       wp_apply wp_GetLogger c $$ [$Hlg] as %lg2 %Hlgn2
       wp_apply wp_Warn lg2 _ _ $$ []
-      · iframe #; ipureintro; exact Hlgn2
+      · ipureintro; exact Hlgn2
       wp_apply wp_isContextError (GoInterface.ok ei) $$ [$Hse] as %b1 -
       cases b1
       rotate_left
@@ -316,7 +316,7 @@ theorem Client.unaryClientInterceptor.wp_proof
             iapply HΨ
             iframe
             iright
-            iframe #
+            iframe Hcl Hse
             ipureintro; exact ⟨Hne, Hce⟩
           (try wp_auto)
           wp_for_post
@@ -330,7 +330,7 @@ theorem Client.unaryClientInterceptor.wp_proof
             simp_all
           iframe
           iright
-          iframe #
+          iframe Hcl Hse
           ipureintro; exact ⟨Hne, Hce⟩
         iunfold _root_.Perennial.context.isContext at HC
         iunfold _root_.Perennial.context.isContextDef at HC
@@ -344,7 +344,7 @@ theorem Client.unaryClientInterceptor.wp_proof
           iapply HΨ
           iframe
           iright
-          iframe #
+          iframe Hcl Hse
           ipureintro; exact ⟨Hne, Hce⟩
         | nil =>
           (try wp_auto)
@@ -354,7 +354,7 @@ theorem Client.unaryClientInterceptor.wp_proof
             iapply HΨ
             iframe
             iright
-            iframe #
+            iframe Hcl Hse
             ipureintro; exact ⟨Hne, Hce⟩
           (try wp_auto)
           wp_for_post
@@ -368,7 +368,7 @@ theorem Client.unaryClientInterceptor.wp_proof
             simp_all
           iframe
           iright
-          iframe #
+          iframe Hcl Hse
           ipureintro; exact ⟨Hne, Hce⟩
       (try wp_auto)
       wp_apply wp_shouldRefresh c (GoInterface.ok ei) co $$ [$Hc $Hco $Hse] as %b2 %Hb2
@@ -391,14 +391,14 @@ theorem Client.unaryClientInterceptor.wp_proof
           (try wp_auto)
           wp_apply wp_GetLogger c $$ [$Hlg] as %lg3 %Hlgn3
           wp_apply wp_Warn lg3 _ _ $$ []
-          · iframe #; ipureintro; exact Hlgn3
+          · ipureintro; exact Hlgn3
           wp_for_post
           iapply HΨ
           iframe
           iright
           iunfold clientErrOk at Hgt
           icases Hgt with ⟨%Hgce, #Hgse, #Hgcl⟩
-          iframe #
+          iframe Hgcl Hgse
           ipureintro; exact ⟨by simp, Hgce (by simp)⟩
         | nil =>
           (try wp_auto)
@@ -414,7 +414,7 @@ theorem Client.unaryClientInterceptor.wp_proof
             · exact h (Hb2 rfl)
           iframe
           iright
-          iframe #
+          iframe Hcl Hse
           ipureintro; exact ⟨Hne, Hce⟩
       (try wp_auto)
       wp_apply wp_isSafeRetry c (GoInterface.ok ei) co cov.retryPolicy' $$ [$Hc $Hco $Hse $Hcop] as %b3 %Hb3
@@ -425,7 +425,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iapply HΨ
         iframe
         iright
-        iframe #
+        iframe Hcl Hse
         ipureintro; exact ⟨Hne, Hce⟩
       · (try wp_auto)
         wp_for_post
@@ -442,7 +442,7 @@ theorem Client.unaryClientInterceptor.wp_proof
           · rw [Hcovpol hw] at h; simp at h
         iframe
         iright
-        iframe #
+        iframe Hcl Hse
         ipureintro; exact ⟨Hne, Hce⟩
   · iapply HΨ
     iframe
@@ -453,7 +453,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       apply Hif
       have h1 : uint.Z cov.max' ≠ 0 := fun h => Hmax0 (by word)
       word
-    · iframe #; ipureintro; exact Hl
+    · iframe Hlcl Hls; ipureintro; exact Hl
 
 end proof
 

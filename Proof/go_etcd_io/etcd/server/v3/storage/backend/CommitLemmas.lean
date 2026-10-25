@@ -308,13 +308,13 @@ theorem commit_bgOk {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {n w 
     (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : hookStep P st st') (hst : sessWf P st)
     (hb' : bgOk P st' false n w u) (n' w' u' : Nat)
     (hbud : uint.Z st.R.ver + n' + k' < 2 ^ 40) (huw : u' ≤ w')
-    (hc : st.cnt.c + 1 ≤ k' + 1 + (if u' = w' then 1 else 0)) :
+    (hc : st.cnt.c + 1 ≤ k' + 1 + (if u' = w' then 1 else 0)) (hwv : (w' : Int) ≤ uint.Z st.R.ver) :
     bgOk P (commitSt st' C' tx' ⟨k', st.cnt.c + 1, 0, 0, false⟩) true n' w' u' := by
   obtain ⟨hsC, hsR, hsS, hsB, hsW, hsp1, hsp2, hsn, hstx, hscnt⟩ := hs
   obtain ⟨-, -, -, h4, -, -, h7, -, -⟩ := hb'
   have hp := hst.2.2.2.2.1
   refine ⟨?_, huw, hc, by simp [commitSt],
-    ⟨Or.inl rfl, Or.inr (fun i => bkOf_bksResetC _ i)⟩, Nat.zero_le _, ?_, ?_, ?_⟩
+    ⟨Or.inl rfl, Or.inr (fun i => bkOf_bksResetC _ i)⟩, Nat.zero_le _, ?_, ?_, ?_, ?_⟩
   · show uint.Z (bksReset st'.R.bks, st'.R.ver).2 + n' + k' < 2 ^ 40
     rw [hsR]; exact hbud
   · intro i
@@ -334,6 +334,8 @@ theorem commit_bgOk {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {n w 
     simp
   · intro _
     exact ⟨rfl, fun h => absurd rfl h⟩
+  · show (w' : Int) ≤ uint.Z (bksReset st'.R.bks, st'.R.ver).2
+    rw [hsR]; exact hwv
 
 end backend
 end EtcdGrove

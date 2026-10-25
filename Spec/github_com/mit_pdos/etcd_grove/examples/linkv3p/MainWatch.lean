@@ -43,7 +43,7 @@ abbrev MainWatch.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [ErrorStringLeaf] [ErrorStringNoGRPCStatus] [context.ErrorStringIsError]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)] [PeerPausable]
     (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (nw nops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.linkv3p.Step),
   BootFacts id₁ id₂ id₃ bootLog →
@@ -58,7 +58,9 @@ abbrev MainWatch.spec : Prop :=
       netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
       netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
       netAddrFree (GF := GF) bridgeAddr₁ ∗ netAddrFree (GF := GF) bridgeAddr₂ ∗
-      netAddrFree (GF := GF) bridgeAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗
+      netAddrFree (GF := GF) bridgeAddr₃ ∗
+      httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
+      httpProtoFree (GF := GF) peerAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗
       premises N id₁ id₂ id₃ bootLog }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.MainWatch))
       (Val #nw)) (Val #nops)) (Val #sched))

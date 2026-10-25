@@ -233,7 +233,7 @@ theorem node.iterate.wp_proof (wp_find : items.find.spec (GF := GF) (hG := hG)) 
             · iframe # ∗
             isplitr
             · ipureintro
-              cases rr <;> simp_all
+              cases rr <;> simp at Hrr <;> simp [Hrr]
             iframe
         rcases Classical.em (∃ b, ku = some b ∧ ¬ o.lt x.2 b) with Hif | Hif
         · -- `stop` reached: the range is done
@@ -671,7 +671,7 @@ theorem node.iterate.wp_proof (wp_find : items.find.spec (GF := GF) (hG := hG)) 
               · iframe # ∗
               isplitr
               · ipureintro
-                cases rr <;> simp_all
+                cases rr <;> simp at Hrr <;> simp [Hrr]
               iframe
           have hdd := desc_decomp hok hs ks ku (j' + 1) (by omega)
           rcases Classical.em (∃ b, ku = some b ∧ ¬ o.lt b x.2) with Hif | Hif

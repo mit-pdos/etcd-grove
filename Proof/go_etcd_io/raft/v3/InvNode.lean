@@ -387,6 +387,9 @@ structure NodeNames [FfiSyntax] where
   while its offer waits (`advInv`); (D22 S-d4) `none` after a snapshot `Ready`, which asks for
   no floor (`reqOf`) -/
   req : GName
+  /-- (2026-10-22, D38a) the node's id (`isNode`'s): the sender of the messages its `Ready`s hand
+  out (`isRaftMsg`, whose `MsgApp`s are from it) -/
+  id : w64
   /-- (D22 S-d4, 2026-10-21) **the application may deliver a `MsgSnap`** (`netP`), a parameter of
   `StartNode`/`RestartNode`: only outside the no-snapshot mode and in the static mode (`runCfg`);
   with it a `Ready` may hand out a snapshot (`readyDataL`). `false` for the server, putget,
@@ -411,9 +414,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (`appendEntry` stamps it; a transport delivers a copy), its context (until 2026-10-13 not
 the leader-transfer marker), and what it carries as a protocol message (each entry's data,
 `entData`, so its update was deposited). (2026-10-16, stage R5: the message at `ml`, owned as
-`raft.Step` takes a proposal, `msgIn ml 1`, its entries' slots owned.) -/
+`raft.Step` takes a proposal, `msgIn ml 1`, its entries' slots owned.) (2026-10-22, D38a) With no
+responses (`raft.Step`'s `Hnors`: the leader may forward it on). -/
 def fwdP (γ : NodeNames) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgIn ml (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgProp⌝ ∗
+  iprop(∃ st : MsgSt, msgIn ml (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgProp ∧ st.resps = []⌝ ∗
     isMessage γ.raft (absMsg .propose st.msg st.ents) ∗
     -- (2026-10-19, D21 M6) its entries' tickets (`entTk`), which the leader consumes
     ([∗list] e ∈ st.ents, entTk γ.raft e))
@@ -498,7 +502,7 @@ fact. (2026-10-16, stage R5: over the message's state.) -/
 theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     (Hty : st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgForgetLeader ∨
       st.msg.Type' = MsgUnreachable ∨ st.msg.Type' = MsgSnapStatus)
-    (Ht : st.msg.Term' = W64 0) (He : st.ents = []) (Hc : st.ctx = [])
+    (Ht : st.msg.Term' = W64 0) (He : st.ents = []) (Hc : st.ctx = []) (Hr : st.resps = [])
     -- (2026-10-19, D21 M2r) a transfer request only outside the cluster's no-transfer mode
     (Hxt : st.msg.Type' = MsgTransferLeader → γ.raft.reNoXfer = false) :
     ⊢ msgIn (GF := GF) ml DFrac.discard st -∗
@@ -516,7 +520,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     rcases Hty with h | h | h | h <;> rw [h] <;> rfl
   have Hok : NetMsgOk id st := by
     refine ⟨?_, fun h => absurd Hun h, fun _ => Ht, fun h => ?_, fun h => ?_, fun _ => ⟨He, Hc⟩,
-      fun h => ?_⟩
+      fun h => ?_, Hr⟩
     · rcases Hty with h | h | h | h <;> rw [h] <;> simp [netStepTypes]
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
@@ -577,7 +581,7 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
     entsRO rd.Entries' es ∗ appendRight γ.stor es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft q.st ∗
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
       termLB γ.bud q.st.msg.Term') ∗
     ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
     -- (2026-10-19, D21 M6) each forwarded proposal's tickets (`stTks`)
@@ -630,7 +634,7 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
     entsRO rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft q.st ∗
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
       termLB γ.bud q.st.msg.Term') ∗
     ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
@@ -952,7 +956,9 @@ def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     "#Hbud" ∷ inv budgetN (budgetInv γ.bud) ∗
     -- the cluster's commit invariant (2026-10-10; (2026-10-16, stage R5, D6) the proposed
     -- slices' invariant `propDataInv` is gone)
-    "#Hcinv" ∷ raftCommitInv γ.raft)
+    "#Hcinv" ∷ raftCommitInv γ.raft ∗
+    -- (2026-10-22, D38a) the names' id is the node's
+    "%Hgid" ∷ ⌜γ.id = id⌝)
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in

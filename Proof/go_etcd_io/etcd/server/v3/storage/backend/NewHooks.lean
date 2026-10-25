@@ -37,8 +37,8 @@ theorem backend.NewHooks.wp_proof
   iexists _
   isplitr
   · ipureintro; rfl
-  iintro !> %st !> %Φ' Hpre HΦ'
-  iapply (hOn γ P Pk b t ⟨f⟩ st) $$ [Hpre] HΦ'
+  iintro !> %st %stop %m %u !> %Φ' Hpre HΦ'
+  iapply (hOn γ P Pk b t ⟨f⟩ st stop m u) $$ [Hpre] HΦ'
   icases Hpre with ⟨Hl, HWR⟩
   iframe
   iframe Hf

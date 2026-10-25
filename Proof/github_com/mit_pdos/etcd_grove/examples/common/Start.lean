@@ -36,15 +36,15 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- See the file header. -/
 theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
     (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
-    (N : Nat) (bud : BudgetNames) (HrbN : receiptBound GF ≤ N + 1) :
+    (N : Nat) (bud : BudgetNames) (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        memberBuilt s ρ E₀ lg γn id N bud ∗ threadTok }}
+        memberBuilt s ρ E₀ lg γn id N bud sv ∗ threadTok }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
     {{ RET #(); memberUp s ρ E₀ lg γn id }} := by
   iintro %Φ ⟨#Psrv, Hmb, Htok⟩ HΦ
   iunfold memberBuilt at Hmb
-  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff, Hlgm,
-    Hrc, #Hnm, HWR⟩
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+    Hlgm, Hrc, #Hnm, Htokp, -, HWR⟩
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
@@ -56,8 +56,11 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   iexists E, cfg, γw
   iframe
   iframe #
-  ipureintro
-  exact HE
+  isplitr
+  · ipureintro; exact HE
+  iunfold srvPeerCtl
+  iexists τ
+  iframe Hnm Htokp
 
 end proof
 

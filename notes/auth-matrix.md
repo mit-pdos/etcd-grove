@@ -149,3 +149,144 @@ resources, and the KV methods' posts state the row's class for it through the wh
 Not stated: `RoleGet`'s "or a role the user has" (`HasRole` has no model in `isAuthStore`),
 `LeaseRevoke`'s keys (the lessor's key model), the server-level statement over the decoded
 entry (`applyEntryNormal`: E).
+
+## What is proved of the table (A4, the watch shapes, 2026-10-24)
+
+The `Watch` row at the API layer, over every request shape (`notes/decisions.md`, "A4 of the
+auth plan"; `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WatchClass.lean`): a created
+control response's watcher (`v3rpc.ctrlWatcher`, the stream specification's) carries
+`v3rpc.watchAuthed`, the class `apply.watchClass M info key rangeEnd` (RBAC read of `[Key,
+RangeEnd)`: the key normalized, `"\x00"` for an empty one; the range end as the request gave it:
+empty, a point; `"\x00"`, from the key on, `WithFromKey`; else the range, `WithPrefix` included)
+in the server's auth mode (named by the watchable store's owner tag, `auth.modeTag`) for the
+principal the check saw; and every key the registered mvcc range covers is in that interval
+(`createRangeOk_inRange`). `watch_registered_authorized` (`v3rpc/Results.lean`): in `on γa`, a
+recorded state at which auth was disabled, or the principal a root user, or one whose READ
+permissions cover every covered key. `ProgressRequest`/`CancelRequest` register nothing;
+`Fragment` and the filters change no class. GHSA-xg4h-6gfc-h4m8 (the advisory table above) is
+the statement's negative: at the pinned revision the check sees the interval mvcc registers.
+Not stated: the token's binding to the principal (S5), a re-check of live watchers (there is
+none: etcd's documented behaviour).
+
+
+## What is proved of the table (A3, the API layer, 2026-10-24)
+
+The Auth service's seventeen rows at the API layer (`notes/decisions.md`, "A3 of the auth plan,
+the API layer"): the gRPC wrappers (`v3rpc/AuthServer__*.lean`) call the server's method and pass
+its error through `togRPCError`; the server's entry points (`etcdserver/EtcdServer__*.lean`) are
+`raftRequest` on the request with the one field, taken as a contract (`authRaftOk`: the proposal
+path's model has no auth request), the response asserted to its type. Nothing of auth is checked
+on this path: the rows' class (admin at apply, `UserGet`'s "or the user itself") is the apply
+layer's statement (`adminPass`, `userGetClass`, above). Fourteen entry points are proved;
+`Authenticate` is translated and not (`auth.ErrAuthNotEnabled` is not in the auth package's
+fact); `UserAdd`, `UserChangePassword` are names only (they hash with bcrypt and base64). The
+"`UserChangePassword` of oneself" exception is not in the pinned code: `needAdminPermission` names
+the request unconditionally (the row above is right).
+
+Stated at the API layer so far: A2's twelve (`Compact`, the eight maintenance wrappers,
+`MemberRemove`, `MemberList`, the lease rows' guard) and these seventeen. Remaining: `Lock`,
+`Unlock`, the five `Election` rows (the client's `concurrency` package over the in-process client),
+the lease rows' key checks (a lessor with a key model), `MemberAdd`/`MemberUpdate`/`MemberPromote`
+(`encoding/json`).
+
+## What is proved of the table (S4, the store's admin side, 2026-10-24)
+
+The store's `AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`, `UserChangePassword`, `RoleAdd` and
+`Recover` perform the model's step on the latest recorded state (`auth/Steps.lean`, `adminOut`): the
+state appended to the history, or the model's refusal. The admin rows' class at apply is unchanged:
+`apply.isAuthStore`'s admin clauses are still the `isAuthStoreAdmin` contract (stating them as steps
+needs the authority in the apply environment); `UserGrantRole`, `UserRevokeRole`, `RoleDelete`,
+`RoleGrantPermission`, `RoleRevokePermission`, `UserGet`, `RoleGet`, `UserList`, `RoleList` are
+translated, not proved.
+
+
+**At apply** (S4's apply part, 2026-10-24; `notes/decisions.md`, "S4's apply part";
+`apply/AuthSteps.lean`): `applierV3backend.AuthEnable`, `AuthDisable`, `UserAdd`, `UserDelete`,
+`UserChangePassword`, `RoleAdd` perform the store's step (`apply_AuthEnable_step`, ...,
+`etcdserver/Results.lean`), from the auth store's `isAuthSteps` (of the real store:
+`auth_apply_steps`), the admin side's authority and the store's write resource; with A3's
+`adminPass`, an applied one is a step of the history made by an admin. The other admin rows at
+apply (`UserGrantRole`, `UserRevokeRole`, `RoleDelete`, `RoleGrantPermission`,
+`RoleRevokePermission`, the reads) keep the contract clause.
+
+## What is proved of the table (S5 in part, the token binding, 2026-10-24)
+
+Every row's principal at the API layer is `AuthInfoFromCtx`'s, and since S5 it is bound to the
+request's token in the mode (`auth.ctxBound`: in `on γa`, its user is one the token was issued to,
+`tokIssued`), over the token provider's contract (`tokenProviderOk`); the server's
+`isReqAuthBound` states it of the real store (`etcdserver/AuthReqDerive.lean`). The `Authenticate`
+row: the store's `Authenticate` is proved (a token issued to the user, the user present in the
+latest state, auth enabled at a recorded state); the server's entry point and `CheckPassword` are
+not. No real token provider is proved to meet the contract yet (the no-op one does); the rows'
+statements of A2 and A4 still name the unbound info (`isReqAuth`).
+
+## What is proved of the table (S4b, 2026-10-24)
+
+The store's `UserRevokeRole`, `RoleRevokePermission` and `RoleDelete` perform the model's step
+(`auth/Steps.lean`), and `applierV3backend`'s three perform it at the apply layer
+(`apply/AuthSteps.lean`, `apply_*_step` in `etcdserver/Results.lean`); `hasRootRole` (every check's
+root shortcut) is proved. Left: `UserGrantRole`, `RoleGrantPermission` (they write into the
+messages the read contract gives read-only: `notes/decisions.md`, "S4b of the auth plan").
+
+## What is proved of the table (S5b in part, the simple provider, 2026-10-24)
+
+The binding every row's principal rests on (S5's `ctxBound`) is now met by etcd's default provider
+for the tokens it accepts and issues: `tokenSimple`'s `info` returns a user only for a token the
+map holds, each issued to that user, and `assign` issues the token it stores
+(`auth/TokenSimple.lean`). Not yet: the provider's `enable`, `disable` and `invalidateUser`
+(so not yet `tokenProviderOk` of `tokenSimple` as a whole), and the guards' statements (A2, A4)
+naming the bound principal.
+
+## What is proved of the table (S4c, 2026-10-24)
+
+`UserGrantRole` performs the model's step at the store and at the apply layer
+(`apply_UserGrantRole_step`), from the user message the decoder gives the caller (the two
+`proto.Unmarshal` axioms' posts restated: `notes/decisions.md`, "S4c of the auth plan"). The
+store's `HasRole` answers the latest state's (with the admin side's authority). Left:
+`RoleGrantPermission` (its contract clause), `UserGet`, `RoleGet`, `UserList`, `RoleList`.
+
+## What is proved of the table (E1 in part, the binding at the guards, 2026-10-24)
+
+The admin rows' guards (`checkMembershipOperationPermission`, `AuthAdmin.isPermitted`), the
+authenticated rows' (`requireAuthInfo`, the server's, `AuthAdmin`'s and the maintenance
+server's) and the `Watch` row's check (`isWatchPermitted`) have bound variants: the principal they
+checked is one to whom some token was issued (or the anonymous one for the watch, or the TLS
+fallback's), over the store's bound contract as a premise (`srvAuthBound`; `notes/decisions.md`,
+"E1 of the auth plan"). The premise is the real store's once `NewAuthStore` is proved.
+
+## What is proved of the table (S4d, 2026-10-24)
+
+`RoleGrantPermission` performs the model's step at the store and at the apply layer
+(`auth/authStore__RoleGrantPermission.lean`, `apply_RoleGrantPermission_step`): every admin
+operation of the store is a proved step. Its spec takes the read-only ownership of
+`authpb.Permission_Type_name` (an untranslated initializer) as a premise (`auth.typeNamesOk`).
+
+## What is proved of the table (A3c, Lock and Election, 2026-10-24)
+
+The Lock and Election rows at the server (`notes/decisions.md`, "A3c of the auth plan: Lock and
+Election"; `api/v3lock/Results.lean`, `api/v3election/Results.lean`): each handler makes only the
+client calls the table names, with the request's context, over the server's client as a contract
+(`lockClientOk`, `unlockKVOk`, hypotheses). `Lock`: a session over the request's lease and a mutex
+on `name/`; `Unlock`: the delete of the request's key; `Campaign` and `Leader`: an election on
+`name/`; `Proclaim` and `Resign`: the request's leader key (any key the caller names). `Observe` is
+translated, not proved. The class becomes the server's handlers' checks once the in-process client
+(`v3client.New(s)`) is shown to meet the contract (not translated yet).
+
+
+## What is proved of the table (S5c in part, the simple provider's token check, 2026-10-25)
+
+The binding every row's principal rests on, for etcd's default provider: `isValidSimpleToken` is
+proved on a context (`tokenSimple_isValid`; `strconv.ParseUint`, the `select` on the index waiter
+and the context), so the simple provider's `info` keeps the binding on a context with no hypothesis
+on the check (`tokenSimple_info_ctx`). The provider still is not shown to meet the whole contract
+(`tokenProviderOk`): `enable`, `disable`, `invalidateUser` and the TTL keeper are left
+(`notes/decisions.md`, "S5c of the auth plan, in part").
+
+## What is proved of the table (S5d in part, the simple provider's admin side, 2026-10-25)
+
+The binding every row's principal rests on (`tokIssued`) now holds of etcd's default provider in
+`on γa`: `tokenSimple_okA` (`auth/TokenSimpleAdmin.lean`) proves the simple provider meets the
+contract, with `enable`/`disable`/`invalidateUser` from the admin side's share (`tpAdmin`), over two
+hypotheses (`ValidSpec`, `info`'s context; `RunSpec`, the TTL keeper's goroutine). The admin rows
+that call the provider (`AuthEnable`, `AuthDisable`, `UserDelete`, `UserChangePassword`) take
+`tpAdmin` with their write resource (`notes/decisions.md`, "S5d of the auth plan").

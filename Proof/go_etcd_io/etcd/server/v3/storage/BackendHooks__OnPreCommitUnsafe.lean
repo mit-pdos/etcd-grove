@@ -33,15 +33,15 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t bh ix lg st X Y hP
-  wp_start as ⟨#Hh, #Hsave, #Hb, #Ht, Hl, HPk, HX, %Hpre⟩
+  intro γ P W Pk b t bh ix lg st X Y stop m u hP
+  wp_start as ⟨#Hh, #Hsave, #Hb, #Ht, Hl, HPk, HX, %Hpre, Hpay⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isBackendHooks at Hh
   icases Hh with ⟨#Hix, #Hlg, #Hmu⟩
   wp_apply wp_with_defer as %defer defer
   iunfold saveReq at Hsave
-  wp_apply Hsave $$ %st [$Hl $HPk $HX] as ⟨%st1, Hl, HPk, HY, %Hs1⟩
+  wp_apply Hsave $$ %st %stop %m %u [$Hl $HPk $HX $Hpay] as ⟨%st1, Hl, HPk, HY, Hpay, %Hs1⟩
   · ipureintro; exact Hpre
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold csInv at HR
@@ -55,7 +55,7 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
     · inext; iunfold csInv; iexists cs, false; iframe Hcs Hd
     iapply HΦ
     iexists st1
-    iframe Hl HPk HY
+    iframe Hl HPk HY Hpay
     ipureintro; exact hookStep_of_save Hs1
   · -- dirty: the `confState` saved into `Meta`, one put
     wp_auto
@@ -92,7 +92,7 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
     · inext; iunfold csInv; iexists cs, false; iframe Hcs Hd
     iapply HΦ
     iexists st2
-    iframe Hl HPk HY
+    iframe Hl HPk HY Hpay
     ipureintro; exact Hs2
 
 end proof

@@ -1,0 +1,16 @@
+# The functions linked in `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/Link.lean` (all
+# Lean-first: no Rocq counterpart), read by `etc/gen-link.py --v3lock`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `v3lock` (`v3lock.lockServer.wp_Lock`). The auth plan's A3c (2026-10-24): the Lock service's
+# server over the client's concurrency package (`@`: linked in its `Link.lean`) and the server's
+# client as contracts (`v3lock/Defs.lean`: `lockClientOk`, `unlockKVOk`, hypotheses of the specs).
+NewSession: @
+WithLease: @
+WithContext: @
+Session__Orphan: @
+NewMutex: @
+Mutex__Lock: @
+Mutex__Header: @
+Mutex__Key: @
+lockServer__Lock: NewSession WithLease WithContext Session__Orphan NewMutex Mutex__Lock Mutex__Header Mutex__Key
+lockServer__Unlock:

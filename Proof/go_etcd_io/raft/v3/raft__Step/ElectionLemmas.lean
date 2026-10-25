@@ -290,7 +290,8 @@ macro "vote_grant_tail" : tactic => `(tactic| (
   wp_apply _P.send c r id s «$a0_ptr» _ [] none [] [] _ (.inl rfl)
       (sendOk_voteResp id s m.From' m.Term' false Hterm
         (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Heq0)))
-      (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne)) $$ [Hphys Hresp] as Hphys
+      (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+      (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [Hphys Hresp] as Hphys
   · iframe
     iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
   wp_gets
@@ -350,7 +351,8 @@ macro "vote_reject_tail" : tactic => `(tactic| (
   wp_apply _P.send c r id s «$a0_ptr» _ [] none [] [] _ (.inl rfl)
       (sendOk_voteResp id s m.From' s.term true (Heq0 ▸ Hterm)
         (Int.le_refl _))
-      (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne)) $$ [Hphys Hresp] as Hphys
+      (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+      (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [Hphys Hresp] as Hphys
   · iframe
     iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
   iapply HΦ $$ %interface.nil %_
@@ -423,7 +425,8 @@ macro "prevote_resp_tail " grant:ident : tactic =>
              -- (2026-10-17) the requester's term: the node's or within the ceiling
              (by first | exact .inr Hptc | exact .inl (Int.le_of_eq (congrArg _ Heq0))), rfl⟩)
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
-         $$ [Hphys Hresp]
+           (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
+         rfl $$ [Hphys Hresp]
        · iframe Hphys Hresp
          iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
        iintro Hphys)
@@ -453,7 +456,8 @@ macro "prevote_resp_tail " grant:ident : tactic =>
              fun h => absurd h Hfid,
              .inl (Int.le_refl _), rfl⟩)
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
-         $$ [Hphys Hresp]
+           (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
+         rfl $$ [Hphys Hresp]
        · iframe Hphys Hresp
          iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
        iintro Hphys)
@@ -496,7 +500,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+        (by notfwd_tac) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
       obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]

@@ -42,13 +42,14 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- **What a one-member `Main` takes of the ghost state, for its member** (see the file header). -/
 theorem alloc1 (W : SrvWorkload) (id : w64) (bootLog : List EntryM)
     (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (Hboot : BootLogOk (ccOk [id]) [id] bootLog)
-    (dir : w64 → List GoString) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
+    (dir : w64 → List GoString) (Hone : ∀ f, dir f ≠ [] → f = id)
+    (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
     ⊢ |={⊤}=> ∃ (γ : RaftNames) (bud : BudgetNames) (ρ : ReqNames) (E₀ : apply.AEnv GF)
         (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
       ⌜γ.reCfg = GMap.listToSet [id] ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk [id] ∧
         γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true ∧
         γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.wl = W⌝ ∗
-      memberBoot W γ bud bootLog ρ E₀ Φs id ∗ netSlot γn id ∗
+      memberBoot W γ bud bootLog ρ E₀ Φs id ∗ netHttpOk γn id ∗
       etcdKV ρ.rd.kv (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) := by
   istart
   imod newServerNames_alloc (GF := GF) with ⟨%idx, %cok, %rev, Hidx, Hcok, Hrev⟩
@@ -78,13 +79,14 @@ theorem alloc1 (W : SrvWorkload) (id : w64) (bootLog : List EntryM)
       (Φ := fun k (_ : Unit) => ownRaftGhost (GF := GF) γ k (bootPState bootLog))
       (m := (∅ : GMap w64 Unit)) (i := id) (x := ()) (GMap.lookup_empty id)).1 $$ Hghosts
     iexact H1
-  -- the raft network, the member's slot
-  imod (netNames_alloc (srvNet γ bud) dir (GMap.insert id () ∅)) with ⟨%γn, %Hγn, Hslots⟩
-  ihave Hslot := (BigSepM.bigSepM_insert (GMap.lookup_empty id)).1 $$ Hslots
-  icases Hslot with ⟨Hslot, -⟩
+  -- the raft network; (2026-10-24, rafthttp stage 6d) one member: no other member's hosts to
+  -- register (until then the member's slot)
+  imod (netNames_alloc (srvNet γ bud) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #HregN⟩
+  ihave #Hnet := netHttpOk_single γn id
+    (fun f hf => Hone f (by rw [Hγn.2] at hf; exact hf)) $$ HregN
   imodintro
   iexists γ, bud, ρ, env₀ idx cok rev, Φs, γn
-  iframe Hslot
+  iframe Hnet
   isplitr
   · ipureintro
     exact ⟨hcfg, hdyn, hcc, hboot, htr, htx, Hγn.1, Hγn.2, by rw [hlog', hlog], by rw [hwl', hwl]⟩

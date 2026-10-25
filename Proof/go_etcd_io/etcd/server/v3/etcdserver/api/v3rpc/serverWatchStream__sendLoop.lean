@@ -788,6 +788,7 @@ local macro "send_fail" k:tactic : tactic => `(tactic| (
       exact ⟨HcvFl, prometheus.labelValuesOk_two _ _ _ _ (by decide) (by decide)⟩
     subst Hcnt
     iunfold prometheus.counterSpec at Hcs
+    icases Hcs with ⟨#Hcs, -⟩
     wp_apply Hcs
     (try wp_auto)
     $k

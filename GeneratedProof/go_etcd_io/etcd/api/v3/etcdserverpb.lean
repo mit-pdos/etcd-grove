@@ -17,6 +17,7 @@ public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk4
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk5
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk6
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk7
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk8
 
 @[expose] public section
 

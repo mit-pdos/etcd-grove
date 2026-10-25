@@ -212,7 +212,10 @@ instance WatcherNames.countable : Pos.Countable WatcherNames :=
 /-- The watchable store's ghost names: the store's, the watchers' names (`wmeta`: a ghost map
 from a watcher to its names, persistent elements), the notified log (`wlog`: half the lock
 invariant's, half the sole writer's), and the lock invariant's state (`wst`: `ghostVar
-WsState`, at the lock's fraction, so that two parts of the invariant agree on it). -/
+WsState`, at the lock's fraction, so that two parts of the invariant agree on it); and the
+owner's tag (`tag`: a ghost name the store's creator chooses, `newWatchableStore`'s `γtag`, of no
+meaning to mvcc: the watch server records its auth mode under it, `auth.modeTag`, so that the
+stream specification can name the mode at the store's names; the auth plan's A4, 2026-10-24). -/
 structure WsNames where
   st : StoreNames
   wmeta : GName
@@ -224,6 +227,8 @@ structure WsNames where
   (`watchStoreInv`), bumped by `End` before it notifies the pending revision's events, so every
   delivered event's revision is below it (`relLb`, kept by `evsWf`) -/
   rel : GName
+  /-- the owner's tag (see above): `newWatchableStore` takes it, states nothing of it -/
+  tag : GName
 
 /-! ## Channel states
 

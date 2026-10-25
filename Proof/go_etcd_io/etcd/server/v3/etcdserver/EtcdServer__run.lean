@@ -125,7 +125,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
       C.ms C.γs C.wt hms hb1 Hloop hok' Hcap) $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS]
   · rw [hun]
-    iframe #
+    iframe HWc' Hracc' Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
     iframe
     iunfold srvGoRes
     iframe
@@ -245,7 +245,7 @@ theorem EtcdServer.run.wp_proof
   ihave #Hrpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨%Hlg0, Hlr⟩
-  · iframe #; iframe Hlr; ipureintro; exact Hslgnn
+  · iframe Hlgf; iframe Hlr; ipureintro; exact Hslgnn
   (try wp_auto)
   -- `s.r.raftStorage.Snapshot()`: the snapshot the server started from
   icases Hsnap with ⟨%ms', #Hms', Hsnap⟩
@@ -279,7 +279,7 @@ theorem EtcdServer.run.wp_proof
   (try wp_auto)
   -- the FIFO scheduler: its stop token, its queue `[n₀, p₀]` (`p₀` saving `True`)
   wp_apply hFifo fv.lg $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0⟩
-  · iframe #; ipureintro; exact Hlg0
+  · ipureintro; exact Hlg0
   ihave #Hfifo' := Hfifo
   iunfold schedule.isFifo at Hfifo'
   icases Hfifo' with ⟨%Hscnn, -⟩
@@ -310,7 +310,7 @@ theorem EtcdServer.run.wp_proof
       iintro !> %Φ' !> - HΦ'
       wp_auto
       wp_apply hGL s $$ [] as %ld -
-      · iframe #
+      · iframe Hlead
       (try wp_auto)
       iapply HΦ'
       itrivial
@@ -319,7 +319,7 @@ theorem EtcdServer.run.wp_proof
       iintro %ld !> %Φ' !> - HΦ'
       wp_auto
       wp_apply hSL s ld $$ []
-      · iframe #
+      · iframe Hlead
       (try wp_auto)
       iapply HΦ'
       itrivial
@@ -328,7 +328,7 @@ theorem EtcdServer.run.wp_proof
       iintro %nl !> %Φ' !> - HΦ'
       wp_auto
       wp_apply hIL s fv.memberID $$ [] as %isl -
-      · iframe #
+      · iframe Hlead Hmid
       (try wp_auto)
       ihave #Hlok' := Hlok
       ihave #Hcpok' := Hcpok
@@ -372,12 +372,12 @@ theorem EtcdServer.run.wp_proof
               wp_apply time.wp_Now as %tn -
               (try wp_auto)
               wp_apply sync.RWMutex.wp_Lock_guard (srvLeadTimeMuAddr s) (leadTimeP s) $$ [] as ⟨Hwl, HP⟩
-              · iframe #
+              · iframe Hltg
               iunfold leadTimeP at HP
               icases HP with ⟨%t0, Hlt⟩
               (try wp_auto)
               wp_apply sync.RWMutex.wp_Unlock_guard (srvLeadTimeMuAddr s) (leadTimeP s) $$ [Hwl Hlt]
-              · iframe #; iframe Hwl; iunfold leadTimeP; iexists _; iexact Hlt
+              · iframe Hwl; iunfold leadTimeP; iexists _; iexact Hlt
               (try wp_auto)
               wp_join_done
           icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume⟩)
@@ -394,14 +394,14 @@ theorem EtcdServer.run.wp_proof
       iintro %ci' %Lc !> %Φ' !> ⟨⟨%c, Hown⟩, #HLc, %HciL⟩ HΦ'
       wp_auto
       wp_apply hGCI s γr (some c) $$ [Hown] as %cci ⟨-, Hown, %Hcci⟩
-      · iframe #; iunfold srvCommittedOwnOpt; iexact Hown
+      · iframe Hcinv; iunfold srvCommittedOwnOpt; iexact Hown
       iunfold srvCommittedOwnOpt at Hown
       have hc : cci = c := Hcci c rfl
       subst hc
       (try wp_auto)
       wp_if_destruct
       · wp_apply hSCI s γr cci ci' Lc (by word) $$ [Hown] as ⟨Hown, #Hca⟩
-        · iframe #; iframe Hown; ipureintro; exact HciL
+        · iframe HLc Hcinv; iframe Hown; ipureintro; exact HciL
         (try wp_auto)
         iapply HΦ'
         iframe Hca
@@ -420,8 +420,8 @@ theorem EtcdServer.run.wp_proof
         iexact Hown
   -- `s.r.start(rh)`: the raft loop, owning the committed index's writer half
   wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c)
-    $$ [Hloop Hrdone Hcomm]
-  · rw [HEγr]; iframe #; iframe
+    $$ [Hloop Hrdone Hcomm Hsend]
+  · rw [HEγr]; iframe Hrh Hrn; iframe
   (try wp_auto)
   -- `ep`: the snapshot's conf state (the field `cs`, loaded), index and term (the getters, over
   -- the metadata's `smOpt`, read-only: `ai₀` and `at₀`)
@@ -430,16 +430,16 @@ theorem EtcdServer.run.wp_proof
   have hGT' := hGT md DFrac.discard sv.Metadata'
   rw [Hsvt] at hGT'
   wp_apply hGI' $$ [] as -
-  · iframe #
+  · iframe Hm
   (try wp_auto)
   wp_apply hGI' $$ [] as -
-  · iframe #
+  · iframe Hm
   (try wp_auto)
   wp_apply hGT' $$ [] as -
-  · iframe #
+  · iframe Hm
   (try wp_auto)
   wp_apply hGI' $$ [] as -
-  · iframe #
+  · iframe Hm
   (try wp_auto)
   rw [decide_eq_false Hcs0]
   (try wp_auto)
@@ -510,13 +510,13 @@ theorem EtcdServer.run.wp_proof
   · iexists [], [n₀], p₀, iprop(True), iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ [])
     simp only [List.cons_append, List.nil_append, List.length_nil, Nat.sub_zero]
     iframe
-    iframe #
+    iframe Hp0
     iintro !> ⟨-, H⟩
     iexact H
   wp_for
   icases HI with ⟨%A, %Ps, %pl, %Q, %R, Happly, Hq, #Hpl, HR, #HQR⟩
   wp_apply (lc := 2) hRA Er γn (srvRAddr s) $$ [] as %apc #Hapc
-  · iframe #
+  · iframe Hrn
   (try wp_auto)
   ihave #Hapc' := Hapc
   iunfold isRNApplyc at Hapc'

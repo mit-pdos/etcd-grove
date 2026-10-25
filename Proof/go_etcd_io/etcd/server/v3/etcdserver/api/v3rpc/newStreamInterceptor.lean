@@ -205,6 +205,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
     exact ⟨Hcvl, prometheus.labelValuesOk_two _ _ _ _ (by decide) (of_decide_eq_true Hbv.symm)⟩
   subst Hcnt
   iunfold prometheus.counterSpec at Hcs
+  icases Hcs with ⟨#Hcs, -⟩
   wp_apply Hcs
   wp_apply (wp_map_lookup1 go.string (go.GoType.SliceType go.string) md m kl _) $$ [Hm]
   · iframe #

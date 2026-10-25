@@ -14,6 +14,7 @@ files (`strings`, `math`, `bytes`, `log`, `io`, `errors`).
 -/
 module
 
+public import Perennial.Proof.strconv.Base
 public import Code.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
@@ -95,11 +96,8 @@ instance proto_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
   build_get_is_pkg_init_wf
 
-/-- (before `raftpb`, whose `confchange.go` imports it in raft v3.7) -/
-instance strconv_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.strconv :=
-  define_is_pkg_init iprop(True)
-instance strconv_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.strconv :=
-  build_get_is_pkg_init_wf
+-- `strconv` (imported by `raftpb`'s `confchange.go` in raft v3.7): Perennial's own instance
+-- (`Perennial.Proof.strconv.Base`, since Perennial translates `strconv`, 24bef275e)
 
 instance raftpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
   define_is_pkg_init iprop(True)

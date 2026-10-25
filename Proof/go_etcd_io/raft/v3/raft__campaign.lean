@@ -360,7 +360,8 @@ theorem raft.campaign.wp_proof
                  have := (Hpvpre rfl).2; word,
             by cases pre <;> rfl⟩)
           (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
-        $$ [$Hphys $Hm]
+          (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgApp, MsgVoteResp, MsgPreVoteResp]))
+        rfl $$ [$Hphys $Hm]
       · iapply tsSrc_ne; exact (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r y
@@ -435,7 +436,8 @@ theorem raft.campaign.wp_proof
                  have := (Hpvpre rfl).2; word,
             by cases pre <;> rfl⟩)
           (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
-        $$ [$Hphys $Hm]
+          (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgApp, MsgVote, MsgPreVote]))
+        rfl $$ [$Hphys $Hm]
       · iapply tsSrc_ne; exact (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r id

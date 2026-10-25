@@ -48,7 +48,6 @@ axiom DescribeConfChange.wp_proof
 axiom Perennial.os.Stderr_init
 axiom Perennial.os.initFuncsOk
 axiom Perennial.os.opaqueInitsOk
-axiom Perennial.strconv.opaqueInitsOk
 axiom context.ErrAny.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom initLb_of_spec

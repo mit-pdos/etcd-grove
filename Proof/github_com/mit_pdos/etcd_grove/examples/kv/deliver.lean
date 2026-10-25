@@ -90,7 +90,7 @@ local macro "deliver_tail " snc:term : tactic =>
     ihave Ht1 : stTks γn.raft (⟨q.st.msg, q.st.ents, q.st.snap, q.st.ctx, []⟩ : MsgSt) $$ [Ht1]
     · unfold stTks; iexact Ht1
     imod stepP_deliverable γn q.st.msg.To' «$r0_ptr» ⟨q.st.msg, q.st.ents, q.st.snap, q.st.ctx, []⟩
-      Hd rfl Hsi $$ Hmsg Hsnf Hmlb Hmc Hc1 Ht1 Htc with Hstep
+      Hd rfl Hsi rfl $$ Hmsg Hsnf Hmlb Hmc Hc1 Ht1 Htc with Hstep
     wp_apply +noauto wp_node_Step γn q.st.msg.To' n «$r0_ptr» context.backgroundCtxVal bgCd
       $$ [Hstep] as %err -
     · iframe
@@ -119,7 +119,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
-  intro γ bud peers tr P msl ms
+  intro γ sid bud peers tr P msl ms
   wp_start as ⟨#Hpeers, #HP, #Htr, Hms, Hmsok, Hcr, Htks⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
@@ -131,7 +131,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
   ihave IH : iprop(∃ (k : w64) (mv : Loc),
       "i" ∷ i_ptr ↦ k ∗ "m" ∷ m_ptr ↦ mv ∗ "Hms" ∷ msl ↦* ms.map QMsg.loc ∗
       "Hmsok" ∷ ([∗list] q ∈ ms.drop (sint.nat k),
-        msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ q.st ∗ termLB bud q.st.msg.Term') ∗
+        msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ sid q.st ∗ termLB bud q.st.msg.Term') ∗
       "Hcr" ∷ ([∗list] q ∈ ms.drop (sint.nat k),
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
       "Htks" ∷ ([∗list] q ∈ ms.drop (sint.nat k), stTks γ q.st) ∗
@@ -186,14 +186,14 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       iframe
       ipureintro; constructor <;> word
     | some nd =>
-      ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => peerOk (GF := GF) γ bud id nd)
+      ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => kvPeerOk (GF := GF) γ bud id nd)
         HPt $$ HP
-      unfold peerOk
+      unfold kvPeerOk
       icases Hpeer with ⟨%γn, %n, %Hnd, #HisNode⟩
       obtain ⟨Hr, Hbud, rfl, Hsi0⟩ := Hnd
       have Hsi : q.st.msg.Type' = MsgSnap → γn.snapIn = true := fun _ => Hsi0
-      ihave #Hmsg := raftMsg_deliverable γ q.st Hd $$ Hmok
-      ihave #Hsnf := raftMsg_snap γ q.st Hd $$ Hmok
+      ihave #Hmsg := raftMsg_deliverable γ sid q.st Hd $$ Hmok
+      ihave #Hsnf := raftMsg_snap γ sid q.st Hd $$ Hmok
       try simp only [Option.isSome_some, Option.getD_some, _root_.decide_true, Bool.not_true]
       wp_auto
       subst Hr Hbud

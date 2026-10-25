@@ -36,15 +36,15 @@ theorem StartMember.wp_proof
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog dir id γ bud ρ E₀ Φs
-    γn W HW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir HU Hlg Hck Haf Hbuq
-    Hdbo
-  wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, Hslot⟩
+    γn W HW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf
+    Hbuq Hdbo
+  wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hpown⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
   wp_apply (wp_NewMember N name peerAddr client token peer cluster lg M iu Uok ps bootLog dir id
-      γ bud ρ E₀ Φs γn W HW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir HU Hlg
-      Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hslot] as %s %err Hres
+      γ bud ρ E₀ Φs γn W HW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir HU
+      Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Hmb Hpown] as %s %err Hres
   · iframe; iframe #
   icases Hres with (%Herr | ⟨%Herr, Hmb⟩)
   · -- `NewMember` failed: the error returned, with the thread token
@@ -56,7 +56,7 @@ theorem StartMember.wp_proof
   subst Herr
   wp_auto
   -- `s.Start()`
-  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N bud HrbN) $$ [Hmb Htok] as Hup
+  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N bud _ HrbN) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   iapply HΦ

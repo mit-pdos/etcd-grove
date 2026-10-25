@@ -13,9 +13,10 @@ common_StartServer: common_newServer EtcdServer__Start
 # `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
 # `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
 net_Listen:
-EtcdServer__RaftHandler:
-http_Serve:
-common_NewMember: common_newServer net_Listen EtcdServer__RaftHandler http_Serve
+# (2026-10-24, rafthttp stage 6d/6f) `RaftHandler` linked in the server's `Link.lean`; the HTTP
+# boundary's `Serve` (`http.Serve_ok`) used by `NewMember`'s proof directly
+EtcdServer__RaftHandler: @
+common_NewMember: common_newServer net_Listen EtcdServer__RaftHandler
 common_StartMember: common_NewMember EtcdServer__Start
 # `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
 # grpc's trust-boundary axioms, the keepalive policy's among them, D28)

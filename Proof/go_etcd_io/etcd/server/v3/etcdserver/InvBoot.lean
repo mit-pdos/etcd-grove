@@ -26,12 +26,12 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
     premises but the post-lock hook's, which `NewServer` sets: the hook's half, its open fraction,
     the write budget);
   - `b.Close()` returns (the error paths' deferred close).
-* **`transportStarted γn t`**: the `rafthttp.Transport` after `Start` (names-only): its `Send` of
-  messages with their bundles into the network `γn` (`netBundle`, D21 M2), its `Stop` and its
-  `ActiveSince` (`rafthttp.isTransporter`); `isRNTransport` for every environment whose messages
-  carry the bundle (`isRNTransport_of_net`). **`transportRemotes t rs`** (the partition plan's
-  S1, 2026-10-20): the ids `AddRemote` was called for, which `transportLive γn t rs` tracks;
-  `CutPeer`/`MendPeer` take an id not among them.
+* **The transport** (rafthttp stage 6d, 2026-10-24): rafthttp's own predicates (`trLive`,
+  `trFrozen`, `trTok`, `TransportState.lean`); the raft loop's key to its `Send` (`srvTrKey`,
+  exchanged for a reader's token of the transport, `netTransport_of_key`); `isRNTransport` for
+  every environment whose messages carry the bundle (`isRNTransport_of_net`). (From D21 M2 to
+  stage 6d the opaque `transportLive`, `transportStarted` and `transportRemotes` of the
+  names-only transport.)
 * The pending constructors' contracts (`lease.NewLessor`, `auth.NewTokenProvider`,
   `auth.NewAuthStore`, `v3compactor.New`, `rafthttp.Transport.Start`/`AddRemote`/`AddPeer`,
   `v3alarm.NewAlarmStore`) are their `Spec/` files, listed `?` in the server's link: hypotheses
@@ -48,6 +48,9 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
+public import Perennial.Ghost.GhostMap
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
@@ -71,6 +74,89 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
+
+/-- **The network's directory, well formed** (rafthttp stage 6d, 2026-10-24; a premise of
+`NewServer.spec`, of the caller's directory): no member `0` (raft's ids are not `0`; the directory
+gives an unknown host the owner `0`, `netOwner`), each host of one member's URLs only
+(`dirHostsDistinct`), every peer URL a plain `http://` URL (`types.plainPeerURL`: what the
+transport's `AddPeer` parses). -/
+def netDirOk (dir : w64 → List GoString) : Prop :=
+  dir 0 = [] ∧ dirHostsDistinct dir ∧ ∀ (id : w64) (s : GoString), s ∈ dir id → types.plainPeerURL s
+
+/-- **A one-member directory** (rafthttp stage 6d; the one-member examples'): the member `id`'s one
+peer URL `url`, no other member. -/
+def dirOne (id : w64) (url : GoString) (i : w64) : List GoString := if i = id then [url] else []
+
+/-- A one-member directory is well formed, of a member other than `0` with a plain URL. -/
+theorem dirOne_ok (id : w64) (url : GoString) (hid : id ≠ W64 0) (hpl : types.plainPeerURL url) :
+    netDirOk (dirOne id url) := by
+  refine ⟨?_, ?_, ?_⟩
+  · unfold dirOne; rw [if_neg (fun e => hid (by rw [← e]; rfl))]
+  · intro i j h hi hj
+    unfold dirOne at hi hj
+    split at hi <;> split at hj <;> simp_all
+  · intro i s hs
+    unfold dirOne at hs
+    split at hs
+    · simp at hs; subst hs; exact hpl
+    · simp at hs
+
+/-- A one-member directory's only member. -/
+theorem dirOne_member (id : w64) (url : GoString) (f : w64) (hf : dirOne id url f ≠ []) : f = id := by
+  unfold dirOne at hf
+  by_cases h : f = id
+  · exact h
+  · simp [h] at hf
+
+/-- **A member's URLs, as the transport's `AddPeer` takes them** (rafthttp stage 6d): of a
+well-formed directory's member `pid` (one of raft's peers, the directory's members), non-empty,
+plain, of hosts the directory gives `pid`. -/
+theorem addPeer_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
+    (hd : netDirOk dir) (ps : List w64) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps) (pid : w64)
+    (hp : pid ∈ ps) (ss : List GoString) (hss : ss = dir pid) :
+    ss ≠ [] ∧ (∀ s ∈ ss, types.plainPeerURL s) ∧
+      (∀ h, go!"http://" ++ h ∈ ss → (netRh γn).owner h = pid) ∧ (netRh γn).member pid := by
+  subst hss hγ
+  refine ⟨(hps pid).2 hp, fun s hs => hd.2.2 pid s hs, fun h hm => ?_,
+    (netRh_member γn pid).2 ((hps pid).2 hp)⟩
+  rw [netRh_owner]
+  exact netOwner_of_mem γn.dir hd.2.1 pid h hm
+
+/-- The members' loop's coverage, a step further: the ids added so far (`L`, within `L'`), and
+the next member's if it is another. -/
+theorem membersCov_step (mps : List (Loc × w64)) (id : w64) (L L' : List w64) (n : Nat)
+    (px : Loc × w64) (hpx : mps[n]? = some px)
+    (hcov : ∀ (k : Nat) (p : Loc × w64), k < n → mps[k]? = some p → p.2 ≠ id → p.2 ∈ L)
+    (hL : ∀ x ∈ L, x ∈ L') (hx : px.2 ≠ id → px.2 ∈ L') :
+    ∀ (k : Nat) (p : Loc × w64), k < n + 1 → mps[k]? = some p → p.2 ≠ id → p.2 ∈ L' := by
+  intro k p hk hp hne
+  by_cases hkn : k < n
+  · exact hL _ (hcov k p hkn hp hne)
+  · have : k = n := by omega
+    subst this
+    rw [hpx] at hp
+    cases hp
+    exact hx hne
+
+/-- The members' loop done: every other member of the network (a directory member, so one of
+raft's peers, `Members()`'s) is among the ids added. -/
+theorem membersCov_done (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
+    (ps : List w64) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps) (mps : List (Loc × w64))
+    (hmps : mps.map Prod.snd = ps) (id : w64) (L : List w64) (n : Nat) (hn : mps.length ≤ n)
+    (hcov : ∀ (k : Nat) (p : Loc × w64), k < n → mps[k]? = some p → p.2 ≠ id → p.2 ∈ L) :
+    ∀ f, (netRh γn).member f → f ≠ id → f ∈ L := by
+  intro f hf hne
+  have hfp : f ∈ ps := (hps f).1 (by rw [← hγ]; exact (netRh_member γn f).1 hf)
+  rw [← hmps] at hfp
+  obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hfp
+  obtain ⟨k, hk, hkp⟩ := List.getElem_of_mem hp
+  exact hcov k p (by omega) (by rw [List.getElem?_eq_getElem hk, hkp]) hne
+
+/-- `n` copies of `P` and `n` of `Q` are `n` of `P ∗ Q`. -/
+theorem replicate_sep (P Q : IProp GF) (n : Nat) :
+    ([∗list] _x ∈ List.replicate n (), P) ∗ ([∗list] _x ∈ List.replicate n (), Q) ⊢
+      [∗list] _x ∈ List.replicate n (), iprop(P ∗ Q) :=
+  BigSepL.bigSepL_sep_eqv.2
 
 /-- A cluster member (`*membership.Member`), read-only, its peer URLs parsing (unit N4,
 2026-10-17: `membership.peerURLsOk`, the transport's `AddRemote` panics otherwise) and (D21 M2,
@@ -258,11 +344,18 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- joining an existing cluster). So `NewServer` calls `AddRemote` never, and the member's
     -- transport has no remote (`transportRemotes t []`, `srvNetMember`), which `CutPeer` needs.
     "%Hrms0" ∷ ⌜rms = []⌝ ∗
+    -- (2026-10-24, rafthttp stage 6d; D21b's deployment fact) the directory's members are raft's
+    -- peers (a member's transport adds every other as a peer, so its handler finds the sender of
+    -- any request), at most `2 ^ 20` of them (each peer's goroutines borrow eight of `lgMu`'s
+    -- reader slots)
+    "%Hdirps" ∷ ⌜(∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ 2 ^ 20⌝ ∗
     -- (D21 M2, 2026-10-19) the members' records name each member's own URLs (`dir`, D21b's
-    -- deployment fact): `Members()` returns members whose peer URLs are the directory's
+    -- deployment fact): `Members()` returns members whose peer URLs are the directory's;
+    -- (2026-10-24, rafthttp stage 6d) raft's peers, in order (both sorted by id: `Members()`'s
+    -- `MembersByID`, `bootstrapRaftFromCluster`'s peers from `MemberIDs()`)
     "#Hmembers" ∷ □ (∀ Φ : val → IProp GF,
-      (∀ (sl : GoSlice) (ms : List (Loc × w64)), sl ↦* ms.map Prod.fst -∗
-        ([∗list] p ∈ ms, memberDirIs dir p.1 p.2) -∗ Φ #sl) -∗
+      (∀ (sl : GoSlice) (ms : List (Loc × w64)), ⌜ms.map Prod.snd = ps⌝ -∗
+        sl ↦* ms.map Prod.fst -∗ ([∗list] p ∈ ms, memberDirIs dir p.1 p.2) -∗ Φ #sl) -∗
       WP (App (Val (bc.cl' @!! go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members"))
         (Val #())) {{ Φ }}) ∗
@@ -427,44 +520,94 @@ abbrev transportIface (t : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t
 
-/-- **The transport `t` live, in the network `γn`, with the remotes `rs`** (opaque, exclusive;
-unit N4, 2026-10-17; the network since D21 M2, 2026-10-19; the remotes since the partition
-plan's S1, 2026-10-20): started and not stopped, `AddRemote` called for the ids `rs` so far.
-`Start` gives it at `[]`; `AddRemote` takes it and gives it back with the id added, `AddPeer`
-unchanged (`AddPeer` panics after `Stop`); it is given up for `transportStarted` and
-`transportRemotes` (whose `Stop` there is). -/
-opaque transportLive (γn : NetNames GF) (t : Loc) (rs : List w64) : IProp GF
+/-- The names a server's transport is fixed to (`srvTrKey`): the server `s` (whose `lgMu` readers
+the transport's calls into `Raft` borrow, `srvLgReader`), the transport `t`, and the transport's
+member, snapshot directory and lock's records. -/
+abbrev SrvKey := Loc × Loc × w64 × GName × GName × GName
 
-/-- The opaque core of `transportRemotes`. -/
-opaque transportRemotesCore (t : Loc) (rs : List w64) : IProp GF
+/-- The transport's names of a key. -/
+abbrev SrvKey.trN (x : SrvKey) : TrN GF := ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2⟩
 
-/-- **The transport `t`'s remotes are among `rs`** (persistent, opaque; the partition plan's S1,
-2026-10-20): `AddRemote` was called on `t` for the ids `rs` only, before it was given up for
-`transportStarted`, so `t.remotes` has no other key. `CutPeer`/`MendPeer` take `id ∉ rs`: a
-second `CutPeer` of a remote panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). Only
-`Transport.Start`'s axiom gives it (with `transportStarted`, from `transportLive γn t rs`). -/
-def transportRemotes (t : Loc) (rs : List w64) : IProp GF :=
-  iprop(□ transportRemotesCore t rs)
+/-- **The raft loop's key to the transport's `Send`** (rafthttp stage 6d, 2026-10-24, the user's
+choice: the raft loop holds one of the transport's lock's reader tokens): the server's transport's
+names, fixed for good under the name `γk` (a discarded element of a ghost map, `SrvKey`), and a
+reader's token of that transport. The raft node's environment (`srvEr`) is built before the server
+and its transport exist, so its `S` is this key, of a name `NewServer` allocates first
+(`srvSendKey_alloc`) and fixes once the transport is started (`srvSendKey_fix`). -/
+def srvTrKey (γn : NetNames GF) (γk : GName) : IProp GF :=
+  iprop(∃ x : SrvKey, ghostMapElem γk () DFrac.discard x ∗ trTok γn x.2.1 (SrvKey.trN x))
 
-instance transportRemotes_persistent (t : Loc) (rs : List w64) :
-    Persistent (transportRemotes (GF := GF) t rs) := by
-  unfold transportRemotes; infer_instance
+/-- The key's name, allocated, the transport's names not yet fixed. -/
+theorem srvSendKey_alloc :
+    ⊢ |==> ∃ γk : GName, ghostMapAuth (GF := GF) γk 1 (∅ : GMap Unit SrvKey) := by
+  imod ghost_map_alloc_empty (GF := GF) (K := Unit) (V := SrvKey) with ⟨%γk, Hk⟩
+  imodintro
+  iexists γk
+  iexact Hk
 
-/-- **The transport `t` after `Start`, in the network `γn`** (persistent; names-only, see the file
-header): `Send` puts each message, with its bundle, into the network (D21 M2, 2026-10-19; until
-then it took the messages of any environment and promised nothing of them); `Stop` returns;
-`ActiveSince` (`rafthttp.isTransporter`). -/
-def transportStarted (γn : NetNames GF) (t : Loc) : IProp GF :=
-  iprop(netTransport γn (transportIface t) ∗ rafthttp.isTransporter (transportIface t))
+/-- The key's name fixed to the server `s`'s transport `t` with the names `c` (once). -/
+theorem srvSendKey_fix (γk : GName) (s t : Loc) (c : TrN GF) :
+    ⊢ ghostMapAuth (GF := GF) γk 1 (∅ : GMap Unit SrvKey) ==∗
+      ghostMapElem γk () DFrac.discard (s, t, c.lid, c.γd, c.γs, c.γr) := by
+  iintro Hk
+  imod ghost_map_insert_persist () (s, t, c.lid, c.γd, c.γs, c.γr) rfl $$ Hk with ⟨-, Hx⟩
+  imodintro
+  iexact Hx
 
-instance transportStarted_persistent (γn : NetNames GF) (t : Loc) :
-    Persistent (transportStarted (GF := GF) γn t) := by
-  unfold transportStarted; infer_instance
+/-- A reader's token of the fixed transport is the key. -/
+theorem srvTrKey_of_trTok (γn : NetNames GF) (γk : GName) (s t : Loc) (c : TrN GF)
+    (hR : c.R = srvLgReader s) :
+    ghostMapElem γk () DFrac.discard (s, t, c.lid, c.γd, c.γs, c.γr) ∗ trTok γn t c ⊢
+      srvTrKey γn γk := by
+  iintro ⟨#Hk, Htok⟩
+  iunfold srvTrKey
+  iexists (s, t, c.lid, c.γd, c.γs, c.γr)
+  iframe Hk
+  obtain ⟨lid, γd, R, γs, γr⟩ := c
+  simp only at hR
+  subst hR
+  iexact Htok
+
+/-- **The network's transport, with the key** (stage 6d): a transport whose `Send` borrows a
+reader's token of the transport fixed under `γk` borrows the key. -/
+theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (γk : GName)
+    (s t : Loc) (c : TrN GF) (hR : c.R = srvLgReader s) :
+    ⊢ ghostMapElem γk () DFrac.discard (s, t, c.lid, c.γd, c.γs, c.γr) -∗
+      netTransport γn lid tr (trTok γn t c) -∗ netTransport γn lid tr (srvTrKey γn γk) := by
+  iintro #Hk #Htr
+  iunfold netTransport at Htr
+  icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, #Hsnap⟩
+  iunfold netTransport
+  iexists ti
+  isplitr
+  · ipureintro; exact Hti
+  isplitr
+  · imodintro
+    iintro %sl %msL %Φ !> ⟨Hsl, Hms, HS⟩ HΦ
+    iunfold srvTrKey at HS
+    icases HS with ⟨%x, #Hx, Htok⟩
+    ihave %Heq := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hk Hx
+    subst Heq
+    ihave Htok' : trTok γn t c $$ [Htok]
+    · obtain ⟨lid', γd, R, γs, γr⟩ := c
+      simp only at hR
+      subst hR
+      iexact Htok
+    wp_apply Hsend $$ [Hsl Hms Htok'] as Htok
+    · iframe
+    iapply HΦ
+    iapply srvTrKey_of_trTok γn γk s t c hR $$ [Htok]
+    iframe #
+    iexact Htok
+  isplitr
+  · iexact Hstop
+  · iexact Hsnap
 
 /-- **The raft wrapper's transport from the network's** (D21 M2): an environment whose messages
-carry their bundle (`E.M m` gives `netBundle`) can send them through it. -/
-theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterface) :
-    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N m) -∗ netTransport γn tr -∗ isRNTransport E tr := by
+carry their bundle from the member `lid` (`E.M m` gives `netBundle`) can send them through it. -/
+theorem isRNTransport_of_net (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr : GoInterface) :
+    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N lid m) -∗ netTransport γn lid tr E.S -∗
+      isRNTransport E tr := by
   iintro #HM #Htr
   iunfold netTransport at Htr
   icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, -⟩
@@ -474,9 +617,9 @@ theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterfac
   · ipureintro; exact Hti
   isplitr
   · imodintro
-    iintro %sl %msL %Φ !> ⟨Hsl, Hms⟩ HΦ
-    wp_apply Hsend $$ [Hsl Hms]
-    · iframe Hsl
+    iintro %sl %msL %Φ !> ⟨Hsl, Hms, HS⟩ HΦ
+    wp_apply Hsend $$ [HS Hsl Hms] as HS
+    · iframe HS Hsl
       iapply BigSepL.bigSepL_impl $$ Hms
       imodintro
       iintro %k %m %_ Hm
@@ -484,7 +627,7 @@ theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterfac
       icases Hm with ⟨%to, %ty, -, HEM⟩
       iapply HM $$ HEM
     iapply HΦ
-    itrivial
+    iexact HS
   · iexact Hstop
 
 /-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the

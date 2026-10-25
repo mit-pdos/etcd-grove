@@ -37,22 +37,23 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 /-- `OpenSnapshotBackend(cfg, ss, snapshot, hooks)`: the snapshot's database file renamed onto the
-backend's path and opened, or an error with nothing moved. -/
+backend's path and opened, or an error with nothing moved. (D22 receiver epochs, S8a, 2026-10-24:
+the creator's `K` for the fresh backend's payment rights, `OpenBackend`'s.) -/
 abbrev storage.OpenSnapshotBackend.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss sn mp hk : Loc) (dq dq' : DFrac)
-    (md : SnapshotMetadataM) (P : BParams) (D : Data) (W Pk : BNames → IProp GF),
+    (md : SnapshotMetadataM) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ snap.isSnapshotter ss ∗
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
       fileHolds (snap.snapDBPath ss md.Index') D ∗ pathOwn (config.backendPathOf cfg.DataDir') ∗
       openPre cfg (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty) #hk)
-        P D W Pk }}
+        P D W Pk K }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend)) (Val #cfg))
       (Val #ss)) (Val #sn)) (Val #hk))
   {{ (be err : GoInterface), RET (PairV #be #err);
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (b : Loc) (γ : BNames),
           ⌜be = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b⌝ ∗
-          newPost γ P W Pk b D ∗ (⌜mvcc.noCmpData D⌝ -∗ mvcc.bkNoCmp γ) ∗
+          newPostK γ P W Pk K b D ∗ (⌜mvcc.noCmpData D⌝ -∗ mvcc.bkNoCmp γ) ∗
           pathOwn (snap.snapDBPath ss md.Index')) ∨
        (⌜err ≠ GoInterface.nil ∧ be = GoInterface.nil⌝ ∗
           fileHolds (snap.snapDBPath ss md.Index') D ∗ pathOwn (config.backendPathOf cfg.DataDir'))) }}

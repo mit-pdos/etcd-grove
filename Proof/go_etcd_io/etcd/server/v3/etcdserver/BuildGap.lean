@@ -127,9 +127,12 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     -- (D21 M3, 2026-10-19; until then, D19p, a one-member cluster) raft's no-snapshot mode
     (hns : ρ.raft.raft.reNoSnap = true)
     -- (D21 M3) the storage's cap at least `1`
-    (hcap : 1 ≤ γw.γs.cap) :
+    (hcap : 1 ≤ γw.γs.cap)
+    -- (2026-10-24, rafthttp stage 6d) the member's id, its messages' sender, and the transport's
+    -- `Send`'s borrow
+    (id : w64) (S : IProp GF) (hid : γw.node.id = id) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
-      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ bud) γw := by
+      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ bud id S) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvEr
   simp only
@@ -148,11 +151,12 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     · -- (D21 stage M1) the bundle a receiver's `Step` takes
       iunfold srvMsgNet
       iexists st
-      iframe Hmo Hrm Htl Hc Htk
+      iframe Hmo Htl Hc Htk
+      rw [← hid]; iexact Hrm
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo
-    iapply isRaftMsg_not_snap ρ.raft.raft hns st $$ Hrm
+    iapply isRaftMsg_not_snap ρ.raft.raft hns _ st $$ Hrm
   isplitr
   · iintro !> %L #HL %Hfit
     iunfold clusterWorkloadOk at Hwl
@@ -192,12 +196,12 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, %Hρrd, Hloop, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, %Hρrd, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok⟩, Hsnap⟩
   iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci
-  iframe Hloop Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
+  iframe Hloop Hsend Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
   iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok
   isplitr
   · unfold srvFieldsBuiltNA

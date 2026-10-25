@@ -66,7 +66,7 @@ theorem Main.wp_proof
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] bootLog putgetDir go!"putget" go!"putget"
+  ihave #Hb := common.bootPremise_of N [id] bootLog (putgetDir id) go!"putget" go!"putget"
       (common.urls1 go!"putget" go!"127.0.0.1:23800" go!"127.0.0.1:23790") id cfgOk urlsOk (ccOk id)
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) rfl $$ Hboot
@@ -94,14 +94,17 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
-  imod (common.alloc1 putgetWorkload id bootLog Hbf.idLow Hbf.boot putgetDir (by omega))
-    with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, Hslot, Hetcd⟩
+  imod (common.alloc1 putgetWorkload id bootLog Hbf.idLow Hbf.boot (putgetDir id) (dirOne_member id _) (by omega))
+    with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog, hwl⟩ := Hal
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- `StartServer("putget", "127.0.0.1:23800", clientAddr, lg)`
+  -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
+  have Hdirok : netDirOk (putgetDir id) :=
+    dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"putget" go!"127.0.0.1:23800" go!"127.0.0.1:23790" lg bootLog
-      putgetDir id γ bud ρ E₀ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN hcfg
-      hdyn hcc hboot htr htx hblen hγn1 hγn2 Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hslot]
+      (putgetDir id) id γ bud ρ E₀ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN hcfg
+      hdyn hcc hboot htr htx hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

@@ -35,7 +35,11 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newDefaultLeaseManager
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newLeaseManager
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newStorageKeyReverseFunc
+public import Proof.path.Clean
 public import Proof.path.Join
+public import Proof.path.lazybuf__append
+public import Proof.path.lazybuf__index
+public import Proof.path.lazybuf__string
 public import Proof.reflect.New
 public import Proof.reflect.Value__Addr
 public import Proof.reflect.Value__Interface
@@ -208,9 +212,25 @@ theorem wp_newStorageKeyReverseFunc :
     EtcdGrove.k8s.newStorageKeyReverseFunc.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.newStorageKeyReverseFunc.wp_proof
 
+theorem path.lazybuf.wp_index :
+    EtcdGrove.path.lazybuf.index.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.path.lazybuf.index.wp_proof
+
+theorem path.lazybuf.wp_append :
+    EtcdGrove.path.lazybuf.append.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.path.lazybuf.append.wp_proof
+
+theorem path.lazybuf.wp_string :
+    EtcdGrove.path.lazybuf.string.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.path.lazybuf.string.wp_proof
+
+theorem path.wp_Clean :
+    EtcdGrove.path.Clean.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.path.Clean.wp_proof path.lazybuf.wp_index path.lazybuf.wp_append path.lazybuf.wp_string
+
 theorem path.wp_Join :
     EtcdGrove.path.Join.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.path.Join.wp_proof
+  EtcdGrove.path.Join.wp_proof path.wp_Clean
 
 theorem wp_New :
     EtcdGrove.k8s.New.spec (GF := GF) (hG := hG) :=

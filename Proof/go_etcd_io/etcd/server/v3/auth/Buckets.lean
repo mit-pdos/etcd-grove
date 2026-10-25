@@ -134,6 +134,77 @@ def ownRole (p : Loc) (r : RoleRec) : IProp GF :=
     name ↦*□ r.name ∗ kp ↦*□ ps ∗ ⌜ps.length = r.perms.length⌝ ∗
     [∗list] x ∈ ps.zip r.perms, ownPermW x.1 x.2)
 
+/-! ## The messages as `proto.Unmarshal` returns them: owned (the auth plan's S4c) -/
+
+/-- The `*authpb.User` at `p` as `proto.Unmarshal` returns it (the auth plan's S4c, 2026-10-24):
+as `ownUser`, but its `Roles` slice owned with its capacity (Go's decoder allocates it for the
+caller: `UserGrantRole` appends to it and sorts it in place). -/
+def ownUserX (p : Loc) (u : UserRec) : IProp GF :=
+  iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (name pw roles : GoSlice)
+    (o : Loc) (uf : GoSlice) (sc : w32),
+    p ↦ ({
+      state' := st, Name' := name, Password' := pw, Roles' := roles, Options' := o,
+      unknownFields' := uf, sizeCache' := sc } : authpb.User) ∗
+    name ↦*□ u.name ∗ pw ↦*□ u.password ∗ roles ↦* u.roles ∗
+    ownSliceCap GoString roles (DFrac.own 1) ∗ userOptsAt o u.noPassword)
+
+/-- The `*authpb.Permission` at `p` as `proto.Unmarshal` returns it: as `ownPermW`, but owned
+(`RoleGrantPermission` writes an existing entry's `PermType`). -/
+def ownPermX (p : Loc) (w : PermW) : IProp GF :=
+  iprop(⌜p ≠ null ∧ w.key.length < 2 ^ 63 - 1⌝ ∗ ∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
+    (k re : GoSlice) (uf : GoSlice) (sc : w32),
+    p ↦ ({
+      state' := st, PermType' := w.ty, Key' := k, RangeEnd' := re, unknownFields' := uf,
+      sizeCache' := sc } : authpb.Permission) ∗
+    k ↦*□ w.key ∗ re ↦*□ w.rangeEnd)
+
+/-- The `*authpb.Role` at `p` as `proto.Unmarshal` returns it: as `ownRole`, but its
+`KeyPermission` slice owned with its capacity and its permission messages owned
+(`RoleGrantPermission` appends to the slice, sorts it, and writes an entry). Fewer than `2^62`
+permissions (the auth plan's S4d, 2026-10-24: `sort.Sort`'s bound, after the append): each
+permission of the encoding is a length-delimited field, at least a tag byte and a length byte, and
+the encoding is a Go slice, below `2^63` bytes; so a decoded record holds fewer than `2^62`. -/
+def ownRoleX (p : Loc) (r : RoleRec) : IProp GF :=
+  iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (name kp : GoSlice)
+    (ps : List Loc) (uf : GoSlice) (sc : w32),
+    p ↦ ({
+      state' := st, Name' := name, KeyPermission' := kp, unknownFields' := uf,
+      sizeCache' := sc } : authpb.Role) ∗
+    name ↦*□ r.name ∗ kp ↦* ps ∗ ownSliceCap Loc kp (DFrac.own 1) ∗
+    ⌜ps.length = r.perms.length ∧ r.perms.length < 2 ^ 62⌝ ∗
+    [∗list] x ∈ ps.zip r.perms, ownPermX x.1 x.2)
+
+theorem ownPermX_persist (p : Loc) (w : PermW) : ownPermX (GF := GF) p w ⊢ |==> ownPermW p w := by
+  unfold ownPermX ownPermW
+  iintro ⟨%Hp, %st, %k, %re, %uf, %sc, Hm, #Hk, #Hre⟩
+  ipersist Hm
+  imodintro
+  isplitr
+  · ipureintro; exact Hp
+  iexists st, k, re, uf, sc
+  iframe Hm Hk Hre
+
+theorem ownUserX_persist (p : Loc) (u : UserRec) : ownUserX (GF := GF) p u ⊢ |==> ownUser p u := by
+  unfold ownUserX ownUser
+  iintro ⟨%st, %name, %pw, %roles, %o, %uf, %sc, Hm, #Hn, #Hpw, Hr, -, #Ho⟩
+  ipersist Hr
+  imodintro
+  iexists st, name, pw, roles, o, uf, sc
+  iframe Hm Hn Hpw Hr Ho
+
+theorem ownRoleX_persist (p : Loc) (r : RoleRec) : ownRoleX (GF := GF) p r ⊢ |==> ownRole p r := by
+  unfold ownRoleX ownRole
+  iintro ⟨%st, %name, %kp, %ps, %uf, %sc, Hm, #Hn, Hkp, -, %Hlen, Hps⟩
+  ipersist Hkp
+  ihave Hps' : |==> [∗list] x ∈ ps.zip r.perms, ownPermW x.1 x.2 $$ [Hps]
+  · iapply BigSepL.bigSepL_bupd
+    iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermX_persist x.1 x.2)) $$ Hps
+  imod Hps'
+  imodintro
+  iexists st, name, kp, ps, uf, sc
+  iframe Hm Hn Hkp Hps'
+  ipureintro; exact Hlen.1
+
 /-! ## What the backend's reads return of a state -/
 
 /-- What `UnsafeGetUser(name)` returns of the state `st`: nil if `st` has no such user, else a
@@ -150,6 +221,40 @@ def roleOut (r : Loc) (st : AuthState) (name : GoString) : IProp GF :=
   match st.roles.lookup name with
   | none => iprop(⌜r = null⌝)
   | some ps => iprop(∃ rr : RoleRec, ⌜rr.name = name ∧ rr.toRole = ps⌝ ∗ ownRole r rr)
+
+/-- `userOut` with the message as `proto.Unmarshal` returns it (`ownUserX`): what a batch
+transaction's `UnsafeGetUser` returns (the auth plan's S4c). -/
+def userOutX (u : Loc) (st : AuthState) (name : GoString) : IProp GF :=
+  match st.users.lookup name with
+  | none => iprop(⌜u = null⌝)
+  | some roles => iprop(∃ ur : UserRec,
+      ⌜ur.name = name ∧ ur.roles = roles ∧ roles.Pairwise go.GoStringLt⌝ ∗ ownUserX u ur)
+
+/-- `roleOut` with the message as `proto.Unmarshal` returns it (`ownRoleX`). -/
+def roleOutX (r : Loc) (st : AuthState) (name : GoString) : IProp GF :=
+  match st.roles.lookup name with
+  | none => iprop(⌜r = null⌝)
+  | some ps => iprop(∃ rr : RoleRec, ⌜rr.name = name ∧ rr.toRole = ps⌝ ∗ ownRoleX r rr)
+
+theorem userOutX_persist (u : Loc) (st : AuthState) (name : GoString) :
+    userOutX (GF := GF) u st name ⊢ |==> userOut u st name := by
+  unfold userOutX userOut
+  cases st.users.lookup name with
+  | none => iintro H; imodintro; iexact H
+  | some roles =>
+    iintro ⟨%ur, %H, Hu⟩
+    imod ownUserX_persist u ur $$ Hu with Hu
+    imodintro; iexists ur; iframe Hu; ipureintro; exact H
+
+theorem roleOutX_persist (r : Loc) (st : AuthState) (name : GoString) :
+    roleOutX (GF := GF) r st name ⊢ |==> roleOut r st name := by
+  unfold roleOutX roleOut
+  cases st.roles.lookup name with
+  | none => iintro H; imodintro; iexact H
+  | some ps =>
+    iintro ⟨%rr, %H, Hr⟩
+    imod ownRoleX_persist r rr $$ Hr with Hr
+    imodintro; iexists rr; iframe Hr; ipureintro; exact H
 
 /-- A read transaction's state `st` in the mode `M`: auth `off`, never enabled; `any`, nothing;
 `on γa`, a recorded state of the history. -/

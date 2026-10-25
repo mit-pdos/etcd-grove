@@ -143,6 +143,8 @@ theorem RawNode.Step.wp_proof
           isplitr
           · ipureintro; not_net
           isplitr
+          · ipureintro; intro _; exact Hok.resps
+          isplitr
           · ipureintro; not_net
           imodintro
           iintro %ty %Hty' %Hne

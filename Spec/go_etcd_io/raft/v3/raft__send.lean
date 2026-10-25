@@ -225,6 +225,11 @@ abbrev raft.send.spec : Prop :=
   (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
   SendOk id s m ents ctx out →
   SnapOut id s m sn out →
+  -- (2026-10-22, D38a) a `MsgApp` of raft's shape (`maybeSendAppend`'s), for `SentMsgOk`
+  (m.Type' = MsgApp → AppShape ⟨m, ents, sn, ctx, rs⟩) →
+  -- (2026-10-22, D38a) no responses (raft sets them only on its local storage messages), for
+  -- `SentMsgOk`: a message raft builds has none, a forwarded one none by `raft.Step`'s premise
+  rs = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗

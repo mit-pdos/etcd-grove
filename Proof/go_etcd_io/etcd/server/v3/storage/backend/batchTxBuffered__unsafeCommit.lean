@@ -80,8 +80,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   have Hwf := sessWf_setHw Hwf
   have Hbg0 := bgOk_setHw true Hbg0
   wp_join iprop(∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P (st.setHw true) st'⌝ ∗
-      t_ptr ↦ t ∗ Y) at next
-      with [Hl HWR t HX] as ⟨%st', Hl, HWR, %Hs, t, HY⟩
+      payIn γ (st.setHw true) stop m u ∗ t_ptr ↦ t ∗ Y) at next
+      with [Hl HWR t HX Hpay] as ⟨%st', Hl, HWR, %Hs, Hpay, t, HY⟩
   · unfold commitReq
     icases Hrq with (#Hw | ⟨%t', %h', #Ht', #Hh', #Hrq⟩)
     · -- no request: the hook as `hooksSpec` says, `X` passed along
@@ -97,7 +97,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         exact hookStep_refl P (st.setHw true)
       · subst Hho
         wp_auto
-        wp_apply Hhook $$ %(st.setHw true) [$Hl $HWR] as ⟨%st', Hl, HWR, %Hs⟩
+        wp_apply Hhook $$ %(st.setHw true) %stop %m %u [$Hl $HWR $Hpay] as ⟨%st', Hl, HWR, Hpay, %Hs⟩
         · ipureintro
           exact ⟨rfl, Hroom, Hwin⟩
         wp_join_done
@@ -114,7 +114,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       icases Hrq with ⟨%ho, %Hho, #Hhook⟩
       subst Hho
       wp_auto
-      wp_apply Hhook $$ %(st.setHw true) [$Hl $HWR $HX] as ⟨%st', Hl, HWR, HY, %Hs⟩
+      wp_apply Hhook $$ %(st.setHw true) %stop %m %u [$Hl $HWR $HX $Hpay] as ⟨%st', Hl, HWR, HY, Hpay, %Hs⟩
       · ipureintro
         exact ⟨rfl, Hroom, Hwin⟩
       wp_join_done

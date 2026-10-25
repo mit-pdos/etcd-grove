@@ -278,7 +278,7 @@ theorem batchGhostAt_p0 (γ : BNames) (P : BParams) (st : BSess) :
   unfold batchGhostAt
   iintro ⟨-, %n, %w, %u, -, -, -, -, -, -, %Hok⟩
   ipureintro
-  exact (Hok.2.2.2.2.2.2.2.2 rfl).1
+  exact (Hok.2.2.2.2.2.2.2.2.1 rfl).1
 
 /-- The free lock's ghost share, taken by a session. -/
 theorem batchGhostAt_take (γ : BNames) (P : BParams) (st : BSess) :
@@ -290,8 +290,8 @@ theorem batchGhostAt_take (γ : BNames) (P : BParams) (st : BSess) :
   iframe
   ipureintro
   unfold bgOk at Hok ⊢
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -⟩ := Hok
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, by simp⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10⟩ := Hok
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, by simp, h10⟩
 
 /-- A slice a range of the writer returned, read under the batch lock in a state with the same
 write transaction (`UnsafeRange`'s capability). -/
@@ -347,18 +347,6 @@ theorem batchLocked_W (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
   iexact H
 
 /-! ## Paying for a commit -/
-
-/-- What a commit (`unsafeCommit`) needs besides the batch lock: at a stop, the rest of the open
-token (the clients' half, which `run` got from `Close`, and the `run` goroutine's quarter); otherwise a payment for the hook's
-leftovers it keeps in the write buffer: a write-back's token (`m = 0`: `Commit`), the `run`
-goroutine's unpaid commit (`m = 1`: its half of `γ.used` at `u`, and a write-back since: `u + 1`
-of them), or none right after a write-back (`m ≥ 2`: `c = 0`, `Unlock`). -/
-def payIn (γ : BNames) (st : BSess) (stop : Bool) (m u : Nat) : IProp GF :=
-  if stop then iprop(dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗
-    dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false)
-  else if m = 0 then wbTok γ
-  else if m = 1 then iprop(ghostVar γ.used (1 : Qp).half u ∗ monoNatLbOwn γ.wbc (u + 1))
-  else iprop(⌜st.cnt.c = 0⌝)
 
 /-- What a commit gives back of the payment: the `run` goroutine's half of `γ.used`. -/
 def payOut (γ : BNames) (stop : Bool) (m : Nat) : IProp GF :=

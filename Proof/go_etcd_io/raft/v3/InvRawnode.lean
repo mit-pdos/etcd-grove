@@ -597,7 +597,13 @@ def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
   (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
   (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
   -- (2026-10-17) a pre-vote request from another node
-  (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id)
+  (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id) ∧
+  -- (2026-10-22, D38a) no responses (what raft forwards must have none, `raft.Step`'s `Hnors`)
+  st.resps = []
+
+/-- (2026-10-22, D38a) A network message has no responses. -/
+theorem NetMsgOk.resps {id : w64} {st : MsgSt} (h : NetMsgOk id st) : st.resps = [] := by
+  unfold NetMsgOk at h; exact h.2.2.2.2.2.2.2
 
 omit [FfiSyntax] in
 theorem netStepTypes_nonneg {t : w32} (h : t ∈ netStepTypes) : 0 ≤ sint.Z t := by
@@ -644,7 +650,7 @@ takes of a message from the network, from the sender's `SentMsgOk` and the trans
 the node it is addressed to; but for a forwarded proposal (`fwdP`). -/
 theorem NetMsgOk.of_sent {dst : w64} {st : MsgSt} (H : SentMsgOk st) (Hto : st.msg.To' = dst)
     (Hnp : st.msg.Type' ≠ MsgProp) : NetMsgOk dst st := by
-  obtain ⟨Hty, Hf0, Ht0, Ht1, Hft⟩ := H
+  obtain ⟨Hty, Hf0, Ht0, Ht1, Hft, -, Hrs⟩ := H
   subst Hto
   unfold NetMsgOk UnstampedType
   simp only [sentTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
@@ -952,7 +958,7 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md 
       RestMsgOk s m ents ctx → X) : X := by
   have Hok0 := Hok
   simp only [NetMsgOk] at Hok0
-  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -, Hpvf⟩ := Hok0
+  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -, Hpvf, -⟩ := Hok0
   have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
       m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
     fun h ht => Hnri (h ▸ ht)
@@ -1211,22 +1217,24 @@ S-c) in the no-transfer mode alone: its types exclude the transfer messages (adm
 (`NGhost.bt`, `XfOk`; until S-c the no-snapshot mode's). (2026-10-20, D22 S-b′3) Certified
 (`isMessageC`): a `MsgSnap` carries its snapshot's configuration certificate (`raftSnapCert`),
 which the `Ready` took from the storage's registry (`qSrc`, `certLink`). (2026-10-21, D22 S-r)
-And its snapshot's data certificate (`msgDat`), from the same registry. -/
-def isRaftMsg (γ : RaftNames) (st : MsgSt) : IProp GF :=
+And its snapshot's data certificate (`msgDat`), from the same registry. (2026-10-22, D38a) In every
+mode, no responses, and a `MsgApp` from the node `id` that sent it (`AppFrom`; `XfOk`), so that a
+transport can marshal it (`MsgMarshals`) and the msgappv2 codec carry it. -/
+def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
   iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
     ⌜γ.reNoXfer = true → SentMsgOk st⌝ ∗
     (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
-    msgDat γ st)
+    msgDat γ st ∗ ⌜st.resps = [] ∧ AppFrom id st⌝)
 
-instance isRaftMsg_pers (γ : RaftNames) (st : MsgSt) :
-    Persistent (isRaftMsg (GF := GF) γ st) := by
+instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
+    Persistent (isRaftMsg (GF := GF) γ id st) := by
   unfold isRaftMsg; infer_instance
 
 /-- (D22 S-r) A message's data certificate, out of `isRaftMsg`. -/
-theorem isRaftMsg_dat (γ : RaftNames) (st : MsgSt) :
-    isRaftMsg (GF := GF) γ st ⊢ msgDat γ st := by
+theorem isRaftMsg_dat (γ : RaftNames) (id : w64) (st : MsgSt) :
+    isRaftMsg (GF := GF) γ id st ⊢ msgDat γ st := by
   unfold isRaftMsg
-  iintro ⟨-, -, -, #H⟩
+  iintro ⟨-, -, -, #H, -⟩
   iexact H
 
 /-- The records of what the storage holds (2026-10-10): `L` (after `b`) is a log with

@@ -38,7 +38,7 @@ abbrev EtcdServer.Process.spec : Prop :=
       srvProcOk γn s id ∗ nodeCtx ctx cd ∗ srvLgReader s ∗ netRecv γn id γd ml }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Process"))
       (Val #(GoInterface.ok ctx))) (Val #ml))
-  {{ (err : GoInterface), RET #err; srvLgReader s }}
+  {{ (err : GoInterface), RET #err; nodeErr cd err ∗ srvLgReader s }}
 
 end spec
 

@@ -49,7 +49,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     (wp_BackendPath : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (wp_OpenBackend : storage.OpenBackend.spec (GF := GF) (hG := hG)) :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) := by
-  intro cfg ss sn mp hk dq dq' md P D W Pk
+  intro cfg ss sn mp hk dq dq' md P D W Pk K
   wp_start as ⟨#Hss, Hmdp, Hsm, Hf, Hpo, Hpre⟩
   ihave #Hraftpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
@@ -69,7 +69,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     icases Hr with (⟨%Hr, Hf, Hpo⟩ | ⟨%Hr, Hok, Hf, Hpo⟩)
     · subst Hr
       wp_auto
-      wp_apply wp_OpenBackend cfg _ P D W Pk $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, Hncmp⟩
+      wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, Hncmp⟩
       iapply HΦ
       iframe Hmdp Hsm
       ileft

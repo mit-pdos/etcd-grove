@@ -22,6 +22,8 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
        etc/gen-link.py --leasing > Proof/go_etcd_io/etcd/client/v3/leasing/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
+       etc/gen-link.py --v3lock > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/Link.lean
+       etc/gen-link.py --v3election > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3election/Link.lean
        etc/gen-link.py --kv > Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean
        etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/kvwitness/Link.lean
@@ -157,6 +159,10 @@ SEM_PREMISES = [
     # `(*Client).dialWithBalancer`'s body, which the translator cannot produce
     # (`Proof/go_etcd_io/etcd/client/v3/DialWithBalancerBody.lean`)
     "go_etcd_io.etcd.client.v3.DialWithBalancerBody",
+    # (rafthttp stage 6f) `*errors.errorString` a leaf error without `Is` (`Proof/errors/NewVar.lean`)
+    "EtcdGrove.ErrorStringLeaf",
+    # (rafthttp stage 6f) a `*errorString` not a `writerToResponse` (`rafthttp/Pipe.lean`)
+    "EtcdGrove.ErrorStringNotWriter",
 ]
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
@@ -230,6 +236,17 @@ LEAN_FIRST = {
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
                   "The `client/v3/experimental/recipes` package's proofs and the functions they "
                   "call", [""]),
+    # the Lock and Election services' servers (etcd's server/v3/etcdserver/api/v3lock,
+    # v3election; the auth plan's A3c), over the client's concurrency package (`@`) and the
+    # server's client as contracts
+    "--v3lock": ("link-lean-first-v3lock.txt",
+                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3lock go_etcd_io.etcd.client.v3.concurrency",
+                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Assumptions",
+                 "The Lock service's server's proofs (`server/v3/etcdserver/api/v3lock`)", [""]),
+    "--v3election": ("link-lean-first-v3election.txt",
+                     "go_etcd_io.etcd.server.v3.etcdserver.api.v3election go_etcd_io.etcd.client.v3.concurrency",
+                     "go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assumptions",
+                     "The Election service's server's proofs (`server/v3/etcdserver/api/v3election`)", [""]),
     # etcd's linearizable read loop (etcd's server/v3/etcdserver/read), over its contracts
     "--read": ("link-lean-first-read.txt", "go_etcd_io.etcd.server.v3.etcdserver.read",
                "go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions",
@@ -351,7 +368,7 @@ LEAN_FIRST = {
                  "The examples' shared start's proofs (`examples/common`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
+NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
               "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
@@ -359,10 +376,20 @@ NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "co
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
-EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"]}
+EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"],
+                 # (rafthttp stage 6f) the HTTP boundary's axioms and Perennial's linked results
+                 # rafthttp's proofs take as terms (`=` callees)
+                 "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
+                              "Perennial.Proof.sync.Link", "Perennial.Proof.context.Link",
+                              "Perennial.Proof.strings.Link",
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas",
+                              # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
+                              # axiom, net/http's errors not `errMemberRemoved`
+                              "Proof.bytes.Buffer__Write",
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr"]}
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
-EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes"}
+EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
 mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")
@@ -582,6 +609,8 @@ def visit(fn):
         return
     seen.add(fn)
     for c in callees[fn]:
+        if c.startswith("="):
+            continue
         visit(c)
     order.append(fn)
 
@@ -632,6 +661,10 @@ variable [package_sem : {assumptions}]
         return "h_" + fn
 
     def arg(fn, c):
+        if c.startswith("="):
+            # a term given as is (`=http.respWrite_ok`): a boundary statement's axiom, or another
+            # library's linked result, which no spec file of a mode names
+            return c[1:]
         if c in pending:
             return hyp(c)
         if c in blocked:

@@ -196,6 +196,10 @@ def bView (γ : BNames) (q : Qp) (vd : VData) : IProp GF :=
 instance bView_timeless (γ : BNames) (q : Qp) (vd : VData) : Timeless (bView (GF := GF) γ q vd) := by
   unfold bView; infer_instance
 
+theorem bViewC_bView (γ : BNames) (q : Qp) (vd : VData) (c : Bool) :
+    bViewC (GF := GF) γ q vd c ⊢ bView γ q vd := by
+  unfold bView; iintro H; iexists c; iexact H
+
 /-- The clients' share of the backend being open (`γ.opn`, a `dghostVar` of whether it
 stopped: half of it the clients', a quarter the `run` goroutine's, a quarter the batch lock's;
 the stop makes it `true` and persistent), and of the right to close it (`γ.cls`: `Close`, with all
@@ -550,24 +554,43 @@ def batchLockedAt (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) : IPro
 def batchLocked (γ : BNames) (P : BParams) (b : Loc) (st : BSess) : IProp GF :=
   iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ batchLockedAt γ P b t db st)
 
+/-- What a commit (`unsafeCommit`) needs besides the batch lock: at a stop, the rest of the open
+token (the clients' half, which `run` got from `Close`, and the `run` goroutine's quarter); otherwise a payment for the hook's
+leftovers it keeps in the write buffer: a write-back's token (`m = 0`: `Commit`), the `run`
+goroutine's unpaid commit (`m = 1`: its half of `γ.used` at `u`, and a write-back since: `u + 1`
+of them), or none right after a write-back (`m ≥ 2`: `c = 0`, `Unlock`; D22 receiver epochs, S8a,
+2026-10-24: with the write-back's lower bound). The hooks see it (`hooksSpec`): every commit that
+runs them is paid by something a fresh backend's creator holds (`hook_fresh_false`). -/
+def payIn (γ : BNames) (st : BSess) (stop : Bool) (m u : Nat) : IProp GF :=
+  if stop then iprop(dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗
+    dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false)
+  else if m = 0 then wbTok γ
+  else if m = 1 then iprop(ghostVar γ.used (1 : Qp).half u ∗ monoNatLbOwn γ.wbc (u + 1))
+  else iprop(⌜st.cnt.c = 0⌝ ∗ monoNatLbOwn γ.wbc 1)
+
 /-- A `Hooks` value: nil, or one whose `OnPreCommitUnsafe(tx)`, on the batch transaction `t`
 held in a state `st` in the hook's window (`hookPre`: room for its operations), with the hooks'
-resource `Pk`, makes a hook step (`hookStep`). -/
+resource `Pk`, makes a hook step (`hookStep`). (D22 receiver epochs, S8a, 2026-10-24) The hook
+sees the commit's payment (`payIn`, given back): every commit that runs the hooks is paid by a
+write-back token, the `run` goroutine's write-back, or the open token at a stop, so a hook can
+rule out running on a backend whose creator still holds them all (`hook_fresh_false`). -/
 def hooksSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (h : GoInterface) :
     IProp GF :=
   iprop(⌜h = GoInterface.nil⌝ ∨ ∃ ho : GoInterfaceOk, ⌜h = GoInterface.ok ho⌝ ∗
-    □ ∀ st : BSess,
-      {{ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ }}
+    □ ∀ (st : BSess) (stop : Bool) (m u : Nat),
+      {{ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ ∗ payIn γ st stop m u }}
         (App (Val #(methods ho.ty go!"OnPreCommitUnsafe" ho.v))
           (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
-      {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P st st'⌝ }})
+      {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ payIn γ st stop m u ∗
+          ⌜hookStep P st st'⌝ }})
 
 /-- A `HookFunc` with the same contract (what `NewHooks` wraps). -/
 def hookFnSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (f : GoFunc) : IProp GF :=
-  iprop(□ ∀ st : BSess,
-    {{ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ }}
+  iprop(□ ∀ (st : BSess) (stop : Bool) (m u : Nat),
+    {{ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ ∗ payIn γ st stop m u }}
       (App (Val #f) (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
-    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P st st'⌝ }})
+    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ payIn γ st stop m u ∗
+        ⌜hookStep P st st'⌝ }})
 
 instance hooksSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
     (h : GoInterface) : Persistent (hooksSpec γ P Pk b t h) := by
@@ -585,11 +608,12 @@ the apply thread's state traded for the stored index's window at the consistent 
 def hooksReq (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (h : GoInterface)
     (X Y : IProp GF) : IProp GF :=
   iprop(∃ ho : GoInterfaceOk, ⌜h = GoInterface.ok ho⌝ ∗
-    □ ∀ st : BSess,
-      {{ batchLocked γ P b st ∗ Pk ∗ X ∗ ⌜hookPre P st⌝ }}
+    □ ∀ (st : BSess) (stop : Bool) (m u : Nat),
+      {{ batchLocked γ P b st ∗ Pk ∗ X ∗ ⌜hookPre P st⌝ ∗ payIn γ st stop m u }}
         (App (Val #(methods ho.ty go!"OnPreCommitUnsafe" ho.v))
           (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
-      {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ Y ∗ ⌜hookStep P st st'⌝ }})
+      {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ Y ∗ payIn γ st stop m u ∗
+          ⌜hookStep P st st'⌝ }})
 
 instance hooksReq_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
     (h : GoInterface) (X Y : IProp GF) : Persistent (hooksReq γ P Pk b t h X Y) := by

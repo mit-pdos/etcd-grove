@@ -49,6 +49,43 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putget3.Assumptions]
 
+/-- A host of the directory is one of the three peer addresses (2026-10-24, rafthttp stage 6d). -/
+theorem dir3_host (id₁ id₂ id₃ id : w64) (h : GoString)
+    (hm : go!"http://" ++ h ∈ dir3 id₁ id₂ id₃ id) : h = peerAddr₁ ∨ h = peerAddr₂ ∨ h = peerAddr₃ := by
+  unfold dir3 at hm
+  split at hm
+  · left; simpa using hm
+  split at hm
+  · right; left; simpa using hm
+  split at hm
+  · right; right; simpa using hm
+  · simp at hm
+
+/-- **`Main`'s directory is well formed** (`netDirOk`, `NewServer`'s premise; rafthttp stage 6d):
+no member `0`, each peer address one member's, plain `http://` URLs. -/
+theorem dir3_ok (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : BootFacts id₁ id₂ id₃ bootLog) :
+    netDirOk (dir3 id₁ id₂ id₃) := by
+  obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
+  have Hnz := common.id_nz id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
+  have h1 := Hnz id₁ (by simp); have h2 := Hnz id₂ (by simp); have h3 := Hnz id₃ (by simp)
+  refine ⟨?_, ?_, ?_⟩
+  · unfold dir3
+    rw [if_neg (fun e => h1 (by rw [← e]; rfl)), if_neg (fun e => h2 (by rw [← e]; rfl)),
+      if_neg (fun e => h3 (by rw [← e]; rfl))]
+  · intro i j h hi hj
+    unfold dir3 at hi hj
+    split at hi <;> split at hj <;> (try split at hi) <;> (try split at hj) <;>
+      (try split at hi) <;> (try split at hj) <;> simp_all <;> (try decide)
+  · intro i s hs
+    unfold dir3 at hs
+    split at hs
+    · simp at hs; subst hs; decide
+    split at hs
+    · simp at hs; subst hs; decide
+    split at hs
+    · simp at hs; subst hs; decide
+    · simp at hs
+
 set_option maxHeartbeats 1000000 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
@@ -60,7 +97,7 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE CRE CEC N id₁ id₂ id₃ bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Htok, #Hprem⟩
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
   -- `Main`'s premises in the shared start's form
@@ -169,8 +206,10 @@ theorem Main.wp_proof
     iapply BigSepM.bigSepM_empty.2; itrivial
   -- the ghost state of the cluster and its members (`alloc3`)
   imod (common.alloc3 putgetWorkload id₁ id₂ id₃ bootLog Hbf.idLow Hbf.idLow0 Hbf.boot
-      (dir3 id₁ id₂ id₃) (by omega)) with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
-    Hmb₁, Hsl₁, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hetcd⟩
+      (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ bootLog Hbf).1
+      (dir3_host id₁ id₂ id₃) (by omega)) $$ Hf₁ Hf₂ Hf₃
+    with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
+    Hmb₁, ⟨#Hnet₁, Hpo₁⟩, Hmb₂, ⟨#Hnet₂, Hpo₂⟩, Hmb₃, ⟨#Hnet₃, Hpo₃⟩, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁, -⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hd₁ : go!"http://" ++ peerAddr₁ ∈ dir3 id₁ id₂ id₃ id₁ := by simp [dir3]
@@ -185,8 +224,8 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) [id₁, id₂, id₃] bootLog
       (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN
-      hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2 hd₁ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
+      hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ bootLog Hbf) hd₁ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
+      Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hpo₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
     iExactEq Hq₁; rfl
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
@@ -208,8 +247,8 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) [id₁, id₂, id₃] bootLog
       (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN
-      hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2 hd₂ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hsl₂] as %s₂ %err₂ Hr₂
+      hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ bootLog Hbf) hd₂ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
+      Hbuq Hdbo) $$ [Ha₂ Htok Hmb₂ Hpo₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
     iExactEq Hq₂; rfl
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -230,8 +269,8 @@ theorem Main.wp_proof
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅))) initURLs3
       (common.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) [id₁, id₂, id₃] bootLog
       (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN
-      hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2 hd₃ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
-      Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hsl₃] as %s₃ %err₃ Hr₃
+      hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2 (dir3_ok id₁ id₂ id₃ bootLog Hbf) hd₃ ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hlg Hck Haf
+      Hbuq Hdbo) $$ [Ha₃ Htok Hmb₃ Hpo₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
     iExactEq Hq₃; rfl
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
