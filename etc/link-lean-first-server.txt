@@ -627,6 +627,9 @@ EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__St
 rafthttp_NewRoundTripper:
 rafthttp_Transport__ActiveSince:
 rafthttp_Transport__AddPeer: types_NewURLs v2stats_LeaderStats__Follower rafthttp_startPeer rafthttp_addPeerToProber types_ID__String types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
+# (D22 receiver epochs, S8d, 2026-10-25) `applySnapshot`'s transport reset over `trLive`; its proof
+# is the membership track's M5's (`sorry` on purpose, the user's decision).
+rafthttp_Transport__RemoveAllPeers:
 rafthttp_Transport__AddRemote: types_NewURLs rafthttp_startRemote types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
 rafthttp_Transport__CutPeer: rafthttp_peer__Pause
 rafthttp_Transport__Get:

@@ -19039,3 +19039,15 @@ stop channels): a two-conjunct addition, `srv_be_swap` returning the old ones; a
 resources as a premise of `applySnapshot.spec` for S-j1 (it then has to thread them anyway).
 Recommendation: (a), the smallest change, in the predicate whose meaning is "the apply thread's
 part of the current backend".
+
+## D22 S8d: the user's answers on W7's second part and `RemoveAllPeers` (2026-10-25 · the user's decisions, via the orchestrator)
+
+- **W7, second part: (c).** The old backend's stop channels and the constructors' half of its open
+  token (`backend.isStopChans`, `backend.bOpen ½`) are a named premise of `applySnapshot.spec`;
+  S-j1 threads them from `NewServer` to the apply thread (the reverted patch putting them in
+  `srvBeOwn`, `srv_be_swap` returning the old ones, is described in `notes/snapshot-s8-plan.md`,
+  "For S-j1").
+- **`RemoveAllPeers`: (b).** Its spec is stated now over `trLive` (the ids `(rs.1, [])` after,
+  the remotes kept); its proof is a `sorry` on purpose, for the membership track's M5 to prove
+  rather than restate (`notes/membership-plan.md`, M5). The trust base gains the `sorry` on purpose
+  (`etc/tcb-baseline.txt` updated with `--check --update`).
