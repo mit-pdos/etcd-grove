@@ -55,17 +55,19 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
       rnApP E γ (rcv.length : Int) ap -∗
       ∃ (ce : List EntryModel) (ceL : List Loc),
         rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
-        ⌜ap.snapshot' = null⌝ ∗ isUnitBag ap.notifyc' ∗
+        ⌜ap.snapshot' = null⌝ ∗
+        (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ A ce) ∗ notifyRcv γnc) ∗
+        rnApGive γ A ce ∗
         rnAdvChan ap.raftAdvancedC' (memFloorAtLeast γ.ms γ.γs (γ.pre ++ A ++ ce).length) ∗
         committedLast E.γr ce := by
   iintro Hcons #HA HP
   iunfold rnApP at HP
-  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, #Hn, #Hrac, #Hcl, -⟩
+  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, -⟩
   simp only [Int.toNat_natCast] at *
   ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
   subst Heq
   iexists ce, ceL
-  iframe Hsl Hents HC Hn Hrac Hcl
+  iframe Hsl Hents HC Hn HG Hrac Hcl
   isplitl [Hcons]
   · iunfold rnApplyTok
     iexists rcv ++ [ap]
@@ -73,6 +75,132 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
     simp only [List.length_append, List.length_singleton]
     iexact HFce
   ipureintro; exact Hsnap
+
+/-- (D43 M3) In raft's static mode the view is any `nodeCfg`: it holds after any log. -/
+theorem rnCfgAt_static (γ : RNNames) (L L' : List EntryModel) (h : γ.node.mode.isDyn = false) :
+    rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ L' := by
+  unfold rnCfgAt
+  rw [ite_eq_right (by rw [h]; decide), ite_eq_right (by rw [h]; decide)]
+
+/-- (D43 M3) A normal entry keeps the view. -/
+theorem rnCfgAt_normal1 (γ : RNNames) (L : List EntryModel) (m : EntryModel)
+    (hm : m.typ = W32 0) :
+    rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ [m]) := by
+  unfold rnCfgAt
+  split
+  · have := dvView_normal (GF := GF) ⟨γ.node.raft, γ.pre, W64 0⟩ (some γ.node) L m hm
+    unfold dvView at this
+    exact this
+  · exact .rfl
+
+/-- (D43 M3) A batch of normal entries keeps the view. -/
+theorem rnCfgAt_normal (γ : RNNames) (ce : List EntryModel)
+    (h : ∀ m, m ∈ ce → m.typ = W32 0) : ∀ L, rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ ce) := by
+  induction ce with
+  | nil => intro L; rw [List.append_nil]
+  | cons m ce IH =>
+    intro L
+    refine (rnCfgAt_normal1 γ L m (h m List.mem_cons_self)).trans ?_
+    rw [show L ++ m :: ce = (L ++ [m]) ++ ce by simp]
+    exact IH (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')) _
+
+/-- (D43 M3) A batch with no `ConfChange` entry (Go's scan) of the server's committed log
+(`srvIdxOkW`: normal entries and `ConfChange`s) is all normal entries. -/
+theorem ccIn_false_normal (ai₀ : w64) (L ce : List EntryModel) (hidx : srvIdxOkW ai₀ (L ++ ce))
+    (hc : ccIn ce = false) : ∀ m, m ∈ ce → m.typ = W32 0 := by
+  intro m hm
+  obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+  have h1 := (hidx (L.length + n) m (by rw [List.getElem?_append_right (by omega)]; simpa using hn)).2
+  rcases h1 with h1 | ⟨h1, -⟩
+  · exact h1
+  · exfalso
+    unfold ccIn at hc
+    have := List.any_eq_false.1 hc m hm
+    simp [h1] at this
+
+/-- (D43 M3) **The view after a batch with no `ConfChange` entry**: the loop kept it (`rnHands`
+is false), and the batch, of the server's committed log, is normal entries. -/
+theorem rnCfgAt_back_false (γ : RNNames) (ai₀ : w64) (L ce : List EntryModel)
+    (hidx : srvIdxOkW ai₀ (L ++ ce)) (hcc : ccIn ce = false) :
+    (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ⊢ rnCfgAt γ (L ++ ce) := by
+  have hh : rnHands γ ce = false := by unfold rnHands; simp [hcc]
+  rw [ite_eq_right (by rw [hh]; decide)]
+  exact rnCfgAt_normal γ ce (ccIn_false_normal ai₀ L ce hidx hcc) L
+
+/-- (D43 M3) **The view after a batch with a `ConfChange` entry**: in raft's dynamic mode the
+second `notifyc` send's (`rnApR`), in the static mode the one the loop kept. -/
+theorem rnCfgAt_back_true (γ : RNNames) (L ce : List EntryModel) (hcc : ccIn ce = true) :
+    (if rnHands γ ce then iprop(True) else rnCfgAt (GF := GF) γ L) ∗ rnApR γ L ce ⊢
+      rnCfgAt γ (L ++ ce) := by
+  unfold rnApR
+  cases hd : γ.node.mode.isDyn
+  · have hh : rnHands γ ce = false := by unfold rnHands; simp [hd]
+    rw [ite_eq_right (by rw [hh]; decide), ite_eq_right (by rw [hh]; decide)]
+    iintro ⟨H, -⟩
+    iapply rnCfgAt_static γ L (L ++ ce) hd $$ H
+  · have hh : rnHands γ ce = true := by unfold rnHands; simp [hd, hcc]
+    rw [ite_eq_left hh, ite_eq_left hh]
+    iintro ⟨-, H⟩
+    iexact H
+
+/-- (D43 M3) The batch's view option at the apply side: the node's names when the view goes along
+(`rnHands`). -/
+def rnDv (γ : RNNames) (ce : List EntryModel) : Option NodeNames :=
+  if rnHands γ ce then some γ.node else none
+
+/-- (D43 M3) What the apply thread's receive deposits, as the apply side states it. -/
+theorem rnApR_dv (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.pre = γs.pre)
+    (A ce : List EntryModel) :
+    rnApR (GF := GF) γ A ce = dvView γs (rnDv γ ce) (A ++ ce) := by
+  unfold rnApR rnDv dvView
+  by_cases h : rnHands γ ce
+  · have hd : γ.node.mode.isDyn = true := by
+      unfold rnHands at h; simp only [Bool.and_eq_true] at h; exact h.1
+    rw [ite_eq_left h, ite_eq_left h]
+    unfold rnCfgAt
+    rw [ite_eq_left hd, hpre]
+  · rw [ite_eq_right h, ite_eq_right h]
+
+/-- (D43 M3) What goes along with the batch, as the apply side states it, with the node's dynamic
+contract (`isRaftNodeIfc`'s, in the dynamic mode). -/
+theorem rnApGive_dv (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (hpre : γ.pre = γs.pre)
+    (A ce : List EntryModel) :
+    (⌜γ.node.mode.isDyn = false⌝ ∨ srvRaftNodeDyn (GF := GF) s γ.node) ∗ rnApGive γ A ce ⊢
+      dvView γs (rnDv γ ce) A ∗ dvRes s γs (rnDv γ ce) (A ++ ce) := by
+  unfold rnApGive rnDv dvView dvRes
+  by_cases h : rnHands γ ce
+  · have hd : γ.node.mode.isDyn = true := by
+      unfold rnHands at h; simp only [Bool.and_eq_true] at h; exact h.1
+    rw [ite_eq_left h, ite_eq_left h]
+    simp only
+    unfold rnCfgAt
+    rw [ite_eq_left hd]
+    iintro ⟨(%Hf | #Hn), Hv, #Hd⟩
+    · rw [hd] at Hf; cases Hf
+    rw [← hpre]
+    iframe Hv Hn
+    unfold rnLogOf srvLogOf at *
+    rw [← hpre]
+    iexact Hd
+  · rw [ite_eq_right h, ite_eq_right h]
+    simp only
+    iintro -
+    isplit <;> itrivial
+
+/-- (D43 M3) The server's node meets the dynamic contract in raft's dynamic mode: the wrapper's
+node contract's (`isRaftNodeIfc`). -/
+theorem srvRaftNodeDyn_of_isRaftNode (E : RNEnv GF) (γ : RNNames) (s : Loc) :
+    isRaftNode E γ (srvRAddr s) ⊢ ⌜γ.node.mode.isDyn = false⌝ ∨ srvRaftNodeDyn s γ.node := by
+  iintro #H
+  iunfold isRaftNode at H
+  iNamed H
+  iunfold isRaftNodeIfc at Hni
+  icases Hni with ⟨%ni, %Hn, (%Hd | #Hd), -⟩
+  · ileft; ipureintro; exact Hd
+  · iright
+    iunfold srvRaftNodeDyn
+    iexists n
+    iframe Hn Hd
 
 end lemmas
 

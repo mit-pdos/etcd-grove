@@ -87,6 +87,7 @@ theorem StartNode.wp_proof
     iexists []
     iframe
   icases ownRawNode_shared γ rn cv.ID' _ $$ Hrn with ⟨%r, %lok', #Hrr, #Hrid, #Hrlg, #Hlg', Hrn⟩
+  icases ownRawNode_mode γ rn cv.ID' _ $$ Hrn with ⟨%Hmd, Hrn⟩
   ihave #Hnode : isNode γn cv.ID' np $$ []
   · unfold isNode
     iexists nv, r, lok'
@@ -121,6 +122,8 @@ theorem StartNode.wp_proof
   iexists γn, np
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  isplitr
+  · ipureintro; exact Hmd
   iframe Hnode Hpeers
   isplitl [Hdlv2 Hreq1 Hreq2]
   · unfold nodeDriver dlvLb

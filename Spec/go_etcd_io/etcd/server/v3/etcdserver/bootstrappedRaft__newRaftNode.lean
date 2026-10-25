@@ -130,7 +130,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   {{ (r : Loc), RET #r;
       ∃ (γn : NodeNames) (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = memStorIface bv.storage' ∧
-          γn.mode = RNMode.static ∧
+          γn.mode = RNMode.static ∧ γn.raft.reDyn = none ∧
           γw.node = γn ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs ∧ γw.reg = reg⌝ ∗
         -- raft's node

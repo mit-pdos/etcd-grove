@@ -171,7 +171,9 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
 `γ.pre = []` so that `rnLogOf γ [] = []`), its view of the configuration, and `applyc`'s halves
 with `cum` at `[[]]` (`newRaftNode`'s). -/
 theorem rnToks_of_start (γ : RNNames) (ca : Nat) (cfg : CCState) (hpre : γ.pre = [])
-    (p : HardStateM) :
+    (p : HardStateM)
+    -- (D43 M3, 2026-10-25) in raft's dynamic mode, the view at the start (`srvCfgOk`)
+    (hcfg : γ.node.mode.isDyn = true → srvCfgOk γ.node.raft.reCfg [] ca cfg) :
     (letI : MemStorReg GF := ⟨γ.reg⟩;
       iprop(nodeDriver γ.node γ.id γ.nl [] p ∗ nodeCfg γ.node ca cfg)) ∗
       spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗
@@ -189,8 +191,16 @@ theorem rnToks_of_start (γ : RNNames) (ca : Nat) (cfg : CCState) (hpre : γ.pre
       have h : rnLogOf γ [] = [] := by unfold rnLogOf; rw [hpre]; rfl
       rw [h]
       iframe Hdrv
-      iexists ca, cfg
-      iexact Hcfg
+      unfold rnCfgAt
+      split
+      · unfold srvCfgView
+        iexists ca, cfg
+        iframe Hcfg
+        ipureintro
+        rw [hpre]
+        exact hcfg (by assumption)
+      · iexists ca, cfg
+        iexact Hcfg
     iframe Hprod Hcum
     ipureintro; exact ⟨rfl, rfl⟩
   · iunfold rnApplyTok
@@ -293,7 +303,8 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames) (rv : raftNode),
           ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.stor = memStorIface bv.storage' ∧
-            γw.node.mode = RNMode.static ∧ γw.id = cv.ID' ∧ γw.node.id = cv.ID' ∧ γw.pre = [] ∧
+            γw.node.mode = RNMode.static ∧ γw.node.raft.reDyn = none ∧ γw.id = cv.ID' ∧
+            γw.node.id = cv.ID' ∧ γw.pre = [] ∧
             γw.ms = bv.storage' ∧
             γw.γs = γs ∧ γw.reg = reg ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
@@ -360,7 +371,8 @@ theorem raftNode_of_StartNode (reg : GName)
     as %r ⟨%γn, %n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, Hbuilt, Hb, Hpeers,
       Htok⟩
   · iframe #; iframe Hb Hc Hsto Hpeers Hghost Htok
-  obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwreg⟩ := Hnames
+  obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hγrd, Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwreg⟩ :=
+    Hnames
   subst Hwreg
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
@@ -387,6 +399,7 @@ theorem raftNode_of_StartNode (reg : GName)
   · unfold rnIsNode; rw [Hwnode, Hwid, Hwnl]; iexact Hnode
   -- the tokens
   ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw 0 (cfgState (GMap.listToSet ps) ∅) Hwpre hsZero
+      (fun h => by rw [Hwnode, Hγmode] at h; cases h)
     $$ [Hdrv Hncfg Hprod Hcons Hcum Hcum0]
   · rw [Hwnode, Hwid, Hwnl]
     iframe Hdrv Hncfg Hprod Hcons Hcum Hcum0
@@ -403,7 +416,8 @@ theorem raftNode_of_StartNode (reg : GName)
   isplitr
   · ipureintro
     refine ⟨by rw [Hwnode]; exact Hγraft, by rw [Hwnode]; exact Hγbud,
-      by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, Hwid, Hnid.trans Hwid, Hwpre,
+      by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, by rw [Hwnode]; exact Hγrd,
+      Hwid, Hnid.trans Hwid, Hwpre,
       Hwms, Hwγs, rfl,
       Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     simp only [rnNodeIface, Hwnl]
@@ -416,7 +430,7 @@ theorem raftNode_of_StartNode (reg : GName)
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv' Hlinv
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
-  · iapply isRaftNodeIfc_of_isNode E γw s wp_Ready wp_Advance wp_Tick wp_ReadIndex
+  · iapply isRaftNodeIfc_of_isNode E γw s wp_Ready wp_Advance wp_Tick wp_ReadIndex wp_ApplyConfChange
     iframe Hpkg Henv' Hisnode Hlinv Hcommi Hreg'
     iunfold rnStopOkStarted at Hstop
     iapply Hstop $$ Hisnode

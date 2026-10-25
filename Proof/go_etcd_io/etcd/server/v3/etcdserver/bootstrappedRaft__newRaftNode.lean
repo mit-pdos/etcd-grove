@@ -87,7 +87,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     iapply Hinit $$ Hs Htok
     iintro %hp %cs %al Hs Ht Hhs Hcs
     iapply HK $$ Hs Ht Hhs Hcs
-  icases Hpost with ⟨%γn, %n, %Hnd, #Hnode, Hdrv, Hncfg, Hpeers⟩
+  icases Hpost with ⟨%γn, %n, %Hnd, %Hmd, #Hnode, Hdrv, Hncfg, Hpeers⟩
   obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, -, Hndeq⟩ := Hnd
   subst Hndeq
   (try wp_auto)
@@ -124,7 +124,8 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   isplitr
   · ipureintro
     obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hγw
-    exact ⟨Hγraft, Hγbud, Hγstor, Hγmode, h1, h2, h3, h4, h5, h6, h7⟩
+    exact ⟨Hγraft, Hγbud, Hγstor, Hγmode, by rw [Hγraft]; exact Hmd.1 (by simp), h1, h2, h3, h4, h5,
+      h6, h7⟩
   iframe Hnode Hdrv Hncfg Hst Hbuilt Hb Hpeers Htok
   -- the closure meets `isRNIDRemoved`
   iunfold isRNIDRemoved
@@ -133,7 +134,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   iunfold rnClusterOk at Hcl
   wp_apply Hcl $$ %id' [] as %bb -
   iapply HΦ'
-  itrivial
+  first | itrivial | (ipureintro; trivial)
 
 end proof
 

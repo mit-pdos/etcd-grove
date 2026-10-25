@@ -713,7 +713,8 @@ theorem NewServer.wp_proof
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn2, Hrn3, Hrn4, Hrn5, Hrn5n, Hrn6, Hrn7, Hrn8, Hrn9, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ :=
+  obtain ⟨Hrn1, Hrn2, Hrn3, Hrn4, Hrn4d, Hrn5, Hrn5n, Hrn6, Hrn7, Hrn8, Hrn9, Hrn10, Hrn11, Hrn12, Hrn13,
+    Hrn14⟩ :=
     Hrnames
   -- (D21 M2) what the transport's calls into the server read (`srvProcOk`): the wrapper's
   -- fixed fields split off its struct (the node's among them), the member id, the stats
@@ -1021,7 +1022,8 @@ theorem NewServer.wp_proof
   · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud γrn
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
-      Hrn4 (by rw [Hrn3, Hrn7]) Hrn2
+      ⟨fun _ => Hrn4d, fun _ => Hrn4⟩ (fun dec c0 h0 h1 h => by rw [Hrn4] at h; cases h)
+      (by rw [Hrn3, Hrn7]) Hrn2
       (by first | (rw [← hργ]; exact Hnosnap.1) | (rw [hργ]; exact Hnosnap.1) | exact Hnosnap.1)
       (by rw [Hrn8, Hnosnap.2]; exact Int.le_refl _) id (srvTrKey γn γk)
       (by rw [Hrn5n, Hrid]))
@@ -1289,7 +1291,7 @@ theorem NewServer.wp_proof
     ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
   isplitr
   · ipureintro
-    refine ⟨?_, rfl⟩
+    refine ⟨?_, rfl, fun _ => Int.le_refl _⟩
     unfold srvEr
     simp only
     exact (srvC_agree ρ _ E₀ (W64 0) (W64 0) bootKV hγs).symm

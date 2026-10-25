@@ -501,7 +501,7 @@ theorem EtcdServer.start.wp_proof
     iexact Hrf
   ihave #Hrr : isReadRaft (interface.mkOk (go.GoType.PointerType raftNode.ty) #(srvRAddr s)) γr
       Er.RQ $$ []
-  · rw [← HEr.2]
+  · rw [← HEr.2.1]
     iapply isReadRaft_of_raftNode hRSt hRI Er γn (srvRAddr s) $$ [$Hpkg $Hrn]
   icases replicate_take1 _ _ (by have := sync.actualMaxReaders_ge_2; omega) $$ Hlcslots with ⟨Hlc1, Hlcslots⟩
   ihave #HWBx : iprop(∃ γp, srvWTPool (GF := GF) E γp) $$ []
