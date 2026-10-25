@@ -293,3 +293,4 @@ axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
+sorry rafthttp.Transport.RemoveAllPeers.wp_proof

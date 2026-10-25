@@ -724,3 +724,4 @@ sorry k8setcd3.clientErr_other
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
+sorry rafthttp.Transport.RemoveAllPeers.wp_proof

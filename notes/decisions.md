@@ -19239,3 +19239,47 @@ Since `New`'s proof covers both configurations, the closed theorems of the examp
 **Not a Go issue, noted:** a client with no token bundle that sends a token of its own in its
 metadata (authkv's bad principal) gets its refused write retried 100 times, `refreshToken` doing
 nothing each time: wasteful, not wrong (nothing is applied).
+
+## D22 S8d: the user's answers on W7's second part and `RemoveAllPeers` (2026-10-25 · the user's decisions, via the orchestrator)
+
+- **W7, second part: (c).** The old backend's stop channels and the constructors' half of its open
+  token (`backend.isStopChans`, `backend.bOpen ½`) are a named premise of `applySnapshot.spec`;
+  S-j1 threads them from `NewServer` to the apply thread (the reverted patch putting them in
+  `srvBeOwn`, `srv_be_swap` returning the old ones, is described in `notes/snapshot-s8-plan.md`,
+  "For S-j1").
+- **`RemoveAllPeers`: (b).** Its spec is stated now over `trLive` (the ids `(rs.1, [])` after,
+  the remotes kept); its proof is a `sorry` on purpose, for the membership track's M5 to prove
+  rather than restate (`notes/membership-plan.md`, M5). The trust base gains the `sorry` on purpose
+  (`etc/tcb-baseline.txt` updated with `--check --update`).
+
+## D22 S8d, laid against the callees after the merge: one question before the proof (2026-10-25 · for the user)
+
+**`authStore.Recover` on the snapshot's backend.** The merge took the auth track's *proved*
+`auth.authStore.Recover.spec` (over `authInv st R M`, `authOwn`, `authWR`, `tpAdmin`, `R` and the
+new backend's `authBackendOk`/`authWBackendOk`) in place of S8c's server-level axiom (over
+`authBeOn st oldbe` and `authApplyOk` in mode `.off`). The server does not hold those predicates:
+its auth store comes from `NewAuthStore`'s axiom, which gives `authBeOn`, `isReqAuth st RD` and
+`authApplyOk stl RD`, not `authInv` (the auth plan's E stage, "the authority to the server", is not
+done), and nothing proves `authBackendOk` of schema's auth backend over a real backend. So
+`applySnapshot`'s `s.authStore.Recover(NewAuthBackend(lg, newbe))` has no usable spec. Options:
+- (a) a named premise of `applySnapshot.spec`: the triple of `st.Recover(ab)` in the server's terms
+  (S8c's statement: `authBeOn st oldbe` to `authBeOn st newbe`, the new backend's contract, an open
+  share, a write-back token, its tracked buckets with the auth buckets at the server's), discharged
+  when the auth track brings `authInv` to the server (its E stage);
+- (b) the auth track restates `NewAuthStore`'s server statement to give `authInv`, `authWR`,
+  `tpAdmin` and the backend contracts (their E stage), and S8d waits;
+- (c) a server-mode wrapper axiom for `Recover` beside the proved spec (two specs of one function:
+  against the layout).
+Recommendation: (a): S8d proceeds now, and the premise is exactly what (b) will prove.
+
+**The named premises S8d takes otherwise** (S-j1's inputs and threading, as the orchestrator
+directed; listed so S-j1 sees them): the snapshot message (non-nil, read-only metadata at index `i`
+and term, `i > ep.appliedi`, `ciEff ≤ i`); the snapshot file `fileHolds (snapDBPath ss i) D` with
+its image certificate (the KV log `A'` of the image, `A <+: A'`, the image's buckets: the key bucket
+at `kvModel A'`, the meta bucket's consistent index `i`, the rest buckets at `restModel A'`, the
+lease and alarm buckets empty, `clusterImageOk`, the auth buckets the server's) and its `certOk` in
+the server's `cok` map; `storageSnap`, the snapshot directory's invariant and the counter `γt`'s
+authority at most `ai`; `snapOpensOk`, `dbOpensOk`, the feature gate, `pathOwn` of the backend path;
+the old backend's `isStopChans` and `bOpen ½` (W7, the user's (c)); the transport's `trLive` and
+W8's coverage (the user's), `Members()`' boot contract (`Hmembers`), `8 · |peers|` of `lgMu`'s reader
+slots for the `AddPeer`s; `receiptBound ≤ wbInit` (the new backend's write-backs).
