@@ -18689,6 +18689,27 @@ commit fact's configuration index (`cqAt`'s dynamic part).
   `⟨0, cfgState V ∅, []⟩`, the tracker's learners empty). The server's `newRaftNode` passes `.static`
   (M3 moves it).
 
+**M3: the server in the dynamic mode, scoped (2026-10-25, the user; branch `membership-m3`).**
+Three decisions, each the recommended option:
+- *The leader's `Advance`.* In the dynamic mode `node.Advance` asks that the committed log's conf
+  entries be applied first (A1, `NoConfIn ds ca`); etcd's raft loop waits for its apply loop only on
+  a follower or candidate, the leader calls `Advance` at once
+  (`issues/etcd-leader-advance-before-applyconfchange.md`, a real safety gap), so no proof over that
+  code. **Decided: the fork fix** (M3a), the upstream candidate's: the leader does the follower's
+  second `notifyc` send (fork branch `goose-lean-leaderwait`, `4d9282b0f`). A change to the verified
+  code, like the earlier fork fixes; the alternative, a premise, would have been unsound.
+- *The static mode at the server.* Every server example's `bootPremise` says `γ.reDyn = none`, so
+  a dynamic-only server changes the definitions inside every closed theorem's statement. **Decided:
+  parametric**: the server takes the node's mode, its dynamic-only resources stated as raft's
+  specs state them (`⌜static⌝ ∨ nodeCfg … ∗ dlvLb …`); the static examples keep their statements;
+  the removal example (M8) uses the dynamic instance.
+- *`EtcdServer.applyConfChange`'s axiom.* Its call `s.r.ApplyConfChange` needs, in the dynamic mode,
+  the driver's view (`nodeCfg ca cfg`, `dlvLb ds`) and raft's `DynCCPreOp`, and returns
+  `nodeCfg (k + 1) cs'`. **Decided: restate the axiom** (a trust-boundary statement change, same
+  axiom count; M5 proves the restated statement) rather than pulling M5's `AddNode` part forward:
+  static case unchanged, dynamic case as raft's `node.ApplyConfChange` has it, for `ApplyBoth`
+  only (without `v3` Go does not call raft).
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL

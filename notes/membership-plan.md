@@ -163,6 +163,26 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     it (an existing member's `AddNode`, applied by raft as a no-op).
   - *M3e.* `newRaftNode`/`NodeStart` at `md := .dyn` from `raft_dyn_alloc_boot` (M2a), a
     dynamic-mode instance of the server's start beside the static one.
+  *Design of M3b-M3d* (2026-10-25):
+  - `rnCfgAt γ L`: the driver's `nodeCfg γ.node ca cfg` with, in the dynamic mode, `NoConfIn` of
+    `rnLogOf γ L` from `ca` (every conf entry handed out applied) and `cfg` the voters' simple
+    configuration (no change in scope changes it yet). `rnDrv` = `nodeDriver ∗ rnCfgAt L`; `rnBusy`
+    = `nodeDriverBusy ∗ rnCfgAt d` (the log before the `Ready`); `Advance` takes `rnCfgAt (d ++ ce)`.
+    In the static mode `rnCfgAt` moves to any log (no pure part); in the dynamic mode, to `d ++ ce`
+    when `ce` has no conf entry.
+  - A batch with a conf entry, in the dynamic mode: `rnApP` carries `rnCfgAt F` and `dlvLb` of
+    `F ++ ce` to the apply thread; `notifyc` is the two-send idiom (`NotifyC.lean`, over the raw
+    channel state: the apply thread's receive deposits `R`, the second send, which a capacity-1
+    channel admits only once the first was received, claims it) with `R = rnCfgAt (F ++ ce)`
+    (`True` otherwise, the static mode's boot batch included).
+  - The apply side has no `RNNames`: `apply.spec`, `applyEntries`, `applyAll` and the
+    `applyConfChange` axiom take an optional driver view `dv : Option NodeNames` (`none`: the static
+    mode, or a batch with no conf entry), its resource `srvCfgView γn A` (the same as `rnCfgAt`, over
+    raft's names); the axiom's dynamic case calls the new contract `raftApplyCCDyn γn n` (raft's
+    `node.ApplyConfChange` in the dynamic mode, `DynCCPreOp` at the server's decoder `srvDec`), the
+    static clause of `raftPropose` guarded by `reDyn = none`. The replay case (`v3 = false`, an entry
+    at or below the consistent index) is excluded in the dynamic mode (the consistent index is the
+    batch's start, a fresh server's).
 - **M4. The membership writers.** Translate `RaftCluster.RemoveMember`,
   `ValidateConfigurationChange` (its `RemoveNode` case), `mustAddToRemovedMembersInStore`, the
   backend's member delete (`schema`'s `MustDeleteMemberFromBackend`); `rcLockInv`'s `removed` map
