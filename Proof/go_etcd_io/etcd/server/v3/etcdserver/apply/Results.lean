@@ -591,6 +591,21 @@ theorem apply_no_v3_no_write (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut)
     cases x; cases x'
     simp_all [Outcome.logAfter]
 
+/-- **Every dispatched entry runs its ranges in full** (`PR #18680`: `SkipRangeExecution` is `false`
+in `apply.Apply`, regardless of whether a waiter is registered). -/
+theorem apply_dispatched_no_skip (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) (o : Outcome)
+    (skip : Bool) (h : applyStep rq v3 x x' (.dispatched o skip)) : skip = false :=
+  h.1
+
+/-- **Every request with side effects (including every `Txn`) is never waived**: whether or not a
+waiter is registered in `w`, `apply.Apply` dispatches it with `SkipRangeExecution = false`. -/
+theorem apply_sideEffect_not_waived (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) (out : ApplyOut)
+    (hns : noSideEffect rq = false) (h : applyStep rq v3 x x' out) : out.waived = false := by
+  cases out with
+  | skipped => exact absurd h.1 (by simp [hns])
+  | rejected => rfl
+  | dispatched o sk => exact h.1
+
 #print axioms Perennial.EtcdGrove.apply.wp_Apply
 #print axioms Perennial.EtcdGrove.apply.wp_NewUberApplier
 #print axioms Perennial.EtcdGrove.apply.uberApplier.wp_dispatch
@@ -598,6 +613,8 @@ theorem apply_no_v3_no_write (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut)
 #print axioms Perennial.EtcdGrove.apply.apply_readonly_no_write
 #print axioms Perennial.EtcdGrove.apply.apply_rejected_no_write
 #print axioms Perennial.EtcdGrove.apply.apply_no_v3_no_write
+#print axioms Perennial.EtcdGrove.apply.apply_dispatched_no_skip
+#print axioms Perennial.EtcdGrove.apply.apply_sideEffect_not_waived
 
 /-! ## Unit 0: the trust boundary and the callees linked elsewhere -/
 

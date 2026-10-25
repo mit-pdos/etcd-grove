@@ -40,16 +40,11 @@ theorem cPost_if (v3 : Bool) (Pre Post : IProp GF) :
 set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` and the postcondition. -/
 local macro "call_tail" : tactic => `(tactic| (
-  wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 F Pre Q Post rs)
+  wp_apply (hUA E p opts x «$r0_ptr» rq false v3 F Pre Q Post rs)
       $$ [Hown Hkv Hwt Hcs HFS HSp HRO] as %ar ⟨HFS, %x', %out, Hown, Hkv, HPP, HRO, %Hst, Htr, Hres, #Hauth⟩
   · iframe # Hown Hkv Hwt Hcs HFS HSp HRO
     ipureintro
-    refine ⟨⟨Hrq, Hdk⟩, fun h => ?_⟩
-    rw [← hsk] at h
-    simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not] at h
-    cases ht : rq.txn with
-    | none => exact absurd (Hlt.2 ht) h.2
-    | some _ => rfl
+    exact ⟨⟨Hrq, Hdk⟩, rfl⟩
   ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
   iapply HΦ
   iframe HRD HFS
@@ -64,10 +59,8 @@ local macro "call_tail" : tactic => `(tactic| (
   · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
   isplitr
   · ipureintro; exact ⟨Hst.1, Hst.2.2⟩
-  icases Hwv with (%Hsk | HG)
-  · ileft; ipureintro
-    rcases Hst.2.1 with h | ⟨o, h⟩ <;> subst h <;> simp [apply.ApplyOut.waived, Hsk]
-  · iright; iexact HG))
+  ileft; ipureintro
+  rcases Hst.2.1 with h | ⟨o, h⟩ <;> subst h <;> simp [apply.ApplyOut.waived]))
 
 theorem apply.Apply.wp_proof
     (hMU : pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG))
@@ -132,21 +125,11 @@ theorem apply.Apply.wp_proof
   icases Hwok with ⟨%wi, %Hwi, #HIsReg⟩
   subst Hwi
   wp_apply HIsReg $$ [$HRD $HK] as %need ⟨HRD, Hneed⟩
-  wp_join (Q := fun v => iprop(⌜v = #(!need && !decide (lt = null))⌝)) at (if: _ then _ else _)
-  · cases need
-    · wp_auto
-      ipureintro; simp
-    · wp_auto
-      ipureintro; simp
-  rename_i v
-  iintro %Hv
-  subst Hv
-  wp_auto
   ihave ⟨Hw, %Hwn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
   iStructNamed Hw
   ipersist InternalRaftRequest
   ipersist SkipRangeExecution
-  ihave #Hwr : iprop(apply.irrWrapperIs «$r0_ptr» rq (!need && !decide (lt = null))) $$ []
+  ihave #Hwr : iprop(apply.irrWrapperIs «$r0_ptr» rq false) $$ []
   · iunfold apply.irrWrapperIs
     isplitr
     · ipureintro; exact Hwn
@@ -169,7 +152,6 @@ theorem apply.Apply.wp_proof
       iframe HPre Hup
       imodintro
       iexact Htr
-  generalize hsk : (!need && !decide (lt = null)) = sk
   cases need
   · -- no waiter: applied only with side effects
     icases Hneed with (%Hf | HG)
@@ -180,8 +162,7 @@ theorem apply.Apply.wp_proof
     subst Hb
     cases hns : apply.noSideEffect rq
     · wp_auto
-      ihave Hwv : iprop(⌜sk = false⌝ ∨ G ot id) $$ [HG]
-      · iright; iexact HG
+      iclear HG
       call_tail
     · wp_auto
       iapply HΦ
@@ -207,8 +188,6 @@ theorem apply.Apply.wp_proof
       · simp only [apply.applyAuthRes]; itrivial
       iright; iexact HG
   · -- a waiter: applied
-    ihave Hwv : iprop(⌜sk = false⌝ ∨ G ot id) $$ []
-    · ileft; ipureintro; rw [← hsk]; simp
     iclear Hneed
     wp_auto
     call_tail

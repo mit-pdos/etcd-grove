@@ -1,0 +1,991 @@
+=== RUN   TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency
+    logger.go:146: 2026-10-25T14:19:22.397-0400	INFO	bbolt	Opening db file (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency2972666891/001/etcd_backend_test3279770596/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e229cab8, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.397-0400	INFO	bbolt	Opening bbolt db (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency2972666891/001/etcd_backend_test3279770596/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.397-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.397-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.397-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.397-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.397-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.397-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.398-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.402-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.403-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.403-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	INFO	enabled backend quota	{"quota-name": "v3-applier", "quota-size-bytes": 104857600, "quota-size": "105 MB"}
+    logger.go:146: 2026-10-25T14:19:22.404-0400	INFO	bbolt	Opening db file (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency2972666891/002/etcd_backend_test1332917890/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e2402070, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.404-0400	INFO	bbolt	Opening bbolt db (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency2972666891/002/etcd_backend_test1332917890/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.404-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.405-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.405-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.406-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.408-0400	DEBUG	Apply	{"raftReq": "header:{ID:42}  txn:{success:{request_range:{key:\"k1\"  revision:999}}  success:{request_put:{key:\"k2\"  value:\"foo\"}}}"}
+    logger.go:146: 2026-10-25T14:19:22.408-0400	WARN	failed to apply request	{"took": "45.41µs", "request": "header:<ID:42> txn:<compare:<> success:<request_range:{key:\"k1\"  revision:999} request_put:<key:\"k2\" value_size:3 >> failure:<>>", "response": "", "error": "mvcc: required revision is a future revision"}
+    logger.go:146: 2026-10-25T14:19:22.408-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-25T14:19:22.408-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-25T14:19:22.408-0400	INFO	bbolt	Opening db file (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency2972666891/003/etcd_backend_test444774244/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e2402200, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.409-0400	INFO	bbolt	Opening bbolt db (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency2972666891/003/etcd_backend_test444774244/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.409-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.412-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.412-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.412-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.413-0400	INFO	bbolt	Opening db file (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency2972666891/004/etcd_backend_test627864762/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e269c080, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.413-0400	INFO	bbolt	Opening bbolt db (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency2972666891/004/etcd_backend_test627864762/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.413-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.414-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.415-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.415-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.415-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	Apply	{"raftReq": "header:{ID:42}  txn:{success:{request_range:{key:\"k1\"  revision:999}}  success:{request_put:{key:\"k2\"  value:\"foo\"}}}"}
+    logger.go:146: 2026-10-25T14:19:22.416-0400	WARN	failed to apply request	{"took": "24.036µs", "request": "header:<ID:42> txn:<compare:<> success:<request_range:{key:\"k1\"  revision:999} request_put:<key:\"k2\" value_size:3 >> failure:<>>", "response": "", "error": "mvcc: required revision is a future revision"}
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	Apply	{"raftReq": "header:{ID:42}  txn:{success:{request_range:{key:\"k1\"  revision:999}}  success:{request_put:{key:\"k2\"  value:\"foo\"}}}"}
+    logger.go:146: 2026-10-25T14:19:22.416-0400	WARN	failed to apply request	{"took": "9.641µs", "request": "header:<ID:42> txn:<compare:<> success:<request_range:{key:\"k1\"  revision:999} request_put:<key:\"k2\" value_size:3 >> failure:<>>", "response": "", "error": "mvcc: required revision is a future revision"}
+    logger.go:146: 2026-10-25T14:19:22.416-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-25T14:19:22.417-0400	DEBUG	bbolt	Committing transaction 6 successfully
+    logger.go:146: 2026-10-25T14:19:22.417-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-25T14:19:22.417-0400	DEBUG	bbolt	Committing transaction 6 successfully
+    logger.go:146: 2026-10-25T14:19:22.417-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-25T14:19:22.417-0400	DEBUG	bbolt	Committing transaction 6 successfully
+    logger.go:146: 2026-10-25T14:19:22.417-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-25T14:19:22.417-0400	DEBUG	bbolt	Committing transaction 6 successfully
+--- PASS: TestIssue18667_RemoveNeedlessRangeReqs_RevisionInconsistency (0.02s)
+=== RUN   TestIssue18667_RemoveNeedlessRangeReqs_AuthBypassInconsistency
+    logger.go:146: 2026-10-25T14:19:22.418-0400	INFO	bbolt	Opening db file (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_AuthBypassInconsistency3770124716/001/etcd_backend_test4066678501/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e24020d0, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.418-0400	INFO	bbolt	Opening bbolt db (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_AuthBypassInconsistency3770124716/001/etcd_backend_test4066678501/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.418-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.419-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.420-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.420-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.420-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.420-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.420-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.420-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.420-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.420-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.420-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.421-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.422-0400	INFO	bbolt	Opening db file (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_AuthBypassInconsistency3770124716/002/etcd_backend_test1675258836/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e269c090, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.422-0400	INFO	bbolt	Opening bbolt db (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_AuthBypassInconsistency3770124716/002/etcd_backend_test1675258836/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.422-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.423-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.423-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.423-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Putting key "root"
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Putting key "root" successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.424-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.424-0400	INFO	added a user	{"user-name": "root"}
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Committing transaction 6 successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Putting key "root"
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Putting key "root" successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	INFO	created a role	{"role-name": "root"}
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Committing transaction 7
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Committing transaction 7 successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Putting key "root"
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Putting key "root" successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.425-0400	INFO	granted a role to a user	{"user-name": "root", "user-roles": ["root"], "added-role-name": "root"}
+    logger.go:146: 2026-10-25T14:19:22.425-0400	DEBUG	bbolt	Committing transaction 8
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Committing transaction 8 successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Putting key "alice"
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Putting key "alice" successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.426-0400	INFO	added a user	{"user-name": "alice"}
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Committing transaction 9
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Committing transaction 9 successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Putting key "writer-k2-only"
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Putting key "writer-k2-only" successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	INFO	created a role	{"role-name": "writer-k2-only"}
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Committing transaction 10
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Committing transaction 10 successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.426-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Putting key "writer-k2-only"
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Putting key "writer-k2-only" successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.427-0400	INFO	granted/updated a permission to a user	{"user-name": "writer-k2-only", "permission-name": "WRITE", "key": "k2", "range-end": ""}
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Committing transaction 11
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Committing transaction 11 successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Putting key "alice"
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Putting key "alice" successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.427-0400	INFO	granted a role to a user	{"user-name": "alice", "user-roles": ["writer-k2-only"], "added-role-name": "writer-k2-only"}
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Committing transaction 12
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Committing transaction 12 successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.427-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Putting key "authEnabled"
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Putting key "authEnabled" successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.428-0400	INFO	enabled authentication
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Committing transaction 13
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Committing transaction 13 successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Putting key "root"
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Putting key "root" successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.428-0400	INFO	added a user	{"user-name": "root"}
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Committing transaction 6 successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.428-0400	DEBUG	bbolt	Putting key "root"
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "root" successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	INFO	created a role	{"role-name": "root"}
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Committing transaction 7
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Committing transaction 7 successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "root"
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "root" successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.429-0400	INFO	granted a role to a user	{"user-name": "root", "user-roles": ["root"], "added-role-name": "root"}
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Committing transaction 8
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Committing transaction 8 successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "alice"
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "alice" successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.429-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.430-0400	INFO	added a user	{"user-name": "alice"}
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Committing transaction 9
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Committing transaction 9 successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "writer-k2-only"
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "writer-k2-only" successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	INFO	created a role	{"role-name": "writer-k2-only"}
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Committing transaction 10
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Committing transaction 10 successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "writer-k2-only"
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "writer-k2-only" successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.430-0400	INFO	granted/updated a permission to a user	{"user-name": "writer-k2-only", "permission-name": "WRITE", "key": "k2", "range-end": ""}
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Committing transaction 11
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Committing transaction 11 successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "alice"
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "alice" successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.430-0400	INFO	granted a role to a user	{"user-name": "alice", "user-roles": ["writer-k2-only"], "added-role-name": "writer-k2-only"}
+    logger.go:146: 2026-10-25T14:19:22.430-0400	DEBUG	bbolt	Committing transaction 12
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Committing transaction 12 successfully
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Putting key "authEnabled"
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Putting key "authEnabled" successfully
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.431-0400	INFO	enabled authentication
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Committing transaction 13
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Committing transaction 13 successfully
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	Apply	{"raftReq": "header:{ID:77  username:\"alice\"  auth_revision:8}  txn:{success:{request_range:{key:\"secret\"}}  success:{request_put:{key:\"k2\"  value:\"pwned\"}}}"}
+    logger.go:146: 2026-10-25T14:19:22.431-0400	WARN	failed to apply request	{"took": "17.601µs", "request": "header:<ID:77  username:\"alice\"  auth_revision:8> txn:<compare:<> success:<request_range:{key:\"secret\"} request_put:<key:\"k2\" value_size:5 >> failure:<>>", "response": "", "error": "auth: permission denied"}
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-25T14:19:22.431-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-25T14:19:22.431-0400	INFO	bbolt	Opening db file (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_AuthBypassInconsistency3770124716/003/etcd_backend_test2138214458/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e269c310, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.432-0400	INFO	bbolt	Opening bbolt db (/tmp/TestIssue18667_RemoveNeedlessRangeReqs_AuthBypassInconsistency3770124716/003/etcd_backend_test2138214458/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.432-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.434-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.434-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.434-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.434-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.434-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.434-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.434-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.434-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.434-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Putting key "root"
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Putting key "root" successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.435-0400	INFO	added a user	{"user-name": "root"}
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Committing transaction 6 successfully
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.435-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "root"
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "root" successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	INFO	created a role	{"role-name": "root"}
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Committing transaction 7
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Committing transaction 7 successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "root"
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "root" successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.436-0400	INFO	granted a role to a user	{"user-name": "root", "user-roles": ["root"], "added-role-name": "root"}
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Committing transaction 8
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Committing transaction 8 successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "alice"
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "alice" successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.436-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.436-0400	INFO	added a user	{"user-name": "alice"}
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Committing transaction 9
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Committing transaction 9 successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "writer-k2-only"
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "writer-k2-only" successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	INFO	created a role	{"role-name": "writer-k2-only"}
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Committing transaction 10
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Committing transaction 10 successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "writer-k2-only"
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "writer-k2-only" successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.437-0400	INFO	granted/updated a permission to a user	{"user-name": "writer-k2-only", "permission-name": "WRITE", "key": "k2", "range-end": ""}
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Committing transaction 11
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Committing transaction 11 successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "alice"
+    logger.go:146: 2026-10-25T14:19:22.437-0400	DEBUG	bbolt	Putting key "alice" successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.438-0400	INFO	granted a role to a user	{"user-name": "alice", "user-roles": ["writer-k2-only"], "added-role-name": "writer-k2-only"}
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Committing transaction 12
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Committing transaction 12 successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Putting key "authEnabled"
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Putting key "authEnabled" successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.438-0400	INFO	enabled authentication
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Committing transaction 13
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Committing transaction 13 successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.438-0400	DEBUG	Apply	{"raftReq": "header:{ID:77  username:\"alice\"  auth_revision:8}  txn:{success:{request_range:{key:\"secret\"}}  success:{request_put:{key:\"k2\"  value:\"pwned\"}}}"}
+    logger.go:146: 2026-10-25T14:19:22.438-0400	WARN	failed to apply request	{"took": "19.265µs", "request": "header:<ID:77  username:\"alice\"  auth_revision:8> txn:<compare:<> success:<request_range:{key:\"secret\"} request_put:<key:\"k2\" value_size:5 >> failure:<>>", "response": "", "error": "auth: permission denied"}
+    logger.go:146: 2026-10-25T14:19:22.439-0400	DEBUG	bbolt	Committing transaction 14
+    logger.go:146: 2026-10-25T14:19:22.439-0400	DEBUG	bbolt	Committing transaction 14 successfully
+    logger.go:146: 2026-10-25T14:19:22.439-0400	DEBUG	bbolt	Committing transaction 14
+    logger.go:146: 2026-10-25T14:19:22.439-0400	DEBUG	bbolt	Committing transaction 14 successfully
+    logger.go:146: 2026-10-25T14:19:22.439-0400	DEBUG	bbolt	Committing transaction 14
+    logger.go:146: 2026-10-25T14:19:22.439-0400	DEBUG	bbolt	Committing transaction 14 successfully
+--- PASS: TestIssue18667_RemoveNeedlessRangeReqs_AuthBypassInconsistency (0.02s)
+=== RUN   TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR18680
+    logger.go:146: 2026-10-25T14:19:22.440-0400	INFO	bbolt	Opening db file (/tmp/TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR12233554090/001/etcd_backend_test2705559151/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e2980190, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.440-0400	INFO	bbolt	Opening bbolt db (/tmp/TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR12233554090/001/etcd_backend_test2705559151/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.440-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.441-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.441-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.441-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	INFO	bbolt	Opening db file (/tmp/TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR12233554090/002/etcd_backend_test2044641451/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e29801f0, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.442-0400	INFO	bbolt	Opening bbolt db (/tmp/TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR12233554090/002/etcd_backend_test2044641451/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.442-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.443-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.444-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.444-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.444-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.445-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-25T14:19:22.446-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-25T14:19:22.446-0400	PANIC	unexpected sort target	{"sort-target": 99}
+    logger.go:146: 2026-10-25T14:19:22.446-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-25T14:19:22.446-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-25T14:19:22.446-0400	INFO	bbolt	Opening db file (/tmp/TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR12233554090/003/etcd_backend_test1101661366/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e2980098, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.447-0400	INFO	bbolt	Opening bbolt db (/tmp/TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR12233554090/003/etcd_backend_test1101661366/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.447-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.448-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.448-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	INFO	bbolt	Opening db file (/tmp/TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR12233554090/004/etcd_backend_test2634194672/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e29800f8, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.449-0400	INFO	bbolt	Opening bbolt db (/tmp/TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR12233554090/004/etcd_backend_test2634194672/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.449-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.450-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.450-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.450-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.451-0400	DEBUG	Apply	{"raftReq": "header:{ID:99}  txn:{success:{request_put:{key:\"k-asym\"  value:\"written\"}}  success:{request_range:{key:\"k-asym\"  sort_order:ASCEND  sort_target:99}}}"}
+    logger.go:146: 2026-10-25T14:19:22.452-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-25T14:19:22.452-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-25T14:19:22.452-0400	PANIC	unexpected sort target	{"sort-target": 99}
+    logger.go:146: 2026-10-25T14:19:22.452-0400	DEBUG	Apply	{"raftReq": "header:{ID:99}  txn:{success:{request_put:{key:\"k-asym\"  value:\"written\"}}  success:{request_range:{key:\"k-asym\"  sort_order:ASCEND  sort_target:99}}}"}
+    logger.go:146: 2026-10-25T14:19:22.452-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-25T14:19:22.452-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-25T14:19:22.453-0400	PANIC	unexpected sort target	{"sort-target": 99}
+    logger.go:146: 2026-10-25T14:19:22.453-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-25T14:19:22.453-0400	DEBUG	bbolt	Committing transaction 6 successfully
+--- PASS: TestMainSkipRangeExecution_InvalidSortTargetAsymmetry_FixedByPR18680 (0.01s)
+=== RUN   TestCheckRangeVsRangeKeys_NegativeRevisionAfterCompaction
+    logger.go:146: 2026-10-25T14:19:22.454-0400	INFO	bbolt	Opening db file (/tmp/TestCheckRangeVsRangeKeys_NegativeRevisionAfterCompaction1216311688/001/etcd_backend_test142840099/database) with mode -rw------- and with options: {Timeout: 0s, NoGrowSync: false, NoFreelistSync: true, PreLoadFreelist: false, FreelistType: , ReadOnly: false, MmapFlags: 8000, InitialMmapSize: 10737418240, PageSize: 0, MaxSize: 0, NoSync: false, OpenFile: 0x0, Mlock: false, Logger: 0x2873e29802d0, NoStatistics: false}
+    logger.go:146: 2026-10-25T14:19:22.455-0400	INFO	bbolt	Opening bbolt db (/tmp/TestCheckRangeVsRangeKeys_NegativeRevisionAfterCompaction1216311688/001/etcd_backend_test142840099/database) successfully
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Creating bucket if not exist "lease"
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Creating bucket if not exist "lease" successfully
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Committing transaction 2
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Committing transaction 2 successfully
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.455-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Creating bucket if not exist "key"
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Creating bucket if not exist "key" successfully
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Creating bucket if not exist "meta"
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Creating bucket if not exist "meta" successfully
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Committing transaction 3
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Committing transaction 3 successfully
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.456-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	INFO	kvstore restored	{"current-rev": 1}
+    logger.go:146: 2026-10-25T14:19:22.457-0400	WARN	simple token is not cryptographically signed
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Creating bucket if not exist "auth"
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Creating bucket if not exist "auth" successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers"
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Creating bucket if not exist "authUsers" successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles"
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Creating bucket if not exist "authRoles" successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Putting key "authRevision"
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Putting key "authRevision" successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	Refreshing rangePermCache
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Committing transaction 4 successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Creating bucket if not exist "alarm"
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Creating bucket if not exist "alarm" successfully
+    logger.go:146: 2026-10-25T14:19:22.457-0400	DEBUG	bbolt	Committing transaction 5
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Committing transaction 5 successfully
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x02_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x03_\x00\x00\x00\x00\x00\x00\x00\x00"
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Putting key "\x00\x00\x00\x00\x00\x00\x00\x03_\x00\x00\x00\x00\x00\x00\x00\x00" successfully
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Putting key "scheduledCompactRev"
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Putting key "scheduledCompactRev" successfully
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Committing transaction 6
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Committing transaction 6 successfully
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Starting a new transaction [writable: true]
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Starting a new transaction [writable: true] successfully
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Starting a new transaction [writable: false]
+    logger.go:146: 2026-10-25T14:19:22.458-0400	DEBUG	bbolt	Starting a new transaction [writable: false] successfully
+    logger.go:146: 2026-10-25T14:19:22.458-0400	INFO	compact tree index	{"revision": 2}
+    logger.go:146: 2026-10-25T14:19:22.459-0400	DEBUG	bbolt	Putting key "finishedCompactRev"
+    logger.go:146: 2026-10-25T14:19:22.459-0400	DEBUG	bbolt	Putting key "finishedCompactRev" successfully
+    logger.go:146: 2026-10-25T14:19:22.459-0400	INFO	finished scheduled compaction	{"compact-revision": 2, "took": "102.971µs", "number-of-keys-compacted": 0, "hash": 2131957315, "current-db-size-bytes": 20480, "current-db-size": "20 kB", "current-db-size-in-use-bytes": 16384, "current-db-size-in-use": "16 kB"}
+    logger.go:146: 2026-10-25T14:19:22.459-0400	INFO	storing new hash	{"hash": 2131957315, "revision": 2, "compact-revision": -1}
+    logger.go:146: 2026-10-25T14:19:22.459-0400	DEBUG	bbolt	Committing transaction 7
+    logger.go:146: 2026-10-25T14:19:22.459-0400	DEBUG	bbolt	Committing transaction 7 successfully
+--- PASS: TestCheckRangeVsRangeKeys_NegativeRevisionAfterCompaction (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/apply	0.082s

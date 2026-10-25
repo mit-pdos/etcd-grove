@@ -119,7 +119,7 @@ to `x'`. -/
 def applyStep (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) : ApplyOut → Prop
   | .skipped => noSideEffect rq = true ∧ x' = x
   | .rejected => needAdminPermission rq = true ∧ x' = x
-  | .dispatched o skip => (skip = true → rq.txn.isSome = true) ∧
+  | .dispatched o skip => skip = false ∧
       dispatchStep x.chain rq v3 x.log o ∧ x'.log = o.logAfter x.log ∧
       chainAfter rq v3 x.chain x'.chain
 

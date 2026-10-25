@@ -1,0 +1,40 @@
+# TCB collection for PR etcd#18680 verification
+#
+#   ./etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-18680.txt --check --update
+#
+roots ^Proof/go_etcd_io/etcd/(server/v3/etcdserver/apply/(Link|Results)|client/v3/ServerKVTxn)\.lean$
+axiom backend.isDB
+axiom backend.optsAt
+axiom backend.ownDB
+axiom backend.ownWTx
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txDB
+axiom backend.txLive
+axiom context.WithValue.wp_proof
+axiom etcdserverpb.AlarmType.String.wp_proof
+axiom pbutil.MustUnmarshalMessage.wp_proof
+axiom prometheus.GaugeVec.WithLabelValues.wp_proof
+axiom proto.Marshal.wp_proof
+axiom proto.Size.wp_proof
+axiom proto.Unmarshal.wp_proof
+axiom semver.MustParse.wp_proof
+axiom semver.Version.LessThan.wp_proof
+axiom semver.Version.String.wp_proof
+axiom storage.BackendQuota.Cost.wp_proof
+axiom storage.NewBackendQuota.wp_proof
+axiom txn.ApplySecObserve.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom txn.WarnOfExpensiveRequest.wp_proof
+axiom txn.WarnOfFailedRequest.wp_proof
+axiom types.ID.String.wp_proof
+axiom verify.Verify.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.String.wp_proof
+axiom zap.Stringer.wp_proof

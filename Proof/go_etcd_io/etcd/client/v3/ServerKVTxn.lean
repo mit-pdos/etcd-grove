@@ -272,12 +272,13 @@ theorem linearizable_of_write (t : TxnModel) (h : txn.txnReadonly (txnWireOf t) 
   exact List.any_eq_true.2 ⟨op, hop, by cases op <;> simp_all [TxnOp.isGet, TxnOp.linearizable]⟩
 
 theorem noZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t)
-    (hng : ∀ o : OpFull, TxnOp.get o ∉ t.thenOps ++ t.elseOps)
+    (hng : ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.base.rangeEnd ≠ [W8 0])
     (hc : ∀ c ∈ t.cmps, c.rangeEnd ≠ [W8 0])
     (hd : ∀ o : OpFull, TxnOp.delete o ∈ t.thenOps ++ t.elseOps → o.base.rangeEnd ≠ [W8 0]) :
     irrNoZeroEnd (irrTxn (txnWireOf t)) := by
   have hops : ∀ ops : List TxnOp, (∀ op ∈ ops, TxnOp.plain op) →
-      (∀ o, TxnOp.get o ∉ ops) → (∀ o, TxnOp.delete o ∈ ops → o.base.rangeEnd ≠ [W8 0]) →
+      (∀ o, TxnOp.get o ∈ ops → o.base.rangeEnd ≠ [W8 0]) →
+      (∀ o, TxnOp.delete o ∈ ops → o.base.rangeEnd ≠ [W8 0]) →
       txnOpsNoZeroEnd (ops.map opWire) := by
     intro ops
     induction ops with
@@ -289,7 +290,10 @@ theorem noZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t)
         (fun o ho => hg o (List.mem_cons_of_mem _ ho))
         (fun o ho => hd' o (List.mem_cons_of_mem _ ho))⟩
       cases op with
-      | get o => exact absurd List.mem_cons_self (hg o)
+      | get o =>
+        simp only [opWire, txnOpNoZeroEnd]
+        rw [(wire_fields o).2.1]
+        exact hg o List.mem_cons_self
       | delete o =>
         simp only [opWire, txnOpNoZeroEnd]
         rw [(deleteWire_key o).2]
@@ -747,7 +751,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
       isplitl []
       · iapply txnRespAt_of_msg skip resp m _ _ _ _ hrev' hok'
           (fun op ho => ⟨plain_branch t hp _ op ho, fun o he => by
-            subst he; exact absurd (branch_mem t _ _ ho) (hng o)⟩) hrel $$ Hm
+            subst he; exact ⟨Hst.1, (hgx o (branch_mem t _ _ ho)).2⟩⟩) hrel $$ Hm
       isplitl []
       · iapply v3rpc.etcdReached_of_certOk E x.log _ (by rw [hr]; omega) $$ Hcok
       isplitl []
@@ -797,7 +801,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
       isplitl []
       · iapply txnRespAt_of_msg skip resp m _ _ _ _ hrev' hok'
           (fun op ho => ⟨plain_branch t hp _ op ho, fun o he => by
-            subst he; exact absurd (branch_mem t _ _ ho) (hng o)⟩) hrel $$ Hm
+            subst he; exact ⟨Hst.1, (hgx o (branch_mem t _ _ ho)).2⟩⟩) hrel $$ Hm
       isplitl []
       · iapply v3rpc.etcdReached_of_certOk E x'.log _ (by rw [hr, hlog']; simp; omega) $$ Hcok
       isplitl []

@@ -601,16 +601,14 @@ def TxnOp.isGet : TxnOp → Bool
 omit EM in
 /-- **A transaction etcd's server answers as the model says** (the vertical slice's unit V2): its
 gets read the transaction's revision and are `getExact`; and a transaction with any other
-operation has no get (the apply thread may answer a writing transaction's gets header-only,
-`SkipRangeExecution`, when it saw no waiter registered for the request, and the server's proof
-does not carry that the waiter that receives the answer was registered then) and no comparison
-or delete with the range end `[0]` (`WithFromKey`'s: the server's proof models the request the
-proposed data decode to only up to such range ends, `irrWireOf`). The recipes' transactions have
-no get and no range end. -/
+operation has no get, comparison or delete with the range end `[0]` (`WithFromKey`'s: the server's
+proof models the request the proposed data decode to only up to such range ends, `irrWireOf`; with
+PR `#18680`, `apply.Apply` sets `SkipRangeExecution: false`, so writing transactions execute their
+gets in full too). The recipes' transactions have no get and no range end. -/
 def TxnModel.exactGets (t : TxnModel) : Prop :=
   (∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.base.rev = W64 0 ∧ o.getExact) ∧
     ((t.thenOps ++ t.elseOps).all TxnOp.isGet = false →
-      (∀ o : OpFull, TxnOp.get o ∉ t.thenOps ++ t.elseOps) ∧
+      (∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.base.rangeEnd ≠ [W8 0]) ∧
       (∀ c ∈ t.cmps, c.rangeEnd ≠ [W8 0]) ∧
       (∀ o : OpFull, TxnOp.delete o ∈ t.thenOps ++ t.elseOps → o.base.rangeEnd ≠ [W8 0]))
 
@@ -621,7 +619,7 @@ theorem TxnModel.exactGets_of_noGets (t : TxnModel)
     (hc : ∀ c ∈ t.cmps, c.rangeEnd ≠ [W8 0])
     (hd : ∀ o : OpFull, TxnOp.delete o ∈ t.thenOps ++ t.elseOps → o.base.rangeEnd ≠ [W8 0]) :
     t.exactGets :=
-  ⟨fun o ho => absurd ho (h o), fun _ => ⟨h, hc, hd⟩⟩
+  ⟨fun o ho => absurd ho (h o), fun _ => ⟨fun o ho => absurd ho (h o), hc, hd⟩⟩
 
 /-- **The builder, for transactions etcd's server answers as the model says**
 (`txnBuilderSpec` with `Commit` for `exactGets` transactions only; the vertical slice's unit V2:

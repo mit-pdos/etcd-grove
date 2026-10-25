@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`a.Apply(r, shouldApplyV3)`**: the current applier's `Apply` with `dispatch`: the auth
 layer's admin rejection (the state as it is), or `dispatch`'s outcome (`applyStep`, from the state
-`x`). The wrapper's `SkipRangeExecution` is set only for a transaction (`apply.Apply` sets it so).
+`x`). The wrapper's `SkipRangeExecution` is `false` (`apply.Apply` sets it so).
 One write token of the store spent (`mvcc.storeWT E.γ`; 2026-10-13, unit 6). The certificates
 of the logs the request may commit (`certPre`; 2026-10-14, unit T1). -/
 abbrev apply.uberApplier.Apply.spec : Prop :=
@@ -38,7 +38,7 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
       apply.certPreV v3 E x.chain rq x.log ∗
       mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗ ⌜apply.rqOk x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
-      ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      ⌜skip = false⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
