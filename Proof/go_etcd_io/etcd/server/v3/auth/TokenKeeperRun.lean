@@ -204,6 +204,108 @@ theorem tokenSimple_okA_run (hValid : ValidSpec (GF := GF) (hG := hG))
       tokenProviderOkA (interface.mkOk (go.GoType.PointerType tokenSimple.ty) #p) (.on γa) (simpleAdmin p) :=
   tokenSimple_okA hValid keeper_run h_Debug h_String p γa
 
+/-- **`newTokenProviderSimple(lg, indexWaiter, TokenTTL)`** (see the file header): for a positive
+TTL (`NewTokenProvider` passes the configured one, or `simpleTokenTTLDefault`) and an index waiter
+whose channels are `anyRecv`. -/
+theorem tokenSimple_new (h_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
+    (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (hpos : 0 < sint.Z ttl) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+        □ (∀ idx : w64, {{ True }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; anyRecv ch }}) }}
+      (App (App (App (Val (@! newTokenProviderSimple)) (Val #lg)) (Val #iw)) (Val #ttl))
+    {{ (p : Loc), RET #p; ∃ γt γf : GName, simpleOk p γt γf ∗ simpleWaitOk p ∗ simpleAdmin p ∗
+        ghostMapAuth γf 1 (∅ : GMap GoString Unit) }} := by
+  wp_start as #Hiw
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_if_destruct
+  · wp_apply h_NewNop as %lg' %Hlg'
+    (try wp_auto)
+    wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mp Hm
+    (try wp_auto)
+    wp_alloc p as Hp
+    iStructNamed Hp
+    imod (tokAlloc (GF := GF)) with ⟨%γt, Htok⟩
+    imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Unit)) with ⟨%γf, Hf⟩
+    imod (ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit)) with ⟨%γk, Hka⟩
+    ihave ⟨Hk1, Hk2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ simpleTokenKeeper
+    imod sync.init_Mutex (simpleLk p γt γf γk) ⊤ (tsF go!"simpleTokensMu" p)
+      $$ [simpleTokensMu] [simpleTokens Hm Htok Hk1 Hka simpleTokenTTL] with #Hmu
+    · iexact simpleTokensMu
+    · inext
+      iunfold simpleLk
+      iexists mp, ∅, null, ∅, ttl, ∅
+      iframe
+      isplitl []
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+      isplitr
+      · ipureintro; left; rfl
+      isplitl []
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+      ipureintro; exact hpos
+    ipersist lg
+    ipersist indexWaiter
+    (try wp_auto)
+    iapply HΦ
+    iexists γt, γf
+    iframe Hf
+    isplitr
+    · iunfold simpleOk
+      iexists lg', γk
+      iframe #
+      ipureintro; exact Hlg'
+    isplitr
+    · iunfold simpleWaitOk
+      iexists iw
+      iframe #
+    iunfold simpleAdmin
+    iexists null
+    iframe Hk2
+    ileft; ipureintro; rfl
+  · wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mp Hm
+    (try wp_auto)
+    wp_alloc p as Hp
+    iStructNamed Hp
+    imod (tokAlloc (GF := GF)) with ⟨%γt, Htok⟩
+    imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Unit)) with ⟨%γf, Hf⟩
+    imod (ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit)) with ⟨%γk, Hka⟩
+    ihave ⟨Hk1, Hk2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ simpleTokenKeeper
+    imod sync.init_Mutex (simpleLk p γt γf γk) ⊤ (tsF go!"simpleTokensMu" p)
+      $$ [simpleTokensMu] [simpleTokens Hm Htok Hk1 Hka simpleTokenTTL] with #Hmu
+    · iexact simpleTokensMu
+    · inext
+      iunfold simpleLk
+      iexists mp, ∅, null, ∅, ttl, ∅
+      iframe
+      isplitl []
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+      isplitr
+      · ipureintro; left; rfl
+      isplitl []
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+      ipureintro; exact hpos
+    ipersist lg
+    ipersist indexWaiter
+    (try wp_auto)
+    iapply HΦ
+    iexists γt, γf
+    iframe Hf
+    isplitr
+    · iunfold simpleOk
+      iexists lg, γk
+      iframe #
+      ipureintro; exact Hif
+    isplitr
+    · iunfold simpleWaitOk
+      iexists iw
+      iframe #
+    iunfold simpleAdmin
+    iexists null
+    iframe Hk2
+    ileft; ipureintro; rfl
+
 end proof
 
 end auth
