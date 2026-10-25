@@ -115,6 +115,7 @@ theorem kv.Delete.wp_proof
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iapply deleteCallOut_st
     unfold deleteCallOut
     ileft
     iframe Hm
@@ -124,6 +125,7 @@ theorem kv.Delete.wp_proof
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iapply deleteCallOut_st
     unfold deleteCallOut
     iright
     iframe #

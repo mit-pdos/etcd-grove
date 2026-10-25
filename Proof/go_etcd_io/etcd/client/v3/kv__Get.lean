@@ -114,6 +114,7 @@ theorem kv.Get.wp_proof
     rw [H1 rfl]
     iapply HΦ
     iframe HR
+    iapply rangeCallOut_st
     unfold rangeCallOut
     ileft
     iframe
@@ -124,6 +125,7 @@ theorem kv.Get.wp_proof
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
     iframe HR
+    iapply rangeCallOut_st
     unfold rangeCallOut
     iright
     iframe #

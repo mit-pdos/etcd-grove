@@ -111,6 +111,7 @@ theorem kv.Put.wp_proof
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iapply putCallOut_st
     unfold putCallOut
     ileft
     iframe
@@ -120,6 +121,7 @@ theorem kv.Put.wp_proof
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iapply putCallOut_st
     unfold putCallOut
     iright
     iframe #

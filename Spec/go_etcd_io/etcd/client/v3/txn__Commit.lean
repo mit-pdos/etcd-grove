@@ -27,9 +27,10 @@ request `&pb.TxnRequest{Compare: cmps, Success: sus, Failure: fas}` (the transac
 `*kv`'s retry client's `Txn`, with the client's call options, with the caller's update of `γ`'s
 state: none or a persistent atomic read if read-only; if writing (plain in the KV model, no range
 end `[0]`, admitted by `γ`'s workload), an atomic update by the transaction (`kvOpStep`); persistent
-if the client's writes may be delivered more than once (`□?dup`): the call's answer (`txnCallOut` of `txnStOk`, the
-state `σ` the update fired at, the reply's verdict, responses and revision as the run's at `σ`;
-the error through `ContextError`, a client error). The builder is spent (its slices are now the
+if the client's writes may be delivered more than once (`□?dup`): `nil` and the reply's message
+`m` with the state `σ` the update fired at (`Q σ` if writing, `□ Q σ` if a linearizable read), the
+reply's verdict, responses and revision as the run's at `σ`; or a client error (`kvErr`, through
+`ContextError`) and no reply. The builder is spent (its slices are now the
 request's). -/
 abbrev txn.Commit.spec : Prop :=
   ∀ (tp : Loc) (addr : List GoString) (api : Loc) (γ : KVNames) (dup : Bool)
@@ -49,7 +50,15 @@ abbrev txn.Commit.spec : Prop :=
     (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
       (Val #()))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      txnCallOut (txnStOk (txnWireOf b.model) Q) resp err }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
+        (if txn.txnReadonly (txnWireOf b.model) then
+          (if txn.txnSerializable (txnWireOf b.model) then iprop(True) else iprop(□ Q σ)) else Q σ) ∗
+        ⌜m.succeeded = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).1 ∧
+          opRespsRel false ((txnWireOf b.model).branch m.succeeded) (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.2 m.resps ∧
+          m.hdr.revision = W64 ((if txn.txnReadonly (txnWireOf b.model) then σ.rev else
+            (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1).rev : Nat) : Int) ∧
+          σ.rev + 3 < 2 ^ 63⌝) ∨
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 
 end spec
 

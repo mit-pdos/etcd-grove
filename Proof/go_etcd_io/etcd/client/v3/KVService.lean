@@ -1445,6 +1445,96 @@ theorem txnCallOut_mono (Q Q' : TxnRespM → IProp GF) (resp : Loc) (err : GoInt
     iapply (h m) $$ Hq
   · iright; iframe #; ipureintro; exact He
 
+/-! ### The specs' outcomes, in the proofs' terms -/
+
+theorem putCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (err : GoInterface) :
+    putCallOut (putStOk o Q) resp err ⊢
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
+        ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
+          m.prev = (if o.base.prevKV then mvcc.findKey o.key σ.kvs else none) ∧
+          σ.rev + 4 < 2 ^ 63⌝) ∨
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
+  unfold putCallOut putStOk kvErr
+  iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact He
+    iexists m, σ
+    iframe Hm HQ
+    ipureintro; exact Hs
+  · iright
+    isplitl []
+    · ipureintro; exact ⟨He.1, He.2.2⟩
+    iframe #
+    ipureintro; exact He.2.1
+
+theorem rangeCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (err : GoInterface) :
+    rangeCallOut (rangeStOk o Q) resp err ⊢
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
+        (if o.base.serializable then iprop(True) else iprop(□ Q σ)) ∗
+        ⌜txn.srvRangeOk o σ.kvs m.kvs m.more ∧ m.count = txn.srvCount o σ.kvs true ∧
+          m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝) ∨
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
+  unfold rangeCallOut rangeStOk kvErr
+  iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact He
+    iexists m, σ
+    iframe Hm HQ
+    ipureintro; exact Hs
+  · iright
+    isplitl []
+    · ipureintro; exact ⟨He.1, He.2.2⟩
+    iframe #
+    ipureintro; exact He.2.1
+
+theorem deleteCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (err : GoInterface) :
+    deleteCallOut (delStOk o Q) resp err ⊢
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : DelRespM) (σ : KVState), delRespMsg resp m ∗ Q σ ∗
+        ⌜m.deleted = W64 ((rangeIn σ.kvs o).length : Int) ∧
+          m.prevs = (if o.base.prevKV then rangeIn σ.kvs o else []) ∧
+          m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧ σ.rev + 4 < 2 ^ 63⌝) ∨
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
+  unfold deleteCallOut delStOk kvErr
+  iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact He
+    iexists m, σ
+    iframe Hm HQ
+    ipureintro; exact Hs
+  · iright
+    isplitl []
+    · ipureintro; exact ⟨He.1, He.2.2⟩
+    iframe #
+    ipureintro; exact He.2.1
+
+theorem txnCallOut_st (t : TxnModel) (Q : KVState → IProp GF) (resp : Loc) (err : GoInterface) :
+    txnCallOut (txnStOk t Q) resp err ⊢
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
+        (if txn.txnReadonly t then
+          (if txn.txnSerializable t then iprop(True) else iprop(□ Q σ)) else Q σ) ∗
+        ⌜m.succeeded = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).1 ∧
+          opRespsRel false (t.branch m.succeeded) (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.2 m.resps ∧
+          m.hdr.revision = W64 ((if txn.txnReadonly t then σ.rev else
+            (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev : Nat) : Int) ∧
+          σ.rev + 3 < 2 ^ 63⌝) ∨
+      (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
+  unfold txnCallOut txnStOk kvErr
+  iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact He
+    iexists m, σ
+    iframe Hm HQ
+    ipureintro; exact Hs
+  · iright
+    isplitl []
+    · ipureintro; exact ⟨He.1, He.2.2⟩
+    iframe #
+    ipureintro; exact He.2.1
+
 /-- **What `kv.Do` returns** for the `Op` `o`: a range's answer in the `get` field (an invalid
 sort option is a client error, `rpctypes.ErrInvalidSortOption`), a put's in the `put` field, a
 delete's in the `del` field (`rangeCallOut`, `putCallOut`, `deleteCallOut`, after

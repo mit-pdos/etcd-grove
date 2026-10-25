@@ -145,6 +145,7 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   inext
   iintro %resp %err Hout
   iapply HΦ
+  iapply txnCallOut_st
   iapply (txnCallOut_mono _ _ resp err
     (fun m => txnAns_st ms (W64 0) [] (txnWireOf b.model) Q m Hz)) $$ Hout
 
