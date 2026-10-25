@@ -494,9 +494,6 @@ v3alarm_NewAlarmStore:
 rafthttp_Transport__Start:
 rafthttp_Transport__AddRemote:
 rafthttp_Transport__AddPeer:
-# (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s transport reset, an axiom true of the Go
-# code (its spec's docstring).
-rafthttp_Transport__RemoveAllPeers:
 # (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s `Recover`s and the cluster's
 # `SetBackend`, axioms true of the Go code (their specs' docstrings).
 lease_lessor__Recover:

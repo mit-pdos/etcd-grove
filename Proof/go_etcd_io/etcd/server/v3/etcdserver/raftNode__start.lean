@@ -87,7 +87,7 @@ theorem raftNode.start.wp_proof
   · iPkgInit
   ihave #Hpbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
-  iunfold rnStopBag at Hstci
+  iunfold isUnitBag at Hstci
   icases Hstci with ⟨%γst, #Hstb⟩
   ihave #Hrh0 := Hrh
   iunfold isReadyHandler at Hrh
@@ -230,7 +230,7 @@ theorem raftNode.start.wp_proof
       iunfold isReadStateC at Hrsci'
       icases Hrsci' with ⟨%γrs, #Hrsb⟩
       wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r) ∨
-          ⌜v = returnVal #()⌝ ∗ E.TS)) with [rd r]
+          ⌜v = returnVal #()⌝)) with [rd r]
       · -- no read states
         ileft
         iframe
@@ -318,20 +318,19 @@ theorem raftNode.start.wp_proof
           · iapply is_bag_is_chan $$ Hstb
           iapply bag_recv_au γst stc _ _ $$ [$Hlc1 $Hlc2] Hstb
           inext
-          iintro %u HTS
+          iintro %u -
           try wp_auto
           iright
-          iframe HTS
           ipureintro; rfl
         iapply BigAndL.bigAndL_nil.2
         itrivial
-      iintro (⟨%Hv, rd, r⟩ | ⟨%Hv, HTS⟩)
+      iintro (⟨%Hv, rd, r⟩ | %Hv)
       rotate_left
       · -- returned (`<-r.stopped`): the deferred `onStop`
         subst Hv
         wp_auto
         wp_for_post
-        wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HTS]
+        wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone]
         itrivial
       subst Hv
       wp_auto_lc 3
@@ -615,10 +614,10 @@ theorem raftNode.start.wp_proof
               · iapply is_bag_is_chan $$ Hstb
               iapply bag_recv_au γst stc _ _ $$ [$HlcA $HlcB] Hstb
               inext
-              iintro %u HTS
+              iintro %u -
               wp_auto
               wp_for_post
-              wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HTS]
+              wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone]
               itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
@@ -661,10 +660,10 @@ theorem raftNode.start.wp_proof
         · iapply is_bag_is_chan $$ Hstb
         iapply bag_recv_au γst stc _ _ $$ [$HlcA $HlcB] Hstb
         inext
-        iintro %u HTS
+        iintro %u -
         wp_auto
         wp_for_post
-        wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HTS]
+        wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone]
         itrivial
       iapply BigAndL.bigAndL_nil.2
       itrivial
@@ -680,10 +679,10 @@ theorem raftNode.start.wp_proof
       · iapply is_bag_is_chan $$ Hstb
       iapply bag_recv_au γst stc _ _ $$ [$Hlc1 $Hlc2] Hstb
       inext
-      iintro %u HTS
+      iintro %u -
       wp_auto
       wp_for_post
-      wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HTS]
+      wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone]
       itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial

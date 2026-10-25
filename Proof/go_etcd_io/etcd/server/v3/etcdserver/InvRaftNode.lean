@@ -145,9 +145,6 @@ structure RNEnv (GF : BundledGFunctors) where
   T : IProp GF
   γr : ReadNames
   RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF
-  /-- (D22 receiver epochs, S8c, 2026-10-24) what the transport's `Stop` takes (the server's: its
-  transport's peers right, `netPeers`), which `stop` sends on `stopped` for `onStop` -/
-  TS : IProp GF
 
 /-- A message the node handed out, as the wrapper reads and forwards it: its destination and
 type read-only, and `E.M m`. (2026-10-19, D21 stage M1: owned, no longer persistent, so that
@@ -678,15 +675,14 @@ instance isRNWal_persistent (st : GoInterface) : Persistent (isRNWal (GF := GF) 
   unfold isRNWal; infer_instance
 
 /-- **The transport `tr`** (`rafthttp.Transporter`, trust boundary: names-only): `Send` takes
-the slice of messages, each one raft may send; `Stop` returns, taking `E.TS` (D22 receiver epochs,
-S8c, 2026-10-24: the transport's peers right; until then nothing). -/
+the slice of messages, each one raft may send; `Stop` returns. -/
 def isRNTransport (E : RNEnv GF) (tr : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
       {{ sl ↦* msL ∗ [∗list] m ∈ msL, rnMsgOk E m }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
       {{ RET #(); True }}) ∗
-    □ ({{ E.TS }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}))
+    □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}))
 
 instance isRNTransport_persistent (E : RNEnv GF) (tr : GoInterface) :
     Persistent (isRNTransport E tr) := by
@@ -764,21 +760,12 @@ def rnTickInv (r : Loc) (q : Qp) : IProp GF :=
 
 /-! ## `applyc` -/
 
-/-- A unit channel with no logical content (`notifyc`). -/
+/-- A unit channel with no logical content (`notifyc`, `stopped`). -/
 def isUnitBag (c : Loc) : IProp GF :=
   iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(True)))
 
 instance isUnitBag_persistent (c : Loc) : Persistent (isUnitBag (GF := GF) c) := by
   unfold isUnitBag; infer_instance
-
-/-- **`stopped`** (D22 receiver epochs, S8c, 2026-10-24; until then a `isUnitBag`): a unit channel
-whose send carries `E.TS`, what the transport's `Stop` takes: `stop` sends it, `start`'s loop
-receives it for `onStop`. -/
-def rnStopBag (E : RNEnv GF) (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => E.TS))
-
-instance rnStopBag_persistent (E : RNEnv GF) (c : Loc) : Persistent (rnStopBag (GF := GF) E c) := by
-  unfold rnStopBag; infer_instance
 
 /-- `raftAdvancedC` (D19i part 1, 2026-10-18: the fork closes it after every `Advance`, and
 `applyAll` waits for it before snapshotting or compacting): a broadcast channel, never sent on,
@@ -943,7 +930,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Hrsci" ∷ isRNReadStateC E rsc ∗
     "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker E tk ∗
     "#Htd" ∷ rnTdAddr r ↦□ td ∗ "#Htdi" ∷ isRNTimeoutDetector td ∗
-    "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ rnStopBag E stc ∗
+    "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ isUnitBag stc ∗
     "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗ "#Hdnci" ∷ ownBroadcastChan dnc γ.done iprop(True) .Unknown)
 
 instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :

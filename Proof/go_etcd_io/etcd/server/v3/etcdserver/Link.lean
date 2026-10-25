@@ -245,7 +245,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddRemote
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__CutPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__MendPeer
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__RemoveAllPeers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Start
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
@@ -1601,10 +1600,6 @@ theorem raftNode.wp_getLatestTickTs :
 theorem raftNode.wp_stop :
     raftNode.stop.spec (GF := GF) (hG := hG) :=
   raftNode.stop.wp_proof
-
-theorem rafthttp.Transport.wp_RemoveAllPeers :
-    rafthttp.Transport.RemoveAllPeers.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.RemoveAllPeers.wp_proof
 
 theorem storage.wp_OpenBackend :
     storage.OpenBackend.spec (GF := GF) (hG := hG) :=

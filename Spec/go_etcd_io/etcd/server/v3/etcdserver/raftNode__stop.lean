@@ -22,12 +22,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `r.stop()`, from any goroutine: returns once `done` is closed; (D22 receiver epochs, S8c,
-2026-10-24) it sends `E.TS` (the transport's peers right) on `stopped`, for `onStop`'s `Stop`. -/
+/-- `r.stop()`, from any goroutine: returns once `done` is closed. -/
 abbrev raftNode.stop.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗
-      E.TS }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"stop")) (Val #()))
   {{ RET #(); True }}
 

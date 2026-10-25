@@ -194,7 +194,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     srvWatchBuilt s E ∗
-    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud (netPeers γn id)) γrn b (W64 0)
+    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn b (W64 0)
       (W64 0) (W64 0) bootKV N ∗
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id ∗ srvWatchReaders s E 64)

@@ -158,7 +158,7 @@ def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
     "#Hrsci" ∷ isRNReadStateC E rv.readStateC' ∗
     "#Htki" ∷ isRNTicker E rv.ticker' ∗
     "#Htdi" ∷ isRNTimeoutDetector rv.td' ∗
-    "#Hstci" ∷ rnStopBag E rv.stopped' ∗
+    "#Hstci" ∷ isUnitBag rv.stopped' ∗
     "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done iprop(True) .Unknown)
 
 instance rnParts_persistent (E : RNEnv GF) (γ : RNNames) (rv : raftNode) :

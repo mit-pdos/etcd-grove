@@ -84,7 +84,7 @@ theorem newRaftNode.wp_proof :
     $$ Hrsc Hrso with #Hrsb
   imod start_bag (V := Loc) (rnSnapMsg node) _
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
-  imod start_bag (V := Unit) (fun _ => E.TS) _ stc γst (by trivial) $$ Hstc Hsto with #Hstb
+  imod start_bag (V := Unit) (fun _ => iprop(True)) _ stc γst (by trivial) $$ Hstc Hsto with #Hstb
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γd dnc $$ Hdnc Hdno with Hdc
   icases ownBroadcastChan_open _ _ _ _ $$ Hdc with ⟨%γdi, #Hdint, Hdtok⟩
   ihave #HdcU : ownBroadcastChan (GF := GF) dnc γd iprop(True) .Unknown $$ []
@@ -136,7 +136,7 @@ theorem newRaftNode.wp_proof :
     iexact Hspsc
   isplitr
   · iunfold isRNReadStateC; iunfold isReadStateC; iexists γrs; iexact Hrsb
-  iunfold rnStopBag; iexists γst; iexact Hstb
+  iunfold isUnitBag; iexists γst; iexact Hstb
 
 end proof
 
