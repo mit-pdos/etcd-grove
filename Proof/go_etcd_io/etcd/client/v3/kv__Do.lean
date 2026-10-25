@@ -309,7 +309,7 @@ theorem kv.Do.wp_members
 
 /-- What `kv.Do`'s precondition says of the operation's kind. -/
 theorem doRunOk_kind (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → IProp GF) :
-    doRunOk (GF := GF) γ dup o Q ⊢ ⌜(o.t = W64 1 ∧ (rangeWireOf o).base.rev = W64 0) ∨
+    doRunOk (GF := GF) γ dup o Q ⊢ ⌜o.t = W64 1 ∨
       o.t = W64 2 ∨ (o.t = W64 3 ∧ (deleteWireOf o).base.rangeEnd ≠ [W8 0])⌝ ∗
       doRunOk γ dup o Q := by
   unfold doRunOk
@@ -339,14 +339,9 @@ theorem kv.Do.wp_proof
   intro api γ dup ci cd opv o Q
   iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, Hat, Hrun⟩ HΦ
   ihave ⟨%Hk, Hrun⟩ := doRunOk_kind γ dup o Q $$ Hrun
-  have hrr : o.t = W64 1 → (rangeWireOf o).base.rev = W64 0 := fun h1 => by
-    rcases Hk with ⟨_, h⟩ | h | ⟨h, _⟩
-    · exact h
-    · rw [h] at h1; exact absurd h1 (by decide)
-    · rw [h] at h1; exact absurd h1 (by decide)
   have hdz : o.t ≠ W64 1 → o.t ≠ W64 2 → (deleteWireOf o).base.rangeEnd ≠ [W8 0] :=
     fun h1 h2 => by
-      rcases Hk with ⟨h, _⟩ | h | ⟨_, h⟩
+      rcases Hk with h | h | ⟨_, h⟩
       · exact absurd h h1
       · exact absurd h h2
       · exact h
@@ -368,7 +363,7 @@ theorem kv.Do.wp_proof
     icases Hrun with (⟨%Ht, #Hsn, #Hu⟩ | ⟨%Hp, Hu⟩ | ⟨%Hd, Hu⟩)
     · ileft
       isplitl []
-      · ipureintro; exact Ht.1
+      · ipureintro; exact Ht
       iframe Hsn
       isplitl []
       · iunfold knownAt; iexact HK
@@ -396,7 +391,7 @@ theorem kv.Do.wp_proof
   iintro %r %err Hout
   iapply HΦ
   iapply (doOut_mono o _ _ _ _ _ _ r err
-    (fun h1 m => rangeAns_st ms (W64 0) [] (rangeWireOf o) Q m (hrr h1))
+    (fun _ m => rangeAns_st ms (W64 0) [] (rangeWireOf o) Q m)
     (fun _ m => putAns_st ms [] (putWireOf o) Q m)
     (fun h1 h2 m => delAns_st ms [] (deleteWireOf o) Q m (hdz h1 h2))) $$ Hout
 

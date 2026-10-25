@@ -85,7 +85,7 @@ theorem kv.Get.wp_proof
     kv.Get.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key sl gs R Q
   wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hrun⟩
-  obtain ⟨Hnp, Ht, Hr0⟩ := Hnp
+  obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
   · iframe #; ipureintro; exact Hnp
@@ -95,7 +95,7 @@ theorem kv.Get.wp_proof
     unfold doRunOk
     ileft
     iframe #
-    ipureintro; exact ⟨Ht, Hr0⟩
+    ipureintro; exact Ht
   ihave Hout' : rangeCallOut (rangeStOk (rangeWireOf (opGetModel key gs)) Q) r.get' err
       $$ [Hout]
   · have Heq : doOut (opGetModel key gs) (putStOk (putWireOf (opGetModel key gs)) Q)

@@ -29,7 +29,7 @@ with the caller's atomic update of `γ`'s state by the put the server
 reads (`putWireOf`; `kvOpStep`), persistent if the client's writes may be delivered more than once
 (`□?dup`); the error through `ContextError`:
 `nil` and the reply's message `m` with `Q σ` for the state `σ` the update fired at, the reply's
-revision `σ`'s next and its previous key-value `σ`'s if asked; or a client error (`kvErr`) and no
+revision `σ`'s next and its previous key-value the key's record in `σ`'s current store if asked; or a client error (`kvErr`) and no
 reply. -/
 abbrev kv.Put.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
@@ -46,7 +46,8 @@ abbrev kv.Put.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
         ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
-          m.prev = (if (putWireOf (opPutModel key val opts)).base.prevKV then mvcc.findKey (putWireOf (opPutModel key val opts)).key σ.kvs else none) ∧
+          m.prev = (if (putWireOf (opPutModel key val opts)).base.prevKV then
+            (σ.store.lookup (putWireOf (opPutModel key val opts)).key).map (KVRec.toKv (putWireOf (opPutModel key val opts)).key) else none) ∧
           σ.rev + 4 < 2 ^ 63⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 

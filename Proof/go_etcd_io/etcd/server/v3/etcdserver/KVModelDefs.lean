@@ -41,6 +41,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStore
 
 @[expose] public section
 
@@ -441,29 +442,150 @@ theorem kvEntry_base (c₀ : w64) (log : mvcc.Log) (e : EntryModel) (rq : apply.
   rw [decide_eq_true hidx]
   exact dispatchLog_base rq log
 
-/-! ## The state at the latest revision (2026-10-15, unit T2)
+/-! ## etcd's KV state, at every revision it keeps (D45, 2026-10-25; until then the latest only)
 
-`notes/decisions.md`, "Every KV operation as a persistent atomic update on the whole state". The
-abstract state of etcd's KV is the store at its latest revision (`KVState`): every key's
-key-value (its value, create and mod revisions, version, lease: `EtcdKv`) and the current
-revision. A log's state is `kvStateOf`; an operation's effect on it is `kvOpStep` (a read's the
-identity, a rejected request's too), a function of the state, which the backend's log follows
+The abstract state of etcd's KV as its clients see it (`KVState`): the store at every revision
+from the compaction revision on, each a finite map from keys to their records (`KVStore`,
+`KVStore.lean`: a key's value, create and mod revisions, version and lease). A write adds the
+next revision (`KVState.commit`); a compaction trims the state (raises `compacted`, drops the
+earlier revisions; not in the server's model yet, so the server's state keeps every revision,
+`compacted = 0`). It is not a log of operations: a revision is a state, not the changes that made
+it. The current store's key-values sorted by key (`σ.kvs`) are what the range semantics read
+(`txn.srvRangeOk`, `mvcc.findKey`, ...). A log's state is `kvStateOf` (each revision's store, of
+`mvcc.stateAt`); an operation's effect on it is `kvOpStep` (a read's the identity, a rejected
+request's too), a function of the state, which the backend's log follows
 (`kvStateOf_backendLog`). -/
 
-/-- **The store at its latest revision**: the key-values (sorted by key) and the current
-revision. -/
+/-- **etcd's KV at every revision it keeps** (see the section header). -/
 structure KVState where
-  kvs : List EtcdKv
-  rev : Nat
+  /-- the compaction revision: the earliest revision the state keeps -/
+  compacted : Nat
+  /-- the store at revision `compacted` -/
+  base : KVStore
+  /-- the stores at revisions `compacted + 1`, ..., the current one, in order -/
+  later : List KVStore
 
-/-- **The state of a log**: after every revision, at its last revision (`log.length - 1`: a read
-at `log` answers it). -/
-def kvStateOf (l : mvcc.Log) : KVState := ⟨mvcc.stateAfter l, l.length - 1⟩
+/-- **The current revision.** -/
+def KVState.rev (σ : KVState) : Nat := σ.compacted + σ.later.length
+
+/-- **The store at the current revision.** -/
+def KVState.store (σ : KVState) : KVStore := σ.later.getLastD σ.base
+
+/-- **The current store's key-values, sorted by key** (what the range semantics read). -/
+def KVState.kvs (σ : KVState) : List EtcdKv := σ.store.kvs
+
+/-- **The store at revision `r`** (one of `compacted`, ..., `rev`; empty outside). -/
+def KVState.at (σ : KVState) (r : Nat) : KVStore :=
+  if r < σ.compacted then ∅ else if r = σ.compacted then σ.base
+  else (σ.later[r - σ.compacted - 1]?).getD ∅
+
+/-- **The revision a range reads in the state `σ`**: the one asked, or (`rev ≤ 0`) the current. -/
+def KVState.readRev (σ : KVState) (rev : w64) : Nat :=
+  if sint.Z rev ≤ 0 then σ.rev else sint.nat rev
+
+/-- The store at the current revision is the current store. -/
+theorem KVState.at_rev (σ : KVState) : σ.at σ.rev = σ.store := by
+  unfold KVState.at KVState.rev KVState.store
+  rw [if_neg (by omega)]
+  by_cases h : σ.later = []
+  · simp [h]
+  · have hl := List.length_pos_iff.2 h
+    rw [if_neg (by omega), List.getLastD_eq_getLast?, List.getLast?_eq_getElem?,
+      show σ.compacted + σ.later.length - σ.compacted - 1 = σ.later.length - 1 by omega,
+      List.getElem?_eq_getElem (by omega)]
+    rfl
+
+/-- **The state of a log**: the store at each of its revisions (`mvcc.stateAt`), none compacted;
+its current revision the log's last (`log.length - 1`: a read at `log` answers it). -/
+def kvStateOf (l : mvcc.Log) : KVState :=
+  ⟨0, storeOf (mvcc.stateAt l 0),
+    (List.range (l.length - 1)).map fun i => storeOf (mvcc.stateAt l (i + 1))⟩
 
 /-- A write's commit of the changes `cs` at the next revision (none if it changed nothing:
 `mvcc.commitLog`'s). -/
 def KVState.commit (σ : KVState) (cs : List mvcc.Change) : KVState :=
-  if cs = [] then σ else ⟨mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs, σ.rev + 1⟩
+  if cs = [] then σ
+  else { σ with
+    later := σ.later ++ [storeOf (mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs)] }
+
+theorem KVState.kvs_sorted (σ : KVState) : σ.kvs.Pairwise etcdKvLess := KVStore.kvs_sorted _
+
+theorem kvStateOf_rev (l : mvcc.Log) : (kvStateOf l).rev = l.length - 1 := by
+  simp [kvStateOf, KVState.rev]
+
+theorem kvStateOf_compacted (l : mvcc.Log) : (kvStateOf l).compacted = 0 := rfl
+
+theorem kvStateOf_store (l : mvcc.Log) : (kvStateOf l).store = storeOf (mvcc.stateAfter l) := by
+  rw [← mvcc.stateAt_last]
+  unfold kvStateOf KVState.store
+  rcases Nat.lt_or_ge l.length 2 with h | h
+  · rw [show l.length - 1 = 0 by omega]
+    simp
+  · rw [List.getLastD_eq_getLast?, List.getLast?_map, List.getLast?_range]
+    rw [if_neg (by omega)]
+    simp only [Option.map_some, Option.getD_some]
+    congr 2
+    omega
+
+theorem kvStateOf_kvs (l : mvcc.Log) : (kvStateOf l).kvs = mvcc.stateAfter l := by
+  unfold KVState.kvs
+  rw [kvStateOf_store, kvs_storeOf _ (mvcc.stateAfter_sorted l)]
+
+/-- The store at revision `r` of a log's state (`r` at most its last). -/
+theorem kvStateOf_at (l : mvcc.Log) (r : Nat) (hr : r ≤ l.length - 1) :
+    (kvStateOf l).at r = storeOf (mvcc.stateAt l r) := by
+  unfold kvStateOf KVState.at
+  simp only [Nat.not_lt_zero, ↓reduceIte]
+  split
+  · rename_i h; rw [h]
+  · rename_i h
+    rw [List.getElem?_map, List.getElem?_range (by omega)]
+    simp only [Option.map_some, Option.getD_some]
+    congr 2
+    omega
+
+/-- Revision `r`'s key-values of a log's state are the log's state at `r`. -/
+theorem kvStateOf_at_kvs (l : mvcc.Log) (r : Nat) (hr : r ≤ l.length - 1) :
+    ((kvStateOf l).at r).kvs = mvcc.stateAt l r := by
+  rw [kvStateOf_at l r hr, kvs_storeOf _ (mvcc.stateAt_sorted l r)]
+
+theorem KVState.commit_nil (σ : KVState) : σ.commit [] = σ := by
+  simp [KVState.commit]
+
+theorem KVState.commit_rev (σ : KVState) (cs : List mvcc.Change) (h : cs ≠ []) :
+    (σ.commit cs).rev = σ.rev + 1 := by
+  simp only [KVState.commit, h, ↓reduceIte, KVState.rev, List.length_append, List.length_singleton]
+  omega
+
+theorem KVState.commit_store (σ : KVState) (cs : List mvcc.Change) (h : cs ≠ []) :
+    (σ.commit cs).store = storeOf (mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs) := by
+  simp [KVState.commit, h, KVState.store]
+
+theorem KVState.commit_kvs (σ : KVState) (cs : List mvcc.Change) (h : cs ≠ []) :
+    (σ.commit cs).kvs = mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs := by
+  unfold KVState.kvs
+  rw [KVState.commit_store σ cs h,
+    kvs_storeOf _ (mvcc.applyChanges_sorted _ _ (KVState.kvs_sorted σ))]
+  rfl
+
+theorem KVState.commit_compacted (σ : KVState) (cs : List mvcc.Change) :
+    (σ.commit cs).compacted = σ.compacted := by
+  unfold KVState.commit; split <;> rfl
+
+/-- A commit keeps the earlier revisions. -/
+theorem KVState.commit_at (σ : KVState) (cs : List mvcc.Change) (r : Nat) (hr : r ≤ σ.rev) :
+    (σ.commit cs).at r = σ.at r := by
+  unfold KVState.commit
+  split
+  · rfl
+  · unfold KVState.at
+    simp only
+    split
+    · rfl
+    · split
+      · rfl
+      · have : r - σ.compacted - 1 < σ.later.length := by unfold KVState.rev at hr; omega
+        rw [List.getElem?_append_left this]
 
 open Classical in
 /-- **The operation's effect on the state**: a put not finding the previous key-value its
@@ -491,22 +613,36 @@ def kvReqStep (rq : apply.IRRModel) (σ : KVState) : KVState :=
 theorem kvStateOf_commitLog (l : mvcc.Log) (cs : List mvcc.Change) (hl : l ≠ []) :
     kvStateOf (mvcc.commitLog l cs) = (kvStateOf l).commit cs := by
   have hpos := List.length_pos_iff.2 hl
-  unfold kvStateOf KVState.commit mvcc.commitLog
-  split
-  · rfl
-  · simp only [List.length_append, List.length_singleton, KVState.mk.injEq]
-    refine ⟨?_, by omega⟩
-    rw [mvcc.stateAfter_append]
-    congr 2
-    omega
+  unfold mvcc.commitLog
+  by_cases hc : cs = []
+  · simp [hc, KVState.commit_nil]
+  rw [if_neg hc]
+  have hrev : (kvStateOf l).rev + 1 = l.length := by rw [kvStateOf_rev]; omega
+  unfold KVState.commit
+  rw [if_neg hc, kvStateOf_kvs, hrev]
+  unfold kvStateOf
+  simp only [List.length_append, List.length_singleton, Nat.add_sub_cancel, KVState.mk.injEq,
+    true_and]
+  refine ⟨by rw [mvcc.stateAt_append_lt _ _ hpos], ?_⟩
+  have hr : List.range l.length = List.range (l.length - 1) ++ [l.length - 1] := by
+    rw [← List.range_succ]; congr 1; omega
+  rw [hr, List.map_append]
+  congr 1
+  · apply List.map_congr_left
+    intro i hi
+    rw [List.mem_range] at hi
+    rw [mvcc.stateAt_append_lt _ _ (by omega)]
+  · simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true]
+    have e : l.length - 1 + 1 = (l ++ [cs]).length - 1 := by simp; omega
+    rw [e, mvcc.stateAt_last, mvcc.stateAfter_append]
 
 /-- **The backend's log follows the state**: the state after a request's backend log is the
 request's step on the state before (a log with a revision: the server's always has two). -/
 theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []) :
     kvStateOf (backendLog rq l) = kvReqStep rq (kvStateOf l) := by
   have hpos := List.length_pos_iff.2 hl
-  have hrev : (kvStateOf l).rev + 1 = l.length := by unfold kvStateOf; simp only; omega
-  have hs : (kvStateOf l).kvs = mvcc.stateAfter l := rfl
+  have hrev : (kvStateOf l).rev + 1 = l.length := by rw [kvStateOf_rev]; omega
+  have hs : (kvStateOf l).kvs = mvcc.stateAfter l := kvStateOf_kvs l
   unfold backendLog kvReqStep reqKVOp
   cases hk : apply.dispatchKind rq
   case put =>
@@ -533,8 +669,7 @@ theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []
     | none => rfl
     | some op =>
       simp only [Option.map_some, kvOpStep]
-      rw [kvStateOf_commitLog _ _ hl]
-      rfl
+      rw [kvStateOf_commitLog _ _ hl, hs]
   case txn =>
     dsimp only
     cases hp : rq.txn with

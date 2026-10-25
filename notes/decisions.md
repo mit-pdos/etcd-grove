@@ -18505,3 +18505,41 @@ restricted to its plan's puts to get `srvNoDupKeys`).
 let the expected operations through, made the specs say less than they seemed to and was hard to
 audit; the client spec should say directly what it supports. (D23 considered a fact in the
 client's proof and rejected it; see this file's header: decisions are not binding.)
+
+## D45: the client specs over etcd's whole KV state: a multi-revision store of maps (2026-10-25 · the user)
+
+*Supersedes* "Every KV operation as a persistent atomic update on the whole state" (unit T2)'s
+state, the store at its latest revision (`KVState := ⟨kvs : List EtcdKv, rev⟩`).
+
+**The user's request.** The etcd spec should be stated on the entire client-visible state, which
+is mvcc's KV state at every revision a client can read (reads at a revision, watches from one), not
+only the latest; and not as a log of operations: a multi-revision KV state, which compaction trims
+(not append-only). Each revision's store a map, not a list.
+
+**The state** (`KVModelDefs.lean`, `KVStore.lean`).
+- `KVRec`: a key's record at a revision (`mvccpb.KeyValue` without the key: value, create and mod
+  revisions, version, lease); `KVStore := GMap GoString KVRec`, the store at one revision.
+- `KVState := ⟨compacted, base, later⟩`: the compaction revision, the store at it, the stores at
+  each later revision up to the current one. Accessors: `rev` (the current revision), `store` (the
+  current store), `at r` (the store at revision `r`), `readRev rev` (the revision a range reads).
+  A write adds the next revision (`commit`); a compaction would raise `compacted` and drop stores
+  (not in the server's model yet: the server's state has `compacted = 0`). Non-emptiness is by
+  construction (`base`), so `commit`'s laws need no side condition.
+- `σ.kvs`, the current store listed in key order, stays as a derived view: the range semantics
+  (`txn.srvRangeOk`, `srvCount`, `rangeIn`, the transaction runs) and the server's model are
+  stated over sorted lists; `storeOf`/`KVStore.kvs` are inverse on sorted lists (`kvs_storeOf`,
+  `storeOf_kvs`), so nothing is lost.
+- The server's side: `kvStateOf log` is the store of each revision of the log (`mvcc.stateAt`);
+  `kvStateOf_rev`, `kvStateOf_kvs`, `kvStateOf_at`, `kvStateOf_commitLog`, `kvStateOf_backendLog`.
+
+**What the specs gain.** `kv.Get` at any revision the state keeps: the reply is the selection of
+`σ.at (σ.readRev rev)` (the premise "latest revision only" of D43 is gone). A put's previous
+key-value is the key's binding in `σ.store`. The watch facts (each revision's changes) become
+statable over `σ` (two consecutive stores), so an application can keep a fact like "no key
+written twice in a revision" in its own invariant, or the server can prove it; and the cache's and
+recipes' separate history model (`EtcdModel`, certified logs) could be restated over it.
+
+**Rejected.** The server's `mvcc.Log` as the client's state: it is a log of changes, append-only,
+and a revision's changes are not a state. A function `GoString → Option KVRec` per revision: not
+countable (the ghost variable needs `Pos.Countable`) and not finite; `GMap` is both, with
+extensional equality.

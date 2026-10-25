@@ -203,14 +203,13 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
   iexists kvStateOf l
   iframe HQ
   ipureintro
+  try rw [kvStateOf_kvs]
   refine ⟨hsel, ?_, ?_⟩
   · rw [hrev]
-    unfold kvStateOf
-    simp only
+    simp only [kvStateOf_rev, kvStateOf_kvs]
     congr 1
     omega
-  · unfold kvStateOf
-    simp only
+  · simp only [kvStateOf_rev, kvStateOf_kvs]
     omega
 
 /-- **The members' read updates, persistent** (each is: a read update, or none). -/
@@ -368,7 +367,7 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     ipureintro
     refine ⟨?_, ?_⟩
     · rw [hrev, kvStateOf_rev_succ _ hlen]
-    · unfold kvStateOf; simp only; omega
+    · simp only [kvStateOf_rev, kvStateOf_kvs]; omega
   · iright
     isplitl
     · ipureintro; exact Herr
@@ -430,7 +429,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
       unfold kvOpStep
       rw [kvStateOf_commit_rev _ _ hlen]
       rfl
-    · unfold kvStateOf; simp only; omega
+    · simp only [kvStateOf_rev, kvStateOf_kvs]; omega
   · iright
     isplitl
     · ipureintro; exact Herr.1

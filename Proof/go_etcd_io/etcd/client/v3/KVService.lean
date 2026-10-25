@@ -978,13 +978,15 @@ theorem srvStart_both (ms : List (SrvAt GF)) :
 /-- A log's state's next revision is its length. -/
 theorem kvStateOf_rev_succ (l : mvcc.Log) (h : 2 ≤ l.length) :
     (kvStateOf l).rev + 1 = l.length := by
-  unfold kvStateOf; simp only; omega
+  rw [kvStateOf_rev]; omega
 
 /-- **A write's revision is its state's after the changes** (`writeRev`, `KVState.commit`). -/
 theorem kvStateOf_commit_rev (l : mvcc.Log) (cs : List mvcc.Change) (h : 2 ≤ l.length) :
     ((kvStateOf l).commit cs).rev = mvcc.writeRev l cs := by
-  unfold KVState.commit mvcc.writeRev kvStateOf
-  by_cases hc : cs = [] <;> simp only [hc, ↓reduceIte] <;> omega
+  unfold mvcc.writeRev
+  by_cases hc : cs = []
+  · simp only [hc, KVState.commit_nil, ↓reduceIte, kvStateOf_rev]
+  · rw [KVState.commit_rev _ _ hc, kvStateOf_rev]; simp only [hc, ↓reduceIte]; omega
 
 /-- An update reads only the KV state's name. -/
 theorem kvOpAu1_names (γk γk' : KVNames) (hst : γk.st = γk'.st)
@@ -1052,18 +1054,22 @@ def txnUpdK (γ : KVNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF 
     (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t⌝ ∗ kvOpAu1 γ (.txn t) Q))
 
 /-- **What a put's reply says** (`m`): the state `σ` the update fired at (`Q σ`), the reply's
-revision `σ`'s next, its previous key-value `σ`'s if asked. -/
+revision `σ`'s next, its previous key-value the key's record in `σ`'s current store if asked. -/
 def putStOk (o : OpFull) (Q : KVState → IProp GF) (m : PutRespM) : IProp GF :=
   iprop(∃ σ : KVState, Q σ ∗ ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
-    m.prev = (if o.base.prevKV then mvcc.findKey o.key σ.kvs else none) ∧ σ.rev + 4 < 2 ^ 63⌝)
+    m.prev = (if o.base.prevKV then (σ.store.lookup o.key).map (KVRec.toKv o.key) else none) ∧
+    σ.rev + 4 < 2 ^ 63⌝)
 
-/-- **What a range's reply says** (at the latest revision): a state `σ` (the one the read update
-fired at, `□ Q σ`, if linearizable) whose selection is the reply's key-values (`srvRangeOk`: the
-server's selection, sorted and limited as asked), whose count is the reply's and whose revision
-is the reply's header revision. -/
+/-- **What a range's reply says**: a state `σ` (the one the read update fired at, `□ Q σ`, if
+linearizable) at whose current revision the reply's header is, of whose store at the revision the
+range reads (`readRev`: the one asked, at most the current, or the current) the reply's key-values
+are the selection (`srvRangeOk`: the server's selection, sorted and limited as asked) and the
+reply's count the count. -/
 def rangeStOk (o : OpFull) (Q : KVState → IProp GF) (m : RangeRespM) : IProp GF :=
   iprop(∃ σ : KVState, (if o.base.serializable then iprop(True) else iprop(□ Q σ)) ∗
-    ⌜txn.srvRangeOk o σ.kvs m.kvs m.more ∧ m.count = txn.srvCount o σ.kvs true ∧
+    ⌜sint.Z o.base.rev ≤ (σ.rev : Int) ∧
+      txn.srvRangeOk o (σ.at (σ.readRev o.base.rev)).kvs m.kvs m.more ∧
+      m.count = txn.srvCount o (σ.at (σ.readRev o.base.rev)).kvs true ∧
       m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝)
 
 /-- **What a delete's reply says**: the state `σ` the update fired at (`Q σ`), the reply's count
@@ -1294,37 +1300,46 @@ theorem putAns_st (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVStat
   ipureintro
   refine ⟨?_, ?_, ?_⟩
   · rw [hrev, kvStateOf_rev_succ _ hlen]
-  · rw [hprev]; rfl
-  · unfold kvStateOf; simp only; omega
+  · rw [hprev, ← findKey_kvs, ← kvStateOf_kvs]; rfl
+  · rw [kvStateOf_rev]; omega
 
-/-- Some member's reply of a range at the latest revision says what `rangeStOk` says. -/
+/-- Some member's range reply says what `rangeStOk` says. -/
 theorem rangeAns_st (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
-    (Q : KVState → IProp GF) (m : RangeRespM) (hr : o.base.rev = W64 0) :
+    (Q : KVState → IProp GF) (m : RangeRespM) :
     rangeAns ms c F o Q m ⊢ rangeStOk o Q m := by
   unfold rangeAns rangeStOk
   iintro ⟨%x, -, H⟩
   iunfold rangeReplyOk at H
   icases H with ⟨%l, -, -, %Hl, -, HQ⟩
-  obtain ⟨hlen, hlen', hrev, -, -, -, hcount, hsel, -⟩ := Hl
-  have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev)) =
-      mvcc.stateAfter l := by
-    have h1 : mvcc.rangeRev m.hdr.revision o.base.rev = m.hdr.revision := by
-      simp [mvcc.rangeRev, hr]
-    rw [h1, hrev]
-    have h2 : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by
-      unfold sint.nat; word
-    rw [h2, mvcc.stateAt_last]
-  rw [hst] at hsel hcount
+  obtain ⟨hlen, hlen', hrev, -, -, hle, hcount, hsel, -⟩ := Hl
+  have h2 : sint.Z (W64 ((l.length : Int) - 1)) = (l.length : Int) - 1 := by word
+  have hle' : sint.Z o.base.rev ≤ (l.length : Int) - 1 := by rw [hrev, h2] at hle; exact hle
+  have hn : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by unfold sint.nat; word
+  -- the revision read: the one asked, or the header's (the log's last)
+  have hRR : (kvStateOf l).readRev o.base.rev =
+      sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev) := by
+    unfold KVState.readRev mvcc.rangeRev
+    rw [kvStateOf_rev, hrev]
+    by_cases h0 : sint.Z o.base.rev ≤ 0
+    · simp only [h0, ↓reduceIte]; rw [hn]
+    · simp only [h0, ↓reduceIte]
+  have hRle : sint.nat (mvcc.rangeRev m.hdr.revision o.base.rev) ≤ l.length - 1 := by
+    unfold mvcc.rangeRev; rw [hrev]
+    by_cases h0 : sint.Z o.base.rev ≤ 0
+    · simp only [h0, ↓reduceIte]; exact hn ▸ Nat.le_refl _
+    · simp only [h0, ↓reduceIte]
+      show (sint.Z o.base.rev).toNat ≤ l.length - 1
+      omega
   iexists kvStateOf l
   iframe HQ
   ipureintro
-  refine ⟨hsel, hcount, ?_, ?_⟩
-  · rw [hrev]
-    unfold kvStateOf
-    simp only
+  rw [hRR, kvStateOf_at_kvs l _ hRle]
+  refine ⟨?_, hsel, hcount, ?_, ?_⟩
+  · rw [kvStateOf_rev]; omega
+  · rw [hrev, kvStateOf_rev]
     congr 1
     omega
-  · unfold kvStateOf; simp only; omega
+  · rw [kvStateOf_rev]; omega
 
 /-- Some member's delete reply says what `delStOk` says (a range end not `[0]`). -/
 theorem delAns_st (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVState → IProp GF)
@@ -1336,15 +1351,15 @@ theorem delAns_st (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVStat
   obtain ⟨-, -, Hz, -, hrev, -, -, hdel, hprevs, -, hlen, hb⟩ := Hp
   have hop : op' = o := Hz (irrNoZeroEnd_delete o hz)
   subst hop
+  have hs := kvStateOf_kvs y.log
   iexists kvStateOf y.log
   iframe HQ
   ipureintro
-  refine ⟨hdel, hprevs, ?_, ?_⟩
+  refine ⟨by rw [hs]; exact hdel, by rw [hs]; exact hprevs, ?_, ?_⟩
   · rw [hrev]
-    unfold kvOpStep
-    rw [kvStateOf_commit_rev _ _ hlen]
-    rfl
-  · unfold kvStateOf; simp only; omega
+    simp only [kvOpStep]
+    rw [hs, kvStateOf_commit_rev _ _ hlen]
+  · rw [kvStateOf_rev]; omega
 
 /-- Some member's transaction reply says what `txnStOk` says (a writing one's range ends not
 `[0]`). -/
@@ -1363,31 +1378,29 @@ theorem txnAns_st (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (t : TxnModel)
     have ht : t' = t := Hz (irrNoZeroEnd_txn t (hz hro))
     subst ht hsk
     have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := kvStateOf_rev_succ _ hlen
-    have hs : (kvStateOf y.log).kvs = mvcc.stateAfter y.log := rfl
+    have hs := kvStateOf_kvs y.log
     iexists kvStateOf y.log
     iframe HQ
     ipureintro
     rw [hr, hs]
     refine ⟨hok, hrel, ?_, ?_⟩
-    · rw [hrev, kvStateOf_commit_rev _ _ hlen]
-    · unfold kvStateOf; simp only; omega
+    · rw [hrev, ← hs, kvStateOf_commit_rev _ _ hlen]
+    · rw [kvStateOf_rev]; omega
   · -- read-only
     simp only [↓reduceIte]
     icases H with ⟨%log, -, -, %Hp, -, HQ⟩
     obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
     have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
-    have hs : (kvStateOf log).kvs = mvcc.stateAfter log := rfl
+    have hs := kvStateOf_kvs log
     iexists kvStateOf log
     iframe HQ
     ipureintro
     rw [hr, hs]
     refine ⟨hok, hrel, ?_, ?_⟩
-    · rw [hrev]
-      unfold kvStateOf
-      simp only
+    · rw [hrev, kvStateOf_rev]
       congr 1
       omega
-    · unfold kvStateOf; simp only; omega
+    · rw [kvStateOf_rev]; omega
 
 /-! ### The calls' outcomes, weakened -/
 
@@ -1445,7 +1458,7 @@ theorem putCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (err 
     putCallOut (putStOk o Q) resp err ⊢
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
         ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
-          m.prev = (if o.base.prevKV then mvcc.findKey o.key σ.kvs else none) ∧
+          m.prev = (if o.base.prevKV then (σ.store.lookup o.key).map (KVRec.toKv o.key) else none) ∧
           σ.rev + 4 < 2 ^ 63⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold putCallOut putStOk kvErr
@@ -1466,7 +1479,9 @@ theorem rangeCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (er
     rangeCallOut (rangeStOk o Q) resp err ⊢
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
         (if o.base.serializable then iprop(True) else iprop(□ Q σ)) ∗
-        ⌜txn.srvRangeOk o σ.kvs m.kvs m.more ∧ m.count = txn.srvCount o σ.kvs true ∧
+        ⌜sint.Z o.base.rev ≤ (σ.rev : Int) ∧
+          txn.srvRangeOk o (σ.at (σ.readRev o.base.rev)).kvs m.kvs m.more ∧
+          m.count = txn.srvCount o (σ.at (σ.readRev o.base.rev)).kvs true ∧
           m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold rangeCallOut rangeStOk kvErr
