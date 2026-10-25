@@ -141,12 +141,15 @@ instance cacheP_fractional (st : Loc) (M : AuthMode) :
       icombine H1 H2 gives %Heq
       ipureintro; exact Heq)
 
-/-- Three lists of `n` slots as one list of `n` triples (`n` abstract: the readers' bound
-`2 ^ 30` is not unfolded). -/
-theorem slots_sep3 (n : Nat) (P1 P2 P3 : IProp GF) :
-    ([∗list] _x ∈ List.replicate n (), P1) ∗ ([∗list] _x ∈ List.replicate n (), P2) ∗
-      ([∗list] _x ∈ List.replicate n (), P3) ⊢
-    [∗list] _x ∈ List.replicate n (), P1 ∗ P2 ∗ P3 := by
+/-- The three locks' slot lists as one list of a slot of each (`n` abstract: the readers' bound
+`2 ^ 30 - 1` is never unfolded, which the kernel would otherwise do). -/
+theorem slots_rd (n : Nat) (st : Loc) (R : IProp GF) (M : AuthMode) :
+    ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (aF go!"enabledMu" st) (enabledP st M)) ∗
+      ([∗list] _x ∈ List.replicate n (),
+        sync.ownRWMutex (aF go!"rangePermCacheMu" st) (cacheP st M)) ∗
+      ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (aF go!"beMu" st) (beP st R M)) ⊢
+    [∗list] _x ∈ List.replicate n (), enabledRd st M ∗ cacheRd st M ∗ beRd st R M := by
+  unfold enabledRd cacheRd beRd
   iintro ⟨H1, H2, H3⟩
   iapply BigSepL.bigSepL_sep_eqv.2
   iframe H1
@@ -443,9 +446,7 @@ theorem newAuthStore_on
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), A; iframe tokenProvider HtpA HA
   isplitr
   · ipureintro; exact Hsta.2.2
-  -- TODO(E2a): the readers' slots; combining the three lists (`slots_sep3`) passes the
-  -- elaborator but the kernel times out (it unfolds `List.replicate (2 ^ 30 - 1)`)
-  sorry
+  iapply (slots_rd _ «$r0_ptr» R (.on γa)) $$ [$HenS $HcaS $HbeS]
 
 end proof
 
