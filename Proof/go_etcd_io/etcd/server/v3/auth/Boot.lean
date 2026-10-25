@@ -71,6 +71,21 @@ theorem authBoot_alloc (γt γf : GName) :
   icases authOwnF_lockI_split (.on γa) [bootState] bootState rfl $$ HF with ⟨Hown, HI⟩
   iframe Hown Hc2 HI
 
+/-- **A right to issue a token, minted** from the rights' authority (`tokenSimple_new` gives it,
+empty, with the provider): one for any token not minted before. The server's apply thread, which
+runs `Authenticate`, would hold the authority and mint the right of the token it is about to issue
+(`<prefix>.<raft index>`, the index unique per entry). -/
+theorem tokFresh_mint (γa : AuthNames) (m : GMap GoString Unit) (token : GoString)
+    (h : m.lookup token = none) :
+    ghostMapAuth (GF := GF) γa.fresh 1 m ⊢
+      |==> (ghostMapAuth γa.fresh 1 (m.insert token ()) ∗ tokFresh γa token) := by
+  iintro H
+  unfold tokFresh
+  imod (ghost_map_insert token () h) $$ H with ⟨Ha, He⟩
+  imodintro
+  iframe Ha
+  iexact He
+
 end ghost
 
 section defs
