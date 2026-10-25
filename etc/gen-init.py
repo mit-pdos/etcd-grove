@@ -845,13 +845,17 @@ SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).''',
-    imports=['Proof.errors.NewVar', 'Perennial.Proof.context.NewErrorString'],
+    imports=['Proof.errors.NewVar', 'Perennial.Proof.context.NewErrorString',
+             'Perennial.Proof.sync.RWMutexGuard'],
     vars=['[EtcdGrove.ErrorStringLeaf]'],
     alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
                  # the simple provider's TTL default (the auth plan's S5b, 2026-10-24), a `time.Duration`
                  'simpleTokenTTLDefault': 'w64',
                  # the keeper's tick (S5c, 2026-10-25), a `time.Duration`
-                 'simpleTokenTTLResolution': 'w64'},
+                 'simpleTokenTTLResolution': 'w64',
+                 # the metrics reporter and its lock (the auth plan's E2a, 2026-10-25)
+                 'reportCurrentAuthRevMu': '_root_.Perennial.sync.RWMutex',
+                 'reportCurrentAuthRev': 'GoFunc'},
     before={
         # the recipes run before the next untranslated variable's initializer, consuming the
         # translated `errors.New` calls that precede it in `store.go`'s order
@@ -861,8 +865,14 @@ initializers are untranslated (`opaqueInitsOk`).''',
     finish=[f'ipersist H{n}' for n in _AUTH_ERRS] + ['ipersist HsimpleTokenTTLResolution'] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
-            '· iapply isPkgInit_access $$ Hd16',
-            'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩'] + FIN_PRE[:6] + [
+            '· iapply isPkgInit_access $$ Hd17',
+            'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩',
+            # the metrics reporter's lock over the reporter (E2a)
+            'imod (sync.init_RWMutex go_etcd_io.etcd.server.v3.auth.reportP (globalAddr reportCurrentAuthRevMu) (E := ⊤)) $$ [HreportCurrentAuthRev] HreportCurrentAuthRevMu with HRP',
+            '· inext',
+            '  unfold go_etcd_io.etcd.server.v3.auth.reportP',
+            '  iexists _; iframe HreportCurrentAuthRev',
+            'ihave ⟨-, #GRP⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP'] + FIN_PRE[:6] + [
             'imodintro', 'unfold authInit authErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))',
             # the keeper's tick (S5e): `1 * time.Second`, read-only

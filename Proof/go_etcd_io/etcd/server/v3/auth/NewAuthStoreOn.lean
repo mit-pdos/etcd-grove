@@ -1,0 +1,454 @@
+/-
+**`NewAuthStore` over its backend's and token provider's contracts, in the mode `on γa`** (the
+auth plan's E2a, 2026-10-25; `notes/decisions.md`, "E2a of the auth plan"). Lean-first (no Rocq
+counterpart).
+
+`auth.NewAuthStore.spec` (`Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean`) is the
+server's statement: over schema's real auth backend on the real backend (its tracked buckets,
+`backend.rbOwn`, D22), in the mode `off`, with the apply package's contract on every backend
+(`authApplyOk`); it stays an axiom (what is missing: schema's auth write side over the backend's
+tracked buckets, D22; and the admin clauses `isAuthStoreAdmin` of the store: `HasRole`,
+`Authenticate`, `UserGet`, `RoleGet` and the lists). `newAuthStore_on` is the constructor's own
+code, proved: `NewAuthStore(lg, be, tp, cost)` on an `AuthBackend` `be` meeting the store's backend
+contracts (`authBackendOk`, the read side; `authWBackendOk`, the write side, S4; and
+`CreateAuthBuckets`, one transaction), a token provider meeting its contract with its admin
+resource (`tokenProviderOkA`, S5d), and the admin side's authority at a history `hs` (both halves of
+its latest state's ghost variable), returns a store whose invariant (`authInv`) holds in the mode
+`on γa`, with the admin side's write resource (`authWR`), the provider's share (`tpAdmin`), the
+authority (grown by the revision's commit when the backend's state had revision `0`), and the
+readers' slots of its three locks.
+
+**The initial permission cache.** `NewAuthStore` makes the cache's map empty and refreshes it from
+the transaction only after `Revision()` and `commitRevision`, which (with `refreshRangePermCache`)
+take the store's invariant: the cache's lock is made with the empty map, which the invariant's
+`cacheOk` (on) accepts only as the map of a recorded state with no users (no reader can observe
+it: the store is not shared yet). Hence the premise that the history has such a state: the
+history of a store whose buckets were created empty starts with one (the empty state).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Revision
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__setupMetricsReporter
+public import Spec.go_uber_org.zap.Logger__Warn
+public import Spec.go_uber_org.zap.Int
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace auth
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth
+
+section ghost
+variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+
+/-- The authority keeps a recorded state. -/
+theorem authOwn_stateAt_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState)
+    (h : hs[i]? = some st) :
+    authOwn (GF := GF) (.on γa) hs ⊢ |==> (authOwn (.on γa) hs ∗ authStateAt γa i st) := by
+  simp only [authOwn]
+  iintro ⟨Hh, Hc⟩
+  imod (authHist_stateAt_keep γa hs i st h) $$ Hh with ⟨Hh, #H⟩
+  imodintro
+  isplitl [Hh Hc]
+  · iframe Hh Hc
+  · iexact H
+
+end ghost
+
+section lemmas
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+theorem Qp.half_add (p q : Qp) : (p + q).half = p.half + q.half := Subtype.ext (by grind)
+
+/-- `enabledMu`'s invariant is fractional (for `sync.init_RWMutex`). -/
+instance enabledP_fractional (st : Loc) (M : AuthMode) :
+    Fractional (enabledP (GF := GF) st M) := by
+  unfold enabledP
+  exact fractional_exists_agree
+    (fun (b : Bool) q => iprop(aF go!"enabled" st ↦{DFrac.own q.half} b ∗ enabledVerdict M b))
+    (fun b => ⟨fun q1 q2 => by
+      rw [Qp.half_add]
+      constructor
+      · iintro ⟨H, #Hv⟩
+        icases (typedPointsto_frac_add _ _ q1.half q2.half).1 $$ H with ⟨H1, H2⟩
+        iframe H1 H2 Hv
+      · iintro ⟨⟨H1, #Hv⟩, ⟨H2, -⟩⟩
+        iframe Hv
+        iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]⟩)
+    (fun x y q1 q2 => by
+      iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+      icombine H1 H2 gives %Heq
+      ipureintro; exact Heq)
+
+/-- `beMu`'s invariant is fractional. -/
+instance beP_fractional (st : Loc) (R : IProp GF) (M : AuthMode) :
+    Fractional (beP (GF := GF) st R M) := by
+  unfold beP
+  exact fractional_exists_agree
+    (fun (be : AuthBackend) q => iprop(aF go!"be" st ↦{DFrac.own q.half} be ∗ authBackendOk be R M))
+    (fun b => ⟨fun q1 q2 => by
+      rw [Qp.half_add]
+      constructor
+      · iintro ⟨H, #Hv⟩
+        icases (typedPointsto_frac_add _ _ q1.half q2.half).1 $$ H with ⟨H1, H2⟩
+        iframe H1 H2 Hv
+      · iintro ⟨⟨H1, #Hv⟩, ⟨H2, -⟩⟩
+        iframe Hv
+        iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]⟩)
+    (fun x y q1 q2 => by
+      iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+      icombine H1 H2 gives %Heq
+      ipureintro; exact Heq)
+
+/-- `rangePermCacheMu`'s invariant is fractional. -/
+instance cacheP_fractional (st : Loc) (M : AuthMode) :
+    Fractional (cacheP (GF := GF) st M) := by
+  unfold cacheP
+  exact fractional_exists_agree
+    (fun (mp : GoMap) q => iprop(∃ Mp : GMap GoString Loc, aF go!"rangePermCache" st ↦{DFrac.own q} mp ∗
+      mp ↦${DFrac.own q} Mp ∗ cacheOk M Mp))
+    (fun mp => fractional_exists_agree
+      (fun (Mp : GMap GoString Loc) q => iprop(aF go!"rangePermCache" st ↦{DFrac.own q} mp ∗
+        mp ↦${DFrac.own q} Mp ∗ cacheOk M Mp))
+      (fun Mp => ⟨fun q1 q2 => by
+        constructor
+        · iintro ⟨H, Hm, #Hv⟩
+          icases (typedPointsto_frac_add _ _ q1 q2).1 $$ H with ⟨H1, H2⟩
+          icases ((ownMap_fractional mp Mp).fractional q1 q2).1 $$ Hm with ⟨Hm1, Hm2⟩
+          iframe H1 H2 Hm1 Hm2 Hv
+        · iintro ⟨⟨H1, Hm1, #Hv⟩, ⟨H2, Hm2, -⟩⟩
+          iframe Hv
+          isplitl [H1 H2]
+          · iapply (typedPointsto_frac_add _ _ q1 q2).2 $$ [$H1 $H2]
+          · iapply ((ownMap_fractional mp Mp).fractional q1 q2).2 $$ [$Hm1 $Hm2]⟩)
+      (fun x y q1 q2 => by
+        iintro ⟨⟨-, H1, -⟩, ⟨-, H2, -⟩⟩
+        iapply ownMap_agree $$ [$H1 $H2]))
+    (fun x y q1 q2 => by
+      iintro ⟨⟨%M1, H1, -⟩, ⟨%M2, H2, -⟩⟩
+      icombine H1 H2 gives %Heq
+      ipureintro; exact Heq)
+
+/-- Three lists of `n` slots as one list of `n` triples (`n` abstract: the readers' bound
+`2 ^ 30` is not unfolded). -/
+theorem slots_sep3 (n : Nat) (P1 P2 P3 : IProp GF) :
+    ([∗list] _x ∈ List.replicate n (), P1) ∗ ([∗list] _x ∈ List.replicate n (), P2) ∗
+      ([∗list] _x ∈ List.replicate n (), P3) ⊢
+    [∗list] _x ∈ List.replicate n (), P1 ∗ P2 ∗ P3 := by
+  iintro ⟨H1, H2, H3⟩
+  iapply BigSepL.bigSepL_sep_eqv.2
+  iframe H1
+  iapply BigSepL.bigSepL_sep_eqv.2
+  iframe H2 H3
+
+/-- The provider's contract with its admin resource gives the invariant's. -/
+theorem tokenProviderOk_of_A (tp : GoInterface) (M : AuthMode) (A : IProp GF) :
+    tokenProviderOkA (GF := GF) tp M A ⊢ tokenProviderOk tp M := by
+  unfold tokenProviderOkA tokenProviderOk
+  iintro ⟨%ti, %Hti, #H1, #H2, #H3, #H4, #H5⟩
+  iexists A, ti
+  iframe #
+  ipureintro; exact Hti
+
+end lemmas
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+set_option maxRecDepth 16384 in
+/-- **`NewAuthStore(lg, be, tp, cost)` in the mode `on γa`** (see the file header). -/
+theorem newAuthStore_on
+    (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (h_Int : zap.Int'.spec (GF := GF) (hG := hG))
+    (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG))
+    (h_commit : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γa : AuthNames)
+    (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) (hs : List AuthState)
+    (stl : AuthState) (hlast : hs.getLast? = some stl) (hfit : permsFit stl)
+    (hempty : ∃ s ∈ hs, s.users = ∅) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+        ⌜ab = GoInterface.ok bi⌝ ∗ authBackendOk ab R (.on γa) ∗
+        authWBackendOk ab (.on γa) P f T ∗
+        □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
+          {{ RET #(); T }}) ∗
+        T ∗ mvcc.csContract P f Pre Q Post ∗ tokenProviderOkA tp (.on γa) A ∗ A ∗
+        authOwn (.on γa) hs ∗ authCurHalf γa stl }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
+        (Val #ab)) (Val #tp)) (Val #cost))
+    {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List AuthState),
+        ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗ authWR stp (.on γa) P f T ∗
+        tpAdmin stp (.on γa) ∗ Post ∗ authOwn (.on γa) hs' ∗
+        ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [bump stl])⌝ ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
+  wp_start as ⟨%Hlg, %Hab, #Hrdok, #Hwok, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur⟩
+  subst Hab
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  ihave #Hwok' := Hwok
+  iunfold authWBackendOk at Hwok'
+  icases Hwok' with ⟨%bi', %Hbi', #HBatch, #HFC, -⟩
+  cases Hbi'
+  (try wp_auto)
+  wp_if_destruct
+  · exact absurd rfl Hlg
+  (try wp_auto)
+  -- the cost check: out of bounds, a warning and the default cost (two paths); else nothing
+  wp_join iprop(∃ c : w64, bcryptCost_ptr ↦ c ∗ lg_ptr ↦ lg) with [bcryptCost lg] as ⟨%c, Hbc, Hlgp⟩
+  · (try wp_auto)
+    wp_apply h_Int as %f0 -
+    wp_apply h_Int as %f1 -
+    wp_apply h_Int as %f2 -
+    (try wp_auto)
+    wp_apply h_Int as %f3 -
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f0, f1, f2, f3]
+    isplitr
+    · ipureintro; rfl
+    iintro %fsl ⟨-, -⟩
+    (try wp_auto)
+    wp_apply h_Warn
+    · ipureintro; exact Hlg
+    (try wp_auto)
+    simp only [_root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost]
+    (try wp_auto)
+    wp_join_done
+    try (iexists _; iframe)
+  · (try wp_auto)
+    wp_if_destruct
+    · (try wp_auto)
+      wp_apply h_Int as %f0 -
+      wp_apply h_Int as %f1 -
+      wp_apply h_Int as %f2 -
+      (try wp_auto)
+      wp_apply h_Int as %f3 -
+      (try wp_auto)
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f0, f1, f2, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      (try wp_auto)
+      wp_apply h_Warn
+      · ipureintro; exact Hlg
+      (try wp_auto)
+      simp only [_root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost]
+      (try wp_auto)
+      wp_join_done
+      try (iexists _; iframe)
+    · (try wp_auto)
+      wp_join_done
+      try (iexists _; iframe)
+  -- `CreateAuthBuckets()`, one transaction
+  wp_bind (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
+  iapply HCreate $$ HT
+  inext
+  iintro HT
+  (try wp_auto)
+  -- `tx := be.BatchTx()`, locked: the latest state
+  wp_apply HBatch as %tx Htx
+  iunfold authBatchTxOk at Htx
+  icases Htx with ⟨%ti, %Hti, %Lk, #HLk⟩
+  subst Hti
+  ihave #HLk' := HLk
+  iunfold authBatchTxLk at HLk'
+  icases HLk' with ⟨#HLock, #HRd, -, -, -, -, -, -, #HUnlock, -, -⟩
+  (try wp_auto)
+  wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
+  iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
+  inext
+  iintro ⟨%st0, HL, Hown, %Hl0⟩
+  have Hst0 : st0 = stl := by
+    simp only [histLast] at Hl0; rw [hlast] at Hl0; cases Hl0; rfl
+  subst Hst0
+  ihave #HRd' := HRd $$ %Post
+  iunfold authReaderOk at HRd'
+  icases HRd' with ⟨#HUG, #HUR, #HRE, #HRR, #HAll⟩
+  (try wp_auto)
+  wp_bind (App (Val #(methods ti.ty go!"UnsafeReadAuthEnabled" ti.v)) (Val #()))
+  iapply HRE $$ %st0 HL
+  inext
+  iintro %b ⟨HL, %Hb⟩
+  (try wp_auto)
+  wp_bind (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
+  iapply HRR $$ %st0 HL
+  inext
+  iintro %x ⟨HL, %Hx⟩
+  (try wp_auto)
+  wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string
+    (go.GoType.PointerType unifiedRangePermissions.ty)) as %mp HM
+  (try wp_auto)
+  icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨Hst, %Hstnn⟩
+  iStructNamed Hst
+  -- the latest state and an empty one are recorded
+  have hidx : hs[hs.length - 1]? = some st0 := by rw [← List.getLast?_eq_getElem?]; exact hlast
+  imod (authOwn_stateAt_keep γa hs _ st0 hidx) $$ Hown with ⟨Hown, #Hst0⟩
+  obtain ⟨se, hse, hseu⟩ := hempty
+  obtain ⟨ie, hie⟩ := List.mem_iff_getElem?.1 hse
+  imod (authOwn_stateAt_keep γa hs ie se hie) $$ Hown with ⟨Hown, #Hse⟩
+  -- the three locks' guards
+  ihave ⟨Hbe1, Hbe2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ be
+  ihave ⟨Hen1, Hen2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ enabled
+  imod (sync.init_RWMutex (beP «$r0_ptr» R (.on γa)) (aF go!"beMu" «$r0_ptr») (E := ⊤))
+    $$ [Hbe1] beMu with HbeS
+  · inext; iunfold beP; iexists _; iframe Hbe1; iexact Hrdok
+  imod (sync.init_RWMutex (enabledP «$r0_ptr» (.on γa)) (aF go!"enabledMu" «$r0_ptr») (E := ⊤))
+    $$ [Hen1] enabledMu with HenS
+  · inext; iunfold enabledP; iexists _; iframe Hen1
+    iunfold enabledVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hb
+  imod (sync.init_RWMutex (cacheP «$r0_ptr» (.on γa)) (aF go!"rangePermCacheMu" «$r0_ptr»)
+    (E := ⊤)) $$ [rangePermCache HM] rangePermCacheMu with HcaS
+  · inext; iunfold cacheP; iexists mp, ∅; iframe
+    iunfold cacheOk; iexists ie, se; iframe Hse
+    isplitr
+    · ipureintro; intro u; simp [hseu]
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+  ihave ⟨HbeS, #Gbe⟩ := sync.ownRWMutex_slots_guard _ _ $$ HbeS
+  ihave ⟨HenS, #Gen⟩ := sync.ownRWMutex_slots_guard _ _ $$ HenS
+  ihave ⟨HcaS, #Gca⟩ := sync.ownRWMutex_slots_guard _ _ $$ HcaS
+  ipersist lg
+  ipersist tokenProvider
+  -- the revision's invariant
+  imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur]
+    with #Hrev
+  · inext; iunfold revInv; iexists x; iframe revision
+    isplitl []
+    · iunfold revisionVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hx
+    · iunfold revCur; iexists st0; iframe Hcur; ipureintro; exact Hx
+  ihave #Hinv : authInv (GF := GF) «$r0_ptr» R (.on γa) $$ []
+  · iunfold authInv
+    iframe Hrev Gbe Gen Gca
+    isplitr
+    · ipureintro; exact Hstnn
+    isplitr
+    · iexists lg; iframe lg; ipureintro; exact Hlg
+    iexists tp; iframe tokenProvider
+    iapply tokenProviderOk_of_A $$ HtpA
+  -- `if enabled { as.tokenProvider.enable() }`: the provider's admin resource kept
+  ihave #HtpA' := HtpA
+  iunfold tokenProviderOkA at HtpA'
+  icases HtpA' with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
+  subst Htpi
+  (try wp_auto)
+  wp_join with [HA «as»]
+  · (try wp_auto)
+    wp_bind (App (Val #(methods tpi.ty go!"enable" tpi.v)) (Val #()))
+    iapply HEnable $$ HA
+    inext
+    iintro HA
+    (try wp_auto)
+    wp_join_done
+  -- `if as.Revision() == 0 { as.commitRevision(tx) }`: the latest state's revision
+  ihave %Hpk := authOwn_last_permKeysOk (.on γa) hs $$ Hown
+  wp_apply (h_Revision «$r0_ptr» R (.on γa) (some hs)) $$ [Hown] as %xr ⟨Hown, -, %Hxr⟩
+  · iframe #; simp only [authOwnOpt_some]; iexact Hown
+  iunfold authOwnOpt at Hown
+  have hxr : uint.nat xr = st0.revision := Hxr hs st0 rfl Hl0 rfl (by simp)
+  (try wp_auto)
+  wp_join iprop(∃ (sta : AuthState) (hs' : List AuthState), tx_ptr ↦ GoInterface.ok ti ∗
+      as_ptr ↦ «$r0_ptr» ∗ Lk sta Post ∗ authOwn (.on γa) hs' ∗
+      ⌜hs'.getLast? = some sta ∧ permsFit sta ∧
+        ((st0.revision ≠ 0 ∧ hs' = hs) ∨ (st0.revision = 0 ∧ hs' = hs ++ [bump st0]))⌝)
+    with [HL Hown tx «as»] as ⟨%sta, %hs', tx, «as», HL, Hown, %Hsta⟩
+  · -- revision `0` (the buckets were empty): the first revision committed
+    have h0 : st0.revision = 0 := by rw [← hxr]; rfl
+    (try wp_auto)
+    wp_apply (h_commit «$r0_ptr» R (.on γa) P f T ti Lk st0 Post hs st0) $$ [HL Hown]
+      as ⟨%rev, %Hrev, HL, Hown⟩
+    · iframe #; iframe
+      ipureintro
+      refine ⟨Hl0, rfl, by omega, fun _ _ => Hpk st0 Hl0 rfl (by simp), fun h => by cases h⟩
+    (try wp_auto)
+    (try wp_join_done)
+    simp only [revAfter] at Hrev
+    iexists { st0 with revision := rev }, hs ++ [bump st0]
+    iframe
+    ipureintro
+    refine ⟨?_, hfit, Or.inr ⟨h0, rfl⟩⟩
+    rw [List.getLast?_append, List.getLast?_singleton]
+    simp [bump, Hrev]
+  · -- else nothing
+    have hn0 : st0.revision ≠ 0 := by
+      intro h0
+      apply Hif
+      have : uint.nat xr = 0 := by rw [hxr, h0]
+      word
+    (try wp_auto)
+    (try wp_join_done)
+    iexists st0, hs
+    iframe
+    ipureintro
+    exact ⟨hlast, hfit, Or.inl ⟨hn0, rfl⟩⟩
+  -- `setupMetricsReporter()`
+  wp_apply (h_metrics «$r0_ptr»)
+  (try wp_auto)
+  -- `refreshRangePermCache(tx)` from the transaction's state, the latest
+  imod (authSnap_of_last (.on γa) hs' sta Hsta.1) $$ Hown with ⟨Hown, #Hsnap⟩
+  wp_bind (App (Val («$r0_ptr» @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
+    (Val #(GoInterface.ok ti)))
+  iapply (h_refresh «$r0_ptr» R (.on γa) ti (fun x => Lk x Post) sta) $$ [HL]
+  · iframe Hpkg Hinv Hsnap
+    isplitr
+    · iapply HRd
+    isplitl [HL]
+    · iexact HL
+    ipureintro; exact Hsta.2.1
+  inext
+  iintro HL
+  (try wp_auto)
+  -- `tx.Unlock()`, `be.ForceCommit()`
+  wp_bind (App (Val #(methods ti.ty go!"Unlock" ti.v)) (Val #()))
+  iapply HUnlock $$ %sta %Post %hs' [$HL $Hown]
+  · ipureintro; exact Hsta.1
+  inext
+  iintro ⟨HPost, HT, Hown⟩
+  (try wp_auto)
+  wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
+  iapply HFC $$ HT
+  inext
+  iintro HT
+  (try wp_auto)
+  iapply HΦ
+  iexists «$r0_ptr», hs'
+  isplitr
+  · ipureintro; rfl
+  iframe Hinv HPost Hown
+  isplitl [Hbe2 HT Hen2]
+  · iunfold authWR
+    iframe HT
+    isplitl [Hbe2]
+    · iexists (GoInterface.ok bi); iframe Hbe2 Hwok
+    · iunfold enabledHalf; iexists b; iframe Hen2
+      iunfold enabledVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hb
+  isplitl [HA]
+  · iunfold tpAdmin; iexists (GoInterface.ok tpi), A; iframe tokenProvider HtpA HA
+  isplitr
+  · ipureintro; exact Hsta.2.2
+  -- TODO(E2a): the readers' slots; combining the three lists (`slots_sep3`) passes the
+  -- elaborator but the kernel times out (it unfolds `List.replicate (2 ^ 30 - 1)`)
+  sorry
+
+end proof
+
+end auth
+end EtcdGrove
+end Perennial
