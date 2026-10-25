@@ -109,6 +109,25 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   - *M2b.* Pre-vote in the dynamic mode, if Q2 (A).
   - *M2c.* `StepDownOnRemoval = false` in the dynamic mode, if Q3 (A).
   Each its own stage with a paper check first (`notes/reconfiguration-safety.md`), as B1 was.
+  *Scoped 2026-10-25* (order: M2b, M2c, M2a):
+  - M2b: the dynamic mode excludes a pre-candidate everywhere (`RNPv`'s `s.prevote = false`,
+    `PreFacts`, `GMode.Pre`, `DynHyp`; every step at a pre-candidate closed by `StepCD.of_excluded`
+    with no `StepR` witness, `raft__Step/prevote_lemmas.lean:167`). The model collapses the role to
+    follower (`proleRole`), so the guard goes at the node level: a pre-candidate has no pending
+    snapshot and no conf entry in `(applied, commit]` (`hup`'s check, kept until the campaign: its
+    log and commit do not change, 4.1), carried through `raft.Step` in the dynamic mode; the pre-vote
+    win (`stepCandidate`'s `campaign`) then maps to `StepR.campaign`; `wp_applyConf_dyn`'s
+    pre-candidate case from it; `RestartNode`'s `PreVote' = false` premise goes.
+  - M2c: the protocol's dynamic ghost needs no step-down (4.11; `StepR`'s leader rules ask no
+    voter, stage Q's `stepDown`); what needs it is the code level: `ownRaftPhysC`'s `Hvoter`
+    (`role ≠ follower → id ∈ V`, `InvRaftPhys.lean:1013`), read by `stepLeader` (`Hid`),
+    `MsgProp` (`Progress[id]`: Go's drop branch `raft.go:1298-1302` becomes reachable), the heartbeat
+    and `MsgAppResp` responses, `becomeLeader`; `switchToConfig`/`applyConfChange`'s
+    `id ∉ voters → sdr` premise and `sdrOk` go.
+  - M2a: `StartNode`/`Bootstrap` return the static mode; the allocation needs `dyn = none ∨ L = []`
+    (`Protocol/Facts.lean:1034`): the boot log's conf entries are committed without a quorum, which
+    the dynamic ghost's commit witnesses (`cqAt`) must admit (likely: `c0` the peers, the boot
+    `AddNode`s of existing voters no-ops at re-application).
 - **M3. The server in the dynamic mode.** `rnEnvOk`'s `RNMode.static` replaced by the dynamic mode
   (`NodeStart`, `InvRaftNode`, `BuildGap`, `newRaftNode`); `srvCCPolicy`/`ccApplyOk` widened to the
   kinds in scope (v1, `RemoveNode`); the static examples restated over it or kept on a static
