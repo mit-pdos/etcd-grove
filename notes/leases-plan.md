@@ -112,6 +112,21 @@ derived in `isApplyLessor_of_lessorInv`.
   `MustUnsafePutLease`, an axiom). Each needs a trust-boundary spec here (+2 axioms) or a
   translation (Perennial's `sort` for the first: a Perennial change, `notes/perennial-changes.md`;
   etcd's goose configuration for the second).
+  *Boundary specs added (2026-10-25, the user's choice):* `Spec/sort/StringSlice__Sort.lean`,
+  `Spec/.../schema/UnsafeDeleteLease.lean` (unreached until `Revoke` is linked).
+  *The batch lock, found 2026-10-25:* `Revoke` deletes the `Lease` bucket's record through
+  `le.b.BatchTx()` **without taking the batch lock**: the KV write transaction it opened with
+  `rd()` holds it (etcd relies on this: "lease deletion needs to be in the same backend
+  transaction with the kv deletion"). Today no contract allows that write: mvcc's
+  `batchTxSpecG` allows, under its lock token `Locked`, puts and deletes in `Key` and the
+  compaction keys in `Meta` only, and the lessor's `leaseBatchTx` (an assumed contract, from
+  `NewLessor`) allows `UnsafePut` into `Lease` only under its own `LockInsideApply` token. So L2d
+  needs (i) a `batchTxSpecG` clause: `UnsafeDelete(schema.Lease, k)` under `Locked` keeps the
+  token, with the lease bucket's write right (the apply thread's `AEnv.RW`), proved of the real
+  backend in `BackendBridge.lean` (as the `Meta` put is); (ii) the store's write transaction
+  exposing it while open (`storeTxnWriteIs` holds `Locked`); (iii) `rdIs` giving it with the
+  transaction `rd()` returns; and (iv) the lessor's `le.b.BatchTx()` being the store's batch
+  transaction (the same backend: `lessorBeOn`, `kb = some d`).
 
 **L3. The apply thread with leases.** `leasesKnown` becomes an equality: the lessor's live set
 (`leaseOwn γ.leases L`) is the model's table's ids. `plainCover` admits `LeaseGrant`,
