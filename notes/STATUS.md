@@ -348,7 +348,7 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 in the spec, `□?dup`), D44 (no workload: the client spec supports what the proof supports; a
 client's own facts in its invariant; no built-in restriction on the raft log), D45 (the state
 multi-revision, `KVState ⟨compacted, base, later⟩`, `base : KVStore := GMap GoString KVRec`;
-`kv.Get` at any revision the state keeps) and D46 (`later` each revision's changes, in order, as
+`kv.Get` at any revision the state keeps) and D46 (`changes`: each revision's changes, in order, as
 mvcc's key bucket keeps them; the stores computed from them; a watch as repeated reads of the
 state, candidate spec `watcher.Watch.specσ` in `client/v3/WatchState.lean`).
 

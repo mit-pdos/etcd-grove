@@ -18565,7 +18565,7 @@ facts (`srvNoDupKeys`, watchkv's `WkLog`) could not be stated over it. Compactio
 compacting at `c` keeps each key's latest record at or below `c` and every later one, the store
 at `c` and the later revisions' changes.
 
-**The state** (`KVModelDefs.lean`). `KVState ⟨compacted, base, later⟩` with `later : List (List
+**The state** (`KVModelDefs.lean`; the field named after mvcc's `tw.changes`, a write transaction's changes). `KVState ⟨compacted, base, changes⟩` with `changes : List (List
 mvcc.Change)`: the changes of revisions `compacted + 1, ..., rev`, each in order. The views D45 had
 are computed (`runFrom`, `mvcc.stateAt`'s step): `KVState.at r`, `store`, `kvs`, `rev`, and
 `changesAt r`; `commit cs` appends `cs`; `kvStateOf l = ⟨0, storeOf (stateAt l 0), l.drop 1⟩`.

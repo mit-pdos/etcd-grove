@@ -992,7 +992,7 @@ theorem kvN_raftN : (↑kvN : CoPset) ⊆ ⊤ \ ↑srvRaftN :=
 /-- States are countable (for the state's ghost variable; the key-values' instance is
 `etcdKvCountableW`, `InvWatchStore`). -/
 instance KVState.countable : Pos.Countable KVState :=
-  .ofInjective (fun σ => Pos.Countable.encode (σ.compacted, σ.base, σ.later))
+  .ofInjective (fun σ => Pos.Countable.encode (σ.compacted, σ.base, σ.changes))
     (by rintro ⟨a, b, c⟩ ⟨a', b', c'⟩ h; have h := Pos.encode_inj h; simp_all)
 
 /-- **etcd's KV is at the state `σ`** (2026-10-15, unit T2), exclusively: half of the state's
