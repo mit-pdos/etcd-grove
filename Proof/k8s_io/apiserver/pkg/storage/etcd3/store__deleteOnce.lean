@@ -55,7 +55,7 @@ theorem store.deleteOnce.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, %Hwl, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
@@ -100,7 +100,7 @@ theorem store.deleteOnce.wp_proof
     (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
       (kubernetes.optDelTxn key s.rev true)).1)
     (stepHand c (delStep key validate))
-    (sameAt key s.rev kv0) (fun x hx => Hwl x hx _)
+    (sameAt key s.rev kv0)
     (fun σ hw hb hA => ⟨(delStepOk c key hk kv0 s hs hr validate hval σ hw hb hA).1,
       fun hf => ⟨(delStepOk c key hk kv0 s hs hr validate hval σ hw hb hA).2 hf,
         fun hh => by simpa [stepHand] using hh⟩⟩)) $$ [HW Hau]

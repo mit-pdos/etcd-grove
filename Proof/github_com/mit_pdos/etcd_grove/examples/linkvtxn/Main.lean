@@ -4,7 +4,7 @@ start since 2026-10-22, D33). Lean-first (no Rocq counterpart).
 
 The server's start is putget's `Main`'s (`Proof/.../putget/Main.lean`), at `linkvtxn`'s
 configuration: `Main`'s premises in the shared start's form (`common.bootPremise_of`); the ghost
-state `NewServer` takes (`common.alloc1` at the leases-off workload `putgetWorkload`);
+state `NewServer` takes (`common.alloc1`);
 `common.StartServer`; `common.Serve` with the ghost step `common.grpcUp_noRefusal` (the member
 refusal-free, D29) then `common.kv_served` (etcd's KV calls registered at the address);
 `common.NewClient` (etcd's default configuration; `clientWriteOnce`, D29). Then the instance's
@@ -88,16 +88,16 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
-  imod (common.alloc1 putgetWorkload id bootLog Hbf.idLow Hbf.boot (linkvtxnDir id) (dirOne_member id _) (by omega))
+  imod (common.alloc1 id bootLog Hbf.idLow Hbf.boot (linkvtxnDir id) (dirOne_member id _) (by omega))
     with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog, hwl⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog⟩ := Hal
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- `StartServer("linkvtxn", "127.0.0.1:23806", clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (linkvtxnDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" lg bootLog
-      (linkvtxnDir id) id γ bud ρ E₀ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN hcfg
+      (linkvtxnDir id) id γ bud ρ E₀ Φs γn Htb Hrb48 HrbN hcfg
       hdyn hcc hboot htr htx hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
@@ -162,7 +162,7 @@ theorem Main.wp_proof
     intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
     subst ha; exact Hnr
   -- the instance's invariant, at the server's start store (empty)
-  imod (linkvInv_alloc_boot ρ.rd.kv hlog (putget.ccOk id) [id] bootLog Hbf.boot (by rw [hwl]; intro; trivial) ⊤) $$ Hetcd
+  imod (linkvInv_alloc_boot ρ.rd.kv hlog (putget.ccOk id) [id] bootLog Hbf.boot ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   -- `Check(cli, clients, ops, 0)`
   wp_apply (wp_Check γl cl go!"127.0.0.1:23796" _ E ρ.rd cid mid clients ops (W64 0) hAs

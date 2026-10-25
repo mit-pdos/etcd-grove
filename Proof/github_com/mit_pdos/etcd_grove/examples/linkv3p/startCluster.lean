@@ -4,7 +4,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/startCluster.lean
 counterpart).
 
 The three peer URL slices and the initial cluster's map; the ghost state of the cluster and its
-members (`common.alloc3` at the workload `W`, the ids in the names' order, the client's `etcdKV`
+members (`common.alloc3`, the ids in the names' order, the client's `etcdKV`
 at the first member's names), each member's pure boot facts kept (`memberBoot`'s: its names, what
 `memberAt` records); `startMember` for each member, the thread token passed along
 (`memberServed`'s `srvGoRes`), its watch server kept; the servers' slice; `startBridge` for each
@@ -52,7 +52,7 @@ theorem startCluster.wp_proof
     (wp_startBridge : startBridge.spec (GF := GF) (hG := hG))
     (wp_NewClients : common.NewClients.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N id₁ id₂ id₃ bootLog lg W pfx Hbf hW Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
+  intro CS ESL ESE N id₁ id₂ id₃ bootLog lg pfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
@@ -122,11 +122,11 @@ theorem startCluster.wp_proof
   have Hnz := common.id_nz id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have Hdok : netDirOk (dir3 id₁ id₂ id₃) :=
     dir3_ok id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
-  imod (common.alloc3 W id₁ id₂ id₃ bootLog Hbf.idLow Hbf.idLow0 Hbf.boot (dir3 id₁ id₂ id₃)
+  imod (common.alloc3 id₁ id₂ id₃ bootLog Hbf.idLow Hbf.idLow0 Hbf.boot (dir3 id₁ id₂ id₃)
       peerAddr₁ peerAddr₂ peerAddr₃ Hdok.1 (dir3_host id₁ id₂ id₃) (by omega)) $$ Hf₁ Hf₂ Hf₃
     with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Ho₁⟩, Hmb₂,
     ⟨#Hsl₂, Ho₂⟩, Hmb₃, ⟨#Hsl₃, Ho₃⟩, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁, hst₂, hwl₂, hst₃, hwl₃, -⟩ :=
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hst₂, hst₃, -⟩ :=
     Hal
   obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
@@ -343,7 +343,7 @@ theorem startCluster.wp_proof
     isplitr
     · ipureintro; exact HR₃
     ipureintro; exact ⟨hr₃, hc₃, hch₃, hl₃⟩
-  ipureintro; exact ⟨hwl₁, hst₂, hwl₂, hst₃, hwl₃⟩
+  ipureintro; exact ⟨hst₂, hst₃⟩
 
 end proof
 

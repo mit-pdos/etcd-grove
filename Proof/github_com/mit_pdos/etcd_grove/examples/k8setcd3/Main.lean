@@ -110,16 +110,16 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
-  imod (common.alloc1 putgetWorkload id bootLog Hbf.idLow Hbf.boot (k8setcd3Dir id) (dirOne_member id _) (by omega))
+  imod (common.alloc1 id bootLog Hbf.idLow Hbf.boot (k8setcd3Dir id) (dirOne_member id _) (by omega))
     with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog, hwl⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog⟩ := Hal
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- `StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (k8setcd3Dir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg bootLog
-      (k8setcd3Dir id) id γ bud ρ E₀ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN hcfg
+      (k8setcd3Dir id) id γ bud ρ E₀ Φs γn Htb Hrb48 HrbN hcfg
       hdyn hcc hboot htr htx hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
@@ -206,8 +206,6 @@ theorem Main.wp_proof
   ihave #Hreg1 : client.kvRegsAt x $$ []
   · iunfold client.kvRegsAt
     iframe #
-  have hW : ∀ op, x.γr.kv.wl.writes op := by
-    intro op; show ρ.rd.kv.wl.writes op; rw [hwl]; trivial
   -- the seeding, from the server's start state (`σb`: no key, revision `1`)
   have hboot0 : kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog)) = σb := by
     have h : kvModel ρ.rd.kv (bootEntries bootLog) = [[], []] := by
@@ -219,7 +217,7 @@ theorem Main.wp_proof
   ihave #Hkc' := Hkc
   iStructNamed Hkc'
   (try wp_auto)
-  wp_apply (wp_seed cl x _ γs hAs hW) $$ [Hs] as %st0 %ok Hsd
+  wp_apply (wp_seed cl x _ γs hAs) $$ [Hs] as %st0 %ok Hsd
   · iframe #
     iframe Hs
   icases Hsd with (%Hok | ⟨%Hok, Hs, #Hst0⟩)
@@ -267,12 +265,6 @@ theorem Main.wp_proof
     iframe #
     isplitr
     · iapply BigSepL.bigSepL_nil.2; itrivial
-    isplitr
-    · ipureintro
-      intro y hy
-      rw [List.mem_singleton] at hy
-      subst hy
-      exact hW
     imodintro
     iintro %Φ' HΦ'
     wp_apply wp_newObj as %o %ho
@@ -286,7 +278,7 @@ theorem Main.wp_proof
     { S := driverSpec, codec := codecI, vi := versionerI, ti := identityI, di := decoderI,
       pathPrefix := go!"/registry", resourcePrefix := go!"/objs", gr := ⟨[], go!"objs"⟩, kc := kc,
       cl := cl, ms := [x], V := V, mt := mt, lt := lt, γh := γh }
-  imod (kInv_seed ρ.rd.kv c rfl rfl hW ⊤) $$ [Hetcd Hhist] with ⟨%γ, #Hinv, Hks⟩
+  imod (kInv_seed ρ.rd.kv c rfl rfl ⊤) $$ [Hetcd Hhist] with ⟨%γ, #Hinv, Hks⟩
   · iframe
   wp_apply (wp_Check γ sp c g0s st0 clients ops (W64 0) rfl rfl rfl hAs (by simp [c])
       (by omega) H0 H31 Hops Hmul (by rw [g0s_items]; simp)) $$ [Hks] as %r %hr

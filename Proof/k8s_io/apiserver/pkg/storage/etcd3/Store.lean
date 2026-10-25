@@ -106,7 +106,6 @@ def isStore (sp : Loc) (c : StoreCfg GF Obj) : IProp GF :=
     isNewClient c.cl (c.ms.map client.SrvAt.addr) c.V ∗
     client.clientWriteOnce c.cl (c.ms.map client.SrvAt.addr) ∗
     ([∗list] x ∈ c.ms, client.kvRegsAt x) ∗
-    ⌜∀ x ∈ c.ms, ∀ op, x.γr.kv.wl.writes op⌝ ∗
     contractOk c.S c.codec c.vi c.ti c.di)
 
 instance isStore_persistent (sp : Loc) (c : StoreCfg GF Obj) : Persistent (isStore sp c) := by

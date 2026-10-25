@@ -211,7 +211,6 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
   iintro ⟨#Hinv, HU⟩
   unfold k8sAu1
   iunfold kInv at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
   iauintro
   unfold atomic_acc
   iinv Hinv with >Hi Hclose
@@ -277,7 +276,6 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iintro ⟨#Hinv, #Hc⟩
   unfold k8sAuRW
   iunfold kInv at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
   imodintro
   iauintro
   unfold atomic_acc
@@ -370,7 +368,6 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iintro ⟨#Hinv, Htok⟩
   unfold k8sAu1
   iunfold kInv at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
   iauintro
   unfold atomic_acc
   iinv Hinv with >Hi Hclose
@@ -425,7 +422,6 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iintro #Hinv
   unfold k8sAuRW
   iunfold kInv at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
   imodintro
   iauintro
   unfold atomic_acc
@@ -503,7 +499,6 @@ theorem write_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : 
   have HE := drvE_mask_top
   iintro ⟨#Hinv, HU⟩
   iunfold kInv at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
@@ -535,7 +530,6 @@ theorem read_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : K
   have HE := drvE_mask_top
   iintro ⟨#Hinv, HU⟩
   iunfold kInv at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
@@ -575,7 +569,6 @@ theorem plain_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVN
   iauintro
   unfold atomic_acc
   iunfold kInv at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
@@ -627,7 +620,6 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
   iauintro
   unfold atomic_acc
   iunfold kInv at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩

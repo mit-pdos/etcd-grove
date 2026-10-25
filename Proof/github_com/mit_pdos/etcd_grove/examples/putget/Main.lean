@@ -4,8 +4,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/putget/Main.lean` (item 9
 counterpart).
 
 The steps: `Main`'s premises in the shared start's form (`common.bootPremise_of`,
-`commonPremises`); the ghost state `NewServer` takes (`common.alloc1` at the leases-off workload
-`putgetWorkload`); `common.StartServer` (the member's configuration, `NewServer`, `Start`);
+`commonPremises`); the ghost state `NewServer` takes (`common.alloc1`); `common.StartServer` (the member's configuration, `NewServer`, `Start`);
 `common.Serve` (`v3rpc.Server`, `Listen`, `go gs.Serve(l)`) with the ghost step
 `common.kv_served` (one gRPC slot; etcd's `Put` and `Range` registered at the address);
 `common.NewClient` (`clientv3.New`); each call's context with the request timeout
@@ -94,16 +93,16 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
-  imod (common.alloc1 putgetWorkload id bootLog Hbf.idLow Hbf.boot (putgetDir id) (dirOne_member id _) (by omega))
+  imod (common.alloc1 id bootLog Hbf.idLow Hbf.boot (putgetDir id) (dirOne_member id _) (by omega))
     with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog, hwl⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog⟩ := Hal
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- `StartServer("putget", "127.0.0.1:23800", clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (putgetDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"putget" go!"127.0.0.1:23800" go!"127.0.0.1:23790" lg bootLog
-      (putgetDir id) id γ bud ρ E₀ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN hcfg
+      (putgetDir id) id γ bud ρ E₀ Φs γn Htb Hrb48 HrbN hcfg
       hdyn hcc hboot htr htx hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
@@ -161,7 +160,7 @@ theorem Main.wp_proof
     as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -⟩
   (try wp_auto)
   -- the client's invariant, the floor, no options
-  imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries bootLog)) go!"k" go!"v" (by rw [hwl]; trivial) ⊤)
+  imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries bootLog)) go!"k" go!"v" ⊤)
     $$ Hetcd with ⟨%γf, #Hinv⟩
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []

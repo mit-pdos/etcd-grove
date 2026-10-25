@@ -6,8 +6,7 @@ Lean-first (no Rocq counterpart).
 The put and the get the client sends for `cli.Put(ctx, k, v)` and `cli.Get(ctx, k)` (`putOp k v`,
 `getOp k`: `client/v3/Results.lean`'s `putKeyOp`, `getKeyOp`) and what the server's step does with
 them on a state sorted by key: a put commits its one change at the next revision
-(`kvOpStep_put_eq`, finding the value it wrote, `findKey_putKv_val`) and keeps the state sorted
-(`kvOpStep_put_sorted`); a get changes nothing (`kvOpStep_get`). `TxnModelKV.lean` builds on them.
+(`kvOpStep_put_kvs`, `kvOpStep_put_rev`, finding the value it wrote, `findKey_putKv_val`); a get changes nothing (`kvOpStep_get`). `TxnModelKV.lean` builds on them.
 
 Moved from `examples/linkv/ModelKV.lean` when linkv was retired (2026-10-22, `notes/decisions.md`
 D34), without linkv's values-only porcupine model (`KVModel.lean`) and its abstraction `absKV`; the
@@ -61,16 +60,14 @@ theorem findKey_putKv_val (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (r : w6
     simp [hk]
 
 /-- What `kvOpStep` does with a plain put: commit its one change at the next revision. -/
-theorem kvOpStep_put_eq (k v : GoString) (σ : KVState) :
-    kvOpStep (.put (putOp k v)) σ =
-      ⟨putKv (W64 ((σ.rev + 1 : Nat) : Int)) k v (W64 0) σ.kvs, σ.rev + 1⟩ := by
-  simp [kvOpStep, KVState.commit, txn.needsPrev, txn.putOpOf, op_simps, txn.putChangeOf, txn.putValOf, txn.putLeaseOf, mvcc.applyChanges, mvcc.applyChange]
+theorem kvOpStep_put_kvs (k v : GoString) (σ : KVState) :
+    (kvOpStep (.put (putOp k v)) σ).kvs = putKv (W64 ((σ.rev + 1 : Nat) : Int)) k v (W64 0) σ.kvs := by
+  simp [kvOpStep, KVState.commit_kvs, txn.needsPrev, txn.putOpOf, op_simps, txn.putChangeOf,
+    txn.putValOf, txn.putLeaseOf, mvcc.applyChanges, mvcc.applyChange]
 
-/-- A put keeps the state sorted. -/
-theorem kvOpStep_put_sorted (k v : GoString) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess) :
-    (kvOpStep (.put (putOp k v)) σ).kvs.Pairwise etcdKvLess := by
-  rw [kvOpStep_put_eq]
-  exact mvcc.putKv_sorted hs _ k v _
+theorem kvOpStep_put_rev (k v : GoString) (σ : KVState) :
+    (kvOpStep (.put (putOp k v)) σ).rev = σ.rev + 1 := by
+  simp [kvOpStep, KVState.commit_rev, txn.needsPrev, txn.putOpOf, op_simps]
 
 /-- **A get changes nothing.** -/
 theorem kvOpStep_get (k : GoString) (σ : KVState) : kvOpStep (.range (getOp k)) σ = σ := rfl

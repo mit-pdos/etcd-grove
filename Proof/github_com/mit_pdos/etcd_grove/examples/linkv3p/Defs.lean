@@ -292,7 +292,7 @@ the clients'; each member (`memberAt`), each bridge owned and not blackholed, ea
 `clientv3.New`'s over the three bridges at the watch environment (`watchEnv`, the prefix `pfx`);
 the client's view of etcd's KV at the start store; the members' KV names agreeing, at the workload
 `W`. -/
-def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (W : SrvWorkload) (pfx : GoString)
+def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (pfx : GoString)
     (srvs brs clis : GoSlice) : IProp GF :=
   iprop(∃ (γ : RaftNames) (γn : NetNames GF) (ρ₁ ρ₂ ρ₃ : ReqNames) (E₁ E₂ E₃ : apply.AEnv GF)
       (cid₁ cid₂ cid₃ mid₁ mid₂ mid₃ : w64) (R₁ R₂ R₃ : v3rpc.WSrv GF) (s₁ s₂ s₃ cl₁ cl₂ cl₃ : Loc)
@@ -310,8 +310,7 @@ def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (W : SrvWorkload
     isNewClient cl₂ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     isNewClient cl₃ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) ∗
-    ⌜ρ₁.rd.kv.wl = W ∧ ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₂.rd.kv.wl = ρ₁.rd.kv.wl ∧
-      ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.wl = ρ₁.rd.kv.wl⌝)
+    ⌜ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st⌝)
 
 end cluster
 
