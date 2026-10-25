@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Code.context
-public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Code.go_etcd_io.etcd.pkg.v3.traceutil
@@ -15,6 +14,7 @@ public import Code.go_etcd_io.etcd.server.v3.lease
 public import Perennial.Code.bytes
 public import Perennial.Code.math
 public import Perennial.Code.sort
+public import Code.go_uber_org.zap
 public import Perennial.Code.fmt
 public import Perennial.Code.reflect
 public import Perennial.Code.strings
@@ -67,6 +67,11 @@ def kvSortByValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByValue" [])
 
 attribute [irreducible] kvSortByValue.ty
+
+def TxnContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.TxnContext" [])
+
+attribute [irreducible] TxnContext.ty
 
 noncomputable def slowApplies [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.slowApplies"
@@ -155,8 +160,8 @@ noncomputable def pruneKVs [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Txn [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.Txn"
 
-noncomputable def txn [FfiSyntax] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/etcdserver/txn.txn"
+noncomputable def assembleTxnResponse [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/txn.assembleTxnResponse"
 
 noncomputable def newTxnResp [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.newTxnResp"
@@ -206,11 +211,10 @@ noncomputable def warnOfExpensiveGenericRequest [FfiSyntax] [GoGlobalContext] : 
 noncomputable def isNil [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.isNil"
 
-/-- go: delete.go:28:6 -/
+/-- go: delete.go:26:6 -/
 noncomputable def DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
-  (Lam "lg"
-  (Lam "kv"
+  (Lam "txn"
   (Lam "dr"
   (App (Val wrapDefer)
   (Lam "$defer"
@@ -218,11 +222,10 @@ noncomputable def DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "trace" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val #())))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty)))) (Val #())))
   (Let "dr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dr"))
-  (Let "kv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))
-  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "txn" (App (Val (GoInstruction (GoAlloc TxnContext.ty))) (Var "txn"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"Logger"))) (Var "txn")))
   (Let "$a2" (Val #(go!"delete_range"))
   (Let "$a3" (Let "$sl0" (Let "$v0" (Val #(go!"key"))
   (Let "$v1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dr")))))
@@ -239,7 +242,7 @@ noncomputable def DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"KV"))) (Var "txn")))) (Var "$a0")))
   (Let "txnWrite" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -270,9 +273,9 @@ noncomputable def DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))))
 
-/-- go: delete.go:39:6 -/
+/-- go: delete.go:37:6 -/
 noncomputable def deleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "txnWrite"
@@ -358,7 +361,7 @@ noncomputable def deleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
     If it is a GTE range, then []byte{} is returned to indicate the empty byte
     string (vs nil being no byte string).
 
-    go: delete.go:63:6 -/
+    go: delete.go:61:6 -/
 noncomputable def mkGteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rangeEnd"
   (App (Val exceptionDo)
@@ -373,12 +376,10 @@ noncomputable def mkGteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- go: put.go:30:6 -/
+/-- go: put.go:29:6 -/
 noncomputable def Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
-  (Lam "lg"
-  (Lam "lessor"
-  (Lam "kv"
+  (Lam "txn"
   (Lam "p"
   (App (Val wrapDefer)
   (Lam "$defer"
@@ -386,12 +387,10 @@ noncomputable def Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "trace" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val #())))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty)))) (Val #())))
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)))) (Var "p"))
-  (Let "kv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))
-  (Let "lessor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Var "lessor"))
-  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "txn" (App (Val (GoInstruction (GoAlloc TxnContext.ty))) (Var "txn"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"Logger"))) (Var "txn")))
   (Let "$a2" (Val #(go!"put"))
   (Let "$a3" (Let "$sl0" (Let "$v0" (Val #(go!"key"))
   (Let "$v1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)))) (Var "p")))))
@@ -408,13 +407,13 @@ noncomputable def Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Var "lessor"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"Lessor"))) (Var "txn")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)))) (Var "p"))
   (App (App (App (Val (GoInstruction (FuncResolve checkLease []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"KV"))) (Var "txn")))) (Var "$a0")))
   (Let "txnWrite" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -463,9 +462,9 @@ noncomputable def Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))))
 
-/-- go: put.go:48:6 -/
+/-- go: put.go:47:6 -/
 noncomputable def put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "txnWrite"
@@ -543,7 +542,7 @@ noncomputable def put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))))))
 
-/-- go: put.go:71:6 -/
+/-- go: put.go:70:6 -/
 noncomputable def checkPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "trace"
   (Lam "txnWrite"
@@ -584,7 +583,7 @@ noncomputable def checkPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))))))
 
-/-- go: put.go:80:6 -/
+/-- go: put.go:79:6 -/
 noncomputable def checkLease.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lessor"
   (Lam "p"
@@ -614,7 +613,7 @@ noncomputable def checkLease.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty))) (Pair (Var "leaseID") (Var "$r0"))))))))))))
 
-/-- go: put.go:90:6 -/
+/-- go: put.go:89:6 -/
 noncomputable def checkAndGetPrevKV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "trace"
   (Lam "txnWrite"
@@ -658,7 +657,7 @@ noncomputable def checkAndGetPrevKV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.RangeResult.ty)))) (Pair (Var "prevKV") (Var "$r0")))))))))))))))))))
 
-/-- go: put.go:104:6 -/
+/-- go: put.go:103:6 -/
 noncomputable def getPrevKV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "trace"
   (Lam "txnWrite"
@@ -724,15 +723,16 @@ noncomputable def Count.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))
-  (Let "$a3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
+  (Let "$a1" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))
+  (App (Val (GoInstruction (CompositeLiteral TxnContext.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"KV")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty (Var "$v1")))]))))
+  (Let "$a2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.int64))) (Var "revision"))
   (Let "$v3" (Val #true)
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v0"))), (KeyedElement (some (KeyField go!"RangeEnd")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"Revision")) (ElementExpression go.int64 (Var "$v2"))), (KeyedElement (some (KeyField go!"CountOnly")) (ElementExpression go.bool (Var "$v3")))])))))))
-  (Let "$a4" (Val #false)
-  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve Range []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "$a3" (Val #false)
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve Range []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Fst (Var "__p")))
   (Let "$ret1" (Snd (Fst (Var "__p")))
   (Let "$ret2" (Snd (Var "__p"))
@@ -759,11 +759,10 @@ noncomputable def Count.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))))))))))
 
-/-- go: range.go:47:6 -/
+/-- go: range.go:50:6 -/
 noncomputable def Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
-  (Lam "lg"
-  (Lam "kv"
+  (Lam "txn"
   (Lam "r"
   (Lam "withTotalCount"
   (App (Val wrapDefer)
@@ -773,11 +772,10 @@ noncomputable def Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Val #())))
   (Let "withTotalCount" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "withTotalCount"))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
-  (Let "kv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))
-  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "txn" (App (Val (GoInstruction (GoAlloc TxnContext.ty))) (Var "txn"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"Logger"))) (Var "txn")))
   (Let "$a2" (Val #(go!"range"))
   (Let "$a3" (Val #slice.nil)
   (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
@@ -790,12 +788,12 @@ noncomputable def Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ConcurrentReadTxMode)
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))
-  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"KV"))) (Var "txn")))) (Var "$a0")) (Var "$a1"))))
   (Let "txnRead" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"Logger"))) (Var "txn")))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Var "txnRead"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.bool))) (Var "withTotalCount"))
@@ -845,9 +843,9 @@ noncomputable def Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))))))
 
-/-- go: range.go:59:6 -/
+/-- go: range.go:62:6 -/
 noncomputable def executeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
@@ -937,7 +935,7 @@ noncomputable def executeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))))))))
 
-/-- go: range.go:86:6 -/
+/-- go: range.go:89:6 -/
 noncomputable def rangeLimit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
@@ -967,7 +965,7 @@ noncomputable def rangeLimit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "limit") (Var "$r0"))))))))))
 
-/-- go: range.go:97:6 -/
+/-- go: range.go:100:6 -/
 noncomputable def IsDefaultOrdering.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "sortTarget"
   (Lam "sortOrder"
@@ -977,7 +975,7 @@ noncomputable def IsDefaultOrdering.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_NONE))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (Var "sortTarget")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_KEY))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_ASCEND))) (Val #false)))))))))
 
-/-- go: range.go:105:6 -/
+/-- go: range.go:108:6 -/
 noncomputable def HasRevisionFilters.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
@@ -985,7 +983,7 @@ noncomputable def HasRevisionFilters.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MinModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MaxModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0)))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MinCreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0)))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MaxCreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0))))))))))
 
-/-- go: range.go:110:6 -/
+/-- go: range.go:113:6 -/
 noncomputable def filterRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "r"
@@ -1043,7 +1041,7 @@ noncomputable def filterRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: range.go:125:6 -/
+/-- go: range.go:128:6 -/
 noncomputable def sortRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "r"
@@ -1125,7 +1123,7 @@ noncomputable def sortRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (Var "sortOrder") (Var "$r0")))))))))))))))
 
-/-- go: range.go:156:6 -/
+/-- go: range.go:159:6 -/
 noncomputable def asembleRangeResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "r"
@@ -1186,7 +1184,7 @@ noncomputable def asembleRangeResponse.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
 
-/-- go: range.go:174:6 -/
+/-- go: range.go:177:6 -/
 noncomputable def checkRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "req"
@@ -1209,7 +1207,7 @@ noncomputable def checkRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))))
 
-/-- go: range.go:186:6 -/
+/-- go: range.go:189:6 -/
 noncomputable def pruneKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "isPrunable"
@@ -1248,7 +1246,7 @@ noncomputable def pruneKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))))))))
 
-/-- go: range.go:199:18 -/
+/-- go: range.go:202:18 -/
 noncomputable def kvSort.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1273,7 +1271,7 @@ noncomputable def kvSort.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (Pair (Var "t") (Var "$r0")))))))))))))))
 
-/-- go: range.go:204:18 -/
+/-- go: range.go:207:18 -/
 noncomputable def kvSort.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1283,7 +1281,7 @@ noncomputable def kvSort.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (Var "s"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))))))))
 
-/-- go: range.go:208:23 -/
+/-- go: range.go:211:23 -/
 noncomputable def kvSortByKey.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1297,7 +1295,7 @@ noncomputable def kvSortByKey.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByKey.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByKey.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 0))))))))))))
 
-/-- go: range.go:214:27 -/
+/-- go: range.go:217:27 -/
 noncomputable def kvSortByVersion.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1309,7 +1307,7 @@ noncomputable def kvSortByVersion.Less.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByVersion.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByVersion.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByVersion.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByVersion.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))) (Val #(W64 0))))))))))))
 
-/-- go: range.go:220:26 -/
+/-- go: range.go:223:26 -/
 noncomputable def kvSortByCreate.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1321,7 +1319,7 @@ noncomputable def kvSortByCreate.Less.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByCreate.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByCreate.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByCreate.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByCreate.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))) (Val #(W64 0))))))))))))
 
-/-- go: range.go:226:23 -/
+/-- go: range.go:229:23 -/
 noncomputable def kvSortByMod.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1333,7 +1331,7 @@ noncomputable def kvSortByMod.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByMod.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByMod.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByMod.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByMod.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))) (Val #(W64 0))))))))))))
 
-/-- go: range.go:232:25 -/
+/-- go: range.go:235:25 -/
 noncomputable def kvSortByValue.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -1347,28 +1345,22 @@ noncomputable def kvSortByValue.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByValue.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByValue.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 0))))))))))))
 
-/-- go: txn.go:32:6 -/
+/-- go: txn.go:39:6 -/
 noncomputable def Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
-  (Lam "lg"
+  (Lam "txn"
   (Lam "rt"
-  (Lam "txnModeWriteWithSharedBuffer"
-  (Lam "kv"
-  (Lam "lessor"
   (Lam "skipRangeExecution"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "trace" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val #())))
   (Let "txnResp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty)))) (Val #())))
   (Let "skipRangeExecution" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "skipRangeExecution"))
-  (Let "lessor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Var "lessor"))
-  (Let "kv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))
-  (Let "txnModeWriteWithSharedBuffer" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "txnModeWriteWithSharedBuffer"))
   (Let "rt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "rt"))
-  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "txn" (App (Val (GoInstruction (GoAlloc TxnContext.ty))) (Var "txn"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"Logger"))) (Var "txn")))
   (Let "$a2" (Val #(go!"transaction"))
   (Let "$a3" (Val #slice.nil)
   (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
@@ -1386,7 +1378,7 @@ noncomputable def Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ReadTxMode.ty))) (Var "mode"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))
-  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"KV"))) (Var "txn")))) (Var "$a0")) (Var "$a1"))))
   (Let "txnRead" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "txnPath" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.bool)))) (Val #())))
@@ -1395,7 +1387,7 @@ noncomputable def Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))
   (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ReadView.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Var "txnRead")))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "rt"))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Var "lessor"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"Lessor"))) (Var "txn")))
   (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))
   (App (App (App (App (App (App (Val (GoInstruction (FuncResolve checkTxn []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
   (Let "$ret0" (Fst (Var "__p"))
@@ -1409,13 +1401,13 @@ noncomputable def Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "txnWrite" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"Logger"))) (Var "txn")))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (Var "txnWrite"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "rt"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.bool))) (Var "isWrite"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.bool))) (Var "skipRangeExecution"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve txn []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve assembleTxnResponse []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -1445,7 +1437,7 @@ noncomputable def Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isWrite"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (Var "kv"))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"KV"))) (Var "txn")))) (Var "$a0")))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (Pair (Var "txnWrite") (Var "$r0")))))))
   (App (Val doExecute)
@@ -1495,7 +1487,7 @@ noncomputable def Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty) go!"StepWithFunction"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Var "trace"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRead.ty))) (Pair (Var "txnRead") (Var "$r0")))))))))
-  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isWrite")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "txnModeWriteWithSharedBuffer")) (Val #false))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isWrite")) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef TxnContext.ty go!"TxnModeWriteWithSharedBuffer"))) (Var "txn"))) (Val #false))
   (Let "$r0" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.SharedBufReadTxMode)
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ReadTxMode.ty))) (Pair (Var "mode") (Var "$r0")))))
@@ -1507,10 +1499,10 @@ noncomputable def Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))))))))
 
-/-- go: txn.go:81:6 -/
-noncomputable def txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+/-- go: txn.go:88:6 -/
+noncomputable def assembleTxnResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "txnWrite"
@@ -1597,7 +1589,7 @@ noncomputable def txn.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- newTxnResp allocates a txn response for a txn request given a path.
 
-    go: txn.go:105:6 -/
+    go: txn.go:112:6 -/
 noncomputable def newTxnResp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam "txnPath"
@@ -1711,7 +1703,7 @@ noncomputable def newTxnResp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty))))) (Pair (Var "reqs") (Var "$r0"))))))))))))))
 
-/-- go: txn.go:135:6 -/
+/-- go: txn.go:142:6 -/
 noncomputable def executeTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
@@ -1978,7 +1970,7 @@ noncomputable def executeTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))))))))))))))
 
-/-- go: txn.go:201:6 -/
+/-- go: txn.go:208:6 -/
 noncomputable def checkTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "trace"
   (Lam "rv"
@@ -2092,7 +2084,7 @@ noncomputable def checkTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "txnCount") (Var "$r0"))))))))))))))))))
 
-/-- go: txn.go:230:6 -/
+/-- go: txn.go:237:6 -/
 noncomputable def compareInt64.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -2109,7 +2101,7 @@ noncomputable def compareInt64.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #(W64 0)))))))))))
 
-/-- go: txn.go:241:6 -/
+/-- go: txn.go:248:6 -/
 noncomputable def compareToPath.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "rt"
@@ -2179,7 +2171,7 @@ noncomputable def compareToPath.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.bool)))) (Pair (Var "txnPath") (Var "$r0"))))))))))))
 
-/-- go: txn.go:257:6 -/
+/-- go: txn.go:264:6 -/
 noncomputable def applyCompares.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "cmps"
@@ -2211,7 +2203,7 @@ noncomputable def applyCompares.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- applyCompare applies the compare request.
     If the comparison succeeds, it returns true. Otherwise, returns false.
 
-    go: txn.go:268:6 -/
+    go: txn.go:275:6 -/
 noncomputable def applyCompare.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "c"
@@ -2279,7 +2271,7 @@ noncomputable def applyCompare.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.RangeResult.ty)))) (Pair (Var "rr") (Var "$r0")))))))))))))))))
 
-/-- go: txn.go:294:6 -/
+/-- go: txn.go:301:6 -/
 noncomputable def compareKV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ckv"
@@ -2441,7 +2433,7 @@ noncomputable def compareKV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "rev") (Var "$r0")))))))))))))
 
-/-- go: txn.go:338:6 -/
+/-- go: txn.go:345:6 -/
 noncomputable def IsTxnSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
@@ -2493,7 +2485,7 @@ noncomputable def IsTxnSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty)))) (Pair (Var "u") (Var "$value"))))))))))))))
 
-/-- go: txn.go:352:6 -/
+/-- go: txn.go:359:6 -/
 noncomputable def IsTxnReadonly.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
@@ -2752,7 +2744,7 @@ noncomputable def isNil.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.reflect.ValueOf []))) (Val #())) (Var "$a0")))) (Val #())))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.time, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.bytes, pkg_id.math, pkg_id.sort, pkg_id.fmt, pkg_id.reflect, pkg_id.strings]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.time, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.bytes, pkg_id.math, pkg_id.sort, pkg_id.go_uber_org.zap, pkg_id.fmt, pkg_id.reflect, pkg_id.strings]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -2791,8 +2783,6 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))
@@ -2816,6 +2806,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.math.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sort.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3083,6 +3075,55 @@ attribute [instance] kvSortByValue.TypeAssumptions.type_repr
   kvSortByValue.TypeAssumptions.ptr_Less_unfold
   kvSortByValue.TypeAssumptions.ptr_Swap_unfold
 
+structure TxnContext [FfiSyntax] where
+  mk ::
+  Logger' : Loc
+  Lessor' : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor
+  KV' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV
+  TxnModeWriteWithSharedBuffer' : Bool
+
+instance TxnContext.zero_val [FfiSyntax] : ZeroVal TxnContext :=
+  ⟨TxnContext.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def TxnContext.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Logger" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"Lessor" _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty),
+(go.field_decl.FieldDecl go!"KV" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty),
+(go.field_decl.FieldDecl go!"TxnModeWriteWithSharedBuffer" go.bool)]
+
+@[irreducible] def TxnContext.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  TxnContext.fieldsUnsealed
+
+instance equals_unfold_TxnContext [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold TxnContext.fields TxnContext.fieldsUnsealed :=
+  ⟨by unfold TxnContext.fields; rfl⟩
+
+@[reducible] def TxnContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType TxnContext.fields)
+
+class TxnContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying TxnContext.underlying TxnContext
+  underlying : go.UnderlyingDirectedEq TxnContext.ty TxnContext.underlying
+  get_Logger : ∀ (x : TxnContext), go.IsGoStepPureDetTagged under (StructFieldGet TxnContext.underlying go!"Logger") #x (Val #(x.Logger'))
+  set_Logger : ∀ (x : TxnContext) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TxnContext.underlying go!"Logger") (PairV #x #y) (Val #(({ x with Logger' := y } : TxnContext)))
+  get_Lessor : ∀ (x : TxnContext), go.IsGoStepPureDetTagged under (StructFieldGet TxnContext.underlying go!"Lessor") #x (Val #(x.Lessor'))
+  set_Lessor : ∀ (x : TxnContext) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet TxnContext.underlying go!"Lessor") (PairV #x #y) (Val #(({ x with Lessor' := y } : TxnContext)))
+  get_KV : ∀ (x : TxnContext), go.IsGoStepPureDetTagged under (StructFieldGet TxnContext.underlying go!"KV") #x (Val #(x.KV'))
+  set_KV : ∀ (x : TxnContext) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV), go.IsGoStepPureDetTagged under (StructFieldSet TxnContext.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : TxnContext)))
+  get_TxnModeWriteWithSharedBuffer : ∀ (x : TxnContext), go.IsGoStepPureDetTagged under (StructFieldGet TxnContext.underlying go!"TxnModeWriteWithSharedBuffer") #x (Val #(x.TxnModeWriteWithSharedBuffer'))
+  set_TxnModeWriteWithSharedBuffer : ∀ (x : TxnContext) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet TxnContext.underlying go!"TxnModeWriteWithSharedBuffer") (PairV #x #y) (Val #(({ x with TxnModeWriteWithSharedBuffer' := y } : TxnContext)))
+
+attribute [instance] TxnContext.TypeAssumptions.type_repr
+  TxnContext.TypeAssumptions.underlying
+  TxnContext.TypeAssumptions.get_Logger
+  TxnContext.TypeAssumptions.set_Logger
+  TxnContext.TypeAssumptions.get_Lessor
+  TxnContext.TypeAssumptions.set_Lessor
+  TxnContext.TypeAssumptions.get_KV
+  TxnContext.TypeAssumptions.set_KV
+  TxnContext.TypeAssumptions.get_TxnModeWriteWithSharedBuffer
+  TxnContext.TypeAssumptions.set_TxnModeWriteWithSharedBuffer
+
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   kvSort_instance : kvSort.TypeAssumptions
   kvSortByKey_instance : kvSortByKey.TypeAssumptions
@@ -3090,6 +3131,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   kvSortByCreate_instance : kvSortByCreate.TypeAssumptions
   kvSortByMod_instance : kvSortByMod.TypeAssumptions
   kvSortByValue_instance : kvSortByValue.TypeAssumptions
+  TxnContext_instance : TxnContext.TypeAssumptions
   DeleteRange_unfold : FuncUnfold DeleteRange [] DeleteRange.impl
   deleteRange_unfold : FuncUnfold deleteRange [] deleteRange.impl
   mkGteRange_unfold : FuncUnfold mkGteRange [] mkGteRange.impl
@@ -3111,7 +3153,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   checkRange_unfold : FuncUnfold checkRange [] checkRange.impl
   pruneKVs_unfold : FuncUnfold pruneKVs [] pruneKVs.impl
   Txn_unfold : FuncUnfold Txn [] Txn.impl
-  txn_unfold : FuncUnfold txn [] txn.impl
+  assembleTxnResponse_unfold : FuncUnfold assembleTxnResponse [] assembleTxnResponse.impl
   newTxnResp_unfold : FuncUnfold newTxnResp [] newTxnResp.impl
   executeTxn_unfold : FuncUnfold executeTxn [] executeTxn.impl
   checkTxn_unfold : FuncUnfold checkTxn [] checkTxn.impl
@@ -3127,7 +3169,6 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   warnOfExpensiveGenericRequest_unfold : FuncUnfold warnOfExpensiveGenericRequest [] warnOfExpensiveGenericRequest.impl
   isNil_unfold : FuncUnfold isNil [] isNil.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
   import_traceutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
@@ -3140,6 +3181,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
   import_math_Assumption : _root_.Perennial.math.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
+  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
@@ -3150,6 +3192,7 @@ attribute [instance] Assumptions.kvSort_instance
   Assumptions.kvSortByCreate_instance
   Assumptions.kvSortByMod_instance
   Assumptions.kvSortByValue_instance
+  Assumptions.TxnContext_instance
   Assumptions.DeleteRange_unfold
   Assumptions.deleteRange_unfold
   Assumptions.mkGteRange_unfold
@@ -3171,7 +3214,7 @@ attribute [instance] Assumptions.kvSort_instance
   Assumptions.checkRange_unfold
   Assumptions.pruneKVs_unfold
   Assumptions.Txn_unfold
-  Assumptions.txn_unfold
+  Assumptions.assembleTxnResponse_unfold
   Assumptions.newTxnResp_unfold
   Assumptions.executeTxn_unfold
   Assumptions.checkTxn_unfold
@@ -3187,7 +3230,6 @@ attribute [instance] Assumptions.kvSort_instance
   Assumptions.warnOfExpensiveGenericRequest_unfold
   Assumptions.isNil_unfold
   Assumptions.import_context_Assumption
-  Assumptions.import_zap_Assumption
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_mvccpb_Assumption
   Assumptions.import_traceutil_Assumption
@@ -3200,6 +3242,7 @@ attribute [instance] Assumptions.kvSort_instance
   Assumptions.import_bytes_Assumption
   Assumptions.import_math_Assumption
   Assumptions.import_sort_Assumption
+  Assumptions.import_zap_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_reflect_Assumption
   Assumptions.import_strings_Assumption

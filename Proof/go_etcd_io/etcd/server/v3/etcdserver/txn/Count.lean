@@ -31,12 +31,12 @@ theorem txn.Count.wp_proof
   intro ctx cd lg kv s γ key rangeEnd k e revision m log₀ ot te
   wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen⟩
   wp_auto
-  ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a3»
-  iStructNamed «$a3»
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a2»
+  iStructNamed «$a2»
   ipersist Key; ipersist RangeEnd; ipersist Limit; ipersist Revision; ipersist SortOrder
   ipersist SortTarget; ipersist Serializable; ipersist KeysOnly; ipersist CountOnly
   ipersist MinModRevision; ipersist MaxModRevision; ipersist MinCreateRevision; ipersist MaxCreateRevision
-  ihave #Hreq : txn.rangeRequestIs «$a3_ptr» (txn.countOp k (txn.rangeEndOf rangeEnd e) revision) $$ []
+  ihave #Hreq : txn.rangeRequestIs «$a2_ptr» (txn.countOp k (txn.rangeEndOf rangeEnd e) revision) $$ []
   · iunfold txn.rangeRequestIs
     isplitr
     · ipureintro; exact Hnn
@@ -46,7 +46,7 @@ theorem txn.Count.wp_proof
     ipureintro; exact ⟨rfl, Hklen⟩
   have heff : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).effSortOrder = W64 0 := by
     simp [txn.countOp, txn.rangeOpOf, OpFull.effSortOrder]
-  wp_apply (hRange ctx cd false lg kv s γ «$a3_ptr» _ false m log₀ ot te) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx $Hct $Hto]
+  wp_apply (hRange ctx cd false lg GoInterface.nil kv false s γ «$a2_ptr» _ false m log₀ ot te) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx $Hct $Hto]
     as %resp %tr %err ⟨Hrd, Htoks, %Htr, -, -, %log, %rev, #Hcert, -, %Hpin, #Hres, -, -⟩
   · isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial

@@ -212,13 +212,13 @@ local macro "txn_tail" : tactic => `(tactic| (
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
       · iframe #; iframe Hlr; ipureintro; exact Hlgn
       (try wp_auto)
+      wp_apply hKV s w.kv $$ []
+      · iframe #
+      (try wp_auto)
       rw [Hfi]
       (try wp_auto)
       wp_apply HEn $$ [] as %en -
       · ipureintro; simp [serverFeatures]
-      (try wp_auto)
-      wp_apply hKV s w.kv $$ []
-      · iframe #
       (try wp_auto)
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
       wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.s E.γ 0 logR t (some trc) false)

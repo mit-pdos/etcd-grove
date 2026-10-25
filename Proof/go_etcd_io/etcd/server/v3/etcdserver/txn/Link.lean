@@ -20,6 +20,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompare
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompares
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.asembleRangeResponse
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.assembleTxnResponse
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkAndGetPrevKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkPut
@@ -69,7 +70,6 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__disableStep
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__enableStep
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApplySecObserve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Count
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Range
@@ -397,13 +397,13 @@ theorem wp_executeTxn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.executeTxn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.executeTxn.wp_proof traceutil.wp_Get traceutil.Trace.wp_StartSubTrace mvcc.metricsTxnWrite.wp_Rev mvcc.txnReadWrite.wp_Rev mvcc.metricsTxnWrite.wp_Changes mvcc.txnReadWrite.wp_Changes wp_executeRange traceutil.Trace.wp_StopSubTrace proto.wp_Size wp_getPrevKV wp_put wp_deleteRange
 
-theorem wp_txn [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.txn.txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.txn.wp_proof wp_newTxnResp wp_executeTxn mvcc.metricsTxnWrite.wp_Rev mvcc.txnReadWrite.wp_Rev mvcc.metricsTxnWrite.wp_Changes mvcc.txnReadWrite.wp_Changes zap.wp_Error zap.Logger.wp_Error
+theorem wp_assembleTxnResponse [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.assembleTxnResponse.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.assembleTxnResponse.wp_proof wp_newTxnResp wp_executeTxn mvcc.metricsTxnWrite.wp_Rev mvcc.txnReadWrite.wp_Rev mvcc.metricsTxnWrite.wp_Changes mvcc.txnReadWrite.wp_Changes zap.wp_Error zap.Logger.wp_Error
 
 theorem wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.Txn.wp_proof traceutil.wp_EnsureTrace wp_IsTxnReadonly mvcc.store.wp_Read traceutil.Trace.wp_StepWithFunction wp_compareToPath traceutil.Trace.wp_AddField wp_checkTxn mvcc.metricsTxnWrite.wp_End traceutil.Trace.wp_Step mvcc.store.wp_Write mvcc.watchableStore.wp_Write mvcc.wp_NewReadOnlyTxnWrite wp_txn mvcc.txnReadWrite.wp_End mvcc.watchableStoreTxnWrite.wp_End
+  EtcdGrove.txn.Txn.wp_proof traceutil.wp_EnsureTrace wp_IsTxnReadonly mvcc.store.wp_Read traceutil.Trace.wp_StepWithFunction wp_compareToPath traceutil.Trace.wp_AddField wp_checkTxn mvcc.metricsTxnWrite.wp_End traceutil.Trace.wp_Step mvcc.store.wp_Write mvcc.watchableStore.wp_Write mvcc.wp_NewReadOnlyTxnWrite wp_assembleTxnResponse mvcc.txnReadWrite.wp_End mvcc.watchableStoreTxnWrite.wp_End
 
 theorem wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Range.spec (GF := GF) (hG := hG) :=

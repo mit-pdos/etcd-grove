@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Put
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__context
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
@@ -30,6 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3backend.Put.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
+    (hCtx : apply.applierV3backend.context.spec (GF := GF) (hG := hG))
     (hPut : txn.Put.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Put.spec (GF := GF) (hG := hG) := by
   intro E p r rq o log F Pre Q Post info
@@ -41,17 +43,9 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   icases txn.kvWriter_len _ _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
-  iunfold apply.backendIs at Hb
-  icases Hb with ⟨%opts, #Hopts, #Hok⟩
-  iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, #Hhook, #Hle, -⟩
-  iStructNamed Hopts
   wp_auto
   wp_apply hTODO
-  iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#Hkv, -⟩
-  iunfold apply.isApplyLessor at Hle
-  icases Hle with ⟨#Hle, -⟩
+  wp_apply (hCtx E p) $$ [$Hb] as %tc ⟨%Hlg, #Hkv, #Hhook, #Hle⟩
   have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
   ihave #Hcok : iprop(□ (⌜txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome⌝ -∗
       mvcc.certOk E.γ (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]))) $$ []
@@ -61,8 +55,8 @@ theorem apply.applierV3backend.Put.wp_proof
       (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false
       (by unfold apply.backendStep; rw [Hrq.2.1]; exact ⟨o, Hrq.1, Or.inr (Or.inr ⟨hn, rfl⟩)⟩)) $$ Hcp
   ihave #Hl := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
-  wp_apply (txn.put_soleWriter_floor hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
-      E.s E.γ r o log E.P Pre Q Post E.f L none false hlen F) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
+  wp_apply (txn.put_soleWriter_floor hPut todoCtxVal mvcc.neverCd tc.Logger' tc.Lessor' tc.KV'
+      tc.TxnModeWriteWithSharedBuffer' E.s E.γ r o log E.P Pre Q Post E.f L none false hlen F) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
     as %resp %trace %err ⟨Hrd, Hu, %Htr, Htrc, -, Hout⟩
   · iframe #
     isplitr

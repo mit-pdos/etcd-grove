@@ -53,6 +53,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__UserGrantRole
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__UserList
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__UserRevokeRole
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__context
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__Apply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__DeleteRange
@@ -289,21 +290,25 @@ theorem applierV3backend.wp_Apply :
     EtcdGrove.apply.applierV3backend.Apply.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.Apply.wp_proof
 
+theorem applierV3backend.wp_context :
+    EtcdGrove.apply.applierV3backend.context.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.context.wp_proof
+
 theorem applierV3backend.wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.Put.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3backend.Put.wp_proof context.wp_TODO txn.wp_Put
+  EtcdGrove.apply.applierV3backend.Put.wp_proof context.wp_TODO applierV3backend.wp_context txn.wp_Put
 
 theorem applierV3backend.wp_DeleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.DeleteRange.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3backend.DeleteRange.wp_proof context.wp_TODO txn.wp_DeleteRange
+  EtcdGrove.apply.applierV3backend.DeleteRange.wp_proof context.wp_TODO applierV3backend.wp_context txn.wp_DeleteRange
 
 theorem applierV3backend.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.Range.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3backend.Range.wp_proof context.wp_TODO txn.wp_Range
+  EtcdGrove.apply.applierV3backend.Range.wp_proof context.wp_TODO applierV3backend.wp_context txn.wp_Range
 
 theorem applierV3backend.wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.Txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apply.applierV3backend.Txn.wp_proof context.wp_TODO txn.wp_Txn
+  EtcdGrove.apply.applierV3backend.Txn.wp_proof context.wp_TODO applierV3backend.wp_context txn.wp_Txn
 
 theorem applierV3backend.wp_newHeader :
     EtcdGrove.apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG) :=

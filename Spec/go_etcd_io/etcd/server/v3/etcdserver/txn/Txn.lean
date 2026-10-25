@@ -63,8 +63,8 @@ abbrev txn.Txn.specSole : Prop :=
         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
         mvcc.certOkNext γ log (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookOk γ P f }}
-    (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
-      (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
+    (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
+      (Val #(txn.TxnContext.mk lg le kv shared))) (Val #rt)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗
       ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil ∧
@@ -117,8 +117,8 @@ abbrev txn.Txn.specRead : Prop :=
       ⌜lg ≠ null ∧ txn.txnReadonly t = true ∧ txn.txnGetsOk t⌝ ∗
       (□ ∀ log : mvcc.Log, ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ -∗
         mvcc.idxCert γ.idx log -∗ ⌜txn.LogSmall log⌝) }}
-    (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
-      (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
+    (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
+      (Val #(txn.TxnContext.mk lg le kv shared))) (Val #rt)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ ownToks γ.revs m ∗
       ∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ mvcc.certOk γ log ∗

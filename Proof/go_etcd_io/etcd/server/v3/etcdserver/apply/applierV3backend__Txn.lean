@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Txn
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__context
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
@@ -30,6 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3backend.Txn.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
+    (hCtx : apply.applierV3backend.context.spec (GF := GF) (hG := hG))
     (hTxn : txn.Txn.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Txn.spec (GF := GF) (hG := hG) := by
   intro E p r skip rq t log F Pre Q Post info
@@ -41,17 +43,9 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   icases txn.kvWriter_len _ _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
-  iunfold apply.backendIs at Hb
-  icases Hb with ⟨%opts, #Hopts, #Hok⟩
-  iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, #Hhook, #Hle, -⟩
-  iStructNamed Hopts
   wp_auto
   wp_apply hTODO
-  iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#Hkv, -⟩
-  iunfold apply.isApplyLessor at Hle
-  icases Hle with ⟨#Hle, -⟩
+  wp_apply (hCtx E p) $$ [$Hb] as %tc ⟨%Hlg, #Hkv, #Hhook, #Hle⟩
   obtain ⟨ht, hk, hpre⟩ := Hrq
   ihave Hcok : iprop(if txn.txnReadonly t then iprop(True) else
       ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
@@ -65,8 +59,8 @@ theorem apply.applierV3backend.Txn.wp_proof
         (by unfold apply.backendStep; rw [hk]
             exact ⟨t, ht, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig⟩⟩)) $$ Hcp
     · simp only [↓reduceIte]; itrivial
-  wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
-      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false F) $$ [$Hrd $Hsw $HF $Hwt $Hcs $Hu $Hcok]
+  wp_apply (hTxn.1 todoCtxVal mvcc.neverCd tc.Logger' r tc.TxnModeWriteWithSharedBuffer'
+      tc.KV' tc.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false F) $$ [$Hrd $Hsw $HF $Hwt $Hcs $Hu $Hcok]
     as %resp %trace %err ⟨Hrd, Hu, Hout⟩
   · iframe #
     isplitr

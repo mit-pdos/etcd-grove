@@ -39,7 +39,8 @@ and a success's response header has its id fields owned (`rangeHdr`).
 (`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one.
 2026-10-14 (unit T1): the log read is certified by the store's caller (`certOk`). -/
 abbrev txn.Range.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
+    (le kv : GoInterface) (shared : Bool)
     (s : Loc) (γ : mvcc.StoreNames) (r : Loc) (o : OpFull) (withTotal : Bool) (m : Nat)
     (log₀ : mvcc.Log) (ot : Option Loc) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
@@ -48,8 +49,8 @@ abbrev txn.Range.spec : Prop :=
       (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗ ⌜txn.validSortTarget o⌝ ∗
       (□ ∀ log : mvcc.Log, ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ -∗
         mvcc.idxCert γ.idx log -∗ ⌜txn.sortOk o log⌝) }}
-    (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv))
-      (Val #r)) (Val #withTotal))
+    (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx)))
+      (Val #(txn.TxnContext.mk lg le kv shared))) (Val #r)) (Val #withTotal))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗

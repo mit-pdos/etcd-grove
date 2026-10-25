@@ -7,7 +7,7 @@
 # notes/STATUS.md, "Units P1/P1b/P4"), and metrics.go (prometheus; a float division).
 translate = ["!*",
   # txn.go
-  "Txn", "txn", "newTxnResp", "executeTxn", "checkTxn", "compareInt64", "compareToPath",
+  "Txn", "assembleTxnResponse", "newTxnResp", "executeTxn", "checkTxn", "compareInt64", "compareToPath",
   "applyCompares", "applyCompare", "compareKV", "IsTxnSerializable", "IsTxnReadonly",
   # put.go
   "Put", "put", "checkPut", "checkLease", "checkAndGetPrevKV", "getPrevKV",

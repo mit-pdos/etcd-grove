@@ -1010,6 +1010,19 @@ noncomputable def applierV3backend.Apply.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (App (Val (GoInstruction (GoLoad applyFunc.ty))) (Var "applyFunc")) (Var "$a0")) (Var "$a1"))))))))))))))
 
 /-- go: backend.go:50:28 -/
+noncomputable def applierV3backend.context.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType applierV3backend.ty)))) (Var "a"))
+  (App (Val doReturn)
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Logger"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Lessor"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"KV"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"TxnModeWriteWithSharedBuffer"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Lessor")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"KV")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"TxnModeWriteWithSharedBuffer")) (ElementExpression go.bool (Var "$v3")))])))))))))))
+
+/-- go: backend.go:59:28 -/
 noncomputable def applierV3backend.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "p"
@@ -1020,18 +1033,16 @@ noncomputable def applierV3backend.Put.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType applierV3backend.ty)))) (Var "a"))
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)))) (Var "p"))
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.TODO []))) (Val #())) (Val #()))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Logger"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Lessor"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"KV"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)))) (Var "p"))
-  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Put []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType applierV3backend.ty) go!"context"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a"))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)))) (Var "p"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Put []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Fst (Var "__p")))
   (Let "$ret1" (Snd (Fst (Var "__p")))
   (Let "$ret2" (Snd (Var "__p"))
   (App (Val doReturn)
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2")))))))))))))))
 
-/-- go: backend.go:54:28 -/
+/-- go: backend.go:63:28 -/
 noncomputable def applierV3backend.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "dr"
@@ -1039,17 +1050,16 @@ noncomputable def applierV3backend.DeleteRange.impl [FfiSyntax] [GoGlobalContext
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType applierV3backend.ty)))) (Var "a"))
   (Let "dr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dr"))
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.TODO []))) (Val #())) (Val #()))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Logger"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"KV"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dr"))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType applierV3backend.ty) go!"context"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a"))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dr"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Fst (Var "__p")))
   (Let "$ret1" (Snd (Fst (Var "__p")))
   (Let "$ret2" (Snd (Var "__p"))
   (App (Val doReturn)
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2"))))))))))))
 
-/-- go: backend.go:58:28 -/
+/-- go: backend.go:67:28 -/
 noncomputable def applierV3backend.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1057,18 +1067,17 @@ noncomputable def applierV3backend.Range.impl [FfiSyntax] [GoGlobalContext] : va
   (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType applierV3backend.ty)))) (Var "a"))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.TODO []))) (Val #())) (Val #()))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Logger"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"KV"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
-  (Let "$a4" (Val #true)
-  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Range []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType applierV3backend.ty) go!"context"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a"))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
+  (Let "$a3" (Val #true)
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Range []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Fst (Var "__p")))
   (Let "$ret1" (Snd (Fst (Var "__p")))
   (Let "$ret2" (Snd (Var "__p"))
   (App (Val doReturn)
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2"))))))))))))
 
-/-- go: backend.go:62:28 -/
+/-- go: backend.go:71:28 -/
 noncomputable def applierV3backend.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "rt"
@@ -1078,20 +1087,17 @@ noncomputable def applierV3backend.Txn.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "skipRangeExecution" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "skipRangeExecution"))
   (Let "rt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "rt"))
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.TODO []))) (Val #())) (Val #()))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Logger"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType applierV3backend.ty) go!"context"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a"))) (Val #()))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "rt"))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"TxnModeWriteWithSharedBuffer"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"KV"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a5" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Lessor"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))
-  (Let "$a6" (App (Val (GoInstruction (GoLoad go.bool))) (Var "skipRangeExecution"))
-  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Txn []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.bool))) (Var "skipRangeExecution"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Txn []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Fst (Var "__p")))
   (Let "$ret1" (Snd (Fst (Var "__p")))
   (Let "$ret2" (Snd (Var "__p"))
   (App (Val doReturn)
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2"))))))))))))))
 
-/-- go: backend.go:66:28 -/
+/-- go: backend.go:75:28 -/
 noncomputable def applierV3backend.Compaction.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "compaction"
@@ -1171,7 +1177,7 @@ noncomputable def applierV3backend.Compaction.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
 
-/-- go: backend.go:83:28 -/
+/-- go: backend.go:92:28 -/
 noncomputable def applierV3backend.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "lc"
@@ -1216,7 +1222,7 @@ noncomputable def applierV3backend.LeaseGrant.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty)))) (Pair (Var "l") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:94:28 -/
+/-- go: backend.go:103:28 -/
 noncomputable def applierV3backend.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "lc"
@@ -1233,7 +1239,7 @@ noncomputable def applierV3backend.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
 
-/-- go: backend.go:99:28 -/
+/-- go: backend.go:108:28 -/
 noncomputable def applierV3backend.LeaseCheckpoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "lc"
@@ -1269,7 +1275,7 @@ noncomputable def applierV3backend.LeaseCheckpoint.impl [FfiSyntax] [GoGlobalCon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint.ty)))) (Pair (Var "c") (Var "$value"))))))))))))))))
 
-/-- go: backend.go:109:28 -/
+/-- go: backend.go:118:28 -/
 noncomputable def applierV3backend.Alarm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "ar"
@@ -1348,7 +1354,7 @@ noncomputable def applierV3backend.Alarm.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
 
-/-- go: backend.go:138:28 -/
+/-- go: backend.go:147:28 -/
 noncomputable def applierV3backend.AuthEnable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
@@ -1369,7 +1375,7 @@ noncomputable def applierV3backend.AuthEnable.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
 
-/-- go: backend.go:146:28 -/
+/-- go: backend.go:155:28 -/
 noncomputable def applierV3backend.AuthDisable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
@@ -1382,7 +1388,7 @@ noncomputable def applierV3backend.AuthDisable.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty go!"AuthDisable"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"AuthStore"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))) (Val #()))))))))
 
-/-- go: backend.go:151:28 -/
+/-- go: backend.go:160:28 -/
 noncomputable def applierV3backend.AuthStatus.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
@@ -1404,7 +1410,7 @@ noncomputable def applierV3backend.AuthStatus.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "enabled") (Var "$r0")))))))))))
 
-/-- go: backend.go:157:28 -/
+/-- go: backend.go:166:28 -/
 noncomputable def applierV3backend.Authenticate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1448,7 +1454,7 @@ noncomputable def applierV3backend.Authenticate.impl [FfiSyntax] [GoGlobalContex
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
 
-/-- go: backend.go:166:28 -/
+/-- go: backend.go:175:28 -/
 noncomputable def applierV3backend.UserAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1479,7 +1485,7 @@ noncomputable def applierV3backend.UserAdd.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:174:28 -/
+/-- go: backend.go:183:28 -/
 noncomputable def applierV3backend.UserDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1510,7 +1516,7 @@ noncomputable def applierV3backend.UserDelete.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:182:28 -/
+/-- go: backend.go:191:28 -/
 noncomputable def applierV3backend.UserChangePassword.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1541,7 +1547,7 @@ noncomputable def applierV3backend.UserChangePassword.impl [FfiSyntax] [GoGlobal
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:190:28 -/
+/-- go: backend.go:199:28 -/
 noncomputable def applierV3backend.UserGrantRole.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1572,7 +1578,7 @@ noncomputable def applierV3backend.UserGrantRole.impl [FfiSyntax] [GoGlobalConte
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:198:28 -/
+/-- go: backend.go:207:28 -/
 noncomputable def applierV3backend.UserGet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1603,7 +1609,7 @@ noncomputable def applierV3backend.UserGet.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:206:28 -/
+/-- go: backend.go:215:28 -/
 noncomputable def applierV3backend.UserRevokeRole.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1634,7 +1640,7 @@ noncomputable def applierV3backend.UserRevokeRole.impl [FfiSyntax] [GoGlobalCont
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:214:28 -/
+/-- go: backend.go:223:28 -/
 noncomputable def applierV3backend.RoleAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1665,7 +1671,7 @@ noncomputable def applierV3backend.RoleAdd.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:222:28 -/
+/-- go: backend.go:231:28 -/
 noncomputable def applierV3backend.RoleGrantPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1696,7 +1702,7 @@ noncomputable def applierV3backend.RoleGrantPermission.impl [FfiSyntax] [GoGloba
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:230:28 -/
+/-- go: backend.go:239:28 -/
 noncomputable def applierV3backend.RoleGet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1727,7 +1733,7 @@ noncomputable def applierV3backend.RoleGet.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:238:28 -/
+/-- go: backend.go:247:28 -/
 noncomputable def applierV3backend.RoleRevokePermission.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1758,7 +1764,7 @@ noncomputable def applierV3backend.RoleRevokePermission.impl [FfiSyntax] [GoGlob
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:246:28 -/
+/-- go: backend.go:255:28 -/
 noncomputable def applierV3backend.RoleDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1789,7 +1795,7 @@ noncomputable def applierV3backend.RoleDelete.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:254:28 -/
+/-- go: backend.go:263:28 -/
 noncomputable def applierV3backend.UserList.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1820,7 +1826,7 @@ noncomputable def applierV3backend.UserList.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:262:28 -/
+/-- go: backend.go:271:28 -/
 noncomputable def applierV3backend.RoleList.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1851,7 +1857,7 @@ noncomputable def applierV3backend.RoleList.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:270:28 -/
+/-- go: backend.go:279:28 -/
 noncomputable def applierV3backend.ClusterVersionSet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1906,7 +1912,7 @@ noncomputable def applierV3backend.ClusterVersionSet.impl [FfiSyntax] [GoGlobalC
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Pair (Var "prevVersion") (Var "$r0")))))))))))))))
 
-/-- go: backend.go:287:28 -/
+/-- go: backend.go:296:28 -/
 noncomputable def applierV3backend.ClusterMemberAttrSet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1926,7 +1932,7 @@ noncomputable def applierV3backend.ClusterMemberAttrSet.impl [FfiSyntax] [GoGlob
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"UpdateAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Cluster"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))))))
 
-/-- go: backend.go:298:28 -/
+/-- go: backend.go:307:28 -/
 noncomputable def applierV3backend.DowngradeInfoSet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -1958,7 +1964,7 @@ noncomputable def applierV3backend.DowngradeInfoSet.impl [FfiSyntax] [GoGlobalCo
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty))) (Pair (Var "d") (Var "$r0")))))))))))))))
 
-/-- go: backend.go:306:28 -/
+/-- go: backend.go:315:28 -/
 noncomputable def applierV3backend.newHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
@@ -3502,6 +3508,7 @@ class applierV3backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserGrantRole" applierV3backend.UserGrantRole.impl
   ptr_UserList_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserList" applierV3backend.UserList.impl
   ptr_UserRevokeRole_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"UserRevokeRole" applierV3backend.UserRevokeRole.impl
+  ptr_context_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"context" applierV3backend.context.impl
   ptr_newHeader_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"newHeader" applierV3backend.newHeader.impl
 
 attribute [instance] applierV3backend.TypeAssumptions.type_repr
@@ -3538,6 +3545,7 @@ attribute [instance] applierV3backend.TypeAssumptions.type_repr
   applierV3backend.TypeAssumptions.ptr_UserGrantRole_unfold
   applierV3backend.TypeAssumptions.ptr_UserList_unfold
   applierV3backend.TypeAssumptions.ptr_UserRevokeRole_unfold
+  applierV3backend.TypeAssumptions.ptr_context_unfold
   applierV3backend.TypeAssumptions.ptr_newHeader_unfold
 
 structure applierV3Capped [FfiSyntax] where

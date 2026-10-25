@@ -255,8 +255,13 @@ local macro "range_tail" : tactic => `(tactic| (
       wp_apply hKV s w.kv $$ []
       · iframe #
       (try wp_auto)
+      rw [Hfi]
+      (try wp_auto)
+      wp_apply HEn $$ [] as %en -
+      · ipureintro; simp [serverFeatures]
+      (try wp_auto)
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-      wp_apply (hRange ctx2 _ false w.lg w.kv E.s E.γ r o true 0 logR (some trc) false)
+      wp_apply (hRange ctx2 _ false w.lg w.lessor w.kv en E.s E.γ r o true 0 logR (some trc) false)
           $$ [Hsr Hnone Hown0]
         as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, #Hcert, #Hrok, %Hlog, #Hres, Hhdr, -⟩
       · iframe # Hsr Hnone
@@ -414,6 +419,13 @@ theorem EtcdServer.Range.wp_proof
   have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
+  ihave #Hsrv' := Hsrv
+  iunfold isServerReq at Hsrv'
+  icases Hsrv' with ⟨%v, #Hv⟩
+  iunfold srvReqFieldsAt at Hv
+  icases Hv with ⟨-, -, -, -, -, -, #Hfgf, #Hfg, -⟩
+  iunfold isFeatureGate at Hfg
+  icases Hfg with ⟨%fi, %Hfi, #HEn⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨⟨%hist, #Hhist, %Hhl⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩

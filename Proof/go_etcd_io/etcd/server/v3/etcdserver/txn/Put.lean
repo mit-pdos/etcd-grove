@@ -44,7 +44,7 @@ theorem txn.Put.wp_proof
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
     (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f L ot te Lw
+  intro ctx cd lg le kv shared s γ p o m log₀ P Pre Q Post f L ot te Lw
   wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlprem, #Hcok, Hcs, Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩

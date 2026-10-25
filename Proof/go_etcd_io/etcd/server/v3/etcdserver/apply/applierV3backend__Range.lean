@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Range
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__context
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
@@ -30,6 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3backend.Range.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
+    (hCtx : apply.applierV3backend.context.spec (GF := GF) (hG := hG))
     (hRange : txn.Range.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Range.spec (GF := GF) (hG := hG) := by
   intro E p r rq o log info
@@ -39,18 +41,12 @@ theorem apply.applierV3backend.Range.wp_proof
   icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, Hknown, Hard⟩, Hres⟩
   iunfold txn.kvWriter at Hsw
   icases Hsw with ⟨Hsw, Hwl⟩
-  iunfold apply.backendIs at Hb
-  icases Hb with ⟨%opts, #Hopts, #Hok⟩
-  iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, -⟩
-  iStructNamed Hopts
   wp_auto
   wp_apply hTODO
-  iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#Hkv, -⟩
+  wp_apply (hCtx E p) $$ [$Hb] as %tc ⟨%Hlg, #Hkv, -, -⟩
   obtain ⟨hr, hk, hlen, hsort, hok⟩ := Hrq
-  wp_apply (txn.range_soleWriter_of hRange log hlen todoCtxVal mvcc.neverCd true opts.Logger'
-      opts.KV' E.s E.γ r o true none false) $$ [$Hrd $Hsw]
+  wp_apply (txn.range_soleWriter_of hRange log hlen todoCtxVal mvcc.neverCd true tc.Logger'
+      tc.Lessor' tc.KV' tc.TxnModeWriteWithSharedBuffer' E.s E.γ r o true none false) $$ [$Hrd $Hsw]
     as %resp %trace %err ⟨Hrd, Hsw, %Htr, Htrc, -, Hout, %Hnd⟩
   · iframe #
     isplitr

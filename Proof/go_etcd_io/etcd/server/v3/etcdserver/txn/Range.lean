@@ -40,7 +40,7 @@ theorem txn.Range.wp_proof
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Range.spec (GF := GF) (hG := hG) := by
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
-  intro ctx cd nd lg kv s γ r o withTotal m log₀ ot te
+  intro ctx cd nd lg le kv shared s γ r o withTotal m log₀ ot te
   wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, #Hct, Hto, #Hnd, %Hlg, %Hvst, #Hsort⟩
   ihave %Hkvok := txn.isKV_ok kv s γ $$ Hkv
   obtain ⟨kty, kvv, rfl⟩ := Hkvok

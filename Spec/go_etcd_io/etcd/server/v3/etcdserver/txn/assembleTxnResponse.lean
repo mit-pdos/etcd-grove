@@ -38,7 +38,7 @@ instance txn.txnRespShell_persistent (resp : Loc) :
   unfold txn.txnRespShell; infer_instance
 
 set_option linter.iris.dupNamespace false in
-/-- `txn(ctx, lg, txnWrite, rt, isWrite, txnPath, skip)` on a fresh write transaction of the
+/-- `assembleTxnResponse(ctx, lg, txnWrite, rt, isWrite, txnPath, skip)` on a fresh write transaction of the
 committed log `ilog` (`isWrite`), or the read-only wrapper of a read transaction of `ilog`, the
 path `txnPath` of `rt` at the state after `ilog`: the server's transaction (`srvRunTxn`) at the
 pending revision, its changes pending, the response with header revision the transaction's
@@ -49,7 +49,7 @@ a logger; 2026-10-12, the request path's unit 3b): or `executeTxn`'s context err
 (`mvcc.errorfIs`), logged (`lg.Error`), and the partly filled response (`txnRespShell`; read-only,
 `roTxnRespRd`, its header's id fields owned, `respHdrOwn`: unit P4, 2026-10-14).
 2026-10-14 (unit P1b): the context carries the transaction's trace (`ctxTraceIs`). -/
-abbrev txn.txn.spec : Prop :=
+abbrev txn.assembleTxnResponse.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (ro : Bool) (ilog : mvcc.Log) (rt : Loc)
     (t : TxnModel) (pl : GoSlice) (skip : Bool) (L : List w64),
@@ -64,7 +64,7 @@ abbrev txn.txn.spec : Prop :=
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∧
         (ro = true → txn.LogSmall ilog) ∧
         (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true ∧ lg ≠ null)⌝ }}
-    (App (App (App (App (App (App (App (Val (@! txn.txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
+    (App (App (App (App (App (App (App (Val (@! txn.assembleTxnResponse)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #tw)) (Val #rt)) (Val #(!ro))) (Val #pl)) (Val #skip))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗

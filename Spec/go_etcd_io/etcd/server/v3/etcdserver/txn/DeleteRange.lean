@@ -42,7 +42,8 @@ canceled (`nd`: `neverDone`), no context error (2026-10-12: for the apply packag
 watchable store the caller is the sole writer of the notified log `Lw` (`wlogOwn`), and gets the
 writer's part back at the log it leaves. -/
 abbrev txn.DeleteRange.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
+    (le kv : GoInterface) (shared : Bool)
     (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
     (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool) (Lw : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
@@ -53,8 +54,8 @@ abbrev txn.DeleteRange.spec : Prop :=
       □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog⌝ -∗
         mvcc.certOkNext γ ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
-    (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
-      (Val #kv)) (Val #dr))
+    (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx)))
+      (Val #(txn.TxnContext.mk lg le kv shared))) (Val #dr))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ mvcc.hookIs γ P f ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗ Post ∗
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗

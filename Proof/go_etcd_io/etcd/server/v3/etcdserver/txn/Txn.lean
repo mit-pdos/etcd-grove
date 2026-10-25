@@ -17,7 +17,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.txn
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.assembleTxnResponse
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
@@ -100,7 +100,7 @@ theorem txn.Txn_sole
     (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
     (hWWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hNewRo : mvcc.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG))
-    (htxn : txn.txn.spec (GF := GF) (hG := hG))
+    (htxn : txn.assembleTxnResponse.spec (GF := GF) (hG := hG))
     (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG))
     (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.specSole (GF := GF) (hG := hG) := by
@@ -118,13 +118,15 @@ theorem txn.Txn_sole
   obtain ⟨kty, kvv, rfl⟩ := Hkvok
   ihave ⟨#Hko, #Hs⟩ := txn.isKV_kvOver _ s γ $$ Hkv
   wp_auto
+  iStructNamed txn
+  ipersist Logger; ipersist Lessor; ipersist KV; ipersist TxnModeWriteWithSharedBuffer
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
     as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply (hRO rt t) $$ [$Hrt]
   generalize hw : (!txnReadonly t) = isW
-  wp_join iprop(∃ md : w32, mode_ptr ↦ md ∗ txnModeWriteWithSharedBuffer_ptr ↦ shared)
-    at (if: _ then _ else _) with [mode txnModeWriteWithSharedBuffer] as ⟨%md, mode, sh⟩
+  wp_join iprop(∃ md : w32, mode_ptr ↦ md)
+    at (if: _ then _ else _) with [mode] as ⟨%md, mode⟩
   · cases isW <;> (try cases shared) <;>
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
@@ -392,7 +394,7 @@ theorem txn.Txn_read
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (_hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
     (hNewRo : mvcc.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG))
-    (htxn : txn.txn.spec (GF := GF) (hG := hG))
+    (htxn : txn.assembleTxnResponse.spec (GF := GF) (hG := hG))
     (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.specRead (GF := GF) (hG := hG) := by
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
@@ -405,13 +407,15 @@ theorem txn.Txn_read
   ihave %Hkvok := txn.isKV_ok kv s γ $$ Hkv
   obtain ⟨kty, kvv, rfl⟩ := Hkvok
   wp_auto
+  iStructNamed txn
+  ipersist Logger; ipersist Lessor; ipersist KV; ipersist TxnModeWriteWithSharedBuffer
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
     as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply (hRO rt t) $$ [$Hrt]
   rw [hro]
-  wp_join iprop(∃ md : w32, mode_ptr ↦ md ∗ txnModeWriteWithSharedBuffer_ptr ↦ shared)
-    at (if: _ then _ else _) with [mode txnModeWriteWithSharedBuffer] as ⟨%md, mode, sh⟩
+  wp_join iprop(∃ md : w32, mode_ptr ↦ md)
+    at (if: _ then _ else _) with [mode] as ⟨%md, mode⟩
   · (try cases shared) <;>
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
@@ -603,7 +607,7 @@ theorem txn.Txn.wp_proof
     (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
     (hWWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hNewRo : mvcc.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG))
-    (htxn : txn.txn.spec (GF := GF) (hG := hG))
+    (htxn : txn.assembleTxnResponse.spec (GF := GF) (hG := hG))
     (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG))
     (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.spec (GF := GF) (hG := hG) :=

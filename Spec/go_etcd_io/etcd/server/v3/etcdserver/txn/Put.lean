@@ -47,6 +47,7 @@ watchable store the caller is the sole writer of the notified log `Lw` (`wlogOwn
 all but the transaction's), and gets the writer's part back at the log it leaves. -/
 abbrev txn.Put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (le kv : GoInterface)
+    (shared : Bool)
     (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
     (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool)
     (Lw : mvcc.Log),
@@ -62,8 +63,8 @@ abbrev txn.Put.spec : Prop :=
           (txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter ilog)).isSome)⌝ -∗
         mvcc.certOk γ (ilog ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]])) ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
-    (App (App (App (App (App (Val (@! txn.Put)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le))
-      (Val #kv)) (Val #p))
+    (App (App (App (Val (@! txn.Put)) (Val #(GoInterface.ok ctx)))
+      (Val #(txn.TxnContext.mk lg le kv shared))) (Val #p))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ mvcc.hookIs γ P f ∗ ownToks γ.revs m ∗ lease.lessorUser γ.leases L ∗ ⌜trace ≠ null⌝ ∗
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗

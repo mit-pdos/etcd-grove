@@ -274,6 +274,97 @@ instance kvSortByValue_access_store_kvSort (l : Loc) (v : go_etcd_io.etcd.server
 end def_
 end kvSortByValue
 
+namespace TxnContext
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
+
+instance TxnContext_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext where
+  typedPointstoDef l v dq := iprop(
+    "Logger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Logger" l) v.Logger' dq ∗
+    "Lessor" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Lessor" l) v.Lessor' dq ∗
+    "KV" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"KV" l) v.KV' dq ∗
+    "TxnModeWriteWithSharedBuffer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance TxnContext_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext.underlying := by
+  solve_into_val_typed_struct
+
+instance TxnContext_access_load_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Logger" l) v.Logger' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Logger" l) v.Logger' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnContext_access_store_Logger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (Logger' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Logger" l) v.Logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Logger" l) Logger' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := Logger' } : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnContext_access_load_Lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Lessor" l) v.Lessor' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Lessor" l) v.Lessor' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnContext_access_store_Lessor (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (Lessor' : go_etcd_io.etcd.server.v3.lease.Lessor) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Lessor" l) v.Lessor' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"Lessor" l) Lessor' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lessor' := Lessor' } : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnContext_access_load_KV (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"KV" l) v.KV' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"KV" l) v.KV' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnContext_access_store_KV (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (KV' : go_etcd_io.etcd.server.v3.storage.mvcc.KV) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"KV" l) v.KV' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"KV" l) KV' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV' := KV' } : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnContext_access_load_TxnModeWriteWithSharedBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance TxnContext_access_store_TxnModeWriteWithSharedBuffer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (TxnModeWriteWithSharedBuffer' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"TxnModeWriteWithSharedBuffer" l) v.TxnModeWriteWithSharedBuffer' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext go!"TxnModeWriteWithSharedBuffer" l) TxnModeWriteWithSharedBuffer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TxnModeWriteWithSharedBuffer' := TxnModeWriteWithSharedBuffer' } : go_etcd_io.etcd.server.v3.etcdserver.txn.TxnContext) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end TxnContext
+
 end go_etcd_io.etcd.server.v3.etcdserver.txn
 end
 end Perennial

@@ -3,7 +3,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.txn
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.assembleTxnResponse
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.newTxnResp
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.executeTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnLemmas
@@ -30,7 +30,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-theorem txn.txn.wp_proof
+theorem txn.assembleTxnResponse.wp_proof
     (hNew : txn.newTxnResp.spec (GF := GF) (hG := hG))
     (hExec : txn.executeTxn.spec (GF := GF) (hG := hG))
     (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG))
@@ -39,7 +39,7 @@ theorem txn.txn.wp_proof
     (hRoCh : mvcc.txnReadWrite.Changes.spec (GF := GF) (hG := hG))
     (hZErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLgErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
-    txn.txn.spec (GF := GF) (hG := hG) := by
+    txn.assembleTxnResponse.spec (GF := GF) (hG := hG) := by
   intro trace ctx cd nd lg s γ tw ro ilog rt t pl skip L
   wp_start as ⟨Htw, #Hctx, #Hct, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, Hown, %Hpre⟩
   ihave %Htwok := txn.txnWriteIs_ok tw s γ ro ilog [] $$ Htw

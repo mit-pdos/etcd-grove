@@ -38,7 +38,7 @@ theorem txn.DeleteRange.wp_proof
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
     (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te Lw
+  intro ctx cd nd lg le kv shared s γ dr o m log₀ P Pre Q Post f ot te Lw
   wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hdr, #Hctx, #Hct, Hto, #Hnd, #Hcok, Hcs, Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
