@@ -326,13 +326,16 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #Hm HΦ
+  -- (2026-10-25, T-M M2c) the configuration has a voter, from the ghost state
+  icases ghostRest_voters_ne γ md c id s $$ Hrest with ⟨%Hvne, Hrest⟩
   -- (2026-10-13) the read-only facts `stepLeader`'s read path needs, from the ghost state
   have Hlrd_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
       isMessage γ (absMsg .heartbeatResp m ents ctx) -∗
       ⌜s.role = .leader → m.Term' = s.term →
         (RdOk c.voters s.rd ∧ s.term ≠ W64 0) ∧ (ctx = [] ∨ 8 ≤ ctx.length) ∧
         (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
-                      ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))⌝ := by
+                      ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int)) ∧
+        c.voters ≠ ∅⌝ := by
     iintro Hg #Hm
     by_cases hl : s.role = .leader
     · by_cases ht : m.Term' = s.term
@@ -340,7 +343,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
         ihave %H2 := ghost_hbResp_ctx γ id s m ents ctx hl Hto ht $$ Hg Hm
         ipureintro
         intro _ _
-        exact ⟨H1, H2⟩
+        exact ⟨H1, H2.1, H2.2, Hvne⟩
       · ipureintro; exact fun _ h => absurd h ht
     · ipureintro; exact fun h => absurd h hl
   ihave %Hlrd := Hlrd_lem $$ Hghost Hm

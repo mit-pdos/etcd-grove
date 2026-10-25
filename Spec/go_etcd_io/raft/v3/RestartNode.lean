@@ -75,8 +75,8 @@ abbrev RestartNode.spec : Prop :=
   csm.AutoLeave' = false →
   γ.reCfg = GMap.listToSet csm.Voters' →
   cv.ID' ∈ csm.Voters' →
-  -- (2026-10-15, stage N) the dynamic mode with `StepDownOnRemoval` (`NewRawNode`'s)
-  (md.isDyn = true → cv.StepDownOnRemoval' = true) →
+  -- (2026-10-25, T-M M2c: `StepDownOnRemoval` either way; 2026-10-15 to 2026-10-25 on in the dynamic
+  -- mode)
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
   -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only

@@ -129,16 +129,17 @@ reconfiguration stage A3): a node that is not a leader, or a leader that stays a
 half of `c'`, takes one `StepC c'` step receiving nothing (at a leader `reMatch`, then `commit`
 by a joint quorum if `maybeCommit` moved the commit index, then `sendApps`; `refl` at a
 non-leader), with `applyCCOk_step`'s frame. A leader removed or demoted (no voter of `c'`) takes
-the `reMatch` step and then steps down at its own term (`becomeFollower(r.Term, None)`,
-`stepDownOnRemoval`), which no `StepC` rule describes: `StepC` has no step-down of a leader at
-its own term (`abandon` is a non-leader's). -/
+the `reMatch` step and then, with `stepDownOnRemoval`, steps down at its own term
+(`becomeFollower(r.Term, None)`), which no `StepC` rule describes: `StepC` has no step-down of a
+leader at its own term (`abandon` is a non-leader's); (2026-10-25, T-M M2c) without it, the
+`reMatch` step only, in the first disjunct. -/
 theorem applyCCOkC_step {B : Int} (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c' id s s') :
     (StepC c' id B (toPState s) [] (toPState s') ∧
       s'.role = s.role ∧ s'.stepfn = s.stepfn ∧ s'.ticking = s.ticking ∧ s'.term = s.term ∧
       s'.prevote = s.prevote ∧ s'.gh = s.gh ∧
       s'.logst = { s.logst with committed := s'.logst.committed } ∧
       uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) ∨
-    (s.role = .leader ∧ id ∉ c'.voters ∧
+    (s.role = .leader ∧ id ∉ c'.voters ∧ s.sdr = true ∧
       ∃ ps1, StepC c' id B (toPState s) [] ps1 ∧
         toPState s' = pbecomeFollower ps1 s.term (W64 0)) := by
   obtain ⟨prs, pvs, Hdom, Hmk, Hsw⟩ := H
@@ -205,12 +206,21 @@ theorem applyCCOkC_step {B : Int} (c' : CfgM) (id : w64) (s s' : NState) (H : Ap
       rcases Hc with rfl | ⟨Hlt, -⟩
       · exact Int.le_refl _
       · simp only [toPState] at Hlt; simp only [sendMsgs]; omega
-    · -- removed or demoted: `reMatch`, then the step-down
+    · -- removed or demoted: `reMatch`, then the step-down with `stepDownOnRemoval`; (2026-10-25,
+      -- T-M M2c) without it, `reMatch` only: the node stays leader
       rw [ite_eq_right Hv] at Hsw
-      right
-      obtain ⟨pvs', rfl⟩ := Hsw
-      refine ⟨Hl, Hv, _, H1, ?_⟩
-      rw [toPState_prvals _ _ (fun h => by simp [becomeFollower] at h), toPState_becomeFollower]
+      by_cases Hsd : s.sdr = true
+      · rw [if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+            NState).sdr = true from Hsd)] at Hsw
+        right
+        obtain ⟨pvs', rfl⟩ := Hsw
+        refine ⟨Hl, Hv, Hsd, _, H1, ?_⟩
+        rw [toPState_prvals _ _ (fun h => by simp [becomeFollower] at h), toPState_becomeFollower]
+      · rw [if_neg (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+            NState).sdr = true from Hsd)] at Hsw
+        subst Hsw
+        left
+        exact ⟨H1, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
   · rw [ite_eq_right (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState).role = .leader from Hl)] at Hsw
     subst Hsw
@@ -235,13 +245,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 with them. -/
 theorem ApplyCCOkC.gh {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC c' id s s') :
     s'.gh = s.gh := by
-  rcases applyCCOkC_step (B := 0) c' id s s' H with h | ⟨hl, hv, -⟩
+  rcases applyCCOkC_step (B := 0) c' id s s' H with h | ⟨hl, hv, -, -⟩
   · exact h.2.2.2.2.2.2.1
   · obtain ⟨prs, pvs, -, -, Hsw⟩ := H
     unfold SwitchOkC at Hsw
     simp only [hl, hv, ↓reduceIte] at Hsw
-    obtain ⟨pvs', rfl⟩ := Hsw
-    simp [becomeFollower, resetTo, resetTo0]
+    split at Hsw
+    · obtain ⟨pvs', rfl⟩ := Hsw
+      simp [becomeFollower, resetTo, resetTo0]
+    · subst Hsw; rfl
 
 /-- `r.applyConfChange(cc)`: builds a `confchange.Changer` on the node's tracker and last
 index, runs `LeaveJoint`, `EnterJoint` or `Simple` as `cc` says (panicking on an error),
@@ -277,8 +289,8 @@ abbrev raft.applyConfChange.spec : Prop :=
   ccApplyM ccm.transition ccm.changes (cfgStateC c) = some c' →
   -- not too many tracked ids (`ownTrackerC`'s bound)
   (GMap.size c'.cfg.ids : Int) ≤ 2 ^ 62 →
-  -- a removed or demoted leader steps down (`switchToConfig`)
-  (s.role = .leader → id ∉ c'.cfg.voters → s.sdr = true) →
+  -- (2026-10-25, T-M M2c; until then a premise: a removed or demoted leader steps down, `s.sdr`)
+  -- a removed or demoted leader steps down with `StepDownOnRemoval`, and stays leader without it
   -- a candidate stays a voter (`switchToConfig`)
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c'.cfg.voters) →
   -- (2026-10-19, D21 M3) a leader in the no-snapshot mode has a log past index `1` (its own
@@ -308,6 +320,9 @@ abbrev raft.applyConfChange.specS : Prop :=
     some (cfgState cfg lrn') →
   (s.gh.ns = true → s.role = .leader →
     2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
+  -- (2026-10-25, T-M M2c) the node a voter (until then read off `ownRaftPhys` for a leader, which
+  -- now need not be one)
+  id ∈ cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hcc" ∷ ownCCV2 cc dq ccm }}
@@ -326,9 +341,8 @@ open Iris.ProofMode in
 theorem raft.applyConfChange.spec_simple
     (H : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hli2
+  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hli2 Hin
   iintro %Φ ⟨#Hpkg, Hphys, Hccs⟩ HΦ
-  icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hv, Hphys⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   have Hv' : (cfgState cfg lrn').cfg.voters = cfg := CfgM.voters_simple cfg lrn'
   have Hids : (cfgState cfg lrn').cfg.ids = cfg ∪ lrn' := by
@@ -336,8 +350,7 @@ theorem raft.applyConfChange.spec_simple
     unfold CfgM.ids; rw [CfgM.voters_simple]; rfl
   iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
       (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz')
-      (fun hl hn => absurd (Hv (by rw [hl]; decide)) (by rw [Hv'] at hn; exact hn))
-      (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide)) Hli2
+      (fun _ => by rw [Hv']; exact Hin) Hli2
     $$ [$Hpkg $Hphys $Hccs]
   inext
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩
@@ -372,7 +385,7 @@ theorem raft.applyConfChange.spec_simple
     unfold SwitchOk
     split
     · rename_i hl
-      have hin : id ∈ cfg := Hv (by rw [hl]; decide)
+      have hin : id ∈ cfg := Hin
       rw [ite_eq_left hl, ite_eq_left (by rw [Hv']; exact hin)] at Hsw
       exact Hsw.simple (fun h => by rw [h] at hin; exact GMap.not_elem_of_empty _ hin)
     · rename_i hl

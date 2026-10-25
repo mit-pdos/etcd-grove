@@ -380,7 +380,7 @@ theorem RawNode.Bootstrap.wp_proof
       omega
     wp_apply wp_raft_applyConfChange (CfgM.simple (GMap.listToSet (ps.take (sint.nat k))) ∅) rnv.raft' id
         sk v _ (DFrac.own 1) (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅)
-        (bootCC_apply _ _ Hp0) Hsz (by intro h; rw [Hskr] at h; cases h)
+        (bootCC_apply _ _ Hp0) Hsz
         (by intro h; rcases h with h | h <;> rw [Hskr] at h <;> cases h)
         (by intro _ h; rw [Hskr] at h; cases h)
       $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
@@ -414,7 +414,7 @@ theorem RawNode.Bootstrap.wp_proof
     · simp only [CfgM.simple] at h; exact absurd h (GMap.not_elem_of_empty _)
   icases ownRaftPhysC_sdr _ rnv.raft' id sk $$ Hphys with ⟨#Hsd0, Hphys⟩
   ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' RNMode.static $$ []
-  · iunfold sdrOk; iexists sk.sdr; iframe Hsd0; ipureintro; intro h; cases h
+  · iunfold sdrOk; iexists sk.sdr; iexact Hsd0
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   ihave Hphys : ownRaftPhys γ.reCfg rnv.raft' id sk $$ [Hphys]
   · rw [R7]; iexact Hphys

@@ -193,8 +193,8 @@ theorem wp_switchToConfig_follower (H : raft.switchToConfig.spec (GF := GF) (hG 
       simp only at HL
       rw [HL]
       iapply ownRaftPhysCV_widen _ _ _ _ _ ?_ $$ Hp
-      intro h hr
-      exact GMap.elem_of_union_l _ (h hr)
+      intro h hr hl
+      exact GMap.elem_of_union_l _ (h hr hl)
     · ipureintro; exact Hmi
   inext
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hp, %Hsw⟩

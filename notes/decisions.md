@@ -18471,3 +18471,21 @@ guard instead of being excluded:
   candidate by `RInv.cand`.
 - `RestartNode.spec` loses its premise `md.isDyn = true → cv.PreVote' = false`.
 
+**M2c: `StepDownOnRemoval` off in the dynamic mode (2026-10-25, branch `membership-m2`).** Q3 (A)
+carried out, with no premise and the trust base unchanged. As 4.11 said, the protocol's ghost
+needed nothing; what required the flag was the code level's "a leader is a voter":
+- `ownRaftPhysC`'s `Hvoter` is now `role ≠ follower → role ≠ leader → id ∈ V` (a candidate or
+  pre-candidate is a voter; a leader need not be). `becomeLeader.spec` takes "not a leader" (it is
+  a candidate's, `stepCandidate`).
+- `switchToConfig`: a removed or demoted leader steps down with `stepDownOnRemoval` and otherwise
+  returns, still leader (`SwitchOkC`'s new branch; the premise `id ∉ voters → s.sdr = true` is gone,
+  a voter keeps `MatchKept`). `applyCCOkC_step`/`applyCCOkC_stepR`: that case is `reMatch` only, in
+  both models. `applyConfChange.spec` loses its `sdr` premise; `specS` (static) takes `id ∈ cfg`,
+  which its static callers have (`ownRawNode`'s `Hin`).
+- `stepLeader`: a proposal at a leader without its own `Progress` is dropped (Go's
+  `Progress[r.id] == nil` branch, `raft.go:1298-1302`, reachable now); the heartbeat response's
+  quorum needs a voter in the configuration, which `stepLeader` now takes (`Hhr`'s third conjunct)
+  and `raft.Step` reads off the ghost state (`ghostRest_voters_ne`: statically `reCfg_ne`,
+  dynamically `cfgFold_ok`); the append response did not use it.
+- `sdrOk` is the read-only field only; `RestartNode.spec` loses `md.isDyn → StepDownOnRemoval' = true`.
+

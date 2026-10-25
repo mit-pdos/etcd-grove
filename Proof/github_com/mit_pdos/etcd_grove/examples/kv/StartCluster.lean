@@ -362,7 +362,7 @@ theorem StartCluster.wp_proof
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
       (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
-      (fun _ => rfl) rfl (fun _ => ⟨HnoSnap, rfl⟩))
+      rfl (fun _ => ⟨HnoSnap, rfl⟩))
       $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hcl]
       as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
     obtain ⟨Hr, Hb, Hs, Hmd, Hsn, rfl⟩ := Hnd

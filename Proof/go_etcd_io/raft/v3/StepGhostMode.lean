@@ -306,6 +306,40 @@ theorem ghostRest_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s 
   iframe H
   isplitr <;> ipureintro <;> exact Hn
 
+/-- (2026-10-25, T-M M2c) The node's configuration has a voter, in either mode: statically the
+ghost state's voters (`RaftNames.reCfg_ne`), dynamically a fold of the changes from a good
+configuration (`cfgFold_ok`). What a leader that need not be a voter itself (removed without
+`StepDownOnRemoval`) needs for its quorums. -/
+theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ghostRest (GF := GF) γ md c id s ⊢ ⌜c.voters ≠ ∅⌝ ∗ ghostRest γ md c id s := by
+  have Hne : ∀ c : CfgM, c.incoming ≠ ∅ → c.voters ≠ ∅ := by
+    intro c hi hv
+    apply hi
+    apply GMap.set_eq
+    intro x
+    refine ⟨fun hx => ?_, fun hx => absurd hx (GMap.not_elem_of_empty _)⟩
+    have := GMap.elem_of_union_l c.outgoing hx
+    rw [show c.incoming ∪ c.outgoing = c.voters from rfl, hv] at this
+    exact absurd this (GMap.not_elem_of_empty _)
+  cases md with
+  | static =>
+    unfold ghostRest
+    simp only [ghostRestM]
+    iintro ⟨%Hn, %HC, #Hl⟩
+    isplitr
+    · ipureintro; rw [CfgStatic.voters HC.1]; exact γ.reCfg_ne
+    iframe Hl
+    ipureintro; exact ⟨Hn, HC⟩
+  | dyn dec c0 h0 g =>
+    unfold ghostRest
+    simp only [ghostRestM]
+    iintro ⟨%Hn, ⟨%Hd, H1, H2⟩, #Hl⟩
+    have Hok := cfgFold_ok Hd.2.2.cfg h0
+    isplitr
+    · ipureintro; rw [← Hd.2.1]; exact Hne _ Hok.2.1
+    iframe Hl H1 H2
+    ipureintro; exact ⟨Hn, Hd⟩
+
 /-- (D22 S-b′3) The certificate link, read out. -/
 theorem ghostRest_certLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ghostRest (GF := GF) γ md c id s ⊢ certLink γ s.logst.storage ∗ ghostRest γ md c id s := by

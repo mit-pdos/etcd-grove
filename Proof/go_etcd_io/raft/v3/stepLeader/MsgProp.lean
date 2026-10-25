@@ -294,7 +294,7 @@ theorem wp_stepLeader_prop
     (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (cs : List (Option CCMsg)) (k0 : Nat)
-    (Hty : m.Type' = MsgProp) (Hid : id ∈ c.voters) (Hne : ents ≠ [])
+    (Hty : m.Type' = MsgProp) (Hne : ents ≠ [])
     (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) (Hlead : s.role = .leader) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 }}
@@ -336,8 +336,22 @@ theorem wp_stepLeader_prop
   ihave Hphys := Hback $$ Htrkf Htrk
   wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
     id _ $$ Hprs with -
-  obtain ⟨pr, Hlk⟩ : ∃ pr, s.progress !! id = some pr := by
-    rw [← GMap.elem_of_dom, Hdom]; exact (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ Hid
+  cases Hlk : s.progress !! id with
+  | none =>
+    -- (2026-10-25, T-M M2c) no `Progress` of its own: a leader removed without
+    -- `StepDownOnRemoval` drops the proposal (until then excluded: a leader was a voter)
+    simp only [Option.getD_none]
+    wp_auto
+    iapply HΦ $$ %errPropDropped %s %true
+    iframe Hphys
+    isplitr
+    · iintro %Hd; exact absurd Hd (by decide)
+    isplitr
+    · ipureintro
+      exact ⟨cs, Hct, by simp⟩
+    simp only [↓reduceIte]
+    iexact ErrPropDropped
+  | some pr =>
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! id = some p := by
     rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
   icases ownRaftPhysC_pr c r id s id pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
@@ -345,7 +359,6 @@ theorem wp_stepLeader_prop
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
   ihave Hphys := Hpback $$ [Hpv Hinfl]
   · iapply ownProgress_intro $$ Hpv Hinfl %Habs
-  rw [Hlk]
   simp only [Option.getD_some]
   wp_if_destruct
   · exact absurd rfl Hnn

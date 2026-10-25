@@ -866,7 +866,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 over `c'`, a non-leader takes no step, a leader that stays a voter takes `reMatch`, `commit` by a
 joint quorum of `c'` and `sendApps` (an `MsgApp` carrying its commit index, `ReplSends`), and a
 removed or demoted leader takes `reMatch` and steps down (`StepR.stepDown`, with
-`StepDownOnRemoval`). `applyCCOkC_step`'s `StepR` version: `StepR` has the step-down. -/
+`StepDownOnRemoval`) or (2026-10-25, T-M M2c) without it takes `reMatch` only and stays leader.
+`applyCCOkC_step`'s `StepR` version: `StepR` has the step-down. -/
 theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {B : Int} (c' : CfgM)
     (id : w64) (s s' : NState) (g : RGh) (H : ApplyCCOkC c' id s s') (hc : g.cfg.cfg = c') :
     StepR Adm dec id B (rOf s g) [] (rOf s' g) := by
@@ -934,8 +935,22 @@ theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} 
         refine ⟨?_, ?_, fun _ => ⟨Hl, ?_⟩⟩ <;> (rw [← Hs2, ← Hs1]; try rfl)
       rw [rOf_frame _ _ g Hfr]
       exact HR
-    · -- removed or demoted: `reMatch`, then the step-down
+    · -- removed or demoted: `reMatch`, then the step-down with `StepDownOnRemoval`; (2026-10-25,
+      -- T-M M2c) without it, `reMatch` only: the node stays leader
       rw [ite_eq_right Hv] at Hsw
+      by_cases Hsd : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState).sdr = true
+      rotate_left
+      · rw [if_neg Hsd] at Hsw
+        subst Hsw
+        generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+          NState) = s1 at H1 ⊢
+        have HR1 := H1.toR (Adm := Adm) (dec := dec) (B := B) (rOf s g) rfl hc Hz
+        have Hfr1 : RFrame s s1 := by
+          refine ⟨?_, ?_, fun _ => ⟨Hl, ?_⟩⟩ <;> (rw [← Hs1]; try rfl)
+        rw [← rOf_frame _ _ g Hfr1] at HR1
+        exact HR1
+      rw [if_pos Hsd] at Hsw
       obtain ⟨pvs', rfl⟩ := Hsw
       generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState) = s1 at H1 ⊢
@@ -976,13 +991,15 @@ theorem applyCCOkC_frame {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC 
       uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
       -- (2026-10-17) no pre-candidate made (`RNPv`)
       (s'.role = .preCandidate → s.role = .preCandidate) := by
-  rcases applyCCOkC_step (B := 0) c' id s s' H with ⟨-, Hr, Hsf, Htk, Ht, Hpv, Hg, Hl, Hc⟩ | ⟨Hl, Hv, -⟩
+  rcases applyCCOkC_step (B := 0) c' id s s' H with ⟨-, Hr, Hsf, Htk, Ht, Hpv, Hg, Hl, Hc⟩ | ⟨Hl, Hv, Hsd, -⟩
   · exact ⟨⟨by rw [Hsf, Hr]; exact Hwf.1, by rw [Htk]; exact Hwf.2⟩, Ht, Hpv, Hg, Hl, Hc,
       fun h => by rw [← Hr]; exact h⟩
   · obtain ⟨prs, pvs, -, -, Hsw⟩ := H
     unfold SwitchOkC at Hsw
     rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
-        NState).role = .leader from Hl), ite_eq_right Hv] at Hsw
+        NState).role = .leader from Hl), ite_eq_right Hv,
+      if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState).sdr = true from Hsd)] at Hsw
     obtain ⟨pvs', rfl⟩ := Hsw
     refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
       simp [becomeFollower, resetTo0, resetTo, stepFuncOf]
@@ -1060,12 +1077,6 @@ theorem wp_applyConf_dyn
   icases (entails_wand (persistent_entails_left (wand_entails
     (ownRaftGhost_logRecs (GF := GF) γ id (rOf s g).p true)))) $$ Hg with ⟨Hg, %-, #Hlr⟩
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
-  icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd, Hphys⟩
-  ihave #Hsdrf' := Hsdrf
-  iunfold sdrOk at Hsdrf'
-  icases Hsdrf' with ⟨%b, #Hb, %Hbt⟩
-  icombine Hb Hsd gives %Hbs
-  have Hsdr : s.sdr = true := by rw [← Hbs]; exact Hbt (by rw [hm]; rfl)
   -- the entry, in the node's full log
   have Hfull_k : (rOf s g).full[k]? = some e := by
     obtain ⟨t, ht⟩ := Hdp
@@ -1099,7 +1110,7 @@ theorem wp_applyConf_dyn
   imod rdCred_zero_upd (GF := GF) γ with Hcr0
   iapply wp_fupd
   wp_apply +noauto wp_raft_applyConfChange cf rnv.raft' id s cc ccm dq cs'
-      (by rw [Hcfg]; exact Happ) (by have := Hsz; omega) (fun _ _ => Hsdr)
+      (by rw [Hcfg]; exact Happ) (by have := Hsz; omega)
       (fun h => by
         rcases h with h | h
         · exact absurd h Hnc
@@ -1289,7 +1300,7 @@ theorem wp_rn_raft_applyConfChange
   obtain ⟨lrn', Hd', Hsz', Hn', Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn Hsub Hsz
   icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
   wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id
-      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hli2
+      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hli2 Hin
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok, %Hdom'⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hok

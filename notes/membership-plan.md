@@ -1,6 +1,6 @@
 # Membership changes in the server (track T-M, D21d (B)) — plan
 
-Planned 2026-10-25. Status: **M2b done** (pre-vote in the dynamic mode, 2026-10-25); **M0 in part**: Q1-Q4 decided (D43: removal only; pre-vote and
+Planned 2026-10-25. Status: **M2b, M2c done** (pre-vote and `StepDownOnRemoval` off in the dynamic mode, 2026-10-25); **M0 in part**: Q1-Q4 decided (D43: removal only; pre-vote and
 `StepDownOnRemoval = false` proved in the dynamic mode; the removed member's own stop); W3 settled
 (the user for the D22 owner: the peers right is `trLive`, D43); the example and the client path
 still open.
@@ -119,7 +119,8 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     log and commit do not change, 4.1), carried through `raft.Step` in the dynamic mode; the pre-vote
     win (`stepCandidate`'s `campaign`) then maps to `StepR.campaign`; `wp_applyConf_dyn`'s
     pre-candidate case from it; `RestartNode`'s `PreVote' = false` premise goes.
-  - M2c: the protocol's dynamic ghost needs no step-down (4.11; `StepR`'s leader rules ask no
+  - **M2c done (2026-10-25)**: `StepDownOnRemoval` either way in the dynamic mode, no premise; see
+    `notes/decisions.md`, D43, "M2c". Scoping (kept): the protocol's dynamic ghost needs no step-down (4.11; `StepR`'s leader rules ask no
     voter, stage Q's `stepDown`); what needs it is the code level: `ownRaftPhysC`'s `Hvoter`
     (`role ≠ follower → id ∈ V`, `InvRaftPhys.lean:1013`), read by `stepLeader` (`Hid`),
     `MsgProp` (`Progress[id]`: Go's drop branch `raft.go:1298-1302` becomes reachable), the heartbeat

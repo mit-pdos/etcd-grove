@@ -2055,10 +2055,11 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
 /-! ## The one predicate for a `RawNode` -/
 
 /-- The persistent `stepDownOnRemoval` field (2026-10-14, stage B7 part 2): nobody writes it
-after `newRaft`; in the dynamic mode it is on (`Config.StepDownOnRemoval`), so that a leader
-an `ApplyConfChange` removes steps down (`StepR.stepDown`). -/
-def sdrOk (r : Loc) (md : RNMode) : IProp GF :=
-  iprop(∃ b : Bool, r.[raft, go!"stepDownOnRemoval"] ↦□ b ∗ ⌜md.isDyn = true → b = true⌝)
+after `newRaft`. (2026-10-14 to 2026-10-25 also on in the dynamic mode, so that a leader an
+`ApplyConfChange` removes steps down; since T-M M2c either way: without it the leader stays
+leader outside the configuration, `switchToConfig`.) -/
+def sdrOk (r : Loc) (_md : RNMode) : IProp GF :=
+  iprop(∃ b : Bool, r.[raft, go!"stepDownOnRemoval"] ↦□ b)
 
 instance sdrOk_pers (r : Loc) (md : RNMode) : Persistent (sdrOk (GF := GF) r md) := by
   unfold sdrOk; infer_instance
