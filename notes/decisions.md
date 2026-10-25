@@ -18691,3 +18691,83 @@ C1 proved over `getToken`); the client's write path without refusal-freedom; `Se
 calls (the client's `Auth` methods over the API layer's A3 entry points); the workload's and the
 checks' proofs (`keyOf`, `refused`, `checkKVs`, `checkTxnReads`, `Writer`, `CheckHistory`,
 `LastIn`, `Work`, `SetUp`).
+
+## E2a of the auth plan: `NewAuthStore`'s code proved over the store's contracts; no provisional schema axioms (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2a`)
+
+The user approved (2026-10-25) going past D22 with provisional trust-boundary axioms for schema's
+auth write side, to be reconciled with D22 later. What was done, and why the axioms were not
+written.
+
+**Proved.** `NewAuthStore` and `authStore.setupMetricsReporter` are translated (`auth.toml`; with
+the three bcrypt cost bounds `NewAuthStore` compares against, `Code/golang_org/x/crypto/bcrypt.toml`,
+the rest of bcrypt names only); the metrics reporter's lock is a package fact (`authInit`'s last
+conjunct, `reportP`, made by `gen-init.py` as mvcc's reporters). `setupMetricsReporter` is proved
+and linked. `auth.newAuthStore_on` (`auth/NewAuthStoreOn.lean`, restated with its callees linked as
+`auth_store_new_on` in `etcdserver/Results.lean`) is the constructor's own code in the mode
+`on γa`: over an `AuthBackend` meeting the store's backend contracts (`authBackendOk`, S1's read
+side; `authWBackendOk`, S4's write side; `CreateAuthBuckets` as one transaction keeping the write
+token), a token provider meeting `tokenProviderOkA` with its admin resource, and the admin side's
+authority at a history `hs` whose latest state is `stl` (with the other half of its ghost
+variable), it returns a store whose invariant holds (`authInv`: the revision's invariant, the three
+locks' guards, made here), the admin side's write resource (`authWR`), the provider's share
+(`tpAdmin`), the transaction's `Post`, the authority (with `bump stl` appended when `stl`'s revision
+is `0`: `commitRevision`), and every lock's reader slots. The bcrypt cost check, the logger, the
+`enable()` of a provider of an enabled state and the revision's commit are all covered.
+
+- *The initial cache* (a premise, `∃ s ∈ hs, s.users = ∅`): `NewAuthStore` makes the cache's map
+  empty and refreshes it only after `Revision()` and `commitRevision`, which (with
+  `refreshRangePermCache`) take the invariant; the cache lock is made with the empty map, which
+  `cacheOk (on)` accepts only as the map of a recorded state without users. No reader can see it
+  (the store is not shared yet); the history of a store whose buckets were created empty starts
+  with such a state.
+- *The readers' slots*: combining the three `List.replicate (2 ^ 30 - 1)` lists made the kernel
+  unfold the list (a deterministic timeout); `slots_rd` does it for an abstract count.
+
+**Not proved: `auth.NewAuthStore.spec` stays an axiom.** The server's statement is over schema's
+real auth backend on the real backend in the mode `off`, its post the apply contract on every
+backend (`authApplyOk`). From `newAuthStore_on` (or its `off` analogue) it would still need: (1)
+the real backend meeting the contracts (below); (2) `isAuthStoreAdmin`'s clauses of the real store,
+of which `HasRole`, `Authenticate` (with `CheckPassword`), `UserGet`, `RoleGet`, `UserList`,
+`RoleList` are not proved; (3) for `off`, the cache premise and `refreshRangePermCache`'s
+`permsFit` of a state the `off` contract does not name (`histLast off` is only "disabled").
+
+**Why no provisional schema axioms.** Two findings, both before any axiom could be stated true:
+
+1. *The auth buckets are D22's tracked buckets.* The server's statement and the backend's proved
+   specs (`batchTxBuffered.UnsafePut`, `rbPut`) put every write to a tracked bucket under the
+   client's half of `backend.rbOwn γB r`, the whole map's ghost variable, which the server hands to
+   the alarm store, the lessor and the cluster too (`srvRestRW`). A local predicate "the auth
+   buckets hold `D`" given out by `CreateAuthBuckets` beside `rbOwn` would be false (`rbOwn` still
+   allows writing the auth buckets, so what a reader of the auth buckets sees would not be the
+   local predicate's); one that consumes the auth part of `rbOwn` needs `rbOwn` split per bucket
+   or the auth buckets untracked, which changes D22's snapshot image (`authBoot`, `InvImage`). And
+   what a read transaction of the auth buckets sees (a recorded state, S1's `authRTx` over
+   `authBE`) is the D22 question of what readers of a tracked bucket see between write-backs.
+   Both are D22's to decide.
+2. *S4's write contract is not derivable in the mode `on` as stated* (a bug in this repository's
+   contracts, not in Go). `authBatchTxLk`'s `Lock()` promises, for *any* history `hs` whose
+   authority the caller holds, that the buckets hold `hs`'s latest state (`histLast`). Nothing ties
+   the buckets to the authority: `authOwn (on γa) hs` is the history's full authority and one half
+   of the latest state's ghost variable, the other half is in the revision's invariant
+   (`revCur`), so no share is left for the batch lock to hold, and the authority can be appended
+   to without a transaction (`authHist_append`). A real backend can meet the contract only if the
+   lock holds a share linked to the authority (e.g. a third share of the latest state's variable,
+   updated at `Unlock`, or the authority itself under the batch lock), which changes `authOwn`,
+   `revInv` and the S4 proofs' appends. In the mode `off` the contract is derivable (an invariant
+   "every unlocked state is disabled").
+
+**What D22 must discharge** (the provisional boundary, once (2) is fixed): that schema's
+`authBackend` over the real backend `d` meets, for the auth names `γa` allocated at
+`NewAuthStore`, `authBackendOk ab R (on γa)` (every read transaction sees a recorded state),
+`authWBackendOk ab (on γa) Pk f (wbTok d.γB ∗ …)` (the batch transaction's reads and writes are the
+latest state's, its `Lock` is `LockInsideApply` under the frozen hook, its `Unlock` one write-back),
+and `CreateAuthBuckets` (one transaction, from `rbOwn` with the auth buckets absent or empty), with
+the tracked buckets' half (`rbOwn`/`srvRestRW`) related to the latest state of the authority.
+`newAuthStore_on` then gives the store; E2b's server needs, besides, `ctxBound` naming the
+request's own token, the simple provider's tokens' shape and one user per token, and the auth
+history fixed after the set-up (`notes/decisions.md`, "E2b of the auth plan").
+
+**Trust base.** +1 axiom: bcrypt's `opaqueInitsOk` (its untranslated initializers, as every
+names-only package's); the root collections reaching the auth package's initializer
+(`cachekv`, `k8setcd3`, `linkv3p`, `linkvtxn`, `putget`, `putget3`, `watchkv`) list it.
+`newAuthStore_on` adds none (its callees are proved but `zap`'s, axioms already).
