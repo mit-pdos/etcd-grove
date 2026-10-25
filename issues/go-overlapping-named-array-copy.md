@@ -1,7 +1,8 @@
 ---
-upstream: none
+upstream: fixed
 checked: 2026-10-25
 links:
+  - golang/go#78371 issue closed: this bug ("no-op interface conversion bypasses overlap checking", CVE-2026-27144), reported by Jakub Ciolek, fixed by golang/go@3985ca0b6264 (2026-04-08, Go 1.27) with the fix proposed below; backported as golang/go#78424 (Go 1.26.2) and golang/go#78423 (Go 1.25.9)
   - golang/go#54467 issue closed: the same miscompile for `*p = *q` with identical array types, fixed by CL 425076 (memmove when the two sides may partially overlap); this case, with a conversion on the right, is not covered
   - golang/go#55920 issue closed: the arm64 slowdown from that fix; CL 433056 then narrowed the overlap test to "both sides are dereferences", which a conversion defeats
 ---
@@ -9,7 +10,8 @@ links:
 # Go: gc miscompiles a copy between overlapping array views of a named and an unnamed array type
 
 - **Status**: a bug in the Go toolchain (gc), not in the Go code this repository verifies, in
-  safe Go (no `unsafe`). Recorded here because Perennial's guarantee for goose-translated code
+  safe Go (no `unsafe`), already fixed upstream (CVE-2026-27144): go1.26.0, the toolchain this
+  was found on, has it; go1.25.9, go1.26.2 and go1.27 do not. Recorded here because Perennial's guarantee for goose-translated code
   depends on what gc compiles; Perennial's model of the copy is right by the spec, gc is not.
 - **Where**: gc go1.26.0 linux/amd64, `cmd/compile/internal/ssagen/ssa.go:1831`, in the `OAS`
   case of `stmt`:
@@ -38,7 +40,8 @@ links:
   }
   ```
 
-  prints `[0 0 1 1 3]` on go1.26.0 linux/amd64 (2026-10-25): the old `s[0:4]` is copied
+  prints `[0 0 1 1 3]` on go1.26.0 linux/amd64 (2026-10-25; `[0 0 1 2 3]` on go1.26.2 and
+  go1.27.1): the old `s[0:4]` is copied
   forward in 16-byte chunks over itself. Replacing `*A` by `*[4]int`, so that the two sides
   have identical types, prints `[0 0 1 2 3]`.
 - **Expected**: `[0 0 1 2 3]`. An assignment evaluates its right side and then stores it (as
@@ -51,7 +54,8 @@ links:
   refuses to translate a statement that copies a value of any array type between two memory
   places that are not exempt (whole variables and the like), so the verified results do not
   cover such a copy. Today's verified etcd and raft code has none, as far as is known.
-- **Possible fixes**: strip `OCONVNOP`s from the right side before the test:
+- **Possible fixes**: upgrade the toolchain (go1.25.9, go1.26.2 or later). Upstream's fix,
+  golang/go@3985ca0b6264, is the one below: strip `OCONVNOP`s from the right side before the test:
 
   ```go
   y := n.Y
@@ -65,8 +69,8 @@ links:
   `runtime.typedmemmove`, the same copy on `[8]string` and `[8]uint64` arrays comes out
   right, and `go test -short cmd/compile/internal/ssagen cmd/compile/internal/test` passes
   (use a fresh `GOCACHE` with a copied GOROOT, or the go command reuses the unpatched objects).
-  The left side cannot carry a conversion, so it needs nothing. A regression test would go in `test/fixedbugs`, next to
-  golang/go#54467's.
+  The left side cannot carry a conversion, so it needs nothing. Upstream's regression test is
+  `cmd/compile/internal/test/memoverlap_test.go`.
 - **Found**: 2026-10-25, an adversarial review of Perennial's unsafe-memory guard (the review
   of draft 9 of `docs/design/unsafe-memory.md`, Perennial branch `unsafe-guard`), with Go
-  probes on gc 1.26.
+  probes on gc 1.26. Found already fixed upstream the same day, when drafting a report.
