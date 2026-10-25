@@ -1,0 +1,10 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/authkv/Link.lean`
+# (all Lean-first; the auth plan's E2b), read by `etc/gen-link.py --authkv`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `authkv`.
+#
+# the program's verdict, the model's at the set-up's state (Model.lean)
+authkv_InRange:
+authkv_Permitted: authkv_InRange
+# `Main`: not proved yet (a `sorry`; Main.lean lists what its proof needs)
+authkv_Main:

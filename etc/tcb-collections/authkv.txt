@@ -1,0 +1,23 @@
+# The authentication example (examples/authkv; the auth plan's E2b): the results of
+# Proof/github_com/mit_pdos/etcd_grove/examples/authkv/Results.lean: `authkv_Main` (not proved
+# yet: its `sorry`), `authkv_Permitted` and the pure `authkv_granted_iff`, `authkv_badToken`.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/authkv.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/authkv.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/authkv.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/authkv/Results\.lean$
+axiom backend.isDB
+axiom backend.optsAt
+axiom backend.ownDB
+axiom backend.ownWTx
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txDB
+axiom backend.txLive
+axiom netAddrFree
+axiom promSrvMetrics
+sorry authkv.Main.wp_proof
