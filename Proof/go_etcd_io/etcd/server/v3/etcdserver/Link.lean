@@ -171,6 +171,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__lockedReadTx
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__selectPassword
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__setRevision
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__setupMetricsReporter
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
 public import Proof.go_etcd_io.etcd.server.v3.auth.getMergedPerms
@@ -1074,6 +1075,10 @@ theorem auth.authStore.wp_UserGrantRole :
 theorem auth.authStore.wp_UserRevokeRole :
     auth.authStore.UserRevokeRole.spec (GF := GF) (hG := hG) :=
   auth.authStore.UserRevokeRole.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error zap.Logger.wp_Info
+
+theorem auth.authStore.wp_setupMetricsReporter :
+    auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG) :=
+  auth.authStore.setupMetricsReporter.wp_proof
 
 theorem binary.wp_WriteUint64 :
     binary.WriteUint64.spec (GF := GF) (hG := hG) :=

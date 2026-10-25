@@ -13,11 +13,12 @@ AddNode}).AsV2())` per peer, which installs the peers as the voters with fresh `
 (`Next = max(lastIndex, 1) = n`, `Match = 0`). Nothing is applied (`applied = applying = 0`): the
 application sees the conf changes through the first `Ready` (`StartNode.spec`).
 
-The result is the node closed, `ownRawNode` in the static mode at the peers' configuration, with
-the delivered log empty, the term `1`, and the ghost state of the bootstrap state
-(`ownRaftGhost γ id (bootPState bootLog)`, allocated before the call: `ownRaftGhost_alloc_boot`,
-`Protocol/Facts.lean`), which the physical state refines: a follower at term `1`, the log
-`bootLog` from the empty base, committed through it.
+The result is the node closed, `ownRawNode` in the mode `md` at the peers' configuration, with
+the delivered log empty, the term `1`, and the ghost state of the bootstrap state (`bootInit γ md
+id V bootLog`, allocated before the call: statically `ownRaftGhost γ id (bootPState bootLog)`,
+`ownRaftGhost_alloc_boot`; dynamically, since 2026-10-25, T-M M2a, the dynamic model's `rboot c0
+bootLog` at the configuration index `0`, `raft_dyn_alloc_boot`), which the physical state refines:
+a follower at term `1`, the log `bootLog` from the empty base, committed through it.
 
 The premises are `StartNode.spec`'s on the peers and the bootstrap log (`BootLogOk γ.reCCOk ps
 bootLog`: entry `k` is the `k`-th peer's, which fixes the terms, indices and types the code
@@ -47,7 +48,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev RawNode.Bootstrap.spec : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (si : GoInterfaceOk) (sdr pre : Bool) (s : NState)
+  ∀ (γ : RaftNames) (md : RNMode) (rn : Loc) (id : w64) (si : GoInterfaceOk) (sdr pre : Bool)
+    (s : NState)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
     (bootLog : List EntryM),
   -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster
@@ -64,8 +66,9 @@ abbrev RawNode.Bootstrap.spec : Prop :=
       rawNodeFresh rn id si ∅ sdr pre s ∗
       -- the peers, their contexts, and `Marshal` at their conf changes (`InvBoot.lean`)
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
-      -- this node's ghost state at the bootstrap state, and the committed boot log
-      ownRaftGhost γ id (bootPState bootLog) ∗ isCommitted γ bootLog ∗
+      -- this node's ghost state at the bootstrap state in the mode `md` (2026-10-25, T-M M2a;
+      -- until then static), and the committed boot log
+      bootInit γ md id (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
       -- (2026-10-19, D21 M3) in the cluster's no-snapshot mode, a storage that never compacts
       -- past index `1`
       NsCap γ.reNoSnap (interface.ok si) ∗
@@ -77,7 +80,7 @@ abbrev RawNode.Bootstrap.spec : Prop :=
       ⌜err = interface.nil⌝ ∗
       ownRawNode γ rn id
         { delivered := [], unpersisted := [], steps := [], term := W64 1,
-          storage := interface.ok si, mode := RNMode.static,
+          storage := interface.ok si, mode := md,
           cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 } ∗
       peers ↦*{dq} pv }}
 

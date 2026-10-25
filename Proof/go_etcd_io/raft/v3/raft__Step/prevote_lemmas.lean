@@ -113,7 +113,7 @@ theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won 
     unfold prevoteRespResult at h ⊢
     split at h
     · simp [campaignState, sendMsgs, becomeCandidate] at h
-    · split at h <;> simp_all [becomeFollower]
+    · split at h <;> simp_all [becomeFollower, PreKeep]
 
 /-- A pre-candidate's tally, for `RespStep`: a win campaigns -- a candidate one term up
 (the term does not wrap) -- a loss steps down at the same term, and otherwise it stays a
@@ -136,6 +136,62 @@ theorem prevoteRespResult_resp (id : w64) (s : NState) (src : w64) (reject won l
     · refine ⟨.inl (Int.le_max_left _ _), fun h => ?_⟩
       simp [becomeFollower] at h
     · exact ⟨.inl (Int.le_max_left _ _), fun _ => ⟨Hp, rfl⟩⟩
+
+/-- (2026-10-25, T-M M2b) A pre-candidate's tally in the dynamic model: waiting is no step, a loss
+`abandon`, a win `StepR.campaign`, whose guard is the pre-candidate's (`PreGuard`: `hup` checked
+it, and nothing since changed the log, the commit index or the pending snapshot). Until then the
+dynamic mode had no pre-candidate (`StepCD.of_excluded`). -/
+theorem stepR_prevoteRespResult {Adm : List EntryM → CCState → Prop} {dec : CCDec} (c : CfgM)
+    (id : w64) (s : NState) (src : w64) (reject won lost : Bool) (peers : List w64)
+    (pvs : GMap w64 Progress) (Hpre : s.role = .preCandidate) (Hin : id ∈ c.voters)
+    (Hnw : uint.Z s.term + 1 < 2 ^ 64)
+    (Hperm : won = true → peers ≡ₚ elements (c.voters \ {[id]})) (g : RGh) (hc : g.cfg.cfg = c)
+    (Hg : s.logst.snap = none ∧ NoConfIn (g.fp ++ (s.logst.sents ++ s.logst.uents))
+      (uint.nat s.logst.applied) (uint.nat s.logst.committed)) :
+    StepR Adm dec id B (rOf s g) []
+      (rOf { prevoteRespResult id s src reject won lost peers with prvals := pvs } g) := by
+  have Hnl : s.role ≠ .leader := by rw [Hpre]; decide
+  have Hnl' : (rOf s g).p.role ≠ .leader := by
+    simp only [rOf, toPState_role]; exact proleRole_not_leader _ Hnl
+  obtain ⟨Hsn, Hno⟩ := Hg
+  cases won <;> cases lost
+  · -- waiting: the tally only, which the model does not see at a pre-candidate
+    have e : rOf { prevoteRespResult id s src reject false false peers with prvals := pvs } g =
+        rOf s g := by
+      have h1 : toPState { prevoteRespResult id s src reject false false peers with prvals := pvs } =
+          toPState s := by
+        simp [prevoteRespResult, toPState, Hpre]
+      unfold rOf pciR
+      rw [h1]
+      simp [prevoteRespResult, Hpre]
+    rw [e]; exact .refl _
+  · -- a loss: `abandon`
+    have Hbf : (becomeFollower s s.term (W64 0)).role ≠ .leader := by simp [becomeFollower]
+    show StepR Adm dec id B (rOf s g) [] (rOf { becomeFollower s s.term (W64 0) with prvals := pvs } g)
+    rw [rOf_nonleader s ({ becomeFollower s s.term (W64 0) with prvals := pvs } : NState) g rfl rfl
+      (by exact Hbf), toPState_prvals_nl _ pvs Hbf, toPState_becomeFollower]
+    have H := (StepCF.abandon (c := c) (id := id) _ Hnl').toR (Adm := Adm) (dec := dec) (B := B)
+      (rOf s g) rfl hc (rOf_pci_zero s g)
+    have e : pciKeep (pbecomeFollower (rOf s g).p (rOf s g).p.term (W64 0)) (rOf s g).pci = W64 0 := by
+      simp [pciKeep, pbecomeFollower]
+    rw [e] at H
+    exact H
+  all_goals
+    -- a win: the campaign, with the guard `hup` checked
+    have Hcr : (campaignState id s false peers).role ≠ .leader := by
+      simp [campaignState, sendMsgs, becomeCandidate]
+    have Hcl : (campaignState id s false peers).logst = s.logst := by
+      simp [campaignState, sendMsgs, becomeCandidate, resetTo, resetTo0]
+    show StepR Adm dec id B (rOf s g) [] (rOf { campaignState id s false peers with prvals := pvs } g)
+    rw [rOf_nonleader s ({ campaignState id s false peers with prvals := pvs } : NState) g
+      (by show (campaignState id s false peers).logst.applied = _; rw [Hcl])
+      (by show (campaignState id s false peers).logst.snap = _; rw [Hcl]) (by exact Hcr),
+      toPState_prvals_nl _ pvs Hcr]
+    show StepR Adm dec id B (rOf s g) []
+      { rOf s g with p := toPState (sendMsgs (becomeCandidate id s) _), pci := W64 0 }
+    rw [toPState_sendMsgs, toPState_becomeCandidate]
+    exact StepR.campaign (rOf s g) peers [] Hnl' (by show id ∈ g.cfg.cfg.voters; rw [hc]; exact Hin)
+      (by simp [rOf, Hsn]) Hno Hnw (by show peers ≡ₚ elements (g.cfg.cfg.voters \ {[id]}); rw [hc]; exact Hperm rfl)
 
 /-- `stepCandidate` on a `MsgPreVoteResp`: nothing at a candidate; at a pre-candidate,
 the tally and then win / lose / wait, which is `stepC_prevoteRespResult`. -/
@@ -164,8 +220,10 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} 
     refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
       prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
       prevoteRespResult_frame id s _ _ won lost peers pvs m Hty (Hnw Hp)⟩
-    exact StepCD.of_excluded (stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
-      (fun Hwon => (Hw Hwon).2)) (.inr Hp)
+    exact ⟨stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
+      (fun Hwon => (Hw Hwon).2), fun Adm dec g hc hd => ⟨g.cidx, .inl rfl,
+        stepR_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
+          (fun Hwon => (Hw Hwon).2) g hc (hd.2.1 Hp)⟩⟩
   · simp only [Hp, ↓reduceIte] at Hres
     subst Hres
     exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), RespStep.refl _ _,

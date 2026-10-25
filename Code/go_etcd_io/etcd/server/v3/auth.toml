@@ -59,9 +59,14 @@ translate = ["!*", "AuthInfo",
   # (the auth plan's S5c, 2026-10-25, Perennial 24bef275e: `strconv.ParseUint`, `time.Ticker`,
   # `Time.After`) the token check and the TTL keeper's goroutine and its stop
   "tokenSimple.isValidSimpleToken", "simpleTokenTTLKeeper.run", "simpleTokenTTLKeeper.stop",
-  "simpleTokenTTLResolution"]
+  "simpleTokenTTLResolution",
+  # (the auth plan's E2a, 2026-10-25) the constructor, over its backend's and token provider's
+  # contracts, and the metrics reporter it installs (the package's `reportCurrentAuthRevMu` and
+  # `reportCurrentAuthRev`)
+  "NewAuthStore", "authStore.setupMetricsReporter", "reportCurrentAuthRevMu",
+  "reportCurrentAuthRev"]
 imports = ["!*", "bytes", "context", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
-  "go.uber.org/zap", "google.golang.org/grpc/metadata",
+  "go.uber.org/zap", "google.golang.org/grpc/metadata", "golang.org/x/crypto/bcrypt",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
   "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt"]
 

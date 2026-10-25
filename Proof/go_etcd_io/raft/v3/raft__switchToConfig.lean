@@ -138,7 +138,7 @@ theorem raft.switchToConfig.wp_proof
       ihave Hphys := ownRaftPhysC_eq c r id _ { s0 with isLearner := learnerOfC c id }
         (by rw [HLf]) $$ Hphys
       -- the node fits `c`: `Hvoter` at `c.voters`
-      ihave Hphys := ownRaftPhysCV_widen c c.voters r id _ (fun _ _ => Hin) $$ Hphys
+      ihave Hphys := ownRaftPhysCV_widen c c.voters r id _ (fun _ _ _ => Hin) $$ Hphys
       wp_apply raft.wp_load_isLearnerC $$ Hphys as Hphys
       generalize Hs1 : ({ s0 with isLearner := learnerOfC c id } : NState) = s1
       have Hs1l : s1.isLearner = false := by rw [← Hs1]; exact HLf
@@ -363,11 +363,8 @@ theorem raft.switchToConfig.wp_proof
       rw [ite_eq_left Hl1, ite_eq_left Hin]
       exact Hs'
     · ------------------------------------------------------------------
-      -- a leader removed or demoted: it steps down (`stepDownOnRemoval`, by the premise)
-      have Hsdr : s.sdr = true := by
-        rcases Hlead Hl with ⟨h, -⟩ | ⟨-, h⟩
-        · exact absurd h Hin
-        · exact h
+      -- a leader removed or demoted: it steps down with `stepDownOnRemoval`, else (2026-10-25, T-M
+      -- M2c) it stays leader, outside `c`
       have Hst : stateW64 s0.role = W64 2 := by rw [Hrole0, Hl]; rfl
       -- `r.isLearner = ok && pr.IsLearner`, then `(!ok || r.isLearner) && r.state == Leader`
       cases Hlk : s0.progress !! id with
@@ -397,10 +394,23 @@ theorem raft.switchToConfig.wp_proof
         try wp_auto
         have HLL : learnerOfC c id = true := decide_eq_true Hlr
         generalize Hs1 : ({ s0 with isLearner := true } : NState) = s1
-        have Hsdr1 : s1.sdr = true := by rw [← Hs1]; exact Hsdr0.trans Hsdr
         have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hrole0.trans Hl
+        have He : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } : NState)
+            = s1 := by rw [← Hs1, ← Hs0, HLL]
         wp_apply raft.wp_load_stepDownOnRemovalC $$ Hphys as Hphys
-        rw [Hsdr1]
+        cases Hsdr1 : s1.sdr
+        · -- (2026-10-25, T-M M2c) no `StepDownOnRemoval`: it returns, still leader, outside `c`
+          try wp_auto
+          ihave Hphys := ownRaftPhysCV_widen c c.voters r id _ (fun _ _ hl => absurd Hl1 hl)
+            $$ Hphys
+          iapply HΦ $$ %cs %xs %os %ls %lns %s1
+          iframe Hphys Hcs
+          ipureintro
+          refine ⟨Hcs0, ?_⟩
+          rw [He]
+          unfold SwitchOkC
+          rw [ite_eq_left Hl1, ite_eq_right Hin, Hsdr1]
+          rfl
         try wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
         wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) $$ [$Hphys]
@@ -416,7 +426,7 @@ theorem raft.switchToConfig.wp_proof
             = s1 := by rw [← Hs1, ← Hs0, HLL]
         rw [e]
         unfold SwitchOkC
-        rw [ite_eq_left Hl1, ite_eq_right Hin]
+        rw [ite_eq_left Hl1, ite_eq_right Hin, Hsdr1]
         exact ⟨pvs', rfl⟩
       | none =>
         simp only [Option.getD_none, Option.isSome_none]
@@ -438,10 +448,23 @@ theorem raft.switchToConfig.wp_proof
           obtain ⟨x, hx⟩ := hk
           rw [Hlk] at hx; cases hx
         generalize Hs1 : ({ s0 with isLearner := false } : NState) = s1
-        have Hsdr1 : s1.sdr = true := by rw [← Hs1]; exact Hsdr0.trans Hsdr
         have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hrole0.trans Hl
+        have He : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } : NState)
+            = s1 := by rw [← Hs1, ← Hs0, HLL]
         wp_apply raft.wp_load_stepDownOnRemovalC $$ Hphys as Hphys
-        rw [Hsdr1]
+        cases Hsdr1 : s1.sdr
+        · -- (2026-10-25, T-M M2c) no `StepDownOnRemoval`: it returns, still leader, outside `c`
+          try wp_auto
+          ihave Hphys := ownRaftPhysCV_widen c c.voters r id _ (fun _ _ hl => absurd Hl1 hl)
+            $$ Hphys
+          iapply HΦ $$ %cs %xs %os %ls %lns %s1
+          iframe Hphys Hcs
+          ipureintro
+          refine ⟨Hcs0, ?_⟩
+          rw [He]
+          unfold SwitchOkC
+          rw [ite_eq_left Hl1, ite_eq_right Hin, Hsdr1]
+          rfl
         try wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
         wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) $$ [$Hphys]
@@ -457,12 +480,12 @@ theorem raft.switchToConfig.wp_proof
             = s1 := by rw [← Hs1, ← Hs0, HLL]
         rw [e]
         unfold SwitchOkC
-        rw [ite_eq_left Hl1, ite_eq_right Hin]
+        rw [ite_eq_left Hl1, ite_eq_right Hin, Hsdr1]
         exact ⟨pvs', rfl⟩
   · ------------------------------------------------------------------
     -- a non-leader: done. It fits `c`: a candidate is a voter by the premise.
-    have Hfit : s.role ≠ .follower → id ∈ c.voters := by
-      intro hf
+    have Hfit : s.role ≠ .follower → s.role ≠ .leader → id ∈ c.voters := by
+      intro hf _
       apply Hcand
       cases h : s.role
       · exact absurd h hf
@@ -477,7 +500,7 @@ theorem raft.switchToConfig.wp_proof
       unfold SwitchOkC; rw [ite_eq_right (by show s0.role ≠ _; rw [Hrole0]; exact Hl)]
     ihave Hphys := Hback $$ %tv3 Htrkf Htrk
     ihave Hphys := ownRaftPhysCV_widen c c.voters r id _
-      (fun _ h => Hfit (by rw [← Hrole0]; exact h)) $$ Hphys
+      (fun _ h hl => Hfit (by rw [← Hrole0]; exact h) (by rw [← Hrole0]; exact hl)) $$ Hphys
     icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv3', Htrkf, Htrk, Hback⟩
     cases Hlk : s0.progress !! id with
     | some pr =>

@@ -59,7 +59,7 @@ theorem RawNode.Campaign.wp_proof
     msg_nulls
   ihave Hm := msgOwn_to_msgIn _ _ (by simp [MsgApp]) $$ Hm
   imod rdCred_zero_upd (GF := GF) γ with Hcr
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
   have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
     [] [] none []

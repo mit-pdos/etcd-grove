@@ -49,7 +49,9 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     (Hlrd : s.role = .leader → m.Term' = s.term →
       (RdOk c.voters s.rd ∧ s.term ≠ W64 0) ∧ (ctx = [] ∨ 8 ≤ ctx.length) ∧
       (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
-                    ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))) :
+                    ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int)) ∧
+      -- (2026-10-25, T-M M2c) the configuration has a voter (`ghostRest_voters_ne`)
+      c.voters ≠ ∅) :
     m.Type' = MsgHeartbeatResp →
     m.To' = id →
     m.Term' ≠ W64 0 →

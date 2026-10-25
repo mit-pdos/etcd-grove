@@ -67,6 +67,8 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.LessorContract
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorOk
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
+public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
+public import Proof.go_uber_org.zap.Int
 
 @[expose] public section
 
@@ -1204,10 +1206,39 @@ theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
         (.on γa) (auth.simpleAdmin p) :=
   auth.tokenSimple_okCtx zap.Logger.Debug.wp_proof zap.String.wp_proof p γa
 
+/-- **The auth store's constructor in the mode `on γa`** (`NewAuthStore`, the auth plan's E2a;
+`auth/NewAuthStoreOn.lean`): over the store's backend contracts and the token provider's, the
+store's invariant, the admin side's write resource, the provider's share, the authority (the
+first revision committed if the backend's state had none) and the readers' slots. -/
+theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
+    (γa : auth.AuthNames) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF)
+    (hs : List auth.AuthState) (stl : auth.AuthState) (hlast : hs.getLast? = some stl)
+    (hfit : auth.permsFit stl) (hempty : ∃ s ∈ hs, s.users = ∅) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+        ⌜ab = GoInterface.ok bi⌝ ∗ auth.authBackendOk ab R (.on γa) ∗
+        auth.authWBackendOk ab (.on γa) P f T ∗
+        □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
+          {{ RET #(); T }}) ∗
+        T ∗ mvcc.csContract P f Pre Q Post ∗ auth.tokenProviderOkA tp (.on γa) A ∗ A ∗
+        auth.authOwn (.on γa) hs ∗ auth.authCurHalf γa stl }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
+        (Val #ab)) (Val #tp)) (Val #cost))
+    {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List auth.AuthState),
+        ⌜st = auth.authIface stp⌝ ∗ auth.authInv stp R (.on γa) ∗ auth.authWR stp (.on γa) P f T ∗
+        auth.tpAdmin stp (.on γa) ∗ Post ∗ auth.authOwn (.on γa) hs' ∗
+        ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [auth.bump stl])⌝ ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          auth.enabledRd stp (.on γa) ∗ auth.cacheRd stp (.on γa) ∗ auth.beRd stp R (.on γa)) }} :=
+  auth.newAuthStore_on zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
+    auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
+    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa R P f T A Pre Q Post hs stl hlast
+    hfit hempty
+
 end tokens
 
 #print axioms Perennial.EtcdGrove.token_simple_new
 #print axioms Perennial.EtcdGrove.token_simple_ok
+#print axioms Perennial.EtcdGrove.auth_store_new_on
 
 section goroutines
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

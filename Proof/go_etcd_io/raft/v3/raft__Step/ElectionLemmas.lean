@@ -531,7 +531,7 @@ macro "prevote_resp_dispatch" : tactic =>
       · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inl Hrole)
-          (Hvoter (by rw [Hrole]; decide)) Hnw Hwf Hres
+          (Hvoter (by rw [Hrole]; decide) (by rw [Hrole]; decide)) Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn
@@ -589,7 +589,7 @@ macro "prevote_resp_dispatch" : tactic =>
       · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inr Hrole)
-          (Hvoter (by rw [Hrole]; decide)) Hnw Hwf Hres
+          (Hvoter (by rw [Hrole]; decide) (by rw [Hrole]; decide)) Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
       subst Herrn

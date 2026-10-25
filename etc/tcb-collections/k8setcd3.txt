@@ -222,6 +222,7 @@ axiom Perennial.go_opentelemetry_io.otel.trace.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
 axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
+axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk

@@ -101,7 +101,7 @@ theorem keeper_run : RunSpec (GF := GF) (hG := hG) := by
   · iPkgInit
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%d, #Hd, %Hdpos⟩⟩
+  icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%d, #Hd, %Hdpos⟩, -⟩
   iunfold keeperRun at Hr
   icases Hr with ⟨%sc, %dc, %γs, %γd, %df, #Hsc, #Hdc, #Hdf, #Hmuf, #Hbag, Hpend, #Hmu, #Hel, Hdelf⟩
   iunfold delfOk at Hdelf

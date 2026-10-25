@@ -27,6 +27,8 @@ module
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
+-- (2026-10-25, T-M M2a) `rboot`, `ownRaftGhostR`: a new cluster in the dynamic mode
+public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 
 @[expose] public section
 
@@ -151,6 +153,31 @@ def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) 
 instance bootMarshal_persistent (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) :
     Persistent (bootMarshal (GF := GF) ps ctxs bootLog) := by
   unfold bootMarshal; infer_instance
+
+/-- (2026-10-25, T-M M2a) The ghost state a member of a new cluster starts `Bootstrap` with, in the
+mode `md` (as `rnInit` for `RestartNode`): statically the bootstrap state `bootPState bootLog`
+(`ownRaftGhost_alloc_boot`); dynamically the dynamic model's `rboot c0 bootLog`
+(`raft_dyn_alloc_boot`: configuration index `0`), the initial configuration `c0` the peers' `V`,
+with no learner. -/
+def bootInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) (bootLog : List EntryM) :
+    IProp GF :=
+  match md with
+  | .static => ownRaftGhost γ id (bootPState bootLog)
+  | .dyn dec c0 h0 _ => iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ c0 = cfgState V ∅⌝ ∗
+      ownRaftGhostR γ dec c0 id (rboot c0 bootLog))
+
+/-- The commit invariant, from the boot ghost state in either mode. -/
+theorem bootInit_inv (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64)
+    (bootLog : List EntryM) : ⊢ bootInit (GF := GF) γ md id V bootLog -∗ raftCommitInv γ := by
+  cases md with
+  | static =>
+    unfold bootInit
+    iintro Hg
+    iapply ownRaftGhost_inv γ id (bootPState bootLog) $$ Hg
+  | dyn dec c0 h0 _ =>
+    unfold bootInit ownRaftGhostR
+    iintro ⟨-, Hg, -⟩
+    iapply ownRaftGhost_inv_md γ id _ $$ Hg
 
 end defs
 

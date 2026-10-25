@@ -180,7 +180,8 @@ PROJECTS = [
                     "net=", "hash=", "path=", "internal/bytealg=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
-                    "golang.org/x/time=", "github.com/xiang90/probing=", "crypto/tls=",
+                    "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
+                    "crypto/tls=",
                     "github.com/grpc-ecosystem="],
         packages=[
             # with bodies (cache/v3.toml)
@@ -248,6 +249,8 @@ PROJECTS = [
             # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
             "go.etcd.io/etcd/server/v3/lease/leasepb",
             "go.etcd.io/etcd/server/v3/auth",
+            # names only but for the cost bounds `auth.NewAuthStore` reads (the auth plan's E2a)
+            "golang.org/x/crypto/bcrypt",
             "go.etcd.io/etcd/pkg/v3/contention",
             "go.etcd.io/etcd/pkg/v3/idutil",
             "go.etcd.io/etcd/pkg/v3/notify",
@@ -378,6 +381,7 @@ PROJECTS = [
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
+               os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
                os.path.join("github_com", "grpc_ecosystem")],
         # etcd itself: not its tests, tools or root module
@@ -497,6 +501,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "watchkv")],
+    ),
+    Project(
+        name="authkv",
+        # The authentication example (notes/auth-plan.md, D-AU5): one member started in-process
+        # with the simple token provider, auth set up and enabled through a client, four
+        # principals (two users, no token, an invalid token) running a workload inside and outside
+        # the one granted range, and checks that the server refused what the auth state does not
+        # permit. A package of the examples' Go module (examples/go.mod); its imports are the
+        # etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "authkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "authkv")],
     ),
     Project(
         name="cachekv",

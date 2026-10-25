@@ -458,6 +458,8 @@ auth_authStore__isRangeOpPermitted: zap_String zap_Logger__Error auth_checkKeyIn
 # axioms, adt/BytesIvl.lean, not hypotheses), `refreshRangePermCache` the map from its users.
 auth_getMergedPerms: NewIntervalTree NewBytesAffineInterval NewBytesAffinePoint
 auth_authStore__refreshRangePermCache: zap_Logger__Debug zap_String zap_Logger__Error auth_getMergedPerms
+# (the auth plan's E2a) the metrics reporter NewAuthStore installs, under the package's lock
+auth_authStore__setupMetricsReporter:
 auth_isValidPermissionRange: auth_isOpenEnded BytesAffineComparable__Compare
 # The admin side (the auth plan's S4, 2026-10-24): each a step of the model's state appended to the
 # history (`auth/Steps.lean`), over the write side's contracts (`InvAuth.lean`, `authWR`). The trust

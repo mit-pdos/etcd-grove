@@ -1,6 +1,6 @@
 # Membership changes in the server (track T-M, D21d (B)) — plan
 
-Planned 2026-10-25. Status: **M0 in part**: Q1-Q4 decided (D43: removal only; pre-vote and
+Planned 2026-10-25. Status: **M2b, M2c done** (pre-vote and `StepDownOnRemoval` off in the dynamic mode, 2026-10-25); **M0 in part**: Q1-Q4 decided (D43: removal only; pre-vote and
 `StepDownOnRemoval = false` proved in the dynamic mode; the removed member's own stop); W3 settled
 (the user for the D22 owner: the peers right is `trLive`, D43); the example and the client path
 still open.
@@ -99,7 +99,7 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
 
 - **M0. Scope** (this section): Q1-Q4 with the user (**decided 2026-10-25, D43**: each (A)); W3's statement (the peers right, shared with
   S8c-S8d; **settled 2026-10-25**: `trLive`, D43 "W3 settled"); the example chosen (below). Writes D43.
-- **M1. Raft clean-up (optional, warm-up)**: the static `ownRaftPhys` as the sealed alias of
+- **M1. Raft clean-up (optional, warm-up)**: **done** (2026-10-25, the clean-up branch `cleanup/2026-10-24`, merged into `lean`; merged into `membership-m2` over M2c's weaker `Hvoter`). the static `ownRaftPhys` as the sealed alias of
   `ownRaftPhysC` (STATUS "Clean-up: unused declarations removed, ...": about 3-4 hours, rebuilds raft
   and the server), then `applyConfChange.specS`, `ApplyCCOk`, `SwitchOk`. Independent of the rest;
   it shrinks what M3 has to carry across modes.
@@ -109,8 +109,35 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   - *M2b.* Pre-vote in the dynamic mode, if Q2 (A).
   - *M2c.* `StepDownOnRemoval = false` in the dynamic mode, if Q3 (A).
   Each its own stage with a paper check first (`notes/reconfiguration-safety.md`), as B1 was.
+  *Scoped 2026-10-25* (order: M2b, M2c, M2a):
+  - **M2b done (2026-10-25)**: pre-vote in the dynamic mode proved, no premise; see `notes/decisions.md`,
+    D43, "M2b". Scoping (kept): the dynamic mode excluded a pre-candidate everywhere (`RNPv`'s `s.prevote = false`,
+    `PreFacts`, `GMode.Pre`, `DynHyp`; every step at a pre-candidate closed by `StepCD.of_excluded`
+    with no `StepR` witness, `raft__Step/prevote_lemmas.lean:167`). The model collapses the role to
+    follower (`proleRole`), so the guard goes at the node level: a pre-candidate has no pending
+    snapshot and no conf entry in `(applied, commit]` (`hup`'s check, kept until the campaign: its
+    log and commit do not change, 4.1), carried through `raft.Step` in the dynamic mode; the pre-vote
+    win (`stepCandidate`'s `campaign`) then maps to `StepR.campaign`; `wp_applyConf_dyn`'s
+    pre-candidate case from it; `RestartNode`'s `PreVote' = false` premise goes.
+  - **M2c done (2026-10-25)**: `StepDownOnRemoval` either way in the dynamic mode, no premise; see
+    `notes/decisions.md`, D43, "M2c". Scoping (kept): the protocol's dynamic ghost needs no step-down (4.11; `StepR`'s leader rules ask no
+    voter, stage Q's `stepDown`); what needs it is the code level: `ownRaftPhysC`'s `Hvoter`
+    (`role ≠ follower → id ∈ V`, `InvRaftPhys.lean:1013`), read by `stepLeader` (`Hid`),
+    `MsgProp` (`Progress[id]`: Go's drop branch `raft.go:1298-1302` becomes reachable), the heartbeat
+    and `MsgAppResp` responses, `becomeLeader`; `switchToConfig`/`applyConfChange`'s
+    `id ∉ voters → sdr` premise and `sdrOk` go.
+  - **M2a done (2026-10-25)**: `StartNode`/`Bootstrap` in either mode, the trust base unchanged; see
+    `notes/decisions.md`, D43, "M2a". Scoping (kept): `StartNode`/`Bootstrap` returned the static
+    mode; the allocation needed `dyn = none ∨ L = []` (`Protocol/Facts.lean:1034`): the boot log's
+    conf entries are committed without a quorum, which the dynamic ghost's commit witnesses (`cqAt`)
+    must admit. Done: the boot log's conf entries need no witness (the far cases close at them by
+    I1, `notes/reconfiguration-safety.md` section 0); the configuration index starts at `0`, so the
+    re-application of the boot entries is the ordinary dynamic `ApplyConfChange` (whose premise,
+    that each decodes and applies, M3's server discharges).
 - **M3. The server in the dynamic mode.** `rnEnvOk`'s `RNMode.static` replaced by the dynamic mode
-  (`NodeStart`, `InvRaftNode`, `BuildGap`, `newRaftNode`); `srvCCPolicy`/`ccApplyOk` widened to the
+  (`NodeStart`, `InvRaftNode`, `BuildGap`, `newRaftNode`: `StartNode` at `md := .dyn`, the cluster
+  from `raft_dyn_alloc_boot`, M2a; the server's re-application of the boot `AddNode`s meets
+  `ApplyConfChange`'s `DynCCPreOp`: its decoder, an existing member's `AddNode` a no-op or zeroed); `srvCCPolicy`/`ccApplyOk` widened to the
   kinds in scope (v1, `RemoveNode`); the static examples restated over it or kept on a static
   instance (to decide in M3: whether the static mode at the server goes, as STATUS suggests).
 - **M4. The membership writers.** Translate `RaftCluster.RemoveMember`,
