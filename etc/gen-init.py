@@ -1405,7 +1405,8 @@ and raft's, leaf errors by the premise `EtcdGrove.ErrorStringLeaf`), and `contex
 
 RAFT_INIT = {'go_etcd_io.raft.v3', 'go_etcd_io.raft.v3.quorum', 'go_etcd_io.raft.v3.tracker',
              'go_etcd_io.raft.v3.confchange', 'go_etcd_io.raft.v3.raftpb',
-             'google_golang_org.protobuf.proto', 'os', 'strconv'}
+             'google_golang_org.protobuf.proto', 'os'}
+# (`strconv` was here until Perennial translated it, 24bef275e: its `wp_initialize'` is Perennial's.)
 
 def plain(ns):
     return ns.replace('«', '').replace('»', '')

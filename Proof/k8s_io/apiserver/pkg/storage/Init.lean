@@ -15,12 +15,12 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.encoding.base64.Init
 public import Proof.encoding.json.Init
-public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
 public import Proof.k8s_io.apimachinery.pkg.api.validate.content.Init
