@@ -172,7 +172,8 @@ one-token fix; known: etcd-io/etcd#22081 and fix PR #22087, open, unreviewed, ma
 replaces `s.alarmStore` unsynchronized while `Status`/`/health` read it; the race detector reports
 it in 4 of 5 runs of an integration test; effect a stale alarm list for a moment; fixed in our fork
 2026-10-22 by the upstream candidate's fix, the store recovered in place, with an integration test
-that fails 5 of 5 without it and passes 15 of 15 with it),
+that fails 5 of 5 without it and passes 15 of 15 with it; reported 2026-10-23, etcd-io/etcd#22653
+with our fix PR #22654, both open),
 [etcd-release-snapdb-before-open](etcd-release-snapdb-before-open.md) (2026-10-20, code reading: a
 second snapshot's `Release` can delete the `.snap.db` file `applySnapshot` has not opened yet, a
 follower panic; needs two snapshots in quick succession; fixed in our fork 2026-10-22, `Release`

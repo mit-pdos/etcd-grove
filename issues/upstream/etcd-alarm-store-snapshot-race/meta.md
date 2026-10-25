@@ -12,10 +12,11 @@ request controls it (it needs a member to apply a leader's snapshot).
 - **Target**: etcd-io/etcd, `main`. `restoreAlarms` has replaced the field unsynchronized since the alarm store was
   added; release branches likely have it too (not checked).
 - **Branch**: `fix/etcd-alarm-store-snapshot-race` in `~/etcd-fixes/etcd-alarm-store-snapshot-race`, two commits
-  (rebuilt 2026-10-23 on the new base, both commits cherry-picked unchanged): a89993c86
+  (rebuilt 2026-10-23 on the new base; revised 2026-10-25, below): 9e75921f5
   (`tests/integration: test reading alarms while applying a snapshot`) adds the test, which fails there under
-  `-race`; 7569d2bbd (`etcdserver: fix data race on the alarm store when applying a snapshot`) is the fix. Not
-  pushed (`git ls-remote origin` has no `fix/etcd-alarm-store-snapshot-race`). The previous head, on 7ff040cb8, is
+  `-race`; 8938e98c2 (`etcdserver: fix data race on the alarm store when applying a snapshot`) is the fix. Pushed
+  to `upamanyus/etcd`, filed 2026-10-23 as etcd-io/etcd#22653 (issue) and #22654 (PR); the commits filed then were
+  a89993c86 and 7569d2bbd. The previous head, on 7ff040cb8, is
   kept as `backup/etcd-alarm-store-snapshot-race-v1` (d396a0fc7; before the 2026-10-21 review pass: b2810d37a and
   17a1a9c98).
 - **Base**: upstream `main` 3aaab3479b6c4f5fe1b2b8f33437093c2caae88a (2026-10-22). The 22 commits since 7ff040cb8
@@ -85,6 +86,18 @@ asynchronously; nothing writes alarms then, since alarm requests are applied on 
 unchanged. `check.py` passes; its one WARN, on the reworded comment before the uber applier's rebuild, is kept:
 the line replaces an existing comment that named the alarm store as replaced.
 
+## Revision (2026-10-25, after CI on #22654)
+
+- The tests commit (now 9e75921f5) compares the backends with `require.NotSamef` instead of `require.NotEqual`:
+  `NotEqual`'s `reflect.DeepEqual` read the new backend's fields while its commit goroutine wrote them, a data race
+  of the test's own (`pull-etcd-integration-1-cpu-arm64`), and testifylint rejected `NotEqual` with a message
+  (`pull-etcd-verify`). Locally: lint clean; the test passes 5 of 5 with `-race` at the fix and fails 3 of 3 (three
+  `DATA RACE`s) with the server change reverted.
+- The fix (now 8938e98c2) also deletes `EtcdServer.restoreAlarms`, which only `NewServer` still called: `NewServer`
+  assigns `NewAlarmStore`'s result itself, so no method that replaces the store remains. `uberApplier.restoreAlarms`
+  (the applier chain's rebuild from the active alarms) is a different method and stays. Locally: build, vet, lint
+  clean; `server/etcdserver` and the integration tests matching `Alarm` pass with `-race`.
+
 ## Why the test shows the bug and not a misuse
 
 Every step is ordinary operation: a partitioned follower catching up by the leader's snapshot (the integration
@@ -125,8 +138,8 @@ Candidate fixes, at the layer of the alarm store and of the server:
   `Recover` returns `restore`'s error, as `NewAlarmStore` does, and `applySnapshot` panics on it as before (the
   lessor and auth store's `Recover` cannot fail). Readers see the clear and the reload as one step, since `Get`
   takes the same mutex; a new backend without the alarm bucket is handled by `restore`'s `CreateAlarmBucket`, as at
-  startup. `restoreAlarms` stays, used only by `NewServer`; removing it and inlining `NewAlarmStore` there is a
-  cosmetic follow-up kept out of this change.
+  startup. `restoreAlarms`, then used only by `NewServer`, was first kept as a cosmetic follow-up; since
+  2026-10-25 (a reviewer asked about it) the fix inlines `NewAlarmStore` into `NewServer` and deletes it.
 - **`atomic.Pointer[v3alarm.AlarmStore]`** (the finding's first idea): `restoreAlarms` stores, `Alarms`,
   `NewUberApplier` and `apply` load. Correct, but it changes the field's type and four use sites, and no other
   store in `EtcdServer` is held that way; and it keeps replacing the object, so the uber applier and any reader
