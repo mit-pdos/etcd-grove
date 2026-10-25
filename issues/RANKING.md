@@ -350,7 +350,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   the leader's first commit are not released when `switchToConfig`'s commit is that commit; not a
   bug for an application that applies conf changes before `Advance`, so not filing: it is one more
   consequence of the misuse in item 7), [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md)
-  (Go, not etcd; a golang/go issue drafted, not filed).
+  (Go, not etcd; a golang/go issue drafted, not filed),
+  [go-overlapping-named-array-copy](go-overlapping-named-array-copy.md) (Go's compiler, not
+  etcd: a miscompiled overlapping array copy in safe Go; already fixed upstream, golang/go#78371,
+  go1.26.2).
 - **Metrics**: [etcd-apply-alarm-gauge-reactivate](etcd-apply-alarm-gauge-reactivate.md),
   [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md) (trivial fixes, easy
   merges, little impact).
