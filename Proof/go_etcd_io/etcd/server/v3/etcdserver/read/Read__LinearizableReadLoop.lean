@@ -38,7 +38,7 @@ set_option hygiene false in
 iteration. -/
 local macro "loop_tail" : tactic => `(tactic| (
   (try wp_auto)
-  wp_apply hNotify nc γn γr GoInterface.nil $$ [Hown]
+  wp_apply hNotify nc γn γr GoInterface.nil rid $$ [Hown]
   · iframe #; iframe Hown
     iintro -
     iunfold frozenOk
@@ -68,7 +68,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     (hFU : strconv.FormatUint.spec (GF := GF) (hG := hG))
     (hLog : traceutil.Trace.LogAllStepsIfLong.spec (GF := GF) (hG := hG)) :
     read.Read.LinearizableReadLoop.spec (GF := GF) (hG := hG) := by
-  intro r γr RQ LR NR
+  intro r γr RQ LR NR LGR
   wp_start as ⟨#Hpre, HLR, #HNRu⟩
   ihave #Hpre' := Hpre
   iunfold isReadLoopPre at Hpre'
@@ -153,7 +153,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     ihave #HRA := Hcomp' $$ %gs Hregs
     wp_apply sync.RWMutex.wp_Unlock_guard (readMuAddr r) (readMuP r γr) $$ [Hwl Hpt Hg]
     · iframe #; iframe Hwl; iunfold readMuP; iexists nc', γn'; iframe Hpt Hg
-    wp_apply hRCI r γr RQ LR NR lcn n (readQs gs) $$ [HLR] as %ci %err ⟨HLR, #HaE, Hci⟩
+    wp_apply hRCI r γr RQ LR NR LGR lcn n (readQs gs) $$ [HLR] as %ci %rid %err ⟨HLR, #HaE, Hci⟩
     · iframe #; iframe HLR
     wp_apply hStopped err $$ [] as %bst -
     · iframe #
@@ -166,7 +166,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     cases err with
     | ok ei =>
       wp_auto
-      wp_apply hNotify nc γn γr (GoInterface.ok ei) $$ [Hown]
+      wp_apply hNotify nc γn γr (GoInterface.ok ei) rid $$ [Hown]
       · iframe #; iframe Hown; iintro %h; cases h
       wp_for_post
       iframe

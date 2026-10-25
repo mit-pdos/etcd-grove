@@ -237,6 +237,7 @@ PROJECTS = [
             "github.com/Masterminds/semver/v3",
             "go.etcd.io/etcd/server/v3/etcdserver/errors",
             "go.etcd.io/etcd/server/v3/etcdserver/read",
+            "go.etcd.io/etcd/server/v3/etcdserver/requestid",
             "go.etcd.io/etcd/server/v3/lease",
             # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
             "go.etcd.io/etcd/server/v3/lease/leasepb",

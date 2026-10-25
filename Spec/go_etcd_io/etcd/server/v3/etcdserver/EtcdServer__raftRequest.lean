@@ -34,7 +34,7 @@ abbrev EtcdServer.raftRequest.spec : Prop :=
     (Qr : List EntryModel → IProp GF) (F : mvcc.Log),
   rq.id = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
+      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ reqIdCtx ρ ctx ∗ context.isContext ctx cd ∗
       irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
       mvcc.idxCert E.γ.idx F }}

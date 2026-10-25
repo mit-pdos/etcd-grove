@@ -1,0 +1,40 @@
+=== RUN   TestReproBug1A_DuplicateRequestIDRegisterPanic
+    repro_test.go:83: Confirmed Bug 1A panic on second proposal with same ctx: dup id deadbeef
+--- PASS: TestReproBug1A_DuplicateRequestIDRegisterPanic (0.00s)
+=== RUN   TestReproBug1B_SequentialProposalSameCtxCrossContaminatesApplyResult
+    repro_test.go:124: Confirmed Bug 1B: Proposal 2 received Proposal 1's apply result ("STALE_PROPOSAL_1_RESULT") due to requestID reuse (0x12345678)
+--- PASS: TestReproBug1B_SequentialProposalSameCtxCrossContaminatesApplyResult (0.00s)
+=== RUN   TestReproBug1C_V3ElectionCampaignResignTypeAssertionPanic
+    repro_test.go:169: Confirmed Bug 1C panic in DeleteRange after Proclaim->Resign on same ctx: interface conversion: interface {} is *repro.TxnResponse, not *repro.DeleteRangeResponse
+--- PASS: TestReproBug1C_V3ElectionCampaignResignTypeAssertionPanic (0.00s)
+=== RUN   TestReproBug2A_LogRaftCommunicationNilLoggerCrash
+    repro_test.go:205: Confirmed Bug 2A: logRaftCommunication with nil *zap.Logger panics: runtime error: invalid memory address or nil pointer dereference
+--- PASS: TestReproBug2A_LogRaftCommunicationNilLoggerCrash (0.00s)
+=== RUN   TestReproBug2B_LogRaftCommunicationNilHeaderCrash
+    repro_test.go:217: Confirmed Bug 2B: logRaftCommunication with r.Header == nil panics: runtime error: invalid memory address or nil pointer dereference
+--- PASS: TestReproBug2B_LogRaftCommunicationNilHeaderCrash (0.00s)
+=== RUN   TestReproBug3_InternalProposalTriggersWarnLog
+    repro_test.go:240: Confirmed Bug 3: internal proposals have FromContext(ctx) == 0 and trigger lg.Warn on every call
+--- PASS: TestReproBug3_InternalProposalTriggersWarnLog (0.00s)
+=== RUN   TestReproBug4_DuplicateSizeFieldInLogUnaryResponseStats
+    repro_test.go:259: Confirmed Bug 4: logUnaryResponseStats emits 2 duplicate 'size' zap fields: [start-time time-spent response-type size range-response-count size]
+--- PASS: TestReproBug4_DuplicateSizeFieldInLogUnaryResponseStats (0.00s)
+PASS
+ok  	etcd-21401-repro	(cached)
+
+=== Upstream server/etcdserver/api/rafthttp unit tests on PR #21401 ===
+=== RUN   TestSendMessage
+panic: runtime error: invalid memory address or nil pointer dereference
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0xb1f12d]
+
+goroutine 16 [running]:
+go.uber.org/zap.(*Logger).Core(...)
+	/root/go/pkg/mod/go.uber.org/zap@v1.28.0/logger.go:308
+go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.logRaftCommunication(0x0, 0x1, 0xa8f9070a5b0, 0x2, {0xbb25a2, 0x4})
+	/root/etcd-pr/etcd-21401/server/etcdserver/api/rafthttp/transport.go:459 +0x4d
+go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.(*streamWriter).run(0xa8f90365580)
+	/root/etcd-pr/etcd-21401/server/etcdserver/api/rafthttp/stream.go:209 +0x11ff
+created by go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.startStreamWriter in goroutine 8
+	/root/etcd-pr/etcd-21401/server/etcdserver/api/rafthttp/stream.go:156 +0x1a5
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp	0.017s
+FAIL

@@ -7,6 +7,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.Defs
 public import Spec.go_opentelemetry_io.otel.trace.SpanFromContext
 
 @[expose] public section
@@ -43,6 +44,8 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
       (∃ vs : GMap GoInterface GoInterface, mvcc.txnCtx ctx' { cd with Values := vs } ∗
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs })) ∗
       □ (∀ o : Option Loc, traceutil.ctxTraceIs ctx o -∗ traceutil.ctxTraceIs ctx' o) ∗
+      □ (∀ o : Option w64, requestid.ctxReqIDIs ctx o -∗
+        requestid.ctxReqIDIs ctx' o) ∗
       trace.isSpan sp }}
 
 end spec

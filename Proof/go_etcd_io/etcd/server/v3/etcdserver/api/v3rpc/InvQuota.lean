@@ -87,11 +87,33 @@ instance v3rpc.quotaKVServerAt_persistent (q : Loc) (kv : GoInterfaceOk) (s : Lo
     Persistent (v3rpc.quotaKVServerAt (GF := GF) q kv s) := by
   unfold v3rpc.quotaKVServerAt; infer_instance
 
-/-- **What the learner check reads of a request** (persistent; see the file header). -/
+/-- **What the unary interceptors read of a request** (persistent; see the file header): the learner
+check (`isRPCSupportedForLearner`) reads `RangeRequest.Serializable`, and PR etcd#21401's
+`requestLogFields` reads the fields of `RangeRequest`, `PutRequest`, `DeleteRangeRequest`, and
+`TxnRequest`. -/
 def v3rpc.learnerReqOk (req : GoInterface) : IProp GF :=
   iprop(⌜req = GoInterface.nil ∨ ∃ (t : go.GoType) (l : Loc), req = interface.mkOk t #l⌝ ∗
-    ∀ r : Loc, ⌜req = interface.mkOk (go.GoType.PointerType etcdserverpb.RangeRequest.ty) #r⌝ →
-      ∃ b : Bool, structFieldRef etcdserverpb.RangeRequest go!"Serializable" r ↦□ b)
+    (∀ r : Loc, ⌜req = interface.mkOk (go.GoType.PointerType etcdserverpb.RangeRequest.ty) #r⌝ →
+      ⌜r ≠ null⌝ ∗ ∃ (ksl esl : GoSlice) (k e : GoString) (rev limit : w64) (ser ko co : Bool),
+        structFieldRef etcdserverpb.RangeRequest go!"Key" r ↦□ ksl ∗ ksl ↦*□ k ∗
+        structFieldRef etcdserverpb.RangeRequest go!"RangeEnd" r ↦□ esl ∗ esl ↦*□ e ∗
+        structFieldRef etcdserverpb.RangeRequest go!"Limit" r ↦□ limit ∗
+        structFieldRef etcdserverpb.RangeRequest go!"Revision" r ↦□ rev ∗
+        structFieldRef etcdserverpb.RangeRequest go!"Serializable" r ↦□ ser ∗
+        structFieldRef etcdserverpb.RangeRequest go!"KeysOnly" r ↦□ ko ∗
+        structFieldRef etcdserverpb.RangeRequest go!"CountOnly" r ↦□ co) ∗
+    (∀ r : Loc, ⌜req = interface.mkOk (go.GoType.PointerType etcdserverpb.PutRequest.ty) #r⌝ →
+      ⌜r ≠ null⌝ ∗ ∃ (ksl : GoSlice) (k : GoString),
+        structFieldRef etcdserverpb.PutRequest go!"Key" r ↦□ ksl ∗ ksl ↦*□ k) ∗
+    (∀ r : Loc, ⌜req = interface.mkOk (go.GoType.PointerType etcdserverpb.DeleteRangeRequest.ty) #r⌝ →
+      ⌜r ≠ null⌝ ∗ ∃ (ksl esl : GoSlice) (k e : GoString),
+        structFieldRef etcdserverpb.DeleteRangeRequest go!"Key" r ↦□ ksl ∗ ksl ↦*□ k ∗
+        structFieldRef etcdserverpb.DeleteRangeRequest go!"RangeEnd" r ↦□ esl ∗ esl ↦*□ e) ∗
+    (∀ r : Loc, ⌜req = interface.mkOk (go.GoType.PointerType etcdserverpb.TxnRequest.ty) #r⌝ →
+      ⌜r ≠ null⌝ ∗ ∃ (csl ssl fsl : GoSlice),
+        structFieldRef etcdserverpb.TxnRequest go!"Compare" r ↦□ csl ∗
+        structFieldRef etcdserverpb.TxnRequest go!"Success" r ↦□ ssl ∗
+        structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ fsl))
 
 end defs
 

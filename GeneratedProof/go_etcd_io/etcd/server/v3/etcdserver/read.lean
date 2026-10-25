@@ -8,6 +8,7 @@ public import Perennial.GeneratedProof.errors
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.requestid
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_uber_org.zap
 public import Perennial.GeneratedProof.strconv
@@ -149,6 +150,7 @@ instance notifier_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "c" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"c" l) v.c' dq ∗
     "err" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"err" l) v.err' dq ∗
+    "readIndexID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"readIndexID" l) v.readIndexID' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -187,6 +189,22 @@ instance notifier_access_store_err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcd
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"err" l) err' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance notifier_access_load_readIndexID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"readIndexID" l) v.readIndexID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"readIndexID" l) v.readIndexID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance notifier_access_store_readIndexID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (readIndexID' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"readIndexID" l) v.readIndexID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"readIndexID" l) readIndexID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readIndexID' := readIndexID' } : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -124,22 +124,23 @@ theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth ful
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
     (Φ : Rep.M → IProp GF)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc)
+    (C : GoInterfaceOk → IProp GF),
   Req.ty = reqTy → Rep.ty = repTy →
   go.typeSetContains srv.ty srvTy = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
-      grpcHandlerOk #(methods srv.ty meth srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOk #(methods srv.ty meth srv.v) S Spec C ∗ srvInterceptorsOk Q ics Rs C ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
-      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec m Φ }}
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ C ci ∗
+      grpcDecOk dec Req m ∗ grpcSrvChain ics ui ∗ Spec m Φ }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
         ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') }} := by
-  intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui hReq hRep hsrv
-  wp_start as ⟨#Hblank, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hchain, HSpec⟩
+  intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui C hReq hRep hsrv
+  wp_start as ⟨#Hblank, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, HC, #Hdec, #Hchain, HSpec⟩
   wp_auto
   ihave Hb := Hblank $$ %«$r0_ptr» «$r0»
   ihave #Hdec' := grpcDecOk_ty dec Req m _ hReq $$ Hdec
@@ -156,7 +157,7 @@ theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth ful
       wp_auto
       iunfold grpcHandlerOk at Hh
       wp_bind (App (App (Val _) (Val #(GoInterface.ok ci))) (Val #«$r0_ptr»))
-      iapply Hh $$ %m %Φ' %ci %cd %«$r0_ptr» [HS HSpec]
+      iapply Hh $$ %m %Φ' %ci %cd %«$r0_ptr» [HS HC HSpec]
       · iframe; iframe #
       inext
       iintro %resp %err' ⟨HS, Hres⟩
@@ -186,17 +187,18 @@ theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth ful
           iexact FullMethod
         wp_bind (App (App (App (App (Val #ui) _) _) _) _)
         iapply Hchain
-        iapply srvChainWP_of_ok
+        iapply (srvChainWP_of_ok _ Rs ci cd _ _ _ _ Q C)
         iframe #
         iframe
         isplit
-        · iunfold srvHandlerCall
+        · iintro %ci' %cd' #Hctx' #Hrc' HC'
+          iunfold srvHandlerCall
           wp_auto
           simp only [hsrv]
           wp_auto
           iunfold grpcHandlerOk at Hh
-          wp_bind (App (App (Val _) (Val #(GoInterface.ok ci))) (Val _))
-          iapply Hh $$ %m %Φ' %ci %cd %_ [HS HSpec]
+          wp_bind (App (App (Val _) (Val #(GoInterface.ok ci'))) (Val _))
+          iapply Hh $$ %m %Φ' %ci' %cd' %_ [HS HC' HSpec]
           · iframe; iframe #
           inext
           iintro %resp %err' ⟨HS, Hres⟩

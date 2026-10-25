@@ -91,8 +91,18 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   wp_auto
   rw [recv_eq_func_mk]
   iapply HΦ
+  iintro !> %C
   unfold srvInterceptorOk
-  iintro !> %ci %cd %req %info %h %Ψ HR #Hctx #Hrc #Hinfo #HQ Hk
+  iintro !> %ci %cd %req %info %h %Ψ HR #Hctx #Hrc HC #Hinfo #HQ Hk
+  ihave Hk : iprop(WP (srvHandlerCall h #(GoInterface.ok ci) #req)
+      {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (True -∗ Ψ v) }} ∧
+    (True -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
+      Ψ (PairV #GoInterface.nil #err))) $$ [HC Hk]
+  · isplit
+    · icases Hk with ⟨Hk, -⟩
+      iapply Hk $$ %ci %cd Hctx Hrc HC
+    · icases Hk with ⟨-, Hk⟩
+      iexact Hk
   iunfold srvInterceptorCall
   wp_auto
   wp_apply wp_IsCap as %b -

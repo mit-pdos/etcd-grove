@@ -28,13 +28,13 @@ the committed index `c` the caller knew of (`readIndexOk`), else an error the gR
 the caller's reader slot of the read loop's lock (`readReader`) is given back. -/
 abbrev EtcdServer.LinearizableReadNotify.spec : Prop :=
   ∀ (s r : Loc) (γr : ReadNames) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (c : w64) (g : GName) (Q : List EntryModel → IProp GF),
+    (c : w64) (g : GName) (Q : List EntryModel → IProp GF) (LGR : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvReadAddr s ↦□ r ∗ isReadNotify r γr ∗ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗
-      readReader r γr ∗ savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q }}
+      srvReadAddr s ↦□ r ∗ isReadNotify r γr LGR ∗ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗
+      readReader r γr ∗ LGR ∗ savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LinearizableReadNotify"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; readReader r γr ∗ LGR ∗ applyErrIs err ∗
       (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c ∗ readServed γr c g) }}
 
 end spec

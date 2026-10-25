@@ -31,7 +31,7 @@ theorem v3rpc.isRPCSupportedForLearner.wp_proof :
   intro req
   wp_start as Hl
   iunfold v3rpc.learnerReqOk at Hl
-  icases Hl with ⟨%Hreq, #Hser⟩
+  icases Hl with ⟨%Hreq, #Hser, -⟩
   rcases Hreq with rfl | ⟨t, l, rfl⟩
   · wp_auto
     iapply HΦ
@@ -42,7 +42,8 @@ theorem v3rpc.isRPCSupportedForLearner.wp_proof :
       itrivial
     · by_cases ht : t = go.GoType.PointerType etcdserverpb.RangeRequest.ty
       · subst ht
-        ihave ⟨%b, #Hb⟩ := Hser $$ %l %rfl
+        ihave ⟨-, %ksl, %esl, %k, %e, %rev, %limit, %ser, %ko, %co, -, -, -, -, -, -, #Hb, -⟩ :=
+          Hser $$ %l %rfl
         wp_auto
         iapply HΦ
         itrivial

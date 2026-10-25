@@ -118,7 +118,7 @@ structure ReadFields where
 /-- **The server `s` as a reader sees it** at the fields' values `v` (persistent; see the file
 header). -/
 def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFields) : IProp GF :=
-  iprop(srvReadAddr s ↦□ v.read ∗ isReadNotify v.read γr ∗
+  iprop(srvReadAddr s ↦□ v.read ∗ isReadNotify v.read γr (srvLgReader s) ∗
     srvKVAddr s ↦□ v.kv ∗ txn.isKV v.kv E.s E.γ ∗
     E.s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)

@@ -1,6 +1,6 @@
 /-
-`v3rpc.newLogUnaryInterceptor` (`v3rpc/interceptor.go`; unit P3b). Lean-first (no Rocq
-counterpart); the vocabulary is `Proof/google_golang_org/grpc/InvGrpc.lean` and
+`v3rpc.newLogUnaryInterceptor` (`v3rpc/interceptor.go`; unit P3b, updated for PR etcd#21401).
+Lean-first (no Rocq counterpart); the vocabulary is `Proof/google_golang_org/grpc/InvGrpc.lean` and
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvQuota.lean`.
 -/
 module
@@ -28,10 +28,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`newLogUnaryInterceptor(s)`** returns a transparent interceptor (`srvInterceptorOk`, for any
-requests), whose run holds a reader slot of `s.lgMu` (`s.Logger()`, after the handler): it calls
-the handler and, the logger being non-nil, logs the call in a deferred `logUnaryRequestStats`
-with `s.Cfg.WarningUnaryRequestDuration`. -/
+/-- **`newLogUnaryInterceptor(s)`** (PR etcd#21401) returns an interceptor (`srvInterceptorOk`, for
+requests satisfying `learnerReqOk`), whose run holds a reader slot of `s.lgMu` (`s.Logger()`): it
+generates a fresh request ID via `s.RequestID()`, attaches it to `ctx` via
+`requestid.NewContext(ctx, requestID)` (establishing `reqIdCtxAt γi ci'` and thus `C ci'`), checks
+`lg.Core().Enabled(zap.DebugLevel)` (note: PR etcd#21401 removed the `if lg != nil` guard), logs the
+request on debug via `logUnaryRequest`, invokes the handler with the enriched `ctx`, and logs
+response stats via `logUnaryResponseStats` (calling `requestLogFields(req)` when `!debug` and slow). -/
 abbrev v3rpc.newLogUnaryInterceptor.spec : Prop :=
   ∀ (s lg : Loc) (wd : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -39,8 +42,10 @@ abbrev v3rpc.newLogUnaryInterceptor.spec : Prop :=
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
       srvCfgFieldAddr s go!"WarningUnaryRequestDuration" ↦□ wd }}
     (App (Val (@! v3rpc.newLogUnaryInterceptor)) (Val #s))
-  {{ (ic : GoFunc), RET #ic; □ ∀ Q : GoInterface → IProp GF,
-      srvInterceptorOk ic (srvLgReader s) Q }}
+  {{ (ic : GoFunc), RET #ic;
+      □ ∀ (γi : IdNames) (C : GoInterfaceOk → IProp GF),
+        srvIdGen s γi -∗ idCred γi 1 -∗ □ (∀ ci', reqIdCtxAt γi ci' -∗ C ci') -∗
+        srvInterceptorOk ic (srvLgReader s) v3rpc.learnerReqOk C }}
 
 end spec
 

@@ -62,6 +62,8 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 abbrev ncCAddr (nc : Loc) : Loc := structFieldRef notifier go!"c" nc
 /-- A notifier's error (`nc.err`). -/
 abbrev ncErrAddr (nc : Loc) : Loc := structFieldRef notifier go!"err" nc
+/-- A notifier's read-index ID (`nc.readIndexID`, PR etcd#21401). -/
+abbrev ncReadIndexIDAddr (nc : Loc) : Loc := structFieldRef notifier go!"readIndexID" nc
 /-- The read loop's server (`r.server`). -/
 abbrev readServerAddr (r : Loc) : Loc := structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"server" r
 /-- The read loop's raft (`r.raft`). -/
@@ -110,8 +112,8 @@ def frozenOk (γn : NeedNames) (γr : ReadNames) : IProp GF :=
 before the close for good (`nc.err ↦□`), one the gRPC layer can take (`applyErrIs`), and, if
 `nil`, the loop's answer (`frozenOk`). -/
 def notified (nc : Loc) (γn : NeedNames) (γr : ReadNames) : IProp GF :=
-  iprop(∃ err : GoInterface, ncErrAddr nc ↦□ err ∗ applyErrIs err ∗
-    (⌜err ≠ GoInterface.nil⌝ ∨ frozenOk γn γr))
+  iprop(∃ (err : GoInterface) (rid : w64), ncErrAddr nc ↦□ err ∗ ncReadIndexIDAddr nc ↦□ rid ∗
+    applyErrIs err ∗ (⌜err ≠ GoInterface.nil⌝ ∨ frozenOk γn γr))
 
 /-- **A channel closed (never sent on) whose close tells `Q`** (persistent; Perennial's broadcast
 idiom, any receiver's view). -/
@@ -172,8 +174,9 @@ def notifierIs (nc : Loc) (γn : NeedNames) (γr : ReadNames) : IProp GF :=
 /-- **The right to notify `nc`** (the loop's, once it swapped `nc` out): the channel not closed
 yet, and `nc.err` (written once, before the close). -/
 def notifierOwn (nc : Loc) (γn : NeedNames) (γr : ReadNames) : IProp GF :=
-  iprop(∃ (ch : Loc) (γ : ChanNames) (e : GoInterface), ncCAddr nc ↦□ ch ∗
-    ownBroadcastChan ch γ (notified nc γn γr) .Pending ∗ ncErrAddr nc ↦ e)
+  iprop(∃ (ch : Loc) (γ : ChanNames) (e : GoInterface) (rid : w64), ncCAddr nc ↦□ ch ∗
+    ownBroadcastChan ch γ (notified nc γn γr) .Pending ∗ ncErrAddr nc ↦ e ∗
+    ncReadIndexIDAddr nc ↦ rid)
 
 /-- **The read invariant** (`γr.notifier`'s half; the lock's resource `readMuP` holds the other):
 the current notifier `nc` and its need `γn` (its waiter's view and the right to notify it), the
@@ -229,9 +232,12 @@ def srvStopOk (si : GoInterfaceOk) (m : GoString) : IProp GF :=
   iprop(□ {{ True }} (App (Val #(methods si.ty m si.v)) (Val #()))
     {{ (ch : Loc), RET #ch; stopChan ch }})
 
-/-- **The server's `Done()`** (persistent; what `LinearizableReadNotify` needs of the server). -/
-def srvDoneOk (srv : GoInterface) : IProp GF :=
-  iprop(∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗ srvChanOk si go!"Done")
+/-- **The server's `Done()` and `Logger()`** (persistent; what `LinearizableReadNotify` needs of the
+server; PR etcd#21401 adds `r.server.Logger().Debug(...)` to `LinearizableReadNotify`). -/
+def srvDoneOk (srv : GoInterface) (LGR : IProp GF := iprop(True)) : IProp GF :=
+  iprop(∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗ srvChanOk si go!"Done" ∗
+    □ ({{ LGR }} (App (Val #(methods si.ty go!"Logger" si.v)) (Val #()))
+      {{ (l : Loc), RET #l; ⌜l ≠ null⌝ ∗ LGR }}))
 
 /-- **The `server` interface value `srv`** (persistent; unit 4b discharges it for `*EtcdServer`):
 * `Done()`, `Stopping()`, `LeaderChanged()`, `FirstCommitInTermNotify()`: channels closed, never
@@ -250,8 +256,9 @@ def srvDoneOk (srv : GoInterface) : IProp GF :=
   raft's read credits (`srvRdCred`): the server mints both from the id (`srvRdFresh_mint`), so
   raft's read budget is paid by the id budget, one `ReadIndex` per id;
 * `RequestTimeout()`: some duration. -/
-def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IProp GF :=
-  iprop(srvDoneOk srv ∗ ∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗
+def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF)
+    (LGR : IProp GF := iprop(True)) : IProp GF :=
+  iprop(srvDoneOk srv LGR ∗ ∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗
     srvStopOk si go!"Stopping" ∗ srvChanOkR si go!"LeaderChanged" LR ∗
     srvChanOkR si go!"FirstCommitInTermNotify" LR ∗
     □ ({{ LR }} (App (Val #(methods si.ty go!"Logger" si.v)) (Val #()))
@@ -274,10 +281,11 @@ instance srvChanOkR_persistent (si : GoInterfaceOk) (m : GoString) (LR : IProp G
 instance srvStopOk_persistent (si : GoInterfaceOk) (m : GoString) :
     Persistent (srvStopOk (GF := GF) si m) := by
   unfold srvStopOk; infer_instance
-instance srvDoneOk_persistent (srv : GoInterface) : Persistent (srvDoneOk (GF := GF) srv) := by
+instance srvDoneOk_persistent (srv : GoInterface) (LGR : IProp GF) :
+    Persistent (srvDoneOk (GF := GF) srv LGR) := by
   unfold srvDoneOk; infer_instance
-instance isReadServer_persistent (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) :
-    Persistent (isReadServer srv γr LR NR) := by
+instance isReadServer_persistent (srv : GoInterface) (γr : ReadNames) (LR NR LGR : IProp GF) :
+    Persistent (isReadServer srv γr LR NR LGR) := by
   unfold isReadServer; infer_instance
 
 /-! ## Raft, as the read loop sees it (`raftInterface`) -/
@@ -369,11 +377,11 @@ theorem readCtxMinted_of_mint (γr : ReadNames) (γi : IdNames) :
 
 /-! ## The `*Read` -/
 
-/-- **What `LinearizableReadNotify` needs of `r`** (persistent): the server's `Done()`, the
-wake-up channel (a bag of `struct{}`), the read invariant. -/
-def isReadPre (r : Loc) (γr : ReadNames) : IProp GF :=
+/-- **What `LinearizableReadNotify` needs of `r`** (persistent): the server's `Done()` and
+`Logger()`, the wake-up channel (a bag of `struct{}`), the read invariant. -/
+def isReadPre (r : Loc) (γr : ReadNames) (LGR : IProp GF := iprop(True)) : IProp GF :=
   iprop(∃ (srv : GoInterface) (wc : Loc) (γw : ChanNames),
-    readServerAddr r ↦□ srv ∗ srvDoneOk srv ∗
+    readServerAddr r ↦□ srv ∗ srvDoneOk srv LGR ∗
     readWaitCAddr r ↦□ wc ∗ isChanBag γw wc (V := Unit) (fun _ => iprop(True)) ∗
     readInv γr)
 
@@ -384,19 +392,21 @@ side of `r.mux` (`sync.isRWMutexGuard`), `context`'s ghost fact (`closedchan` cl
 `sendReadIndex`'s `context.WithTimeout` of `Background()` needs), the clients' read update
 (`readCompose`) and (2026-10-16, stage R7b) the minted contexts (`readCtxMinted`). -/
 def isReadLoopPre (r : Loc) (γr : ReadNames)
-    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF) : IProp GF :=
+    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF)
+    (LGR : IProp GF := iprop(True)) : IProp GF :=
   iprop(∃ (srv rf : GoInterface) (wc : Loc) (γw : ChanNames),
-    readServerAddr r ↦□ srv ∗ isReadServer srv γr LR NR ∗
+    readServerAddr r ↦□ srv ∗ isReadServer srv γr LR NR LGR ∗
     readRaftAddr r ↦□ rf ∗ isReadRaft rf γr RQ ∗
     readWaitCAddr r ↦□ wc ∗ isChanBag γw wc (V := Unit) (fun _ => iprop(True)) ∗
     readInv γr ∗ sync.isRWMutexGuard (readMuAddr r) (readMuP r γr) ∗ context.isClosedchanInit ∗
     readCompose γr ∗ readCtxMinted γr)
 
-instance isReadPre_persistent (r : Loc) (γr : ReadNames) : Persistent (isReadPre (GF := GF) r γr) := by
+instance isReadPre_persistent (r : Loc) (γr : ReadNames) (LGR : IProp GF) :
+    Persistent (isReadPre (GF := GF) r γr LGR) := by
   unfold isReadPre; infer_instance
 instance isReadLoopPre_persistent (r : Loc) (γr : ReadNames)
     (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
-    (LR NR : IProp GF) : Persistent (isReadLoopPre r γr RQ LR NR) := by
+    (LR NR LGR : IProp GF) : Persistent (isReadLoopPre r γr RQ LR NR LGR) := by
   unfold isReadLoopPre; infer_instance
 
 end defs

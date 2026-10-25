@@ -35,7 +35,7 @@ abbrev EtcdServer.DeleteRange.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull) (Q : KVState → IProp GF)
     (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
+      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ reqIdCtx ρ ctx ∗ context.isContext ctx cd ∗
       txn.deleteRangeRequestIs r op ∗ deletePermit ρ.kv op Q ∗ mvcc.idxCert E.γ.idx F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"DeleteRange"))
       (Val #(GoInterface.ok ctx))) (Val #r))

@@ -60,6 +60,22 @@ theorem replicate_mono (P Q : IProp GF) (n : Nat) (h : P ⊢ Q) :
     · iapply h $$ HP1
     · iapply ih $$ HP
 
+/-- Pair `n` copies of `P` and `n` copies of `Q` into `n` copies of `R`. -/
+theorem replicate_sepL (P Q R : IProp GF) (n : Nat) (h : P ∗ Q ⊢ R) :
+    ([∗list] _x ∈ List.replicate n (), P) ∗ ([∗list] _x ∈ List.replicate n (), Q) ⊢
+      [∗list] _x ∈ List.replicate n (), R := by
+  induction n with
+  | zero => iintro -; rw [List.replicate_zero]; iapply BigSepL.bigSepL_nil.2; itrivial
+  | succ n ih =>
+    rw [List.replicate_succ]
+    iintro ⟨HP, HQ⟩
+    icases BigSepL.bigSepL_cons.1 $$ HP with ⟨HP1, HP⟩
+    icases BigSepL.bigSepL_cons.1 $$ HQ with ⟨HQ1, HQ⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [HP1 HQ1]
+    · iapply h $$ [$HP1 $HQ1]
+    · iapply ih $$ [$HP $HQ]
+
 end lemmas
 
 section defs

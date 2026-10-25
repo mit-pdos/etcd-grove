@@ -10,6 +10,7 @@ module
 
 public import Proof.context.ErrAny
 public import Proof.context.ErrDone
+public import Proof.context.ValueRequestID
 public import Proof.context.WithTimeoutBackground
 public import Proof.context.WithValue
 public import Proof.errors.Is
@@ -22,6 +23,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.isStopped
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.newNotifier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.notifier__notify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.uint64ToBigEndianBytes
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.FromContext
 public import Proof.strconv.FormatUint
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
@@ -35,6 +37,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
+public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.Uint64
@@ -60,6 +63,14 @@ theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.Is.wp_proof
 
+theorem zap.wp_Uint64 :
+    EtcdGrove.zap.Uint64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Uint64.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Debug.wp_proof
+
 theorem traceutil.wp_TODO :
     EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.TODO.wp_proof
@@ -76,6 +87,10 @@ theorem traceutil.wp_newTrace :
     EtcdGrove.traceutil.newTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.newTrace.wp_proof
 
+theorem zap.wp_Duration :
+    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Duration.wp_proof
+
 theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Error.wp_proof
@@ -83,14 +98,6 @@ theorem zap.wp_Error :
 theorem zap.Logger.wp_Warn :
     EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Warn.wp_proof
-
-theorem zap.wp_Uint64 :
-    EtcdGrove.zap.Uint64.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Uint64.wp_proof
-
-theorem zap.wp_Duration :
-    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Duration.wp_proof
 
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
@@ -139,6 +146,10 @@ theorem context.wp_ErrDone :
     EtcdGrove.context.ErrDone.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.ErrDone.wp_proof context.wp_ErrAny
 
+theorem context.wp_ValueRequestID :
+    EtcdGrove.context.ValueRequestID.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.ValueRequestID.wp_proof
+
 theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithTimeoutBackground.wp_proof
@@ -151,9 +162,13 @@ theorem wp_newNotifier :
     EtcdGrove.read.newNotifier.spec (GF := GF) (hG := hG) :=
   EtcdGrove.read.newNotifier.wp_proof
 
+theorem requestid.wp_FromContext :
+    EtcdGrove.requestid.FromContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.requestid.FromContext.wp_proof context.wp_ValueRequestID
+
 theorem Read.wp_LinearizableReadNotify :
     EtcdGrove.read.Read.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.read.Read.LinearizableReadNotify.wp_proof context.wp_ErrDone
+  EtcdGrove.read.Read.LinearizableReadNotify.wp_proof requestid.wp_FromContext zap.wp_Uint64 zap.Logger.wp_Debug context.wp_ErrDone
 
 theorem wp_NewRead :
     EtcdGrove.read.NewRead.spec (GF := GF) (hG := hG) :=
@@ -169,7 +184,7 @@ theorem wp_uint64ToBigEndianBytes :
 
 theorem Read.wp_sendReadIndex :
     EtcdGrove.read.Read.sendReadIndex.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.read.Read.sendReadIndex.wp_proof wp_uint64ToBigEndianBytes context.wp_WithTimeoutBackground errors.wp_Is zap.wp_Error zap.Logger.wp_Warn
+  EtcdGrove.read.Read.sendReadIndex.wp_proof wp_uint64ToBigEndianBytes context.wp_WithTimeoutBackground errors.wp_Is zap.wp_Uint64 zap.wp_Duration zap.wp_Error zap.Logger.wp_Debug zap.Logger.wp_Warn
 
 theorem Read.wp_requestCurrentIndex :
     EtcdGrove.read.Read.requestCurrentIndex.spec (GF := GF) (hG := hG) :=

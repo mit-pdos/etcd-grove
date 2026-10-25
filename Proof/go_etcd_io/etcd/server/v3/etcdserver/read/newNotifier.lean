@@ -41,7 +41,7 @@ theorem read.newNotifier.wp_proof : read.newNotifier.spec (GF := GF) (hG := hG) 
   iframe Hauth Hlist
   isplitr
   · iunfold notifierIs; iexists ch; iframe c; iunfold bcastChan; iexists γ; iexact Hbu
-  · iunfold notifierOwn; iexists ch, γ, GoInterface.nil; iframe c Hbc err
+  · iunfold notifierOwn; iexists ch, γ, GoInterface.nil, (zero_val w64); iframe c Hbc err readIndexID
 
 end proof
 

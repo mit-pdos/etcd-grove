@@ -5,6 +5,9 @@ Lean-first (no Rocq counterpart); the request path's unit 4a.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.Read__LinearizableReadNotify
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.requestid.FromContext
+public import Spec.go_uber_org.zap.Uint64
+public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.context.ErrDone
 
 @[expose] public section
@@ -37,14 +40,31 @@ local macro "notify_nc_clause" : tactic => `(tactic| (
   iapply broadcast_chan_receive _ _ _ _ _ $$ Hbc
   iintro ⟨#HQ, -⟩
   iunfold notified at HQ
-  icases HQ with ⟨%err, #He, #HerrE, #Hor⟩
+  icases HQ with ⟨%err, %rid, #He, #Hrid, #HerrE, #Hor⟩
+  wp_auto
+  wp_apply hFC.2 ctx cd $$ [] as %reqid -
+  · iframe #
+  (try wp_auto)
+  wp_apply hZU as %f1 -
+  wp_apply hZU as %f2 -
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %fs ⟨-, -⟩
+  (try wp_auto)
+  wp_apply HLg $$ HLGR as %lg ⟨%Hlg, HLGR⟩
+  (try wp_auto)
   icases Hor with (%Hne | #Hfz)
-  · wp_auto
-    iapply HΦ; iunfold readReader; iframe Hrr HerrE; iintro %h; exact absurd h Hne
+  · wp_apply hD lg _ _ $$ []
+    · iframe #; ipureintro; exact Hlg
+    (try wp_auto)
+    iapply HΦ; iunfold readReader; iframe Hrr HLGR HerrE; iintro %h; exact absurd h Hne
   · imod read_frozenOk_readIndexOk γn γr c $$ Hfz Hlb with #Hok
     imod read_frozenOk_served γn γr c k g $$ Hfz Hlb Hidx with #Hsv
-    wp_auto
-    iapply HΦ; iunfold readReader; iframe Hrr HerrE; iintro -; iframe Hok Hsv))
+    wp_apply hD lg _ _ $$ []
+    · iframe #; ipureintro; exact Hlg
+    (try wp_auto)
+    iapply HΦ; iunfold readReader; iframe Hrr HLGR HerrE; iintro -; iframe Hok Hsv))
 
 set_option hygiene false in
 /-- The server's `Done()` case of the final `select`: `ErrStopped`. -/
@@ -59,17 +79,24 @@ local macro "notify_done_clause" : tactic => `(tactic| (
   iintro ⟨-, -⟩
   ihave ⟨%eS, #HeS, #HaS⟩ := errVarLeaf_get _ $$ HStop
   wp_auto
-  iapply HΦ; iunfold readReader; iframe Hrr HaS; iintro %h; cases h))
+  iapply HΦ; iunfold readReader; iframe Hrr HLGR HaS; iintro %h; cases h))
 
 theorem read.Read.LinearizableReadNotify.wp_proof
+    (hFC : requestid.FromContext.spec (GF := GF) (hG := hG))
+    (hZU : zap.Uint64.spec (GF := GF) (hG := hG))
+    (hD : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hED : context.ErrDone.spec (GF := GF) (hG := hG)) :
     read.Read.LinearizableReadNotify.spec (GF := GF) (hG := hG) := by
-  intro r γr ctx cd c g Q
-  wp_start as ⟨#Hpre, #Hctx, #Hc, Hrr, #HsQ, #HdQ⟩
+  intro r γr ctx cd c g Q LGR
+  wp_start as ⟨#Hpre, #Hctx, #Hc, Hrr, HLGR, #HsQ, #HdQ⟩
   iunfold isReadPre at Hpre
   icases Hpre with ⟨%srv, %wc, %γw, #Hsf, #Hdone, #Hwcf, #Hbag, #Hinv⟩
   iunfold readReader at Hrr
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  ihave #Preq : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.requestid $$ []
+  · iPkgInit
+  ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
   wp_apply sync.RWMutex.wp_RLock (readMuAddr r) (readMuP r γr) $$ [Hrr] as ⟨Hrl, HP⟩
@@ -81,8 +108,8 @@ theorem read.Read.LinearizableReadNotify.wp_proof
   wp_apply sync.RWMutex.wp_RUnlock (readMuAddr r) (readMuP r γr) $$ [Hrl Hpt Hg] as Hrr
   · iframe #; iframe Hrl; iunfold readMuP; iexists nc, γn; iframe Hpt Hg
   wp_join iprop(r_ptr ↦ r ∗ ctx_ptr ↦ GoInterface.ok ctx ∗ nc_ptr ↦ nc ∗
-      sync.ownRWMutex (readMuAddr r) (readMuP r γr)) at next with [r ctx nc Hrr Hlc2 Hlc3]
-    as ⟨r, ctx, nc, Hrr⟩
+      sync.ownRWMutex (readMuAddr r) (readMuP r γr) ∗ LGR) at next with [r ctx nc Hrr HLGR Hlc2 Hlc3]
+    as ⟨r, ctx, nc, Hrr, HLGR⟩
   · wp_apply_core chan.wp_select_nonblocking
     isplit
     · iapply BigAndL.bigAndL_cons.2
@@ -107,7 +134,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
   iunfold bcastChan at Hbc
   icases Hbc with ⟨%γc, #Hbc⟩
   iunfold srvDoneOk at Hdone
-  icases Hdone with ⟨%si, %Hsi, #HD⟩
+  icases Hdone with ⟨%si, %Hsi, #HD, #HLg⟩
   subst Hsi
   iunfold srvChanOk at HD
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.read.readInit : IProp GF) $$ []
@@ -118,6 +145,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto
+  ihave #Hctx0 := Hctx
   iunfold mvcc.txnCtx at Hctx
   icases Hctx with (#Hnil | #Hcctx)
   · -- a context whose `Done()` is `nil`: never done
@@ -169,13 +197,13 @@ theorem read.Read.LinearizableReadNotify.wp_proof
         · ihave #Ha := errVar_applyErrIs _ (GoInterface.ok ce) $$ HCan
           ihave #Ha' : applyErrIs (GF := GF) (GoInterface.ok ce) $$ []
           · iapply Ha; iexists ce; iframe Hcv; ipureintro; rfl
-          iapply HΦ; iunfold readReader; iframe Hrr Ha'; iintro %h; cases h
+          iapply HΦ; iunfold readReader; iframe Hrr HLGR Ha'; iintro %h; cases h
         · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
           icombine Hcv HeD gives %Hce
           cases Hce
           obtain ⟨hl, hIs, hty, hkey⟩ := HDl
           ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey $$ HDm
-          iapply HΦ; iunfold readReader; iframe Hrr Ha; iintro %h; cases h
+          iapply HΦ; iunfold readReader; iframe Hrr HLGR Ha; iintro %h; cases h
     iapply BigAndL.bigAndL_cons.2
     isplit
     · notify_done_clause

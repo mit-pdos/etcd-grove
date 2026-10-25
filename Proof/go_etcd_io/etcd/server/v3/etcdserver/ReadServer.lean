@@ -57,7 +57,7 @@ theorem isReadServer_of_server
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ⊢
       isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
-        (idCred ρ.ids 1) := by
+        (idCred ρ.ids 1) (srvLgReader s) := by
   iintro ⟨#Hpkg, #Hsrv, #Hsrd⟩
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
@@ -72,20 +72,27 @@ theorem isReadServer_of_server
   icases Hw with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, #Hainv, -, -, #Hawf, #Haw,
     #Hlcf, #Hfcf, #Hstf, #Hst⟩
   iunfold isReadServer
-  -- `Done()`
+  -- `Done()` and `Logger()` (for `srvDoneOk`)
   isplitr
   · iunfold srvDoneOk
     iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
     isplitr
     · ipureintro; rfl
-    iunfold srvChanOk
-    iintro !> %Φ !> - HΦ
-    wp_apply hDone s v.done $$ []
-    · iframe #
-    iapply HΦ
-    iunfold srvDoneChan at Hdone
-    iunfold bcastChan
-    iexact Hdone
+    isplitr
+    · iunfold srvChanOk
+      iintro !> %Φ !> - HΦ
+      wp_apply hDone s v.done $$ []
+      · iframe #
+      iapply HΦ
+      iunfold srvDoneChan at Hdone
+      iunfold bcastChan
+      iexact Hdone
+    · iintro !> %Φ !> Hlg HΦ
+      wp_apply hLg s w.lg $$ [Hlg] as ⟨%Hnn, Hlg⟩
+      · iframe #; iframe Hlg; ipureintro; exact Hlgn
+      iapply HΦ
+      iframe Hlg
+      ipureintro; exact Hnn
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
   isplitr
   · ipureintro; rfl

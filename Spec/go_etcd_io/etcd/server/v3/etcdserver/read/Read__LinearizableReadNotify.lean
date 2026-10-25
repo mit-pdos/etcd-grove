@@ -36,13 +36,13 @@ with its `Get` update (`kvDep`) in the notifier's clients' list, and on `nil` le
 served (`readServed`: raft's witness of the round's update at a read index at least `c`). -/
 abbrev read.Read.LinearizableReadNotify.spec : Prop :=
   ∀ (r : Loc) (γr : ReadNames) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (c : w64) (g : GName) (Q : List EntryModel → IProp GF),
+    (c : w64) (g : GName) (Q : List EntryModel → IProp GF) (LGR : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
-      isReadPre r γr ∗ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗ readReader r γr ∗
+      isReadPre r γr LGR ∗ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗ readReader r γr ∗ LGR ∗
       savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q }}
     (App (Val (r @!! go.GoType.PointerType Read.ty @!! go!"LinearizableReadNotify"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; readReader r γr ∗ LGR ∗ applyErrIs err ∗
       (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c ∗ readServed γr c g) }}
 
 end spec

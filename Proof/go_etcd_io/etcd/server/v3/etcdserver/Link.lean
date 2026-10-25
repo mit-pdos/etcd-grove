@@ -47,6 +47,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RemoveMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportUnreachable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Stopping
@@ -158,6 +159,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
+public import Proof.context.ValueRequestID
 public import Proof.context.ValueStartTime
 public import Proof.context.WithValue
 public import Proof.errors.Is
@@ -225,6 +227,7 @@ public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.google_golang_org.protobuf.proto.SizeMessage
+public import Proof.google_golang_org.protobuf.proto.UnmarshalIRR
 public import Proof.google_golang_org.protobuf.proto.UnmarshalRole
 public import Proof.google_golang_org.protobuf.proto.UnmarshalUser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.quorum
@@ -243,6 +246,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__CutPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__MendPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Start
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.logRaftCommunication
+public import Proof.go_etcd_io.raft.v3.raftpb.MessageType__String
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.FromContext
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.NewContext
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.NewAlarmBackend
@@ -314,7 +321,9 @@ public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Trigger
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Wait
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Trigger
+public import Proof.go_uber_org.zap.Bool
 public import Proof.go_uber_org.zap.ByteString
+public import Proof.go_uber_org.zap.Logger__Core
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
@@ -360,6 +369,14 @@ theorem DeleteRangeRequest.wp_GetKey :
 theorem DeleteRangeRequest.wp_GetRangeEnd :
     DeleteRangeRequest.GetRangeEnd.spec (GF := GF) (hG := hG) :=
   DeleteRangeRequest.GetRangeEnd.wp_proof
+
+theorem zap.wp_Uint64 :
+    zap.Uint64.spec (GF := GF) (hG := hG) :=
+  zap.Uint64.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Debug.wp_proof
 
 theorem idutil.wp_lowbit :
     idutil.lowbit.spec (GF := GF) (hG := hG) :=
@@ -545,10 +562,6 @@ theorem proto.wp_Size :
     proto.Size.spec (GF := GF) (hG := hG) :=
   proto.Size.wp_proof
 
-theorem zap.wp_Uint64 :
-    zap.Uint64.spec (GF := GF) (hG := hG) :=
-  zap.Uint64.wp_proof
-
 theorem membership.RaftCluster.wp_ID :
     membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.ID.wp_proof
@@ -556,10 +569,6 @@ theorem membership.RaftCluster.wp_ID :
 theorem semver.Version.wp_String :
     semver.Version.String.spec (GF := GF) (hG := hG) :=
   semver.Version.String.wp_proof
-
-theorem zap.Logger.wp_Debug :
-    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Debug.wp_proof
 
 theorem zap.wp_Stringer :
     zap.Stringer.spec (GF := GF) (hG := hG) :=
@@ -913,6 +922,10 @@ theorem os.wp_Rename :
     os.Rename.spec (GF := GF) (hG := hG) :=
   os.Rename.wp_proof
 
+theorem proto.wp_UnmarshalIRR :
+    proto.UnmarshalIRR.spec (GF := GF) (hG := hG) :=
+  proto.UnmarshalIRR.wp_proof
+
 theorem proto.wp_UnmarshalRole :
     proto.UnmarshalRole.spec (GF := GF) (hG := hG) :=
   proto.UnmarshalRole.wp_proof
@@ -920,6 +933,14 @@ theorem proto.wp_UnmarshalRole :
 theorem proto.wp_UnmarshalUser :
     proto.UnmarshalUser.spec (GF := GF) (hG := hG) :=
   proto.UnmarshalUser.wp_proof
+
+theorem zap.Logger.wp_Core :
+    zap.Logger.Core.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Core.wp_proof
+
+theorem raftpb.MessageType.wp_String :
+    raftpb.MessageType.String.spec (GF := GF) (hG := hG) :=
+  raftpb.MessageType.String.wp_proof
 
 theorem schema.wp_MustUnsafeSaveConfStateToBackend :
     schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
@@ -993,6 +1014,10 @@ theorem storage.wp_NewBackendHooks :
     storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
   storage.NewBackendHooks.wp_proof
 
+theorem zap.wp_Bool' :
+    zap.Bool'.spec (GF := GF) (hG := hG) :=
+  zap.Bool'.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -1060,6 +1085,18 @@ theorem EtcdServer.wp_CutPeer :
     EtcdServer.CutPeer.spec (GF := GF) (hG := hG) :=
   EtcdServer.CutPeer.wp_proof rafthttp.Transport.wp_CutPeer
 
+theorem EtcdServer.wp_Logger :
+    EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Logger.wp_proof
+
+theorem context.wp_ValueRequestID :
+    context.ValueRequestID.spec (GF := GF) (hG := hG) :=
+  context.ValueRequestID.wp_proof
+
+theorem requestid.wp_FromContext :
+    requestid.FromContext.spec (GF := GF) (hG := hG) :=
+  requestid.FromContext.wp_proof context.wp_ValueRequestID
+
 theorem EtcdServer.wp_FeatureEnabled :
     EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG) :=
   EtcdServer.FeatureEnabled.wp_proof
@@ -1090,7 +1127,7 @@ theorem EtcdServer.wp_parseProposeCtxErr :
 
 theorem EtcdServer.wp_processInternalRaftRequestOnce :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) :=
-  EtcdServer.processInternalRaftRequestOnce.wp_proof EtcdServer.wp_getAppliedIndex EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx wp_getRequestType proto.wp_MarshalIRR config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext EtcdServer.wp_parseProposeCtxErr context.wp_ErrDone strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
+  EtcdServer.processInternalRaftRequestOnce.wp_proof EtcdServer.wp_Logger requestid.wp_FromContext zap.wp_String zap.wp_Uint64 zap.Logger.wp_Warn zap.Logger.wp_Debug EtcdServer.wp_getAppliedIndex EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx wp_getRequestType proto.wp_MarshalIRR config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext EtcdServer.wp_parseProposeCtxErr context.wp_ErrDone strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
 
 theorem context.wp_ValueStartTime :
     context.ValueStartTime.spec (GF := GF) (hG := hG) :=
@@ -1123,10 +1160,6 @@ theorem EtcdServer.wp_FirstCommitInTermNotify :
 theorem EtcdServer.wp_ForceSnapshot :
     EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG) :=
   EtcdServer.ForceSnapshot.wp_proof
-
-theorem EtcdServer.wp_Logger :
-    EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Logger.wp_proof
 
 theorem EtcdServer.wp_GoAttach :
     EtcdServer.GoAttach.spec (GF := GF) (hG := hG) :=
@@ -1223,6 +1256,10 @@ theorem EtcdServer.wp_ReportSnapshot :
 theorem EtcdServer.wp_ReportUnreachable :
     EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG) :=
   EtcdServer.ReportUnreachable.wp_proof
+
+theorem EtcdServer.wp_RequestID :
+    EtcdServer.RequestID.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RequestID.wp_proof idutil.Generator.wp_Next
 
 theorem EtcdServer.wp_RequestTimeout :
     EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG) :=
@@ -1579,6 +1616,14 @@ theorem raftNode.wp_getLatestTickTs :
 theorem raftNode.wp_stop :
     raftNode.stop.spec (GF := GF) (hG := hG) :=
   raftNode.stop.wp_proof
+
+theorem rafthttp.wp_logRaftCommunication :
+    rafthttp.logRaftCommunication.spec (GF := GF) (hG := hG) :=
+  rafthttp.logRaftCommunication.wp_proof zap.Logger.wp_Core raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetIndex raftpb.Message.wp_GetCommit raftpb.MessageType.wp_String types.ID.wp_String_ptr binary.bigEndian.wp_Uint64 proto.wp_UnmarshalIRR zap.wp_String zap.wp_Uint64 zap.Logger.wp_Debug
+
+theorem requestid.wp_NewContext :
+    requestid.NewContext.spec (GF := GF) (hG := hG) :=
+  requestid.NewContext.wp_proof context.wp_WithValue
 
 theorem storage.wp_OpenBackend :
     storage.OpenBackend.spec (GF := GF) (hG := hG) :=

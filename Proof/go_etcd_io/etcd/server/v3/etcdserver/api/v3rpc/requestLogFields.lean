@@ -1,11 +1,11 @@
 /-
-The trust boundary: `v3rpc.logUnaryRequestStats` (`v3rpc/interceptor.go`, names-only; unit
-P3b): zap's logger (`Core().Enabled`, `Debug`, `Warn`), grpc's `peer.FromContext`, protobuf's
-`proto.Size` and the messages' stringers (`pb.NewLoggablePutRequest`, `NewLoggableTxnRequest`).
+The trust boundary: `v3rpc.requestLogFields` (`v3rpc/interceptor.go`, PR etcd#21401; unit P3b):
+constructs `[]zap.Field` slices (`zap.Field.ty` is names-only) from the request's fields covered by
+`v3rpc.learnerReqOk req`.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.requestLogFields
 
 @[expose] public section
 
@@ -23,7 +23,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-axiom v3rpc.logUnaryRequestStats.wp_proof : v3rpc.logUnaryRequestStats.spec (GF := GF) (hG := hG)
+axiom v3rpc.requestLogFields.wp_proof : v3rpc.requestLogFields.spec (GF := GF) (hG := hG)
 
 end proof
 

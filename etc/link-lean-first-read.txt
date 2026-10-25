@@ -12,7 +12,9 @@
 context_WithTimeoutBackground:
 context_ErrAny:
 context_ErrDone: context_ErrAny
+context_ValueRequestID:
 errors_Is:
+requestid_FromContext: context_ValueRequestID
 strconv_FormatUint:
 traceutil_EnsureTrace: traceutil_Get traceutil_Trace__IsEmpty traceutil_newTrace context_WithValue
 traceutil_Trace__Step:
@@ -21,6 +23,7 @@ traceutil_Trace__LogAllStepsIfLong: traceutil_Trace__LogWithStepThreshold
 zap_Error:
 zap_Uint64:
 zap_Duration:
+zap_Logger__Debug:
 zap_Logger__Warn:
 zap_Logger__Info:
 # The read package (read.go, util.go).
@@ -28,9 +31,9 @@ read_uint64ToBigEndianBytes:
 read_isStopped: errors_Is
 read_newNotifier:
 read_notifier__notify:
-read_Read__sendReadIndex: read_uint64ToBigEndianBytes context_WithTimeoutBackground errors_Is zap_Error zap_Logger__Warn
+read_Read__sendReadIndex: read_uint64ToBigEndianBytes context_WithTimeoutBackground errors_Is zap_Uint64 zap_Duration zap_Error zap_Logger__Debug zap_Logger__Warn
 read_Read__requestCurrentIndex: read_Read__sendReadIndex zap_Uint64 zap_Duration zap_Logger__Warn zap_Logger__Info
-read_Read__LinearizableReadNotify: context_ErrDone
+read_Read__LinearizableReadNotify: requestid_FromContext zap_Uint64 zap_Logger__Debug context_ErrDone
 read_NewRead: read_newNotifier read_Read__LinearizableReadNotify
 read_Read__LinearizableReadLoop: traceutil_EnsureTrace read_newNotifier read_Read__requestCurrentIndex read_isStopped read_notifier__notify traceutil_Trace__Step traceutil_Trace__AddField strconv_FormatUint traceutil_Trace__LogAllStepsIfLong
 # traceutil, proved (unit P1b): the callees of the functions above; `LogWithStepThreshold` and

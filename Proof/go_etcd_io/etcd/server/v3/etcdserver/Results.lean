@@ -197,7 +197,7 @@ theorem read_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ⊢
       isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
-        (idCred ρ.ids 1) :=
+        (idCred ρ.ids 1) (srvLgReader s) :=
   isReadServer_of_server EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping
     EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID
     EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex EtcdServer.wp_Logger s E ρ γr hρ
@@ -664,7 +664,7 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
     (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hro : txn.txnReadonly t = true) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ reqIdCtx ρ ctx ∗
         srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
         traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
         ⌜txn.txnGetsOk t⌝ ∗ mvcc.idxCert E.γ.idx F }}
@@ -694,7 +694,7 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
     (Q : KVState → IProp GF) (ot : Option Loc) (te : Bool) (F : mvcc.Log)
     (hw : txn.txnReadonly t = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ reqIdCtx ρ ctx ∗
         srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
         traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗ mvcc.idxCert E.γ.idx F ∗
         txnPermit ρ.kv t Q }}
@@ -1101,7 +1101,7 @@ theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
     {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
         isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
-          (idCred ρ.ids 1) ∗
+          (idCred ρ.ids 1) (srvLgReader s) ∗
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvReadReader s γr }} := by
   iintro %Φ ⟨#Hpkg, Hb⟩ HΦ

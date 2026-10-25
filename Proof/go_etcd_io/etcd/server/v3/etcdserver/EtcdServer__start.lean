@@ -204,23 +204,31 @@ theorem EtcdServer.start.wp_proof
   ihave #HdcU : ownBroadcastChan (GF := GF) dch γd iprop(True) .Unknown $$ []
   · iapply ownBroadcastChan_close _ _ _ _ γdi; iframe #
   ihave Hdc := ownBroadcastChan_close _ _ _ .Pending γdi $$ [$Hdint $Hdtok]
-  ihave #Hdok : srvDoneOk (GF := GF) (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) $$ []
+  ihave #Hdok : srvDoneOk (GF := GF) (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s)
+      (srvLgReader s) $$ []
   · iunfold srvDoneOk
     iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
     isplitr
     · ipureintro; rfl
-    iunfold srvChanOk
-    iintro !> %Φ' !> - HΦ'
-    wp_apply hDone s dch $$ []
-    · iframe #
-    iapply HΦ'
-    iunfold bcastChan
-    iexists γd
-    iexact HdcU
+    isplitr
+    · iunfold srvChanOk
+      iintro !> %Φ' !> - HΦ'
+      wp_apply hDone s dch $$ []
+      · iframe #
+      iapply HΦ'
+      iunfold bcastChan
+      iexists γd
+      iexact HdcU
+    · iintro !> %Φ' !> Hlg HΦ'
+      wp_apply hLg s fv.lg $$ [Hlg] as ⟨%Hnn, Hlg⟩
+      · iframe #; iframe Hlg; ipureintro; exact Hlgn
+      iapply HΦ'
+      iframe Hlg
+      ipureintro; exact Hnn
   icases Hnot with ⟨%x0, Hnot⟩
   ihave #Hprd : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read $$ []
   · iPkgInit
-  wp_apply hNR _ _ γr x0 $$ [Hnot] as %rd ⟨#Hisrd, #Hrlp, Hrslots⟩
+  wp_apply hNR _ _ γr x0 (srvLgReader s) $$ [Hnot] as %rd ⟨#Hisrd, #Hrlp, Hrslots⟩
   · iframe #; iframe Hnot
   icases Hread with ⟨%rd0, Hread⟩
   wp_auto

@@ -11,6 +11,7 @@ the apply package calls the txn package); the output is the same kind.
 module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Perennial.Proof.context
 
@@ -47,7 +48,9 @@ abbrev traceutil.EnsureTrace.spec : Prop :=
       traceutil.ctxTraceIs ctx' (some t) ∗
       ∃ vs : GMap GoInterface GoInterface,
         mvcc.txnCtx ctx' { cd with Values := vs } ∗
-        (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs }) }}
+        (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs }) ∗
+        □ (∀ o : Option w64, requestid.ctxReqIDIs ctx o -∗
+          requestid.ctxReqIDIs ctx' o) }}
 
 end spec
 

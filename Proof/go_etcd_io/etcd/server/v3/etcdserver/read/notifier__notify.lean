@@ -25,16 +25,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
 theorem read.notifier.notify.wp_proof : read.notifier.notify.spec (GF := GF) (hG := hG) := by
-  intro nc γn γr err
+  intro nc γn γr err readIndexID
   wp_start as ⟨Hown, #Herr, Hfz⟩
   iunfold notifierOwn at Hown
-  icases Hown with ⟨%ch, %γ, %e, #Hc, Hbc, He⟩
+  icases Hown with ⟨%ch, %γ, %e, %rid, #Hc, Hbc, He, Hrid⟩
   wp_auto
   ipersist He
+  ipersist Hrid
   ihave #HQ : notified nc γn γr $$ [Hfz]
   · iunfold notified
-    iexists err
-    iframe He Herr
+    iexists err, readIndexID
+    iframe He Hrid Herr
     cases err with
     | ok ei => ileft; ipureintro; intro h; cases h
     | nil => iright; iapply Hfz; ipureintro; rfl

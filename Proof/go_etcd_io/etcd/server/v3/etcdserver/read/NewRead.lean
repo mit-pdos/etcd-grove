@@ -30,7 +30,7 @@ theorem read.NewRead.wp_proof
     (hNN : read.newNotifier.spec (GF := GF) (hG := hG))
     (hNotify : read.Read.LinearizableReadNotify.spec (GF := GF) (hG := hG)) :
     read.NewRead.spec (GF := GF) (hG := hG) := by
-  intro srv rf γr x
+  intro srv rf γr x LGR
   wp_start as ⟨#Hd, #Hcci, Hgx⟩
   wp_auto
   wp_apply chan.wp_make2 (V := Unit) (W64 1) as %wc %γw ⟨#Hwc, -, Hwo⟩
@@ -61,7 +61,7 @@ theorem read.NewRead.wp_proof
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
   ihave #Hrd : readInv (GF := GF) γr $$ []
   · iunfold readInv; iexact Hinv
-  ihave #Hpre : isReadPre (GF := GF) r γr $$ []
+  ihave #Hpre : isReadPre (GF := GF) r γr LGR $$ []
   · iunfold isReadPre
     iexists srv, wc, γw
     iframe server waitC Hbag Hrd Hd
@@ -69,9 +69,9 @@ theorem read.NewRead.wp_proof
   iapply HΦ
   isplitr
   · iunfold isReadNotify
-    iintro !> %ctx %cd %c %g %Q %Φ' !> ⟨#Hctx, #Hc, Hrr, #HsQ, #HdQ⟩ HΦ'
-    iapply hNotify r γr ctx cd c g Q $$ [Hrr] HΦ'
-    iframe #; iframe Hrr
+    iintro !> %ctx %cd %c %g %Q %Φ' !> ⟨#Hctx, #Hc, Hrr, HLGR, #HsQ, #HdQ⟩ HΦ'
+    iapply hNotify r γr ctx cd c g Q LGR $$ [Hrr HLGR] HΦ'
+    iframe #; iframe Hrr HLGR
   isplitr
   · iintro !> %RQ %LR %NR #Hsrv #Hraft #Hcomp #Hmint
     iunfold isReadLoopPre

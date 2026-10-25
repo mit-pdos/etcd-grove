@@ -23,6 +23,7 @@ public import Perennial.Proof.time.Link
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Metrics
@@ -100,7 +101,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.time.Duration) readIndexRetryTime _ as HreadIndexRetryTime
   wp_apply wp_GlobalAlloc (V := GoInterface) readIndexFailed _ as HreadIndexFailed
   wp_apply wp_GlobalAlloc (V := GoInterface) slowReadIndex _ as HslowReadIndex
-  wp_apply _root_.Perennial.go_etcd_io.raft.v3.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd11⟩
+  wp_apply _root_.Perennial.go_etcd_io.raft.v3.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd12⟩
+  wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.requestid.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd11⟩
   wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd10⟩
   wp_apply _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd9⟩
   wp_apply _root_.Perennial.go_uber_org.zap.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd8⟩
@@ -167,7 +169,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iunfold EtcdGrove.errorsNewVar at NTMO
   icases NTMO with ⟨%xTMO, #HTMO, -⟩
   ihave Hri : (go_etcd_io.raft.v3.isInitialized : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hd11
+  · iapply isPkgInit_access $$ Hd12
   iunfold go_etcd_io.raft.v3.isInitialized at Hri
   icases Hri with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %_, Hrr⟩
   iNamed Hrr

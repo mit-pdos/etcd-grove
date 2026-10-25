@@ -5,6 +5,12 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInternalRaftRequestOnce
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.requestid.FromContext
+public import Spec.go_uber_org.zap.String
+public import Spec.go_uber_org.zap.Uint64
+public import Spec.go_uber_org.zap.Logger__Warn
+public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getAppliedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getCommittedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FeatureEnabled
@@ -137,6 +143,7 @@ local macro "piro_tail" : tactic => `(tactic| (
   wp_apply hRT p rq $$ []
   · iframe #
   (try wp_auto)
+  ipersist reqType
   wp_apply time.wp_Now as %start -
   (try wp_auto)
   ihave ⟨Hhv, %Hhvn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hhv
@@ -204,6 +211,18 @@ local macro "piro_tail" : tactic => `(tactic| (
     icases Hsp with ⟨%si, %Hsi, #HEnd, #HAddEv, #HRecErr⟩
     subst Hsi
     (try wp_auto)
+    wp_apply hZS as %_ -
+    (try wp_auto)
+    wp_apply hZU as %_ -
+    (try wp_auto)
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %dsl_dbg1 ⟨-, -⟩
+    (try wp_auto)
+    wp_apply hDbg _ _ _ $$ []
+    · iframe #; ipureintro; exact Hlgn
+    (try wp_auto)
     wp_apply HAddEv
     (try wp_auto)
     imod ownSlice_persist dsl _ _ $$ Hbs with #Hbs
@@ -268,7 +287,7 @@ local macro "piro_tail" : tactic => `(tactic| (
               ∃ lb, resultIsW E ρ.rd rq' F res lb ∗ ∃ L, srvRLogLb ρ.raft L ∗ ⌜kvModel ρ.kv L = lb⌝ ∗
                 □ Qr L) ∨
             ⌜res = null ∧ e ≠ GoInterface.nil⌝ ∗ applyErrIs e ∗ srvMaybeDeposited ρ rq)))
-        at (let: "$ch1" := _ in _) with [-HΦ defer reqType err]
+        at (let: "$ch1" := _ in _) with [-HΦ defer err]
       · ihave #Hcctx' := Hcctx
         iNamed Hcctx'
         wp_apply HDone as %chD %γD #HcD
@@ -326,6 +345,18 @@ local macro "piro_tail" : tactic => `(tactic| (
           ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
           · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
           wp_apply HAddEv
+          (try wp_auto)
+          wp_apply hZS as %_ -
+          (try wp_auto)
+          wp_apply hZU as %_ -
+          (try wp_auto)
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %dsl_dbg2 ⟨-, -⟩
+          (try wp_auto)
+          wp_apply hDbg _ _ _ $$ []
+          · iframe #; ipureintro; exact Hlgn
           (try wp_auto)
           iexists _, _
           isplitr
@@ -402,6 +433,12 @@ local macro "piro_tail" : tactic => `(tactic| (
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hFC : requestid.FromContext.spec (GF := GF) (hG := hG))
+    (hZS : zap.String.spec (GF := GF) (hG := hG))
+    (hZU : zap.Uint64.spec (GF := GF) (hG := hG))
+    (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (hDbg : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hAI : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG))
     (hCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
     (hFE : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG))
@@ -419,7 +456,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qr F Hid0
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hrid, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
   wp_apply wp_with_defer as %defer defer
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
@@ -428,6 +465,10 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   icases Hv' with ⟨#Hgen, #HidGen, #Hw, #Hwi, #Hrn, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm,
     #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, #Hidx, #Hmint, #Hclog, %Hcfgnn⟩
   ihave #Pidutil : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
+  · iPkgInit
+  ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  ihave #Preqid : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.requestid $$ []
   · iPkgInit
   ihave #Pproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
@@ -464,9 +505,54 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iframe #
   cases hx : exceedsLimit ai ci rq.leaseRevoke.isSome en
   · (try wp_auto)
-    wp_apply hNext ρ.ids v.gen (srvFloorFact E) $$ [Hcred] as %id ⟨Hfresh, %pfx, %s0, %j, #Hpfx, %Hidshape⟩
-    · iframe #; iframe Hcred
+    iunfold srvLeadTimeReader at Hrd
+    icases Hrd with ⟨Hlt, Hlg, %lgv, #Hlgf, %Hlgn⟩
+    wp_apply hLg s lgv $$ [Hlg] as ⟨%Hlgn', Hlg⟩
+    · iframe #; iframe Hlg; ipureintro; exact Hlgn
+    ihave Hrd : srvLeadTimeReader s $$ [Hlt Hlg]
+    · iunfold srvLeadTimeReader; iframe Hlt Hlg; iexists lgv; iframe Hlgf; ipureintro; exact Hlgn
     (try wp_auto)
+    iunfold reqIdCtx at Hrid
+    icases Hrid with ⟨%orid, #Hcrid, Hfor⟩
+    iunfold reqIdFor at Hfor
+    icases Hfor with ⟨#Hcred, Hfor⟩
+    wp_apply hFC.1 ctx orid $$ [] as %rid0 %Hrid0
+    · iframe #
+    (try wp_auto)
+    ipersist s
+    ipersist ctx
+    ipersist lg
+    wp_join (Q := fun v => iprop(⌜v = executeVal⌝ ∗
+        ∃ id : w64, requestID_ptr ↦ id ∗ idFresh ρ.ids id))
+      at (if: _ then _ else _) with [requestID Hfor]
+    · wp_if_destruct
+      · wp_apply hWarn _ _ _ $$ []
+        · iframe #; ipureintro; exact Hlgn
+        (try wp_auto)
+        wp_apply hNext ρ.ids v.gen (srvFloorFact E) $$ [] as %id1 ⟨Hfresh, -⟩
+        · iframe #
+        (try wp_auto)
+        isplitr; · itrivial
+        iexists id1; iframe requestID Hfresh
+      · (try wp_auto)
+        isplitr; · itrivial
+        cases orid with
+        | none =>
+          simp [Option.getD] at Hrid0
+          exact absurd Hrid0 Hif
+        | some id0 =>
+          simp [Option.getD] at Hrid0
+          subst Hrid0
+          iexists rid0
+          iframe requestID
+          have hite : (if rid0 = W64 0 then (iprop(True) : IProp GF) else idFresh ρ.ids rid0) = idFresh ρ.ids rid0 :=
+            ite_eq_right_iff.mpr (fun hc => absurd hc Hif)
+          rw [← hite]
+          iexact Hfor
+    iintro ⟨%Hv0, %id, requestID, Hfresh⟩
+    subst Hv0
+    (try wp_auto)
+    ipersist requestID
     ihave #Hirr' := Hirr
     iunfold irrNoHdrIs at Hirr'
     icases Hirr' with ⟨%Hpn, #HID, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%la, #Hla, Hla'⟩, -⟩
@@ -475,8 +561,6 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     -- nil, err }; .. }`, joined (`wp_join`): falling through with the header set (`Hhv`), or
     -- returning the error; the rest (`piro_tail`) is verified once, not once per way (the
     -- receiver and the context, read-only from here on, for both)
-    ipersist s
-    ipersist ctx
     wp_join (Q := fun v => iprop(
         (⌜v = executeVal⌝ ∗ ∃ hv : etcdserverpb.RequestHeader, «$r0_ptr» ↦ hv ∗ ⌜hv.ID' = id⌝ ∗
           structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ «$r0_ptr» ∗ r_ptr ↦ p ∗

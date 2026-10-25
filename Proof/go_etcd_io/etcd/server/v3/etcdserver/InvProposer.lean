@@ -36,11 +36,13 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.features.Defs
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.Defs
 
 @[expose] public section
 
@@ -428,13 +430,145 @@ instance isServerReq_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     Persistent (isServerReq s E ρ) := by
   unfold isServerReq; infer_instance
 
+/-- **The server `s`'s request-ID generator** (persistent; extracted from `isServerReq`, used by
+`EtcdServer.RequestID` and `newLogUnaryInterceptor`). -/
+def srvIdGen (s : Loc) (γi : IdNames) : IProp GF :=
+  iprop(∃ (gen : Loc) (Q : w64 → List w8 → GName → IProp GF),
+    structFieldRef EtcdServer go!"reqIDGen" s ↦□ gen ∗ idGen γi gen Q)
+
+instance srvIdGen_persistent (s : Loc) (γi : IdNames) : Persistent (srvIdGen (GF := GF) s γi) := by
+  unfold srvIdGen; infer_instance
+
+theorem srvIdGen_of_req (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReq s E ρ ⊢ srvIdGen s ρ.ids := by
+  iintro H
+  iunfold isServerReq at H
+  icases H with ⟨%v, Hv⟩
+  iunfold srvReqFieldsAt at Hv
+  icases Hv with ⟨#Hgenf, #Hgen, -⟩
+  iunfold srvIdGen
+  iexists v.gen, (srvFloorFact E)
+  iframe Hgenf Hgen
+
+/-- **The request-ID resource for an optional request ID `o` stored in `ctx` at `γi`** (PR
+etcd#21401): the id credit (`idCred γi 1`, persistent, needed if `o` is `none` or `some 0` so
+`processInternalRaftRequestOnce` calls `s.reqIDGen.Next()`, or returned on read-only paths), and if
+`o = some id` with `id ≠ 0`, the fresh-ID ownership `idFresh γi id` (consumed once by
+`processInternalRaftRequestOnce` to claim `id` and register it with `s.w`). -/
+def reqIdForAt (γi : IdNames) (o : Option w64) : IProp GF :=
+  iprop(idCred γi 1 ∗
+    match o with
+    | none => True
+    | some id => if id = W64 0 then True else idFresh γi id)
+
+/-- **A context `ctx` carrying a valid request-ID resource at `γi` for a single proposal** (PR
+etcd#21401): either `ctx` has no request ID (`none`) or `0` and carries `idCred γi 1`, or `ctx` has
+a nonzero request ID `id` (`some id`) and carries `idFresh γi id` (plus persistent `idCred γi 1`). -/
+def reqIdCtxAt (γi : IdNames) (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(∃ o : Option w64, requestid.ctxReqIDIs ctx o ∗ reqIdForAt γi o)
+
+/-- **The request-ID resource for an optional request ID `o` stored in `ctx`** (PR etcd#21401). -/
+def reqIdFor (ρ : ReqNames) (o : Option w64) : IProp GF :=
+  iprop(idCred ρ.ids 1 ∗
+    match o with
+    | none => True
+    | some id => if id = W64 0 then True else idFresh ρ.ids id)
+
+/-- **A context `ctx` carrying a valid request-ID resource for a single proposal** (PR etcd#21401). -/
+def reqIdCtx (ρ : ReqNames) (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(∃ o : Option w64, requestid.ctxReqIDIs ctx o ∗ reqIdFor ρ o)
+
+theorem reqIdCtx_eq (ρ : ReqNames) (ctx : GoInterfaceOk) :
+    reqIdCtx (GF := GF) ρ ctx = reqIdCtxAt (GF := GF) ρ.ids ctx := rfl
+
+theorem reqIdCtxAt_of_none (γi : IdNames) (ctx : GoInterfaceOk) :
+    requestid.ctxReqIDIs (GF := GF) ctx none ∗ idCred γi 1 ⊢ reqIdCtxAt (GF := GF) γi ctx := by
+  iintro ⟨#Hctx, #Hcred⟩
+  iunfold reqIdCtxAt
+  iexists none
+  iframe Hctx
+  iunfold reqIdForAt
+  iframe Hcred
+
+theorem reqIdCtxAt_of_some (γi : IdNames) (ctx : GoInterfaceOk) (id : w64) :
+    requestid.ctxReqIDIs (GF := GF) ctx (some id) ∗ idCred γi 1 ∗ idFresh γi id ⊢
+      reqIdCtxAt (GF := GF) γi ctx := by
+  iintro ⟨#Hctx, #Hcred, Hfr⟩
+  iunfold reqIdCtxAt
+  iexists (some id)
+  iframe Hctx
+  iunfold reqIdForAt
+  dsimp only
+  iframe Hcred
+  by_cases h : id = W64 0
+  · subst h
+    have hite : (if W64 0 = W64 0 then (iprop(True) : IProp GF) else idFresh γi (W64 0)) = iprop(True) := rfl
+    rw [hite]
+    itrivial
+  · have hite : (if id = W64 0 then (iprop(True) : IProp GF) else idFresh γi id) = idFresh γi id :=
+      ite_eq_right_iff.mpr (fun hc => absurd hc h)
+    rw [hite]
+    iexact Hfr
+
+theorem reqIdCtx_of_none (ρ : ReqNames) (ctx : GoInterfaceOk) :
+    requestid.ctxReqIDIs (GF := GF) ctx none ∗ idCred ρ.ids 1 ⊢ reqIdCtx (GF := GF) ρ ctx :=
+  reqIdCtxAt_of_none ρ.ids ctx
+
+theorem reqIdCtx_of_some (ρ : ReqNames) (ctx : GoInterfaceOk) (id : w64) :
+    requestid.ctxReqIDIs (GF := GF) ctx (some id) ∗ idCred ρ.ids 1 ∗ idFresh ρ.ids id ⊢
+      reqIdCtx (GF := GF) ρ ctx :=
+  reqIdCtxAt_of_some ρ.ids ctx id
+
+theorem reqIdCtx_cred (ρ : ReqNames) (ctx : GoInterfaceOk) :
+    reqIdCtx (GF := GF) ρ ctx ⊢ reqIdCtx (GF := GF) ρ ctx ∗ idCred ρ.ids 1 := by
+  iintro H
+  iunfold reqIdCtx at H
+  icases H with ⟨%o, #Hctx, Hfor⟩
+  iunfold reqIdFor at Hfor
+  icases Hfor with ⟨#Hcred, Hfor⟩
+  iframe Hcred
+  iunfold reqIdCtx
+  iexists o
+  iframe Hctx
+  iunfold reqIdFor
+  iframe Hcred Hfor
+
+theorem reqIdCtx_mono (ρ : ReqNames) (ctx ctx' : GoInterfaceOk) :
+    reqIdCtx (GF := GF) ρ ctx ∗
+      (∀ o : Option w64, requestid.ctxReqIDIs (GF := GF) ctx o -∗ requestid.ctxReqIDIs (GF := GF) ctx' o) ⊢
+      reqIdCtx (GF := GF) ρ ctx' := by
+  iintro ⟨H, Himp⟩
+  iunfold reqIdCtx at H
+  icases H with ⟨%o, #Hctx, Hfor⟩
+  ihave #Hctx' := Himp $$ %o Hctx
+  iunfold reqIdCtx
+  iexists o
+  iframe Hctx' Hfor
+
+theorem reqIdCtx_mono_key (ρ : ReqNames) (ctx ctx' : GoInterfaceOk) :
+    reqIdCtx (GF := GF) ρ ctx ∗
+      (∀ o : Option w64, True -∗ requestid.ctxReqIDIs (GF := GF) ctx o -∗
+        requestid.ctxReqIDIs (GF := GF) ctx' o) ⊢
+      reqIdCtx (GF := GF) ρ ctx' := by
+  iintro ⟨H, Himp⟩
+  iunfold reqIdCtx at H
+  icases H with ⟨%o, #Hctx, Hfor⟩
+  ihave #Hctx' := Himp $$ %o [] Hctx
+  · itrivial
+  iunfold reqIdCtx
+  iexists o
+  iframe Hctx' Hfor
+
 /-- `s.leadTimeMu`'s lock invariant: the time the current leader was elected. -/
 def leadTimeP (s : Loc) (q : Qp) : IProp GF :=
   iprop(∃ t : time.Time, structFieldRef EtcdServer go!"leadElectedTime" s ↦{DFrac.own q} t)
 
-/-- **A reader slot of `s.leadTimeMu`** (a request goroutine's; see the file header). -/
+/-- **A reader slot of `s.leadTimeMu`** (a request goroutine's; see the file header), paired with
+a reader slot of `s.lgMu` and the persistent logger pointer (for PR etcd#21401's `s.Logger()` in
+`processInternalRaftRequestOnce`). -/
 def srvLeadTimeReader (s : Loc) : IProp GF :=
-  sync.ownRWMutex (structFieldRef EtcdServer go!"leadTimeMu" s) (leadTimeP s)
+  iprop(sync.ownRWMutex (structFieldRef EtcdServer go!"leadTimeMu" s) (leadTimeP s) ∗
+    srvLgReader s ∗ ∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝)
 
 /-- **The proposal may have been made** (the error case of a request): either it was not, or its
 data `d`, which decode to the request `rq'` (the encoding of the proposer's request with its

@@ -33,13 +33,13 @@ the resource `S` (`grpcHandlerOk`), for the server `s`: the quota check, then `k
 `kv.Txn`'s (at some `m'` with `Φ m'`). -/
 abbrev v3rpc.quotaKVServer.Txn.spec : Prop :=
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
-    (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF)
+    (S : IProp GF) (C : GoInterfaceOk → IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Txn" kv.v) S Spec ∗
+      v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Txn" kv.v) S Spec C ∗
       S ∗ v3rpc.quotaRd s ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Spec m Φ }}
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ C ci ∗ Req.recv r m ∗ Spec m Φ }}
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗

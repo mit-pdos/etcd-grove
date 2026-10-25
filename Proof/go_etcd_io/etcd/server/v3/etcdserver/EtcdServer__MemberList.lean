@@ -31,7 +31,7 @@ theorem EtcdServer.MemberList.wp_proof
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd r lin dq c g Q
-  wp_start as ⟨#Hq, #Hr, #Hctx, HRD, Hlin, Hrr, #Hc, #HsQ, #HdQ⟩
+  wp_start as ⟨#Hq, #Hr, #Hctx, HRD, Hlin, Hrr, Hlgr, #Hc, #HsQ, #HdQ⟩
   ihave #Hau : srvAuthAt s E $$ []
   · iapply (srvAuthAt_of_views s E ρ γr); iframe #
   ihave #Hr' := Hr
@@ -63,7 +63,7 @@ theorem EtcdServer.MemberList.wp_proof
     rcases err with ei | _
     · (try wp_auto)
       iapply HΦ
-      iframe HRD Hlin Herr
+      iframe HRD Hlin Hlgr Herr
       isplitl [Hrr]
       · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
       iintro %h; cases h
@@ -72,7 +72,7 @@ theorem EtcdServer.MemberList.wp_proof
       · iframe #
       (try wp_auto)
       iapply HΦ
-      iframe HRD Hlin Herr
+      iframe HRD Hlin Hlgr Herr
       isplitl [Hrr]
       · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
       iintro %_
@@ -84,14 +84,14 @@ theorem EtcdServer.MemberList.wp_proof
   · (try wp_auto)
     iunfold isReadNotify at HRN
     ispecialize HRN $$ %ctx %cd %c %g %Q
-    wp_apply HRN $$ [$Hrr] as %err Herr
+    wp_apply HRN $$ [$Hrr $Hlgr] as %err Herr
     · iframe #
-    icases Herr with ⟨Hrr, #Herr, Hri⟩
+    icases Herr with ⟨Hrr, Hlgr, #Herr, Hri⟩
     (try wp_auto)
     rcases err with ei | _
     · (try wp_auto)
       iapply HΦ
-      iframe HRD Hlin Herr
+      iframe HRD Hlin Hlgr Herr
       isplitl [Hrr]
       · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
       iintro %h; cases h
@@ -106,7 +106,7 @@ theorem EtcdServer.MemberList.wp_proof
       rcases err2 with ei | _
       · (try wp_auto)
         iapply HΦ
-        iframe HRD Hlin Herr2
+        iframe HRD Hlin Hlgr Herr2
         isplitl [Hrr]
         · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
         iintro %h; cases h
@@ -115,7 +115,7 @@ theorem EtcdServer.MemberList.wp_proof
         · iframe #
         (try wp_auto)
         iapply HΦ
-        iframe HRD Hlin Herr2
+        iframe HRD Hlin Hlgr Herr2
         isplitl [Hrr]
         · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
         iintro %_

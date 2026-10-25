@@ -274,7 +274,7 @@ def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 →
   iprop("%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hgo" ∷ srvWgReader s ∗
     "Hrl" ∷ (∃ r : Loc, srvReadAddr s ↦□ r ∗
-      isReadLoopPre r γr RQ (srvReadLR s) (idCred ρ.ids 1)) ∗
+      isReadLoopPre r γr RQ (srvReadLR s) (idCred ρ.ids 1) (srvLgReader s)) ∗
     "HLR" ∷ srvReadLR s ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "Hrds" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),

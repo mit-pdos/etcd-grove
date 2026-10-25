@@ -37,16 +37,17 @@ abbrev etcdserverpb._Lease_LeaseRevoke_Handler.spec : Prop :=
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
     (Φ : Rep.M → IProp GF)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc)
+    (C : GoInterfaceOk → IProp GF),
   Req.ty = etcdserverpb.LeaseRevokeRequest.ty → Rep.ty = etcdserverpb.LeaseRevokeResponse.ty →
   go.typeSetContains srv.ty etcdserverpb.LeaseServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseRevokeRequest) -∗ Req.blank l) ∗
-      grpcHandlerOk #(methods srv.ty go!"LeaseRevoke" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOk #(methods srv.ty go!"LeaseRevoke" srv.v) S Spec C ∗ srvInterceptorsOk Q ics Rs C ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeRequest.ty) #l)) ∗
-      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec m Φ }}
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ C ci ∗
+      grpcDecOk dec Req m ∗ grpcSrvChain ics ui ∗ Spec m Φ }}
     (methodHandlerCall (@! etcdserverpb._Lease_LeaseRevoke_Handler) #(GoInterface.ok srv)
       #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗

@@ -16,10 +16,10 @@ translate = ["!*",
   # util.go
   "togRPCError", "isRPCSupportedForLearner",
   # unit P3b: quota.go's KV wrapper (the quota check, the NOSPACE alarm) and interceptor.go's
-  # unary interceptors (logUnaryRequestStats names only)
+  # unary interceptors (logUnaryRequest and logUnaryResponseStats names only)
   "quotaKVServer", "quotaAlarmer", "quotaAlarmer.check", "NewQuotaKVServer", "quotaKVServer.Put",
   "quotaKVServer.Txn", "quotaKVServer.Range", "quotaKVServer.DeleteRange", "newBackendQuota",
-  "newUnaryInterceptor", "newLogUnaryInterceptor",
+  "newUnaryInterceptor", "newLogUnaryInterceptor", "requestLogFields",
   # the watch slice's unit W-S: watch.go with bodies (the metrics and isClientCtxErr names only)
   "watchServer", "NewWatchServer", "GetProgressReportInterval", "SetProgressReportInterval",
   "serverWatchStream", "watchServer.Watch", "serverWatchStream.isWatchPermitted",
@@ -51,10 +51,10 @@ translate = ["!*",
   "authMaintenanceServer.Hash", "authMaintenanceServer.HashKV", "authMaintenanceServer.Alarm",
   "authMaintenanceServer.Status", "authMaintenanceServer.MoveLeader",
   "authMaintenanceServer.Downgrade"]
-imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
-  "google.golang.org/grpc", "google.golang.org/grpc/metadata",
+imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap", "go.uber.org/zap/zapcore",
+  "google.golang.org/grpc", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer", "net",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",
-  "go.etcd.io/etcd/server/v3/etcdserver/api", "go.etcd.io/raft/v3",
+  "go.etcd.io/etcd/server/v3/etcdserver/api", "go.etcd.io/etcd/server/v3/etcdserver/requestid", "go.etcd.io/raft/v3",
   "github.com/prometheus/client_golang/prometheus",
   "google.golang.org/grpc/codes", "google.golang.org/grpc/status",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",

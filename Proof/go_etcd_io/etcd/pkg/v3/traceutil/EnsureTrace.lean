@@ -36,7 +36,7 @@ local macro "et_new" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hWV ctx ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
       #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ _ $$ []
-    as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, #Htx, #Hic, #Htr, -⟩
+    as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, #Htx, #Hic, #Htr, -, -, #Hreq, -⟩
   · iframe #; ipureintro; right; right; right; left; rfl
   subst Hc
   (try wp_auto)
@@ -53,8 +53,14 @@ local macro "et_new" : tactic => `(tactic| (
   iexists vs
   isplitr
   · iapply Htx $$ Hctr
-  iintro Hi
-  iapply Hic $$ Hi))
+  isplitr
+  · iintro Hi
+    iapply Hic $$ Hi
+  imodintro
+  iintro %or Hro
+  iapply Hreq $$ [] Hro
+  ipureintro
+  trivial))
 
 theorem traceutil.EnsureTrace.wp_proof
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
@@ -93,7 +99,10 @@ theorem traceutil.EnsureTrace.wp_proof
         cases cd; rfl
       rw [hcd]
       iframe Hctr
-      iintro Hi; iexact Hi
+      isplitr
+      · iintro Hi; iexact Hi
+      imodintro
+      iintro %or Hro; iexact Hro
     · et_new
   | none =>
     (try wp_auto)

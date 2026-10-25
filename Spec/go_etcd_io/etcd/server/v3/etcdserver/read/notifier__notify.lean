@@ -28,10 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 `nil` the loop's answer (`frozenOk`): `nc.err` becomes `err` for good and the close tells the
 waiters `notified`. -/
 abbrev read.notifier.notify.spec : Prop :=
-  ∀ (nc : Loc) (γn : NeedNames) (γr : ReadNames) (err : GoInterface),
+  ∀ (nc : Loc) (γn : NeedNames) (γr : ReadNames) (err : GoInterface) (readIndexID : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
       notifierOwn nc γn γr ∗ applyErrIs err ∗ (⌜err = GoInterface.nil⌝ -∗ frozenOk γn γr) }}
-    (App (Val (nc @!! go.GoType.PointerType notifier.ty @!! go!"notify")) (Val #err))
+    (App (App (Val (nc @!! go.GoType.PointerType notifier.ty @!! go!"notify")) (Val #err))
+      (Val #readIndexID))
   {{ RET #(); True }}
 
 end spec

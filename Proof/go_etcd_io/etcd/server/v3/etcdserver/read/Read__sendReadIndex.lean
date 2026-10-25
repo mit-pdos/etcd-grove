@@ -8,7 +8,10 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.Read__sendReadIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.read.uint64ToBigEndianBytes
 public import Spec.context.WithTimeoutBackground
 public import Spec.errors.Is
+public import Spec.go_uber_org.zap.Uint64
+public import Spec.go_uber_org.zap.Duration
 public import Spec.go_uber_org.zap.Error
+public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.isStopped
 
@@ -34,10 +37,13 @@ theorem read.Read.sendReadIndex.wp_proof
     (hB : read.uint64ToBigEndianBytes.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG))
+    (hZU : zap.Uint64.spec (GF := GF) (hG := hG))
+    (hZD : zap.Duration.spec (GF := GF) (hG := hG))
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
+    (hD : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     read.Read.sendReadIndex.spec (GF := GF) (hG := hG) := by
-  intro r γr RQ LR NR id n Qr
+  intro r γr RQ LR NR LGR id n Qr
   wp_start as ⟨#Hpre, HLR, #Hc, #HRA, Hfr, Hcr⟩
   iunfold isReadLoopPre at Hpre
   icases Hpre with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, #Hcci, -, -⟩
@@ -56,11 +62,23 @@ theorem read.Read.sendReadIndex.wp_proof
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto
+  wp_apply HLg $$ [$HLR] as %lg ⟨%Hlg, HLR⟩
+  wp_apply HRT as %d -
+  (try wp_auto)
+  wp_apply hZU as %f1 -
+  wp_apply hZD as %f2 -
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %fs0 ⟨-, -⟩
+  (try wp_auto)
+  wp_apply hD lg _ _ $$ []
+  · iframe #; ipureintro; exact Hlg
+  (try wp_auto)
   wp_apply hB as %sl Hsl
   -- the context's bytes read-only: raft keeps them in its read state
   ipersist Hsl
   wp_apply context.wp_Background
-  wp_apply HRT as %d -
   wp_apply hWT d $$ [] as %cctx %cd %cancel ⟨#Hcancel, #Hcctx⟩
   · iframe #
   wp_apply HRI $$ %cctx %cd %sl %id %n %Qr [Hfr Hcr] as %err ⟨#HerrE, Hrq⟩
@@ -73,8 +91,6 @@ theorem read.Read.sendReadIndex.wp_proof
   · cases err with
     | ok ei =>
       wp_auto
-      wp_apply HLg $$ [HLR] as %lg ⟨%Hlg, HLR⟩
-      · iexact HLR
       wp_apply hZE as %f -
       wp_apply wp_slice_literal
       isplitr

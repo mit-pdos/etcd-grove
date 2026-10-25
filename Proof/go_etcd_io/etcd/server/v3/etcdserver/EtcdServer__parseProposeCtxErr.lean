@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option hygiene false in
 local macro "ppce_exit" : tactic => `(tactic| (
-  iapply HΦ; iunfold srvLeadTimeReader; iframe Hrd; isplitr; · ipureintro; simp
+  iapply HΦ; iunfold srvLeadTimeReader; iframe Hrd Hlg; isplitr; · ipureintro; simp
   first | iexact HaTOLF | iexact HaTOCL | iexact HaTO | iexact HaCan))
 
 set_option hygiene false in
@@ -124,6 +124,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
         exact absurd (Hb2 h) (by simp)
     · (try wp_auto)
       iunfold srvLeadTimeReader at Hrd
+      icases Hrd with ⟨Hrd, Hlg⟩
       wp_apply sync.RWMutex.wp_RLock _ _ $$ [Hrd] as ⟨Hrl, HP⟩
       · iframe #; iframe Hrd
       iunfold leadTimeP at HP

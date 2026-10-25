@@ -528,7 +528,7 @@ theorem EtcdServer.Txn.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hcrid1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
@@ -544,7 +544,7 @@ theorem EtcdServer.Txn.wp_proof
   iintro %fsl' ⟨Hfl, Hflc⟩
   (try wp_auto)
   wp_apply hET ctx1 _ ot te w.lg _ _ $$ [Hto Hfl Hflc]
-    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %vs2, #Hctx2, Hctx2w⟩
+    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %vs2, #Hctx2, Hctx2w, #Hcrid2⟩
   · iframe #
     isplitr
     · iapply Hctr1 $$ Hct
@@ -558,13 +558,17 @@ theorem EtcdServer.Txn.wp_proof
   (try wp_auto)
   cases hro : txn.txnReadonly t
   · -- a write: through raft, as `Put`
+    ihave Hcred := reqIdCtx_mono ρ ctx ctx1 $$ [$Hcred $Hcrid1]
+    ihave Hcred := reqIdCtx_mono ρ ctx1 ctx2 $$ [$Hcred $Hcrid2]
     (try wp_auto)
     wp_apply time.wp_Now as %now -
     (try wp_auto)
-    wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, -⟩
+    wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3
+      ⟨-, -, -, %ctx3, %vs3, %Hc3e, -, #Hc3w, -, -, -, #Hc3r, -⟩
     · iframe #; ipureintro; right; right; left; rfl
-    ihave ⟨%ctx3, %vs3, %Hc3e, #Hctx3⟩ := Hc3w $$ %_ Hctx2i
     subst Hc3e
+    ihave #Hctx3 := Hc3w $$ %_ Hctx2i
+    ihave Hcred := reqIdCtx_mono_key ρ ctx2 ctx3 $$ [$Hcred $Hc3r]
     (try wp_auto)
     ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
     iStructNamed Hirr
@@ -691,6 +695,7 @@ theorem EtcdServer.Txn.wp_proof
         iexact Hfail
       · exact absurd rfl Hne
   · -- read-only: as `Range`, through `doSerialize`
+    ihave ⟨-, Hcred⟩ := reqIdCtx_cred ρ ctx $$ Hcred
     have Hg := Hgets hro
     ipersist s
     ipersist r
@@ -700,7 +705,7 @@ theorem EtcdServer.Txn.wp_proof
     · iframe #
     -- `if !IsTxnSerializable(r)`, joined (`wp_join`): the read index (or its error's return), or
     -- nothing; the rest, from the deferred closure on (`txn_tail`), is verified once
-    wp_join (Q := fun v => iprop(trace_ptr ↦ trc ∗ srvReadReader s γr ∗
+    wp_join (Q := fun v => iprop(trace_ptr ↦ trc ∗ srvReadReader s γr ∗ srvLgReader s ∗
         traceutil.ownTrace trc false ∗
         ((⌜v = executeVal⌝ ∗ ∃ logR : mvcc.Log, ⌜2 ≤ logR.length ∧ F <+: logR⌝ ∗
             □ mvcc.idxCert E.γ.idx logR ∗
@@ -709,7 +714,7 @@ theorem EtcdServer.Txn.wp_proof
               ∃ g' : GName, readWitAt γr Qr g' logR : IProp GF)) ∨
          (∃ rei : GoInterfaceOk, ⌜v = returnVal (PairV #Loc.null #(GoInterface.ok rei))⌝ ∗
             applyErrIs (GoInterface.ok rei)))))
-      at (if: _ then _ else _) with [trace Hrr Hown0 Hnp]
+      at (if: _ then _ else _) with [trace Hrr Hlr Hown0 Hnp]
     · cases hs : txn.txnSerializable t
       · (try wp_auto)
         iunfold srvReadReader at Hrr
@@ -719,9 +724,9 @@ theorem EtcdServer.Txn.wp_proof
         imod saved_pred_alloc Qr DFrac.discard trivial with ⟨%g, #Hg⟩
         ihave #Hdep : kvDep (GF := GF) γr.kv Qr $$ [Hnp]
         · simp only [hro, ↓reduceIte]; iexact Hnp
-        wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr]
-          as %rerr ⟨Hrr, #HrE, Hri⟩
-        · iframe #; iframe Hrr
+        wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr Hlr]
+          as %rerr ⟨Hrr, Hlr, #HrE, Hri⟩
+        · iframe #; iframe Hrr Hlr
         ihave Hrr : srvReadReader s γr $$ [Hrr]
         · iunfold srvReadReader; iexists _; iframe Hread Hrr
         (try wp_auto)
@@ -731,7 +736,7 @@ theorem EtcdServer.Txn.wp_proof
         cases rerr with
         | ok rei =>
           wp_auto
-          iframe trace Hrr Hown0
+          iframe trace Hrr Hlr Hown0
           iright
           iexists rei
           iframe HrE
@@ -742,7 +747,7 @@ theorem EtcdServer.Txn.wp_proof
           imod readServed_logR s E γr c g Qr log₀ $$ Hainv Hsv Hg Hc0
             with ⟨%logR, #HcR, %HpR, #HrlR, #HwR⟩
           wp_auto
-          iframe trace Hrr Hown0
+          iframe trace Hrr Hlr Hown0
           ileft
           isplitr
           · ipureintro; rfl
@@ -756,7 +761,7 @@ theorem EtcdServer.Txn.wp_proof
           · imodintro; iexact HrlR
           imodintro; iexists g; iexact HwR
       · (try wp_auto)
-        iframe trace Hrr Hown0
+        iframe trace Hrr Hlr Hown0
         ileft
         isplitr
         · ipureintro; rfl
@@ -767,7 +772,7 @@ theorem EtcdServer.Txn.wp_proof
         isplitr
         · iexact Hc0
         isplitr <;> imodintro <;> itrivial
-    iintro ⟨trace, Hrr, Hown0, (⟨%Hv, %logR, ⟨%HlR, %HFR⟩, #HcR, #HriO, #HwO⟩ | ⟨%rei, %Hv, #HrE⟩)⟩
+    iintro ⟨trace, Hrr, Hlr, Hown0, (⟨%Hv, %logR, ⟨%HlR, %HFR⟩, #HcR, #HriO, #HwO⟩ | ⟨%rei, %Hv, #HrE⟩)⟩
     · subst Hv
       wp_auto
       txn_tail

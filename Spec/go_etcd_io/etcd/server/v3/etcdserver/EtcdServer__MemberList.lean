@@ -40,13 +40,13 @@ abbrev EtcdServer.MemberList.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗
       structFieldRef etcdserverpb.MemberListRequest go!"Linearizable" r ↦{dq} lin ∗
-      srvReadReader s γr ∗ committedAtLeast γr c ∗ savedPredOwn g DFrac.discard Q ∗
+      srvReadReader s γr ∗ srvLgReader s ∗ committedAtLeast γr c ∗ savedPredOwn g DFrac.discard Q ∗
       kvDep γr.kv Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"MemberList"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); E.RD ∗
       structFieldRef etcdserverpb.MemberListRequest go!"Linearizable" r ↦{dq} lin ∗
-      srvReadReader s γr ∗ applyErrIs err ∗
+      srvReadReader s γr ∗ srvLgReader s ∗ applyErrIs err ∗
       (∀ _ : err = GoInterface.nil, (∃ ms : List Loc, membership.membersAt sl ms) ∗
         (∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo, authedRes E.authMode ai) ∗
         (∀ _ : lin = true, readIndexOk γr c ∗ readServed γr c g)) }}

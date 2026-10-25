@@ -2247,17 +2247,18 @@ applied index has reached the committed index the caller knew of (`readIndexOk`)
 the gRPC layer can take (`applyErrIs`: the read loop's `ErrStopped`, `ErrLeaderChanged`, ...,
 `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`; 2026-10-12, unit 3b, as
 `raftPropose`). -/
-def isReadNotify (r : Loc) (γr : ReadNames) : IProp GF :=
+def isReadNotify (r : Loc) (γr : ReadNames) (LGR : IProp GF := iprop(True)) : IProp GF :=
   iprop(□ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (c : w64) (g : GName)
       (Q : List EntryModel → IProp GF),
-    {{ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗ readReader r γr ∗
+    {{ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗ readReader r γr ∗ LGR ∗
         savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q }}
       (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty @!!
         go!"LinearizableReadNotify")) (Val #(GoInterface.ok ctx)))
-    {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
+    {{ (err : GoInterface), RET #err; readReader r γr ∗ LGR ∗ applyErrIs err ∗
         (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c ∗ readServed γr c g) }}))
 
-instance isReadNotify_persistent (r : Loc) (γr : ReadNames) : Persistent (isReadNotify (GF := GF) r γr) := by
+instance isReadNotify_persistent (r : Loc) (γr : ReadNames) (LGR : IProp GF) :
+    Persistent (isReadNotify (GF := GF) r γr LGR) := by
   unfold isReadNotify; infer_instance
 
 /-- The `*auth.AuthInfo` `a` (not nil): its `Username` and `Revision`, read-only. -/

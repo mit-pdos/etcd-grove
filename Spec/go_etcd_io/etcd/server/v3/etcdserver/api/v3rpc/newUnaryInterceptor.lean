@@ -42,7 +42,8 @@ abbrev v3rpc.newUnaryInterceptor.spec : Prop :=
       srvMemberIDAddr s ↦□ mid ∗ srvLeadInv s ∗ srvClusterAddr s ↦□ c ∗
       membership.isRaftCluster c ∗ membership.localKept c }}
     (App (Val (@! v3rpc.newUnaryInterceptor)) (Val #s))
-  {{ (ic : GoFunc), RET #ic; srvInterceptorOk ic iprop(True) v3rpc.learnerReqOk }}
+  {{ (ic : GoFunc), RET #ic;
+      □ ∀ C : GoInterfaceOk → IProp GF, srvInterceptorOk ic iprop(True) v3rpc.learnerReqOk C }}
 
 end spec
 

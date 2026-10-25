@@ -142,13 +142,13 @@ theorem EtcdServer.Start.wp_proof
   -- `s.read.LinearizableReadLoop`, verified
   icases Hrl with ⟨%rd, #Hrdf, #Hrlp⟩
   wp_auto
-  wp_apply hGA s _ iprop(isReadLoopPre rd γr Er.RQ (srvReadLR s) (idCred ρ.ids 1) ∗ srvReadLR s ∗
-      □ (|==> idCred ρ.ids 1)) $$ [Hgr Hlg HLR] as ⟨Hgr, Hlg⟩
+  wp_apply hGA s _ iprop(isReadLoopPre rd γr Er.RQ (srvReadLR s) (idCred ρ.ids 1) (srvLgReader s) ∗
+      srvReadLR s ∗ □ (|==> idCred ρ.ids 1)) $$ [Hgr Hlg HLR] as ⟨Hgr, Hlg⟩
   · iframe Hgr Hlg HLR Hrlp HNR
     iintro !> %Φ' ⟨#Hpre, HL, #HN⟩ HΦ'
     ihave #Hpread : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read $$ []
     · iPkgInit
-    wp_apply hRL rd γr Er.RQ (srvReadLR s) (idCred ρ.ids 1) $$ [HL]
+    wp_apply hRL rd γr Er.RQ (srvReadLR s) (idCred ρ.ids 1) (srvLgReader s) $$ [HL]
     · iframe #; iframe HL
     iapply HΦ'
     try itrivial

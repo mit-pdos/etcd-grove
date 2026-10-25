@@ -425,7 +425,7 @@ theorem NewServer.wp_proof
   ipersist ElectionTicksS
   ipersist TickMsS
   ipersist ServerFeatureGateS
-  have hMR : 2 ^ 29 + 100 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+  have hMR : 2 ^ 29 + 200 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   have hM1 : 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by omega
   -- (D21 M2) the transport's: `2 ^ 29` of `lgMu`'s reader slots, one per concurrent call into
@@ -1038,6 +1038,13 @@ theorem NewServer.wp_proof
   -- (D19g (b)) what serving needs: the configuration fields, the watchable store as the KV, the
   -- progress interval's field, `lgMu`'s reader slots for request goroutines and the others'
   icases replicate_takeN _ 64 _ (by omega) $$ Hlgrs with ⟨Hlgs, Hlgrs⟩
+  icases replicate_takeN _ 64 _ (by omega) $$ Hlgrs with ⟨HlgLts, Hlgrs⟩
+  ihave HlgLts := replicate_map _ (iprop(srvLgReader s ∗ ∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝))
+    (srvLgAddr s ↦□ cfg.Logger') 64
+    (by iintro ⟨#Hl, Hlg⟩; iframe Hlg; iexists _; iframe Hl; ipureintro; exact Hlgnn) $$ [$lg $HlgLts]
+  ihave Hlts := replicate_sepL _ _ (srvLeadTimeReader (GF := GF) s) 64
+    (by iintro ⟨Hlt, Hlg⟩; iunfold srvLeadTimeReader; iframe Hlt Hlg)
+    $$ [$Hlts $HlgLts]
   -- (D19i part 2) the storage version monitor's `lgMu` reader slot
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgSV, Hlgrs⟩
   -- (audit B4a) `monitorDowngrade`'s `lgMu` reader slot, and the monitors' configuration fields
@@ -1061,7 +1068,7 @@ theorem NewServer.wp_proof
   ihave Hserve : srvServeBuilt s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, .off, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF)
       cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms]
-  · unfold srvServeBuilt srvServeFacts srvServeCfg srvLeadTimeReader
+  · unfold srvServeBuilt srvServeFacts srvServeCfg
     isplitr
     · isplitr
       · iexists ws, γw

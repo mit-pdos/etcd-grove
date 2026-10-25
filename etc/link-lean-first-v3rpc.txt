@@ -73,9 +73,13 @@ grpc_GenericServerStream__Send:
 grpc_GenericServerStream__Context:
 _Watch_Watch_Handler: grpc_GenericServerStream__Recv grpc_GenericServerStream__Send grpc_GenericServerStream__Context
 EtcdServer__Logger: @
+EtcdServer__RequestID: @
 EtcdServer__Backend: @
 EtcdServer__MemberID: @
 EtcdServer__Leader: @
+context_WithValue:
+requestid_NewContext: context_WithValue
+zap_Logger__Core:
 metadata_FromIncomingContext:
 storage_NewBackendQuota:
 EtcdServer__IsMemberExist:
@@ -84,14 +88,16 @@ api_IsCapabilityEnabled:
 metadata_MD__Get:
 utf8_ValidString:
 prometheus_CounterVec__WithLabelValues:
-logUnaryRequestStats:
+requestLogFields:
+logUnaryRequest:
+logUnaryResponseStats:
 isRPCSupportedForLearner:
 newBackendQuota: EtcdServer__Logger EtcdServer__Backend storage_NewBackendQuota
 NewQuotaKVServer: NewKVServer
 quotaAlarmer__check: newBackendQuota
 quotaKVServer__Put: quotaAlarmer__check
 quotaKVServer__Txn: quotaAlarmer__check
-newLogUnaryInterceptor: EtcdServer__Logger logUnaryRequestStats
+newLogUnaryInterceptor: EtcdServer__RequestID requestid_NewContext EtcdServer__Logger zap_Logger__Core logUnaryRequest requestLogFields logUnaryResponseStats
 newUnaryInterceptor: api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner isRPCSupportedForLearner metadata_FromIncomingContext metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues EtcdServer__Leader
 #
 # Unit W-S (the watch slice): the gRPC watch service (watch.go), over the mvcc watch stream (its

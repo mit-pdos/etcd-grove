@@ -35,17 +35,17 @@ reader slots (`quotaRd`, from its spec). -/
 theorem v3rpc.quotaLease_grantHandlerOk_of
     (wp_Grant : v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (ls : GoInterfaceOk)
-    (S : IProp GF) :
+    (S : IProp GF) (C : GoInterfaceOk → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaLeaseServerAt q ls s ∗
-        grpcHandlerOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ⊢
+        grpcHandlerOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec C ⊢
       grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
-        iprop(S ∗ v3rpc.quotaRd s) Spec := by
+        iprop(S ∗ v3rpc.quotaRd s) Spec C := by
   iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   unfold grpcHandlerOk
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
-  iapply (wp_Grant Req Rep Spec q s ls S m Φ ci cd r) $$ [HS Hqr HSpec]
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, HC, #Hr, HSpec⟩ HΨ
+  iapply (wp_Grant Req Rep Spec q s ls S C m Φ ci cd r) $$ [HS Hqr HC HSpec]
   · iframe; iframe #
     unfold grpcHandlerOk
     iexact Hh
@@ -57,11 +57,11 @@ theorem v3rpc.quotaLease_grantHandlerOk_of
 /-- **`quotaLeaseServer.LeaseRevoke`** (the embedded service's, promoted) meets what the embedded
 service's meets. -/
 theorem v3rpc.quotaLease_revokeHandlerOk {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep)
-    (q s : Loc) (ls : GoInterfaceOk) (S : IProp GF) :
+    (q s : Loc) (ls : GoInterfaceOk) (S : IProp GF) (C : GoInterfaceOk → IProp GF) :
     v3rpc.quotaLeaseServerAt (GF := GF) q ls s ∗
-        grpcHandlerOk #(methods ls.ty go!"LeaseRevoke" ls.v) S Spec ⊢
+        grpcHandlerOk #(methods ls.ty go!"LeaseRevoke" ls.v) S Spec C ⊢
       grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseRevoke")
-        S Spec := by
+        S Spec C := by
   iintro ⟨#Hq, #Hh⟩
   iunfold v3rpc.quotaLeaseServerAt at Hq
   icases Hq with ⟨%Hqn, #Hls, -⟩

@@ -31,7 +31,9 @@ abbrev grpc_prometheus.ServerMetrics.UnaryServerInterceptor.spec : Prop :=
   {{ promSrvMetrics (GF := GF) m }}
     (App (Val (m @!! go.GoType.PointerType github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics.ty @!! go!"UnaryServerInterceptor"))
       (Val #slice.nil))
-  {{ (ic : GoFunc), RET #ic; □ ∀ Q : GoInterface → IProp GF, srvInterceptorOk ic iprop(True) Q }}
+  {{ (ic : GoFunc), RET #ic;
+      □ ∀ (Q : GoInterface → IProp GF) (C : GoInterfaceOk → IProp GF),
+        srvInterceptorOk ic iprop(True) Q C }}
 
 end spec
 

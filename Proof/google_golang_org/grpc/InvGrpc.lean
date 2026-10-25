@@ -44,6 +44,7 @@ module
 
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.Defs
 public import GeneratedProof.google_golang_org.grpc.peer
 
 @[expose] public section
@@ -89,15 +90,22 @@ abbrev GrpcSpec (Req Rep : ProtoMsg GF) : Type := Req.M → (Rep.M → IProp GF)
 /-- **The prefix of etcd's Go package paths** (`go.etcd.io/etcd/`). -/
 def etcdPkgPrefix : GoString := go!"go.etcd.io/etcd/"
 
+/-- **The Go type name of `requestid.requestIDKey`** (PR etcd#21401: set by `v3rpc`'s
+`newLogUnaryInterceptor`). -/
+def reqIdKeyTypeName : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/requestid.requestIDKey"
+
 /-- **The context a server's runtime makes for a run** (persistent; part of the trusted server
 runtime, unit P3a with unit P1b's traces): its `Value(k)` of a key whose type is a named type of
-etcd's own packages (`go.etcd.io/etcd/...`, e.g. `traceutil.TraceKey`) returns `nil`: grpc's
+etcd's own packages (`go.etcd.io/etcd/...`, e.g. `traceutil.TraceKey`, excluding
+`requestid.requestIDKey` which `newLogUnaryInterceptor` populates) returns `nil`: grpc's
 server context carries grpc's values (metadata, peer, stream) and those of the stats handlers
 and interceptors in front of the handler (etcd's `v3rpc` interceptors, otelgrpc's), none under
 such a key. What the server's handlers rely on: a request's context carries no trace
 (`traceutil.ctxTraceIs ci none`, `v3rpc.srvCall`). -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
-  iprop(□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
+  iprop(□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF),
+    ⌜etcdPkgPrefix <+: n ∧ n ≠ reqIdKeyTypeName⌝ →
     ▷ Φ #GoInterface.nil -∗
     WP (App (Val #(methods ci.ty go!"Value" ci.v))
       (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }})
@@ -105,32 +113,33 @@ def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
 instance grpcRunCtx_persistent (ci : GoInterfaceOk) : Persistent (grpcRunCtx (GF := GF) ci) := by
   unfold grpcRunCtx; infer_instance
 
-/-- **A service method `h` meets `Spec` with the per-run resource `S`** (persistent; see the file
-header; unit P3b: the registered service's method, which the generated handler calls below the
-interceptors, `grpcMethodOk`; until P3b it was what grpc ran): a call, given `S`, the context the
-runtime made for the run (`isContext`, `grpcRunCtx`), the decoded request `r` at `m` and
-`Spec m Φ`, returns `S` and, on success, a response at some `m'` with `Φ m'`. -/
-def grpcHandlerOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcSpec Req Rep) :
-    IProp GF :=
+/-- **A service method `h` meets `Spec` with the per-run resource `S` and context predicate `C`**
+(persistent; see the file header; unit P3b: the registered service's method, which the generated
+handler calls below the interceptors, `grpcMethodOk`; until P3b it was what grpc ran): a call,
+given `S`, the context of the run (`isContext`, `grpcRunCtx`, `C ci`), the decoded request `r` at
+`m` and `Spec m Φ`, returns `S` and, on success, a response at some `m'` with `Φ m'`. -/
+def grpcHandlerOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcSpec Req Rep)
+    (C : GoInterfaceOk → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (r : Loc),
-    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Spec m Φ }}
+    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ C ci ∗ Req.recv r m ∗ Spec m Φ }}
       (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') }})
 
 instance grpcHandlerOk_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
-    (Spec : GrpcSpec Req Rep) : Persistent (grpcHandlerOk h S Spec) := by
+    (Spec : GrpcSpec Req Rep) (C : GoInterfaceOk → IProp GF) :
+    Persistent (grpcHandlerOk h S Spec C) := by
   unfold grpcHandlerOk; infer_instance
 
 /-- A service method meeting `Spec` with `S` meets it with more (`S ∗ R`, `R` given back). -/
 theorem grpcHandlerOk_frame {Req Rep : ProtoMsg GF} (h : val) (S R : IProp GF)
-    (Spec : GrpcSpec Req Rep) :
-    grpcHandlerOk h S Spec ⊢ grpcHandlerOk h iprop(S ∗ R) Spec := by
+    (Spec : GrpcSpec Req Rep) (C : GoInterfaceOk → IProp GF := fun _ => iprop(True)) :
+    grpcHandlerOk h S Spec C ⊢ grpcHandlerOk h iprop(S ∗ R) Spec C := by
   iintro #Hh
   unfold grpcHandlerOk
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, HR⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
-  iapply Hh $$ %m %Φ %ci %cd %r [HS HSpec]
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, HR⟩, #Hctx, #Hrc, HC, #Hr, HSpec⟩ HΨ
+  iapply Hh $$ %m %Φ %ci %cd %r [HS HC HSpec]
   · iframe; iframe #
   inext
   iintro %resp %err ⟨HS, Hres⟩
@@ -226,8 +235,8 @@ def grpcMethodOk {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : L
     (S : IProp GF) (Spec : GrpcSpec Req Rep) : IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
-    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗ grpcSrvChain ics ui ∗
-        Spec m Φ }}
+    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ requestid.ctxReqIDIs ci none ∗
+        grpcDecOk dec Req m ∗ grpcSrvChain ics ui ∗ Spec m Φ }}
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
     {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -239,36 +248,44 @@ instance grpcMethodOk_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInt
   unfold grpcMethodOk; infer_instance
 
 /-- **The interceptor `ic` is transparent, with its per-run resource `R`, for requests with
-`Q`** (persistent; unit P3b: what etcd's `newUnaryInterceptor` and `newLogUnaryInterceptor`
-return, proved; what grpc-prometheus's is assumed to be): called with `R`, the run's context, a
-request with `Q` (what the interceptor reads of it: etcd's learner check reads a
-`*RangeRequest`'s `Serializable`), an `info` (`srvInfoIs`) and a handler `h`, it either calls `h`
-once on the same context and request and returns its result, or returns `(nil, err)` for some
-non-nil error without calling `h`; either way `R` comes back. The caller gives both
-continuations (`∧`: one is taken). -/
-def srvInterceptorOk (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF) : IProp GF :=
+`Q` and context predicate `C`** (persistent; unit P3b: what etcd's `newUnaryInterceptor` and
+`newLogUnaryInterceptor` return, proved; what grpc-prometheus's is assumed to be): called with `R`,
+the run's context (`ci`, with `C ci`), a request with `Q` (what the interceptor reads of it: etcd's
+learner check reads a `*RangeRequest`'s `Serializable`, and `requestLogFields` reads key/range fields),
+an `info` (`srvInfoIs`) and a handler `h`, it either calls `h` once on a context `ci'` (the same context,
+or `newLogUnaryInterceptor`'s child context with `requestID`) satisfying `C ci'` and the same request
+and returns its result, or returns `(nil, err)` for some non-nil error without calling `h`; either way
+`R` comes back. The caller gives both continuations (`∧`: one is taken). -/
+def srvInterceptorOk (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF)
+    (C : GoInterfaceOk → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(□ ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (req : GoInterface)
       (info : Loc) (h : GoFunc) (Ψ : val → IProp GF),
-    R -∗ context.isContext ci cd -∗ grpcRunCtx ci -∗ srvInfoIs info -∗ □ Q req -∗
-    (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-        {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (R -∗ Ψ v) }} ∧
+    R -∗ context.isContext ci cd -∗ grpcRunCtx ci -∗ C ci -∗ srvInfoIs info -∗ □ Q req -∗
+    ((∀ (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
+        context.isContext ci' cd' -∗ grpcRunCtx ci' -∗ C ci' -∗
+        WP (srvHandlerCall h #(GoInterface.ok ci') #req)
+          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (R -∗ Ψ v) }}) ∧
       (R -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
         Ψ (PairV #GoInterface.nil #err))) -∗
     WP (srvInterceptorCall ic #(GoInterface.ok ci) #req #info h) {{ Ψ }})
 
-instance srvInterceptorOk_persistent (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF) :
-    Persistent (srvInterceptorOk (GF := GF) ic R Q) := by
+instance srvInterceptorOk_persistent (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF)
+    (C : GoInterfaceOk → IProp GF) :
+    Persistent (srvInterceptorOk (GF := GF) ic R Q C) := by
   unfold srvInterceptorOk; infer_instance
 
 /-- **Each interceptor of `ics` is transparent, with its resource in `Rs`, for requests with
-`Q`** (persistent). -/
-def srvInterceptorsOk (Q : GoInterface → IProp GF) : List GoFunc → List (IProp GF) → IProp GF
+`Q` and context predicate `C`** (persistent). -/
+def srvInterceptorsOk (Q : GoInterface → IProp GF) (ics : List GoFunc) (Rs : List (IProp GF))
+    (C : GoInterfaceOk → IProp GF := fun _ => iprop(True)) : IProp GF :=
+  match ics, Rs with
   | [], [] => iprop(True)
-  | ic :: ics, R :: Rs => iprop(srvInterceptorOk ic R Q ∗ srvInterceptorsOk Q ics Rs)
+  | ic :: ics, R :: Rs => iprop(srvInterceptorOk ic R Q C ∗ srvInterceptorsOk Q ics Rs C)
   | _, _ => iprop(⌜False⌝)
 
 instance srvInterceptorsOk_persistent (Q : GoInterface → IProp GF) (ics : List GoFunc)
-    (Rs : List (IProp GF)) : Persistent (srvInterceptorsOk Q ics Rs) := by
+    (Rs : List (IProp GF)) (C : GoInterfaceOk → IProp GF) :
+    Persistent (srvInterceptorsOk Q ics Rs C) := by
   induction ics generalizing Rs with
   | nil => cases Rs <;> (unfold srvInterceptorsOk; infer_instance)
   | cons ic ics ih =>
@@ -282,25 +299,29 @@ both continuations of the handler's call (its result with the resources back, or
 `(nil, err)` with them back), the chain's call meets `Ψ`. -/
 theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (req : GoInterface) (info : Loc) (h : GoFunc)
-    (Ψ : val → IProp GF) (Q : GoInterface → IProp GF) :
-    srvInterceptorsOk Q ics Rs ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗
-      srvInfoIs info ∗ □ Q req ∗
-      (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-            (([∗list] R ∈ Rs, R) -∗ Ψ v) }} ∧
+    (Ψ : val → IProp GF) (Q : GoInterface → IProp GF)
+    (C : GoInterfaceOk → IProp GF := fun _ => iprop(True)) :
+    srvInterceptorsOk Q ics Rs C ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗
+      C ci ∗ srvInfoIs info ∗ □ Q req ∗
+      ((∀ (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
+          context.isContext ci' cd' -∗ grpcRunCtx ci' -∗ C ci' -∗
+          WP (srvHandlerCall h #(GoInterface.ok ci') #req)
+            {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+              (([∗list] R ∈ Rs, R) -∗ Ψ v) }}) ∧
         (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
           Ψ (PairV #GoInterface.nil #err))) ⊢
     srvChainWP #info ics h #(GoInterface.ok ci) #req Ψ := by
-  induction ics generalizing Rs Ψ with
+  induction ics generalizing Rs ci cd Ψ with
   | nil =>
     cases Rs with
     | cons R Rs =>
-      rw [show srvInterceptorsOk (GF := GF) Q [] (R :: Rs) = iprop(⌜False⌝) from rfl]
+      rw [show srvInterceptorsOk (GF := GF) Q [] (R :: Rs) C = iprop(⌜False⌝) from rfl]
       iintro ⟨%H, -⟩; exact H.elim
     | nil =>
-      iintro ⟨-, -, -, -, -, -, H⟩
+      iintro ⟨-, -, #Hctx, #Hrc, HC, -, -, H⟩
       unfold srvChainWP
       icases H with ⟨H, -⟩
+      ihave H := H $$ %ci %cd Hctx Hrc HC
       iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
         (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
       iintro %v ⟨%resp, %err, -, HΨ⟩
@@ -310,26 +331,29 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
   | cons ic ics ih =>
     cases Rs with
     | nil =>
-      rw [show srvInterceptorsOk (GF := GF) Q (ic :: ics) [] = iprop(⌜False⌝) from rfl]
+      rw [show srvInterceptorsOk (GF := GF) Q (ic :: ics) [] C = iprop(⌜False⌝) from rfl]
       iintro ⟨%H, -⟩; exact H.elim
     | cons R Rs =>
-      rw [show srvInterceptorsOk (GF := GF) Q (ic :: ics) (R :: Rs) =
-        iprop(srvInterceptorOk ic R Q ∗ srvInterceptorsOk Q ics Rs) from rfl]
-      iintro ⟨⟨#Hic, #Hoks⟩, HRs, #Hctx, #Hrc, #Hinfo, #HQ, H⟩
+      rw [show srvInterceptorsOk (GF := GF) Q (ic :: ics) (R :: Rs) C =
+        iprop(srvInterceptorOk ic R Q C ∗ srvInterceptorsOk Q ics Rs C) from rfl]
+      iintro ⟨⟨#Hic, #Hoks⟩, HRs, #Hctx, #Hrc, HC, #Hinfo, #HQ, H⟩
       ihave ⟨HR, HRs⟩ := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
         (xs := Rs)).1 $$ HRs
       unfold srvChainWP
       iintro %h' #Hh'
       iunfold srvInterceptorOk at Hic
-      iapply Hic $$ HR Hctx Hrc Hinfo HQ
+      iapply Hic $$ HR Hctx Hrc HC Hinfo HQ
       isplit
-      · iapply Hh'
-        iapply (ih Rs (fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+      · iintro %ci' %cd' #Hctx' #Hrc' HC'
+        iapply Hh'
+        iapply (ih Rs ci' cd' (fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
           (R -∗ Ψ v))))
         iframe #
         iframe
         isplit
         · icases H with ⟨H, -⟩
+          iintro %ci'' %cd'' #Hctx'' #Hrc'' HC''
+          ihave H := H $$ %ci'' %cd'' Hctx'' Hrc'' HC''
           iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
             (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
           iintro %v ⟨%resp, %err, %Hv, HΨ⟩
@@ -490,8 +514,8 @@ theorem grpcMethodOk_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     grpcMethodOk mh srv ics S Spec ⊢ grpcMethodOk mh srv ics S Spec' := by
   iintro #Hm
   unfold grpcMethodOk
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  iapply Hm $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hrid, Hd, Hch, HSpec⟩ HΨ
+  iapply Hm $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hrid Hd Hch HSpec] HΨ
   iframe
   iapply (h m Φ) $$ HSpec
 

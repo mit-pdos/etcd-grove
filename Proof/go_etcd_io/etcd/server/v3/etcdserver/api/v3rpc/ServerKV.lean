@@ -96,7 +96,7 @@ back with the answer). The context carries no trace (`traceutil.ctxTraceIs ci no
 gRPC handler's context has no `TraceKey` value). -/
 def srvCall (s : Loc) (ρ : ReqNames) (ctx : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜ctx = GoInterface.ok ci⌝ ∗
-    context.isContext ci cd ∗ traceutil.ctxTraceIs ci none ∗ idCred ρ.ids 1 ∗
+    context.isContext ci cd ∗ traceutil.ctxTraceIs ci none ∗ reqIdCtx ρ ci ∗
     srvLeadTimeReader s)
 
 /-- `putAppliedOk` but the caller's reader slot: the answer's facts (the vertical slice's unit
@@ -660,8 +660,9 @@ theorem kvRangeOk_of_server (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG
   icases Hcall with ⟨Hcall, Hrc, Hdep, #HF⟩
   ihave #Hdep' := kvDep_of_dep ρ γr d $$ Hdep
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hct, Hcred, Hlt⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hct, Hreq, Hlt⟩
   subst Hci
+  ihave ⟨-, Hcred⟩ := reqIdCtx_cred ρ ci $$ [$Hreq]
   wp_apply hRange s E ρ γr c ci cd r o none false (rangeDepQ γr.kv d) F $$ [Hrc] as %resp %err ⟨Hrc, Hres⟩
   · iframe #; iframe Hrc
     isplitr

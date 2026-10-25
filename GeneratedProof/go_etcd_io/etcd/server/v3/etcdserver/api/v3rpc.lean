@@ -21,6 +21,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.config
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.requestid
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
 public import GeneratedProof.go_etcd_io.etcd.server.v3.features
@@ -37,6 +38,7 @@ public import GeneratedProof.google_golang_org.grpc.codes
 public import GeneratedProof.google_golang_org.grpc.health
 public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
 public import GeneratedProof.google_golang_org.grpc.metadata
+public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.status
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io

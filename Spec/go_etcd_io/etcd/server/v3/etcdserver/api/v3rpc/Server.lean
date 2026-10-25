@@ -55,9 +55,13 @@ abbrev v3rpc.Server.spec : Prop :=
       v3rpc.quotaKVServerAt q ⟨go.GoType.PointerType v3rpc.kvServer.ty, #p⟩ s ∗
       v3rpc.kvServerIs p s C.A cid mid C.n ∗
       v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = C.E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
-      (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
-      (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-      srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+      (□ ∀ (γi : IdNames) (C : GoInterfaceOk → IProp GF),
+        srvIdGen s γi -∗ idCred γi 1 -∗ □ (∀ ci', reqIdCtxAt γi ci' -∗ C ci') -∗
+        srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk C) ∗
+      (□ ∀ (Q : GoInterface → IProp GF) (C : GoInterfaceOk → IProp GF),
+        srvInterceptorOk im iprop(True) Q C) ∗
+      (□ ∀ C : GoInterfaceOk → IProp GF,
+        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk C) ∗
       srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d' }}

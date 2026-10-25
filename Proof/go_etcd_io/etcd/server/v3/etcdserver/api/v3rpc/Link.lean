@@ -62,6 +62,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeStr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRequestOp
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__MaxRequestBytesWithOverhead
+public import Proof.context.WithValue
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.errors.IsDeadlineExceeded
@@ -95,7 +96,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Del
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryResponseStats
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.google_golang_org.grpc.metadata.MD__Get
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.monitorLeader
@@ -118,6 +120,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer__LeaseGrant
 public import Proof.math.rand.Int63n
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.requestLogFields
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.NewContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__isWatchPermitted
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__newResponseHeader
@@ -138,6 +142,7 @@ public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer__Watch
 public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
+public import Proof.go_uber_org.zap.Logger__Core
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Info
@@ -222,6 +227,10 @@ theorem config.ServerConfig.wp_MaxRequestBytesWithOverhead :
 theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Error.wp_proof
+
+theorem zap.Logger.wp_Core :
+    EtcdGrove.zap.Logger.Core.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Core.wp_proof
 
 theorem api.wp_IsCapabilityEnabled :
     EtcdGrove.api.IsCapabilityEnabled.spec (GF := GF) (hG := hG) :=
@@ -498,13 +507,29 @@ theorem wp_getServerMetrics :
     EtcdGrove.v3rpc.getServerMetrics.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.getServerMetrics.wp_proof grpc_prometheus.wp_NewServerMetrics grpc_prometheus.wp_WithServerHandlingTimeHistogram prometheus.wp_Register zap.Logger.wp_Warn zap.wp_Error
 
-theorem wp_logUnaryRequestStats :
-    EtcdGrove.v3rpc.logUnaryRequestStats.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.logUnaryRequestStats.wp_proof
+theorem context.wp_WithValue :
+    EtcdGrove.context.WithValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithValue.wp_proof
+
+theorem requestid.wp_NewContext :
+    EtcdGrove.requestid.NewContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.requestid.NewContext.wp_proof context.wp_WithValue
+
+theorem wp_logUnaryRequest :
+    EtcdGrove.v3rpc.logUnaryRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.logUnaryRequest.wp_proof
+
+theorem wp_requestLogFields :
+    EtcdGrove.v3rpc.requestLogFields.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.requestLogFields.wp_proof
+
+theorem wp_logUnaryResponseStats :
+    EtcdGrove.v3rpc.logUnaryResponseStats.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.logUnaryResponseStats.wp_proof
 
 theorem wp_newLogUnaryInterceptor :
     EtcdGrove.v3rpc.newLogUnaryInterceptor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.newLogUnaryInterceptor.wp_proof EtcdServer.wp_Logger wp_logUnaryRequestStats
+  EtcdGrove.v3rpc.newLogUnaryInterceptor.wp_proof EtcdServer.wp_RequestID requestid.wp_NewContext EtcdServer.wp_Logger zap.Logger.wp_Core wp_logUnaryRequest wp_requestLogFields wp_logUnaryResponseStats
 
 theorem grpc_prometheus.ServerMetrics.wp_UnaryServerInterceptor :
     EtcdGrove.grpc_prometheus.ServerMetrics.UnaryServerInterceptor.spec (GF := GF) (hG := hG) :=

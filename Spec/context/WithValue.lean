@@ -7,6 +7,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.requestid.Defs
 public import Code.go_etcd_io.etcd.client.v3
 
 @[expose] public section
@@ -47,7 +48,9 @@ abbrev context.WithValue.spec : Prop :=
         key.ty = go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty ∨
         key = ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
           #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ ∨
-        key.ty = go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty⌝ }}
+        key.ty = go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty ∨
+        key = ⟨go_etcd_io.etcd.server.v3.etcdserver.requestid.requestIDKey.ty,
+          #(zero_val go_etcd_io.etcd.server.v3.etcdserver.requestid.requestIDKey)⟩⌝ }}
     (App (App (App (Val (@! context.WithValue)) (Val #(GoInterface.ok parent)))
       (Val #(GoInterface.ok key))) (Val #v))
   {{ (c : GoInterface), RET #c; ⌜c ≠ GoInterface.nil⌝ ∗
@@ -66,7 +69,19 @@ abbrev context.WithValue.spec : Prop :=
             v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty) #t⌝ -∗
           traceutil.ctxTraceIs c' (some t)) ∗
         □ (∀ o : Option Loc, ⌜key.ty ≠ go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty⌝ -∗
-          traceutil.ctxTraceIs parent o -∗ traceutil.ctxTraceIs c' o) }}
+          traceutil.ctxTraceIs parent o -∗ traceutil.ctxTraceIs c' o) ∗
+        □ (∀ id : w64, ⌜key.ty = go_etcd_io.etcd.server.v3.etcdserver.requestid.requestIDKey.ty ∧
+            v = interface.mkOk go.uint64 #id⌝ -∗
+          requestid.ctxReqIDIs c' (some id)) ∗
+        □ (∀ o : Option w64, ⌜key.ty ≠ go_etcd_io.etcd.server.v3.etcdserver.requestid.requestIDKey.ty⌝ -∗
+          requestid.ctxReqIDIs parent o -∗
+          requestid.ctxReqIDIs c' o) ∗
+        □ (∀ (n : GoString) (x : val) (Φ : val → IProp GF),
+          ⌜key.ty ≠ go.GoType.Named n []⌝ -∗
+          WP (App (Val #(methods parent.ty go!"Value" parent.v))
+            (Val #(interface.mkOk (go.GoType.Named n []) x))) {{ Φ }} -∗
+          WP (App (Val #(methods c'.ty go!"Value" c'.v))
+            (Val #(interface.mkOk (go.GoType.Named n []) x))) {{ Φ }}) }}
 
 end spec
 

@@ -30,8 +30,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.quotaKVServer.Txn.wp_proof
     (wp_check : v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG)) :
     v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG) := by
-  intro Req Rep Spec q s kv S m Φ' ci cd r
-  wp_start_folded as ⟨#Hq, #Hh, HS, Hqr, #Hctx, #Hrc, #Hr, HSpec⟩
+  intro Req Rep Spec q s kv S C m Φ' ci cd r
+  wp_start_folded as ⟨#Hq, #Hh, HS, Hqr, #Hctx, #Hrc, HC, #Hr, HSpec⟩
   rw [method_unfold (t := go.GoType.PointerType v3rpc.quotaKVServer.ty) (m := go!"Txn")]
   wp_call
   iunfold v3rpc.quotaKVServerAt at Hq
@@ -50,7 +50,7 @@ theorem v3rpc.quotaKVServer.Txn.wp_proof
   | nil =>
     wp_auto
     iunfold grpcHandlerOk at Hh
-    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS HSpec] as %resp %err' ⟨HS, Hres⟩
+    wp_apply Hh $$ %m %Φ' %ci %cd %r [HS HC HSpec] as %resp %err' ⟨HS, Hres⟩
     · iframe; iframe #
     iapply HΦ
     iframe

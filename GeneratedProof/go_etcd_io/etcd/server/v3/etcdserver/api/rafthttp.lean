@@ -3,7 +3,9 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.encoding.binary
 public import GeneratedProof.github_com.xiang90.probing
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.transport
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap
@@ -12,6 +14,7 @@ public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.golang_org.x.time.rate
+public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.net.http
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time

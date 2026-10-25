@@ -75,9 +75,13 @@ theorem wk_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString
         □ (|==> idCred ρ.ids 1) ∗
         v3rpc.quotaKVServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
-        (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
-        (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+        (□ ∀ (γi : IdNames) (C : GoInterfaceOk → IProp GF),
+          srvIdGen s γi -∗ idCred γi 1 -∗ □ (∀ ci', reqIdCtxAt γi ci' -∗ C ci') -∗
+          srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk C) ∗
+        (□ ∀ (Q : GoInterface → IProp GF) (C : GoInterfaceOk → IProp GF),
+          srvInterceptorOk im iprop(True) Q C) ∗
+        (□ ∀ C : GoInterfaceOk → IProp GF,
+          srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk C) ∗
         grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
         ([∗list] _x ∈ List.replicate N (), client.etcdGrpcSlot s E γr) ∗
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
