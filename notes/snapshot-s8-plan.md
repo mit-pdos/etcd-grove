@@ -176,3 +176,52 @@ trusted statements other tracks own (the auth store's constructor, the transport
 Next step: settle W1 (with S-j1) and W3 (a restatement of `Transport.Start`/`isRNTransport`'s
 `Stop` with a peers right), ask the auth track about W2, then write items 1, 6, 10, 12, 13, 15, 16's
 axioms and S8d.
+
+## Where S8 stops, second pass (2026-10-24)
+
+Done since the first pass: W3 (the transport's peers right, `RemoveAllPeers`), the callees' axioms
+(`lessor.Recover`, `authStore.Recover` with W2 in mode `.off`, `RaftCluster.SetBackend`), the
+gauge's initializer, `NewMembershipBackend` proved, and two of S8d's lemmas (`kv_cert_jump`, W4's
+KV jump; `srv_be_swap`, item 9). Not done: `RaftCluster.Recover`, `storage.Release`, and
+`applySnapshot`'s spec and proof, which need:
+
+- **W5, an environment premise for the snapshot file.** `OpenSnapshotBackend` returns an error when
+  `DBFilePath`'s directory read or `os.Rename` fails (their axioms allow any I/O error), and
+  `applySnapshot` then panics (`lg.Panic`, `server.go:1059`): a goroutine's panic, which `run`'s
+  proof cannot take. A no-panic spec needs a premise of the kind of `storage.dbOpensOk` ("the file
+  system cooperates for the server's database files"), with `DBFilePath`'s and `os.Rename`'s axioms
+  (or `OpenSnapshotBackend`'s spec) saying no error happens under it. An environment assumption:
+  the user's to approve, as D22's two were.
+- **W1, `Rm`'s variant to confirm**: `Rm j := snapTakenLb γt j` (a monotone counter of the highest
+  snapshot index opened, the apply thread's authority at most its applied index), since the decided
+  `snapTaken j ∨ appliedAtLeast γr (j + 1)` cannot be shown at `Release`'s removals
+  (`notes/decisions.md`, "D22 receiver epochs, S8c carried out", W1).
+- **W6, `RaftCluster.Recover`'s members.** After `UnsafeLoad` the cluster's members are decoded
+  from the image's membership bucket; the `AddPeer` loop needs each member's peer URLs to be the
+  network directory's (`γn.dir id = urls`, `memberDirIs`, which only `bootstrap`'s contract gives
+  today), and `srvRest` at the image needs `clusterMem c` at the rest model's members
+  (`restModel … .mem`): a relation between the model's bucket and in-memory members (static
+  membership: the boot members) for the axiom to give, or `rcLockInv` carrying the directory fact.
+- **W7, the old backend's `Close`.** `backend.Close.spec` takes the backend's stop channels
+  (`isStopChans`) and all of its open token (`bOpen 1`); `NewServer` drops the boot backend's
+  `isStopChans` (`bootBackend_of_newPost`'s `-`) and splits `bOpen` among the store's reader tokens,
+  the monitor's and the constructors' (given back); S8d needs all of them back at the swap (the
+  store's from `Restore`, the monitor's from `srv_be_swap`, the remainder `qo` and `isStopChans` kept
+  by `NewServer` and threaded to `run`).
+
+- **W8, `RemoveAllPeers` and D35's peer coverage** (open, 2026-10-25; the rafthttp track's note,
+  `notes/decisions.md`, D40, "Note for D22 S-j"). The proved transport's `AddRemote` after the
+  freeze returns at once for a recorded peer (`AddRemote_frozen`), and the handlers' premises are
+  discharged from the frozen state and the caller's coverage, "every other member among the recorded
+  peers" (`trAddRemote_of_frozen`, `trRemotesFrozen`). `applySnapshot`'s `RemoveAllPeers`, then the
+  `AddPeer` loop, runs while the transport serves: in the window a handler's `AddRemote` adds a
+  remote (Go's behavior), and the coverage does not hold through it. Their suggestion: state
+  `RemoveAllPeers` keeping the recorded ids, with the window's remotes stopped by the re-add, or a
+  premise; rejected by them: a premise that the handlers' `AddRemote` returns, and letting the
+  handlers add remotes. To settle when `RemoveAllPeers`/`AddPeer` are stated over the proved
+  transport (W3 redone).
+
+Then S8d: the spec (S-j2's item 6 adjusted: the snapshot file and image in the precondition, the
+apply thread's resources before, `applyAll`'s post shape at the new backend after) and the proof in
+`applySnapshot`'s order, with `restorePre_of_apply`, `kv_cert_jump`, `srv_be_swap`,
+`ci_announce`/`ci_swap_au`, `hooksOk_server_fut` and the axioms above.

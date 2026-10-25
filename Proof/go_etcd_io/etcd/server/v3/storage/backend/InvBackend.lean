@@ -744,6 +744,92 @@ theorem rtHeld_eq (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView)
 
 end preds
 
+section shares
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+
+/-- **The open share a reader's token carries** (D22 receiver epochs, S8d, W7, 2026-10-25; the
+orchestrator's decision: the shares counted): half of the open token divided among the backend's
+`nReaders` reader slots (`newPost`'s `rdTok`s), the other half the constructors' remainder. With
+every reader's token and the remainder back, the whole open token is reassembled
+(`bOpen_one_shares`), which the old backend's `Close` needs (`applySnapshot`). -/
+def rdOpen : Qp :=
+  Qp.divide_even (1 : Qp).half (Int.toNat sync.rwmutex.actualMaxReaders)
+    (by have := sync.actualMaxReaders_ge_2; omega)
+
+/-- `q` plus `n` shares `s`. -/
+def qpRep (q s : Qp) : Nat → Qp
+  | 0 => q
+  | n + 1 => qpRep q s n + s
+
+theorem qpRep_val (q s : Qp) : ∀ n : Nat, (qpRep q s n).val = q.val + n * s.val
+  | 0 => by simp [qpRep]; grind
+  | n + 1 => by
+    simp only [qpRep, Qp.val_add, qpRep_val q s n]
+    have : ((n + 1 : Nat) : Rat) = (n : Rat) + 1 := by norm_cast
+    rw [this]
+    grind
+
+/-- The open token at a sum is its parts. -/
+theorem bOpen_add (γ : BNames) (p q : Qp) :
+    bOpen (GF := GF) γ (p + q) ⊣⊢ bOpen γ p ∗ bOpen γ q := by
+  unfold bOpen
+  rw [Qp_half_add]
+  have ho := (dghostVar_fractional (GF := GF) γ.opn false).fractional p.half q.half
+  have hc := (ghostVar_fractional (GF := GF) γ.cls ()).fractional p q
+  constructor
+  · iintro ⟨Ho, Hc⟩
+    icases ho.1 $$ Ho with ⟨Ho1, Ho2⟩
+    icases hc.1 $$ Hc with ⟨Hc1, Hc2⟩
+    iframe
+  · iintro ⟨⟨Ho1, Hc1⟩, Ho2, Hc2⟩
+    isplitl [Ho1 Ho2]
+    · iapply ho.2; iframe
+    · iapply hc.2; iframe
+
+/-- `q` and `n` shares `s` of the open token, as one share. -/
+theorem bOpen_rep (γ : BNames) (q s : Qp) : ∀ n : Nat,
+    bOpen (GF := GF) γ (qpRep q s n) ⊣⊢ bOpen γ q ∗ [∗list] _x ∈ List.replicate n (), bOpen γ s
+  | 0 => by
+    simp only [qpRep, List.replicate]
+    constructor
+    · iintro H; iframe H; iapply BigSepL.bigSepL_nil.2; itrivial
+    · iintro ⟨H, -⟩; iexact H
+  | n + 1 => by
+    simp only [qpRep, List.replicate]
+    refine (bOpen_add (GF := GF) (hG := hG) γ _ s).trans ?_
+    constructor
+    · iintro ⟨H, Hs⟩
+      icases (bOpen_rep γ q s n).1 $$ H with ⟨Hq, Hr⟩
+      iframe Hq
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hs Hr
+    · iintro ⟨Hq, Hr⟩
+      icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hs, Hr⟩
+      iframe Hs
+      iapply (bOpen_rep γ q s n).2
+      iframe Hq Hr
+
+/-- **The whole open token is the constructors' half and every reader's share** (W7). -/
+theorem bOpen_one_shares (γ : BNames) :
+    bOpen (GF := GF) γ 1 ⊣⊢ bOpen γ (1 : Qp).half ∗
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), bOpen γ rdOpen := by
+  have h : qpRep (1 : Qp).half rdOpen (Int.toNat sync.rwmutex.actualMaxReaders) = 1 := by
+    apply Subtype.ext
+    rw [qpRep_val]
+    have := sync.actualMaxReaders_ge_2
+    have hN : ((Int.toNat sync.rwmutex.actualMaxReaders : Nat) : Rat) ≠ 0 := by
+      exact_mod_cast (show Int.toNat sync.rwmutex.actualMaxReaders ≠ 0 by omega)
+    simp only [rdOpen, Qp.val_divide_even, Qp.val_half, Qp.val_one]
+    grind
+  have hr := bOpen_rep (GF := GF) (hG := hG) γ (1 : Qp).half rdOpen
+    (Int.toNat sync.rwmutex.actualMaxReaders)
+  rw [h] at hr
+  exact hr
+
+end shares
+
 end backend
 end EtcdGrove
 end Perennial

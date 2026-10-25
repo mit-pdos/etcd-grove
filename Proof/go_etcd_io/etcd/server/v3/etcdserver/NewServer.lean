@@ -473,9 +473,8 @@ theorem NewServer.wp_proof
   · iPkgInit
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  ihave ⟨#HB, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts⟩ := bootBackend_of_newPost d.γB d.P
+  ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts⟩ := bootBackend_of_newPost d.γB d.P
     (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN $$ Hnew
-  icases Hopen with ⟨%qo, Hopen⟩
   rw [show N + 7 = (N + 6) + 1 by omega]
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
   -- `lease.NewLessor`
@@ -485,7 +484,7 @@ theorem NewServer.wp_proof
   -- (D22, 2026-10-23) the rest buckets: the tracked buckets' half, at the fresh file's
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
-  wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo
+  wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard ρ.rd.kv.wl) (backend.rbData d.P D))
     $$ [Hopen Hwl Hrbo]
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, #Hlck, HleOn, #Hlbe, #Hllk⟩
@@ -539,7 +538,7 @@ theorem NewServer.wp_proof
       (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok .off Hcbl Hrb)
     $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok]
     as %ws ⟨%kst, %γw, %Hγw, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
-      Hwrds, Hwcl, #Htag⟩
+      Hwrds, Hwcl, Hret0, #Htag⟩
   · iframe Hisl HB Hsz
     iframe Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok
   -- (D19g (b)) the store's reader slots for request goroutines
@@ -566,8 +565,9 @@ theorem NewServer.wp_proof
   icases Hkvw with ⟨Hkvw0, Hkvw1, Hfrag0⟩
   iunfold mvcc.writerFrag at Hfrag0
   icases Hfrag0 with ⟨%ow, Hpinw⟩
-  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc1 Hs Hpinw HwrSV with ⟨HrtSV, -, Hpinw⟩
-  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc2 Hs Hpinw HwrA with ⟨HrtA, HtrA, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow 0 $$ Hlc1 Hs Hpinw HwrSV Hret0
+    with ⟨HrtSV, Hret1, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow 1 $$ Hlc2 Hs Hpinw HwrA Hret1 with ⟨HrtA, HtrA, Hpinw⟩
   ihave Hkvw : txn.kvWriter kst γw.st [[], []] $$ [Hkvw0 Hkvw1 Hpinw]
   · iunfold txn.kvWriter; iframe Hkvw0 Hkvw1; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
   -- (D22 receiver epochs, S7b) the current backend's ghost variable, at the real backend: half
@@ -599,7 +599,7 @@ theorem NewServer.wp_proof
   (try wp_auto)
   rw [show (4 : Nat) = 2 + 2 from rfl]
   icases (ownToks_add 2 2 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwa⟩
-  wp_apply (h30 cfg.Logger' ab tp _ abl d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo
+  wp_apply (h30 cfg.Logger' ab tp _ abl d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       ((backend.rbData d.P D).insert go!"lease" ∅))
     $$ [Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth⟩
@@ -622,7 +622,7 @@ theorem NewServer.wp_proof
   -- `srv.restoreAlarms()`
   rw [show (2 : Nat) = 1 + 1 from rfl]
   icases (ownToks_add 1 1 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwal⟩
-  wp_apply (h32 s cfg.Logger' d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo _
+  wp_apply (h32 s cfg.Logger' d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half _
       (DFrac.own 1) (((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"auth" authBoot).insert
         go!"authUsers" ∅).insert go!"authRoles" ∅))
     $$ [Hopen Hwal alarmStore be Hrbo] as %aerr ⟨Hopen, Hrbo, be, Hares⟩
@@ -691,7 +691,7 @@ theorem NewServer.wp_proof
   wp_apply (h34 s γA cil (metaTM d.γB d.P)) as %hook ⟨%Hhknn, #Hhks⟩
   · iframe HsCI
   (try wp_auto)
-  wp_apply (h35 d.γB d.P (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be qo func.nil hook)
+  wp_apply (h35 d.γB d.P (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be (1 : Qp).half func.nil hook)
     $$ [Hopen Hhook Hwb] as ⟨Hopen, Hhook⟩
   · iframe HB
     unfold backend.wbTok

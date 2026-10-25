@@ -262,6 +262,11 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-rafthttp-leaderstats-followers-race](etcd-rafthttp-leaderstats-followers-race.md)**
+  (2026-10-24): the leader's v2 stats map is written by `removePeer` without its lock and
+  marshalled by `JSON` after unlocking; a `/v2/stats/leader` request during a snapshot's peer
+  reset or a member change races it. Not reproduced; v2 stats are legacy. A small fix
+  (`RemoveFollower` under the lock, marshal under the lock).
 - **[etcd-auth-readtx-getallroles-panics](etcd-auth-readtx-getallroles-panics.md)** (2026-10-23):
   `(*authReadTx).UnsafeGetAllRoles` panics whenever called (a no-limit range of a non-safe
   bucket on a read transaction); nothing in etcd calls it, so a dead interface method. A one-line

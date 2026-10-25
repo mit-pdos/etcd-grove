@@ -98,7 +98,6 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([«_».init,
         learnerPromoteFailed.init,
         learnerPromoteSucceed.init,
-        applySnapshotInProgress.init,
         leaseExpired.init,
         currentVersion.init,
         currentGoVersion.init,
@@ -157,6 +156,11 @@ axiom proposalsFailed_init :
 axiom proposalsPending_init :
     {{ (True : IProp GF) }} (App (Val proposalsPending.init) (Val #()))
     {{ RET #(); ∃ m : GoInterfaceOk, globalAddr proposalsPending ↦ GoInterface.ok m ∗ go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec m }}
+
+/-- `applySnapshotInProgress = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
+axiom applySnapshotInProgress_init :
+    {{ (True : IProp GF) }} (App (Val applySnapshotInProgress.init) (Val #()))
+    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr applySnapshotInProgress ↦ GoInterface.ok m ∗ go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec m }}
 
 /-- `serverFeatureEnabled = prometheus.NewGaugeVec(..., []string{"name", "stage"})`
 (`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
@@ -334,7 +338,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk learnerPromoteFailed.init (by mem_tac))
   wp_apply (opaqueInitsOk learnerPromoteSucceed.init (by mem_tac))
   wp_apply heartbeatSendFailures_init as ⟨%mheartbeatSendFailures, HheartbeatSendFailures, #S0heartbeatSendFailures⟩
-  wp_apply (opaqueInitsOk applySnapshotInProgress.init (by mem_tac))
+  wp_apply applySnapshotInProgress_init as ⟨%mapplySnapshotInProgress, HapplySnapshotInProgress, #S0applySnapshotInProgress⟩
   wp_apply proposalsCommitted_init as ⟨%mproposalsCommitted, HproposalsCommitted, #S0proposalsCommitted⟩
   wp_apply proposalsApplied_init as ⟨%mproposalsApplied, HproposalsApplied, #S0proposalsApplied⟩
   wp_apply proposalsPending_init as ⟨%mproposalsPending, HproposalsPending, #S0proposalsPending⟩
@@ -360,6 +364,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HheartbeatSendFailures
   ipersist HproposalsFailed
   ipersist HproposalsPending
+  ipersist HapplySnapshotInProgress
   ipersist HserverFeatureEnabled
   ipersist HserverID
   ipersist HrequestDurationSec

@@ -62,6 +62,13 @@ def maxValueSize : Nat := 2 ^ 31 - 2
 def seekIdx (es : List Ent) (k : GoString) : Nat :=
   (es.takeWhile (fun e => decide (strLt e.1 k))).length
 
+/-- **bbolt's `Close` succeeds** (opaque, a named premise about the program's environment; D22
+receiver epochs, S8d, W7, 2026-10-25): `db.Close()` does not fail for the environment's reasons
+(unmapping the file, releasing its lock, closing it: I/O). `DB.Close_kv`'s axiom gives
+`¬ dbCloseOk` on an error; `storage.snapOpensOk` excludes it (`applySnapshot`'s goroutine closing
+the old backend panics on an error, `server.go:1137`). -/
+opaque dbCloseOk : Prop
+
 /-- The ghost names of a database. -/
 structure DBNames where
   db : GName

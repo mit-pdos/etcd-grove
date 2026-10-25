@@ -199,8 +199,10 @@ theorem mvcc.NewStore.wp_proof
   -- (S5a) the watchable store's deposit ghost, and the tickets out under its lock
   imod ghostVar_alloc (GF := GF) () with ⟨%γwsd, Hwsd⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γtkw, Htkwa⟩
-  -- (the restore plan's R5e) the retired tickets: none
-  imod ownTokAuth_alloc (GF := GF) with ⟨%γtkr, Htkra⟩
+  -- (the restore plan's R5e) the retired tickets: none; (D22 receiver epochs, S8d, W7) the count,
+  -- half the pool's, half the creator's (`retiredAt`)
+  imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γtkr, Htkr0⟩
+  icases ghostVar_halves γtkr _ $$ Htkr0 with ⟨Htkra, Hret0⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
       hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr⟩ :
       ∃ γ : mvcc.StoreNames,
@@ -610,7 +612,9 @@ theorem mvcc.NewStore.wp_proof
   isplitl [HcurFrag]
   · iunfold mvcc.writerFrag; iexists _; iexact HcurFrag
   -- the compaction right's half of the revision's authority at `-1`
-  iexact Hright
+  iframe Hright
+  iunfold mvcc.retiredAt
+  iexact Hret0
 
 end proof
 

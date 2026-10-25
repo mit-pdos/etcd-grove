@@ -433,10 +433,14 @@ abbrev srvRaftInit : IProp GF :=
 /-- The apply loop's part of the server's package facts (2026-10-13, the request path's unit 4b,
 `applyAll`): the metric `proposalsApplied` holds a fixed gauge (`Set`), and `schema.AllBuckets`
 (the buckets `VerifyBackendConsistency` checks; stated here rather than in `schema`'s facts, as
-`srvErrVars` states other packages' errors) some slice. -/
+`srvErrVars` states other packages' errors) some slice; (D22 receiver epochs, S8c, 2026-10-24)
+`applySnapshotInProgress` a fixed gauge (`applySnapshot`'s `Inc`/`Dec`). -/
 abbrev srvApplyLoopInit : IProp GF :=
   iprop((∃ g : GoInterfaceOk, globalAddr proposalsApplied ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
-    (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.AllBuckets ↦□ sl))
+    (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.AllBuckets ↦□ sl) ∗
+    -- (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s gauge (`Inc`, `Dec`)
+    (∃ g : GoInterfaceOk, globalAddr applySnapshotInProgress ↦□ GoInterface.ok g ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec g))
 
 /-- **The server package's facts**: the raft wrapper's (`srvRaftInit`), the request path's
 (`srvReqInit`), merged 2026-10-12, and the apply loop's (`srvApplyLoopInit`, 2026-10-13). All are

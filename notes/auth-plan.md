@@ -269,3 +269,17 @@ for membership and role changes (`server.go:1385`); `LeaseTimeToLive`'s key list
 to a user with WRITE but not READ permission (the 2023 advisory's shape, `v3_server.go:580`);
 `requireAuthInfo` accepts a token-less call when auth is enabled only if `AuthInfoFromCtx` returns
 `nil, nil`, which it does for a context without metadata.
+
+## Note from the snapshot track (D22 receiver epochs, S8c, 2026-10-24)
+
+`applySnapshot` moves the auth store to the snapshot's backend (`as.Recover`); a new trust-boundary
+axiom, `auth.authStore.Recover.spec` (`Spec/go_etcd_io/etcd/server/v3/auth/authStore__Recover.lean`),
+states it, in mode `.off` only, over an image whose auth buckets are the boot ones, taking
+`authBeOn st oldbe` and giving `authBeOn st newbe` (S7c's backend halves). `NewAuthStore`'s
+statement is unchanged: its reader resource `RD` stays valid across `Recover` in mode `.off`
+because, with auth disabled, the permission checks return before reading the backend, so `RD`
+names no backend's read rights (`notes/decisions.md`, "D22 receiver epochs, S8c carried out",
+W2). If the auth track states the server in a mode where auth is on, `Recover` needs restating:
+`RD` must then lend the current backend's read rights, and in-flight checks may still hold the old
+backend's read transaction when the old backend closes (Go's `Close` waits; the backend's `Close`
+spec takes all of `bOpen`).
