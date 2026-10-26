@@ -5,7 +5,7 @@ and the restored log.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyNames
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyKVLemmas
 
 @[expose] public section
 
@@ -83,7 +83,56 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       ⌜x'.log = [[], []] ++ R ∧ ∃ ns cr, x'.chain = apply.alarmChain E.authOn ns cr ∧
         (zal = true → ns = false ∧ cr = false)⌝ ∗
       srvApplyKV s (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ.wait x' := by
-  sorry
+  have hrb : receiptBound GF ≤ 2 ^ 48 := by
+    have : backend.wbInit = 2 ^ 40 - 1 := rfl
+    omega
+  iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, HRD, Hbe, Hγbe, Hra, #Hw,
+    #Hwok, HRD0⟩
+  ihave ⟨#Hub, %ns, %cr, %hz, Huo⟩ :=
+    Hube $$ %(snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) %rfl Hopts
+  ihave Hkv := kvOwn_snap E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d' γw ws R hkb'
+    hγw hwq hRok hrb $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr HRD]
+  · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr HRD
+  imodintro
+  iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn ns cr⟩
+  isplitr
+  · ipureintro; exact ⟨rfl, ns, cr, rfl, hz⟩
+  iunfold srvApplyKV
+  iexists _
+  iframe Hua
+  isplitr
+  · iunfold apply.applierFor
+    iexists up', opts'
+    iframe Hub
+    ipureintro; rfl
+  isplitl [Huo Hkv]
+  · iunfold apply.applyKV
+    iexists up'
+    isplitr
+    · ipureintro; rfl
+    simp only [snapE_authOn]
+    iframe Huo Hkv
+  isplitl [Hbe Hγbe]
+  · iunfold srvBeOwn
+    iexists d'
+    simp only [snapE_γbe]
+    iframe Hbe Hγbe
+    ipureintro; exact hkb'
+  isplitl [Hra]
+  · rw [revAuth_snapE]
+    iunfold revAuth at Hra
+    unfold revAuth
+    icases Hra with ⟨%m, Hm, %hm⟩
+    iexists m
+    iframe Hm
+    ipureintro
+    intro k hk
+    have h1 := hm k hk
+    have h2 := hpre.length_le
+    simp only at h2 ⊢
+    omega
+  iexists w0, RD0
+  iframe Hw Hwok HRD0
 
 end proof
 end EtcdGrove
