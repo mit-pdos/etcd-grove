@@ -193,6 +193,27 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   backend's member delete (`schema`'s `MustDeleteMemberFromBackend`); `rcLockInv`'s `removed` map
   no longer empty, `IsIDRemoved`'s spec real (`localKept` restated: the local member may be removed).
   New Perennial gaps go to `notes/perennial-changes.md` (v2store's paths).
+  **M4 done (2026-10-26, branch `membership-m4`)**: M4a-M4d as below; see `notes/decisions.md`,
+  D43, "M4 carried out". (`mustAddToRemovedMembersInStore` is not in the fork's `RemoveMember`:
+  the v2 store is gone.)
+  *Scoped 2026-10-26* (D43 "M4"): (i) the user's decision: the fork fix of
+  `issues/etcd-unary-interceptor-learner-removed.md` (`IsLocalMemberLearner` returns `false`
+  for a removed local member, as etcd-io/etcd#22188; fork branch `goose-lean-learnerfix`,
+  `c00a2dc06`), so a removed member's request path does not panic; (ii) `isRaftCluster` keeps its
+  definition (the boot contract, `bootOk`, names it: the static examples' premises); the cluster's
+  methods are proved over a general lock invariant `rcLockInvG c RM` (the removed map and the
+  members map's side condition `RM`), the static `rcLockInv` its instance (`rcLocal ∗ removed
+  empty`, `isMutex`'s non-expansiveness), the dynamic one with the removed map tracked
+  (`dghostVar` halves, the apply thread's writer half). Sub-stages:
+  - *M4a.* The fork fix pinned, `IsLocalMemberLearner` and `EtcdServer.IsLearner` translated and
+    proved (the axiom `EtcdServer.IsLearner.wp_proof` goes; `localKept` leaves `IsLearner`'s and
+    the interceptors' specs).
+  - *M4b.* `rcLockInvG`, the methods over it (`Members`, `IsIDRemoved`, `IsLocalMemberLearner`).
+  - *M4c.* `RemoveMember` translated and proved in the dynamic instance, over the member backend's
+    contract (`MustDeleteMemberFromBackend`; schema's translated and proved over the backend's
+    batch transaction, or a contract, decided in M4c).
+  - *M4d.* `ValidateConfigurationChange` translated (its `RemoveNode` case proved, the others over
+    `json.Unmarshal`'s opaque model as `ccContextOf`).
 - **M5. `applyConfChange` proved** for `AddNode` of a known member and `RemoveNode`: raft's
   `ApplyConfChange` in the dynamic mode, the cluster writers (M4), `transport.RemovePeer`, and
   `removed = (id = local)`. (2026-10-25, D22 S8d: `rafthttp.Transport.RemoveAllPeers.spec` exists

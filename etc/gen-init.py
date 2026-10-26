@@ -553,14 +553,27 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     'ipersist HerrMemberNotFound']
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
-    doc='''Its fact (`etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a fixed pointer
-(a `*prometheus.GaugeVec`, with its label names: D19l (iii)). Its initializer initializes its imports and runs its variables'
-untranslated initializers; the trust-boundary axiom `ClusterVersionMetrics_init` states the one
-the fact reads (`metrics.go`: `prometheus.NewGaugeVec(...)`), `opaqueInitsOk` the others.''',
+    doc='''Its fact (`membershipInit`, `etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a
+fixed pointer (a `*prometheus.GaugeVec`, with its label names: D19l (iii)), and (D43 M4,
+2026-10-26) every error variable its `errors.New` error (`errorsNewVars membershipErrMsgs`). Its
+initializer initializes its imports and runs its variables' untranslated initializers; the
+trust-boundary axiom `ClusterVersionMetrics_init` states the one the fact reads (`metrics.go`:
+`prometheus.NewGaugeVec(...)`), `errorsNewVarsInit` the error variables' (`errors.go`: `errors.New`
+calls), `opaqueInitsOk` the others.''',
+    newvars=dict(ErrIDRemoved="membership: ID removed", ErrIDExists="membership: ID exists",
+        ErrIDNotFound="membership: ID not found", ErrPeerURLexists="membership: peerURL exists",
+        ErrMemberNotLearner="membership: can only promote a learner member",
+        ErrTooManyLearners="membership: too many learner members in cluster"),
     custom={
         'ClusterVersionMetrics': promvec('ClusterVersionMetrics', 'Gauge', ['cluster_version']),
     },
-    finish=['ipersist HClusterVersionMetrics'] + FIN_PRE[:6],
+    finish=['ipersist HClusterVersionMetrics'] +
+        [f'ipersist H{x}' for x in ['ErrIDRemoved', 'ErrIDExists', 'ErrIDNotFound',
+          'ErrPeerURLexists', 'ErrMemberNotLearner', 'ErrTooManyLearners']] + FIN_PRE[:6] +
+        ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
+         'unfold membershipInit membershipErrMsgs',
+         'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
+         'iframe #'],
 )
 
 def hist(x, file='metrics.go'):
