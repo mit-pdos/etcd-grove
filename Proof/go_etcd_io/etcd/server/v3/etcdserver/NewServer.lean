@@ -1224,13 +1224,14 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Hpool kv Hws Htag
     iframe Hwrx
   -- (the auth plan's E2k) the auth store's resources for the apply thread
-  ihave HAR : srvAuthApplyRes s
-      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF) $$ [HAres]
-  · unfold srvAuthApplyRes
+  ihave HAR : srvAuthApplyResAt s
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF) srvAuthSt0 $$ [HAres]
+  · unfold srvAuthApplyResAt
     iexists astl
     rw [← Hastl]
     iframe authStore
-    iexact HAres
+    iExactEq HAres
+    rfl
   imodintro
   iapply HΦ
   iright
@@ -1361,8 +1362,9 @@ theorem NewServer.wp_proofM (on : Bool)
   isplitl [Hnot]
   · iexact Hnot
   isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe]
-  · -- `Happ`
-    unfold applyBuiltNA srvBemuReaderAt
+  · -- `Happ` (E3c: the mode-`on` row, the auth resource at the store's start state)
+    iapply applyBuiltNAM_of_On
+    unfold applyBuiltNAOn srvBemuReaderAt
     iexists ⟨W64 0, W64 0, W64 0, false⟩, W64 0, W64 0, false
     iframe Hthr Happ Hlr5 Hbmr Haown forceDiskSnapshot
     isplitr
