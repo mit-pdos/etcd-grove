@@ -84,16 +84,17 @@ by `NewURLsMap`, later members by the client's `MemberAdd`), which the model of 
 records (`memberIs`) as a premise from bootstrap. -/
 opaque membership.peerURLsOk (us : List GoString) : Prop
 
-/-- The member `m`, owned, with the id `id` (its fields, and its URL slices' elements, its peer
-URLs parsing: `peerURLsOk`, unit N4, 2026-10-17). -/
+/-- The member `m`, owned, with the id `id` (its fields, and its URL slices' elements; until D43
+M5e, 2026-10-26, also its peer URLs parsing, `peerURLsOk`, which no reader of the cluster used:
+`NewServer` takes it from the bootstrap contract's directory facts). -/
 def membership.memberIs (m : Loc) (id : w64) : IProp GF :=
   iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice) (il : Bool) (nm : GoString) (pus cus : List GoString),
     membership.mIDAddr m ↦ id ∗ membership.mPeerURLsAddr m ↦ pu ∗
     membership.mIsLearnerAddr m ↦ il ∗ membership.mNameAddr m ↦ nm ∗
-    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus ∗ ⌜membership.peerURLsOk pus⌝)
+    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus)
 
 /-- **The member `m` at the fraction `q`, with the value `mm`** (D43 M5b, 2026-10-26): its fields
-and its URL slices' elements at `q`, its peer URLs parsing (`peerURLsOk`). The cluster's lock
+and its URL slices' elements at `q` (no `peerURLsOk` since D43 M5e, as `memberIs`). The cluster's lock
 holds half of each member it lists, the apply thread (`clusterMem`) the other half. -/
 def membership.memberAt (m : Loc) (q : Qp) (mm : apply.MemberM) : IProp GF :=
   iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice),
@@ -101,7 +102,7 @@ def membership.memberAt (m : Loc) (q : Qp) (mm : apply.MemberM) : IProp GF :=
     membership.mIsLearnerAddr m ↦{DFrac.own q} mm.isLearner ∗
     membership.mNameAddr m ↦{DFrac.own q} mm.name ∗
     membership.mClientURLsAddr m ↦{DFrac.own q} cu ∗ pu ↦*{DFrac.own q} mm.peerURLs ∗
-    cu ↦*{DFrac.own q} mm.clientURLs ∗ ⌜membership.peerURLsOk mm.peerURLs⌝)
+    cu ↦*{DFrac.own q} mm.clientURLs)
 
 /-- A member record `l` the backend's read made, with its peer URLs `pus`. -/
 def membership.memberURLsAt (l : Loc) (pus : List GoString) : IProp GF :=
@@ -277,14 +278,13 @@ theorem membership.memberIs_id_acc (m : Loc) (id : w64) :
     membership.memberIs (GF := GF) m id ⊢
       membership.mIDAddr m ↦ id ∗ (membership.mIDAddr m ↦ id -∗ membership.memberIs m id) := by
   unfold membership.memberIs
-  iintro ⟨%Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
+  iintro ⟨%Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
   iframe Hid
   iintro Hid
   isplitr
   · ipureintro; exact Hnn
   iexists pu, cu, il, nm, pus, cus
   iframe
-  ipureintro; exact Hpok
 
 /-- One member of a list of (pointer, id) members, borrowed. -/
 theorem membership.membersL_acc (l : List (Loc × w64)) (k : Nat) (x : Loc × w64)
@@ -337,7 +337,7 @@ theorem membership.memberAt_split (m : Loc) (q1 q2 : Qp) (mm : apply.MemberM) :
   have hsl := fun {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (sl : GoSlice) (vs : List V) =>
     (ownSlice_fractional (GF := GF) sl vs).fractional q1 q2
   refine ⟨?_, ?_⟩
-  · iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hok⟩
+  · iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
     icases (hpt _ _).1 $$ Hid with ⟨Hid1, Hid2⟩
     icases (hpt _ _).1 $$ Hpu with ⟨Hpu1, Hpu2⟩
     icases (hpt _ _).1 $$ Hil with ⟨Hil1, Hil2⟩
@@ -347,11 +347,11 @@ theorem membership.memberAt_split (m : Loc) (q1 q2 : Qp) (mm : apply.MemberM) :
     icases (hsl _ _).1 $$ Hcus with ⟨Hcus1, Hcus2⟩
     isplitl [Hid1 Hpu1 Hil1 Hnm1 Hcu1 Hpus1 Hcus1]
     · isplitr; (ipureintro; exact Hnn)
-      iexists pu, cu; iframe; ipureintro; exact Hok
+      iexists pu, cu; iframe
     · isplitr; (ipureintro; exact Hnn)
-      iexists pu, cu; iframe; ipureintro; exact Hok
-  · iintro ⟨⟨%Hnn, %pu, %cu, Hid1, Hpu1, Hil1, Hnm1, Hcu1, Hpus1, Hcus1, %Hok⟩,
-      ⟨-, %pu', %cu', Hid2, Hpu2, Hil2, Hnm2, Hcu2, Hpus2, Hcus2, -⟩⟩
+      iexists pu, cu; iframe
+  · iintro ⟨⟨%Hnn, %pu, %cu, Hid1, Hpu1, Hil1, Hnm1, Hcu1, Hpus1, Hcus1⟩,
+      ⟨-, %pu', %cu', Hid2, Hpu2, Hil2, Hnm2, Hcu2, Hpus2, Hcus2⟩⟩
     ihave %Hpu := typedPointsto_agree_wand _ _ _ _ _ $$ Hpu1 Hpu2
     ihave %Hcu := typedPointsto_agree_wand _ _ _ _ _ $$ Hcu1 Hcu2
     subst Hpu Hcu
@@ -363,15 +363,14 @@ theorem membership.memberAt_split (m : Loc) (q1 q2 : Qp) (mm : apply.MemberM) :
     isplitl [Hnm1 Hnm2]; (iapply (hpt _ _).2; iframe)
     isplitl [Hcu1 Hcu2]; (iapply (hpt _ _).2; iframe)
     isplitl [Hpus1 Hpus2]; (iapply (hsl _ _).2; iframe)
-    isplitl [Hcus1 Hcus2]; (iapply (hsl _ _).2; iframe)
-    ipureintro; exact Hok
+    iapply (hsl _ _).2; iframe
 
 /-- Two parts of a member agree on its value. -/
 theorem membership.memberAt_agree (m : Loc) (q1 q2 : Qp) (mm1 mm2 : apply.MemberM) :
     membership.memberAt (GF := GF) m q1 mm1 ∗ membership.memberAt m q2 mm2 ⊢ ⌜mm1 = mm2⌝ := by
   unfold membership.memberAt
-  iintro ⟨⟨-, %pu, %cu, Hid1, Hpu1, Hil1, Hnm1, Hcu1, Hpus1, Hcus1, -⟩,
-    ⟨-, %pu', %cu', Hid2, Hpu2, Hil2, Hnm2, Hcu2, Hpus2, Hcus2, -⟩⟩
+  iintro ⟨⟨-, %pu, %cu, Hid1, Hpu1, Hil1, Hnm1, Hcu1, Hpus1, Hcus1⟩,
+    ⟨-, %pu', %cu', Hid2, Hpu2, Hil2, Hnm2, Hcu2, Hpus2, Hcus2⟩⟩
   ihave %Hpu := typedPointsto_agree_wand _ _ _ _ _ $$ Hpu1 Hpu2
   ihave %Hcu := typedPointsto_agree_wand _ _ _ _ _ $$ Hcu1 Hcu2
   subst Hpu Hcu
@@ -390,16 +389,16 @@ theorem membership.memberIs_iff_memberAt (m : Loc) (id : w64) :
       ∃ mm : apply.MemberM, ⌜mm.id = id⌝ ∗ membership.memberAt m 1 mm := by
   unfold membership.memberIs membership.memberAt
   refine ⟨?_, ?_⟩
-  · iintro ⟨%Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hok⟩
+  · iintro ⟨%Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
     iexists ⟨id, pus, il, nm, cus⟩
     isplitr; (ipureintro; rfl)
     isplitr; (ipureintro; exact Hnn)
-    iexists pu, cu; iframe; ipureintro; exact Hok
-  · iintro ⟨%mm, %Hmid, %Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hok⟩
+    iexists pu, cu; iframe
+  · iintro ⟨%mm, %Hmid, %Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
     subst Hmid
     isplitr; (ipureintro; exact Hnn)
     iexists pu, cu, mm.isLearner, mm.name, mm.peerURLs, mm.clientURLs
-    iframe; ipureintro; exact Hok
+    iframe
 
 /-- The members map at `q1 + q2` is two parts. -/
 theorem membership.memAt_split (c : Loc) (q1 q2 : Qp) (ms : GMap w64 Loc)
@@ -473,11 +472,11 @@ theorem membership.memberAt_isLearner_acc (m : Loc) (q : Qp) (mm : apply.MemberM
       membership.mIsLearnerAddr m ↦{DFrac.own q} mm.isLearner ∗
       (membership.mIsLearnerAddr m ↦{DFrac.own q} mm.isLearner -∗ membership.memberAt m q mm) := by
   unfold membership.memberAt
-  iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hok⟩
+  iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
   iframe Hil
   iintro Hil
   isplitr; (ipureintro; exact Hnn)
-  iexists pu, cu; iframe; ipureintro; exact Hok
+  iexists pu, cu; iframe
 
 /-- The members map's half, opened: its map and members, and the way back. -/
 theorem membership.memAt_open (c : Loc) (q : Qp) (ms : GMap w64 Loc)

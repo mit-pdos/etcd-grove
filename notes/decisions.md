@@ -19005,6 +19005,39 @@ static server stand; nothing was changed for M5d/M5e in Lean.
   bound (`size (insert id mm mem) ≤ 2 ^ 62`) from an apply-thread fact `dom mem ⊆ reCfg` with
   `|reCfg| ≤ |ps| ≤ 2 ^ 62` (the boot facts), carried with `srvRest`.
 
+**M5e started, then blocked again (2026-10-26, branch `membership-m5`; the user's decisions on
+"M5e blocked": `Unmarshal` restated, (B) one apply-thread resource, `AddPeer_known` with a policy
+fact).** Done, the trust base unchanged (721 axioms, 5 `sorry`s):
+- `json.Unmarshal`'s axiom restated (approved): it also gives the member's `Name` and its
+  `ClientURLs` owned, both `ccMemberOf`'s; `peerURLsOk` left `memberAt`/`memberIs` (no reader used
+  it; a weakening of the lock invariant and of what the bootstrap contract asserts).
+- The cluster's `be` field at a fraction in `ValidateConfigurationChange`, `AddMember` and
+  `RemoveMember` (given back), so the apply thread's owned field (`clusterBeOn`) serves.
+- `EtcdServer.applyConfChange` and the wrappers `raftNode.ApplyConfChange`,
+  `raftNodeConfig.ApplyConfChange` translated (the package now imports `encoding/json`); the
+  axiom stays until its proof.
+**The new blocker: `s.beHooks`.** On the success branch Go calls `s.beHooks.SetConfState(...)`
+(proved in M5b′, over `storage.isBackendHooks bh ix lg`). Nothing the server's proofs hold says
+anything of `s.beHooks`: `NewServer` stores `b.storage.backend.beHooks`, and `bootstrap`'s contract
+(`bootOk`, inside `bootstrapContract`, a premise of every server example's closed theorem) does not
+describe that field. Options: (a) `bootOk` states it: `bk.beHooks'` is `NewBackendHooks(cfg.Logger,
+ci)`'s, `storage.isBackendHooks bk.beHooks' ⟨*consistentIndex, cil⟩ lg` (true of Go's
+`bootstrapBackend`, `bootstrap.go:258`); `NewServer` puts `s.beHooks ↦□ bh` with it in
+`srvFieldsAt`. A stronger premise of every server example's closed theorem (their statements'
+text unchanged, `bootOk`'s meaning stronger); (b) translate `bootstrapBackend`'s hooks creation
+(`bootstrap` is untranslated: a large detour); (c) an axiom for `SetConfState` with no hooks
+premise (false for a nil `bh`; not recommended).
+Planned once unblocked (for the record): the static stop token through `trFrozen`'s invariant
+(`TS` a token, `Stop` depositing it, `AddPeer_frozen` for a known peer while not stopped), the
+apply-thread resource `srvApRes` (static: the token; dynamic: `trLive`, `isRaftClusterG`
+(`rcDyn`), `rcRemovedOwn`) through `apply`/`applyAll`/`run_job_body`/`run`; in the dynamic mode the
+known-peer fact from the policy as "an `AddNode` only at the boot entries' indices, a `RemoveNode`
+only after them and never of the local member" (raft's committed log begins with the boot log),
+with the resource's invariant "below the boot log's length, every other boot member is a live
+peer"; M5d's raft side: the view's configuration shrinks at each validated `RemoveNode`
+(`ccValidOn` of the model's buckets: a function of the log), so `srvCfgOk` takes the voters as a
+function of the log.
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL

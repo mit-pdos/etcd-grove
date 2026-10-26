@@ -5,6 +5,7 @@ public import Perennial.Code.context
 public import Code.github_com.Masterminds.semver.v3
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.api.v3.version
+public import Code.encoding.json
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.io
@@ -3899,6 +3900,220 @@ noncomputable def EtcdServer.applyEntryNormal.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (Val #())))))))))))))
 
+/-- applyConfChange applies a ConfChange to the server. It is only
+    invoked with a ConfChange that has already passed through Raft
+
+    go: server.go:2025:22 -/
+noncomputable def EtcdServer.applyConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "cc"
+  (Lam "ep"
+  (Lam "shouldApplyV3"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "shouldApplyV3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (Let "ep" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))
+  (Let "cc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Val #false) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$sw" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))) (Val #()))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddLearnerNode))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty))) (Val #())))
+  (Let "confChangeContext" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty go!"IsPromote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Var "confChangeContext"))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty go!"Member"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Var "confChangeContext")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"PromoteMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty go!"Member"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Var "confChangeContext"))))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty go!"Member"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Var "confChangeContext")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty go!"PeerURLs"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty go!"Member"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Var "confChangeContext"))))))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty go!"AddPeer"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"transport"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty go!"Member"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Var "confChangeContext")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"AddMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))) (Val #())) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty go!"Member"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Var "confChangeContext")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"got different member ID"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"member-id-from-config-change-entry"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))) (Val #()))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"member-id-from-message"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty go!"Member"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Var "confChangeContext"))))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty go!"Context"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Var "confChangeContext")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.encoding.json.Unmarshal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to unmarshal member"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty)))) (Pair (Var "confChangeContext") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeRemoveNode)))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))) (Val #()))
+  (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty go!"RemovePeer"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"transport"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))
+  (App (Val doReturn)
+  (Pair (Val #true) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"RemoveMember"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (Var "id") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeUpdateNode)))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (Val #())))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty go!"PeerURLs"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m")))))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty go!"UpdatePeer"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"transport"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m"))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"UpdateRaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))) (Val #())) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"got different member ID"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"member-id-from-config-change-entry"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))) (Val #()))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"member-id-from-message"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty go!"Context"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.encoding.json.Unmarshal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to unmarshal member"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "m") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"confState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendHooks.ty) go!"SetConfState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendHooks.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"beHooks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"ApplyConfChange"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"confState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"ValidateConfigurationChange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (Val _root_.Perennial.go_etcd_io.raft.v3.None'))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Val #false) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"consistIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Pair (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ApplyBoth) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3")))) (Val #false)))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty go!"ConsistentApplyingIndex"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"consistIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "applyingTerm" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "applyingIndex" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "applyingIndex"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "applyingTerm"))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty go!"SetConsistentIndex"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"consistIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "applyingTerm") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "applyingIndex") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"ApplyConfChange"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty go!"NodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Var "cc"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Validation on configuration change failed"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"shouldApplyV3"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Bool' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Error"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))))))
+
 /-- go: server.go:2155:22 -/
 noncomputable def EtcdServer.compactRaftLog.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -6763,7 +6978,7 @@ noncomputable def EtcdServer.requireAuthInfo.impl [FfiSyntax] [GoGlobalContext] 
   (Val #())))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.encoding.json, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -6771,6 +6986,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6908,6 +7124,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.version.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.encoding.json.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -7722,6 +7940,8 @@ class raftNodeConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_transport : ∀ (x : raftNodeConfig) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter), go.IsGoStepPureDetTagged under (StructFieldSet raftNodeConfig.underlying go!"transport") (PairV #x #y) (Val #(({ x with transport' := y } : raftNodeConfig)))
   Advance_unfold : MethodUnfold raftNodeConfig.ty go!"Advance" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Advance"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
+  ApplyConfChange_unfold : MethodUnfold raftNodeConfig.ty go!"ApplyConfChange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ApplyConfChange"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
   Propose_unfold : MethodUnfold raftNodeConfig.ty go!"Propose" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Propose"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
   ReadIndex_unfold : MethodUnfold raftNodeConfig.ty go!"ReadIndex" (LamV "$r"
@@ -7740,6 +7960,8 @@ class raftNodeConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Tick"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
   ptr_Advance_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Advance" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Advance"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
+  ptr_ApplyConfChange_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ApplyConfChange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ApplyConfChange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
   ptr_Propose_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Propose" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Propose"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
   ptr_ReadIndex_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ReadIndex" (LamV "$r"
@@ -7774,6 +7996,7 @@ attribute [instance] raftNodeConfig.TypeAssumptions.type_repr
   raftNodeConfig.TypeAssumptions.get_transport
   raftNodeConfig.TypeAssumptions.set_transport
   raftNodeConfig.TypeAssumptions.Advance_unfold
+  raftNodeConfig.TypeAssumptions.ApplyConfChange_unfold
   raftNodeConfig.TypeAssumptions.Propose_unfold
   raftNodeConfig.TypeAssumptions.ReadIndex_unfold
   raftNodeConfig.TypeAssumptions.Ready_unfold
@@ -7783,6 +8006,7 @@ attribute [instance] raftNodeConfig.TypeAssumptions.type_repr
   raftNodeConfig.TypeAssumptions.Stop_unfold
   raftNodeConfig.TypeAssumptions.Tick_unfold
   raftNodeConfig.TypeAssumptions.ptr_Advance_unfold
+  raftNodeConfig.TypeAssumptions.ptr_ApplyConfChange_unfold
   raftNodeConfig.TypeAssumptions.ptr_Propose_unfold
   raftNodeConfig.TypeAssumptions.ptr_ReadIndex_unfold
   raftNodeConfig.TypeAssumptions.ptr_Ready_unfold
@@ -7859,6 +8083,8 @@ class raftNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_done : ∀ (x : raftNode) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet raftNode.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : raftNode)))
   Advance_unfold : MethodUnfold raftNode.ty go!"Advance" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Advance"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
+  ApplyConfChange_unfold : MethodUnfold raftNode.ty go!"ApplyConfChange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"ApplyConfChange"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   Propose_unfold : MethodUnfold raftNode.ty go!"Propose" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Propose"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   ReadIndex_unfold : MethodUnfold raftNode.ty go!"ReadIndex" (LamV "$r"
@@ -7877,6 +8103,8 @@ class raftNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Tick"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   ptr_Advance_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Advance" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Advance"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
+  ptr_ApplyConfChange_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ApplyConfChange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"ApplyConfChange"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   ptr_Propose_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Propose" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Propose"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   ptr_ReadIndex_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReadIndex" (LamV "$r"
@@ -7928,6 +8156,7 @@ attribute [instance] raftNode.TypeAssumptions.type_repr
   raftNode.TypeAssumptions.get_done
   raftNode.TypeAssumptions.set_done
   raftNode.TypeAssumptions.Advance_unfold
+  raftNode.TypeAssumptions.ApplyConfChange_unfold
   raftNode.TypeAssumptions.Propose_unfold
   raftNode.TypeAssumptions.ReadIndex_unfold
   raftNode.TypeAssumptions.Ready_unfold
@@ -7937,6 +8166,7 @@ attribute [instance] raftNode.TypeAssumptions.type_repr
   raftNode.TypeAssumptions.Stop_unfold
   raftNode.TypeAssumptions.Tick_unfold
   raftNode.TypeAssumptions.ptr_Advance_unfold
+  raftNode.TypeAssumptions.ptr_ApplyConfChange_unfold
   raftNode.TypeAssumptions.ptr_Propose_unfold
   raftNode.TypeAssumptions.ptr_ReadIndex_unfold
   raftNode.TypeAssumptions.ptr_ReadState_unfold
@@ -8269,6 +8499,7 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   ptr_Watchable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Watchable" EtcdServer.Watchable.impl
   ptr_apply_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"apply" EtcdServer.apply.impl
   ptr_applyAll_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyAll" EtcdServer.applyAll.impl
+  ptr_applyConfChange_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyConfChange" EtcdServer.applyConfChange.impl
   ptr_applyEntries_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyEntries" EtcdServer.applyEntries.impl
   ptr_applyEntryNormal_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyEntryNormal" EtcdServer.applyEntryNormal.impl
   ptr_applySnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applySnapshot" EtcdServer.applySnapshot.impl
@@ -8457,6 +8688,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_Watchable_unfold
   EtcdServer.TypeAssumptions.ptr_apply_unfold
   EtcdServer.TypeAssumptions.ptr_applyAll_unfold
+  EtcdServer.TypeAssumptions.ptr_applyConfChange_unfold
   EtcdServer.TypeAssumptions.ptr_applyEntries_unfold
   EtcdServer.TypeAssumptions.ptr_applyEntryNormal_unfold
   EtcdServer.TypeAssumptions.ptr_applySnapshot_unfold
@@ -8867,6 +9099,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.version.Assumptions
+  import_json_Assumption : _root_.Perennial.encoding.json.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
@@ -8970,6 +9203,7 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.import_semver_Assumption
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_version_Assumption
+  Assumptions.import_json_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_io_Assumption

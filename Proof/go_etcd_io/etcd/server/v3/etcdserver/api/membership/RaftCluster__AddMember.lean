@@ -40,13 +40,13 @@ local macro "fold_member" : tactic => `(tactic| (
   ihave Hm : membership.memberAt m 1 mm $$ [Hid Hpu Hil Hnm Hcu Hpus Hcus]
   · iunfold membership.memberAt
     isplitr; (ipureintro; exact Hmnn)
-    iexists pu, cu; iframe; ipureintro; exact Hpok))
+    iexists pu, cu; iframe))
 
 set_option hygiene false in
 /-- `memberAt m 1 mm` opened into its fields. -/
 local macro "open_member" : tactic => `(tactic| (
   iunfold membership.memberAt at Hm
-  icases Hm with ⟨-, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, -⟩))
+  icases Hm with ⟨-, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩))
 
 set_option hygiene false in
 /-- A log line of the added member: the field strings, the slice literal, `Info`. -/
@@ -72,15 +72,11 @@ theorem membership.RaftCluster.AddMember.wp_proof
     (wp_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (wp_Bool : zap.Bool.spec (GF := GF) (hG := hG)) :
     membership.RaftCluster.AddMember.spec (GF := GF) (hG := hG) := by
-  intro c RM mem m mm v3 lg cid bi Ps Qs HRM Hsz'
-  wp_start as ⟨#Hrc, Hcm, Hm, #Hlg, %Hlgnn, #Hcid, #Hbe, Hd⟩
+  intro c RM mem m dqb mm v3 lg cid bi Ps Qs HRM Hsz'
+  wp_start as ⟨#Hrc, Hcm, Hm, #Hlg, %Hlgnn, #Hcid, Hbe, Hd⟩
   iunfold membership.isRaftClusterG at Hrc
   ihave %Hmnn := (show membership.memberAt (GF := GF) m 1 mm ⊢ ⌜m ≠ null⌝ by
     unfold membership.memberAt; iintro ⟨%H, -⟩; ipureintro; exact H) $$ Hm
-  ihave %Hpok := (show membership.memberAt (GF := GF) m 1 mm ⊢
-      ⌜membership.peerURLsOk mm.peerURLs⌝ by
-    unfold membership.memberAt; iintro ⟨-, %pu, %cu, -, -, -, -, -, -, -, %H⟩; ipureintro; exact H)
-    $$ Hm
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -122,6 +118,7 @@ theorem membership.RaftCluster.AddMember.wp_proof
         iframe #
       (try wp_auto)
       iapply HΦ
+      iframe Hbe
       simp only [Bool.false_eq_true, ↓reduceIte]
       fold_member
       iframe
@@ -181,6 +178,7 @@ theorem membership.RaftCluster.AddMember.wp_proof
         iapply HRM $$ HRMi
       (try wp_auto)
       iapply HΦ
+      iframe Hbe
       try simp only [↓reduceIte]
       iframe HQs
       iunfold membership.clusterMem

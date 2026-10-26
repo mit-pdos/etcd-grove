@@ -39,7 +39,7 @@ theorem membership.memberAt_log_acc (m : Loc) (q : Qp) (mm : apply.MemberM) :
       membership.mPeerURLsAddr m ↦{DFrac.own q} pu ∗ pu ↦*{DFrac.own q} mm.peerURLs ∗
       membership.mIsLearnerAddr m ↦{DFrac.own q} mm.isLearner := by
   unfold membership.memberAt
-  iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
+  iintro ⟨%Hnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
   iexists pu
   iframe
 
@@ -53,8 +53,8 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
     (wp_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (wp_Bool : zap.Bool.spec (GF := GF) (hG := hG)) :
     membership.RaftCluster.RemoveMember.spec (GF := GF) (hG := hG) := by
-  intro c γ rm mem id v3 lg cid bi Pd Qd
-  wp_start as ⟨#Hrc, Hw, Hcm, #Hlg, %Hlgnn, #Hcid, #Hbe, Hd⟩
+  intro c γ rm mem id dqb v3 lg cid bi Pd Qd
+  wp_start as ⟨#Hrc, Hw, Hcm, #Hlg, %Hlgnn, #Hcid, Hbe, Hd⟩
   iunfold membership.isRaftClusterG at Hrc
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -107,6 +107,7 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
       iexact HRM
     (try wp_auto)
     iapply HΦ
+    iframe Hbe
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe Hcm
     iunfold membership.rcRemovedOwn
@@ -185,6 +186,7 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
         iexact HRM
       (try wp_auto)
       iapply HΦ
+      iframe Hbe
       try simp only [↓reduceIte]
       iframe HQd
       isplitl [Hw]
@@ -239,6 +241,7 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
         iexact HRM
       (try wp_auto)
       iapply HΦ
+      iframe Hbe
       try simp only [↓reduceIte]
       iframe HQd
       isplitl [Hw]

@@ -254,7 +254,9 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     the apply thread's; `srvCCPolicy`'s dynamic case admits a `RemoveNode` of another member.
   - *M5e.* `applyConfChange` proved (the axiom goes). **Blocked (2026-10-26)**: D43 "M5e blocked" (the
     `AddNode`'s member from `json.Unmarshal`, the static mode's `AddPeer` on a freely stoppable
-    transport, the dynamic mode's `AddPeer`); M5d waits with it.
+    transport, the dynamic mode's `AddPeer`); M5d waits with it. Decided the same day; started (`Unmarshal`
+    restated, the `be` field, the translation), then blocked on `s.beHooks`: D43 "M5e started, then
+    blocked again".
 - **M6. The stopping server** (Q4 (A)): `apply`'s `shouldStop`, `stopWithDelay` translated, `errorc`
   carrying a stop request, `run`'s return and deferred shutdown (`Cleanup`, `raftNode.stop`,
   `transport.Stop` consuming the peers right), the "server open" token (D19m (B)) through every

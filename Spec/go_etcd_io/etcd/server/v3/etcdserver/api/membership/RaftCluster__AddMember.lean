@@ -47,19 +47,19 @@ half now at `mem` with `mm` at its id (`m` given up: the map holds it); without,
 back). Its other reads are of read-only fields: the logger (non-nil), the cluster id, the local
 id. -/
 abbrev membership.RaftCluster.AddMember.spec : Prop :=
-  ∀ (c : Loc) (RM : membership.RcSide GF) (mem : GMap w64 apply.MemberM) (m : Loc)
+  ∀ (c : Loc) (RM : membership.RcSide GF) (mem : GMap w64 apply.MemberM) (m : Loc) (dqb : DFrac)
     (mm : apply.MemberM) (v3 : Bool) (lg : Loc) (cid : w64) (bi : GoInterfaceOk) (Ps Qs : IProp GF),
   (∀ lid ms rm, RM lid ms rm ⊢ RM lid (GMap.insert mm.id m ms) rm) →
   GMap.size (GMap.insert mm.id mm mem) ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
       membership.isRaftClusterG c RM ∗ membership.clusterMem c mem ∗ membership.memberAt m 1 mm ∗
       membership.rcLgAddr c ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ membership.rcCidAddr c ↦□ cid ∗
-      membership.rcBeAddr c ↦□ GoInterface.ok bi ∗
+      membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗
       (if v3 then iprop(membership.beSaveOk bi m mm Ps Qs ∗ Ps) else iprop(True)) }}
     (App (App (Val (c @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!!
       go!"AddMember")) (Val #m)) (Val #v3))
-  {{ RET #(); if v3 then iprop(Qs ∗ membership.clusterMem c (GMap.insert mm.id mm mem))
+  {{ RET #(); membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗ if v3 then iprop(Qs ∗ membership.clusterMem c (GMap.insert mm.id mm mem))
       else iprop(membership.clusterMem c mem ∗ membership.memberAt m 1 mm) }}
 
 end spec

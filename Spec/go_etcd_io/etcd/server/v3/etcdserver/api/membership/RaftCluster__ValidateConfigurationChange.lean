@@ -58,17 +58,17 @@ context decoding to a member, not a promotion) or a `RemoveNode`: with `v3`, it 
 by the caller's triple and returns `nil` exactly when the change validates (`ccValidM`), else an
 error; without, `nil`. -/
 abbrev membership.RaftCluster.ValidateConfigurationChange.spec : Prop :=
-  ∀ (c cc : Loc) (dq : DFrac) (m : CCV1M) (v3 : Bool) (bi : GoInterfaceOk) (Pr : IProp GF)
+  ∀ (c cc : Loc) (dq dqb : DFrac) (m : CCV1M) (v3 : Bool) (bi : GoInterfaceOk) (Pr : IProp GF)
     (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool),
   (m.type = W32 0 ∨ m.type = W32 1) →
   (m.type = W32 0 → ∃ i, membership.ccContextOf m.context = some (i, false)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
-      membership.rcBeAddr c ↦□ GoInterface.ok bi ∗ ownCCV1 cc dq m ∗
+      membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗ ownCCV1 cc dq m ∗
       (if v3 then iprop(membership.beReadOk bi Pr mems rmv ∗ Pr) else iprop(True)) }}
     (App (App (Val (c @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!!
       go!"ValidateConfigurationChange")) (Val #cc)) (Val #v3))
-  {{ (err : GoInterface), RET #err; ownCCV1 cc dq m ∗
+  {{ (err : GoInterface), RET #err; membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗ ownCCV1 cc dq m ∗
       (if v3 then iprop(Pr ∗ ⌜err = GoInterface.nil ↔ membership.ccValidM mems rmv m⌝)
        else iprop(⌜err = GoInterface.nil⌝)) }}
 
