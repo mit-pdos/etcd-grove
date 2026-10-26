@@ -53,6 +53,27 @@ variable [sem : go.Semantics]
 abbrev authBucketsAfter (r : GMap GoString backend.BktData) : GMap GoString backend.BktData :=
   ((r.insert go!"auth" authBoot).insert go!"authUsers" ∅).insert go!"authRoles" ∅
 
+/-- **The apply thread's auth resource** of the store `stl` in the mode `M` (the auth plan's E2k,
+2026-10-26; `notes/decisions.md`, "E2l of the auth plan", the apply thread's auth resource): in the
+mode `on γa`, the admin side's authority with its fuel (`auth.authOwnFu`), its write resource
+`auth.authWR` but for the store's user's half of `be` (the backend's write side, the write token,
+the admin side's half of `enabled`; the half of `be` stays in the server's rest, `authBeOn`, which
+the admin request's application borrows), and the provider's admin share (`auth.tpAdmin`); `True`
+in the other modes. `NewServer.specM`'s post hands it out (`srvAuthApplyRes`), for the apply
+thread's environment. -/
+def authApplyRes (M : auth.AuthMode) (stl : Loc) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : val) (T : IProp GF)
+      (be : GoInterface), auth.authOwnFu γa hs ∗ auth.authWBackendOk be (.on γa) P f T ∗ T ∗
+      auth.enabledHalf stl (.on γa) ∗ auth.tpAdmin stl (.on γa))
+  | _ => iprop(True)
+
+/-- **The server's auth resource for its apply thread** (E2k): the store its `authStore` field
+holds, with `authApplyRes` in the environment's mode. -/
+def srvAuthApplyRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ stl : Loc, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"authStore" s ↦□
+    (auth.authIface stl) ∗ authApplyRes E.authMode stl)
+
 /-- **The auth store's construction in the mode `M`** with the token provider `tp` (see the file
 header): `NewAuthStore`'s axiom's triple, the apply contract in the mode `M`, at a resource `K`
 the kit holds (`True` in the mode `off`; the admin side's authority, the batch lock's half and the
@@ -76,7 +97,7 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         backend.rbOwn d.γB (authBucketsAfter r) ∗
         ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
-        isReqAuth st RD ∗ authApplyOkM M stl RD }})
+        isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authApplyRes M stl }})
 
 /-- **`NewTokenProvider` at the server, with auth on or off** (see the file header): with auth on
 (`on = true`) its options `"simple"` and its TTL positive; with no error, a mode `M` with
@@ -144,10 +165,17 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   · itrivial
   iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, Hpre⟩ HΦ
   iapply (h30 lg ab tp cost abl d W Pk qo r) $$ Hpre
-  iintro !> %st Hpost
+  iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok⟩
   iapply HΦ
-  iExactEq Hpost
-  rfl
+  iframe Ho Hh Hr
+  iexists RD, stl
+  iframe Hbe Hsl Hreq
+  isplitr
+  · ipureintro; exact Hst
+  isplitr
+  · iExactEq Hok; rfl
+  unfold authApplyRes
+  itrivial
 
 /-- **`authSrvTP false`**, of `NewTokenProvider`'s proof and `NewAuthStore`'s axiom. -/
 theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
@@ -200,6 +228,9 @@ theorem authStoreKit_on
   iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI⟩, #Hpkg, %Hlg, %Htp,
     %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, %Hr⟩ HΦ
   ihave #HD := hD22
+  -- (E2k) the fuel at the history the store starts at (`[bootState, bump bootState]`)
+  ihave Hfu := auth.authFuel_boot (GF := GF)
+  imod Hfu
   iunfold authSchemaSrv at HD
   ihave HD' := HD $$ %γa %lg %abl %d %W %Pk %qo %r [] [] Habbe Hablg HB Hopen Hhook Hwb Hrbo HI
   · ipureintro; exact Hlg
@@ -212,20 +243,31 @@ theorem authStoreKit_on
         #abl) γa R P f T A Pre Q Post [auth.bootState] auth.bootState rfl auth.bootState_permsFit
       ⟨auth.bootState, List.mem_singleton_self _, rfl⟩)
     $$ [$Hpkg $Hrdok $HwokR $HCreate $HT $Hcs $HtpA $HA $Hown $Hcur]
-    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, -, HPost, -, -, Hslots⟩
+    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs', Hslots⟩
   · iframe; isplitr
     · ipureintro; exact Hlg
     ipureintro; rfl
   ihave ⟨Hopen, Hhook, Hrbo⟩ := Hback $$ HPost
   iunfold auth.authWRAt at HWR
-  icases HWR with ⟨⟨Hbe, -⟩, -, -⟩
+  icases HWR with ⟨⟨Hbe, #Hwok⟩, HT', Hen⟩
+  -- (E2k) the boot state's revision is `0`: the history `[bootState, bump bootState]`, its fuel
+  have hhs' : hs' = [auth.bootState, auth.bump auth.bootState] := by
+    rcases Hhs' with ⟨h, -⟩ | ⟨-, h⟩
+    · exact absurd rfl h
+    · exact h
   ihave ⟨#HisReq, #HisAuth⟩ := authSrvContracts_on hCtx hTLS hPut hRange hDel hAdmin hEn h_Revision
     stp R γa $$ [$Hpkg $Hinv]
+  ihave HAR : authApplyRes (.on γa) stp $$ [Hown' Hfu HT' Hen HtpAd]
+  · unfold authApplyRes
+    iexists hs', P, f, T, (authBkIface abl)
+    subst hhs'
+    iunfold auth.authOwnFu
+    iframe Hown' Hfu HT' Hen HtpAd Hwok
   iapply HΦ
   iframe Hopen Hhook Hrbo
   iexists (auth.authRd stp R (.on γa)), stp
   subst Hst
-  iframe HisReq HisAuth
+  iframe HisReq HisAuth HAR
   isplitr
   · ipureintro; rfl
   isplitl [Hbe]

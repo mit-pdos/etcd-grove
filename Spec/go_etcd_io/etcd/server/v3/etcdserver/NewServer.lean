@@ -102,6 +102,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 
 @[expose] public section
 
@@ -385,7 +386,11 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
           -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
           -- service's run slots (`v3rpc.watchRunSlot`)
-          srvWatchReaders srv E 64 }}
+          srvWatchReaders srv E 64 ∗
+          -- (the auth plan's E2k) the auth store's resources for the apply thread (with auth on,
+          -- the admin side's authority with its fuel, its write resource, the provider's admin
+          -- share: `authApplyRes`), for the apply thread's environment
+          srvAuthApplyRes srv E }}
 
 end spec
 

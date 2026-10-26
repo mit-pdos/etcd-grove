@@ -625,7 +625,8 @@ theorem NewServer.wp_proofM (on : Bool)
     %(batchLockInv γA (metaTM d.γB d.P)) %(1 : Qp).half %((backend.rbData d.P D).insert go!"lease" ∅)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
-    as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth⟩
+    as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
+      HAres⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -1223,6 +1224,14 @@ theorem NewServer.wp_proofM (on : Bool)
     simp only
     iframe Hpool kv Hws Htag
     iframe Hwrx
+  -- (the auth plan's E2k) the auth store's resources for the apply thread
+  ihave HAR : srvAuthApplyRes s
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF) $$ [HAres]
+  · unfold srvAuthApplyRes
+    iexists astl
+    rw [← Hastl]
+    iframe authStore
+    iexact HAres
   imodintro
   iapply HΦ
   iright
@@ -1233,7 +1242,7 @@ theorem NewServer.wp_proofM (on : Bool)
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
-  iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
+  iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe HAR
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM⟩
   isplitr
@@ -1711,8 +1720,24 @@ theorem NewServer.wp_proof
     h87 h88 h89 h90 h91 h92 h93
   intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok
-  exact h cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl
-    Hacr Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok (fun h => absurd h (by decide))
+  -- the mode off's post, without the apply thread's auth resource (`True` in the mode off)
+  have h' := h cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn
+    Hcbl Hacr Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok (fun h => absurd h (by decide))
+  rw [bootKVOf_false] at h'
+  iintro %Φ Hpre HΦ
+  iapply h' $$ Hpre
+  iintro !> %srv %err Hpost
+  iapply HΦ
+  icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
+    H8, H9, H10, H11, H12, H13, H14, -⟩)
+  · ileft; iexact Hl
+  iright
+  isplitr
+  · ipureintro; exact He
+  iexists γA, ci, TM, E, γrn, b, γk, τ
+  isplitr
+  · ipureintro; exact H1
+  iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
 
 end proof
 
