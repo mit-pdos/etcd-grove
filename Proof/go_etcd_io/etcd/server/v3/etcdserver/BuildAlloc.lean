@@ -42,14 +42,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- A ghost variable's whole as its two halves. -/
-private theorem buildGhostVarHalves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
+theorem buildGhostVarHalves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
     ghostVar (GF := GF) γ 1 a ⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
   have h := ghostVar_split (GF := GF) γ a (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at h
   exact wand_entails h
 
 /-- A mono nat's whole authority as its two halves. -/
-private theorem buildMonoNatHalves (γ : GName) (n : Nat) :
+theorem buildMonoNatHalves (γ : GName) (n : Nat) :
     monoNatAuthOwn (GF := GF) γ 1 n ⊢
       monoNatAuthOwn γ (1 : Qp).half n ∗ monoNatAuthOwn γ (1 : Qp).half n := by
   have hf := (monoNatAuthOwn_fractional (GF := GF) γ n).fractional (1 : Qp).half (1 : Qp).half

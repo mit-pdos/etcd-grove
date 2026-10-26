@@ -23,6 +23,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApplyOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnKVL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartOn
 
 @[expose] public section
 
@@ -40,37 +41,6 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- **The KV log `L` applied through the index `i` is the mode's KV model of a committed raft
-log** (persistent; `kvLogAt` at `false`). -/
-def kvLogAtM (on : Bool) (γr : ReadNames) (i : w64) (L : mvcc.Log) : IProp GF :=
-  iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗
-    ⌜uint.Z i = uint.Z γr.raft.ai0 + A.length ∧ L = kvModelM on γr.kv A⌝)
-
-instance kvLogAtM_persistent (on : Bool) (γr : ReadNames) (i : w64) (L : mvcc.Log) :
-    Persistent (kvLogAtM (GF := GF) on γr i L) := by
-  unfold kvLogAtM; infer_instance
-
-theorem kvLogAtM_false (γr : ReadNames) (i : w64) (L : mvcc.Log) :
-    kvLogAtM (GF := GF) false γr i L = kvLogAt γr i L := rfl
-
-/-- **The applied logs are the mode's KV models of committed raft logs** (`kvLogsOk` at
-`false`). -/
-def kvLogsOkM (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) : IProp GF :=
-  iprop(∃ Lb : List EntryModel, srvRLogLb γr.raft Lb ∗
-    ⌜∀ k L, M.lookup k = some L → ∃ A, A <+: Lb ∧
-      uint.Z k = uint.Z γr.raft.ai0 + A.length ∧ L = kvModelM on γr.kv A⌝)
-
-instance kvLogsOkM_persistent (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) :
-    Persistent (kvLogsOkM (GF := GF) on γr M) := by
-  unfold kvLogsOkM; infer_instance
-
-instance kvLogsOkM_timeless (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) :
-    Timeless (kvLogsOkM (GF := GF) on γr M) := by
-  unfold kvLogsOkM; infer_instance
-
-theorem kvLogsOkM_false (γr : ReadNames) (M : GMap w64 mvcc.Log) :
-    kvLogsOkM (GF := GF) false γr M = kvLogsOk γr M := rfl
 
 theorem kvLogsOkM_insert (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) (v : w64)
     (L : mvcc.Log) :
@@ -98,30 +68,6 @@ theorem kvLogsOkM_insert (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) (
     · exact ⟨A, List.prefix_refl _, Ha.1, Ha.2⟩
     · obtain ⟨A', h1, h2, h3⟩ := Hm k L' hk
       exact ⟨A', h1.trans h, h2, h3⟩
-
-/-- **The applied index's invariant's body in the mode `on`** (`srvAppliedBody` at `false`): its
-applied logs the mode's KV models (`kvLogsOkM`). -/
-def srvAppliedBodyM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(∃ (v a : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
-    sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v ∗
-    monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat a) ∗
-    ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
-    ⌜uint.Z v ≤ uint.Z a ∧ appliedKeysOk M a p ∧ appliedMonoMap M⌝ ∗
-    appliedLogAt γr a L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOkM on γr M)
-
-theorem srvAppliedBodyM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    srvAppliedBodyM (GF := GF) false s E γr = srvAppliedBody s E γr := rfl
-
-/-- **The applied index's invariant in the mode `on`** (`srvAppliedInv` at `false`). -/
-def srvAppliedInvM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  inv srvN (srvAppliedBodyM on s E γr)
-
-instance srvAppliedInvM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    Persistent (srvAppliedInvM on s E γr) := by
-  unfold srvAppliedInvM; infer_instance
-
-theorem srvAppliedInvM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    srvAppliedInvM (GF := GF) false s E γr = srvAppliedInv s E γr := rfl
 
 /-- **The log after the next entry, deposited ahead, in the mode** (`applied_predeposit`'s
 counterpart): the apply thread deposits a log `L` extending its current one as the log applied
@@ -275,6 +221,18 @@ instance isServerM_persistent (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
 theorem isServerM_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
     isServerM (GF := GF) false s γ ci TM E ρ γr = isServer s γ ci TM E ρ γr := rfl
+
+/-- **The server's atomics in the mode `on` from `start`'s construction premise** (E3k): the
+applied index's invariant over the mode's model is allocated at the boot (`srvIndices_allocM`), so
+`isServerBuiltOn` carries `srvAtomicsM true`'s three invariants. -/
+theorem srvAtomicsM_of_builtOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    isServerBuiltOn (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ⊢
+      srvAtomicsM true s E γr := by
+  unfold isServerBuiltOn srvAtomicsM
+  iintro ⟨-, -, -, -, -, -, #Hai, #Hkvi, #Hti, -⟩
+  iframe Hai Hkvi Hti
 
 /-- **The apply thread's applier state with auth on** at `x` and the model's auth state `st`
 (`srvApplyKV`'s): the auth resource at `st` (`srvAuthApplyResAt`: the store's history's latest state

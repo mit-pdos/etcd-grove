@@ -996,7 +996,7 @@ theorem NewServer.wp_proofM (on : Bool)
     icases Hrli with ⟨-, #H, -⟩
     iexact H
   -- the indices
-  imod (srvIndices_alloc s
+  imod (srvIndices_allocM on s
       ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ ρ.rd ⊤
       (by rw [HρRaft]))
     $$ [appliedIndex] [committedIndex] [term] Hap Hcm Hlogs Hpend [] Hrlb
@@ -1586,8 +1586,18 @@ theorem NewServer.wp_proofM (on : Bool)
   isplitr [Hwtok]
   rotate_left
   · iexact Hwtok
+  iapply srvUberRowM_of_On
   iexists ua
   iframe uberApply
+  isplitr
+  · -- (E3k) the base applier's auth layer, at the server's store and lessor
+    iunfold srvUberBase
+    iexists _, _
+    iframe authStore lessor
+    iunfold apply.uberBaseAuth
+    iexists up, uopts
+    iframe Hui
+    ipureintro; exact ⟨Hua, Huopts.2.2.2.1, Huopts.2.2.2.2.1⟩
   isplitr
   · iunfold apply.applierFor
     iexists up, uopts

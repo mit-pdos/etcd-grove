@@ -22302,3 +22302,73 @@ clause), `apply.applierAdmL`. Specs: `apply.authApplierV3.Apply.specL`,
 **Left.** A lower-bound `CheckTxnAuth` (the read-only `Txn`); `authPublishT`'s call site in the
 apply loop (with the waiter's reply carrying the lower bound); the apply loop itself
 (`applyEntryNormal.specOn`, E3a's blocker 4).
+
+## E3k of the auth plan: the boot's mode-on applied invariant; the apply thread's latest-state KV triples from the construction (2026-10-27 · `notes/auth-plan.md`, E3i's left items 2-3)
+
+**(1) The applied index's invariant in the mode `on`, allocated at the boot.** `kvModelM` (from
+`ReqOn`) and the applied invariant's mode-indexed definitions (`kvLogAtM`, `kvLogsOkM`,
+`srvAppliedBodyM`, `srvAppliedInvM`, from `AppliedOn`) move to `ServerOn` (the built part's file,
+which `ReqOn`/`AppliedOn` import), each still today's at `false` by `rfl`. `srvIndices_allocM on`
+(`ServerOn`) is `srvIndices_alloc` with `srvAppliedInvM on`: the start log is the mode's model of
+the empty log either way (`kvModelM on γk [] = γk.log0`, `cases on <;> rfl`); `NewServer.wp_proofM`
+calls it. `srvBuiltG on`'s `#Hai` row is `srvAppliedInvM on` (`srvBuiltG_false` still `rfl`) and
+`isServerBuiltOn`'s is `srvAppliedInvM true`; `srvAtomicsM_of_builtOn` (`AppliedOn`) gives the
+apply thread's mode-`on` atomics from `start`'s mode-`on` premise. `isServerM true` itself (its
+`srvFieldsAtM` with `waitInvM true`) is `start`'s to build: the wait is created in `start`
+(`s.w = wait.New()`), so it is not derivable from the construction premise; it comes with
+`start`'s mode-`on` spec. `BuildAlloc`'s `buildGhostVarHalves`/`buildMonoNatHalves` are no longer
+`private` (used by `srvIndices_allocM`).
+
+**(2) The server applier's latest-state KV triples from its construction.**
+- **The base applier's auth layer in `uberIs`** (`apply/InvUber.lean`, `baseAuth E opts base`):
+  the base applier is an `*authApplierV3` `pa` with `authIs E pa inner`, its inner applier an
+  applier of `quota` over `backend`, and its `as`/`lessor` fields the options' store and lessor.
+  Chosen over a new conjunct of `NewUberApplier`'s post (first tried): D22's snapshot walk restates
+  that post's shape (`SnapApplyDefs`, `SnapApplyKV`: `apply.uberIs E1 up' opts' ∗ ∃ ns cr, …`), so a
+  change there would change D22's statements; `uberIs` is opaque to them. `uberIs`'s five
+  destructuring sites end in `-` but `AdminChain`'s (`#Hsh` → `#Hsh, -`).
+- **Its source:** `newAuthApplierV3`'s post gives its `as`/`lessor` fields read-only and, for any
+  environment, `authIs E p base`; `newApplierV3`'s post gives `baseAuth E opts a` for every
+  environment meeting the options' contracts; `NewUberApplier` frames it into `uberIs`.
+- **`apply.uberKVL_of_base`** (`apply/UberKVLBase.lean`): `uberBaseAuth ua E au le` (the
+  `UberApplier` whose base's store is `au` and lessor `le`, `apply/BaseAuth.lean`), the store's
+  checks at the latest state (`isAuthStoreL au …`) and the lessor finding no lease (`lookupNil le`)
+  give `uberKVL ua E (.quota .backend) L`, through E2y's `applierKVL_auth`.
+- **The server's row** (`ServerOn`): `srvUberRowM on` is the built part's uber-applier row, today's
+  at `false` (`rfl`), with `srvUberBase s ua E` (the base auth layer at the server's `authStore`
+  and `lessor` fields) at `true`; `NewServer.wp_proofM` builds it from `NewUberApplier`'s `uberIs`
+  and the fields (`srvUberRowM_of_On`); `applyBuiltOn`'s uber-applier row carries `srvUberBase`.
+- **`srv_uberKVL`** (`UberOn.lean`; restated linked as `server_uber_kvl`): `srvUberBase` with two
+  named premises gives the apply thread's `uberKVL`:
+  - `srvStoreLatest s E L`: the server's store meets `isAuthStoreL` for `L`; the real store does
+    from its invariant (`isAuthStoreL_of_authInv`, with `E.RD = authRd …` and `L = latestRes …`),
+    but the server's rows do not carry the store's invariant yet;
+  - `srvLessorNil s`: the server's lessor finds no lease. A premise: the real lessor finds a lease
+    once one is granted; `examples/authkv` grants none.
+- **The admin side** (`uberAuthStepsL`'s `W`, the store's `be` half) stays a hypothesis of
+  `srvApplyKVOn`'s users; E3k did not reach it.
+
+**E3f's blocker 1, decided (2026-10-27, the user):** the store's half of its `be` field
+(`authBeOn`, which stays in the server's rest and is borrowed by an admin application, E2m) is tied
+to the apply thread's `authWBackendOk` backend by a **separate row** (an equation of the backend
+names, or a persistent agreement fact), leaving `srvObjsOn`'s text and D22's `Recover` premise (a)
+unchanged. The admin entry's `W` (in `uberAuthStepsL`, `applyEntryNormal`'s admin case) is to be
+built from that row, not taken as a named hypothesis.
+
+**Exported statements changed.** Specs: `apply.newAuthApplierV3.spec` (post: the `as`/`lessor`
+fields and an `authIs` clause), `apply.newApplierV3.spec` (post: a `baseAuth` clause). Definitions:
+`apply.uberIs` (a `baseAuth` conjunct), `srvBuiltG` (`#Hai` the mode's, `Hua` `srvUberRowM on`),
+`isServerBuiltOn` (`#Hai`), `applyBuiltOn` (`srvUberBase` in its uber row). Moved (same text):
+`kvModelM`, `kvLogAtM`, `kvLogsOkM`, `srvAppliedBodyM`, `srvAppliedInvM` with their lemmas. New:
+`srvIndices_allocM`, `srvUberBase`, `srvUberRowM`, `srvUberRowM_of_On`, `srvAtomicsM_of_builtOn`,
+`apply.baseAuth`, `apply.uberBaseAuth`, `apply.uberKVL_of_base`, `srvStoreLatest`, `srvLessorNil`,
+`srv_uberKVL`, `server_uber_kvl`. No closed theorem changed; `NewServer.spec`,
+`EtcdServer.NewUberApplier.spec` and `apply.NewUberApplier.spec` keep their text.
+
+**Left.** `start`'s mode-`on` spec (building `isServerM true`: the wait in the mode, `waitInvM
+true`); the server's rows carrying the store's invariant (discharging `srvStoreLatest`); the admin
+facts (the separate row of blocker 1's decision, then `uberAuthStepsL`'s `W`); `applyEntryNormal.specOn` (no-data, KV, cluster; admin entries) handing
+`resultΨOn` to the waiter, then `applyAll`, `run`.
+
+**Trust base.** Unchanged.
+
