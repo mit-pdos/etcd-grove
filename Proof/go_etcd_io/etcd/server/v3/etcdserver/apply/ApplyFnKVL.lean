@@ -81,7 +81,9 @@ abbrev apply.Apply.kvSpecL : Prop :=
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post))
        else iprop(True)) ∗ Pre ∗
-      apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗ apply.certPreV v3 E x.chain rq x.log ∗
+      apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗
+      apply.certPreVW v3 E x.chain rq x.log
+        (apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log) ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
         apply.dispatchOk E.authOn rq⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ L hs ∗

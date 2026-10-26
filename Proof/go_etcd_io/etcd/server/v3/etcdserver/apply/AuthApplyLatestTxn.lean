@@ -287,7 +287,11 @@ abbrev apply.authApplierV3.Txn.specL : Prop :=
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.authIs E p inner ∗ apply.authIsL E p Lr ∗ apply.lessorNil p ∗ apply.applierSpec E c inner ∗
-      apply.txnPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq t log Pre Q Post ∗
+      apply.txnPreW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq t log Pre Q Post
+        (fun oc => (oc = .rejected .auth ∧
+            apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay t)) ∨
+          (apply.chainStep apply.backendStep c rq log oc ∧
+            ∃ L, apply.txnChecked t L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L)) ∗
       mvcc.idxCert E.γ.idx F ∗ Lr hs ∗ ⌜apply.shapedMay E.authMode hs (apply.txnMay t)⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Txn")) (Val #r)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
@@ -860,9 +864,8 @@ theorem apply.authApplierV3.Txn.wp_latest
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   iunfold apply.lessorNil at Hlnil
   icases Hlnil with ⟨%le, #Hlef, #Hnil⟩
-  iunfold apply.txnPre at Hpre
+  iunfold apply.txnPreW at Hpre
   icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
-  ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
@@ -898,6 +901,12 @@ theorem apply.authApplierV3.Txn.wp_latest
   wp_auto
   ihave #Hcls := Hcls $$ %rfl
   ihave #Hrc := apply.reqClass_txn E.authMode info rq t Hk.1 Hk.2.1 $$ Hcls
+  ihave #Hcp := apply.certPreW_inner E E.authOn c rq log
+    (fun oc => (oc = .rejected .auth ∧
+        apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay t)) ∨
+      (apply.chainStep apply.backendStep c rq log oc ∧
+        ∃ L, apply.txnChecked t L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L))
+    (fun oc hoc => Or.inr ⟨hoc, Hvd.1 rfl⟩) $$ Hcp
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
   wp_apply HI $$ %r %skip %rq %t %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩

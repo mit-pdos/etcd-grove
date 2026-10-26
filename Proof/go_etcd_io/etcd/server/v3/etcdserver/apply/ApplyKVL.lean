@@ -56,7 +56,8 @@ abbrev apply.uberApplier.Apply.kvSpecL : Prop :=
     (L : List auth.AuthState → IProp GF) (hs : List auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
-      apply.certPreV v3 E x.chain rq x.log ∗
+      apply.certPreVW v3 E x.chain rq x.log
+        (apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log) ∗
       mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗ ⌜apply.rqOk x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
       ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
