@@ -58,6 +58,9 @@ def chanRecvOk (ch : Loc) : IProp GF :=
   iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ (v : _root_.Perennial.time.Time) (ok : Bool), Φ (PairV #v #ok)) -∗
     WP (App (Val (chan.receive _root_.Perennial.time.Time.ty)) (Val #ch)) {{ Φ }})
 
+instance chanRecvOk_persistent (ch : Loc) : Persistent (chanRecvOk (GF := GF) ch) := by
+  unfold chanRecvOk; infer_instance
+
 /-- **The configuration's clock** (see the file header). -/
 def clockOk (clk : GoInterfaceOk) : IProp GF :=
   iprop(□ (∀ Φ : val → IProp GF, ▷ (∀ t : _root_.Perennial.time.Time, Φ #t) -∗

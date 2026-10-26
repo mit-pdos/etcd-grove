@@ -30,7 +30,7 @@ variable [btree_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 abbrev watchCache.waitUntilFreshLocked.spec : Prop :=
   ∀ (wc : Loc) (γ : WCSNames) (Ψ : SnapSt → IProp GF) (ctx : GoInterface) (rv : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher ∗ isWC wc γ Ψ ∗ sync.ownRWMutexRLocked (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ) ∗
-      ▷ wcLockP wc γ sync.rfrac }}
+      wcLockP wc γ sync.rfrac }}
     (App (App (Val (wc @!! go.GoType.PointerType watchCache.ty @!! go!"waitUntilFreshLocked")) (Val #ctx)) (Val #rv))
   {{ (err : GoInterface), RET #err; sync.ownRWMutexRLocked (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ) ∗
       ∃ st : SnapSt, wcLockPSt wc γ sync.rfrac st ∗

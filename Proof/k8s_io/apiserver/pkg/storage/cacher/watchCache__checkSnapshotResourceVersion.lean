@@ -10,6 +10,8 @@ public import Spec.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__Resourc
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 

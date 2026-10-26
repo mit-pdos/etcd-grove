@@ -15,6 +15,8 @@ public import Spec.k8s_io.component_base.tracing.Span__AddEvent
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
