@@ -72,6 +72,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.Latest
+public import Proof.go_etcd_io.etcd.server.v3.auth.ReadLb
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
@@ -1297,6 +1298,25 @@ end latest
 #print axioms Perennial.EtcdGrove.auth_put_permitted_latest
 #print axioms Perennial.EtcdGrove.auth_range_permitted_latest
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_latest
+
+section readLb
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The store's locked read transaction no older than a published index** (the auth plan's E3g,
+`auth/ReadLb.lean`): a reader holding a lower bound `i` of the history's published index
+(`authPubLbM`) gets a read transaction at a state recorded at an index at least `i`, over the
+backend's read contract's lower-bound clause. -/
+theorem auth_locked_read_tx_lb :
+    auth.authStore.lockedReadTx.specLb (GF := GF) (hG := hG) :=
+  auth.authStore.lockedReadTx.wp_lb
+
+end readLb
+
+#print axioms Perennial.EtcdGrove.auth_locked_read_tx_lb
 
 section latestApply
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
