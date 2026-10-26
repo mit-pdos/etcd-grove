@@ -76,6 +76,9 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthApplyLatestTxn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnKVL
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVOutcomeOn
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_tieSure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AdminChain
 public import Proof.go_uber_org.zap.Int
@@ -1488,6 +1491,83 @@ theorem auth_user_add_sure :
 end userAddSure
 
 #print axioms Perennial.EtcdGrove.auth_user_add_sure
+
+section kvLatest
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **`UserAdd` keeping the tie, of a request whose password choice cannot fail** (the auth plan's
+E2y, `auth/authStore__UserAdd_tieSure.lean`): E2s's `specT` and E2u's `specSure` in one triple,
+every callee linked. -/
+theorem auth_user_add_tie_sure :
+    auth.authStore.UserAdd.specTSure (GF := GF) (hG := hG) :=
+  auth.authStore.UserAdd.wp_tieSure auth.authStore.wp_commitRevision
+    auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
+    zap.Logger.wp_Info
+
+/-- **The auth applier's KV triples at the latest state** (the auth plan's E2y,
+`apply/DispatchKVL.lean`): `applierKVL` of the auth applier, from its methods' latest-state
+specs, over its store at the latest state and the lessor finding no lease. -/
+theorem apply_applier_kv_latest (E : EtcdGrove.apply.AEnv GF) (ci : EtcdGrove.apply.Chain)
+    (inner : GoInterface) (p : Loc) (L : List auth.AuthState → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      EtcdGrove.apply.authIs E p inner ∗ EtcdGrove.apply.authIsL E p L ∗
+      EtcdGrove.apply.lessorNil p ∗ EtcdGrove.apply.applierSpec E ci inner ⊢
+      EtcdGrove.apply.applierKVL E (.auth E.authOn ci) ci
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.ty) #p) L :=
+  EtcdGrove.apply.applierKVL_auth apply_range_latest apply_delete_range_latest apply_put_latest
+    apply_txn_latest E ci inner p L
+
+/-- **`dispatch` on a KV request, the verdict at the latest state** (the auth plan's E2y,
+`apply/DispatchKVL.lean`), every callee linked. -/
+theorem apply_dispatch_kv_latest :
+    EtcdGrove.apply.uberApplier.dispatch.kvSpecL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.uberApplier.dispatch.wp_kvL Perennial.EtcdGrove.apply.errors.wp_Is
+    Perennial.EtcdGrove.txn.wp_ApplySecObserve Perennial.EtcdGrove.apply.txn.wp_WarnOfExpensiveRequest
+    Perennial.EtcdGrove.apply.txn.wp_WarnOfFailedRequest
+
+/-- **The uber-applier's `Apply` on a KV request with no alarm set, the verdict at the latest state
+for the request's principal** (the auth plan's E2y, `apply/ApplyKVL.lean`). -/
+theorem apply_uber_apply_kv_latest :
+    EtcdGrove.apply.uberApplier.Apply.kvSpecL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.uberApplier.Apply.wp_kvL apply_dispatch_kv_latest
+
+/-- **`apply.Apply` on a KV entry with no alarm set, the verdict at the latest state for the
+request's principal** (the auth plan's E2y, `apply/ApplyFnKVL.lean`): the hypothesis of
+`kv_applied_out_on` through `outcomeOn_of_kvOutL`. -/
+theorem apply_apply_kv_latest :
+    EtcdGrove.apply.Apply.kvSpecL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.Apply.wp_kvL Perennial.EtcdGrove.apply.pbutil.wp_MustUnmarshalMessage
+    Perennial.EtcdGrove.apply.zap.wp_Stringer Perennial.EtcdGrove.apply.zap.Logger.wp_Debug
+    Perennial.EtcdGrove.apply.wp_noSideEffect apply_uber_apply_kv_latest
+
+end kvLatest
+
+/-- **The apply thread's KV outcome is the mode-`on` model's** (the auth plan's E2v/E2y,
+`KVOutcomeOn.lean`): the dispatched verdict at the latest state (`kvOutL`, `apply_apply_kv_latest`)
+gives E2t's `outcomeOn`, for a plain KV request at the start chain with auth on and no alarm,
+without `"\x00"` range ends and, for a transaction, `txnVerdictOwn`. -/
+theorem kv_outcome_on_latest [ext : FfiSyntax] (c₀ : w64) (s : auth.AuthState × mvcc.Log)
+    (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
+    (hna : EtcdGrove.apply.needAdminPermission rq = false)
+    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true) (hp : plainCover rq)
+    (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
+    (hz : noZeroEnds rq) (htx : txnVerdictOwn (.on γa) hs rq) (oc : EtcdGrove.apply.Outcome)
+    (h : EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
+      (.quota .backend) rq s.2 oc) :
+    outcomeOn c₀ (EtcdGrove.apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) :=
+  outcomeOn_of_kvOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz htx oc h
+
+#print axioms Perennial.EtcdGrove.auth_user_add_tie_sure
+#print axioms Perennial.EtcdGrove.apply_applier_kv_latest
+#print axioms Perennial.EtcdGrove.apply_dispatch_kv_latest
+#print axioms Perennial.EtcdGrove.apply_uber_apply_kv_latest
+#print axioms Perennial.EtcdGrove.apply_apply_kv_latest
+#print axioms Perennial.EtcdGrove.kv_outcome_on_latest
 
 section userAddHandler
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
