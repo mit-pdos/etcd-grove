@@ -20144,3 +20144,69 @@ conjunct). No closed theorem's statement changed. New: `apply.cappedShape`, `app
 `apply.Apply.adminSpec`/`wp_admin`.
 
 **Trust base.** Unchanged (721 axioms, 6 sorries).
+
+## E2p of the auth plan: stopped at a finding -- the server with auth on is vacuous; the KV invariant must take the mode (2026-10-26 · `notes/auth-plan.md`)
+
+The brief: (1) the committed log's invariants (`plainCover`, `entryShape`/`rqShape`) admit
+`adminKindOk` entries in the mode `on` as entries that leave the KV log, the rest model and the
+members unchanged; (2) `applyEntryNormal`'s admin triple in the mode `on`; (3) the step's witness to
+the waiter. None of (1)-(3) is done: reading the invariant they change showed that the mode `on`
+has no KV invariant to change, and that the server's mode-`on` statement is vacuous. A bug in this
+repository's specs (not in Go), recorded here and checked in Lean.
+
+**The finding: `server_new_auth_on` (E2k) has an unsatisfiable precondition.**
+`NewServer.specM on` takes the KV invariant `#Hkvinv ∷ kvInv ρ.rd.raft ρ.rd.kv` and the premise
+`ρ.rd.kv.ch0 = apply.alarmChain on false false`. `kvInv` keeps `γk.ch0 = apply.alarmChain false
+false false` (its pure conjunct; `kv_log_plain` reads it), so at `on = true` the two disagree on the
+chain's auth layer (`alarmChain_authOn`). `KVChainOff.lean` checks it: `kvInv_ch0_off` (the
+invariant's start chain has the auth layer off) and `kvInv_ch0_on_false` (`kvInv γ γk` with
+`γk.ch0 = alarmChain true false false` updates to `False`). So `NewServer.specM true`, and
+`server_new_auth_on` with it, hold of no caller; E2i-E2o's mode-`on` triples below the server
+(`dispatch.wp_admin`, `uberApplier.Apply.wp_admin`, `apply.Apply.wp_admin`, the fuel, the boot)
+are not vacuous (none takes `kvInv`), but nothing yet uses them at a satisfiable server. E2k's
+check that `server_new_auth_on` does not reach `NewAuthStore`'s axiom was right but says nothing
+here: a vacuous statement reaches nothing. Every mode-`off` statement is unaffected (its premise is
+`alarmChain false false false`).
+
+**Why admitting admin entries (the brief's (1)) is not the fix.** The KV invariant's model is
+`kvModel γk L = kvRaftOf γk.c0 γk.ch0 γk.log0 L`, the fold of `kvEntry` over the committed log at
+the one chain `ch0`, and the apply thread's step (`kv_applied_step`) needs that chain `kvExact`
+(no enabled auth layer, no cap): only then is an entry's outcome the model's (`chainStep_plain`'s
+first case). With the auth layer enabled, a KV entry's outcome is the write or a refusal (the log
+unchanged), by the auth store's verdict for the entry's principal (`principalOf rq`: the header's
+user and auth revision) at the time of its application. So the mode `on` needs a KV model that
+knows the auth state at each entry; admitting admin entries into today's invariant would only
+move the vacuity.
+
+**What the mode `on` needs (the design for the next stage, E2q):**
+1. *The KV invariant takes the mode.* `kvInv`'s chain conjunct becomes `γk.ch0 = alarmChain γk.on
+   false false` (a mode in the KV names, or the workload's), with the model at `on = false`
+   today's `kvRaftOf` (a `_false` lemma, so every mode-`off` statement keeps its text).
+2. *The model in the mode `on` folds the auth state with the KV log.* An admin entry steps the auth
+   state and leaves the KV log; a KV entry writes iff the auth state at that point permits its
+   principal (`permitted st (principalOf rq) …`, and `st.enabled = false ∨ st.revision ≤ rev`, the
+   applier's stale-revision refusal), and leaves the log otherwise. Two of the eleven steps are
+   relations, not functions (`userGrantRoleR`, `roleGrantPermissionR`, `auth/Steps.lean`), so the
+   model either makes them functions (they are deterministic in Go) or records the auth state each
+   entry was applied at in ghost state (an index into the auth history, `authStateAt`) rather than
+   recomputing it.
+3. *The verdict at the latest state.* Today's checks give their verdict at *some* recorded state
+   (`permVerdict`: `∃ i st, authStateAt γa i st ∗ …`), which is all a concurrent reader can be
+   promised. The apply thread is the only writer and holds the admin half (`authOwn`, S4f), so it
+   can be promised the latest state: a check spec for a caller holding `authOwnFu γa hs` whose
+   verdict is at `histLast hs`, resting on the backend's read contract strengthened the same way
+   (`authBackendOk`: a read transaction begun while the admin half is held sees the latest state;
+   true of a real backend, whose batch commits precede the read; one more clause for D22's list).
+   Without it, a KV write could be "permitted" by the boot state (auth disabled) after `AuthEnable`.
+4. *Then* the brief's (1)-(3): `plainLog`/`entryShape` admit `adminKindOk` entries in the mode `on`
+   (the proposers `EtcdServer.UserAdd`/... establish it), `applyEntryNormal`'s admin triple (the
+   receipt, the borrow of `be`'s half, `apply.Apply.wp_admin`, the authority back into
+   `srvAuthApplyRes`), its KV triple in the mode `on` (the model's step from item 3's verdict), and
+   the waiter's witness.
+5. *`NewServer.specM on` over the mode-`on` invariant*: its premise and `kvInv` agree, and
+   `kvInv_ch0_on_false` goes.
+
+**Exported statements changed.** None. New: `kvInv_ch0_off`, `kvInv_ch0_on_false`
+(`KVChainOff.lean`).
+
+**Trust base.** Unchanged (721 axioms, 6 sorries).
