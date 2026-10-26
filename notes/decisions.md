@@ -19738,3 +19738,81 @@ mode argument), `apply.reqFacts`, `apply.applierTriples` (definitions); `auth_st
 (`authWRAt`). New: `srv_auth_tp_on`, `srv_auth_tp_off`.
 
 **Trust base.** Unchanged (no axiom or `sorry` added).
+
+## E2l of the auth plan: the admin steps' budget from time receipts; the admission designed (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2i's "not done"): (1) a design for handing `stepOk`'s budget in with an admin request;
+(2) `rqOk`, the admission, extended to the auth admin requests in the mode `on`, `adminAdmitted`
+replaced by the real step specs, the authority in the apply thread; (3) the server's Auth-service
+contracts in the mode `on`, shaped to discharge E2h's `setupAuthOk`. Done: (1), and of (2) the
+apply layer's step triples from the budget; the admission itself and (3) not.
+
+**(1) The budget is time receipts, not a ticket.** `auth.stepOk M hs R` asks, at the state the
+batch transaction finds, the revision below `2 ^ 64 - 1` after the bump and a next state's
+permissions within the cache trees' `2 ^ 63` (and the step specs of `UserGrantRole` and
+`RoleDelete` ask a user's roles below `2 ^ 62` and every user's name a bbolt key). No single state
+implies them: they bound how much the admin side has written. *Considered:* a ticket per request
+(minted for the request's sender, spent by its application, the authority's invariant bounding
+the revision plus the tickets outstanding). *Rejected:* E2h's client specs give the server a
+**persistent** precondition (`□ ▷ Spec m Q`), because the retry interceptor may deliver an admin
+request several times; a ticket is not persistent, and a pool of tickets needs a bound on the
+deliveries, which the client's code does not give in general. *Chosen:* D19b's rule (the server's
+lifetime bounds are counts backed by time receipts, under the premise `receiptBound GF ≤ 2 ^ 48`
+the server already takes). The admin side holds, with its authority, its **fuel**
+(`auth.authFuel hs`, `auth/Fuel.lean`): `⧗ k` with the latest state's revision at most `k + 1` and
+the latest state **small** (`auth.authSmall`: every user's roles without duplicates and at most
+the revision in number, every user's name a bbolt key, all the roles' permissions together at
+most the revision). An admin request's application takes one receipt at a Go step of the apply
+thread (`wp_go_step_receipt'`, as an applied entry's write token, `srvWTPool_take_extra`):
+`⧗ (k + 1)`, so `k + 1 < receiptBound GF ≤ 2 ^ 48` (`auth.authFuel_charge`); the premises follow
+(`auth.stepOk_of_fuel`: the revision below `2 ^ 48`, a user's permissions at most all the roles'
+since its roles have no duplicates, `auth.userPerms_le`, so at most the revision). Every step keeps
+the state small and raises the revision by at most one (`auth.StepSmall`, proved of the eleven
+step relations, `stepSmall_*`; `UserAdd`'s with its name's key bound, the request's premise), so
+the fuel follows the authority to the step's result (`auth.adminOut_fu`: `auth.adminOutFu`,
+`adminOut` with `authOwnFu = authOwn ∗ authFuel`). The store's start: `auth.authFuel_init` (a
+latest state small with revision at most one, as `NewAuthStore`'s `[bootState, bump bootState]`,
+from `⧗ 0`). Nothing of S4's proofs changes; nothing is asked of the request's sender, so a
+request delivered several times costs a receipt per application.
+
+**(2), its first part: the apply layer's step triples from the budget** (`apply/AuthFuel.lean`;
+restated `apply_{UserAdd,RoleAdd,UserGrantRole,RoleGrantPermission,AuthEnable}_fuel`,
+`etcdserver/Results.lean`): for the five requests `examples/authkv`'s `SetUp` sends,
+`applierV3backend.X.fuelSpec` in the mode `on γa` takes `auth.authOwnFu γa hs` and one receipt
+`⧗ 1` (with `receiptBound GF ≤ 2 ^ 48`) for `AuthSteps.lean`'s `authOwn` and `stepOk` (and
+`UserGrantRole`'s roles bound), and gives `auth.adminOutFu` for `adminOut`; each derived from its
+step triple (`wp_fuel`).
+
+**(2) itself, designed, not done** (the order of the work):
+- *The apply thread's auth resource.* A field of the environment for the mode `on` (`AEnv`, beside
+  `RW`, which the alarm store, the lessor and the cluster also take): `∃ hs, auth.authOwnFu γa hs ∗
+  auth.authWR stl (.on γa) P f T ∗ auth.tpAdmin stl (.on γa)`, held in the apply thread's state
+  (`srvApplyKV`) and lent to an admin request's application. Its source is the store's
+  construction: E2i's kit in the mode `on` (`authStoreKit_on`, `AuthSrv.lean`) keeps the authority,
+  `authWR` and `tpAdmin` of `newAuthStore_on`'s post inside the kit; they have to come out of the
+  server's construction to the apply thread (with `auth.authFuel_init`), which is E2k's
+  `NewServer` work.
+- *The admission.* `rqOk`'s auth admin kinds: the request's shape only (the names within the key
+  bound, as `authReqContractN` and the step specs take them); no size clause, the fuel is the
+  apply thread's. `isAuthStore`'s admin clauses in the mode `on`: `⌜adminAdmitted M⌝` replaced by
+  the step triples' form (`isAuthSteps`, from the apply thread's resource, posts `adminOutFu`), the
+  mode `off` keeping today's clauses; the sixteen `applierV3backend` admin specs and the chain's
+  layers pass it on; `dispatch`'s auth cases take the receipt at a Go step before the call and use
+  the fuel triples.
+- *The result to the waiter.* An applied admin request hands its waiter (`waitOk`) a persistent
+  witness of its step (the new latest state recorded, `auth.authStateAt`, or the refusal), which
+  the gRPC handler turns into the client's `Q i` of `setupAuthOk`.
+- *For D22.* In the mode `on` the auth buckets' content is under the batch lock (`authLockI`,
+  S4f), not in the apply thread's rest model: `restAfter` leaves `RestM` for an auth request, and
+  the server's tracked buckets' half (`RestM.bk`) must stop naming the auth buckets' content once
+  auth requests are admitted (today they hold the boot content, `authBucketsAfter`), part of what
+  D22's `authSchemaSrv` discharges.
+
+**(3) not attempted**: it needs the admission and the result to the waiter above.
+
+**Exported statements changed.** None. New: `apply_UserAdd_fuel`, `apply_RoleAdd_fuel`,
+`apply_UserGrantRole_fuel`, `apply_RoleGrantPermission_fuel`, `apply_AuthEnable_fuel` (and the
+definitions `auth.authSmall`, `auth.StepSmall`, `auth.fuelOk`, `auth.authFuel`, `auth.authFuelT`,
+`auth.authOwnFu`, `auth.adminOutFu`, `apply.applierV3backend.X.fuelSpec`).
+
+**Trust base.** Unchanged (no axiom or `sorry` added).
