@@ -837,6 +837,29 @@ def srvWTAt (γp : GName) (v : w64) : IProp GF := monoNatLbOwn γp (uint.nat v)
 instance srvWTAt_persistent (γp : GName) (v : w64) : Persistent (srvWTAt (GF := GF) γp v) := by
   unfold srvWTAt; infer_instance
 
+/-- (D22 J5, 2026-10-26) **At least `n` write tokens taken** (persistent; a natural number): the
+apply thread's count, decoupled from the applied index. Until J5 the apply thread kept the count at
+its applied index (`srvWTAt γp ai`, one token per applied entry); a snapshot's install raises the
+applied index without taking tokens (nor bringing the receipts that taking them costs), so the
+apply loop's functions now take the count `n` and return it raised by the tokens they took
+(`apply`: one per entry), and `run`'s loop keeps `uint.Z ai ≤ n` while no snapshot is installed
+(`applyRes`). `srvWTAt γp v` is `srvWTTaken γp (uint.nat v)`. -/
+def srvWTTaken (γp : GName) (n : Nat) : IProp GF := monoNatLbOwn γp n
+
+instance srvWTTaken_persistent (γp : GName) (n : Nat) :
+    Persistent (srvWTTaken (GF := GF) γp n) := by
+  unfold srvWTTaken; infer_instance
+
+theorem srvWTAt_taken (γp : GName) (v : w64) :
+    srvWTAt (GF := GF) γp v = srvWTTaken γp (uint.nat v) := rfl
+
+/-- A lower bound of the count is one of every smaller count. -/
+theorem srvWTTaken_le (γp : GName) (n n' : Nat) (h : n' ≤ n) :
+    srvWTTaken (GF := GF) γp n ⊢ srvWTTaken γp n' := by
+  unfold srvWTTaken
+  iintro H
+  iapply monoNatLbOwn_le n' h $$ H
+
 /-- The budget from its stock (`N` write tokens), under `receiptBound GF ≤ N + 1`, its counter at
 `0`. -/
 theorem srvWTPool_alloc (E : apply.AEnv GF) (N : Nat) (Ms : CoPset)
@@ -971,6 +994,40 @@ theorem srvWTPool_take_at (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : a
   iframe HKV Hlb
   iapply storeWT_of_wbTok E.γ d Hd $$ Ht
 
+/-- (D22 J5, 2026-10-26) **One write token, the count raised by one** (`srvWTPool_take_at` over the
+count `srvWTTaken`, with no bound on it: the count is a natural number). -/
+theorem srvWTPool_take_n (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
+    (n : Nat) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ srvWTTaken γp n -∗ srvApplyKV s E γw x ={⊤}=∗
+      mvcc.storeWT E.γ ∗ srvWTTaken γp (n + 1) ∗ srvApplyKV s E γw x := by
+  iintro #Hp Hr #Hv HKV
+  icases srvApplyKV_beOwn s E γw x $$ HKV with ⟨Hbo, HKV⟩
+  icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
+  unfold srvWTPool
+  iinv Hp with ⟨%a, %m, %d', >Ha, >Hg', >Hn, >Hc, >%Hb, Hrt⟩ Hclose
+  ihave %Hdd := dghostVar_agree E.γbe d _ d' _ $$ Hg Hg'
+  subst Hdd
+  unfold srvWTTaken
+  icases monoNatLbOwn_valid γp 1 a n $$ Hc Hv with %Hva
+  replace Hva := Hva.2
+  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
+  · iframe
+  obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
+  icases wbToks_split d m' $$ Hn with ⟨Ht, Hn⟩
+  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, #Hlb⟩
+  imod Hclose $$ [Ha Hg' Hn Hc Hrt] with -
+  · inext
+    iexists a + 1, m', d
+    iframe Ha Hg' Hn Hc Hrt
+    ipureintro; omega
+  ihave Hbo := Hbo $$ Hg
+  ihave HKV := HKV $$ Hbo
+  imodintro
+  iframe HKV
+  isplitl [Ht]
+  · iapply storeWT_of_wbTok E.γ d Hd $$ Ht
+  iapply monoNatLbOwn_le (n + 1) (by omega) $$ Hlb
+
 /-- (D22 S-l sender, 2026-10-22) **A write token for a receipt, for no entry** at the current
 backend `d` (S7b): the merged snapshot's two write-backs (`KV().Commit()`'s `ForceCommit`,
 `be.Snapshot()`'s own commit) are paid from the pool, a Go step's receipt each, as an entry's is
@@ -1037,6 +1094,25 @@ theorem srvWTPool_bound (E : apply.AEnv GF) (γp : GName) (v : w64) :
   imodintro
   ipureintro
   have := uint_nat_eq v
+  omega
+
+/-- (D22 J5) **The count is below the receipts' bound** (`srvWTPool_bound` over the count). -/
+theorem srvWTPool_bound_n (E : apply.AEnv GF) (γp : GName) (n : Nat) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ srvWTTaken γp n ={⊤}=∗ ⌜n < receiptBound GF⌝ := by
+  iintro #Hp #Hv
+  unfold srvWTPool
+  iinv Hp with ⟨%a, %m, %d, >Ha, >Hg, >Hn, >Hc, >%Hb, Hrt⟩ Hclose
+  unfold srvWTTaken
+  icases monoNatLbOwn_valid γp 1 a n $$ Hc Hv with %Hva
+  replace Hva := Hva.2
+  ihave %Hlt := receipt_lt a $$ Ha
+  imod Hclose $$ [Ha Hg Hn Hc Hrt] with -
+  · inext
+    iexists a, m, d
+    iframe Ha Hg Hn Hc Hrt
+    ipureintro; omega
+  imodintro
+  ipureintro
   omega
 
 end defs_lc
