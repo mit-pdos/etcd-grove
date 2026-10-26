@@ -19330,3 +19330,26 @@ restated: any live set `L` before (`leaseOwn γl L`), `leaseOwn γl []` after. N
 caller; no axiom added or removed. The other boot resources S8d needs (`srvKVCloser`,
 `NewUberApplier`'s configuration fields and the feature gate, `8 · |peers|` of `lgMu`'s reader
 slots) are named premises of `applySnapshot.spec` like the others (the orchestrator).
+
+## D22 S8d: the spec stated, the walk proved, the post's assembly left (2026-10-26 · branch `worktree-agent-a9a2649236a655331`)
+
+- **Two triples in `applySnapshot`'s Spec file.** `EtcdServer.applySnapshot.spec` stays the empty
+  case (linked; `applyAll` calls it), `EtcdServer.applySnapshot.specSnap` is the non-empty case
+  (proved by `wp_proof_snap`, not linked). A conjunction `spec := specNil ∧ specSnap` was tried:
+  linking it puts the cache's assumptions and `ErrorStringLeaf` (the store's `Restore`, the backend's
+  callees) on `wp_applySnapshot`, hence on `wp_applyAll`/`wp_run`/`wp_start`/`wp_Start` and the closed
+  results `applyAll_model`, `server_run`, `server_start`, `server_Start`, whose sections do not have
+  them. **Question for the user (S-j1's, when it wires the snapshot into `applyAll`)**: (a) the four
+  results take the two instances (as the results over the store already do); (b) keep the snapshot
+  path's results separate. Recommendation: (a), the instances are the btree's and the error model's,
+  already in the trust base of every result over the store.
+- **Named premises added to `specSnap`** (pre-approved kinds: S-j1's inputs and boot resources):
+  the stores' contracts on whichever backend (`alarmApplyOk`, `authApplyOk`, `lessorApplyOk`,
+  `clusterApplyOk`, with `lessorCfg`, `lessorLookupOk` and `rcVersionChangedAddr`: what `NewServer`
+  derives `backendOptsOk` from), a second reader resource of the auth store (`E.RD`: the new
+  `NewUberApplier` takes one, the KV's `kvOwn` keeps one; `NewServer` drops the rest of its pool),
+  and the snapshot's entries `A'` with `hA'` (the rest model after them is the image's).
+- **Internal lemma changes**: `restorePre_of_apply` gives back the watchable store's own closer parts
+  (for `srvKVCloser` at the new names); InvBoot's `addPeer_dir`, `membersCov_step`,
+  `membersCov_done` omit the section's unused `MemStorReg` instance (it would have put the instance
+  on `applySnapshot`'s proof). No statement of a closed theorem or a trusted statement changed.

@@ -237,3 +237,70 @@ apply thread's resources before, `applyAll`'s post shape at the new backend afte
   return the old ones; `applySnapshot` then puts the new backend's (from `OpenSnapshotBackend`'s
   `newPostK`) in. It changes `srvBeOwn`, which `Results.lean:431` reaches through `srvApplyKV`.
 - **W8** (the user's): a named premise of `applySnapshot.spec`, discharged with the rafthttp track.
+
+## S8d, where it stopped (2026-10-26)
+
+Committed and building (the full `lake build`): the spec, the walk through the code, the
+composition; one lemma left, `srvSnapApplied_of_walk`, a `sorry` in its own module.
+
+- `Spec/.../EtcdServer__applySnapshot.lean`: `EtcdServer.applySnapshot.spec` (the empty case,
+  unchanged, linked, what `applyAll` calls) and `EtcdServer.applySnapshot.specSnap` (the non-empty
+  case, with all of S8d's named premises; post `srvSnapApplied`, `SnapApplyDefs.lean`). `specSnap`
+  is proved (`EtcdServer.applySnapshot.wp_proof_snap`, the proof file) but **not linked**: linking it
+  into `applyAll` adds `[go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ErrorStringLeaf]` to
+  `wp_applyAll`, `wp_run`, `wp_start`, `wp_Start` and so to the closed results `applyAll_model`,
+  `server_run`, `server_start`, `server_Start` (`Results.lean`: they fail to synthesize the cache's
+  assumptions), a statement change for the user (S-j1's question, below).
+- `SnapApplyDefs.lean`: the premise definitions (`srvAuthRecoverOk`, `srvMembersDir`,
+  `lessorLookupOk`), `snapWalkPost` (what the code leaves) and `srvSnapApplied` (the post).
+- `SnapApplyWalk.lean`: `applySnapshot_walk`, the code from `specSnap`'s precondition (less the
+  persistent contracts the walk does not use) to `snapWalkPost`; proved, ~100 s to check.
+- `SnapApplyPost.lean`: `srvSnapApplied_of_walk` (persistent part of the precondition, a second
+  `E.RD`, `snapWalkPost` ⊢ `|={⊤}=> srvSnapApplied`): **`sorry`**.
+- `EtcdServer__applySnapshot.lean` (proof): `wp_proof_snap` = walk, then the lemma (the long
+  argument lists are the walk's and the lemma's binders in order; edit them with the binders).
+
+**What `srvSnapApplied_of_walk` needs** (each a lemma, in a module of its own; check one module at a
+time, `lake build <module>`):
+
+1. **The names.** `γ' := γ.withPh (futPhys π0 γB)`, `TM' := metaTM γB d.P`, `st' := stLoaded γ' ⟨0, i,
+   i, false⟩` (so `ciEff γ' st'.k = i` from `π0.m0 = (i, t)`, and `loopOk γ' st' i`),
+   `E' := E.onBe p' (batchLockInv γ' TM') #g (srvCiC γ' ci) (srvRestOwnH γB cl H') (srvRestRWH γB H')`
+   with `H' := srvObjsOn al ast lp cl d'.be`; `beSucc γ E γ' E'` by `rfl`s; `E'.γ.kb = some d'`
+   from `p'.kb`.
+2. **`isServer s γ' ci TM' E' ρ γr`** from the old one: `isServerCI` (`HCI'` in `snapWalkPost`),
+   `srvFieldsAt` at `{v with hook := #g}` (`hookSpec` from `snapWalkPost`, `srvEnvOk` at `E'`: `E'.FS`
+   and `E'.ciC` by construction), and lemmas that `waitInv w ρ E'`, `srvAtomics s E' γr`,
+   `srvGenAt s E' ρ` equal the old ones (they read only `E.γ.idx`, `E.γ.cok`, `E.γrev`, logical
+   names `withPhys` keeps: `rfl` or `simp [apply.AEnv.onBe, mvcc.StoreNames.withPhys]` expected).
+3. **`backendOptsOk E' opts'`** (for `Hube`), as `NewServer.lean:1040-1110` does at boot:
+   `isApplyKV` (the KV at `E'.γ`: `isWatchableStore_withPhys`, the store's `ReadView`),
+   `mvcc.hookOk` (`hookP` from `snapWalkPost`, `hookFn` from `plHookRO γB g`: make it from `plHook`),
+   `isApplyLessor_of_lessorInv` (the 8 lease specs, `lessorInv`, `lessorCfg`, `lessorLookupOk`,
+   `lessorApplyOk lp` at `d'` with `rwLens`), `authApplyOk`, `alarmApplyOk`, `clusterApplyOk` at
+   `d'` (with `rcVersionChangedAddr`), `isRaftStatus`/`isSnapshotServer`/`isConsistentIndexer`
+   (the old `backendOptsOk`'s, from `applierFor ua E`, whose options are the same `s` and `ci`).
+4. **`srvApplyKV s E' ρ.wait x'`** with `x' := {chain := alarmChain …, log := [[], []] ++ R}`:
+   `applierFor`/`uberOwn` from `Hube`; `kvOwn E' ([[], []] ++ R)`: `storeReader`, `txn.kvWriter` from
+   `watchWriter γw (…)` (as `BuildLemmas.lean:140`: `soleBudget = wBudget`, `soleLog` from
+   `restoreLogOk R`'s non-empty revisions, `receiptBound ≤ 2^48` from `hrbw` and `wbInit = 2^40-1`),
+   `wlogOwn` at `γw.st.withPhys p'`, `writerFrag`, `writerOwn` (`HwOwnK` applied to a `storeRT` of
+   the new backend: one of `Restore`'s `nReaders` reader tokens, `bkRTx`), `leasesLive` (`leaseOwn
+   []`, `lessorRdOf`, `leasesKnown [] (stateAfter …)`: `restoreLogOk`'s lease-freedom), the second
+   `E.RD`; `srvBeOwn s E'` (`srvBeAddr ↦{½}`, `dghostVar E.γbe ¼ d'`); `revAuth E' x'.log` from
+   `revAuth E x.log` (`x.log <+: [[], []] ++ R`, longer); `waitOk` from `snapWalkPost`.
+   **Open point**: `x'.chain` (`kvApplied`'s `x.chain = γk.ch0` is S-j1's).
+5. **`srvRest E' γr A'`**: `srvRestOwnH γB cl H' (restModel … A')`, from `rbOwn d'.γB (inserted
+   buckets)`, `clusterMem cl memI` and `hA'`, with the four `*BeOn` at `d'.be`.
+6. **`srvKVCloser s E'`**: `srvKVAddr ↦□ ws`, `wsCloser ws E.s E'.γ` from `snapWalkPost`'s closer
+   parts and `storeCloser E.s (γw.st.withPhys p')` (`γw.st = E.γ`).
+7. The rest framed: `ep`'s fields, `epConfState` (`epCsOk_of_csOptA`), `isStopChans`/`bOpen ½` of
+   `d'`, `monoNatAuthOwn γt 1 i`, `pathOwn`, `trLive`/coverage, `Tal`, `srvLgReader`, `bemu`'s reader.
+
+**For S-j1, besides** ("For S-j1" above): `specSnap`'s named premises (the image's facts `hmeta`,
+`hkI`, `hRok`, `hpre`, `hlease`, `halarm`, `hauthb`, `hmemb`, `himg`, `hA'`; `srvAuthRecoverOk`;
+`srvMembersDir` and `8·|ps|` of `lgMu`'s slots; `srvKVCloser`; `NewUberApplier`'s fields, feature
+gate, `alarmGetIs`/`Tal`; the contracts `alarmApplyOk`, `authApplyOk`, `lessorApplyOk`,
+`clusterApplyOk`, `lessorCfg`, `lessorLookupOk`, `rcVersionChangedAddr`; a second `E.RD`, from
+`NewServer`'s dropped remainder of `HRDs`; W7's `isStopChans`/`bOpen ½`); `kvApplied` after the
+jump (`kv_cert_jump`); the instance question above.

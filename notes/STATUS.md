@@ -215,7 +215,11 @@ removed, ..., adequacy coverage" below.
     the auth store's `Recover` a named premise (the user's (a)); **blocked on two questions**
     (`notes/decisions.md`, "D22 S8d, second pass against the callees"): `RaftCluster.Recover`'s axiom
     ignores `clusterMem` (a gap in a trusted statement, no proof uses it yet) and `lessor.Recover`'s
-    wants `leaseOwn γl []`.
+    wants `leaseOwn γl []`. Both restated (the user's (a)). **Since 2026-10-26**: `specSnap` stated
+    and proved from `applySnapshot_walk` (the whole code, proved) and `srvSnapApplied_of_walk` (the
+    post's assembly: **`sorry`**, its seven steps listed in `notes/snapshot-s8-plan.md`, "S8d, where
+    it stopped"); not linked (linking adds the cache's assumptions to `applyAll_model` and the run
+    results: a question, `notes/decisions.md`, "D22 S8d: the spec stated, the walk proved").
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.
