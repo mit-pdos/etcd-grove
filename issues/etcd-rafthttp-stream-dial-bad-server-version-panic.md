@@ -1,7 +1,10 @@
 ---
-upstream: unchecked
-checked: 2026-10-23
-links: []
+upstream: known
+checked: 2026-10-26
+links:
+  - etcd-io/etcd#21829 pr open: same root cause and fix (`serverVersion`/`minClusterVersion` fall back to 2.0.0 on a parse error), by someone else; framed as the handler side, not the dialer's crash; needs-rebase since 2026-08-05, no review
+  - etcd-io/etcd#22261 pr open: related, different: a `v`-prefixed `X-Server-Version` from a new build fails to parse at older (coreos/go-semver) peers, so the parse failure is reachable between etcd builds
+  - etcd-io/etcd#21839 pr merged: the switch to Masterminds/semver/v3 (9d5720273, in the pin): `MustParse` still panics on a non-version
 ---
 
 # rafthttp: a peer's malformed `X-Server-Version` panics the dialing member
@@ -9,7 +12,13 @@ links: []
 **Status**: a reachable panic (a robustness bug): a response to a stream dial whose
 `X-Server-Version` header does not parse as a semantic version crashes the member that dialed.
 Between etcd members the header is always `version.Version`, so only a non-etcd (or misbehaving)
-server at a peer URL, or a proxy rewriting the header, reaches it.
+server at a peer URL, or a proxy rewriting the header, reaches it. Between etcd builds the parse
+can fail too: etcd-io/etcd#22261 (open) reports that a `v`-prefixed version from a custom build
+does not parse at release-3.6/3.5 peers, which still use coreos/go-semver's
+`semver.Must(semver.NewVersion(...))` (`util.go:154`, `:164`) and so panic the same way; `main` and
+the pin use Masterminds/semver/v3 (etcd-io/etcd#21839), whose `MustParse` accepts the prefix but
+still panics on a non-version. Same code on upstream `main` `f3221acd1` (rechecked 2026-10-26);
+etcd-io/etcd#21829 (open, unreviewed) has the fix.
 
 **Where** (`upamanyus/etcd` `188113160d`, upstream's code unchanged):
 `server/etcdserver/api/rafthttp/stream.go:612`, `streamReader.dial`:

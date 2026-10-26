@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked: 2026-10-24
+upstream: none
+checked: 2026-10-26
 links:
+  - etcd-io/etcd#13682 pr merged: related, not this bug (oss-fuzz 44478): made the `AuthenticateParamIndex` assertion in `tokenSimple.assign` checked, leaving the `AuthenticateParamSimpleTokenPrefix` one on the next line unchecked
 ---
 
 # auth: the simple token provider's `assign` panics on a context with the index but no token prefix
@@ -39,6 +40,8 @@ links:
   simple provider's `assign` needs the two values as a premise of the contract (`notes/decisions.md`,
   "S5 of the auth plan").
 - **Possible fixes**: `simpleTokenPrefix, ok := ctx.Value(AuthenticateParamSimpleTokenPrefix{}).(string);
-  if !ok { return "", errors.New("failed to assign") }`.
+  if !ok { return "", errors.New("failed to assign") }`. The index's assertion on the line before
+  was made checked by etcd-io/etcd#13682 (oss-fuzz 44478, 2022), which left this one; unchanged on
+  upstream `main` `f3221acd1` (`simple_token.go:222`, rechecked 2026-10-26).
 - **Found**: 2026-10-24, the auth plan's S5, stating the token provider's contract for
   `Authenticate`.

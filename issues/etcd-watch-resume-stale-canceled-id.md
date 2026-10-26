@@ -1,8 +1,11 @@
 ---
-upstream: unchecked
-checked: 2026-10-20
+upstream: none
+checked: 2026-10-26
 links:
-  - etcd-io/etcd#22191 pr open: its fix (delete the substream from substreams after close(recvc)), the same as the verified fork's 107edf7e4, introduces this bug: the dropped substream keeps its watch id
+  - etcd-io/etcd#22191 pr open: its fix (delete the substream from substreams after close(recvc)), the same as the verified fork's 107edf7e4, introduces this bug: the dropped substream keeps its watch id; still its one commit (34aa7c606), unreviewed, labeled stale 2026-10-24
+  - etcd-io/etcd#21981 pr closed: the same fix as #22191 (would introduce this bug too); closed unmerged 2026-07-17
+  - etcd-io/etcd#21969 issue closed: the panic #22191 and #21981 fix (`etcd-watch-progress-closed-substream`); closed not planned by the stale bot 2026-10-15
+  - etcd-io/etcd#21069 pr closed: related, different: watch ids unique per member (would remove this bug's precondition, ids reused across streams); closed unmerged 2026-01-14
 ---
 
 # After a reconnect, a server-canceled watch's stale id can delete the resumed watch that reuses it
@@ -11,7 +14,8 @@ links:
   stuck in its teardown), introduced by the fix of
   [etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md) (the verified
   fork's `107edf7e4`, cherry-picked from `1ac646214`; etcd-io/etcd#22191 proposes the same fix
-  upstream), so present at the pinned `upamanyus/etcd` `8a24be2a3` and not in upstream `main`
+  upstream: still unmerged, unreviewed and labeled stale 2026-10-24, rechecked 2026-10-26; its
+  diff still keeps the id), so present at the pinned `upamanyus/etcd` `8a24be2a3` and not in upstream `main`
   (where the same window is the panic of
   [etcd-watch-resume-closing-substream](etcd-watch-resume-closing-substream.md)). Reproduced
   (3 runs of 3 hit it, within 5 to 54 trials); fixed on the fork branch `watch-resume-fixes`
