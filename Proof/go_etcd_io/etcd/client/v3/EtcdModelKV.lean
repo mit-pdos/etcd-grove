@@ -591,6 +591,66 @@ theorem km_etcdState_of (γ : KMNames) (σ : KVState) (r : Nat) (pfx : GoString)
       stateAt_of_prefix (List.take_prefix (r + 1) σ.log) (r := r) (by rw [List.length_take]; omega)]
   · ipureintro; exact stateAtPfx_wf σ.log r pfx
 
+/-- A well-formed state's revision is its number of changes, its store its log's last. -/
+theorem kvLogOk_rev (σ : KVState) (h : kvLogOk σ) : σ.rev = σ.changes.length := by
+  have hc : σ.compacted = 0 := by rw [h.1]; rfl
+  simp only [KVState.rev, hc, Nat.zero_add]
+
+theorem kvLogOk_kvs (σ : KVState) (h : kvLogOk σ) : σ.kvs = stateAfter σ.log := by
+  have he := h.1
+  have : σ.kvs = (kvStateOf σ.log).kvs := by rw [← he]
+  rw [this, kvStateOf_kvs]
+
+/-- **A floor from what the caller knows** (`etcdReached lo`): changes the client saw, `lo` of
+them or more. -/
+theorem km_reached_lb (γ : KMNames) (lo : w64) :
+    etcdReached (EM := etcdModelOfKV (GF := GF) γ) lo ⊢
+      |==> ∃ l0 : List (List Change), monoListLbOwn γ.ch l0 ∗ ⌜sint.Z lo ≤ l0.length⌝ := by
+  unfold etcdReached
+  iintro (%H | ⟨%r', %Hr, #Ha⟩)
+  · imod (monoListLbOwn_nil (GF := GF) (A := List Change) γ.ch) with #H0
+    imodintro
+    iexists []
+    iframe H0
+    ipureintro; simp; omega
+  · rw [etcdModelOfKV_etcdReachedAt]
+    iunfold kmReachedAt at Ha
+    icases Ha with ⟨%l, #Hl, %Hle⟩
+    imodintro
+    iexists l
+    iframe Hl
+    ipureintro; omega
+
+/-- **etcd has reached a revision the client saw** (`etcdReached`, `etcdReadAt`). -/
+theorem km_reached_of (γ : KMNames) (l : List (List Change)) (n : Nat) (h : n ≤ l.length)
+    (h63 : n < 2 ^ 63) :
+    monoListLbOwn (GF := GF) γ.ch l ⊢
+      etcdReached (EM := etcdModelOfKV γ) (W64 (n : Int)) ∗ kmReachedAt γ (W64 (n : Int)) := by
+  have hz : sint.Z (W64 (n : Int)) = n := by word
+  iintro #Hl
+  ihave #Ha : kmReachedAt γ (W64 (n : Int)) $$ []
+  · unfold kmReachedAt; iexists l; iframe Hl; ipureintro; omega
+  iframe Ha
+  unfold etcdReached
+  iright
+  iexists W64 (n : Int)
+  isplitr
+  · ipureintro; exact Int.le_refl _
+  imodintro
+  rw [etcdModelOfKV_etcdReachedAt]
+  iexact Ha
+
+/-- **etcd's state at a well-formed state's current revision** (`km_etcdState_of` at the last). -/
+theorem km_etcdState_last (γ : KMNames) (σ : KVState) (pfx : GoString) (h : kvLogOk σ) :
+    monoListLbOwn (GF := GF) γ.ch σ.changes ⊢
+      □ kmEtcdState γ (W64 (σ.rev : Int)) pfx (underPfx pfx (stateAfter σ.log)) ∗
+      ⌜EtcdStateWf pfx (underPfx pfx (stateAfter σ.log))⌝ := by
+  have hl := (kvLogOk_log h).2.2.2
+  have hst : stateAt σ.log σ.rev = stateAfter σ.log := by
+    rw [show σ.rev = σ.log.length - 1 by omega, stateAt_last]
+  rw [← hst]
+  exact km_etcdState_of γ σ σ.rev pfx h
+
 end ghost
 
 end client

@@ -72,7 +72,7 @@ theorem Cache.serverRevision.wp_proof
     · iapply etcdReached_zero
     ipureintro
     refine ⟨?_, rfl, (by simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)),
-      (by simp [op_simps] <;> (try split) <;> (try simp))⟩
+      (by simp [op_simps] <;> (try split) <;> (try simp)), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
     rintro ⟨h, -⟩
     cases h
   iunfold kvGetResultC at Hres

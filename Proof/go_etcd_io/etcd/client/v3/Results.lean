@@ -2503,42 +2503,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **etcd's client's watcher meets the clients' range-watch contract** (unit W-C; the closable
-one, `isEtcdRangeWatcher`, `cache/v3/InvEtcdTxn.lean`) at the server's model
-(`v3rpc.etcdModelOfServer V.R.E`): `isEtcdRangeWatcher_of_watcher` at the linked
-`watcher.Watch` (`watch.go`'s `Watch`, `run`, `serveSubstream`, ..., over the generated stub
-`watchClient_Watch`). The watcher `isClientWatcher V w` rests on `watchConnFacts V`: the
-registration `isGrpcStream … (watchUp V.R.γ) (watchSpec V.R)` at the connection's address, what
-`v3rpc.etcd_watch_served_etcd_chain` gives for etcd's server; of the server facts W-C assumed,
-S2 `srvProgressAllAnswers` and S3 `srvEventIdsAssigned` are theorems since unit W-M2
-(`srvProgressAllAnswers_holds`, `srvEventIdsAssigned_holds`), and S4 since units W-M2b and W-M3:
-the events are of a watched log (`mvcc.evLog`): sealed (`mvcc.idxSealed`, over which the clients'
-model's `etcdState`/`EtcdStep` are stated) and certified by the apply thread before the store
-notifies it (`certOk`, over which `etcdReached` is stated: the KV model of a committed raft
-prefix), so a watch event's revision is reached (`ev_ok`); the remaining premises are the wire's,
-`srvNoDupKeys`
-(`issues/etcd-txn-check-intervals-sibling.md`) (until 2026-10-20 also `noRetryableStreamErr`, the
-reconnection excluded; D25 verifies it), the watch-token supply, `srvLogsSmall`
-(`srvLogsSmall_of_read`) and `V.R.γ.st = V.R.E.γ` (`watchSrvLink_of_server`). -/
-theorem client_watcher_rangeWatcher (V : WEnv GF) (w : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
-    isEtcdRangeWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx :=
-  isEtcdRangeWatcher_of_watcher v3.watcher.wp_Watch V w
-
-/-- **etcd's client's watcher is the cache's** (K2e-8): a `*watcher` over etcd's server meets the
-cache's watcher contract (`isEtcdWatcher`: a prefix watch's channel satisfies the cache's watch
-contract, `watchRespOk`, complete: every event of the prefix after the start, and progress
-notifications at revisions the stream has covered) for a prefix not all `0xff` (non-empty: by
-`watchConnFacts`). Its premises are `client_watcher_rangeWatcher`'s. -/
-theorem client_watcher_etcdWatcher (V : WEnv GF) (w : Loc) (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
-    isEtcdWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx :=
-  isEtcdWatcher_of_watcher v3.watcher.wp_Watch V w hff
-
 /-- **etcd's client's watcher is the cache's progress notifier** (K2e-9): `RequestProgress`
 (linked) returns an error whose `Error()` gives a string; the progress notification itself shows
 up on the watch channels (`client_watcher_etcdWatcher`). -/
@@ -2548,36 +2512,6 @@ theorem client_watcher_progressNotifier (V : WEnv GF) (w : Loc) :
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
     isEtcdProgressNotifier (watcherIfaceOf w) :=
   isEtcdProgressNotifier_of_watcher v3.watcher.wp_RequestProgress V w
-
-/-- **`NewWatcher(c)` returns a range watcher** (unit W-C): over a client `c` whose connection
-satisfies `watchConnFacts V`, `NewWatcher` (linked) returns the `Watcher` interface of a
-`*watcher` meeting the clients' closable range-watch contract at the server's model. -/
-theorem client_newWatcher_rangeWatcher (V : WEnv GF) (c : Loc) (callSl : GoSlice)
-    (vs : List GoInterface) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-        isPkgInit (PROP := IProp GF) pkg_id.context ∗
-        watchConnFacts V ∗ ⌜c ≠ null⌝ ∗
-        structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" c ↦□ V.conn ∗
-        structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ callSl ∗
-        callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
-      (App (Val (@! go_etcd_io.etcd.client.v3.NewWatcher)) (Val #c))
-    {{ (wi : GoInterface), RET #wi; ∃ (w : Loc),
-        ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗
-        isEtcdRangeWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx }} := by
-  iintro %Φ ⟨#P1, #P2, #P3, #Hf, %Hc, #Hconn, #Hcall, #Hvs, #Hok, #Hlg, %Hb⟩ HΦ
-  iapply (v3.wp_NewWatcher V c callSl vs) $$ [] [HΦ]
-  · iframe #; ipureintro; exact ⟨Hc, Hb⟩
-  · iintro !> %wi ⟨%w, %wc, %lg, %Hwi, Hw⟩
-    iapply HΦ
-    iexists w
-    isplitr; · ipureintro; exact Hwi
-    iapply (client_watcher_rangeWatcher { V with wc := wc, lg := lg } w) $$ [Hw]
-    iframe #
-    iapply isClientWatcher_of_core
-    iframe Hw
-    iapply (show watchConnFacts (GF := GF) V ⊢ watchConnFacts { V with wc := wc, lg := lg } from by
-      unfold watchConnFacts; exact .rfl) $$ Hf
 
 end watcher
 
@@ -3238,10 +3172,7 @@ end client
 #print axioms Perennial.EtcdGrove.client.etcd_deleteMethodOk
 #print axioms Perennial.EtcdGrove.client.etcd_kv_served
 #print axioms Perennial.EtcdGrove.client.watchClient_Watch
-#print axioms Perennial.EtcdGrove.client.client_watcher_rangeWatcher
-#print axioms Perennial.EtcdGrove.client.client_watcher_etcdWatcher
 #print axioms Perennial.EtcdGrove.client.client_watcher_progressNotifier
-#print axioms Perennial.EtcdGrove.client.client_newWatcher_rangeWatcher
 #print axioms Perennial.EtcdGrove.client.client_lessor_isEtcdLease
 #print axioms Perennial.EtcdGrove.client.client_new_isEtcdLeaseClient
 #print axioms Perennial.EtcdGrove.client.etcd_leaseGrantHandlerOk
