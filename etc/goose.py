@@ -186,7 +186,10 @@ PROJECTS = [
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
                     "crypto/tls=",
-                    "github.com/grpc-ecosystem="],
+                    "github.com/grpc-ecosystem=",
+                    # the server's UserAdd/UserChangePassword (the auth plan's E2x): base64 names
+                    # only, the k8s-apiserver project's translation (Code/encoding/base64.toml)
+                    "encoding/base64="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",

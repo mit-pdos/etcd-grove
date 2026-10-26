@@ -1435,6 +1435,26 @@ end userAddSure
 
 #print axioms Perennial.EtcdGrove.auth_user_add_sure
 
+section userAddHandler
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The server's `UserAdd` proposes a request whose password choice cannot fail** (the auth
+plan's E2x, `EtcdServer__UserAdd.lean`): unless no password is asked for, the password is hashed
+(`bcrypt.GenerateFromPassword`, the trust boundary, D-AU6) and its hash put base64-encoded
+(`StdEncoding.EncodeToString`, base64's package fact) with the password cleared, so the proposed
+model is `pwSure`: the proposer's obligation of E2t/E2u, discharged at the handler. -/
+theorem server_user_add_sure :
+    EtcdServer.UserAdd.spec (GF := GF) (hG := hG) :=
+  EtcdServer.wp_UserAdd
+
+end userAddHandler
+
+#print axioms Perennial.EtcdGrove.server_user_add_sure
+
 section tokens
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

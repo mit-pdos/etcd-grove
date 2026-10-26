@@ -380,6 +380,22 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     finish=FIN_PRE[:6],
 )
 
+SPECIAL['encoding.base64'] = dict(
+    doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26):
+`StdEncoding` holds a fixed `*Encoding` whose `EncodeToString` returns the standard encoding
+(`stdEnc`) of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
+Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
+axiom `StdEncoding_init` states the one the fact reads (`NewEncoding(encodeStd)`, a fresh
+`*Encoding` with the standard alphabet and padding, whose `EncodeToString` allocates its output
+buffer, `Encode`s into it and returns it as a string: no panic, no write to its argument),
+`opaqueInitsOk` the others.''',
+    custom={'StdEncoding': dict(
+        doc='/-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument\'s bytes, reading and keeping the slice. -/',
+        post='_root_.Perennial.encoding.base64.base64Init (GF := GF)',
+        pat='#H@')},
+    finish=FIN_PRE[:6],
+)
+
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
     doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` holds a string.
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:

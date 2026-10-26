@@ -65,6 +65,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Stopping
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__StoppingNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserAdd
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserDelete
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserGet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__UserGrantRole
@@ -194,6 +195,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.golang_org.x.crypto.bcrypt.CompareHashAndPassword
+public import Proof.golang_org.x.crypto.bcrypt.GenerateFromPassword
 public import Proof.encoding.binary.ReadUint64
 public import Proof.encoding.binary.WriteUint64
 public import Proof.encoding.binary.WriteUint8
@@ -894,6 +896,10 @@ theorem «attribute».wp_Int :
 theorem TxnRequest.wp_GetFailure :
     TxnRequest.GetFailure.spec (GF := GF) (hG := hG) :=
   TxnRequest.GetFailure.wp_proof
+
+theorem bcrypt.wp_GenerateFromPassword :
+    bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG) :=
+  bcrypt.GenerateFromPassword.wp_proof
 
 theorem io.wp_Pipe :
     io.Pipe.spec (GF := GF) (hG := hG) :=
@@ -2093,6 +2099,10 @@ theorem wp_firstOpLease :
 theorem EtcdServer.wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) :=
   EtcdServer.Txn.wp_proof txn.wp_IsTxnReadonly traceutil.Tracer.wp_Start trace.wp_WithAttributes TxnRequest.wp_GetCompare wp_firstCompareKey «attribute».wp_String TxnRequest.wp_GetSuccess wp_firstOpKey wp_firstOpType wp_firstOpLease «attribute».wp_Int64 «attribute».wp_Int TxnRequest.wp_GetFailure «attribute».wp_Bool EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_IsTxnSerializable traceutil.Trace.wp_Step apply.wp_CheckTxnAuth txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn EtcdServer.wp_doSerialize context.wp_WithValue EtcdServer.wp_raftRequest proto.wp_Size
+
+theorem EtcdServer.wp_UserAdd :
+    EtcdServer.UserAdd.spec (GF := GF) (hG := hG) :=
+  EtcdServer.UserAdd.wp_proof bcrypt.wp_GenerateFromPassword
 
 theorem EtcdServer.wp_UserDelete :
     EtcdServer.UserDelete.spec (GF := GF) (hG := hG) :=
