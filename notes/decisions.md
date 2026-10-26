@@ -19490,3 +19490,7 @@ Decided by the orchestrator while the user was away (J7):
   `restModel_bk_of_bkRestAt`, ...) stay in `SnapRecvFacts.lean`, not `InvRest`/`InvImage`: adding
   them there would rebuild most of the server while other stages edit nearby; they can move in a
   clean-up.
+- **The baseline**: `etc/tcb-report.py --check` (and the `snapshot` collection) match unchanged
+  (720 axioms, 6 `sorry`s): the TCB counts what the linked roots reach, and no root reaches
+  `SnapRecvFacts` until J8b links `specSnap`'s proof, so the new axiom enters
+  `etc/tcb-baseline.txt` then (`--check --update` at J8b), not now.
