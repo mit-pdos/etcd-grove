@@ -2052,6 +2052,16 @@ theorem server_delete_range_on : EtcdServer.DeleteRange.specOn (GF := GF) (hG :=
     DeleteRangeRequest.wp_GetRangeEnd traceutil.Tracer.wp_Start trace.wp_WithAttributes
     «attribute».wp_String
 
+/-- **A writing transaction in the auth mode `on`** (`server_put_on`'s; the auth plan's E3d): a
+success is a transaction the auth state its entry met granted, its client's result at the log the
+entry met; a refusal an error. Every callee linked. -/
+theorem server_txn_on : EtcdServer.Txn.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.Txn.wp_proofOn txn.wp_IsTxnReadonly traceutil.Tracer.wp_Start trace.wp_WithAttributes
+    TxnRequest.wp_GetCompare wp_firstCompareKey «attribute».wp_String TxnRequest.wp_GetSuccess
+    wp_firstOpKey wp_firstOpType wp_firstOpLease «attribute».wp_Int64 «attribute».wp_Int
+    TxnRequest.wp_GetFailure «attribute».wp_Bool EtcdServer.wp_Logger traceutil.wp_EnsureTrace
+    context.wp_WithValue server_raft_request_on
+
 end serverProposeOn
 
 end EtcdGrove
@@ -2065,3 +2075,4 @@ end Perennial
 
 #print axioms Perennial.EtcdGrove.server_put_on
 #print axioms Perennial.EtcdGrove.server_delete_range_on
+#print axioms Perennial.EtcdGrove.server_txn_on

@@ -21338,3 +21338,54 @@ and everything in `ReqOn.lean`.
   statements (they are of the changed definitions). No closed theorem changed.
 
 **Trust base.** Unchanged.
+
+## E3d of the auth plan: a writing transaction in the auth mode `on`; the `PrevKv` fix, the read path and the handlers left, with why (2026-10-27 · `notes/auth-plan.md`, E3b's "Not done" (1)-(3))
+
+**Done.** *A writing `Txn` in the mode `on`* (`EtcdServer.Txn.specOn`/`wp_proofOn`, beside `spec`,
+which keeps its text): a transaction that is not read-only (`⌜txn.txnReadonly t = false⌝`), at the
+server as a proposer sees it in the mode `on` (`isServerReqM true`), with `s.Logger()`'s field and
+reader slot (`EnsureTrace` reads it; `spec` took it from the read side's `srvRdCall`), `E.RD`, and
+`txnPermitOn` (`txnPermit` and every permission the transaction's checks need of the permission
+cache's shape, `kvShapeAll`); the post is `spec`'s writing case: a success (`txnAppliedOk`) is a
+transaction the auth state its entry met granted, so its client's update fired there and `Q` holds
+at the log the entry met (`txnQhOn_res`, through E3b's `grantedRes_applied`); a refusal is an error
+(`txnErrOk`). `ReqOn.lean` gains `txnPermitOn`, `txnQhOn`, `irrTxn_kind`, `txnPermitOn_reqPropOk`,
+`txnQhOn_res`. Restated linked: `server_txn_on` (`etcdserver/Results.lean`). No exported statement
+changed; trust base unchanged.
+
+**Not done.**
+1. *The `PrevKv` model fix* (E2y's finding; E3b's proposed wire tree). Designed further, not built:
+   - *The wire tree must be a function of the heap.* `proto.MarshalIRR`'s axiom says the encoding of
+     the request `internalRaftRequestIs p rq` holds decodes to `rq` (no range end `[0]`), and the
+     decoding `irrDecode` is a function; so `internalRaftRequestIs p` must determine `rq`. A field
+     the predicate leaves open (e.g. a `txnW : Option TxnModelW` that may be `none` when the heap has
+     a transaction) would let two models hold of one heap, and the axiom would then give `False` from
+     one deterministic `Marshal`. So the server-side tree has to be pinned by the heap like every
+     other field.
+   - *So the proposers name it.* `irrTxn t` (about 45 uses: `InvProposer`, `InvRead`, `EtcdServer__Txn`,
+     the client's `KVService`/`ServerKVTxn`, `examples/linkvtxn`, v3rpc's `ServerKV`) would take the
+     wire tree (`irrTxn tw`, `t = tw.toModel`), changing those statements' text (not their meaning).
+     The proposer gets the tree from the heap: `txnRequestIs r t ⊢ ∃ tw, txnRequestIsW r tw ∗
+     ⌜tw.toModel = t⌝` is derivable, since `requestOpIs` keeps each put's `OpFull` (existentially).
+   - *Recommended shape*: `IRRModel.txn : Option TxnModelW` (an `OpFull` per put, `toModel` to
+     today's `TxnModel` through `putTxnOp`), `txnRequestIsW` beside `txnRequestIs` (the latter derived),
+     the apply side reading `rq.txn.map toModel` where it reads `TxnModel` today, `opPerms` over
+     `TxnOpW` (a put with `PrevKv` also needs read, as `checkPutAuth`); then `txnVerdictOwn` is proved.
+     The client's `TxnOp` stays as it is. A refactor of its own (the request model and every
+     transaction statement on the server side), not a lemma; until then `txnVerdictOwn` stays the
+     transaction's premise, and `Txn.specOn`'s success rests on the apply thread's `authTie`, which
+     for a transaction with such a put the apply thread can give only under that premise.
+2. *A read-only `Txn` and `Range` in the mode `on` (the read path).* Both read through
+   `doSerialize` at the read side's view (`isServerRead`), whose KV invariants (`srvKVInvs`,
+   `srvAppliedInv`'s `appliedLogAt`, `readWit_fire` in `KVRead.lean`) are the mode-off model's. The
+   mode-`on` read needs those over `kvInvOn`/`kvModelOn`, which the apply loop in the mode `on`
+   maintains (E3a's blocker 4: `applyEntryNormal` over `kvRunOn`, the applied logs published); so
+   it waits on that. Also open there: what a read promises in the mode `on`. `doSerialize` checks
+   at the auth store (S3's verdict: permitted at *some* recorded state), reads, and then refuses
+   (`ErrAuthOldRevision`) when the principal's revision is not `0` and differs from the store's
+   revision after the read; the read's statement (E2b's "no reply reveals a key outside the
+   principal's read permissions") is at that recorded state, bounded by the revision check.
+3. *The gRPC handlers* (v3rpc's `kvServer`): `ServerKV.lean` builds the handlers' answers
+   (`srvKVAns`, `kvTxnOk_of_server` and the others) from all four server methods, the read side
+   included, so they wait on (2); `Put`/`DeleteRange`/writing `Txn` in the mode `on` are ready for
+   them (`server_put_on`, `server_delete_range_on`, `server_txn_on`).
