@@ -625,3 +625,34 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   `iintro`.
 - **Proposed change.** Not designed: a minimal reproduction first; the tactic should report
   where and why it fails.
+
+### An `RWMutex`'s reader slots are leaked by readers that hold them for life
+
+- **Missing** (2026-10-26, D22 J0). `RWMutex.RLock` takes a reader token (`ownRLockToken`), of which
+  a lock has `actualMaxReaders` (`2^30 - 1`, `ownRWMutex`'s `Hmax`). A goroutine or an object that
+  takes a token for its whole life and is then abandoned (not joined) leaks it in the proof, while
+  in Go only the readers inside `RLock`..`RUnlock` at one time count. etcd's server repeats this
+  once per received snapshot: `applySnapshot`'s `RemoveAllPeers` stops each peer without joining
+  its two `Process` goroutines (`peer.go:173-205`, `:314-333`), which hold a slot of the server's
+  `lgMu` each (`startPeer.lean`'s `HR7`/`HR8`), and the new `UberApplier` takes a slot of the auth
+  store's `enabledMu` that the old one never gives back. So any finite stock runs out after enough
+  snapshots, and an unbounded number of snapshots cannot be verified.
+- **Needed by.** D22's second-snapshot loop (`notes/snapshot-sj-plan.md`, "J0 decisions", gap 5;
+  stages J8b and L3).
+- **Workaround here.** None that is free. Until the change lands, J8a states `srvSnapApplied` with
+  the slots it can return and the stock threaded from `NewServer` (`NewServer` drops the rest of
+  `NewAuthStore`'s `actualMaxReaders` slots and `lgMu`'s today: J1b keeps them), and J8b closes the
+  loop only if the stock suffices; the fallback is a named premise bounding the snapshots a member
+  applies in a run, for the user's approval.
+- **Proposed change.** `RLock` paid by a thread token (`GooseLang/Threads.lean`) when
+  `threadBound ≤ actualMaxReaders`: every reader is a live thread, so the readers at one time are
+  bounded by the threads, which is the real reason Go's counter does not overflow. A reader token
+  then need not be held between critical sections. Not yet designed; general (any program whose
+  goroutines read-lock a long-lived `RWMutex`), not shaped by this proof.
+- **Landed** (2026-10-26, Perennial `3c64ae292`, branch `rlock-thread-token`): `Perennial/Proof/ThreadPool.lean`
+  (`threadPool.isThreadPool N γ R`: at least `threadBound - 1` copies of `R`, a thread token swapped for
+  a copy, `borrow`/`borrow_lc`/`giveBack`) and `Perennial/Proof/sync/RWMutexThreads.lean`
+  (`init_RWMutex_threadPool`: every reader token in a pool, premise `threadBound GF ≤ 2^30`). Additive,
+  no trusted-base change. Limitation: one thread token borrows one copy at a time, so a thread holding
+  two thread-paid read locks at once pays the second with a stock token. The pin bump is still to do
+  (with J8b).

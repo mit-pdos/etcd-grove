@@ -39,7 +39,15 @@ theorem snap_kvCloser (s : Loc) (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : Me
       structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsk ↦□ stck ∗
       mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk ∗ mvcc.storeCloser E.s (γw.st.withPhys p') ⊢
     srvKVCloser s (snapE E γ' TM' ci p' g γB al ast lp cl be) := by
-  sorry
+  unfold srvKVCloser mvcc.wsCloser
+  simp only [snapE_s, snapE_γ]
+  rw [← hγw]
+  iintro ⟨#Hk, #Hst, Hsc, Hw, Hc⟩
+  iexists wsk
+  iframe
+  isplitl []
+  · iexact Hk
+  · iexact Hst
 
 end proof
 end EtcdGrove

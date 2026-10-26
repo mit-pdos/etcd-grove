@@ -287,3 +287,14 @@ W2). If the auth track states the server in a mode where auth is on, `Recover` n
 `RD` must then lend the current backend's read rights, and in-flight checks may still hold the old
 backend's read transaction when the old backend closes (Go's `Close` waits; the backend's `Close`
 spec takes all of `bOpen`).
+
+## Note from the snapshot track (D22 J0, 2026-10-26; decided by the orchestrator while the user was away)
+
+`applySnapshot.specSnap`'s named premise `srvAuthRecoverOk` (the server's auth store's `Recover` on
+a new backend, `SnapApplyDefs.lean:80`) is to come from `auth.NewAuthStore.spec` itself: D22's stage
+J1a restates that axiom, its post gaining the same triple (renamed `authRecoverOk stl`, moved beside
+`authApplyOk`), true in the axiom's mode (auth off for the store's life: S8c's argument, which the
+docstring takes over). No axiom is added and the premise goes. When the E stage proves the server's
+`NewAuthStore` (the authority at the server), it proves this clause too, from the proved
+`auth.authStore.Recover.spec`; a server with auth on needs it restated as the S8c note above says.
+(`notes/snapshot-sj-plan.md`, "J0 decisions", item 8.)

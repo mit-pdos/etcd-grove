@@ -51,7 +51,30 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
       isServerCI s (snapγ γ π0 γB) ci ∗ hookSpec (snapγ γ π0 γB) ci (metaTM γB P) #g ⊢
     isServer s (snapγ γ π0 γB) ci (metaTM γB P)
       (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ γr := by
-  sorry
+  unfold isServer srvFieldsAt
+  iintro ⟨⟨%Hrd, #Hci, Hv, #Hat, #Hgen, #Hrn⟩, #Hcl, #Hci', #Hhook⟩
+  icases Hv with ⟨%v, Hf⟩
+  icases Hf with ⟨#Hlg, %Hlgn, #Hw, #Hwi, %HP, %Henv, #Hhk, #Hles, #Hlok, #Hfc, #Hal,
+    #Hclv, #Hrc, #Hq, #Hlm, #Hmid, #Hli, #He, #Ht, #Hn, #Has⟩
+  icombine Hcl Hclv gives %Heq
+  subst Heq
+  have hok : srvEnvOk s (snapγ γ π0 γB) ci
+      (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp v.cluster d'.be) v.cluster :=
+    ⟨Henv.1, rfl, γB, _, rfl, rfl, d', al, ast, lp, snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', hγB,
+      rfl⟩
+  rw [srvAtomics_snapE, srvGenAt_snapE]
+  isplitr
+  · ipureintro; exact Hrd
+  isplitr
+  · iexact Hci'
+  isplitr
+  · iexists { v with hook := #g }
+    simp only
+    rw [waitInv_snapE]
+    iframe #
+    ipureintro
+    exact ⟨Hlgn, ⟨rfl, rfl⟩, hok⟩
+  iframe #
 
 end proof
 end EtcdGrove

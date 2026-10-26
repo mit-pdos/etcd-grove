@@ -42,7 +42,13 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
     backend.rbOwn d'.γB bk ∗ membership.clusterMem cl memI ∗
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ⊢
     srvRest (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) γr A' := by
-  sorry
+  subst hγB
+  unfold srvRest
+  rw [snapE_RO]
+  unfold srvRestOwnH srvRestOwn srvObjsOn
+  rw [hA'.1, hA'.2]
+  iintro ⟨H1, H2, H3, H4, H5, H6⟩
+  iframe
 
 end proof
 end EtcdGrove
