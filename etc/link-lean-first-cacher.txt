@@ -16,6 +16,7 @@ BTree__Clone: @
 BTree__Get: @
 BTree__ReplaceOrInsert: @
 BTree__Delete: @
+BTree__Clear: @
 #
 # k8s.io/apiserver/pkg/storage/cacher/store (`btree.go`, `store.go`)
 newBtreeStore: btree_New
@@ -25,6 +26,7 @@ btreeStore__getByKey: BTree__Get
 btreeStore__GetByKey: btreeStore__getByKey
 btreeStore__addOrUpdateElem: BTree__ReplaceOrInsert
 btreeStore__deleteElem: BTree__Delete
+btreeStore__Replace: BTree__Clear btreeStore__addOrUpdateElem
 indexer__add:
 indexer__delete:
 indexer__updateElem: indexer__add indexer__delete

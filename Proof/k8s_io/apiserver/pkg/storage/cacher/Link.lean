@@ -18,6 +18,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage_
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage__UpdateStore
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__Clone
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__GetByKey
+public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__Replace
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__ResourceVersion
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__addOrUpdateElem
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__deleteElem
@@ -140,6 +141,10 @@ theorem btreeStore.wp_getByKey :
 theorem btreeStore.wp_GetByKey :
     EtcdGrove.cacher.btreeStore.GetByKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cacher.btreeStore.GetByKey.wp_proof btreeStore.wp_getByKey
+
+theorem btreeStore.wp_Replace :
+    EtcdGrove.cacher.btreeStore.Replace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.btreeStore.Replace.wp_proof btree.BTree.wp_Clear btreeStore.wp_addOrUpdateElem
 
 theorem btreeStore.wp_ResourceVersion :
     EtcdGrove.cacher.btreeStore.ResourceVersion.spec (GF := GF) (hG := hG) :=
