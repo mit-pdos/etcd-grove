@@ -497,7 +497,7 @@ theorem NewServer.wp_proof
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
   wp_func_lits
-  wp_apply h25 as %tp %terr %Htp
+  wp_apply h25 as %tp %terr ⟨%Htp, -⟩
   · ipureintro; exact Hlgnn
   (try wp_auto)
   cases terr with

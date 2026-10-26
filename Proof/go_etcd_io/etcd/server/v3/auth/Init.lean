@@ -5,7 +5,7 @@ Package initialization of `go_etcd_io.etcd.server.v3.auth`
 Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
 `ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`, and the admin side's eleven
 (the auth plan's S4, 2026-10-24: `ErrRootUserNotExist`, ..., `ErrInvalidAuthMgmt`), and S5's two
-(`ErrAuthFailed`, `ErrAuthNotEnabled`; translated
+(`ErrAuthFailed`, `ErrAuthNotEnabled`), and E2g's `ErrInvalidAuthOpts` (translated
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).
@@ -68,7 +68,6 @@ axiom opaqueInitsOk :
         DefaultTTL.init,
         «_».init,
         rootPerm.init,
-        ErrInvalidAuthOpts.init,
         ErrInvalidAuthMethod.init,
         ErrMissingKey.init,
         ErrKeyMismatch.init,
@@ -115,6 +114,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthMgmt _ as HErrInvalidAuthMgmt
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthOpts _ as HErrInvalidAuthOpts
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidAuthToken _ as HErrInvalidAuthToken
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrAuthOldRevision _ as HErrAuthOldRevision
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrAuthNotEnabled _ as HErrAuthNotEnabled
@@ -188,6 +188,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrAuthNotEnabled))
   -- translated initializer of ErrAuthOldRevision))
   -- translated initializer of ErrInvalidAuthToken))
+  -- translated initializer of ErrInvalidAuthOpts))
+  -- translated initializer of ErrInvalidAuthMgmt))
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRootUserNotExist #MErrRootUserNotExist
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrRootRoleNotExist #MErrRootRoleNotExist
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrUserAlreadyExist #MErrUserAlreadyExist
@@ -205,8 +207,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrAuthNotEnabled #MErrAuthNotEnabled
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrAuthOldRevision #MErrAuthOldRevision
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrInvalidAuthToken #MErrInvalidAuthToken
-  wp_apply (opaqueInitsOk ErrInvalidAuthOpts.init (by mem_tac))
-  -- translated initializer of ErrInvalidAuthMgmt))
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xErrInvalidAuthOpts #MErrInvalidAuthOpts
   wp_apply _root_.Perennial.context.wp_New_errorString as %xErrInvalidAuthMgmt #MErrInvalidAuthMgmt
   wp_apply (opaqueInitsOk ErrInvalidAuthMethod.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrMissingKey.init (by mem_tac))
@@ -230,6 +231,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrAuthNotEnabled
   ipersist HErrAuthOldRevision
   ipersist HErrInvalidAuthToken
+  ipersist HErrInvalidAuthOpts
   ipersist HErrInvalidAuthMgmt
   ipersist HsimpleTokenTTLResolution
   ihave #TErrRootUserNotExist := EtcdGrove.errorMsg_triple _ _ _ $$ MErrRootUserNotExist
@@ -249,6 +251,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ihave #TErrAuthNotEnabled := EtcdGrove.errorMsg_triple _ _ _ $$ MErrAuthNotEnabled
   ihave #TErrAuthOldRevision := EtcdGrove.errorMsg_triple _ _ _ $$ MErrAuthOldRevision
   ihave #TErrInvalidAuthToken := EtcdGrove.errorMsg_triple _ _ _ $$ MErrInvalidAuthToken
+  ihave #TErrInvalidAuthOpts := EtcdGrove.errorMsg_triple _ _ _ $$ MErrInvalidAuthOpts
   ihave #TErrInvalidAuthMgmt := EtcdGrove.errorMsg_triple _ _ _ $$ MErrInvalidAuthMgmt
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd17
@@ -270,8 +273,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   dsimp only
   iframe #
   repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))
-  ipureintro
-  decide
+  all_goals first | (ipureintro; decide) | (ipureintro; exact EtcdGrove.errorString_leaf _) | (ipureintro; exact ⟨by decide, EtcdGrove.errorString_leaf _⟩)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
