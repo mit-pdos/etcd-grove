@@ -1,4 +1,6 @@
-/- `MemoryStorage.Compact` (`storage.go:254`), proved 2026-10-12 (Lean-first). -/
+/- `MemoryStorage.Compact` (`storage.go:254`), proved 2026-10-12 (Lean-first); logically atomic
+in the token's ghost part since D22 J3 (2026-10-26): the linearization point is right after
+`Lock`, where the lock's boundary (`memCutInv`'s half of `cb`) pins the token's. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
@@ -28,10 +30,11 @@ theorem MemoryStorage.Compact.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Compact.spec (GF := GF) (hG := hG) := by
-  intro ms γs σt x ci ecomp Hpre
-  wp_start as ⟨Htok, #Hfw, #Herr⟩
-  iunfold memSnapTok at Htok
-  icases Htok with ⟨#Hinit, #Hmu, #Hsinv, Hak, Hsvt, Hcbt⟩
+  have HN : (⊤ \ ↑memSnapN : CoPset) ⊆ ⊤ := CoPset.subseteq_top
+  intro ms γs x ci ecomp
+  wp_start as ⟨#Hro, #Hfw, #Herr⟩
+  iunfold memSnapRO at Hro
+  icases Hro with ⟨#Hinit, #Hmu, #Hsinv⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -41,8 +44,7 @@ theorem MemoryStorage.Compact.wp_proof
   iunfold memstorageInv at Hinv
   icases Hinv with ⟨%σL, %c, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  -- (D19i part 1) the floor's witness: the contents hold entries up to `x`, within the floor;
-  -- the lock's boundary and snapshot are the token's
+  -- (D19i part 1) the floor's witness: the contents hold entries up to `x`, within the floor
   icases memFloorTok_last ms γs σL x $$ Hfw Hgs_inv with ⟨%Hxl, Hgs_inv⟩
   ihave #Hflx := memFloorTok_flLb ms γs x $$ Hfw
   iunfold memInvGhost at Hgs_inv
@@ -50,21 +52,17 @@ theorem MemoryStorage.Compact.wp_proof
   have HidxL : PlogWf σL.prev σL.ents := (HD.2.2 σL (List.mem_of_getLast? HD.1)).2.2
   iunfold memCutInv at Hcut_inv
   iNamed Hcut_inv
-  icases ghostVar_agree γs.cb _ _ _ _ $$ Hcb Hcbt with %Hcbe
-  subst Hcbe
-  icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsvt with %HagS
-  obtain ⟨HS1, -, -, -⟩ := snapPart_inj HagS
   have Hlast := memCut_stLast Hcok.1
   have Hcok1 := Hcok.1
-  have Hpbf : uint.Z (memCut σL σt.prev).prev.index' + ((memCut σL σt.prev).ents.length : Int) <
+  have Hpbf : uint.Z (memCut σL c).prev.index' + ((memCut σL c).ents.length : Int) <
       2^61 := by
     unfold EtcdGrove.stLast at Hlast; omega
-  have HlastF : uint.Z (memCut σL σt.prev).prev.index' + ((memCut σL σt.prev).ents.length : Int) =
+  have HlastF : uint.Z (memCut σL c).prev.index' + ((memCut σL c).ents.length : Int) =
       stLast σL := by
     unfold EtcdGrove.stLast at Hlast; exact Hlast
-  have HprevF : (memCut σL σt.prev).prev = σt.prev := rfl
+  have HprevF : (memCut σL c).prev = c := rfl
   have Hpb_inv0 := Hpb_inv
-  generalize Hσf : memCut σL σt.prev = σp at Hpbf HlastF HprevF ⊢
+  generalize Hσf : memCut σL c = σp at Hpbf HlastF HprevF ⊢
   have Hpb_inv := Hpbf
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
@@ -73,23 +71,42 @@ theorem MemoryStorage.Compact.wp_proof
   ihave %Hcl := entsRO_cons_len $$ Hents
   icases entsRO_lookup es (dummy :: σp.ents) 0 dummy rfl $$ Hents
     with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
-  wp_auto
-  rw [ite_eq_left ⟨by word, by word⟩]
-  wp_apply wp_load_slice_index es (sint.Z (W64 0)) ls DFrac.discard l0 (by word) $$ [Hls] with -
-  · iframe Hls; ipureintro; exact Hl0.1
-  wp_apply wp_GetIndex.1 l0 DFrac.discard dummy $$ [He0] with -
-  · iframe He0
-  obtain ⟨Hd0i, Hd0t⟩ := Hdummy
-  rw [Hd0i]
-  wp_if_destruct
-  · -- `ErrCompacted`: nothing changes
+  -- (D22 J3) the linearization point: the token's boundary is the lock's (`cb`), its snapshot the
+  -- lock's (`sn`)
+  by_cases Hif0 : uint.Z ci ≤ uint.Z c.index'
+  · -- `ErrCompacted`: the token given back unchanged
+    ihave Hres : |={⊤}=> Φ #ecomp ∗ ghostVar γs.cb (1 : Qp).half c ∗
+        ghostVar γs.sn memQ (snapPart S) $$ [HΦ Hcb Hsq]
+    · imod fupd_mask_subseteq HN with Hmask
+      imod HΦ with ⟨%σt, Htg, %Hpre, HΦ⟩
+      iunfold memSnapTokG at Htg
+      icases Htg with ⟨Hsvt, Hcbt⟩
+      icases ghostVar_agree γs.cb _ _ _ _ $$ Hcb Hcbt with %Hcbe
+      icases HΦ with ⟨HΦ, -⟩
+      imod HΦ $$ %(by rw [← Hcbe]; exact Hif0) [Hsvt Hcbt] with HΦ
+      · iunfold memSnapTokG; iframe
+      imod Hmask with -
+      imodintro
+      iframe
+    imod Hres with ⟨HΦ, Hcb, Hsq⟩
+    wp_auto
+    rw [ite_eq_left ⟨by word, by word⟩]
+    wp_apply wp_load_slice_index es (sint.Z (W64 0)) ls DFrac.discard l0 (by word) $$ [Hls] with -
+    · iframe Hls; ipureintro; exact Hl0.1
+    wp_apply wp_GetIndex.1 l0 DFrac.discard dummy $$ [He0] with -
+    · iframe He0
+    obtain ⟨Hd0i, Hd0t⟩ := Hdummy
+    rw [Hd0i]
+    wp_if_destruct
+    rotate_left
+    · exfalso; rw [HprevF] at Hif; omega
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hd_inv Hlk_inv HhardState Hents_f
       Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcb Hbd Hsq]
     · inext
       unfold memstorageInv memstorageFields
-      iexists σL, σt.prev
+      iexists σL, c
       isplitl [Hd_inv Hlk_inv]
       · unfold memInvGhost
         iexists Dl
@@ -106,14 +123,45 @@ theorem MemoryStorage.Compact.wp_proof
       iexists S
       iframe Hcb Hbd Hcfl Hsq Hsrel
       ipureintro; exact ⟨Hcok, Hccap⟩
-    iapply HΦ
-    ileft
-    isplitr
-    · ipureintro; rw [HprevF] at Hif; exact ⟨Hif, rfl⟩
-    unfold memSnapTok
-    iframe # ∗
-  have Hgt : uint.Z σt.prev.index' < uint.Z ci := by rw [HprevF] at Hif; omega
-  obtain ⟨Hle0, Hsle, Hcap⟩ := Hpre Hgt
+    iexact HΦ
+  -- the compaction: the token at the new boundary, at the term the contents have at `ci`
+  have Hgt : uint.Z c.index' < uint.Z ci := by omega
+  ihave Hres : |={⊤}=> ⌜uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z S.ss.index' ∧
+        uint.Z ci ≤ γs.cap⌝ ∗ Φ #interface.nil ∗
+      ghostVar γs.cb (1 : Qp).half (entryID.mk ((termAt σL.prev σL.ents ci).getD (W64 0)) ci) ∗
+      ghostVar γs.sn memQ (snapPart S) $$ [HΦ Hcb Hsq]
+  · imod fupd_mask_subseteq HN with Hmask
+    imod HΦ with ⟨%σt, Htg, %Hpre, HΦ⟩
+    iunfold memSnapTokG at Htg
+    icases Htg with ⟨Hsvt, Hcbt⟩
+    icases ghostVar_agree γs.cb _ _ _ _ $$ Hcb Hcbt with %Hcbe
+    icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsvt with %HagS
+    obtain ⟨HS1, -, -, -⟩ := snapPart_inj HagS
+    have Hgt' : uint.Z σt.prev.index' < uint.Z ci := by rw [← Hcbe]; exact Hgt
+    obtain ⟨Hle0, Hsle, Hcap⟩ := Hpre Hgt'
+    imod ghostVar_update_halves
+      (entryID.mk ((termAt σL.prev σL.ents ci).getD (W64 0)) ci) γs.cb _ _ $$ Hcb Hcbt
+      with ⟨Hcb, Hcbt⟩
+    icases HΦ with ⟨-, HΦ⟩
+    imod HΦ $$ %((termAt σL.prev σL.ents ci).getD (W64 0)) %Hgt' [Hsvt Hcbt] with HΦ
+    · iunfold memSnapTokG
+      iframe
+    imod Hmask with -
+    imodintro
+    iframe
+    ipureintro; exact ⟨Hle0, by rw [HS1]; exact Hsle, Hcap⟩
+  imod Hres with ⟨%Hpre', HΦ, Hcb, Hsq⟩
+  obtain ⟨Hle0, Hsle, Hcap⟩ := Hpre'
+  wp_auto
+  rw [ite_eq_left ⟨by word, by word⟩]
+  wp_apply wp_load_slice_index es (sint.Z (W64 0)) ls DFrac.discard l0 (by word) $$ [Hls] with -
+  · iframe Hls; ipureintro; exact Hl0.1
+  wp_apply wp_GetIndex.1 l0 DFrac.discard dummy $$ [He0] with -
+  · iframe He0
+  obtain ⟨Hd0i, Hd0t⟩ := Hdummy
+  rw [Hd0i]
+  wp_if_destruct
+  · exfalso; rw [HprevF] at Hif; omega
   have Hle : uint.Z ci ≤ uint.Z σp.prev.index' + (σp.ents.length : Int) := by omega
   -- the entry at `ci` is numbered `ci`: the contents keep their entries numbered by position
   have Hidx : ∀ e, σp.ents[(uint.Z ci - uint.Z σp.prev.index' - 1).toNat]? = some e →
@@ -222,9 +270,9 @@ theorem MemoryStorage.Compact.wp_proof
     rw [← termAt_memCut Hcok1 ci (by omega)]
     rw [← Hσf] at Hterm
     simpa only [memCut] using Hterm
+  rw [HtermL, Option.getD_some]
   have Hcok' : CutOk σL (entryID.mk e.Term' ci) := by
     refine ⟨by have := Hcok1.1; simp only; omega, by simp only; omega, HtermL⟩
-  imod ghostVar_update_halves (entryID.mk e.Term' ci) γs.cb _ _ $$ Hcb Hcbt with ⟨Hcb, Hcbt⟩
   imod mono_nat_own_update (uint.Z ci).toNat (by omega) $$ Hbd with ⟨Hbd, -⟩
   wp_method_call
   wp_call
@@ -265,17 +313,8 @@ theorem MemoryStorage.Compact.wp_proof
     · iright
       iapply memFlLb_le γs x ci Hle0 $$ Hflx
     ipureintro
-    refine ⟨⟨Hcok', ?_⟩, Hcap⟩
-    simp only
-    rw [HS1]; exact Hsle
-  iapply HΦ
-  iright
-  iexists e.Term'
-  isplitr
-  · ipureintro; exact ⟨Hgt, rfl⟩
-  unfold memSnapTok
-  rw [show snapPart { σt with prev := entryID.mk e.Term' ci } = snapPart σt from rfl]
-  iframe # ∗
+    exact ⟨⟨Hcok', Hsle⟩, Hcap⟩
+  iexact HΦ
 
 end proof
 

@@ -572,7 +572,8 @@ NOSPACE path (the quota's `ErrNoSpace`, the NOSPACE alarm, the capped applier) s
 model. A premise of `storage.NewBackendQuota`'s axiom, so of the constructions above it
 (`newQuotaApplierV3` ... `NewServer.spec`; v3rpc's `newBackendQuota` ... `v3rpc.Server`). The
 model of the alarm instead (D19h's option (A)) is the later route for a theorem covering a full
-disk. -/
+disk. Every backend of the run: after a snapshot's install a quota may still read the replaced,
+closed backend, whose `Size()` is its last value (D22 S-k, `storage.NewBackendQuota.spec`). -/
 opaque backendUnderQuota : Prop
 
 /-- **The `storage.Quota` `q`** (trust boundary: `storage` is names-only): `Available` and `Cost`

@@ -11,4 +11,3 @@ axiom kmetrics.HistogramVec.WithContext.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.SpanFromContext.wp_proof
-sorry storage.NewTooLargeResourceVersionError.wp_proof

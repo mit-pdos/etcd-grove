@@ -416,7 +416,8 @@ buffer, `Encode`s into it and returns it as a string: no panic, no write to its 
 )
 
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
-    doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` holds a string.
+    doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
+`tooLargeResourceVersionCauseMsg` hold strings.
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
@@ -439,8 +440,8 @@ its imports and runs the translated initializers.''',
         'try wp_auto',
         'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -',
         'try wp_auto']},
-    finish=['ipersist HRequestWatchProgress'] + FIN_PRE[:7] + [
-            'imodintro', 'iexists _', 'iexact HRequestWatchProgress'],
+    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg'] +
+           FIN_PRE[:7] + ['imodintro', 'iexists _, _', 'iframe #'],
 )
 
 # the driver's error variables and the tags of their `errors.New` results

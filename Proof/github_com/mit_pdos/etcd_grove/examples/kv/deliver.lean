@@ -90,7 +90,7 @@ local macro "deliver_tail " snc:term : tactic =>
     ihave Ht1 : stTks γn.raft (⟨q.st.msg, q.st.ents, q.st.snap, q.st.ctx, []⟩ : MsgSt) $$ [Ht1]
     · unfold stTks; iexact Ht1
     imod stepP_deliverable γn q.st.msg.To' «$r0_ptr» ⟨q.st.msg, q.st.ents, q.st.snap, q.st.ctx, []⟩
-      Hd rfl Hsi rfl $$ Hmsg Hsnf Hmlb Hmc Hc1 Ht1 Htc with Hstep
+      Hd rfl Hsi rfl Hsl0 $$ Hmsg Hsnf Hmlb Hmc Hc1 Ht1 Htc with Hstep
     wp_apply +noauto wp_node_Step γn q.st.msg.To' n «$r0_ptr» context.backgroundCtxVal bgCd
       $$ [Hstep] as %err -
     · iframe
@@ -190,7 +190,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
         HPt $$ HP
       unfold kvPeerOk
       icases Hpeer with ⟨%γn, %n, %Hnd, #HisNode⟩
-      obtain ⟨Hr, Hbud, rfl, Hsi0⟩ := Hnd
+      obtain ⟨Hr, Hbud, rfl, Hsi0, Hsl0⟩ := Hnd
       have Hsi : q.st.msg.Type' = MsgSnap → γn.snapIn = true := fun _ => Hsi0
       ihave #Hmsg := raftMsg_deliverable γ sid q.st Hd $$ Hmok
       ihave #Hsnf := raftMsg_snap γ sid q.st Hd $$ Hmok

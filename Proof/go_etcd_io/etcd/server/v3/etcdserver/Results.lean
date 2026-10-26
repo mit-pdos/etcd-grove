@@ -443,7 +443,9 @@ from an earlier application of the same id). With `request_handoff`: a proposer 
 context ended first. Since 2026-10-14 (unit C2a), with the apply thread's applied-index resources
 at `v = m.index - 1` (`srvAppliedOwn`, the log `appliedLogAt γr v x.log`) and the entry committed
 (`committedAtLeast γr m.index`): the KV log after the entry is deposited ahead as the log applied
-through `m.index` (`srvAppliedPre`), the witness the result carries. -/
+through `m.index` (`srvAppliedPre`), the witness the result carries. (D22 S8d, 2026-10-26: with
+`v3`, the state loaded, `stLoaded γ st = st`, as `apply`'s `ConsistentIndex` leaves it:
+`applyEntryNormal`'s premise, `notes/decisions.md`.) -/
 theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (b : GoInterface) (e : Loc) (m : EntryModel)
     (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV) (γr : ReadNames) (rq : apply.IRRModel)
@@ -460,7 +462,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
-              uint.Z (ciEff γ st.k) < uint.Z m.index⌝)
+              uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
          else iprop(True)) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
         (Val #e)) (Val #v3))
@@ -1906,7 +1908,8 @@ theorem server_cluster_alloc_on (cfg nodes : GSet w64) (ccOk : w32 → List w8 �
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          rdCred γ (2 ^ 48))) ∗
+          rdCred γ (2 ^ 48) ∗
+          ∃ γd : GName, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) :=
   srvClusterBootOn_alloc cfg nodes ccOk ps bootLog Φs Hcne Hnz Hcfg hboot hpol Hpd Hp0
 

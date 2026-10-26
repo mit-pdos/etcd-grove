@@ -32,7 +32,8 @@ slots whose `crevFrozen` says the store is never compacted) and the server's kep
 (`srvKVCloser`: the inner store's `storeCloser`) give, at the watchable store `ws` of the writer's
 notified log, everything of `watchableStore.Restore.spec`'s precondition but the new backend's and
 the restored log's; the reader slots, the leases and the auth store's reader resource are kept, and
-the watchable store's own closer's other parts (its stop channel's close, its wait group).
+the watchable store's own closer's other parts (its stop channel's close, its wait group), given
+back for the closer at the new names (S8d, 2026-10-26).
 
 **What S7/S8 must supply besides** (the snapshot path, `applySnapshot`): `⌜∃ d, E.γ.kb = some d⌝`
 (the server's store is over the real backend); the restored log `[[], []] ++ R` extending `log`
@@ -55,7 +56,10 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
       ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = E.γ⌝ ∗ mvcc.isWatchableStore ws E.s γw ∗
         mvcc.storeCloser E.s γw.st ∗ mvcc.writerFrag γw.st ∗ mvcc.writerOwn γw.st ∗
         mvcc.crevFrozen γw.st ∗ mvcc.watchWriter γw log ∗
-        (mvcc.storeReader E.s E.γ ∗ apply.leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD) := by
+        (mvcc.storeReader E.s E.γ ∗ apply.leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD) ∗
+        (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+          structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) := by
   iintro ⟨Hown, Hcl⟩
   iunfold apply.kvOwn at Hown
   icases Hown with ⟨Hrd, Hkw, Hll, HRD, Hwo⟩
@@ -66,15 +70,21 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   simp only [↓reduceIte]
   icases Hwl with ⟨%ws, %γw, %hγw, #Hws, Hwl, -⟩
   iunfold srvKVCloser at Hcl
-  icases Hcl with ⟨%wsl, -, Hcl⟩
+  icases Hcl with ⟨%wsl, #Hkvf, Hcl⟩
   iunfold mvcc.wsCloser at Hcl
-  icases Hcl with ⟨%stc, -, -, -, Hcl⟩
+  icases Hcl with ⟨%stc, #Hstc, Hstcl, Hwsw, Hcl⟩
   ihave #Hfrz : mvcc.crevFrozen E.γ $$ [Hrd]
   · iunfold mvcc.storeReader at Hrd; iNamed Hrd; iexact Hfrz
   iexists ws, γw
   iunfold mvcc.watchWriter
   rw [hγw]
-  iframe Hws Hcl Hfrag Hwo Hfrz Hrd Hll HRD
+  ihave Hcp : iprop(∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
+      mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) $$ [Hstcl Hwsw]
+  · iexists wsl, stc
+    iframe Hkvf Hstc Hstcl Hwsw
+  iframe Hws Hcl Hfrag Hwo Hfrz Hrd Hll HRD Hcp
   isplitr
   · ipureintro; rfl
   iunfold txn.soleWriter at Hsw

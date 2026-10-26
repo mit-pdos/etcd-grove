@@ -11,6 +11,7 @@ module
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester__Add
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester__Remove
 public import Proof.k8s_io.component_base.metrics.HistogramVec__WithContext
+public import Proof.k8s_io.apimachinery.pkg.api.errors.NewTimeoutError
 public import Proof.k8s_io.apiserver.pkg.storage.NewTooLargeResourceVersionError
 public import Proof.k8s_io.component_base.tracing.Span__AddEvent
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage__LatestSnapshot
@@ -18,6 +19,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage_
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage__UpdateStore
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__Clone
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__GetByKey
+public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__Replace
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__ResourceVersion
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__addOrUpdateElem
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__deleteElem
@@ -81,9 +83,13 @@ theorem kmetrics.HistogramVec.wp_WithContext :
     EtcdGrove.kmetrics.HistogramVec.WithContext.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kmetrics.HistogramVec.WithContext.wp_proof
 
+theorem apierrors.wp_NewTimeoutError :
+    EtcdGrove.apierrors.NewTimeoutError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.NewTimeoutError.wp_proof
+
 theorem storage.wp_NewTooLargeResourceVersionError :
     EtcdGrove.storage.NewTooLargeResourceVersionError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.NewTooLargeResourceVersionError.wp_proof
+  EtcdGrove.storage.NewTooLargeResourceVersionError.wp_proof apierrors.wp_NewTimeoutError
 
 theorem tracing.Span.wp_AddEvent :
     EtcdGrove.tracing.Span.AddEvent.spec (GF := GF) (hG := hG) :=
@@ -140,6 +146,10 @@ theorem btreeStore.wp_getByKey :
 theorem btreeStore.wp_GetByKey :
     EtcdGrove.cacher.btreeStore.GetByKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cacher.btreeStore.GetByKey.wp_proof btreeStore.wp_getByKey
+
+theorem btreeStore.wp_Replace :
+    EtcdGrove.cacher.btreeStore.Replace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.btreeStore.Replace.wp_proof btree.BTree.wp_Clear btreeStore.wp_addOrUpdateElem
 
 theorem btreeStore.wp_ResourceVersion :
     EtcdGrove.cacher.btreeStore.ResourceVersion.spec (GF := GF) (hG := hG) :=
