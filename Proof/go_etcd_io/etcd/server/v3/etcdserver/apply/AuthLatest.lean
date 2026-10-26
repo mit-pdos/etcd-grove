@@ -244,7 +244,7 @@ theorem isAuthStoreL_of_authInv
   · iunfold permCheck2L
     iintro !> %a %info %dq %key %k %dk %hs %Φ !> ⟨Ha, Hk, Hrd, HL, %Hlen⟩ HΦ
     iunfold auth.latestRes at HL
-    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, %Htie⟩
+    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
     ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
     iapply (hPut st R M hs b sc a info dq key k dk) $$ [Ha Hk Hrd Hown Hfl Hca]
     · iframe; iframe #; ipureintro; exact ⟨Hlen, Htie⟩
@@ -252,7 +252,7 @@ theorem isAuthStoreL_of_authInv
     iapply HΦ
     iframe
     isplitl [Hown Hfl Hca]
-    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe; ipureintro; exact Htie
+    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
     · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
     isplitl []
@@ -262,7 +262,7 @@ theorem isAuthStoreL_of_authInv
   · iunfold permCheck3L
     iintro !> %a %info %dq %key %re %k %e %dk %de %hs %Φ !> ⟨Ha, Hk, He, Hrd, HL, %Hlen⟩ HΦ
     iunfold auth.latestRes at HL
-    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, %Htie⟩
+    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
     ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
     iapply (hRange st R M hs b sc a info dq key re k e dk de) $$ [Ha Hk He Hrd Hown Hfl Hca]
     · iframe; iframe #; ipureintro; exact ⟨Hlen, Htie⟩
@@ -270,7 +270,7 @@ theorem isAuthStoreL_of_authInv
     iapply HΦ
     iframe
     isplitl [Hown Hfl Hca]
-    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe; ipureintro; exact Htie
+    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
     · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
     isplitl []
@@ -280,7 +280,7 @@ theorem isAuthStoreL_of_authInv
   · iunfold permCheck3L
     iintro !> %a %info %dq %key %re %k %e %dk %de %hs %Φ !> ⟨Ha, Hk, He, Hrd, HL, %Hlen⟩ HΦ
     iunfold auth.latestRes at HL
-    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, %Htie⟩
+    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
     ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
     iapply (hDel st R M hs b sc a info dq key re k e dk de) $$ [Ha Hk He Hrd Hown Hfl Hca]
     · iframe; iframe #; ipureintro; exact ⟨Hlen, Htie⟩
@@ -288,7 +288,7 @@ theorem isAuthStoreL_of_authInv
     iapply HΦ
     iframe
     isplitl [Hown Hfl Hca]
-    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe; ipureintro; exact Htie
+    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
     · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
     isplitl []
@@ -296,7 +296,7 @@ theorem isAuthStoreL_of_authInv
     · iapply (auth.permVerdict_of_L M hs info _ _ _ err Hv) $$ Hsnap
   iintro !> %a %info %dq %hs %Φ !> ⟨Ha, Hrd, HL⟩ HΦ
   iunfold auth.latestRes at HL
-  icases HL with ⟨Hown, %b, %sc, Hfl, Hca, %Htie⟩
+  icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
   ihave Ha' : auth.authInfoAt a dq (some info) $$ [Ha]
   · iunfold auth.authInfoAt; iexact Ha
   iapply (hAdmin st R M hs b sc a (some info) dq) $$ [Ha' Hrd Hown Hfl]
@@ -306,7 +306,7 @@ theorem isAuthStoreL_of_authInv
   iapply HΦ
   iframe
   isplitl [Hown Hfl Hca]
-  · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe; ipureintro; exact Htie
+  · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
   isplitl []
   · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
   · ipureintro; exact Hv

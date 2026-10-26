@@ -281,13 +281,17 @@ EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
 # the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
 # `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`
 # (`reqPropOk` has no auth request), so they have no callee. Authenticate (auth's
-# `ErrAuthNotEnabled`, not in the package's fact) is translated but not proved; UserAdd and
-# UserChangePassword are names only (they hash the password: bcrypt, base64).
+# `ErrAuthNotEnabled`, not in the package's fact) is translated but not proved. UserAdd (the auth
+# plan's E2x, 2026-10-26) hashes the password, bcrypt's `GenerateFromPassword` the trust boundary
+# (D-AU6), and base64-encodes the hash (`StdEncoding`'s `EncodeToString`: base64's package fact,
+# `encoding/base64/Base.lean`); UserChangePassword is translated, not proved.
 EtcdServer__AuthEnable:
 EtcdServer__AuthDisable:
 EtcdServer__AuthStatus:
 EtcdServer__UserDelete:
 EtcdServer__UserGrantRole:
+bcrypt_GenerateFromPassword:
+EtcdServer__UserAdd: bcrypt_GenerateFromPassword
 EtcdServer__UserGet:
 EtcdServer__UserList:
 EtcdServer__UserRevokeRole:

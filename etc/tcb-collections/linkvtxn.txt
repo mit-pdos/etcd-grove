@@ -33,6 +33,8 @@ axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom Perennial.crypto.tls.opaqueInitsOk
+axiom Perennial.encoding.base64.StdEncoding_init
+axiom Perennial.encoding.base64.opaqueInitsOk
 axiom Perennial.encoding.hex.opaqueInitsOk
 axiom Perennial.encoding.json.initFuncsOk
 axiom Perennial.encoding.json.opaqueInitsOk

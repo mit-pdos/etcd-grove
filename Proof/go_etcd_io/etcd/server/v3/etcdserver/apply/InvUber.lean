@@ -162,7 +162,7 @@ def uberIs (E : AEnv GF) (p : Loc) (opts : ApplierOptions) : IProp GF :=
     structFieldRef uberApplier go!"warningApplyDuration" p ↦□ opts.WarningApplyDuration' ∗
     ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
       applierSpec E (baseChain E.authOn) base ∗
-      -- (the auth plan's E2m) its shape, for its admin triples (`applierAdmin_base`)
+      -- (the auth plan's E2m) its shape, for its admin triples (`applierAdmin_baseX`)
       baseShape opts base)
 
 instance uberIs_persistent (E : AEnv GF) (p : Loc) (opts : ApplierOptions) :
@@ -171,7 +171,7 @@ instance uberIs_persistent (E : AEnv GF) (p : Loc) (opts : ApplierOptions) :
 
 /-- **The current applier's shape** (the auth plan's E2o, 2026-10-26; persistent): the chain
 `c` is `restoreAlarms`' for some alarms (`alarmChain`), and the applier `a` is the base applier
-(`applyV3base`) wrapped as those alarms ask (`alarmShape`), what `applierAdmin_cur`
+(`applyV3base`) wrapped as those alarms ask (`alarmShape`), what `applierAdmin_curG`
 (`AdminChain.lean`) needs to lift the base's admin triples to it. `dispatch` never changes the
 current applier (no alarm request is admitted, `rqOk`), so this is fixed after `NewUberApplier`. -/
 def uberShape (E : AEnv GF) (p : Loc) (c : Chain) (a : GoInterface) : IProp GF :=
