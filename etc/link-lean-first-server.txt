@@ -360,12 +360,15 @@ EtcdServer__CommittedIndex: EtcdServer__getCommittedIndex
 # The apply loop's step `applyAll` (server.go; the request path's unit 4b): `applySnapshot` under
 # raft's no-snapshot contract, the backend getter, the snapshot trigger, with bodies; the
 # trust boundary (`axiom … .wp_proof`): backend's VerifyBackendConsistency (verification code),
-# and the names-only snapshot and compaction methods. See InvApplyAll.lean. (The merged-snapshot
+# and the names-only snapshot method. See InvApplyAll.lean. (The merged-snapshot
 # methods `createMergedSnapshotMessage`/`sendMergedSnap` were its callees until D19p, 2026-10-18:
 # `msgSnapC` never delivers in a one-member cluster.)
 backend_VerifyBackendConsistency:
 EtcdServer__snapshot:
-EtcdServer__compactRaftLog:
+# (2026-10-26) translated and proved: the compaction over raft's `MemoryStorage.Compact` (linked
+# in raft's Link)
+MemoryStorage__Compact: @
+EtcdServer__compactRaftLog: EtcdServer__Logger MemoryStorage__Compact errors_Is zap_Logger__Info zap_Uint64 zap_Logger__Debug
 EtcdServer__applySnapshot: IsEmptySnap
 EtcdServer__Backend:
 EtcdServer__shouldSnapshotToDisk:
@@ -569,6 +572,12 @@ proto_SizeMessage:
 RaftCluster__IsIDRemoved:
 EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
 EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
+# (2026-10-26) the interceptors' membership checks (the trust boundary of unit P3b until then),
+# over the cluster's lock invariant (`rcLockInv`)
+RaftCluster__IsLocalMemberLearner:
+RaftCluster__IsMemberExist:
+EtcdServer__IsLearner: RaftCluster__IsLocalMemberLearner
+EtcdServer__IsMemberExist: RaftCluster__IsMemberExist
 EtcdServer__ReportUnreachable:
 EtcdServer__ReportSnapshot:
 # (notes/partition-plan.md, S1/S2, 2026-10-20) etcd's partition hooks: `CutPeer`/`MendPeer` with

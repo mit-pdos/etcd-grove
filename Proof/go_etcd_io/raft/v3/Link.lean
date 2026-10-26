@@ -444,7 +444,7 @@ theorem MemoryStorage.wp_ApplySnapshot [StorageModel GF] :
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) :=
   MemoryStorage.ApplySnapshot.wp_proof raftpb.wp_EnsureSnapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm proto.wp_CloneSnapshot
 
-theorem MemoryStorage.wp_lastIndex [AllG GF] [StorageModel GF] :
+theorem MemoryStorage.wp_lastIndex [AllG GF] :
     MemoryStorage.lastIndex.spec (GF := GF) (hG := hG) :=
   MemoryStorage.lastIndex.wp_proof raftpb.Entry.wp_GetIndex
 
@@ -452,7 +452,7 @@ theorem raftpb.Entry.wp_GetTerm :
     raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG) :=
   raftpb.Entry.GetTerm.wp_proof
 
-theorem MemoryStorage.wp_Compact [StorageModel GF] :
+theorem MemoryStorage.wp_Compact :
     MemoryStorage.Compact.spec (GF := GF) (hG := hG) :=
   MemoryStorage.Compact.wp_proof raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex raftpb.Entry.wp_GetTerm
 
