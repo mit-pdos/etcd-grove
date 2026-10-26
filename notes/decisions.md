@@ -22372,3 +22372,71 @@ facts (the separate row of blocker 1's decision, then `uberAuthStepsL`'s `W`); `
 
 **Trust base.** Unchanged.
 
+## E3l of the auth plan: the server keeps its store's checks at the latest state; the admin steps' row (blocker 1's separate row) (2026-10-27 · `notes/auth-plan.md`, E3k's left items)
+
+**(1) The store's checks at the latest state, kept by the server.** `authStoreLatestM M st RD stl`
+(`etcdserver/StoreLatest.lean`; persistent): with auth on, `apply.isAuthStoreL st RD M
+(auth.latestRes stl M)`; `True` in the other modes. `authStoreKit`'s post gains it; the mode-`on`
+kit proves it of the store's invariant (`apply.isAuthStoreL_of_authInv`, with the four `specL`
+checks as new hypotheses of `authStoreKit_on`/`authSrvTP_on`, linked in `srv_auth_tp_on`);
+`srvUberBase` (the built part's uber-applier row, E3k) gains `∃ stl, ⌜au = authIface stl⌝ ∗
+authStoreLatestM E.authMode au E.RD stl`, which `NewServer.wp_proofM` builds from the kit.
+`srv_uberKVL_on` (`UberOn.lean`; restated `server_uber_kvl_on`): with `E.authMode = .on γa`,
+`srvUberBase` and the lessor finding no lease give the apply thread's `uberKVL` at
+`auth.latestRes stl (.on γa)` for the store `stl` of the `authStore` field: E3k's
+`srvStoreLatest` premise is discharged (`srvLessorNil` stays a named premise).
+
+**(2) The admin steps' resource: blocker 1's separate row** (the user's decision, recorded in
+"E3k of the auth plan"). Two gaps had to be closed:
+- *The value of `be` was lost across an admin step.* The admin steps' write resource (`authWRx`,
+  `authWB`) holds the store's half of its `be` field under an existential, so a caller lending the
+  rest's half (`authBeOn stl bel`, `∃ abl …`) could not rebuild `authBeOn` after the step. E3l
+  adds `auth.authWRxB … be` (`authWRx` at a fixed backend) and, for `SetUp`'s five operations,
+  `X.specTB` (`AuthEnable`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`; `UserAdd.specTSureB`):
+  `X.specT` with the backend kept (true of Go: no admin operation but `Recover` writes `be`). The
+  proofs are `X.wp_tieB` (each `X.wp_tie`'s, with `be` a parameter); `X.wp_tie` is derived
+  (`X.specT_of_TB`), its statement unchanged. `apply.isAuthStepsX_of_authInvTB` gives the store's
+  `isAuthStepsX` at `W = (∃ be, ((be ↦½ ∗ authWBackendOk be) ∗ T) ∗ Ψ be) ∗ tpAdmin` for a
+  persistent `Ψ`, from the `specTB`s.
+- *The agreement of the backend contract with the rest's half.* `authBeOn stl bel` hides which
+  `*authBackend` `abl` the field holds, and the apply thread's contract was at one specific `abl`.
+  E3l's persistent agreement: `authWBackendAt bel M P f T`, the write contract at *every* schema
+  auth backend whose `be` field is `bel` (the `*authBackend` methods read only the struct's `be` and
+  `lg` fields). D22's named premise `authSchemaSrv` gains this clause (one more item for D22's
+  list: the contract uniform over `*authBackend` structs on the server's backend).
+
+The row. `authApplyResB M stl st bel` (`StoreLatest.lean`): `authApplyResAt`'s, with in the mode
+`on` `authWBackendAt bel` and the store's `isAuthStepsX` at `adminW stl bel` (`Ψ = beOn bel`: the
+backend a schema auth backend on `bel`). `srvAuthApplyResB s E st`: the `authStore` field's store,
+`authApplyResB E.authMode stl st bel`, and the **equation of the backend names**, `rwLens E.RW
+(authBeOn stl bel)` (the environment's write right lends the store's half on `bel`;
+`rwLens_authBeOn`, of `srvRestRWH … (srvObjsOn … bel)`). `srvObjsOn`'s text, `authBeOn`'s and
+D22's `Recover` premise (a) are unchanged. The kit's post gives `authApplyResB M stl (bump
+bootState) d.be`; `NewServer` builds `srvAuthApplyResB` with the lens at `d.be`; the mode-`on`
+rows (`applyBuiltNAOn`, `applyBuiltOn`, `srvApplyKVOn`) hold `srvAuthApplyResB` in place of
+`srvAuthApplyResAt` (`srvAuthApplyResAt_of_B` forgets back, for the mode-off rows). The borrow:
+`adminW_of_beOn` turns `authBeOn stl bel ∗ authWBackendAt bel ∗ T` into the admin steps' write
+resource, `beOn_of_adminW` turns it back after the step.
+
+**Exported statements changed.** Definitions: `authStoreKit` (post: `authStoreLatestM`,
+`authApplyResB` in place of `authApplyResAt`), `authSchemaSrv` (the uniform write contract),
+`srvUberBase` (the store fact), `applyBuiltNAOn`, `applyBuiltOn`, `srvApplyKVOn` (`srvAuthApplyResB`).
+Theorem hypotheses: `authStoreKit_on`, `authSrvTP_on` (the four `specL` checks and the five
+`specTB`s). New: `authStoreLatestM`, `authWBackendAt`, `beOn`, `adminW`, `authApplyResB`,
+`srvAuthApplyResB`, `authApplyResAt_of_B`, `srvAuthApplyResAt_of_B`, `adminW_of_beOn`,
+`beOn_of_adminW`, `rwLens_authBeOn`, `srv_uberKVL_on`, `server_uber_kvl_on`, `auth.authWRxB`,
+`authWRx_B`, `authWRx_of_B`, the five `specTB`/`wp_tieB`/`specT_of_TB`,
+`apply.isAuthStepsX_of_authInvTB`. Unchanged: every `X.specT`, `X.spec`, `NewServer.spec`, the
+closed theorems.
+
+**Left.** `start`'s mode-`on` spec (its `isServerM true`) needs `run`'s, which needs
+`applyAll`'s and `applyEntryNormal.specOn`'s: the loop is one chain, not begun here.
+`applyEntryNormal.specOn`: no data; KV entries (`kv_entry_pre_on`, `apply.Apply.kvSpecL` with
+`srv_uberKVL_on`, `kvOn_after_kv`); cluster entries; admin entries (the receipt at an
+apply-thread step, the borrow through `srvAuthApplyResB`'s lens and `adminW_of_beOn`,
+`apply.Apply.adminSpecL` with `uberAuthStepsL` at `adminW` from `authApplyResB`'s
+`isAuthStepsX`, `adminStateR_of_*`, `authPublishT`); replays; `resultΨOn` to the waiter. The
+`uberAuthStepsL` at `adminW` itself (the base applier's `applierAdmin`/`applierAdmL` from
+`authApplyResB`'s `isAuthStepsX`, as `srv_uberKVL_on` does for the KV side).
+
+**Trust base.** Unchanged (no axiom, no `sorry`).
