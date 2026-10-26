@@ -434,6 +434,12 @@ theorem authPubAuth_lb_le (γa : AuthNames) (p i : Nat) :
   icases monoNatLbOwn_valid γa.pub 1 p i $$ H Hlb with %Hv
   ipureintro; exact Hv.2
 
+/-- **The store's ghost at its allocation** (the auth plan's E3h, 2026-10-27): the half of the
+latest state's ghost variable that the store's revision invariant takes (`revCur`), and the
+published index's authority at `0` (the invariant's freshness, `revFresh`). -/
+def authStoreInit (γa : AuthNames) (st : AuthState) : IProp GF :=
+  iprop(authCurHalf γa st ∗ authPubAuth γa 0)
+
 theorem authStateAt_permKeysOk (γa : AuthNames) (i : Nat) (st : AuthState) :
     authStateAt (GF := GF) γa i st ⊢ ⌜permKeysOk st⌝ := by
   unfold authStateAt
@@ -460,6 +466,11 @@ theorem authHist_lookup (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : 
   unfold authHist authStateAt
   iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
   iapply (mono_list_auth_idx_lookup γa.hist 1 hs i st) $$ H1 H2
+
+/-- `authHist_lookup`, the authority kept. -/
+theorem authHist_lookup_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState) :
+    authHist (GF := GF) γa hs ∗ authStateAt γa i st ⊢ authHist γa hs ∗ ⌜hs[i]? = some st⌝ :=
+  (and_intro (by iintro ⟨H, -⟩; iexact H) (authHist_lookup γa hs i st)).trans persistent_and_sep_mp
 
 /-- A history and its latest state's ghost variable, both halves, with the token providers'
 issued tokens under `γt` (allocated with the provider, `tokAlloc`, `Tokens.lean`) and the fresh

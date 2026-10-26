@@ -209,7 +209,7 @@ theorem newAuthStore_on
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
         T ∗ mvcc.csContract P f Pre Q Post ∗ tokenProviderOkA tp (.on γa) A ∗ A ∗
-        authOwn (.on γa) hs ∗ authCurHalf γa stl }}
+        authOwn (.on γa) hs ∗ authStoreInit γa stl }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List AuthState),
@@ -219,6 +219,8 @@ theorem newAuthStore_on
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
   wp_start as ⟨%Hlg, %Hab, #Hrdok, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur⟩
+  iunfold authStoreInit at Hcur
+  icases Hcur with ⟨Hcur, Hpub⟩
   ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
   subst Hab
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -325,6 +327,11 @@ theorem newAuthStore_on
   obtain ⟨se, hse, hseu⟩ := hempty
   obtain ⟨ie, hie⟩ := List.mem_iff_getElem?.1 hse
   imod (authOwnF_stateAt_keep γa hs ie se hie) $$ Hown with ⟨Hown, #Hse⟩
+  obtain ⟨s0, hs0⟩ : ∃ s0, hs[0]? = some s0 := by
+    cases hs with
+    | nil => cases hlast
+    | cons x xs => exact ⟨x, rfl⟩
+  imod (authOwnF_stateAt_keep γa hs 0 s0 hs0) $$ Hown with ⟨Hown, #Hs0⟩
   -- the three locks' guards
   ihave ⟨Hbe1, Hbe2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ be
   ihave ⟨Hen1, Hen2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ enabled
@@ -360,12 +367,20 @@ theorem newAuthStore_on
   ipersist lg
   ipersist tokenProvider
   -- the revision's invariant
-  imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur]
+  imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur Hpub]
     with #Hrev
   · inext; iunfold revInv; iexists x; iframe revision
     isplitl []
     · iunfold revisionVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hx
+    isplitl [Hcur]
     · iunfold revCur; iexists st0; iframe Hcur; ipureintro; exact Hx
+    · -- (E3h) nothing published yet: the published index `0`, the latest state's revision
+      simp only [revFresh]
+      iexists 0
+      iframe Hpub
+      isplitl []
+      · iexists s0; iexact Hs0
+      iexists _, st0; iframe Hst0; ipureintro; exact ⟨Nat.zero_le _, Hx⟩
   ihave #Hinv : authInv (GF := GF) «$r0_ptr» R (.on γa) $$ []
   · iunfold authInv
     iframe Hrev Gbe Gen Gca

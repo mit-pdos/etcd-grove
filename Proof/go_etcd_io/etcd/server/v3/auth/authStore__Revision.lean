@@ -40,7 +40,7 @@ theorem auth.authStore.Revision.wp_proof :
   iintro Hmask
   inext
   iunfold revInv at Hi
-  icases Hi with ⟨%r, Hr, #Hv, Hc⟩
+  icases Hi with ⟨%r, Hr, #Hv, Hc, Hf⟩
   iexists r
   iframe Hr
   iintro Hr
@@ -59,8 +59,8 @@ theorem auth.authStore.Revision.wp_proof :
       ipureintro; intro hs' stl h; cases h; exact Hp stl
   icases Hag with ⟨Hown, Hc, %Hp⟩
   imod Hmask with -
-  imod Hclose $$ [Hr Hc] with -
-  · inext; iunfold revInv; iexists r; iframe Hr Hc; iexact Hv
+  imod Hclose $$ [Hr Hc Hf] with -
+  · inext; iunfold revInv; iexists r; iframe Hr Hc Hf; iexact Hv
   imodintro
   wp_auto
   iapply HΦ

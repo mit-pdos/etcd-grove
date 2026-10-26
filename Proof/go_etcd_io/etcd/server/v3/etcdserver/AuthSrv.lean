@@ -199,11 +199,11 @@ theorem authStoreKit_on
     (hD22 : ⊢ authSchemaSrv (GF := GF))
     (tp : GoInterface) (γa : auth.AuthNames) (A : IProp GF) :
     auth.tokenProviderOkA tp (.on γa) A ∗ A ∗ auth.authOwn (.on γa) [auth.bootState] ∗
-      auth.authCurHalf γa auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ⊢
+      auth.authStoreInit γa auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ⊢
       authStoreKit (GF := GF) (.on γa) tp := by
   iintro ⟨#HtpA, HA, Hown, Hcur, HI⟩
   iunfold authStoreKit
-  iexists iprop(A ∗ auth.authOwn (.on γa) [auth.bootState] ∗ auth.authCurHalf γa auth.bootState ∗
+  iexists iprop(A ∗ auth.authOwn (.on γa) [auth.bootState] ∗ auth.authStoreInit γa auth.bootState ∗
     auth.authLockI (.on γa) auth.bootState)
   iframe HA Hown Hcur HI
   iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI⟩, #Hpkg, %Hlg, %Htp,

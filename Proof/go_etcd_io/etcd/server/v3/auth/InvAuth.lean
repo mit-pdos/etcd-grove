@@ -609,10 +609,25 @@ def revCur (M : AuthMode) (r : w64) : IProp GF :=
 instance revCur_timeless (M : AuthMode) (r : w64) : Timeless (revCur (GF := GF) M r) := by
   unfold revCur authCurHalf; cases M <;> infer_instance
 
+/-- **The store's freshness** in the mode `M` at the atomic's value `r` (the auth plan's E3h,
+2026-10-27; `notes/decisions.md`, "E3h of the auth plan"): in `on γa`, the published index `p`'s
+authority (`authPubAuth`; a reader's lower bound `authPubLb γa i` is at most `p`), `p` an index of
+the history, and `r` the revision of a state recorded at an index at least `p` (so a reader with the
+lower bound `i` reads a revision no older than `i`'s); in the other modes nothing. -/
+def revFresh (M : AuthMode) (r : w64) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ p : Nat, authPubAuth γa p ∗ (∃ sp : AuthState, authStateAt γa p sp) ∗
+      ∃ (j : Nat) (s : AuthState), authStateAt γa j s ∗ ⌜p ≤ j ∧ uint.nat r = s.revision⌝)
+  | _ => iprop(True)
+
+instance revFresh_timeless (M : AuthMode) (r : w64) : Timeless (revFresh (GF := GF) M r) := by
+  unfold revFresh authPubAuth authStateAt; cases M <;> infer_instance
+
 /-- The invariant of `revision` (an atomic) in the mode `M`: a recorded state's revision
-(`revisionVerdict`; the auth plan's S3), the latest's (`revCur`; S4). -/
+(`revisionVerdict`; the auth plan's S3), the latest's (`revCur`; S4), and the store's freshness
+(`revFresh`; E3h). -/
 def revInv (st : Loc) (M : AuthMode) : IProp GF :=
-  iprop(∃ r : w64, aF go!"revision" st ↦ r ∗ revisionVerdict M r ∗ revCur M r)
+  iprop(∃ r : w64, aF go!"revision" st ↦ r ∗ revisionVerdict M r ∗ revCur M r ∗ revFresh M r)
 
 /-- **The auth store** at `as` (persistent), its backend's read resource `R`, its mode `M`: the
 atomic `revision`'s invariant, the read-only `lg` (not nil) and `tokenProvider` with its contract,
@@ -1099,6 +1114,52 @@ theorem authOwnF_revCur_keep (M : AuthMode) (hs : List AuthState) (stl : AuthSta
     imodintro
     isplitr; itrivial; isplitr; itrivial; itrivial
 
+/-- **The freshness at the latest state's revision** (the auth plan's E3h): with the whole
+authority at `hs` whose latest state `s` has the revision `r'`, the published index (an index of
+`hs`) is at most `s`'s, so the atomic at `r'` is fresh. -/
+theorem authOwnF_revFresh (M : AuthMode) (hs : List AuthState) (s : AuthState) (r r' : w64)
+    (hl : ∀ γa, M = .on γa → hs.getLast? = some s)
+    (hr' : M.isOn = true → M ≠ .any → uint.nat r' = s.revision) :
+    ⊢ authOwnF (GF := GF) M hs -∗ revFresh M r -∗ |==> (authOwnF M hs ∗ revFresh M r') := by
+  cases M with
+  | on γa =>
+    have hl := hl γa rfl
+    simp only [authOwnF, revFresh]
+    iintro ⟨Hh, Hc⟩ ⟨%p, Hp, ⟨%sp, #Hsp⟩, -⟩
+    ihave ⟨Hh, %Hlk⟩ := authHist_lookup_keep γa hs p sp $$ [Hh]
+    · iframe Hh Hsp
+    have hi : hs[hs.length - 1]? = some s := by
+      cases hs with
+      | nil => cases hl
+      | cons x xs => rw [List.getLast?_eq_getElem?] at hl; exact hl
+    obtain ⟨hp, -⟩ := List.getElem?_eq_some_iff.1 Hlk
+    imod (authHist_stateAt_keep γa hs (hs.length - 1) s hi) $$ Hh with ⟨Hh, #Hst⟩
+    imodintro
+    isplitl [Hh Hc]
+    · iframe Hh Hc
+    iexists p
+    iframe Hp
+    isplitl []
+    · iexists sp; iexact Hsp
+    iexists hs.length - 1, s
+    iframe Hst
+    ipureintro
+    exact ⟨by omega, hr' rfl (by intro h; cases h)⟩
+  | off =>
+    simp only [revFresh]
+    iintro H -
+    imodintro
+    isplitl [H]
+    · iexact H
+    · itrivial
+  | any =>
+    simp only [revFresh]
+    iintro H -
+    imodintro
+    isplitl [H]
+    · iexact H
+    · itrivial
+
 /-- The authority has a latest state (`histLast`): in `off`, one of its states (all disabled). -/
 theorem authOwnF_exists_last (M : AuthMode) (hs : List AuthState) :
     authOwnF (GF := GF) M hs ⊢ ⌜∃ st : AuthState, histLast M hs st⌝ := by
@@ -1235,13 +1296,13 @@ theorem authOwnF_append_same (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List
   icases Hinv with ⟨-, #Hrev, -⟩
   iinv Hrev with Hi Hclose
   iunfold revInv at Hi
-  icases Hi with ⟨%r, >Hr, -, >Hc⟩
+  icases Hi with ⟨%r, >Hr, -, >Hc, >Hf⟩
   ihave H := revCur_agree M hs r $$ Hown Hc
   icases H with ⟨Hown, Hc, %Hag⟩
   imod (authOwnF_revCur_append M hs x r r hk hoff (fun h1 h2 => by
     rw [hrev]; exact Hag st0 hl h1 h2)) $$ Hown Hc with ⟨Hown, Hc, #Hv⟩
-  imod Hclose $$ [Hr Hc] with -
-  · inext; iunfold revInv; iexists r; iframe Hr Hc; iexact Hv
+  imod Hclose $$ [Hr Hc Hf] with -
+  · inext; iunfold revInv; iexists r; iframe Hr Hc Hf; iexact Hv
   imodintro
   iexact Hown
 
