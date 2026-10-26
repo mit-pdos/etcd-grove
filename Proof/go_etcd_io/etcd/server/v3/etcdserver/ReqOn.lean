@@ -357,5 +357,88 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
 
 end lemmas
 
+/-! ## A put in the mode `on` -/
+
+section put
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **What a put of `op` needs in the mode `on`** (`putPermit`'s, and a key not empty: the
+permission cache decides the put's check, `kvShapeAll`; the gRPC layer refuses an empty key,
+`ErrGRPCEmptyKey`). -/
+def putPermitOn (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(putPermit γk op Q ∗ ⌜op.key ≠ []⌝)
+
+/-- **A put's result in the mode `on`** at the header `hm` the server stamps and the committed log
+`L` before its entry: `grantedRes` of the stamped request. -/
+def putQhOn (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState → IProp GF)
+    (hm : apply.HeaderModel) (L : List EntryModel) : IProp GF :=
+  grantedRes γk srvAuthSt0 (apply.withHeader (irrPut op) hm) γc Q L
+
+theorem irrPut_kind (op : OpFull) : apply.dispatchKind (irrPut op) = .put := by
+  simp [apply.dispatchKind, irrPut, apply.irrEmpty]
+
+/-- **A put's permission in the mode `on` is its proposal's** (`putPermit_reqPropOk`'s). -/
+theorem putPermitOn_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) (γc : GName) :
+    putPermitOn (GF := GF) γk op Q ⊢ reqPropOkM true γk (irrPut op) (putQhOn γk op γc Q) := by
+  unfold putPermitOn putPermit
+  iintro ⟨⟨%Hl, Hau⟩, %Hk⟩
+  have hk := irrPut_kind op
+  have hpl : plainCover (irrPut op) := by
+    unfold plainCover
+    rw [hk]
+    refine ⟨by simp [apply.noSideEffect, irrPut, apply.irrEmpty],
+      by simp [apply.needAdminPermission, irrPut, apply.irrEmpty], ?_⟩
+    intro op' hop'
+    simp only [irrPut, Option.some.injEq] at hop'
+    subst hop'
+    exact Hl
+  have hp : plainReq (irrPut op) := ⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩
+  have hop : reqKVOp (irrPut op) = some (.put op) := by unfold reqKVOp; rw [hk]; rfl
+  have hz : irrNoZeroEnd (irrPut op) := by
+    refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
+  have hs : rqShape (irrPut op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
+  have ha : kvShapeAll (irrPut op) := by
+    intro x hx
+    have hr : reqPerms (irrPut op) = apply.putPerms op := by unfold reqPerms; rw [hk]; rfl
+    rw [hr] at hx
+    have hsh : auth.reqShape op.key [] := ⟨Hk, Or.inl rfl⟩
+    unfold apply.putPerms at hx
+    cases hpk : op.base.prevKV <;> rw [hpk] at hx <;> simp at hx
+    · subst hx; exact hsh
+    · rcases hx with rfl | rfl <;> exact hsh
+  have hq : putQhOn (GF := GF) γk op γc Q =
+      fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrPut op) hm) γc Q := rfl
+  rw [hq]
+  iapply reqPropOkM_true_write γk (irrPut op) (.put op) Q γc hp hop hz hs ha $$ Hau
+
+/-- **A put applied without an error was granted, so its client's result is there** (the mode-`on`
+success): the apply thread's outcome `.applied` is not the auth layer's rejection, so the model's
+auth state the entry met grants it (`authTie`), and `grantedRes` gives the result at the state of
+the log the entry met. -/
+theorem putQhOn_res (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState → IProp GF)
+    (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
+    (h : modelOutM true γk (apply.withHeader (irrPut op) hm) L lb
+      (.dispatched (.applied log' false) skip)) :
+    putQhOn (GF := GF) γk op γc Q hm L ⊢ kvRes γc Q (kvStateOf lb) := by
+  obtain ⟨st, hst, htie⟩ := h
+  have hkv : apply.isKVKind (apply.dispatchKind (apply.withHeader (irrPut op) hm)) = true := by
+    rw [dispatchKind_withHeader, irrPut_kind]; rfl
+  have hg : kvGranted st (apply.withHeader (irrPut op) hm) := by
+    have := htie hkv _ _ rfl
+    exact Classical.byContradiction fun hn => apply.Outcome.noConfusion (this.2 hn)
+  have hga : grantedAt γk srvAuthSt0 (apply.withHeader (irrPut op) hm) L := by
+    unfold grantedAt; rw [hst]; exact hg
+  have hlb : kvModelOn γk srvAuthSt0 L = lb := by unfold kvModelOn; rw [hst]
+  unfold putQhOn grantedRes
+  rw [hlb]
+  iintro (⟨-, H⟩ | %Hn)
+  · iexact H
+  · exact absurd hga Hn
+
+end put
+
 end EtcdGrove
 end Perennial
