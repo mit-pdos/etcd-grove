@@ -45,8 +45,8 @@ theorem watchCache.WaitUntilFreshAndGet.wp_proof
     (wp_SpanFromContext : tracing.SpanFromContext.spec (GF := GF) (hG := hG))
     (wp_AddEvent : tracing.Span.AddEvent.spec (GF := GF) (hG := hG)) :
     watchCache.WaitUntilFreshAndGet.spec (GF := GF) (hG := hG) := by
-  intro wc γ Ψ parseRV curRV ctx rvs key
-  wp_start as ⟨#Hwc, #Hget, Htok⟩
+  intro wc γ Ψ parseRV ctxPre curRV ctx rvs key
+  wp_start as ⟨#Hwc, #Hget, Hcp, Htok⟩
   ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.store $$ []
   · iPkgInit
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
@@ -59,7 +59,7 @@ theorem watchCache.WaitUntilFreshAndGet.wp_proof
   wp_if_destruct
   -- `""`: the current revision
   (try wp_auto)
-  wp_apply Hcur as %n %err Hm0
+  wp_apply Hcur $$ [$Hcp] as %n %err Hm0
   (try wp_auto)
   ihave Hm : (⌜err = GoInterface.nil⌝ -∗
       (⌜(go!"" : GoString) = go!""⌝ ∗ curRV n ∨

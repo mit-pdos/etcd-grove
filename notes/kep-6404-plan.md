@@ -112,6 +112,14 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
   cacher metrics' package fact (`WatchCacheReadWait`'s labels, axiom),
   `tracing.SpanFromContext` (axiom), `storage.NewTooLargeResourceVersionError` (proof `sorry`: it
   needs `apierrors.NewTimeoutError`).
+- **The current revision** (step 2): `store.GetCurrentResourceVersion` (the etcd3 store's, the
+  cacher's `getCurrentRV`) proved, linked in the etcd3 store's Link: a linearizable read through
+  the client's `Get` with the caller's read updates as `store.Get`'s, returning the revision of
+  the state they fired at (not `0`). `wcGetOk` takes its context's precondition (`ctxPre`: the
+  store's `ctxOk`/`ctxErrClient`), which `WaitUntilFreshAndGet` takes for its own context. Left:
+  `wcGetOk`'s `getCurrentRV` premise from this spec, for the function the cacher stores (the
+  method value `config.Storage.GetCurrentResourceVersion`, `NewCacherFromConfig`, not translated
+  yet), with `Q` the lower bound of etcd's revision at the call's start.
 - **Next**: tie `Ψ` to etcd's state (a published state at revision `r` is etcd's KV state at `r`:
   the reflector's list and watch over the KV/Watch specs, `processEvent`, blocked on G3) and
   `curRV` to the read's linearization (per call, `curRV n := ⌜r0 ≤ n⌝` for a lower bound `r0` of

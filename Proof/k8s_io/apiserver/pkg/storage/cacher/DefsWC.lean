@@ -19,11 +19,12 @@ wc.RLocker())`), then load the store's latest snapshot.
   UTF-8 (the read-wait histogram's labels).
 * `isWC wc γ Ψ`: the store (`isWCS`, with the caller's fact `Ψ` of every state it publishes), the
   condition variable over the read lock, the configuration, and the lock's writer guard.
-* `wcGetOk wc parseRV curRV`: the configuration's fields a GET uses to find the version to wait
-  for (`WaitUntilFreshAndGet`): the versioner (an interface, from the cacher's `Config`), whose
-  `ParseResourceVersion` returns `parseRV s` (or an error if it is `none`), and `getCurrentRV` (a
-  function, from the cacher: the store's current revision, a quorum read of etcd), whose result `n`
-  without an error comes with `curRV n`. `curRV` is persistent in effect (it is under the `□`), so
+* `wcGetOk wc parseRV ctxPre curRV`: the configuration's fields a GET uses to find the version to
+  wait for (`WaitUntilFreshAndGet`): the versioner (an interface, from the cacher's `Config`),
+  whose `ParseResourceVersion` returns `parseRV s` (or an error if it is `none`), and
+  `getCurrentRV` (a function, from the cacher: the etcd3 store's `GetCurrentResourceVersion`, a
+  quorum read of etcd), which, on a context with `ctxPre` (the store's: `ctxOk`, `ctxErrClient`),
+  returns a result `n` that comes with `curRV n` without an error. `curRV` is persistent in effect (it is under the `□`), so
   it is not an atomic update fired inside the call; a caller re-establishes `wcGetOk` for each GET
   with a fact of that call: for a linearizable read, `curRV n := ⌜r0 ≤ n⌝` for a lower bound `r0`
   of etcd's revision taken at the call's start (from a spec of `getCurrentRV` that, given the
@@ -109,7 +110,8 @@ instance isWC_persistent (wc : Loc) (γ : WCSNames) (Ψ : SnapSt → IProp GF) :
 
 /-- **The configuration's fields a GET uses to find its version** (persistent; see the file
 header). -/
-def wcGetOk (wc : Loc) (parseRV : GoString → Option w64) (curRV : w64 → IProp GF) : IProp GF :=
+def wcGetOk (wc : Loc) (parseRV : GoString → Option w64) (ctxPre : GoInterface → IProp GF)
+    (curRV : w64 → IProp GF) : IProp GF :=
   iprop(∃ (cfg : Loc) (vi : GoInterfaceOk) (f : GoFunc),
     structFieldRef watchCache go!"config" wc ↦□ cfg ∗
     structFieldRef ImmutableWatchCacheConfig go!"versioner" cfg ↦□ GoInterface.ok vi ∗
@@ -120,13 +122,14 @@ def wcGetOk (wc : Loc) (parseRV : GoString → Option w64) (curRV : w64 → IPro
             | some m => err = GoInterface.nil ∧ n = m
             | none => err ≠ GoInterface.nil⌝ -∗ Φ (PairV #n #err)) -∗
       WP (App (Val #(methods vi.ty go!"ParseResourceVersion" vi.v)) (Val #s)) {{ Φ }}) ∗
-    □ (∀ (ctx : GoInterface) (Φ : val → IProp GF),
+    □ (∀ (ctx : GoInterface) (Φ : val → IProp GF), ctxPre ctx -∗
       ▷ (∀ (n : w64) (err : GoInterface), (⌜err = GoInterface.nil⌝ -∗ curRV n) -∗
           Φ (PairV #n #err)) -∗
       WP (App (Val #f) (Val #ctx)) {{ Φ }}))
 
-instance wcGetOk_persistent (wc : Loc) (parseRV : GoString → Option w64) (curRV : w64 → IProp GF) :
-    Persistent (wcGetOk (GF := GF) wc parseRV curRV) := by
+instance wcGetOk_persistent (wc : Loc) (parseRV : GoString → Option w64)
+    (ctxPre : GoInterface → IProp GF) (curRV : w64 → IProp GF) :
+    Persistent (wcGetOk (GF := GF) wc parseRV ctxPre curRV) := by
   unfold wcGetOk; infer_instance
 
 end defs
