@@ -25,6 +25,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApplyOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.TieRes
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyAdminL
 
 @[expose] public section
 
@@ -114,6 +115,33 @@ theorem adminStateR_of_step (rq : apply.IRRModel) (st : auth.AuthState) (o : aut
   · rw [hk]; simp only [hn]; exact ⟨o, h, rfl⟩
   · rw [hk]; simp only [hu]; exact ⟨o, h, rfl⟩
   · rw [hk]; simp only [hn]; exact ⟨o, h, rfl⟩
+
+/-- **`AuthEnable`'s step at the latest state's flag** (E3c: `AdminReq.result`'s `AuthEnable` at
+`authEnableR`, the flag the store read the latest state's): with the admin check passed at the
+latest state, the outcome's state is the model's admin step's successor. -/
+theorem adminStateR_of_authEnable (γa : auth.AuthNames) (rq : apply.IRRModel) (st : auth.AuthState)
+    (en : Bool) (o : auth.Outcome)
+    (ha : auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))))
+    (hk : apply.dispatchKind rq = .authEnable) (h : apply.authEnableR (.on γa) en st o) :
+    adminStateR rq st (outState st o) := by
+  unfold adminStateR
+  rw [if_pos ha, hk]
+  exact ⟨o, apply.authEnableR_on γa en st o h, rfl⟩
+
+/-- **An admin check refused at the latest state** (E3c's `adminRejL`, from `uberApplier.Apply`'s
+latest-state admin triple): the admin step keeps the state. -/
+theorem adminStateR_of_rejL (γa : auth.AuthNames) (hs : List auth.AuthState) (st : auth.AuthState)
+    (rq : apply.IRRModel) (hl : hs.getLast? = some st)
+    (h : apply.adminRejL (.on γa) hs rq) : adminStateR rq st st :=
+  adminStateR_refused rq st (h st hl)
+
+/-- **An admin check passed at the latest state** (E3c's `adminPassL`): the latest state admits
+the request's principal, `adminStateR_of_step`'s premise. -/
+theorem adminOk_of_passL (γa : auth.AuthNames) (hs : List auth.AuthState) (st : auth.AuthState)
+    (rq : apply.IRRModel) (hl : hs.getLast? = some st) (hn : apply.needAdminPermission rq = true)
+    (h : apply.adminPassL (.on γa) hs rq) :
+    auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) :=
+  h hn st hl
 
 end pure
 

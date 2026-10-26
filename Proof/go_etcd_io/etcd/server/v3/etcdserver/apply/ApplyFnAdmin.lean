@@ -35,7 +35,7 @@ variable [sem : go.Semantics]
 
 /-- **The `UberApplier` `ua` with its base applier's admin triples** (the auth plan's E2o;
 persistent; E2v: the triples themselves, for the authority family `Own`, rather than the store's
-`isAuthSteps` they come from, `uberAuthSteps_of_steps`, `uberAuthSteps_of_stepsX`): `uberIs` and
+`isAuthStepsX` they come from, `uberAuthSteps_of_stepsX`): `uberIs` and
 the base applier's admin triples with the store's write resource `W`. -/
 def apply.uberAuthSteps (ua : GoInterface) (E : apply.AEnv GF) (W : IProp GF) (Own : auth.AuthNames → List auth.AuthState → IProp GF) :
     IProp GF :=
@@ -87,29 +87,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
-
-/-- **The uber-applier's admin triples from its store's admin steps** (E2o's form): from
-`isAuthSteps` with E2l's fuel triples, for the authority with its fuel. -/
-theorem apply.uberAuthSteps_of_steps
-    (hUA : apply.applierV3backend.UserAdd.fuelSpec (GF := GF) (hG := hG))
-    (hRA : apply.applierV3backend.RoleAdd.fuelSpec (GF := GF) (hG := hG))
-    (hUGR : apply.applierV3backend.UserGrantRole.fuelSpec (GF := GF) (hG := hG))
-    (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpec (GF := GF) (hG := hG))
-    (hAE : apply.applierV3backend.AuthEnable.fuelSpec (GF := GF) (hG := hG))
-    (E : apply.AEnv GF) (W : IProp GF) (p : Loc)
-    (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.uberIs E p opts ∗ apply.isAuthSteps opts.AuthStore' E.P E.f E.authMode W ⊢
-      apply.uberAuthSteps (interface.mkOk (go.GoType.PointerType uberApplier.ty) #p) E W
-        auth.authOwnFu := by
-  iintro ⟨#Hpkg, #Hu, #Hst⟩
-  iunfold apply.uberAuthSteps
-  iexists p, opts
-  iframe Hu
-  isplitr
-  · ipureintro; rfl
-  iapply apply.applierAdmin_uber hUA hRA hUGR hRGP hAE E W p opts $$ [Hpkg Hu Hst]
-  iframe #
 
 /-- **The uber-applier's admin triples carrying `X`** (the auth plan's E2v): from the store's
 `isAuthStepsX` (of the real store with the tie, `isAuthStepsX_of_authInvT`) with the fuel triples

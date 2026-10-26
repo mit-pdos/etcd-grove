@@ -21389,3 +21389,82 @@ changed; trust base unchanged.
    (`srvKVAns`, `kvTxnOk_of_server` and the others) from all four server methods, the read side
    included, so they wait on (2); `Put`/`DeleteRange`/writing `Txn` in the mode `on` are ready for
    them (`server_put_on`, `server_delete_range_on`, `server_txn_on`).
+
+## E3c of the auth plan: the admin check at the latest state on the apply path; `AuthEnable` at the latest flag; the tie at boot (2026-10-27 · `notes/auth-plan.md`)
+
+E3a's blockers 1–3 of the apply loop with auth on ("E3a of the auth plan", What blocks).
+
+**(1) The admin check at the latest state** (`apply/ApplyAdminL.lean`, `apply/ApplyFnAdminL.lean`;
+new triples beside the existing ones, none of which changes). The check is in `authApplierV3.Apply`
+(`auth.go`: `IsAdminPermitted` before the inner applier's `Apply`), not in `dispatch`, so E2y's
+pattern (a latest-state clause of `dispatch`) does not reach it; the lift is through `Apply`:
+- `apply.adminPassL M hs rq` / `adminRejL`: the check passed / refused at the latest state of `hs`
+  for the request's own principal (`principalOf rq`, the header's, which `Apply` sets in
+  `authInfo`), from E2s's `adminVerdictL` (`adminPassL_of_verdict`, `adminRejL_of_verdict`).
+- `apply.applyNR c a`: an applier whose `Apply` always runs its `applyFunc`. The chain's `Apply`
+  clause (`applierTriples`) lets any inner applier reject, which would leave a passed check without
+  its step; the base chain's inner applier does not reject: the backend's (`applyNR_backend`, from
+  `applierV3backend.Apply.spec`) and the quota applier's, promoted (`applyNR_quota`), so
+  `applyNR_base` from `baseShape`'s fields.
+- `authApplierV3.Apply.specL`/`wp_latest`: with `authIsL` (E2s's checks at the latest state),
+  `applyNR` of the inner applier and the latest-state resource `L hs`, which the `applyFunc` gets
+  with `A` (and a rejection gives back): dispatched means `adminPassL`, rejected
+  `needAdminPermission ∧ adminRejL`.
+- `applierAdmL E c a L` (the triple as an applier fact; of the auth applier `applierAdmL_auth`; of
+  the current applier with no alarm set `applierAdmL_cur`, as E2y's `applierKVL_cur`).
+- `uberApplier.Apply.adminSpecL`/`wp_adminL` and `apply.Apply.adminSpecL`/`wp_adminL` (with
+  `uberAuthStepsL`): E2o's admin triples with the current chain the base one, the authority family
+  `Own` lending `L` to the check (`∀ h, Own γa h ⊢ L h ∗ (L h -∗ Own γa h)`: for the tie-carrying
+  instance, E2s's `latestRes_of_T`), and in the postcondition `out = .rejected → adminRejL` and
+  `out = .dispatched → adminPassL`. The postconditions drop `applyAuthRes` (S3's recorded-state
+  verdict, `adminPass`, which `isAuthStoreL`'s check does not give; the latest one replaces it).
+- The model (`ApplyTieOn.lean`): `adminStateR_of_rejL` (a refused check keeps the state) and
+  `adminOk_of_passL` (`adminStateR_of_step`'s premise). Restated with every callee linked:
+  `apply_auth_apply_latest`, `apply_apply_nr_base`, `apply_applier_admin_latest`,
+  `apply_dispatch_admin` (E2n's, not restated before), `apply_uber_apply_admin_latest`,
+  `apply_apply_admin_latest`, `admin_state_of_latest`.
+
+**(2) `AuthEnable` at the latest state's flag.** `AdminReq.result`'s `AuthEnable` was at the flag the
+store read (`stepOf (authEnableF en)` with `enabledVerdict`: some recorded state's flag), while the
+model steps at the latest state's (`authEnableF st.enabled`). With the tie the flag read is the
+admin side's half, the latest state's:
+- `auth.authStore.AuthEnable.specT` (E2s) gives `⌜en = b0⌝` (the flag read is the admin side's half
+  at `b0`, in every branch of `wp_tie`); `spec_of_T` drops it.
+- `apply.authEnableR M en := fun st o => (∀ γa, M = .on γa → st.enabled = en) ∧ stepOf (authEnableF
+  en) st o` (`AuthStepsX.lean`; `stepSmall_authEnableR`, `authEnableR_on`); `isAuthStepsX`'s,
+  `AuthEnable.stepSpecX`'s and `fuelSpecX`'s `AuthEnable` and `AdminReq.result`'s at it;
+  `isAuthStepsX_of_authInvT` from `en = b0` and the tie (`adminOutX_rel`).
+- `adminStateR_of_authEnable` (`ApplyTieOn.lean`), restated as `admin_state_auth_enable`.
+- **The plain instance of the admin chain goes** (`applierAdmin_backend`, `applierAdmin_base`,
+  `applierAdmin_uber`, `applierAdmin_cur`, `uberAuthSteps_of_steps`, and the restatement
+  `apply_admin_backend`): without the tie the store's flag is some recorded state's, so it cannot
+  give `authEnableR`. E2l's fuel triples (`fuelSpec`, `stepSpec`, `isAuthSteps`) stay; only their
+  lift into `applierAdmin` goes. The tie-carrying instance (`…X`, E2v) is the one the server uses.
+
+**(3) The tie at boot.** `authApplyResAt M stl st` (`AuthApplyRes.lean`): `authApplyRes` with
+`⌜hs.getLast? = some st⌝`, and `srvAuthApplyResAt`; `authStoreKit`'s post gives it at
+`bump bootState` (the store's history `[bootState, bump bootState]`); `srvBuiltG`'s `"Happ"` row is
+`applyBuiltNAM on` (`applyBuiltNA` at `false` by definition, `applyBuiltNAOn` with
+`srvAuthApplyResAt s E srvAuthSt0` at `true`; `applyBuiltNAM_of_On`), and `applyBuiltOn` (so
+`isServerBuiltOn`) holds `srvAuthApplyResAt s E srvAuthSt0`: the apply thread's history's latest
+state is the model's start state.
+
+**Exported statements changed.**
+- *Specs:* `auth.authStore.AuthEnable.specT` (post: `⌜en = b0⌝`), `apply.applierV3backend.AuthEnable.stepSpecX`
+  and `.fuelSpecX` (`authEnableR`).
+- *Definitions:* `apply.isAuthStepsX` (its `AuthEnable` clause), `apply.AdminReq.result` (`.authEnable`),
+  `authStoreKit` (post: `authApplyResAt … (bump bootState)`), `srvBuiltG` (`applyBuiltNAM on`),
+  `applyBuiltOn` (`srvAuthApplyResAt … srvAuthSt0`).
+- *Removed:* `apply.applierAdmin_backend`, `applierAdmin_base`, `applierAdmin_uber`, `applierAdmin_cur`,
+  `apply.uberAuthSteps_of_steps`, `apply_admin_backend` (Results).
+- `NewServer.spec`, `NewServer.specM`'s text and every closed theorem unchanged (`srvBuiltG_false` by
+  `rfl`).
+
+**Trust base.** Unchanged (725 axioms, 7 sorries at the time).
+
+**Left** (E3a's blocker 4): `applyEntryNormal`/`applyAll`/`run`/`start` in the mode `on`, now with
+both checks at the latest state (`apply.Apply.kvSpecL`, `apply.Apply.adminSpecL`) and the tie
+`hs.getLast? = some st` from the start (`isServerBuiltOn`); the admin entry's lending of `L` from
+`authApplyRes` (`tieRes` to `latestRes`, `latestRes_of_T`; the inverse wand for `hsplit`), the
+receipt and the borrow of `be`'s half; the server's base applier's `applierAdmL` (`applierAdmL_auth`
+with `applyNR_base`) from its construction.
