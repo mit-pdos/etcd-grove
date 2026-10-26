@@ -346,7 +346,9 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀) ∗
     -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
-    "Hwtok" ∷ idWaitTok ρ.ids)
+    "Hwtok" ∷ idWaitTok ρ.ids ∗
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
+    "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 /-- **The residual** (see the file header): the row of `isServerBuilt` no `NewServer` proof
 gives -- the raft storage's snapshot contract `rnSnapOnce` (`notes/STATUS.md`, "srvBuildGap's

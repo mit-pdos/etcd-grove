@@ -382,3 +382,15 @@ proving both: `specM` follows `spec` as E2k made it. `snapWalkPost`/`snap_applyK
 thread's `srvAuthApplyRes` across `applySnapshot`'s swap (mode off only; a mode-on swap must
 re-establish its backend write side through `Recover`). `notes/decisions.md`, "D22 integration of
 2026-10-26".
+
+## Note from the snapshot track (D22 J1a, 2026-10-26; decided by the orchestrator while the user was away (J1a/J6a))
+
+As J0 planned: `auth.NewAuthStore.spec` (the axiom) gained `authRecoverOk stl` in its post (S8d's
+`srvAuthRecoverOk`, renamed, now in `etcdserver/SnapRO.lean` beside the stores' apply contracts, which
+moved there from `InvBoot.lean` unchanged). The auth track's `authStoreKit` (`AuthSrv.lean`, E2i)
+gained the minimal clause `□ (⌜M = .off⌝ → authRecoverOk stl)`: `authStoreKit_off` takes it from the
+axiom, `authStoreKit_on` proves it vacuously. `NewServer.specM`'s text is unchanged; the server's
+bundle for the snapshot path (`srvSnapRO`) holds `authApplyOkM E.authMode` and the `Recover` clause
+for the mode `off` only. When the E stage proves the server's store, it proves the clause from the
+proved `auth.authStore.Recover.spec`; a mode-on `applySnapshot` needs it restated.
+`notes/decisions.md`, "D22 J1a".

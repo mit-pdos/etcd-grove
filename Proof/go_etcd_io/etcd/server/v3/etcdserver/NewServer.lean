@@ -560,7 +560,9 @@ theorem NewServer.wp_proofM (on : Bool)
     $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok]
     as %ws ⟨%kst, %γw, %Hγw, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
       Hwrds, Hwcl, Hret0, #Htag⟩
-  · iframe Hisl HB Hsz
+  · ihave #Hsz0 : mvcc.keySized (GF := GF) d.γB d.P d.be $$ []
+    · iapply Hsz
+    iframe Hisl HB Hsz0
     iframe Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok
   -- (D19g (b)) the store's reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwsr, Hwrds⟩
@@ -625,7 +627,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      HAres⟩
+      HAres, #HauR⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -641,7 +643,7 @@ theorem NewServer.wp_proofM (on : Bool)
   icases replicate_take1 _ _ hM1 $$ HRDs with ⟨HRD, HRDs⟩
   icases replicate_take1 _ _ (by omega) $$ HRDs with ⟨HRD2, HRDs⟩
   -- (D19g (b)) the auth store's reader slots for request goroutines
-  icases replicate_takeN _ 64 _ (by omega) $$ HRDs with ⟨HRDs, -⟩
+  icases replicate_takeN _ 64 _ (by omega) $$ HRDs with ⟨HRDs, HRDstock⟩
   -- `srv.restoreAlarms()`
   rw [show (2 : Nat) = 1 + 1 from rfl]
   icases (ownToks_add 1 1 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwal⟩
@@ -737,7 +739,7 @@ theorem NewServer.wp_proofM (on : Bool)
   · iframe Hcid
   (try wp_auto)
   obtain ⟨Hrn1, Hrn2, Hrn3, Hrn4, Hrn4d, Hrn5, Hrn5n, Hrn6, Hrn7, Hrn8, Hrn9, Hrn10, Hrn11, Hrn12, Hrn13,
-    Hrn14⟩ :=
+    Hrn14, Hrn15⟩ :=
     Hrnames
   -- (D21 M2) what the transport's calls into the server read (`srvProcOk`): the wrapper's
   -- fixed fields split off its struct (the node's among them), the member id, the stats
@@ -766,7 +768,10 @@ theorem NewServer.wp_proofM (on : Bool)
   -- (D22 S-i) the member's snapshot directory, empty (a fresh data directory), for the
   -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j); (2026-10-26, D22 J2) at
   -- the names raft's names give the member (`RaftNames.reSnapLoc`, `snapDir_init`)
-  imod (snapDir_init bs.ss' γd γn.N.img (fun _ => iprop(True)) ⊤) $$ Hsdir with #Hsdir
+  -- (2026-10-26, D22 J1a) with the server's removal fact (`srvSnapRm`, J0 item 3), over the
+  -- snapshot-taken counter `γt`, allocated here at `0` for the apply thread
+  imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γt, Hγt, -⟩
+  imod (snapDir_init bs.ss' γd γn.N.img (srvSnapRm γt ρ.rd) ⊤) $$ Hsdir with #Hsdir
   ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
   -- (rafthttp stage 6d) the member's URLs, read-only; it is a member of the directory (raft's peer)
@@ -776,7 +781,7 @@ theorem NewServer.wp_proofM (on : Bool)
     iexact H
   have Hdid : γn.dir id ≠ [] := by
     rw [Hγn.2]; exact (Hdirps.1 id).2 (Hrid ▸ Hrmem)
-  wp_apply (h38 γn t _ (srvLgReader s) γd (fun _ => iprop(True)) U.peer) $$ [«$r0»]
+  wp_apply (h38 γn t _ (srvLgReader s) γd (srvSnapRm γt ρ.rd) U.peer) $$ [«$r0»]
     as %terr Htres
   · iframe «$r0»
     simp only
@@ -1159,7 +1164,7 @@ theorem NewServer.wp_proofM (on : Bool)
   -- (D19i part 2) the storage version monitor's `lgMu` reader slot
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgSV, Hlgrs⟩
   -- (audit B4a) `monitorDowngrade`'s `lgMu` reader slot, and the monitors' configuration fields
-  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgMon, -⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgMon, Hlgstock⟩
   ipersist CorruptCheckTimeS
   ipersist DowngradeCheckTimeS
   ihave HMon : srvMonitorCfg s cfg $$ [HlgMon]
@@ -1171,6 +1176,50 @@ theorem NewServer.wp_proofM (on : Bool)
   ipersist EnableDistributedTracingS
   ipersist TracerOptionsS
   ipersist MaxConcurrentStreamsS
+  -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`srvSnapBoot`,
+  -- `SnapRO.lean`): its persistent bundle, the snapshot-taken counter's authority, the stocks of
+  -- the auth store's reader resource and `lgMu`'s reader slots (dropped here until J1a)
+  ipersist DataDirS
+  ipersist snapshotter
+  ipersist beHooks
+  have hMR3 : 2 ^ 29 + 2 ^ 28 + 2 ^ 23 + 200 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+    rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+  obtain ⟨stp, Hstp, Hstpss⟩ := Hrn15
+  ihave HsnapB : srvSnapBoot s cil
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF)
+      ρ.rd $$ [Hγt HRDstock Hlgstock]
+  · iunfold srvSnapBoot
+    iexists γt
+    iframe Hγt
+    isplitr [HRDstock Hlgstock]
+    · icases Hbh with ⟨%lgh, #Hbh'⟩
+      ihave #Hfix' := Hfix
+      iunfold rnFixed at Hfix'
+      iNamed Hfix'
+      iunfold srvSnapRO
+      imodintro
+      iexists cfg, bs.ss', bk.beHooks', lgh, stp, γd, bc.nodeID', alst, astl, lp, bc.cl', ps, dir, d
+      simp only
+      rw [← Hstp, ← Hastl, Hfgi]
+      iframe LoggerS DataDirS ServerFeatureGateS Hfg QuotaBackendBytesS WarningApplyDurationS
+      iframe snapshotter Hss beHooks Hbh' storageC memberID alarmStore authStore lessor cluster
+      iframe HalS HalA HisAuth HauR Hlbe Hlcfg Hrc Hisc Hsz
+      isplitr
+      · ipureintro
+        refine ⟨Hγw.2.2.1, Hlgnn, Hstpss, Hdbo, Hbuq, ?_, Hdirps.1⟩
+        rw [HρRaft, Hid]; exact Hsloc
+      isplitr
+      · iExactEq Hsdir
+        rw [Hγn.1, HρRaft]; rfl
+      isplitr
+      · iunfold lessorLookupOk; iexact Hllk
+      isplitr
+      · iexists _; iexact Hvcn
+      iunfold srvMembersDir; iexact Hmembers
+    · iunfold srvSnapStock
+      iexists _, _
+      iframe HRDstock Hlgstock
+      ipureintro; constructor <;> omega
   -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
   ihave Hbmr2 : srvBemuReader (GF := GF) s $$ [Hbmr2]
   · iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact Hbmr2
@@ -1579,9 +1628,9 @@ theorem NewServer.wp_proofM (on : Bool)
   icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨Hwrd, -⟩
   iunfold mvcc.watchReader at Hwrd
   icases Hwrd with ⟨Hsrd, -⟩
-  isplitr [Hwtok]
+  isplitr [Hwtok HsnapB]
   rotate_left
-  · iexact Hwtok
+  · iframe Hwtok HsnapB
   iexists ua
   iframe uberApply
   isplitr

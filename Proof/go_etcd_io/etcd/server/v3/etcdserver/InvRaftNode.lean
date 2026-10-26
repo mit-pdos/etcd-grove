@@ -722,7 +722,19 @@ def isRNWal (st : GoInterface) : IProp GF :=
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err; True }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
-      {{ RET #(GoInterface.nil); True }}))
+      {{ RET #(GoInterface.nil); True }}) ∗
+    -- (D22 J1a, 2026-10-26) `SaveSnap(snap)`: reads the snapshot's metadata (`snap.Metadata.Index`,
+    -- `.Term`, `GetConfState()`: the metadata pointer must be set) and writes the WAL's snapshot
+    -- record (`storage.go`: `st.w.SaveSnapshot`; at the pin it no longer writes a `.snap` file),
+    -- for the raft loop's snapshot branch and the apply thread's disk snapshot
+    □ (∀ (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM),
+      {{ sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPts mp dq' md }}
+        (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
+      {{ (err : GoInterface), RET #err;
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPts mp dq' md }}) ∗
+    -- (D22 J1a) `Sync()`: syncs the WAL
+    □ ({{ True }} (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; True }}))
 
 instance isRNWal_persistent (st : GoInterface) : Persistent (isRNWal (GF := GF) st) := by
   unfold isRNWal; infer_instance

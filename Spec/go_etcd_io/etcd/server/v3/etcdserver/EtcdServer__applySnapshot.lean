@@ -45,7 +45,7 @@ cluster recover from it, `s.be` is swapped under `bemu`, the old backend is clos
 monitor's shares the swap gathers), the transport's peers are removed and the members re-added
 (W8), and `NewUberApplier` rebuilds the applier: `srvSnapApplied`. Named premises (S-j1's to
 discharge): the image's facts (`hmeta`, `hkI`, `hRok`, `hpre`, `hlease`, `halarm`, `hauthb`,
-`hmemb`, `himg`, `hA'`), the auth store's mode `.off` (`hoff`), the auth store's `Recover` (`srvAuthRecoverOk`, the auth track's E
+`hmemb`, `himg`, `hA'`), the auth store's mode `.off` (`hoff`), the auth store's `Recover` (`authRecoverOk`, the auth track's E
 stage), the members' directory (`srvMembersDir`) and `8·|ps|` reader slots of the transport's
 `lgMu`, the KV's closer, `NewUberApplier`'s fields and feature gate, the stores' contracts on
 whichever backend (`alarmApplyOk`, `authApplyOk`, `lessorApplyOk`, `clusterApplyOk`). -/
@@ -135,7 +135,7 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
        apply.alarmGetIs al Tal zal ∗ Tal ∗
        backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
-       srvAuthRecoverOk ast ∗
+       authRecoverOk ast ∗
        -- (S8d's named premises, S-j1's: `NewServer`'s contracts of the stores on whichever backend)
        alarmApplyOk al ∗ authApplyOk ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
        lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
