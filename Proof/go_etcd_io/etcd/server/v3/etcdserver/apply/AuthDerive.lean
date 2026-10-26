@@ -70,7 +70,7 @@ def isAuthStoreAdmin (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f
           (Val #pw))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
           respHdrOk etcdserverpb.AuthenticateResponse resp ∗ applyErrIs err ∗ RW }}) ∗
-    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse γ P f RW authUserAddIs M ∗
+    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse γ P f RW auth.userAddReqIs M ∗
     authReqContract ai go!"UserDelete" etcdserverpb.AuthUserDeleteResponse γ P f RW M ∗
     authReqContract ai go!"UserChangePassword" etcdserverpb.AuthUserChangePasswordResponse γ P f RW M ∗
     authReqContract ai go!"UserGrantRole" etcdserverpb.AuthUserGrantRoleResponse γ P f RW M ∗

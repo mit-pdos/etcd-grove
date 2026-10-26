@@ -290,7 +290,7 @@ only, the names within bbolt's key bound (the step specs' premise; the fuel boun
 (whose names the request model records since E2n) and `AuthEnable`; not the other admin kinds. -/
 def adminKindOk (rq : IRRModel) : Prop :=
   match dispatchKind rq with
-  | .authUserAdd => ∀ n, rq.authUserAdd = some n → n.length ≤ backend.maxKeySize
+  | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize
   | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
   | .authUserGrantRole => ∀ u ro, rq.authUserGrantRole = some (u, ro) → u.length ≤ backend.maxKeySize
   | .authRoleGrantPermission =>
@@ -884,7 +884,7 @@ def reqFacts (E : AEnv GF) (m : GoString) (r : Loc) : IProp GF :=
   else if m = go!"UserGet" then
     iprop(((∃ n : GoString, authUserGetIs r n) ∗ E.RW) ∗ ⌜adminAdmitted E.authMode⌝)
   else if m = go!"UserAdd" then
-    iprop(((∃ n : GoString, authUserAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW) ∗
+    iprop(((∃ m : UserAddModel, authUserAddIs r m ∗ ⌜m.name.length ≤ backend.maxKeySize⌝) ∗ E.RW) ∗
       ⌜adminAdmitted E.authMode⌝)
   else if m = go!"RoleAdd" then
     iprop(((∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW) ∗

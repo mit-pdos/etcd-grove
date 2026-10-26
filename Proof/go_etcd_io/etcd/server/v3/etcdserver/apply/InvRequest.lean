@@ -76,6 +76,27 @@ structure AuthenticateModel where
   password : GoString
   simpleToken : GoString
 
+/-- **base64's standard encoding** (`encoding/base64`'s `StdEncoding.EncodeToString`), of a byte
+string. Opaque: the model only needs that what it encodes decodes without an error (`UserAdd`'s
+`selectPassword`, the trust boundary of `authStore.selectPassword`), not the encoding itself. -/
+opaque stdB64Enc : List w8 → GoString
+
+/-- An `AuthUserAddRequest`'s `Name`, `Password`, `HashedPassword` and its options' `NoPassword`
+(`Options` nil reads as `false`, as `UserAdd` does). The auth plan's E2t (2026-10-26): the request
+model keeps the password choice, which decides `UserAdd`'s `ErrNoPasswordUser`. -/
+structure UserAddModel where
+  name : GoString
+  password : GoString
+  hashed : GoString
+  noPassword : Bool
+
+/-- **The password choice cannot fail** (`UserAdd`'s `ErrNoPasswordUser` is not possible): no
+password asked for, or the server's own form of a password (`EtcdServer.UserAdd`, since 3.5: the
+password cleared and its bcrypt hash in `HashedPassword`, base64-encoded), which `selectPassword`
+decodes without an error. -/
+def UserAddModel.pwSure (m : UserAddModel) : Prop :=
+  m.noPassword = true ∨ (m.password = [] ∧ ∃ bs : List w8, m.hashed = stdB64Enc bs)
+
 /-- A `ClusterMemberAttrSetRequest`'s `Member_ID` and its `MemberAttributes`' `Name` and
 `ClientUrls`. -/
 structure MemberAttrModel where
@@ -106,8 +127,9 @@ structure IRRModel where
   authStatus : Bool
   authenticate : Option AuthenticateModel
   /-- the user's name (unit N4, D14g, 2026-10-17: a `Bool` until then; the auth store's
-  `UserAdd` makes it a bbolt key, `issues/etcd-auth-useradd-long-name-fatal.md`) -/
-  authUserAdd : Option GoString
+  `UserAdd` makes it a bbolt key, `issues/etcd-auth-useradd-long-name-fatal.md`; with its passwords
+  and options since the auth plan's E2t, 2026-10-26, `UserAddModel`) -/
+  authUserAdd : Option UserAddModel
   authUserDelete : Bool
   authUserGet : Option GoString
   authUserChangePassword : Bool
@@ -307,11 +329,25 @@ def authUserGetIs (u : Loc) (name : GoString) : IProp GF :=
 def authRoleGetIs (r : Loc) (role : GoString) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthRoleGetRequest go!"Role" r ↦□ role)
 
-/-- The `*pb.AuthUserAddRequest` `u` (not nil): its `Name` (unit N4, 2026-10-17), and, since the
-auth plan's E2n (2026-10-26), its passwords and options, read-only: the auth store's request
-model (`auth.userAddReqIs`), which its `UserAdd` reads. -/
-def authUserAddIs (u : Loc) (name : GoString) : IProp GF :=
-  auth.userAddReqIs u name
+/-- The `*pb.AuthUserAddRequest` `u` (not nil): its `Name` (unit N4, 2026-10-17), its passwords
+and its options' `NoPassword` (the auth plan's E2n and E2t, 2026-10-26), read-only. It gives the
+auth store's request model (`auth.userAddReqIs`, `authUserAddIs_req`), which its `UserAdd` reads. -/
+def authUserAddIs (u : Loc) (m : UserAddModel) : IProp GF :=
+  iprop(⌜u ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" u ↦□ m.name ∗
+    structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" u ↦□ m.password ∗
+    structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" u ↦□ m.hashed ∗
+    ∃ o : Loc, structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" u ↦□ o ∗
+      auth.userOptsAt o m.noPassword)
+
+/-- The request model gives the auth store's (`auth.userAddReqIs`). -/
+theorem authUserAddIs_req (u : Loc) (m : UserAddModel) :
+    authUserAddIs (GF := GF) u m ⊢ auth.userAddReqIs u m.name := by
+  unfold authUserAddIs auth.userAddReqIs
+  iintro ⟨%hu, #Hn, #Hp, #Hh, %o, #Ho, #Hb⟩
+  isplit; · ipureintro; exact hu
+  isplit; · iexact Hn
+  isplit; · iexists m.password, m.hashed; isplit <;> iassumption
+  iexists o, m.noPassword; isplit <;> iassumption
 
 /-- The `*pb.AuthRoleAddRequest` `r` (not nil): its `Name`, read-only (unit N4, 2026-10-17). -/
 def authRoleAddIs (r : Loc) (name : GoString) : IProp GF :=
@@ -391,7 +427,7 @@ instance authUserGetIs_persistent (u : Loc) (name : GoString) : Persistent (auth
 instance authRoleGetIs_persistent (r : Loc) (role : GoString) : Persistent (authRoleGetIs (GF := GF) r role) := by
   unfold authRoleGetIs; infer_instance
 
-instance authUserAddIs_persistent (u : Loc) (name : GoString) : Persistent (authUserAddIs (GF := GF) u name) := by
+instance authUserAddIs_persistent (u : Loc) (m : UserAddModel) : Persistent (authUserAddIs (GF := GF) u m) := by
   unfold authUserAddIs; infer_instance
 
 instance authRoleAddIs_persistent (r : Loc) (name : GoString) : Persistent (authRoleAddIs (GF := GF) r name) := by
