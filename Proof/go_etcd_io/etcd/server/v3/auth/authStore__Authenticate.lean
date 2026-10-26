@@ -57,7 +57,9 @@ theorem auth.authStore.Authenticate.wp_proof
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Henh⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
-  icases Hbeok' with ⟨%bi, %Hbi, -, -, #HGetUser⟩
+  icases Hbeok' with ⟨%bi, %Hbi, -, -, #HRds⟩
+  iunfold authBackendReads at HRds
+  icases HRds with ⟨#HGetUser, -, -, -⟩
   subst Hbi
   (try wp_auto)
   wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en ⟨Hen, #Hev⟩
@@ -73,10 +75,12 @@ theorem auth.authStore.Authenticate.wp_proof
     iunfold authenticated
     ileft; ipureintro; exact ⟨by simp, rfl⟩
   (try wp_auto)
+  -- `GetUser` is the backend's read transaction: the hook does not run (`Pre` kept)
+  ihave HPost := csContract_noWrite P f Pre Q Post $$ Hcs
   wp_bind (App (Val #(methods bi.ty go!"GetUser" bi.v)) (Val #username))
-  iapply HGetUser $$ %hs %Pre %Q %Post %username [$Hcs $HT $Hown]
+  iapply HGetUser $$ %hs %username [$HT $Hown]
   inext
-  iintro %u ⟨HPost, HT, Hown, %sta, %Hl, Hu⟩
+  iintro %u ⟨HT, Hown, %sta, %Hl, Hu⟩
   (try wp_auto)
   wp_if_destruct
   · -- no such user
@@ -84,7 +88,7 @@ theorem auth.authStore.Authenticate.wp_proof
     (try wp_auto)
     iapply HΦ
     isplitl [HPost]
-    · ileft; iexact HPost
+    · iexact HPost
     iframe Hen Hown
     isplitl [Hbe HT Henh]
     · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
@@ -115,7 +119,7 @@ theorem auth.authStore.Authenticate.wp_proof
       (try wp_auto)
       iapply HΦ
       isplitl [HPost]
-      · ileft; iexact HPost
+      · iexact HPost
       iframe Hen Hown
       isplitl [Hbe HT Henh]
       · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
@@ -136,7 +140,7 @@ theorem auth.authStore.Authenticate.wp_proof
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
-        · ileft; iexact HPost
+        · iexact HPost
         iframe Hen Hown
         isplitl [Hbe HT Henh]
         · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
@@ -168,7 +172,7 @@ theorem auth.authStore.Authenticate.wp_proof
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
-        · ileft; iexact HPost
+        · iexact HPost
         iframe Hen Hown
         isplitl [Hbe HT Henh]
         · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
@@ -197,7 +201,7 @@ theorem auth.authStore.Authenticate.wp_proof
       (try wp_auto)
       iapply HΦ
       isplitl [HPost]
-      · ileft; iexact HPost
+      · iexact HPost
       iframe Hen Hown
       isplitl [Hbe HT Henh]
       · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
@@ -219,7 +223,7 @@ theorem auth.authStore.Authenticate.wp_proof
       (try wp_auto)
       iapply HΦ
       isplitl [HPost]
-      · ileft; iexact HPost
+      · iexact HPost
       iframe Hen Hown
       isplitl [Hbe HT Henh]
       · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
@@ -240,7 +244,7 @@ theorem auth.authStore.Authenticate.wp_proof
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
-        · ileft; iexact HPost
+        · iexact HPost
         iframe Hen Hown
         isplitl [Hbe HT Henh]
         · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
@@ -272,7 +276,7 @@ theorem auth.authStore.Authenticate.wp_proof
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
-        · ileft; iexact HPost
+        · iexact HPost
         iframe Hen Hown
         isplitl [Hbe HT Henh]
         · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok

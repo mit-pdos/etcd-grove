@@ -693,24 +693,69 @@ instance authBatchTxOk_persistent (tx : GoInterface) (M : AuthMode) (P : IProp G
     (T : IProp GF) : Persistent (authBatchTxOk tx M P f T) := by
   unfold authBatchTxOk; infer_instance
 
+/-- What `GetAllUsers()` returns of the state `st` (the auth plan's E2j): a slice of messages, one
+per user of the state, each once (`userOut`, in no promised order; nil when there is none). -/
+def usersOut (s : GoSlice) (st : AuthState) : IProp GF :=
+  iprop(∃ (us : List Loc) (names : List GoString), s ↦* us ∗
+    ⌜us.length = names.length ∧ names.Nodup ∧ ∀ n, n ∈ names ↔ (st.users.lookup n).isSome⌝ ∗
+    [∗list] x ∈ us.zip names, userOut x.1 st x.2)
+
+/-- What `GetAllRoles()` returns of the state `st` (the auth plan's E2j): as `usersOut`, the
+state's roles (`roleOut`). -/
+def rolesOut (s : GoSlice) (st : AuthState) : IProp GF :=
+  iprop(∃ (rs : List Loc) (names : List GoString), s ↦* rs ∗
+    ⌜rs.length = names.length ∧ names.Nodup ∧ ∀ n, n ∈ names ↔ (st.roles.lookup n).isSome⌝ ∗
+    [∗list] x ∈ rs.zip names, roleOut x.1 st x.2)
+
+/-- **The auth backend's reads** `bi` with the hook `P f` and the write token `T` in the mode `M`
+(the auth plan's S5, `GetUser`; E2j, 2026-10-26, the rest), the admin side's (the apply thread's,
+which holds the authority `authOwn M hs`): each answers from the latest state (`histLast`), and
+keeps the token and the authority.
+- `GetUser(name)`, `GetRole(name)` and `GetAllUsers()` are schema's read transaction: `ReadTx()`,
+  `RLock()`, the read, `RUnlock()` (`schema/auth_users.go`, `auth_roles.go`), so the hook does
+  not run and the caller keeps its critical-section contract (until E2j `GetUser` gave the hook's
+  post `Post`, which a read transaction cannot produce: a bug of this contract, not of Go). The
+  read transaction sees the latest state because the auth buckets' only writer is the apply
+  thread, whose batch transactions write back at `Unlock` (D22 discharges it).
+- `GetAllRoles()` is schema's batch transaction (`BatchTx()`, `Lock()`, `UnsafeGetAllRoles`,
+  `Unlock()`: `LockInsideApply` runs the hook, so the hook's post `Post`): its read
+  transaction's twin panics (`issues/etcd-auth-readtx-getallroles-panics.md`), the batch
+  transaction's range of the roles' bucket does not. -/
+def authBackendReads (bi : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) :
+    IProp GF :=
+  iprop(□ (∀ (hs : List AuthState) (name : GoString),
+      {{ T ∗ authOwn M hs }} (App (Val #(methods bi.ty go!"GetUser" bi.v)) (Val #name))
+      {{ (u : Loc), RET #u; T ∗ authOwn M hs ∗
+          ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ userOut u sta name }}) ∗
+    □ (∀ (hs : List AuthState) (name : GoString),
+      {{ T ∗ authOwn M hs }} (App (Val #(methods bi.ty go!"GetRole" bi.v)) (Val #name))
+      {{ (r : Loc), RET #r; T ∗ authOwn M hs ∗
+          ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ roleOut r sta name }}) ∗
+    □ (∀ hs : List AuthState,
+      {{ T ∗ authOwn M hs }} (App (Val #(methods bi.ty go!"GetAllUsers" bi.v)) (Val #()))
+      {{ (s : GoSlice), RET #s; T ∗ authOwn M hs ∗
+          ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ usersOut s sta }}) ∗
+    □ (∀ (hs : List AuthState) (Pre Q Post : IProp GF),
+      {{ mvcc.csContract P f Pre Q Post ∗ T ∗ authOwn M hs }}
+        (App (Val #(methods bi.ty go!"GetAllRoles" bi.v)) (Val #()))
+      {{ (s : GoSlice), RET #s; Post ∗ T ∗ authOwn M hs ∗
+          ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ rolesOut s sta }}))
+
+instance authBackendReads_persistent (bi : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : val)
+    (T : IProp GF) : Persistent (authBackendReads (GF := GF) bi M P f T) := by
+  unfold authBackendReads; infer_instance
+
 /-- **The auth backend's write side** `be` (an `AuthBackend`; a contract, as the lessor's
 `leaseBackend`) with the hook `P f` and the write token `T` in the mode `M`: `BatchTx()` returns a
 batch transaction (`authBatchTxOk`), `ForceCommit()` keeps the token (the real backend's commit
-writes nothing back on its own: `NewAuthStore`'s axiom). -/
+writes nothing back on its own: `NewAuthStore`'s axiom), and its reads (`authBackendReads`). -/
 def authWBackendOk (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) :
     IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜be = GoInterface.ok bi⌝ ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
       {{ (tx : GoInterface), RET #tx; authBatchTxOk tx M P f T }}) ∗
     □ ({{ T }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #())) {{ RET #(); T }}) ∗
-    -- `GetUser(name)` (appended; the auth plan's S5): schema's is the batch transaction's `Lock`
-    -- (the hook run under the critical-section contract), `UnsafeGetUser`, `Unlock`: the user of
-    -- the state the transaction finds, the latest (`histLast`)
-    □ (∀ (hs : List AuthState) (Pre Q Post : IProp GF) (name : GoString),
-      {{ mvcc.csContract P f Pre Q Post ∗ T ∗ authOwn M hs }}
-        (App (Val #(methods bi.ty go!"GetUser" bi.v)) (Val #name))
-      {{ (u : Loc), RET #u; Post ∗ T ∗ authOwn M hs ∗
-          ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ userOut u sta name }}))
+    authBackendReads bi M P f T)
 
 instance authWBackendOk_persistent (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : val)
     (T : IProp GF) : Persistent (authWBackendOk be M P f T) := by
@@ -730,20 +775,16 @@ instance authBatchTxOkR_persistent (tx : GoInterface) (M : AuthMode) (P : IProp 
 /-- **The auth backend's write side as the backend states it** (the auth plan's S4f, 2026-10-25;
 the provisional boundary D22 discharges, `notes/decisions.md`, "S4f of the auth plan"): as
 `authWBackendOk`, with `BatchTx()` returning the backend's transaction (`authBatchTxOkR`, the
-history's lock share under its lock). `GetUser(name)` is schema's `Lock()`, `UnsafeGetUser`,
-`Unlock()` on that transaction, so its clause follows from the transaction's with the join
-(`authOwn_lockI_join`); it is kept a clause, as `authWBackendOk`'s. -/
+history's lock share under its lock); its reads (`authBackendReads`) as the store's view's. (Until
+E2j this said `GetUser` was schema's batch transaction, `Lock()`, `UnsafeGetUser`, `Unlock()`; it
+is the read transaction, `schema/auth_users.go`.) -/
 def authWBackendOkR (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) :
     IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜be = GoInterface.ok bi⌝ ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
       {{ (tx : GoInterface), RET #tx; authBatchTxOkR tx M P f T }}) ∗
     □ ({{ T }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #())) {{ RET #(); T }}) ∗
-    □ (∀ (hs : List AuthState) (Pre Q Post : IProp GF) (name : GoString),
-      {{ mvcc.csContract P f Pre Q Post ∗ T ∗ authOwn M hs }}
-        (App (Val #(methods bi.ty go!"GetUser" bi.v)) (Val #name))
-      {{ (u : Loc), RET #u; Post ∗ T ∗ authOwn M hs ∗
-          ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ userOut u sta name }}))
+    authBackendReads bi M P f T)
 
 instance authWBackendOkR_persistent (be : GoInterface) (M : AuthMode) (P : IProp GF) (f : val)
     (T : IProp GF) : Persistent (authWBackendOkR be M P f T) := by
