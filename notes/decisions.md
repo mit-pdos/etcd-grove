@@ -18957,6 +18957,54 @@ with `RemoveNode`.
   `ccRest` (its `RemoveNode` case, outside its scope `ccApplyOk`) and `ccValidOn` (no longer
   opaque).
 
+**M5e blocked (2026-10-26, branch `membership-m5`; for the user).** Starting `applyConfChange`'s
+proof (after M5b′), three statements it needs are missing or false as the trust boundary and the
+static server stand; nothing was changed for M5d/M5e in Lean.
+- *The `AddNode`'s member.* `AddMember` takes the member whole (`memberAt m 1 mm`: its name, its
+  client URLs owned, `peerURLsOk` of its peer URLs, the lock invariant's form, which `Members()`'
+  consumers -- `NewServer`'s `AddPeer` loop -- need), with `mm = ccMemberOf ctx` (`ccRest`'s
+  in-memory value). M4d's `json.Unmarshal` axiom (into a `*ConfigChangeContext`) gives only the
+  member's `ID`, `IsPromote`, its peer URLs (owned) and `IsLearner`; nothing of `Name`, nothing
+  owned of `ClientURLs`, and no `peerURLsOk` (a JSON decode does not parse URLs). Options: (a)
+  restate the `Unmarshal` axiom with `Name' = (ccMemberOf bs).name` and `ClientURLs' ↦*
+  (ccMemberOf bs).clientURLs` (true of the JSON decode; a stronger axiom, needed in every option:
+  `ccRest`'s in-memory member is `ccMemberOf ctx`, a function of the log) and drop `peerURLsOk` from
+  `memberAt`/`memberIs` (no consumer reads it: `NewServer`'s `AddPeer` loop uses the bootstrap
+  contract's directory facts, `InvBoot.lean`; a weakening of the lock invariant, so of what the
+  bootstrap contract asserts); (b) as (a), keeping `peerURLsOk` and adding `peerURLsOk (ccMemberOf
+  m.context).peerURLs` to the policy (`ccApplyOk`, so `ccBootOk` and the examples' `ccOk`), which
+  the boot entries must meet (their contexts are the boot members' JSON: a pure fact the bootstrap
+  contract does not state today); (c) as (a) with `peerURLsOk` asserted by the axiom (false in
+  general: a JSON decode does not parse URLs; not recommended).
+- *The static mode's `AddPeer`.* Go's `AddPeer` panics on a stopped transport before its
+  known-peer check (`transport.go:300-305`), and the static server's frozen transport's `Stop` is
+  free (`trFrozen_net`, `TS := True`, `E.ST := True`, M5c). A boot `AddNode` of another member,
+  re-applied above the consistent index, calls `AddPeer`, so `applyConfChange` is not provable in the
+  static mode as it stands (putget3 and the other multi-member examples reach it). Options: (A) a
+  stop token in the static mode too: the frozen transport's `Stop` takes a token (`trFrozen_net`
+  restated, D22's statement), the apply thread holds it (threaded through `apply`, `applyAll`,
+  `run_job_body`, `run` as an apply-thread resource; `raftNode.stop` takes it in M6), and `AddPeer_frozen` (a known peer, not stopped: returns at once); (B) the same
+  apply-thread resource carrying the dynamic mode's `trLive` and `rcRemovedOwn` (one threading for
+  both modes; M5d's), the static instance its token.
+- *The dynamic mode's `AddNode`.* `AddPeer.spec` (over `trLive`) is for a new peer and needs its
+  URLs' facts (`plainPeerURL`, the network's owner map, the member's id) and eight `R`s; a known peer
+  returns at once, but that the id is a peer follows from nothing the apply thread has: the
+  validation's verdict is over the backend's opaque decode (`membersOfBk`), not over the
+  transport's peers or the cluster's removed map. Options: (a) `AddPeer_known` (an id among the
+  live peers: returns, `trLive` unchanged) plus a policy fact for the contexts' members' URLs (owned
+  by the id in the network's map, `plainPeerURL`) so the unknown case meets `AddPeer.spec` (and a
+  pool of `R`s, M5c's, for it); (b) a coupling of `membersOfBk` with the model (`membersOfBk` of
+  `restModel`'s buckets the model's members and removed map: a fact about the opaque decode, i.e. an
+  axiom, against the user's decision for M5b′); (c) the dynamic policy's `AddNode` limited to the
+  boot entries' data, whose members are the boot peers, all known while not removed, with the
+  apply thread's invariant relating the live peers to the cluster's removed map (and the backend's
+  removed map to it: again (b)).
+- Smaller, no decision needed: the cluster's `be` field is the apply thread's (`clusterBeOn`,
+  owned), while `ValidateConfigurationChange`, `AddMember` and `RemoveMember` take it read-only
+  (`↦□`): their specs take it at a fraction and give it back (no trust change); `AddMember`'s size
+  bound (`size (insert id mm mem) ≤ 2 ^ 62`) from an apply-thread fact `dom mem ⊆ reCfg` with
+  `|reCfg| ≤ |ps| ≤ 2 ^ 62` (the boot facts), carried with `srvRest`.
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
