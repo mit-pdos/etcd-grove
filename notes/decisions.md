@@ -19452,3 +19452,60 @@ Net trust base after the track, revised: −1 axiom (−2, +1), −1 `sorry`; re
 `os.Rename`, `storage.Release`, `NewAuthStore`, `Transport.ActiveSince` (and `bootOk`'s storage
 source if it is an axiom). Order: J5 now precedes J4; J8b and L3 wait on the Perennial reader-slot
 change or the fallback premise.
+
+## D22 J3: R-tok, `MemoryStorage`'s three snapshot methods logically atomic (2026-10-26 · decided by the orchestrator while the user was away (J3))
+
+**The Go overlap, checked.** `notes/j3-overlap-test/snapshot_overlap_test.go` (a test of the fork's
+`server/etcdserver` at `bc9c3868c`, run in a scratch copy with `go test -race -count=3 -v -run
+TestSnapshotOverlap ./etcdserver/`, go1.27.3; output `output.txt`): with the apply job held before
+its disk snapshot (the test holds the backend's batch lock, which `KV().Commit()` takes), raftNode's
+loop runs `ApplySnapshot(20)` while the previous Ready's job is in
+`snapshotIfNeededAndCompactRaftLog` (the FIFO scheduler does not wait); released, the job's
+`CreateSnapshot(10)` returns `ErrSnapOutOfDate` and its `Compact(9)` `ErrCompacted`, both handled
+(`server.go:2129`, `:2177`), the storage keeps the snapshot at 20. The other order and a 200-batch
+stress run with no synchronization (4 to 13 out-of-date snapshots per run) pass, no data race. No
+Go bug.
+
+**The specs** (`Spec/go_etcd_io/raft/v3/MemoryStorage__{ApplySnapshot,CreateSnapshot,Compact}.lean`)
+are atomic updates over the token's ghost part, in the repository's AU form (`⊢ ∀ Φ, P -∗ AU -∗ WP
+… {{ Φ }}`, as `consistentIndex.SetBackend.spec`), outer mask `⊤ \ ↑memSnapN`, the linearization
+point inside the storage's lock (where the lock's quarter of `sn`, the home's half and the lock's
+half of `cb` pin the token's): `ApplySnapshot` at its out-of-date test or at its ghost update;
+`CreateSnapshot` as soon as it has read the storage's snapshot index (its premise is needed before
+`lastIndex`'s panic check, so it commits early, at the term the contents have at `i`); `Compact`
+right after `Lock`. Decided:
+
+1. **The application's key is not in the shared part** (J0's item 2 had `memSnapTokG := memKey ak
+   ∗ …`): `memSnapTokG γs σ := ghostVar γs.sn memQ (snapPart σ) ∗ ghostVar γs.cb ½ σ.prev`.
+   `CreateSnapshot` takes the snapshot out of `memSnapInv` with the keys `{lk, ak}` for its whole
+   critical section, and an atomic access lends the token for one instant only, so the key is the
+   caller's for the call: `CreateSnapshot.spec` takes `memKey γs.ak` and gives it back to `Φ`. True
+   of etcd: only the apply job calls `CreateSnapshot`; the key's other users (`InitialState`, the
+   application's `Snapshot`) keep taking the whole token, so J4 keeps the key with the apply job
+   (its `srvSnapState`) and only `memSnapTokG` in the shared invariant. `ApplySnapshot` uses the
+   owner's key (`{lk, ok}`), `Compact` none. `memSnapTok ms γs σ ⊣⊢ memSnapRO ms γs ∗ memKey γs.ak
+   ∗ memSnapTokG γs σ` (`memSnapTok_split`, `InvMemstorage.lean`); `memSnapRO` the persistent part.
+2. **`ApplySnapshot` takes no `memSnapRO`** (it has `ownMemoryStorage`); its `ownMemoryStorage`
+   and the argument go to the commit's continuation (`ownSnapM … -∗ ownMemoryStorage … -∗ Φ`), as
+   do `CreateSnapshot`'s key, conf state, data and clone.
+3. **`memCsArg cs dq oc`** names `CreateSnapshot`'s `cs` argument (the old spec's `match oc with
+   …`): two `match`es elaborate to two auxiliary functions, which the proof mode does not unify, so
+   the precondition and the continuation say the same constant. `memStorCreated σ i t oc bs` names
+   the new state (the old spec's record, `rfl`).
+4. **The old triples are corollaries** (`MemoryStorage.<M>.spec_tok`, word for word the previous
+   `.spec`s, proved by `spec_tok_of` in `Proof/go_etcd_io/raft/v3/MemstorageAU.lean`): the AU fired
+   at once from the token in hand; the triple's `▷` continuation is used across the call's step
+   (`wp_later_frame`, from Iris's `wp_frame_step_l'`). `KV.run.wp_proof` keeps its hypotheses (the
+   link passes the new `.spec`s) and rebinds them with `spec_tok_of`.
+5. **J4's use, checked** (same module): `memTokShared γs γss := ∃ σt, memSnapTokG γs σt ∗
+   monoNatAuthOwn γss 1 (uint.nat σt.ss.index') ∗ ⌜prev ≤ ss⌝` (J4's `srvStorTokInv` without the
+   ceiling `γsc`), in an invariant at any `N` disjoint from `memSnapN`:
+   `MemoryStorage.Compact.wp_shared` (`ci ≤ x`, `ci ≤ cap`, a lower bound `sl ≥ ci` of `γss`: the
+   premise's `ci ≤ ss` from it; the invariant kept, `prev := ci ≤ ss`) and
+   `MemoryStorage.CreateSnapshot.wp_shared` (`i ≤ x`, `cs` given: `prev ≤ ss < i`; on both
+   branches the caller gets `monoNatLbOwn γss i`: the out-of-date one shows `ss ≥ i`, the other
+   raises the counter), both proved.
+
+No axiom, no `sorry`. Statement changes: only the three `.spec`s (the linked
+`MemoryStorage.wp_{ApplySnapshot,CreateSnapshot,Compact}` now prove the AU forms, which imply the
+old triples: more, not less); no closed theorem changes.
