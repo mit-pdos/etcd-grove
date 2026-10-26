@@ -1,13 +1,19 @@
 /-
 **`applySnapshot`'s post assembled** (D22 receiver epochs, S8d, 2026-10-26;
 `notes/snapshot-s8-plan.md`): from what its code leaves (`snapWalkPost`, `applySnapshot_walk`) and
-its precondition's persistent part, `srvSnapApplied` (`applySnapshot.spec`'s second part).
+its precondition's persistent part, `srvSnapApplied` (`applySnapshot.spec`'s second part): the
+walk's result taken apart, the names (`SnapApplyNames.lean`), the five step lemmas
+(`SnapApply{IsServer,Opts,KV,Rest,Closer}.lean`) and the rest framed (step 7).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyNames
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapshot
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyIsServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOpts
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyRest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyCloser
 
 @[expose] public section
 
@@ -30,7 +36,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`applySnapshot`'s post from its walk** (S8d): the server's view, the applier, the KV's
-resources and closer and the rest buckets at the snapshot's backend. -/
+resources and closer and the rest buckets at the snapshot's backend. The names `γ'`, `TM'`, `E'`,
+`st'` are `snapγ γ π0 γB`, `metaTM γB d.P`, `snapE …`, `snapSt γ' i` (`SnapApplyNames.lean`); steps
+2-6 are the lemmas `snap_isServer`, `snap_backendOptsOk`, `snap_applyKV`, `snap_srvRest`,
+`snap_kvCloser`; step 7 (the rest of the post) is framed here. -/
 theorem srvSnapApplied_of_walk
     (hGL : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
     (hAt : lease.lessor.Attach.spec (GF := GF) (hG := hG))
@@ -40,6 +49,11 @@ theorem srvSnapApplied_of_walk
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
+    (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
+    (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
+    (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
+    (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
+    (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (s ep ap sn : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai at0 dsi : w64) (nc : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk : Loc)
     (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
@@ -78,7 +92,8 @@ theorem srvSnapApplied_of_walk
     (A' : List EntryModel)
     (hA' : (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).bk =
         <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
-      (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI) :
+      (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI)
+    (hoff : E.authMode = auth.AuthMode.off) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗
       alarmApplyOk al ∗ authApplyOk ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
@@ -90,7 +105,57 @@ theorem srvSnapApplied_of_walk
       E.RD ∗ snapWalkPost s ep sv γ ci E ρ γr d D A x R ss hk γt γn t c rs idm lp al ast cl memI
         quota wad Tal zal ⊢
     |={⊤}=> srvSnapApplied s ep sv γ ci E ρ γr d R A' ss γt γn t c rs idm lp al ast cl Tal := by
-  sorry
+  iintro ⟨#Hpkg, #Hsrv, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #Hlinv, #Hlpf, #Half,
+    #HisAl, #Haustf, #Hclf, #Hirc, #Hcok, #HWP, HRD2, Hw⟩
+  iunfold snapWalkPost at Hw
+  icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
+    %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, HSC, -, -, -, -, -, #HCI', #HhkS, -, -, -,
+    #Hws, -, -, #HhP, -, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Halb, Haub, Hclb,
+    Hleb, Hlo, Hlrd, Hrt, Hrb, Hcm, Hbo, Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
+    Hcsa, Hcso, Hpath, HTal, Hube, Hua, -, Hra, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
+  obtain ⟨hγB, hP', -, hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
+    ho11, ho12⟩ := Hpure
+  subst hγB
+  -- step 1: the names (`SnapApplyNames.lean`)
+  ihave HplRO := backend.plHook_persist d'.γB g $$ HplH
+  imod HplRO with #HplRO
+  -- step 2: the server's view
+  ihave #Hsrv' := snap_isServer s γ ci TM E ρ γr π0 d'.γB d.P d' p' g al ast lp cl rfl hkb' $$ []
+  · iframe #
+  -- step 3: the new applier's options
+  ihave #Hbo' := snap_backendOptsOk hGL hAt hDt hSRD hLk hGrant hCk hTTL hMID hLead hTerm hFS hCIg
+    s γ ci TM E ρ γr π0 d'.γB d.P d' p' γw ws g opts' lg al ast lp cl rfl hkb' hγw hwq hgnn hoff
+    ⟨ho1, ho2, ho3, ho4, ho5, ho6, ho7, ho11, ho12⟩ $$ []
+  · iframe #
+  -- step 4: the applier state
+  ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
+      zal rfl hkb' hγw hwq hpre hRok hrbw $$
+      [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd HRD2 Hbea Hgv Hra Hwok HRD0]
+  · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd HRD2 Hbea Hgv Hra Hwok HRD0
+  imod HKV' with ⟨%x', %Hx', HKV'⟩
+  -- step 5: the rest buckets
+  ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp
+    cl _ memI A' rfl hA' $$ [Hrb Hcm Halb Haub Hclb Hleb]
+  · iframe Hrb Hcm Halb Haub Hclb Hleb
+  -- step 6: the KV's closer
+  ihave HKC := snap_kvCloser s E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB al ast lp cl
+    d'.be γw wsk stck hγw $$ [Hstc Hwsw Hsc]
+  · iframe #; iframe Hstc Hwsw Hsc
+  -- step 7: the rest, framed
+  ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' $$ Hcso
+  imodintro
+  iunfold srvSnapApplied
+  iexists snapγ γ π0 d'.γB, metaTM d'.γB d.P,
+    snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB al ast lp cl d'.be,
+    (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+      #d'.be : GoInterface),
+    snapSt (snapγ γ π0 d'.γB) sv.Metadata'.Index', d', x', spc, L
+  isplitr
+  · ipureintro
+    exact ⟨by apply snapE_beSucc, hkb', hP', rfl, snapSt_loopOk γ π0 d'.γB _ _ hm0, snapSt_ciEff γ π0 d'.γB _ _ hm0, Hx'.1,
+      hcov⟩
+  iunfold epConfState
+  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl HTal
 
 end proof
 end EtcdGrove
