@@ -904,7 +904,9 @@ theorem cmpl_step (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
   iright
   iexists c2, c2'
   simp only [Int.toNat_natCast]
-  iframe Hi0 Hi1 Hok
+  iframe Hi0 Hi1
+  isplitr
+  · iexists V.R.γ.st; iexact Hok
   iexists σ
   iframe HQσ Hsσ
 

@@ -610,12 +610,14 @@ instance wrRO_persistent (l : Loc) (P : WsPrm GF) : Persistent (wrRO l P) := by
 
 /-- **The completeness contract for the `k`th response `run` sends a substream** (persistent;
 K2e-7, D46): unless the watch promises no completeness (`cpl` false), the server-level contract
-(`rawRespOk`) from the second dispatch cursor's position `k` to `k + 1` (`γh2`), and the caller's
+(`rawRespOk`, at the dispatching member's store: some store, so that the facts read no member) from
+the second dispatch cursor's position `k` to `k + 1` (`γh2`), and the caller's
 read update fired at it (`□ P.Q σ`, `watchStateRespOk` at the same positions: `cmpl_step`). -/
 def recvCmpl (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜P.γ.cpl = false⌝ ∨ ∃ h2B h2A : w64, monoListIdxOwn P.γh2 k.toNat h2B ∗
-    monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗ rawRespOk V.R.γ.st P.o h2B h2A v r ∗
+    monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗
+    (∃ γst : mvcc.StoreNames, rawRespOk γst P.o h2B h2A v r) ∗
     ∃ σ : KVState, □ P.Q σ ∗ watchStateRespOk P.o σ h2B h2A v r)
 
 instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
