@@ -91,6 +91,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyEntryOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 
 @[expose] public section
 
@@ -1567,6 +1568,16 @@ theorem apply_applier_kv_latest (E : EtcdGrove.apply.AEnv GF) (ci : EtcdGrove.ap
   EtcdGrove.apply.applierKVL_auth apply_range_latest apply_delete_range_latest apply_put_latest
     apply_txn_latest E ci inner p L
 
+/-- **The server's uber-applier's KV triples at the latest state, from its construction** (the
+auth plan's E3k, `UberOn.lean`), every callee linked: over the server's store at the latest state
+(`srvStoreLatest`) and its lessor finding no lease (`srvLessorNil`, a named premise). -/
+theorem server_uber_kvl (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
+    (L : List auth.AuthState → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      srvUberBase s ua E ∗ srvStoreLatest s E L ∗ srvLessorNil s ⊢
+      EtcdGrove.apply.uberKVL ua E (.quota .backend) L :=
+  srv_uberKVL apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest s ua E L
+
 /-- **`dispatch` on a KV request, the verdict at the latest state** (the auth plan's E2y,
 `apply/DispatchKVL.lean`), every callee linked. -/
 theorem apply_dispatch_kv_latest :
@@ -2213,3 +2224,4 @@ end Perennial
 
 #print axioms Perennial.EtcdGrove.server_applied_predeposit_on
 #print axioms Perennial.EtcdGrove.server_apply_not_nospace_on
+#print axioms Perennial.EtcdGrove.server_uber_kvl
