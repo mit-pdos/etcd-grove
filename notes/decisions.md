@@ -19979,3 +19979,86 @@ contracts).** Done: the first two; the rest not.
 shape conjunct (first); the definition `apply.uberIs` gains `baseShape`. New: `apply.baseShape`,
 `apply.applierAdmin_base`, `apply.applierAdmin_uber`, `apply.adminKindOk`, `apply.rqOkM`,
 `apply.rqOkM_off`, `apply.rqOkM_of_rqOk`. Trust base unchanged.
+
+## E2n of the auth plan: the grant requests' names in the request model; `dispatch`'s admin triple (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2m's "what's left"): (a) `IRRModel` keeps the user's and role's names of
+`UserGrantRole` and `RoleGrantPermission`, and `adminKindOk` admits them; (b) the current chain's
+admin triples (`uberOwn` after `restoreAlarms`), or the restriction to no alarm as a premise; (c) a
+second triple of `dispatch` for the admin cases in the mode `on`, then its use at
+`uberApplier.Apply` and `applyEntryNormal`; (d) the applied request's persistent witness to its
+waiter. Done: (a), and of (c) the `dispatch` triple; (b) as the triple's premise; the rest not.
+
+**(a) The request model.** `IRRModel.authUserGrantRole : Option (GoString × GoString)` (the user,
+the role) and `authRoleGrantPermission : Option (GoString × Option auth.PermW)` (the role, the
+permission), `Bool`s until now; their fields in `internalRaftRequestIs` and the proposer's
+`irrNoHdrIs` are `optReqIs` of `apply.authUserGrantRoleIs`/`authRoleGrantPermissionIs`, which are
+the auth store's request models (`auth.userGrantRoleReqIs`, `auth.roleGrantPermissionReqIs`,
+`auth/Requests.lean`, now imported by `apply/InvRequest.lean`). `apply.authUserAddIs` became the
+auth store's `userAddReqIs` (the name, and the passwords and options `UserAdd` reads; the name only
+until now): the admin triple of `UserAdd` (E2l, `AdminReq.reqIs`) asks it, and only the decoder's
+trust-boundary statement (the `InternalRaftRequest` a committed entry's bytes decode to) produces
+it, as for every other field: a decoded message's fields are read-only, which is what `proto.Unmarshal`
+gives. `adminKindOk` admits `UserGrantRole` and `RoleGrantPermission` with the user's/role's name
+within bbolt's key bound (the step specs' premise, `AdminReq.nameOk`). The server's
+`EtcdServer.UserGrantRole`/`RoleGrantPermission` specs take the request's names and their models
+(`irrUserGrantRole user role`, `irrRoleGrantPermission name w`), as `RoleAdd`'s took its name.
+*Considered:* separate `Option` fields beside the `Bool`s, so that the proposer's models
+(`AuthEntry.lean`) and the two server specs stay as they were. *Rejected:* two models of one field
+must agree, and the server's proposal would then carry no names, so the mode `on` could not admit
+what the server proposes.
+
+**(c) `dispatch` on an admitted admin request** (`apply.uberApplier.dispatch.adminSpec`,
+`wp_admin`, `apply/DispatchAdmin.lean`): beside `dispatch.spec`, not in it, as the brief asked (its
+714-line case chain unchanged). Its precondition: `dispatch.spec`'s but for the KV floor, the
+store's write token, the rest buckets and the certificates (an admin request uses none), with
+`adminKindOk rq` and the mode `on γa` in place of `rqOk`, and the current applier's admin triples
+(`applierAdmin E c a W`), the authority with its fuel (`auth.authOwnFu γa hs`), one time receipt
+(`⧗ 1`) and `W`. Its postcondition: as a request that leaves the log as it is (`fin_same`), with
+`W` back and the admin outcome `adminDone` (with `v3`: the request's `AdminReq.result` at the
+result's error, E2l's `adminOutFu`; without: the authority as it was). `adminReqOf rq` names the
+`AdminReq` the request carries. The proof walks the same code as the spec's (generated from it:
+each other kind's branch closes on `adminKindOk`), and calls the method through `applierAdmin`'s
+triple. No `sorry`; it rests on `time.Now`'s and the types' axioms only (`#print axioms`).
+- *The receipt is the caller's* (`⧗ 1` in the precondition), not taken at `dispatch`'s own Go
+  step as the brief suggested: the method's resolution (`MethodResolve` of `applyV3`) is consumed
+  by the load tactics before `wp_take_receipt` can bind it, and a receipt taken at `time.Now`'s
+  resolution would equally be one of `dispatch`'s steps. *Chosen:* the apply thread, which takes
+  receipts already (`EtcdServer.apply`, `srvWTPool_take_extra`), takes it at a step of its own
+  before the call, which is what E2l's design asks ("one receipt per application").
+- *(b) as a premise:* the triple takes the current applier's admin triples (`applierAdmin E c a W`
+  of `applyV3`'s value). What gives them at the apply thread is not done: `applierAdmin_uber`
+  gives the base applier's (`applyV3base`), and `uberOwn` does not record that the current applier
+  is the base one wrapped by `restoreAlarms`' capped and corrupt (`applierAdmin_capped`,
+  `_corrupt` lift the triples through them); recording it (the current value's shape over the base,
+  kept by `restoreAlarms` and `Alarm`) changes `uberOwn` and every proof that takes it apart. With
+  no alarm set, as in `examples/authkv`, the current applier is the base one.
+- *`W` is a parameter*, so the borrow of the rest's half of `be` (E2m's choice) is the caller's: it
+  lends `W` (the store's write resource with that half) for the call and takes it back.
+
+**Not done, in order:** the mode-on request path: `uberApplier.Apply` and `applyEntryNormal` taking
+`rqOkM E.authMode` where they take `rqOk`, calling `wp_admin` for an admitted admin request (the
+applier chain's `Apply` hands `dispatch` as its `applyFunc`, whose spec is `dispatch.spec`'s
+shape: the admin case needs a second `applyFunc` contract through the chain's `Apply`s, or the
+admin request routed around them in the proof); the receipt at the apply thread's step; the borrow
+of `be`'s half; the current applier's admin triples at the apply thread ((b)); (d) the step's
+persistent witness to the waiter (`AdminReq.result` holds the authority after the step, not a
+persistent record: a persistent fragment of the history's step, e.g. `authHist` at `hs ++ [st']`,
+handed through `dispatchResult` to the waiter); the Auth service's contracts for E2h's
+`setupAuthOk`; for D22 (E2m's note): the rest model must stop tracking the auth buckets in the mode
+`on`.
+
+**Exported statements changed.** The definitions `apply.IRRModel` (two field types),
+`apply.dispatchKind`, `apply.needAdminPermission`, `apply.internalRaftRequestIs`, `irrNoHdrIs`,
+`reqTypeName`, `apply.irrEmpty`, `apply.authUserAddIs`, `apply.adminKindOk`, `irrUserGrantRole`,
+`irrRoleGrantPermission`; the specs `EtcdServer.UserGrantRole.spec` and
+`EtcdServer.RoleGrantPermission.spec` (the request's names and model). No closed theorem's
+statement changed (their workloads name `dispatchKind`, unchanged on their requests). New:
+`apply.authUserGrantRoleIs`, `apply.authRoleGrantPermissionIs` (with their persistence and
+non-null lemmas), `apply.adminReqOf`, `apply.adminDone`, `apply.uberApplier.dispatch.adminSpec`,
+`apply.uberApplier.dispatch.wp_admin`.
+
+**Trust base.** Unchanged (721 axioms, 6 sorries); the decoder's trust-boundary axiom
+(`pbutil.MustUnmarshalMessage.wp_proof`, its post `internalRaftRequestIs`) says
+more of a decoded `AuthUserAdd`, `AuthUserGrantRole` and `AuthRoleGrantPermission` request (their
+fields, read-only), as of every other request field.
