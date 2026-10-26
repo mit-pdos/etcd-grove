@@ -300,7 +300,7 @@ theorem noZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t)
       | putIgnVal _ _ => simp [opWire, txnOpNoZeroEnd]
   refine ⟨fun o h => by simp [irrTxn, apply.irrEmpty] at h,
     fun o h => by simp [irrTxn, apply.irrEmpty] at h, fun t' h => ?_⟩
-  simp only [irrTxn, Option.some.injEq] at h
+  simp only [irrTxn_txn, Option.some.injEq] at h
   subst h
   refine ⟨hc, hops _ hp.1 (fun o ho => hng o (List.mem_append_left _ ho))
     (fun o ho => hd o (List.mem_append_left _ ho)),

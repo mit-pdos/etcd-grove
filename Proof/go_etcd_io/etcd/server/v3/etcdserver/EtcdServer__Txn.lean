@@ -991,7 +991,7 @@ theorem EtcdServer.Txn.wp_proofOn
         refine ⟨?_, ?_, ?_⟩
         · intro _ h; simp [apply.withHeader, irrTxn, apply.irrEmpty] at h
         · intro _ h; simp [apply.withHeader, irrTxn, apply.irrEmpty] at h
-        · intro t' h; simp only [apply.withHeader, irrTxn, Option.some.injEq] at h; subst h; exact Ht.2.1
+        · intro t' h; simp only [apply.withHeader_txn, irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
       have Hrq : rq' = apply.withHeader (irrTxn t) hm := Hwire.2.2.2 hz
       subst Hrq
       iunfold appliedOkM at Hok

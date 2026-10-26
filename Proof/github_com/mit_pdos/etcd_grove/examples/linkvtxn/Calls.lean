@@ -96,7 +96,7 @@ theorem irrNoZeroEnd_txnOf (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) : irrNoZeroEnd (irrTxn (linkv.txnOf cs t e)) := by
   refine ⟨fun o h => by simp [irrTxn, apply.irrEmpty] at h,
     fun o h => by simp [irrTxn, apply.irrEmpty] at h, fun t' h => ?_⟩
-  simp only [irrTxn, Option.some.injEq] at h
+  simp only [irrTxn_txn, Option.some.injEq] at h
   subst h
   exact txnNoZeroEnd_txnOf cs t e
 

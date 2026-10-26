@@ -266,6 +266,7 @@ theorem apply.uberApplier.dispatch.wp_admin
   ihave %nRa := apply.optReqIs_null _ _ _ (apply.rangeIs_nn lRa) $$ HRa
   ihave %nPu := apply.optReqIs_null _ _ _ (apply.putIs_nn lPu) $$ HPu
   ihave %nDe := apply.optReqIs_null _ _ _ (apply.deleteIs_nn lDe) $$ HDe
+  ihave #HTx := apply.optReqIs_txnW lTx rq $$ HTx
   ihave %nTx := apply.optReqIs_null _ _ _ (apply.txnIs_nn lTx) $$ HTx
   ihave %nCo := apply.optReqIs_null _ _ _ (apply.compactionIs_nn lCo) $$ HCo
   ihave %nLG := apply.optReqIs_null _ _ _ (apply.leaseGrantIs_nn lLG) $$ HLG

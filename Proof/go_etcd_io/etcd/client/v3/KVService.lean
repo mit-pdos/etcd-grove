@@ -1427,7 +1427,7 @@ theorem irrNoZeroEnd_delete (o : OpFull) (hz : o.base.rangeEnd ≠ [W8 0]) :
 theorem irrNoZeroEnd_txn (t : TxnModel) (hz : txnNoZeroEnd t) : irrNoZeroEnd (irrTxn t) := by
   refine ⟨fun o h => by simp [irrTxn, apply.irrEmpty] at h,
     fun o h => by simp [irrTxn, apply.irrEmpty] at h, fun t' h => ?_⟩
-  simp only [irrTxn, Option.some.injEq] at h
+  simp only [irrTxn_txn, Option.some.injEq] at h
   subst h
   exact hz
 

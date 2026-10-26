@@ -67,6 +67,12 @@ def irrNoZeroEnd (rq : apply.IRRModel) : Prop :=
 def apply.withHeader (rq : apply.IRRModel) (h : apply.HeaderModel) : apply.IRRModel :=
   { rq with header := some h }
 
+@[simp] theorem apply.withHeader_txn (rq : apply.IRRModel) (h : apply.HeaderModel) :
+    (apply.withHeader rq h).txn = rq.txn := rfl
+
+@[simp] theorem apply.withHeader_txnW (rq : apply.IRRModel) (h : apply.HeaderModel) :
+    (apply.withHeader rq h).txnW = rq.txnW := rfl
+
 /-- **What the encoding of `rq` decodes to**: `rq'` with the same id, header and kind, and
 `rq` itself when no range end is `[0]`. -/
 def irrWireOf (rq rq' : apply.IRRModel) : Prop :=

@@ -177,6 +177,7 @@ theorem apply.Apply.wp_kvL
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hpn, #HID, ⟨%lh, #FH, #Hh⟩, -, -, -, ⟨%lt, #FT, #Ht⟩, -⟩
+  ihave #Ht := apply.optReqIs_txnW lt rq $$ Ht
   ihave %Hlt := apply.optReqIs_nil lt rq.txn _ apply.txnRequestIs_nn $$ Ht
   ihave %Hlh := apply.optReqIs_nil lh rq.header _ apply.headerIs_nn $$ Hh
   wp_auto
