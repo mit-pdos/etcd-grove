@@ -99,7 +99,7 @@ theorem txn.Put.wp_proof
     · ipureintro; exact Hteq
     ileft
     iframe He Htok Hpre Hwl Hu
-    ipureintro; exact ⟨Hne, rfl⟩
+    ipureintro; exact ⟨Hne.1, Hne.2, rfl⟩
   subst Herr
   (try wp_auto)
   -- `kv.Write(trace)`: the store's, or the watchable store's (unit N4)

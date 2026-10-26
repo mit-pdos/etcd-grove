@@ -52,8 +52,9 @@ abbrev txn.checkTxn.spec : Prop :=
         txn.leasesOk L (txn.opsLeases (mvcc.stateAfter log)
           (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) ∨
        (⌜err ≠ GoInterface.nil ∧ n = W64 0 ∧
-          (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
-            (t.branch (txn.txnOk (mvcc.stateAfter log) t)))⌝ ∗ txn.checkErrIs err)) }}
+          (txn.txnLeased t → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧ txn.PathsLeaseOk (mvcc.stateAfter log) L
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t))))⌝ ∗ txn.checkErrIs err)) }}
 
 end spec
 

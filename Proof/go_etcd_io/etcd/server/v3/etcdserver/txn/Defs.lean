@@ -55,13 +55,14 @@ instance storeWTs_timeless (γ : mvcc.StoreNames) (n : Nat) :
 
 /-- The `lease.Lessor` `le` as the txn package uses it: mvcc's contract, and `Lookup(id)` by the
 lease owner (`lease.lessorUser γl L`: its half of the live set `L`, a reader slot of the lessor's
-lock) returns `nil` or a live lease (`id ∈ L`; 2026-10-13, unit 8 of the backend: derived from
-the lessor's proof, `lease.isTxnLessor_of_lessorInv`). -/
+lock) returns `nil` exactly when `id` is not live (`id ∉ L`; 2026-10-13, unit 8 of the backend:
+derived from the lessor's proof, `lease.isTxnLessor_of_lessorInv`; unit T3, L3b, 2026-10-26: until
+then `nil` or a live lease). -/
 def isTxnLessor (le : GoInterface) (γl : GName) : IProp GF :=
   iprop(mvcc.isLessor le γl ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
       {{ lease.lessorUser γl L I }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
-      {{ (l : Loc), RET #l; lease.lessorUser γl L I ∗ (⌜l = null⌝ ∨ ⌜id ∈ L⌝) }}))
+      {{ (l : Loc), RET #l; lease.lessorUser γl L I ∗ ⌜l = null ↔ id ∉ L⌝ }}))
 
 instance isTxnLessor_persistent (le : GoInterface) (γl : GName) :
     Persistent (isTxnLessor (GF := GF) le γl) := by

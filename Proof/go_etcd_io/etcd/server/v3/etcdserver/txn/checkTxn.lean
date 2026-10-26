@@ -78,6 +78,14 @@ theorem txn.pathIgnOk_txn_ct (s0 : List EtcdKv) (cs : List CmpModel) (ts es : Li
   simp only [txn.PathIgnOk, TxnModel.branch, txn.txnOk]
   cases cs.all (cmpHolds s0) <;> rfl
 
+theorem txn.pathLeaseOk_txn_ct (s0 : List EtcdKv) (L : List w64) (cs : List CmpModel)
+    (ts es : List TxnOp) :
+    txn.PathLeaseOk s0 L (.txn cs ts es) ↔
+      txn.PathsLeaseOk s0 L (({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel).branch
+        (txn.txnOk s0 { cmps := cs, thenOps := ts, elseOps := es })) := by
+  simp only [txn.PathLeaseOk, TxnModel.branch, txn.txnOk]
+  cases cs.all (cmpHolds s0) <;> rfl
+
 theorem txn.opLeases_txn_ct (s0 : List EtcdKv) (cs : List CmpModel) (ts es : List TxnOp) :
     txn.opLeases s0 (.txn cs ts es) =
       txn.opsLeases s0 (({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel).branch
@@ -109,8 +117,9 @@ theorem txn.checkTxn_strong
         txn.leasesOk Lv (txn.opsLeases (mvcc.stateAfter log)
           (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) ∨
        (⌜err ≠ GoInterface.nil ∧ n = W64 0 ∧
-          (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
-            (t.branch (txn.txnOk (mvcc.stateAfter log) t)))⌝ ∗ txn.checkErrIs err)) }} := by
+          (txn.txnLeased t → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧ txn.PathsLeaseOk (mvcc.stateAfter log) Lv
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t))))⌝ ∗ txn.checkErrIs err)) }} := by
   intro trace mw s γ log rev rt t le γl pl rest Lv I lu
   iloeb as IH generalizing %rt %t %pl %rest
   wp_start as ⟨%Htr, Htx, #Hrt, #Hle, Hu, #Hpl, %Hlu⟩
@@ -152,8 +161,8 @@ theorem txn.checkTxn_strong
       iexists ssl, sps; iframe; simp only [TxnModel.branch, ↓reduceIte]; iframe #
   have Hro : lu = false → ∀ op ∈ t.branch (txn.txnOk s0 t), txn.opIsGet op = true :=
     fun h => txn.readonly_branch t (Hlu h) _
-  have Hpl0 : txn.txnPlain t → txn.opsPlain (t.branch (txn.txnOk s0 t)) :=
-    fun h => txn.txnPlain_branch t _ h
+  have Hpl0 : txn.txnLeased t → txn.opsLeased (t.branch (txn.txnOk s0 t)) :=
+    fun h => txn.txnLeased_branch t _ h
   generalize hops : t.branch (txn.txnOk s0 t) = ops
   rw [hops] at Hro Hpl0
   ihave %Hrl := txn.requestOpsIs_length _ _ $$ Hrps
@@ -227,7 +236,7 @@ theorem txn.checkTxn_strong
         iright
         isplitl []
         · ipureintro
-          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsPlain_get ops i _ hop (Hpl0 hpl))⟩
+          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsLeased_get ops i _ hop (Hpl0 hpl))⟩
         iunfold txn.checkErrIs
         iright; iright; ileft
         iexists ef; iframe Hef; ipureintro; rfl
@@ -239,7 +248,7 @@ theorem txn.checkTxn_strong
         iright
         isplitl []
         · ipureintro
-          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsPlain_get ops i _ hop (Hpl0 hpl))⟩
+          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsLeased_get ops i _ hop (Hpl0 hpl))⟩
         iunfold txn.checkErrIs
         iright; iright; iright
         iexists ec; iframe Hec; ipureintro; rfl
@@ -299,8 +308,9 @@ theorem txn.checkTxn_strong
         · ipureintro
           refine ⟨by simp, rfl, fun hpl hig => ?_⟩
           first
-            | exact Hne (txn.putTxnOp_plain_lease o (txn.opsPlain_get ops i _ hop (Hpl0 hpl)))
-            | (have := txn.putTxnOp_ign_isSome s0 o (txn.pathsIgnOk_get s0 ops i _ hop hig) Hne.1
+            | exact Hne.2 ((txn.putTxnOp_leaseOk s0 Lv o (txn.opsLeased_get ops i _ hop (Hpl0 hpl))
+                (txn.pathsLeaseOk_get s0 Lv ops i _ hop hig.2)).resolve_left Hne.1)
+            | (have := txn.putTxnOp_ign_isSome s0 o (txn.pathsIgnOk_get s0 ops i _ hop hig.1) Hne.1
                rw [Hne.2] at this; cases this)
         iunfold txn.checkErrIs
       · ileft; iexact He
@@ -433,11 +443,13 @@ theorem txn.checkTxn_strong
           iright
           isplitl []
           · ipureintro
-            refine ⟨by simp, rfl, fun hpl hig => Hnp ?_ ?_⟩
-            · have := txn.opsPlain_get ops i _ hop (Hpl0 hpl)
+            refine ⟨by simp, rfl, fun hpl hig => Hnp ?_ ⟨?_, ?_⟩⟩
+            · have := txn.opsLeased_get ops i _ hop (Hpl0 hpl)
               rw [← htn]; exact this
-            · have := txn.pathsIgnOk_get s0 ops i _ hop hig
+            · have := txn.pathsIgnOk_get s0 ops i _ hop hig.1
               rw [txn.pathIgnOk_txn_ct, htn] at this; exact this
+            · have := txn.pathsLeaseOk_get s0 Lv ops i _ hop hig.2
+              rw [txn.pathLeaseOk_txn_ct, htn] at this; exact this
           iexact Herr
   · rw [decide_eq_false Hif]
     simp only [Bool.false_eq_true, ↓reduceIte]

@@ -208,6 +208,7 @@ theorem txn.Txn_sole
       iframe Htrc
       ipureintro; exact Hteq
   obtain ⟨rfl, -, Hign⟩ := Hok
+  ihave %Hlok := txn.leasesOk_paths L _ _ $$ Hleases
   wp_auto
   icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te4, Htrc⟩, Hback⟩
   wp_apply (hStep trace te4 _ _) $$ [$Htrc] as Htrc
@@ -270,7 +271,7 @@ theorem txn.Txn_sole
     simp only [mvcc.applyChanges, List.foldl_nil]
     iframe Hu
     isplitl []
-    · ipureintro; simp [Htr, HFl]; exact Hign
+    · ipureintro; simp [Htr, HFl]; exact ⟨Hign, Hlok⟩
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr
@@ -370,7 +371,7 @@ theorem txn.Txn_sole
     iframe Hrd
     iright
     isplitl []
-    · ipureintro; exact ⟨rfl, Htr, HFl, fun h => (by rw [hro] at h; cases h), Hign⟩
+    · ipureintro; exact ⟨rfl, Htr, HFl, fun h => (by rw [hro] at h; cases h), Hign, Hlok⟩
     isplitl [Htrc]
     · iexists te5; iexact Htrc
     isplitr

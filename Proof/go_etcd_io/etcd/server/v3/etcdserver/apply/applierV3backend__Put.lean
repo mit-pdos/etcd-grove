@@ -89,7 +89,7 @@ theorem apply.applierV3backend.Put.wp_proof
     iframe Hres
     isplitl []
     · isplitl []
-      · ipureintro; exact Hn.2
+      · ipureintro; exact Hn.2.2
       ileft; iexact He
     isplitl [Hrd Hsw Hu Hard]
     · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown Hu

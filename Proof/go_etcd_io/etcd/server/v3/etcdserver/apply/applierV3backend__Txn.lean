@@ -90,7 +90,8 @@ theorem apply.applierV3backend.Txn.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨t, ht, Or.inl ⟨rfl, Herr.2.2.2⟩⟩, fun _ _ h => by cases h⟩
+      exact ⟨⟨t, ht, Or.inl ⟨rfl, fun hp hig => Herr.2.2.2 (txn.txnLeased_of_plain t hp)
+        ⟨hig, txn.pathsLeaseOk_plain _ _ _ (txn.txnPlain_branch t _ hp)⟩⟩⟩, fun _ _ h => by cases h⟩
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres He
     isplitl []
@@ -109,7 +110,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨t, ht, Or.inr ⟨rfl, Hok.2.2.2.1, Hok.2.2.2.2⟩⟩, fun _ _ _ => Hok.2.2.1⟩
+      exact ⟨⟨t, ht, Or.inr ⟨rfl, Hok.2.2.2.1, Hok.2.2.2.2.1⟩⟩, fun _ _ _ => Hok.2.2.1⟩
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
       Bool.false_eq_true, ↓reduceIte, txn.srvRunTxn, apply.appliedHdr]
     iframe Hres Hresp Hhdr

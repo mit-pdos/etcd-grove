@@ -36,7 +36,8 @@ abbrev txn.checkPut.spec : Prop :=
       ((⌜err = GoInterface.nil ∧
           (txn.needsPrev o = true → (mvcc.findKey o.key (txn.kindState kind)).isSome)⌝ ∗
           txn.leaseOk L o.leaseID) ∨
-       (⌜o.leaseID ≠ W64 0⌝ ∗ txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err) ∨
+       (⌜o.leaseID ≠ W64 0 ∧ o.leaseID ∉ L⌝ ∗
+          txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err) ∨
        (⌜txn.needsPrev o = true ∧ mvcc.findKey o.key (txn.kindState kind) = none⌝ ∗
           txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound err)) }}
 

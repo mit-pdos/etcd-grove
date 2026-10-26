@@ -48,7 +48,7 @@ theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := b
     ipureintro; left; rfl
   · -- a lease: the lessor's `Lookup`
     ihave #HL := HLookup $$ %lease %L
-    wp_apply HL $$ [$Hu] as %l ⟨Hu, Hl⟩
+    wp_apply HL $$ [$Hu] as %l ⟨Hu, %Hlk⟩
     (try wp_auto)
     wp_if_destruct
     · -- not found
@@ -57,13 +57,13 @@ theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := b
       iframe Hu
       iright
       isplitl []
-      · ipureintro; exact Hif
+      · ipureintro; exact ⟨Hif, Hlk.1 rfl⟩
       iunfold txn.errVarIs
       iexists eL
       iframe HeL
       ipureintro; rfl
-    · icases Hl with (%Hl | %Hk)
-      · exact absurd Hl Hif
+    · have Hk : lease ∈ L :=
+        Classical.byContradiction (fun h => (by assumption : ¬ l = null) (Hlk.2 h))
       (try wp_auto)
       iapply HΦ
       iframe Hu

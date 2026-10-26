@@ -106,10 +106,7 @@ theorem isTxnLessor_of_lessorInv
   isplitl [Hrd Hown Hcls Hrvk]
   · iunfold lessorUser; iunfold leaseOwn; iframe Hown Hcls Hrvk
     iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
-  by_cases hn : l = null
-  · ileft; ipureintro; exact hn
-  · iright; ipureintro
-    exact Classical.byContradiction (fun hni => hn (Hl.2 hni))
+  ipureintro; exact Hl
 
 end proof
 

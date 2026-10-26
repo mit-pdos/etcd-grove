@@ -607,6 +607,116 @@ theorem putTxnOp_ign_isSome (s0 : List EtcdKv) (o : OpFull) (h : PathIgnOk s0 (p
   unfold needsPrev at hn
   cases hv : o.ignoreValue <;> cases hl : o.ignoreLease <;> simp_all [PathIgnOk]
 
+/-! ## Leased transactions (unit T3, L3b, 2026-10-26)
+
+A plain transaction but for its puts' leases: every get reads the transaction's revision, every put
+names a lease of its own (any, not `IgnoreLease`). For such a transaction `checkTxn` fails exactly
+when a put of the path does not find the previous key-value it needs or names a lease that is not
+live (`PathsIgnOk`, `PathsLeaseOk`). -/
+
+mutual
+/-- A leased operation (see the section header). -/
+def opLeased : TxnOp → Prop
+  | .get o => o.base.rev = W64 0
+  | .put _ _ _ => True
+  | .putIgnVal _ l => l.isSome
+  | .putKeep _ _ => False
+  | .delete _ => True
+  | .txn _ ts es => opsLeased ts ∧ opsLeased es
+
+/-- Every operation leased. -/
+def opsLeased : List TxnOp → Prop
+  | [] => True
+  | op :: ops => opLeased op ∧ opsLeased ops
+end
+
+/-- **A leased transaction**: both branches leased. -/
+def txnLeased (t : TxnModel) : Prop := opsLeased t.thenOps ∧ opsLeased t.elseOps
+
+mutual
+theorem opLeased_of_plain : ∀ op : TxnOp, opPlain op → opLeased op
+  | .get _, h => h
+  | .put _ _ _, _ => trivial
+  | .putIgnVal _ _, h => by simp only [opPlain] at h; subst h; rfl
+  | .putKeep _ _, h => h
+  | .delete _, _ => trivial
+  | .txn _ ts es, h => ⟨opsLeased_of_plain ts h.1, opsLeased_of_plain es h.2⟩
+
+theorem opsLeased_of_plain : ∀ ops : List TxnOp, opsPlain ops → opsLeased ops
+  | [], _ => trivial
+  | op :: ops, h => ⟨opLeased_of_plain op h.1, opsLeased_of_plain ops h.2⟩
+end
+
+theorem txnLeased_of_plain (t : TxnModel) (h : txnPlain t) : txnLeased t :=
+  ⟨opsLeased_of_plain _ h.1, opsLeased_of_plain _ h.2⟩
+
+theorem opsLeased_get : ∀ (ops : List TxnOp) (i : Nat) (op : TxnOp), ops[i]? = some op →
+    opsLeased ops → opLeased op
+  | [], _, _, h, _ => by simp at h
+  | x :: ops, 0, op, h, hp => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h; exact hp.1
+  | x :: ops, i + 1, op, h, hp => by
+    simp only [List.getElem?_cons_succ] at h
+    exact opsLeased_get ops i op h hp.2
+
+theorem txnLeased_branch (t : TxnModel) (b : Bool) (h : txnLeased t) : opsLeased (t.branch b) := by
+  unfold TxnModel.branch; cases b
+  · exact h.2
+  · exact h.1
+
+theorem pathsLeaseOk_get (s0 : List EtcdKv) (L : List w64) : ∀ (ops : List TxnOp) (i : Nat)
+    (op : TxnOp), ops[i]? = some op → PathsLeaseOk s0 L ops → PathLeaseOk s0 L op
+  | [], _, _, h, _ => by simp at h
+  | x :: ops, 0, op, h, hp => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h; exact hp.1
+  | x :: ops, i + 1, op, h, hp => by
+    simp only [List.getElem?_cons_succ] at h
+    exact pathsLeaseOk_get s0 L ops i op h hp.2
+
+/-- A leased put's lease check is its request's lease's. -/
+theorem putTxnOp_leaseOk (s0 : List EtcdKv) (L : List w64) (o : OpFull)
+    (hl : opLeased (putTxnOp o)) (h : PathLeaseOk s0 L (putTxnOp o)) :
+    o.leaseID = W64 0 ∨ o.leaseID ∈ L := by
+  unfold putTxnOp at hl h
+  cases hv : o.ignoreValue <;> cases hi : o.ignoreLease <;> simp_all [opLeased, PathLeaseOk]
+
+mutual
+/-- **A path's lease checks pass when every lease it names is `0` or live.** -/
+theorem pathLeaseOk_of_leases (s0 : List EtcdKv) (L : List w64) :
+    ∀ op : TxnOp, (∀ l ∈ opLeases s0 op, l = W64 0 ∨ l ∈ L) → PathLeaseOk s0 L op
+  | .get _, _ => by simp [PathLeaseOk]
+  | .put _ _ l, h => h l (by simp [opLeases])
+  | .putIgnVal _ (some l), h => h l (by simp [opLeases])
+  | .putIgnVal _ none, _ => by simp [PathLeaseOk]
+  | .putKeep _ _, _ => by simp [PathLeaseOk]
+  | .delete _, _ => by simp [PathLeaseOk]
+  | .txn cs ts es, h => by
+    simp only [opLeases] at h
+    simp only [PathLeaseOk]
+    split
+    · rename_i hc; rw [hc] at h; exact pathsLeaseOk_of_leases s0 L ts h
+    · rename_i hc; rw [hc] at h; exact pathsLeaseOk_of_leases s0 L es h
+
+theorem pathsLeaseOk_of_leases (s0 : List EtcdKv) (L : List w64) :
+    ∀ ops : List TxnOp, (∀ l ∈ opsLeases s0 ops, l = W64 0 ∨ l ∈ L) → PathsLeaseOk s0 L ops
+  | [], _ => by simp [PathsLeaseOk]
+  | op :: ops, h => by
+    simp only [opsLeases, List.mem_append] at h
+    exact ⟨pathLeaseOk_of_leases s0 L op (fun l hl => h l (Or.inl hl)),
+      pathsLeaseOk_of_leases s0 L ops (fun l hl => h l (Or.inr hl))⟩
+end
+
+/-- A read-only path names no lease. -/
+theorem pathsLeaseOk_get_only (s0 : List EtcdKv) (L : List w64) :
+    ∀ ops : List TxnOp, (∀ op ∈ ops, opIsGet op = true) → PathsLeaseOk s0 L ops
+  | [], _ => by simp [PathsLeaseOk]
+  | op :: ops, h => by
+    refine ⟨?_, pathsLeaseOk_get_only s0 L ops (fun o ho => h o (List.mem_cons_of_mem _ ho))⟩
+    have := h op List.mem_cons_self
+    cases op <;> simp_all [opIsGet, PathLeaseOk]
+
 end txn
 end EtcdGrove
 end Perennial

@@ -70,7 +70,7 @@ abbrev txn.Put.spec : Prop :=
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ mvcc.hookIs γ P f ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-      ((⌜o.leaseID ≠ W64 0 ∧ resp = null⌝ ∗
+      ((⌜o.leaseID ≠ W64 0 ∧ o.leaseID ∉ L ∧ resp = null⌝ ∗
           txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ mvcc.revToken γ ∗
           txn.wlogOwn s γ Lw ∗ Pre ∗ lease.lessorUser γ.leases L I) ∨
        ∃ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ ilog ≠ []⌝ ∗ Post ∗

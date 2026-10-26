@@ -33,7 +33,8 @@ abbrev txn.checkLease.spec : Prop :=
     (App (App (Val (@! txn.checkLease)) (Val #le)) (Val #p))
   {{ (err : GoInterface), RET #err; lease.lessorUser γl L I ∗
       ((⌜err = GoInterface.nil⌝ ∗ txn.leaseOk L o.leaseID) ∨
-      (⌜o.leaseID ≠ W64 0⌝ ∗ txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err)) }}
+      (⌜o.leaseID ≠ W64 0 ∧ o.leaseID ∉ L⌝ ∗
+        txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err)) }}
 
 end spec
 

@@ -69,8 +69,9 @@ abbrev txn.Txn.specSole : Prop :=
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗
       ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil ∧
-            (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
-              (t.branch (txn.txnOk (mvcc.stateAfter log) t)))⌝ ∗ txn.checkErrIs err ∗
+            (txn.txnLeased t → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
+              (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧ txn.PathsLeaseOk (mvcc.stateAfter log)
+              L (t.branch (txn.txnOk (mvcc.stateAfter log) t))))⌝ ∗ txn.checkErrIs err ∗
           txn.kvWriter s γ log ∗ Pre ∗
           lease.lessorUser γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
           (∃ (t' : Loc) (te' : Bool), traceutil.ownTrace t' te' ∗
@@ -78,7 +79,8 @@ abbrev txn.Txn.specSole : Prop :=
        (⌜err = GoInterface.nil ∧ trace ≠ null ∧ F <+: log ∧
           (txn.txnReadonly t = true →
             (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = []) ∧
-          txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
+          txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+          txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
         (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
         txn.txnResponseIs skip resp
           (W64 (mvcc.writeRev log (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1
