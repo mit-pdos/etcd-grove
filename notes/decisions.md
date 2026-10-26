@@ -22425,3 +22425,67 @@ facts (the separate row of blocker 1's decision, then `uberAuthStepsL`'s `W`); `
 
 **Trust base.** Unchanged.
 
+
+## Features without re-proving: state records, named conjuncts, bundled callees, lifted wrappers (2026-10-26 · proposed; the user asked for it written up)
+
+**Status: proposed**, not yet adopted. It is the first step of L3b part 2 of `notes/leases-plan.md`
+if the user adopts it; the auth and snapshot tracks work in the same apply-layer files, so it is
+recorded here for them to weigh first.
+
+**The problem.** Over the last sessions most of the cost of a new feature has not been new
+reasoning but the mechanical breakage it causes in proofs that do not use it. In the leases unit
+(T3), sessions of 2026-10-24 to 2026-10-26:
+
+- *L3b part 2 needs the lessor's live set in the apply relation* (a leased put is rejected iff its
+  lease is not live), and the apply layer's specs take the state's components one by one
+  (`(log : mvcc.Log)`, `kvOwn E log`, `mPre E c a info log …`, `chainStep backendStep c rq log o`).
+  Adding one component (the lease table) touches about 130 files, 45 of them specs, though only
+  the put, transaction, grant and revoke appliers read it. The apply thread already has a record
+  (`apply.ApplyKV`: `log`, `chain`); the specs do not take it.
+- *Positional destructuring.* Adding a conjunct to a pre- or postcondition breaks every
+  `icases … ⟨H1, …, -, H11⟩` downstream: in this unit's merges, mvcc's `retiredAt` (`Hret`, from
+  the snapshot track) against the deleter (`Hro`, from leases) in `New`, `newWatchableStore`,
+  `StoreBackend`, `BuildLemmas`, `Results`, `NewServer`; the revoke rights in `lessorUser` in five
+  of the snapshot track's files; the lease check in `Txn`'s success. Each is a one-token fix found
+  only by a full build.
+- *Positional hypothesis lists.* `NewServer.wp_proofM` takes `h0 … h94`; its wrapper, `Results`'
+  restatements, and the snapshot walk (`applySnapshot_walk`, `wp_proof_snap`) list them again.
+  Adding the backend's `UnsafeDelete` spec (L2) meant editing each list by hand.
+- *Wrappers restate the inner relation.* Each applier layer (corrupt, capped, auth, quota,
+  `dispatch`, `Apply`) states its own copy of the relation (`chainStep backendStep (.corrupt c) …`),
+  so changing the backend's relation reaches every layer's spec.
+- *Merges.* `lean` moved 3 to 80 commits between this branch's merges, mostly in the same apply
+  files; each of the patterns above turns a parallel change into a conflict.
+
+**The proposal** (four changes, each local in its effect once made):
+
+1. **Specs over state records** (CLAUDE.md's "Records", applied to the apply layer). The applier
+   specs, `kvOwn`, `mPre`/`mPost`/`kvPostF` and the relations (`backendStep`, `dispatchStep`,
+   `applyStep`) take `x : apply.ApplyKV` (or a record of what the KV side of the apply thread
+   holds) instead of `log`; a spec that reads only the log uses `x.log`. A new component (the
+   lease table now; an auth state or alarm set later) is then a field: only its readers change.
+2. **Named conjuncts in the large resources** (`"Hx" ∷ P`, destructured with `iNamed`, as
+   Perennial's struct predicates are): `kvOwn`, `lessorUser`, the mvcc constructors' posts
+   (`New`, `newWatchableStore`, `server_kv_watchable_of`), `snapWalkPost`, the server's built rows.
+   A new conjunct then breaks only the proofs that use it.
+3. **Bundled callee specs.** A structure per linking theorem (e.g. `ServerCallees` for
+   `NewServer`'s 95 hypotheses), one argument instead of the list; `etc/gen-link.py` fills it from
+   the linked names. A new callee is one field and one line of the generated link.
+4. **Wrappers as lifts.** A wrapper layer's spec states the inner layer's spec lifted (its own
+   rejections, else the inner outcome), with one lifting lemma per layer; changing the backend's
+   relation then touches the backend and the lemmas only.
+
+Two practices go with it: a **default argument at a definition** where the default is honestly
+the old meaning (L3a's `kvStateOf l (lt := [])` kept about 135 call sites unchanged), and
+**module-level checking while editing** (`lake build <module>`, `etc/lean-check.py`), keeping full
+builds (15 to 25 minutes each in these sessions) for the end of a step.
+
+**Cost and order.** (1) for the apply layer is the same set of files L3b part 2 would edit anyway
+to thread the table through today's signatures, so doing it first costs about the same and leaves
+the next feature local. (2) to (4) can be done file by file when a file is next touched. Merge into
+`lean` in small steps, so the other tracks build on the new signatures early.
+
+**Rejected.** Hiding the lease table in ghost state so the specs keep their text (the relation is
+pure, and its outcome must be exact for the model's step: the table has to appear in it); a
+degenerate L3b over an always-empty live set (correct today, since no grant is admitted, but L3c
+would redo the threading).
