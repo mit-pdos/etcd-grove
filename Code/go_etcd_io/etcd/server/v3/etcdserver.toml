@@ -40,6 +40,7 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   # (proved under raft's no-snapshot contract), the backend getter, the snapshot trigger
   "EtcdServer.applyAll", "EtcdServer.applySnapshot", "EtcdServer.Backend",
   "EtcdServer.snapshotIfNeededAndCompactRaftLog", "EtcdServer.shouldSnapshotToDisk",
+  "EtcdServer.compactRaftLog",
   "EtcdServer.shouldSnapshotToMemory", "memorySnapshotCount",
   # the server's goroutines (server.go; the request path's unit 4c): `start`, which builds the
   # read loop and the registries and spawns `run`; `run`, the apply loop over the raft
@@ -52,6 +53,8 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   "isConnectedSince", "isConnectedToQuorumSince", "numConnectedSince", "quorum",
   # the watch slice's unit W-S: the watch server's getter of the watchable KV (v3_server.go)
   "EtcdServer.Watchable",
+  # the interceptors' membership checks (server.go), over the cluster's (membership)
+  "EtcdServer.IsLearner", "EtcdServer.IsMemberExist",
   # the watch slice's unit W-W: the stream interceptor's leader monitor's stop channel
   "EtcdServer.StoppingNotify",
   # the raft wrapper's construction (raft.go, bootstrap.go; stage R8b of the raft v3.7 retarget,

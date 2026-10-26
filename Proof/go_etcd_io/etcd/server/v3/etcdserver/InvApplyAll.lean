@@ -106,7 +106,9 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
       ⌜receiptBound GF ≤ uint.Z scu + 1⌝) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`, which `compactRaftLog` reads and
     -- `sendMergedSnap` writes
-    srvInflight s)
+    srvInflight s ∗
+    -- (2026-10-26) the logger, which `compactRaftLog` logs with
+    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝))
 
 set_option synthInstance.maxSize 1024 in
 set_option synthInstance.maxHeartbeats 400000 in
