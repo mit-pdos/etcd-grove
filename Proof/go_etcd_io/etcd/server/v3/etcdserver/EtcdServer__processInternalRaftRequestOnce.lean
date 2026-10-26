@@ -342,10 +342,17 @@ local macro "piro_tail" : tactic => `(tactic| (
             · ipureintro; exact Hwire
             iexists Lw.take mw
             iframe HLt HQr
+            iunfold resultIsW at Hri
+            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
             iunfold resPostM
-            iexists lb
-            iframe Hri
-            ipureintro; exact hlbw
+            isplitr
+            · ipureintro; exact Hnn
+            iexists y, y', out
+            iframe Hr1 Hr2 Hr3 Hr4 Hr5
+            ipureintro
+            refine ⟨Hst.1, Hst.2.1, Hst.2.2.2, ?_⟩
+            show kvModel ρ.kv _ = _
+            rw [Hst.2.2.1]; exact hlbw
           · -- the mode on: `resultΨOn`, the mode-`on` model and the auth layer's verdict
             rw [resultΨM_true]
             iunfold resultΨOn at Hres
@@ -381,10 +388,16 @@ local macro "piro_tail" : tactic => `(tactic| (
             · ipureintro; exact Hwire
             iexists Lw.take mw
             iframe HLt HQr
+            iunfold resultIsWOn at Hri
+            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
             iunfold resPostM
-            iexists lb, st
-            iframe Hri
-            ipureintro; exact hlbw
+            isplitr
+            · ipureintro; exact Hnn
+            iexists y, y', out
+            iframe Hr1 Hr2 Hr3 Hr4 Hr5
+            ipureintro
+            refine ⟨Hst.1, Hst.2.1, Hst.2.2.2.1, st, ?_, Hst.2.2.2.2⟩
+            rw [Hst.2.2.1]; exact hlbw
         iapply BigAndL.bigAndL_cons.2
         isplit
         · -- the context done: give up
@@ -639,12 +652,18 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
       isplitr
       · ipureintro; exact Hw
       iunfold resPostM at Hp
-      icases Hp with ⟨%lb, Hri, %Hlb⟩
-      iexists lb
-      iframe Hri
+      icases Hp with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
+      iexists y.log
+      iunfold resultIsW
+      isplitl [Hr1 Hr2 Hr3 Hr4 Hr5]
+      · isplitr
+        · ipureintro; exact Hnn
+        iexists y, y', out
+        iframe Hr1 Hr2 Hr3 Hr4 Hr5
+        ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
       iexists L
       iframe HL HQ
-      ipureintro; exact Hlb
+      ipureintro; exact Hst.2.2.2
     · iright; iexact Herr
 
 end proof

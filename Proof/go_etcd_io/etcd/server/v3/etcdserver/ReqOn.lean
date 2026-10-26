@@ -161,17 +161,37 @@ theorem resultΨM_false (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel
 theorem resultΨM_true (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log) :
     resultΨM (GF := GF) true E ρ rq F = resultΨOn E ρ rq F := rfl
 
-/-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
-`processInternalRaftRequestOnce.specM`): off, `resultIsW` at the log `lb` the entry met and `lb` the
-mode-off model of the committed prefix `L` before it; on, `resultIsWOn` at the auth state `st` and
-the log `lb` the entry met, `(st, lb)` the mode-`on` model of `L` (so the auth layer's verdict is the
-model's grant at `L`, `authTie`). -/
-def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
-    (res : Loc) (L : List EntryModel) : IProp GF :=
+/-- **What the proposer learns of the model at the entry its result is of**, the outcome `out` met
+at the log `lb` after the committed prefix `L`: off, `lb` the mode-off model of `L`; on, `(st, lb)`
+the mode-`on` model of `L` and the auth layer's verdict the model's grant at `st` (`authTie`). -/
+def modelOutM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List EntryModel)
+    (lb : mvcc.Log) (out : apply.ApplyOut) : Prop :=
   match on with
-  | false => iprop(∃ lb : mvcc.Log, resultIsW E ρ.rd rq F res lb ∗ ⌜kvModel ρ.kv L = lb⌝)
-  | true => iprop(∃ (lb : mvcc.Log) (st : auth.AuthState), resultIsWOn E ρ.rd rq F res lb st ∗
-      ⌜kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) L = (st, lb)⌝)
+  | false => kvModel γk L = lb
+  | true => ∃ st, kvRaftOfOn γk.c0 γk.ch0 (srvAuthSt0, γk.log0) L = (st, lb) ∧ authTie st rq out
+
+/-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
+`processInternalRaftRequestOnce.specM`): `resultIsW`'s, at the committed prefix `L` before the
+entry, with what the proposer learns of the model there (`modelOutM`). -/
+def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
+    (ar : Loc) (L : List EntryModel) : IProp GF :=
+  iprop(⌜ar ≠ null⌝ ∗
+    ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
+      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧
+        out.waived = false ∧ modelOutM on ρ.kv rq L y.log out⌝ ∗
+      apply.applyResultIs rq true y.log ar out ∗
+      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
+      mvcc.certOk E.γ y'.log)
+
+/-- **The apply thread's answer, as `raftRequest` reports it, in the auth mode `on`** (`appliedOk`'s
+at the committed prefix `L` before the entry, with `modelOutM`). -/
+def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
+    (resp : GoInterface) (L : List EntryModel) : IProp GF :=
+  iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
+    ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
+      skip = false ∧ modelOutM on ρ.kv rq' L x.log (.dispatched o skip)⌝ ∗
+    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
+    revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ mvcc.certOk E.γ x'.log)
 
 /-- **The server's registration condition, in the auth mode `on`** (`reqWaitR` with `resultΨM`). -/
 def reqWaitRM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)
