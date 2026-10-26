@@ -136,23 +136,31 @@ every pod of the DaemonSet the server holds. It rests on
 Expectations (`ControllerExpectations`) only make the controller more conservative; S1 should not
 need them, though `SatisfiedExpectations` must be specified enough to show it does not panic.
 
-**A suspected bug outside the model's contract (phase 0 checks it).** If a pod create is committed
-but its call returns an error (a timeout after the commit), `syncNodes` lowers the expectations
+**A bug outside the theorem's premise (confirmed in phase 0).** If a pod create is committed but
+its call returns an error (a timeout after the commit), `syncNodes` lowers the expectations
 (`CreationObserved`, `daemon_controller.go:1107`) and `OnWrite` never records a resource version.
-A later sync on a pod cache that has not seen the pod would then create a second one. The
-robustness test cannot reach this: its injected 500s are synthesized before the request is sent
-(`test/utils/robustness/transport.go:110`). If phase 0 reproduces it, it goes in `issues/`
-(`upstream: unchecked`), and the model's "a failed write has no effect" is the premise that
-records it.
+A later sync on a pod cache that has not seen the pod then creates a second one. The robustness
+test cannot reach this: its injected 500s are synthesized before the request is sent
+(`test/utils/robustness/transport.go:110`). Reproduced over the model with
+`Config.AmbiguousWrites` (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`); the
+theorem's program runs with it off, the premise "a failed write had no effect" (D50).
 
 ## Phases
 
-0. **The example in Go.** `examples/dsonepod`: a Go module (as `examples/k8setcd3`) requiring
-   `k8s.io/kubernetes` at a pinned master commit, with `replace` for its staging modules; the model
-   API server (a package of the example); `Main` (one Node, one defaulted DaemonSet, the controller,
-   the check loop over the model's state, not an informer). A Go test that runs `Main` with many
-   seeds, under `-race`. A variant whose failed creates may commit, to try the suspected bug above.
-   Decide: the pin; replacement module vs. constructor-level mock; the event recorder.
+0. **The example in Go.** **Model done** (2026-10-26, D50): `examples/k8sdaemonset` (a Go module
+   at the client-go pin of `examples/k8setcd3/go.mod`), package `apimodel`: the model API server,
+   trusted Go code (`doc.go` states its semantics and deviations), a `kubernetes.Interface` whose
+   clients embed client-go's interfaces (nil) and implement what the controller and informers call:
+   pods (Create, Get, List, Watch, Delete), nodes (Create, Get, List, Watch), daemonsets (Create,
+   Get, List, Watch, UpdateStatus), controllerrevisions (Create, Get, List, Watch, Update, Delete),
+   events (dropped). Its tests (`apimodel_test.go`, `-race`) include client-go's real informers
+   converging over it under failures. `examples/k8sdaemonset/smoke` (build tag `k8ssmoke`, its
+   `go.mod` generated from a Kubernetes checkout by `gen-gomod.py`) runs the real controller over it:
+   no method the model lacks is called; with failures that have no effect, never two pods (0 of 30
+   runs); with ambiguous writes, two pods in 4 of 50 runs (the suspected bug, confirmed). Still to
+   do: `Main` (the theorem's program: the smoke test's scenario as a function, the checker
+   panicking), the Kubernetes pin for the translation (the smoke test runs at the PR head
+   `13ecb9cc`, whose client-go is newer than the model's pin), the event recorder.
 1. **The translation survey** (as `notes/k8s-etcd3-goose.md`). **Leaf libraries done**
    (2026-10-26, `notes/k8s-clientgo-goose.md`): in project `k8s-apiserver` (not a new project:
    `tools/cache` and apimachinery are shared with the KEP-6404 watch cache), with bodies
