@@ -32,6 +32,7 @@ canonical one), so the register keeps calling with `Background()`.
 -/
 module
 
+public import Spec.go_etcd_io.raft.v3.SigBase
 public import Proof.go_etcd_io.raft.v3.InvNode
 public import Spec.context.ErrDone
 public import Perennial.Proof.context
@@ -54,28 +55,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The context `ctx`'s `Done()` returns the `nil` channel: it is never canceled
-(`context.Background()`'s, `nodeCtx_background`). The server's `doneNil`. -/
-def doneNilCtx (ctx : GoInterfaceOk) : IProp GF :=
-  iprop(□ {{ True }} (App (Val #(methods ctx.ty go!"Done" ctx.v)) (Val #()))
-    {{ RET #chan.nil; True }})
+-- (2026-10-26, raft's signature, stage 1) `doneNilCtx` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-instance doneNilCtx_persistent (ctx : GoInterfaceOk) : Persistent (doneNilCtx (GF := GF) ctx) := by
-  unfold doneNilCtx; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `doneNilCtx_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-/-- **The `node` API's context** (see the file header): one whose `Done()` is `nil`, or an
-`isContext` with the descriptor `cd`. -/
-def nodeCtx (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(doneNilCtx ctx ∨ context.isContext ctx cd)
+-- (2026-10-26, raft's signature, stage 1) `nodeCtx` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-instance nodeCtx_persistent (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    Persistent (nodeCtx (GF := GF) ctx cd) := by
-  unfold nodeCtx; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `nodeCtx_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-/-- A canonical descriptor for a context with a `nil` `Done()` (which no descriptor describes;
-`nodeCtx` ignores it then): its Done proposition `False`. The server's `neverCd`. -/
-def bgCd : context.ContextDesc (IProp GF) :=
-  { Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(False) }
+-- (2026-10-26, raft's signature, stage 1) `bgCd` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
 /-- `context.Background()`'s `Done()` is `nil` (Perennial's `wp_background_Done`). -/
 theorem doneNilCtx_background : ⊢ doneNilCtx (GF := GF) context.backgroundCtxVal := by
@@ -132,15 +120,9 @@ theorem nodeCtx_Done (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       iexact Hd
     · iexact Hctx
 
-/-- The value a done context's `Err()` returns (`context.ErrDone`'s postcondition,
-`Spec/context/ErrDone.lean`): a typed error, the value of `context.Canceled` or of
-`context.DeadlineExceeded`. -/
-def ctxErrVal (err : GoInterface) : IProp GF :=
-  iprop(⌜context.isTypedErr err⌝ ∗
-    (globalAddr context.Canceled ↦□ err ∨ globalAddr context.DeadlineExceeded ↦□ err))
+-- (2026-10-26, raft's signature, stage 1) `ctxErrVal` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-instance ctxErrVal_persistent (err : GoInterface) : Persistent (ctxErrVal (GF := GF) err) := by
-  unfold ctxErrVal; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `ctxErrVal_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
 /-- A typed error is not `nil`. -/
 theorem ctxErrVal_ne_nil (err : GoInterface) : ctxErrVal (GF := GF) err ⊢ ⌜err ≠ interface.nil⌝ := by
@@ -151,33 +133,17 @@ theorem ctxErrVal_ne_nil (err : GoInterface) : ctxErrVal (GF := GF) err ⊢ ⌜e
   subst h
   simp [context.isTypedErr] at Hty
 
-/-- The error the context returns once done (see the file header): non-`nil`, `Canceled` or
-`DeadlineExceeded` (`ctxErrVal`), with the context's Done proposition and `ContextClosed`. -/
-def ctxErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ interface.nil⌝ ∗ □ cd.PDone ∗ context.ContextClosed cd.Done_gn ∗ ctxErrVal err)
+-- (2026-10-26, raft's signature, stage 1) `ctxErr` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-instance ctxErr_persistent (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
-    Persistent (ctxErr (GF := GF) cd err) := by
-  unfold ctxErr; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `ctxErr_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-/-- `err` is raft's package variable `ErrStopped` (`node.go`), a read-only global the package
-initializer sets to a non-`nil` error (`isInitialized`, `Base.lean`). -/
-def errStopped (err : GoInterface) : IProp GF :=
-  iprop((globalAddr ErrStopped ↦□ err : IProp GF) ∗ ⌜err ≠ interface.nil⌝)
+-- (2026-10-26, raft's signature, stage 1) `errStopped` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-instance errStopped_persistent (err : GoInterface) :
-    Persistent (errStopped (GF := GF) err) := by
-  unfold errStopped; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `errStopped_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-/-- **The error of a `node` API call** that hands a message to `run` (see the file header):
-`nil`, `ErrStopped`, or the context's. -/
-def nodeErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
-    IProp GF :=
-  iprop(⌜err = interface.nil⌝ ∨ errStopped err ∨ ctxErr cd err)
+-- (2026-10-26, raft's signature, stage 1) `nodeErr` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-instance nodeErr_persistent (cd : context.ContextDesc (IProp GF))
-    (err : GoInterface) : Persistent (nodeErr (GF := GF) cd err) := by
-  unfold nodeErr; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `nodeErr_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
 theorem nodeErr_nil (cd : context.ContextDesc (IProp GF)) :
     ⊢ nodeErr (GF := GF) cd interface.nil := by
@@ -185,17 +151,9 @@ theorem nodeErr_nil (cd : context.ContextDesc (IProp GF)) :
   ileft
   ipureintro; rfl
 
-/-- **The error of a proposal that waits for its result** (`Propose`, `stepWait`,
-`stepWithWaitOption` with `wait`; see the file header): `nodeErr`, or the result `run` sent,
-`raft.Step`'s error for the proposal (`stepErr`, `InvNode.lean`: `nil` or
-`ErrProposalDropped`). -/
-def propErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
-    IProp GF :=
-  iprop(nodeErr cd err ∨ stepErr err)
+-- (2026-10-26, raft's signature, stage 1) `propErr` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-instance propErr_persistent (cd : context.ContextDesc (IProp GF))
-    (err : GoInterface) : Persistent (propErr (GF := GF) cd err) := by
-  unfold propErr; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `propErr_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
 theorem propErr_of_nodeErr (cd : context.ContextDesc (IProp GF))
     (err : GoInterface) : nodeErr (GF := GF) cd err ⊢ propErr cd err := by

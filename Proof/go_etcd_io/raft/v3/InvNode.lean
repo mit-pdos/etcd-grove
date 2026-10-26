@@ -75,6 +75,7 @@ channel carries one).
 -/
 module
 
+public import Spec.go_etcd_io.raft.v3.SigBase
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.CCApply
 public import Proof.go_etcd_io.raft.v3.InvConfchange
@@ -426,25 +427,13 @@ def fwdP (γ : NodeNames) (ml : Loc) : IProp GF :=
     -- (2026-10-19, D21 M6) its entries' tickets (`entTk`), which the leader consumes
     ([∗list] e ∈ st.ents, entTk γ.raft e))
 
-/-- `err` is raft's package variable `ErrProposalDropped` (`raft.go`, an `errors.New` error),
-a read-only global the package initializer sets to a non-`nil` error (`isInitialized`,
-`Base.lean`); the shape of `errStopped` (`InvNodeCtx.lean`). -/
-def errProposalDropped (err : GoInterface) : IProp GF :=
-  iprop((globalAddr ErrProposalDropped ↦□ err : IProp GF) ∗ ⌜err ≠ interface.nil⌝)
+-- (2026-10-26, raft's signature, stage 1) `errProposalDropped` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-instance errProposalDropped_persistent (err : GoInterface) :
-    Persistent (errProposalDropped (GF := GF) err) := by
-  unfold errProposalDropped; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `errProposalDropped_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-/-- **The error `run` answers a proposal with** (stage R7c, 2026-10-16): `raft.Step`'s for the
-`MsgProp` (`raft__Step.lean`'s `"Herr"`), `nil` or `ErrProposalDropped` (`stepFollower`'s and
-`stepCandidate`'s drop; `wp_rn_raft_Step_prop`), what the result channel's handoff promises
-(`propP`) and `Propose` returns (`propErr`, `InvNodeCtx.lean`). -/
-def stepErr (err : GoInterface) : IProp GF :=
-  iprop(⌜err = interface.nil⌝ ∨ errProposalDropped err)
+-- (2026-10-26, raft's signature, stage 1) `stepErr` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
-instance stepErr_persistent (err : GoInterface) : Persistent (stepErr (GF := GF) err) := by
-  unfold stepErr; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `stepErr_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
 
 /-- A proposal on `propc`: the message `Propose` builds, with its one-entry batch owned,
 the data read-only and its record (`entData`, 2026-10-10), and its result channel, of
@@ -1067,7 +1056,7 @@ theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List En
 /-! ### Laws of the sealed node predicates (2026-10-26, raft's signature, stage 1)
 
 `isNode`, `nodeDriver`, `nodeDriverBusy`, `readyP` and the channel protocols are `@[no_expose]`:
-a client of raft does not see their bodies (`Spec/go_etcd_io/raft/v3/Sig.lean`). What clients
+a client of raft does not see their bodies (`Spec/go_etcd_io/raft/v3/Api.lean`). What clients
 need of them is stated here, in the API's vocabulary. -/
 
 /-- The node's names are of its id (`isNode`'s `Hgid`). -/

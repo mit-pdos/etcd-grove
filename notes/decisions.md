@@ -19673,7 +19673,7 @@ Its open item, the vocabulary mixed with internal lemmas in `Proof/` files, is w
 untangle (`ApiVocab.lean`).
 
 **Raft, stage 1: the node API** (what the server, rafthttp and the examples use).
-- `Spec/go_etcd_io/raft/v3/Sig.lean`: the module a client imports (the node specs, the API
+- `Spec/go_etcd_io/raft/v3/Api.lean` (until the class prototype below, `Sig.lean`): the module a client imports (the node specs, the API
   modules), with the signature's description.
 - `InvNode.lean` and `InvNodeCtx.lean` are the API modules: `InvNode` imports `InvRawnodeReady`
   and `InvApplyConf` non-publicly; the channel and ghost machinery is `@[no_expose]` (`isNode`,
@@ -20984,3 +20984,36 @@ lose their workload parameter, with the same meaning: `plainEntryOn m`, `plainLo
 `NewServer.spec` did. `kv_cert_floor_on` reads the revision through `kvStateOf_rev` (the KV state
 became a record of compaction, base and changes). After the merge: 718 axioms, 6 sorries (lean's 721
 less the three server axioms `origin/lean` proved).
+
+## Raft's signature as a class: the specs over abstract predicates (2026-10-26 · the user's clarification, prototype)
+
+**The user's correction** of "Package signatures" (above): sealing keeps the predicates' definitions
+in the specs' trust base -- `node.Propose.spec` still imports `InvNode`, and its meaning is
+`rLog`'s and `isCommitted`'s definitions. What is wanted is a module type: the spec says "there is
+an `rLog` and an `rLogLb`, satisfying these laws, and `Propose`'s update moves `rLog`", without
+defining them, in a file other proofs build against that holds no definitions or proofs they are
+not to see.
+
+**Decision: a class of abstract fields and laws** (Lean has no module types; a structure or class
+is their analogue, as for functors in Rocq). `Spec/go_etcd_io/raft/v3/Sig.lean`: `class RaftSig`
+-- abstract `Names`/`NodeNames` (`Type 1`, as raft's are), the invariant `inv` and its namespace
+`N`, `isNode`, the committed log `rLog` and its lower bound `rLogLb`, `entData`, `propFresh`,
+`propReg`, `isReadyChan`, `nodeDriver`, `nodeDriverBusy`, `readyData`, `noSnap` -- with the laws
+(persistence, `rLogLb_mono`, `rLogLb_agree`, `rLog_lb`, `isNode_inv`, `prop_register`,
+`prop_collect`, `readyData_committed`); and `node.Propose.specS`, `node.Ready.specS`,
+`node.readyRecv.specS` over `[S : RaftSig GF]`, `Propose`'s update written over `S.rLog`. Its
+imports: the Go code and the generated declarations, `Base` (the package facts `isPkgInit`
+means), `PbModel` (the records' pure models) and `SigBase` (contexts and errors, concrete: they
+are facts of Go values, moved out of `InvNode`/`InvNodeCtx`). None of raft's proofs or ghost
+state: checked on the import closure. `Proof/go_etcd_io/raft/v3/SigImpl.lean`: `instance
+raftSigImpl` (`rLog` the invariant's ghost variable, `rLogLb` `isCommitted`, ...), its laws from the
+protocol's lemmas, the three specs from raft's at the instance.
+
+**Rejected:** `opaque` constants with the laws as axioms (the laws would join the trust base
+unproved); `@[no_expose]` alone (the definition stays in the specs' meaning: what "Package
+signatures" did, kept as the interim boundary, `Api.lean`).
+
+**Open (the user's choices, asked 2026-10-26):** how abstract a `Ready`'s payload is (one
+abstract `readyData` with one law, or its pieces concrete); whether `Base` and `PbModel` move to
+`Spec/`; `[S : RaftSig GF]` or an explicit `(S : RaftSig GF)`. Then: the other specs over the
+signature, clients generic in `S`, closed theorems at `raftSigImpl`.

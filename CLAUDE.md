@@ -118,15 +118,27 @@ the same pattern; Perennial's are modules too.
 
 ## Package signatures
 
-A package's clients use it only through its signature: `Spec/<pkg>/Sig.lean`, the module a client
-imports, and the API modules it lists. An API module imports the package's internals
-non-publicly and marks what clients must not see inside `@[no_expose]`, so Lean refuses a client
-that unfolds it or names an internal declaration; the package's own proofs `import all` the API
-module. `etc/sig-check.py etc/sigs/<pkg>.txt --check` closes the gap Lean leaves: no module
-outside the package may import its internal modules, even through public imports (linking files,
-`Link`/`Results`/`Adequacy*`, are exempt). When a proof outside the package needs a fact of a
-sealed predicate, add a law to the API module; do not unseal it. Raft's node API is the first
-(stage 1, 2026-10-26; `notes/decisions.md`, "Package signatures"): `Spec/go_etcd_io/raft/v3/Sig.lean`,
+**The target (a module type, as in Rocq):** `Spec/<pkg>/Sig.lean` declares a `class` of the
+package's abstract types and predicates and the laws a client may use of them, defining none
+of them and importing none of the package's proofs; the package's specs are stated over
+`[S : <Pkg>Sig GF]`, its proof provides the instance (the definitions, the laws and the specs
+proved at them: `Proof/<pkg>/SigImpl.lean`), proofs outside the package are generic in `S`, and a
+closed theorem applies them to the instance. The specs' trust base is then the signature, not the
+package's definitions. Raft's is a prototype (2026-10-26; `notes/decisions.md`, "Raft's signature
+as a class"): `class RaftSig` (`rLog`, `rLogLb`, `isNode`, proposals, the `Ready` channel),
+`node.Propose`/`node.Ready`/the `Ready` receive over it (`*.specS`), `raftSigImpl`; `SigBase.lean`
+holds what it states concretely (contexts, errors).
+
+**Until the clients are written against the signature (sealing):** a package's clients use it only
+through `Spec/<pkg>/Api.lean`, the module a client imports, and the API modules it lists. An API
+module imports the package's internals non-publicly and marks what clients must not see inside
+`@[no_expose]`, so Lean refuses a client that unfolds it or names an internal declaration; the
+package's own proofs `import all` the API module. `etc/sig-check.py etc/sigs/<pkg>.txt --check`
+closes the gap Lean leaves: no module outside the package may import its internal modules, even
+through public imports (linking files, `Link`/`Results`/`Adequacy*`, are exempt). When a proof
+outside the package needs a fact of a sealed predicate, add a law (to the API module, and to the
+signature); do not unseal it. Raft's node API is the first (stage 1, 2026-10-26;
+`notes/decisions.md`, "Package signatures"): `Spec/go_etcd_io/raft/v3/Api.lean`,
 `InvNode`/`InvNodeCtx` (the API modules), `ApiVocab` (the vocabulary moved out of the internals),
 `Linked` (raft's linked results for proofs outside the linking files, `open RaftLink`).
 

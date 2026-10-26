@@ -1,4 +1,4 @@
-# raft's signature (Spec/go_etcd_io/raft/v3/Sig.lean): what clients of raft's proof may use.
+# raft's API (Spec/go_etcd_io/raft/v3/Api.lean; the abstract signature is Spec/go_etcd_io/raft/v3/Sig.lean): what clients of raft's proof may use.
 # etc/sig-check.py etc/sigs/raft.txt --check: no module outside raft reaches the modules below.
 #
 # Stage 1 (2026-10-26): the node API. Its modules (`InvNode`, `InvNodeCtx`, `ApiVocab`) are public,
