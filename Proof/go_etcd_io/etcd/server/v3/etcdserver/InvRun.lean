@@ -300,9 +300,10 @@ def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
       sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
       pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
       -- (D19i part 1) the conf state read-only for good (`ep.confState`'s first value), and the
-      -- application's snapshot token back, the storage's boundary at most `ai₀`
+      -- application's snapshot token back; (D22 J4) its boundary at most its snapshot (what the
+      -- shared token's invariant keeps; until J4 at most `ai₀`)
       epCsOk cs -∗
-      (∃ σ : StorState, memSnapTok ms γs σ ∗ ⌜uint.Z σ.prev.index' ≤ uint.Z ai₀⌝) -∗
+      (∃ σ : StorState, memSnapTok ms γs σ ∗ ⌜uint.Z σ.prev.index' ≤ uint.Z σ.ss.index'⌝) -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})

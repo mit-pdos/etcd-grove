@@ -453,10 +453,12 @@ theorem applySnapshot_walk
   (try wp_auto)
   -- `s.r.storage.Release(snapshot)`: the snapshot's index taken, the older files released
   imod (mono_nat_own_update (uint.nat sv.Metadata'.Index') (by word)) $$ Hγt with ⟨Hγt, #Htk⟩
-  wp_apply hRel stp ss sn smp DFrac.discard DFrac.discard sv.Metadata' γd γt img hstp
+  wp_apply hRel stp ss sn smp DFrac.discard DFrac.discard sv.Metadata' γd img (snapTakenLb γt) hstp
     $$ [] as %rerr ⟨-, -, %Hrerr⟩
   · iframe #
-    iunfold snapTakenLb; iexact Htk
+    iintro !> %j %hj
+    iunfold snapTakenLb
+    iapply monoNatLbOwn_le (uint.nat j) (by word) $$ Htk
   have hrerr : rerr = GoInterface.nil := by
     rcases Hrerr with h | h
     · exact h

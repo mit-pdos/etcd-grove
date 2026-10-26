@@ -959,6 +959,7 @@ def memCsArg (cs : Loc) (dq : DFrac) (oc : Option ConfStateM) : IProp GF :=
   | none => iprop(⌜cs = null⌝)
   | some c => ownCSM cs dq c
 
+omit package_sem in
 /-- **The token split** (D22 J3). -/
 theorem memSnapTok_split (ms : Loc) (γs : MemStorNames) (σ : StorState) :
     memSnapTok (GF := GF) ms γs σ ⊣⊢ memSnapRO ms γs ∗ memKey γs.ak ∗ memSnapTokG γs σ := by

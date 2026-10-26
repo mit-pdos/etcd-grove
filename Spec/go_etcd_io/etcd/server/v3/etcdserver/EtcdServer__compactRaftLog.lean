@@ -45,20 +45,26 @@ covers both outcomes (the storage's boundary unchanged, or raised to at most `sn
 (2026-10-19, D21 M3) `SnapshotCatchUpEntries` is `scu` (read-only), and the compaction index is at
 most the storage's cap (`MemStorNames.cap`, `Compact.spec`'s premise since D21 M3): `compacti` as
 the body computes it, `snapi - scu` past `scu`, else `1`.
-(2026-10-26, its body translated) The logger's cell `s.lg` (`l`, not `nil`), which `Logger` reads. -/
+(2026-10-26, its body translated) The logger's cell `s.lg` (`l`, not `nil`), which `Logger` reads.
+
+(D22 J4, 2026-10-26) **Over the shared token** (`srvSnapState`'s: the storage's persistent part,
+the token's ghost part in `srvStorTokN`'s invariant, and a lower bound `sl ≥ snapi` of its snapshot
+counter, `snapshot`'s), with `Compact.wp_shared`: the premise `compacti ≤ ss` from the lower bound
+at the linearization point; nothing returned of the storage (until J4 the token in hand, with its
+boundary at most `snapi` after: the boundary is no longer the apply thread's to know). -/
 abbrev EtcdServer.compactRaftLog.spec : Prop :=
-  ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (σ : StorState) (scu : w64) (l : Loc),
-  uint.Z σ.prev.index' ≤ uint.Z snapi → uint.Z snapi ≤ uint.Z σ.ss.index' → 1 ≤ uint.Z snapi →
+  ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (γss : GName) (sl scu : w64) (l : Loc),
+  uint.Z snapi ≤ uint.Z sl → 1 ≤ uint.Z snapi →
   (if uint.Z scu < uint.Z snapi then uint.Z snapi - uint.Z scu else 1) ≤ γs.cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvLgReader s ∗
       srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝ ∗
       srvInflight s ∗
-      rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapTok ms γs σ ∗
+      rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapRO ms γs ∗
+      inv srvStorTokN (memTokShared γs γss) ∗ monoNatLbOwn γss (uint.nat sl) ∗
       memFloorAtLeast ms γs (uint.Z snapi) ∗
       srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"compactRaftLog")) (Val #snapi))
-  {{ RET #(); srvLgReader s ∗ ∃ σ' : StorState, memSnapTok ms γs σ' ∗
-      ⌜uint.Z σ'.prev.index' ≤ uint.Z snapi ∧ σ'.ss = σ.ss⌝ }}
+  {{ RET #(); srvLgReader s }}
 
 end spec
 
