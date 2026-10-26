@@ -34,10 +34,16 @@ theorem apply.needAdminPermission.wp_proof :
   simp only [apply.presentIs]
   icases Hr with ⟨%Hpn, -, -, -, -, -, -, -, -, -, -, -,
     ⟨%l1, #F1, %H1⟩, ⟨%l2, #F2, %H2⟩, -, -, ⟨%l3, #F3, H3⟩, ⟨%l4, #F4, %H4⟩, -,
-    ⟨%l5, #F5, %H5⟩, ⟨%l6, #F6, %H6⟩, ⟨%l7, #F7, %H7⟩, ⟨%l12, #F12, %H12⟩, ⟨%l13, #F13, %H13⟩,
-    ⟨%l8, #F8, H8⟩, ⟨%l11, #F11, %H11⟩, -, ⟨%l9, #F9, %H9⟩, ⟨%l10, #F10, %H10⟩, -, -, -, -⟩
+    ⟨%l5, #F5, %H5⟩, ⟨%l6, #F6, H6⟩, ⟨%l7, #F7, %H7⟩, ⟨%l12, #F12, %H12⟩, ⟨%l13, #F13, %H13⟩,
+    ⟨%l8, #F8, H8⟩, ⟨%l11, #F11, %H11⟩, -, ⟨%l9, #F9, H9⟩, ⟨%l10, #F10, %H10⟩, -, -, -, -⟩
   ihave %H3 := apply.optReqIs_nil l3 rq.authUserAdd _ apply.authUserAddIs_nn $$ H3
   ihave %H8 := apply.optReqIs_nil l8 rq.authRoleAdd _ apply.authRoleAddIs_nn $$ H8
+  ihave %H6 := apply.optReqIs_nil l6 rq.authUserGrantRole _ apply.authUserGrantRoleIs_nn $$ H6
+  ihave %H9 := apply.optReqIs_nil l9 rq.authRoleGrantPermission _ apply.authRoleGrantPermissionIs_nn $$ H9
+  replace H6 : l6 ≠ null ↔ rq.authUserGrantRole.isSome = true := by
+    cases h : rq.authUserGrantRole <;> simp_all
+  replace H9 : l9 ≠ null ↔ rq.authRoleGrantPermission.isSome = true := by
+    cases h : rq.authRoleGrantPermission <;> simp_all
   replace H3 : l3 ≠ null ↔ rq.authUserAdd.isSome = true := by
     cases h : rq.authUserAdd <;> simp_all
   replace H8 : l8 ≠ null ↔ rq.authRoleAdd.isSome = true := by

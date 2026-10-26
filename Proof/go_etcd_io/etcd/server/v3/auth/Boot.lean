@@ -21,6 +21,7 @@ simple provider meets (`tokenSimple_okA`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
+public import Proof.go_etcd_io.etcd.server.v3.auth.Fuel
 
 @[expose] public section
 
@@ -44,6 +45,10 @@ theorem bootState_permKeysOk : permKeysOk bootState := by
 theorem bootState_permsFit : permsFit bootState := by
   intro u roles h
   simp [bootState] at h
+
+/-- The boot state is small (`Fuel.lean`, the auth plan's E2l). -/
+theorem bootState_small : authSmall bootState := by
+  refine ⟨?_, ?_, ?_, [], List.nodup_nil, ?_, ?_⟩ <;> simp [bootState, permsOn]
 
 section ghost
 variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
@@ -116,6 +121,12 @@ instance tokenProviderBoot_persistent (tp : GoInterface) (γt γf : GName) (A : 
     Persistent (tokenProviderBoot tp γt γf A) := by
   unfold tokenProviderBoot; infer_instance
 
+/-- **The admin side's fuel at the store's start** (the auth plan's E2l, `Fuel.lean`): the history
+`newAuthStore_boot` gives, `[bootState, bump bootState]`, from no receipt. -/
+theorem authFuel_boot : ⊢ |==> authFuel (GF := GF) [bootState, bump bootState] :=
+  authFuel_init _ (bump bootState) rfl (authSmall_bump _ bootState_small)
+    (by simp [bump, bootState])
+
 end defs
 
 section proof
@@ -174,6 +185,7 @@ theorem newAuthStore_boot
     · exact absurd rfl h0
     · simpa using h1
   subst Hhs'
+  ihave HWR := authWRAt_authWR stp (.on γa) P f T ab $$ HWR
   iapply HΦ
   iexists γa, stp
   iframe Hinv HWR HtpAd HPost Hown' Hslots

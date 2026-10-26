@@ -42,6 +42,10 @@ theorem apply.newApplierV3Capped.wp_proof
   ipersist applierV3
   wp_auto
   iapply HΦ
+  isplitr
+  · iexists p; isplitr
+    · ipureintro; rfl
+    iunfold apply.cappedIs; iexact applierV3
   iintro !> %E %c #Hbase
   ihave #Hb := Hbase
   iunfold apply.applierSpec at Hb

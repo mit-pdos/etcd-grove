@@ -33,7 +33,7 @@ theorem apply.uberApplier.Alarm.wp_proof
   wp_start as ⟨#Hu, Ha, #Hs, #Hr, Hpre, Hwt, #Hsp, HRW⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
-  icases Hu' with ⟨-, #Hok, #Hlgf, #Hasf, #Hwadf, %base, #Hbsf, #Hbase⟩
+  icases Hu' with ⟨-, #Hok, #Hlgf, #Hasf, #Hwadf, %base, #Hbsf, #Hbase, -⟩
   ihave #Hok' := Hok
   iunfold apply.backendOptsOk at Hok'
   icases Hok' with ⟨-, -, -, -, -, #Hal, -⟩
@@ -58,7 +58,7 @@ theorem apply.uberApplier.Alarm.wp_proof
   wp_if_destruct
   · -- `ACTIVATE`: the chain the alarms ask for
     wp_apply (hR p opts.AlarmStore' base (.ok ai) iprop(True) false) $$ [Ha]
-      as ⟨-, %ns, %cr, %a', -, Ha', #Hch⟩
+      as ⟨-, %ns, %cr, %a', -, Ha', #Hch, -⟩
     · iframe #
       iframe Ha
     iapply HΦ
@@ -71,7 +71,7 @@ theorem apply.uberApplier.Alarm.wp_proof
   wp_if_destruct
   · -- `DEACTIVATE`: likewise
     wp_apply (hR p opts.AlarmStore' base (.ok ai) iprop(True) false) $$ [Ha]
-      as ⟨-, %ns, %cr, %a', -, Ha', #Hch⟩
+      as ⟨-, %ns, %cr, %a', -, Ha', #Hch, -⟩
     · iframe #
       iframe Ha
     iapply HΦ

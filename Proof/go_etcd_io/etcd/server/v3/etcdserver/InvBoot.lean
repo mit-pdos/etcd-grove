@@ -206,6 +206,16 @@ def alarmApplyOk (a : Loc) : IProp GF :=
 instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF) a) := by
   unfold alarmApplyOk; infer_instance
 
+/-- **The auth store `stl`'s apply contract on whichever backend it is on, in the auth mode
+`M`** (the auth plan's E2i, 2026-10-26; until then in the mode `off` only, `authApplyOk`): with
+the store's verdicts in the mode `M`; the real store in the mode `on γa` meets it (`authApplyOkM_on`,
+`AuthApplyOn.lean`; its admin clauses vacuous there, `apply.adminAdmitted`). -/
+def authApplyOkM (M : auth.AuthMode) (stl : Loc) (RD : IProp GF) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
+    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
+    apply.isAuthStore (auth.authIface stl) γ Pk #f RD M RW)
+
 /-- **The auth store `stl`'s apply contract on whichever backend it is on** (persistent; S7c;
 `auth.NewAuthStore.spec`'s, the trust boundary), with the reader resource `RD`: as
 `alarmApplyOk`, its writes pinned to the backend by the user's half of `st.be` (`authBeOn`). -/
@@ -214,6 +224,13 @@ def authApplyOk (stl : Loc) (RD : IProp GF) : IProp GF :=
     ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
     ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
     apply.isAuthStore (auth.authIface stl) γ Pk #f RD .off RW)
+
+theorem authApplyOk_eq (stl : Loc) (RD : IProp GF) :
+    authApplyOk (GF := GF) stl RD = authApplyOkM .off stl RD := rfl
+
+instance authApplyOkM_persistent (M : auth.AuthMode) (stl : Loc) (RD : IProp GF) :
+    Persistent (authApplyOkM (GF := GF) M stl RD) := by
+  unfold authApplyOkM; infer_instance
 
 /-- **The lessor `lp`'s backend contract on whichever backend it is on** (persistent; D22
 receiver epochs, S7c; `lease.NewLessor.spec`'s, the trust boundary): as `alarmApplyOk`, its writes

@@ -408,6 +408,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   (`deadlineExceededError`); then `ErrAny` drops the two facts.
 - **Status.** Not started (found 2026-10-23).
 
+### `encoding/base64` (the auth plan's E2u, 2026-10-26)
+
+- **Missing.** Perennial has no `encoding/base64`, not even names-only, so etcd's
+  `EtcdServer.UserAdd` and `UserChangePassword` (they hash the password with bcrypt and put the
+  hash in the request base64-encoded, `v3_server.go`) cannot be translated here.
+- **Workaround here.** The apply side names the encoding as an opaque function
+  (`auth.stdB64Enc`, `auth/Requests.lean`) and `selectPassword`'s boundary spec says its decoding
+  of an encoding has no error; that the handler's request is of that form (`UserAddModel.pwSure`)
+  is a proposer's obligation (`commitOkOn`, E2t) until the handler is proved.
+- **Proposed change.** `encoding/base64` in Perennial: `StdEncoding` (a package variable with its
+  fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at least
+  `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models.
+
 ## Landed
 
 ### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`

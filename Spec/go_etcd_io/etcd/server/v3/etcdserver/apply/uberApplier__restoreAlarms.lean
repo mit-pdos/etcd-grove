@@ -39,7 +39,8 @@ abbrev apply.uberApplier.restoreAlarms.spec : Prop :=
   {{ RET #(); T ∗ ∃ (ns cr : Bool) (a' : GoInterface), ⌜z = true → ns = false ∧ cr = false⌝ ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a' ∗
       □ (∀ E : AEnv GF, apply.applierSpec E (apply.baseChain E.authOn) base -∗
-        apply.applierSpec E (apply.alarmChain E.authOn ns cr) a') }}
+        apply.applierSpec E (apply.alarmChain E.authOn ns cr) a') ∗
+      apply.alarmShape ns cr base a' }}
 
 end spec
 
