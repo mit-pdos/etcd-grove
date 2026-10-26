@@ -42,37 +42,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **The cache's watch start, as the client's `Watch` takes it** (K2e-7d): `startOk` of a
-start-read watch from `etcdRead (rev - 1)`. -/
-theorem startOk_of_etcdRead (V : WEnv GF) (rev : w64) (hst : V.R.γ.st = V.R.E.γ)
-    (h1 : 0 < sint.Z rev) :
-    etcdRead (EM := V.WM) (rev - W64 1) ⊢ startOk V true rev := by
-  iintro #H
-  unfold startOk
-  iright; iapply etcdRead_reached (EM := V.WM) (rev - W64 1) $$ H
-
-/-- **etcd's client's watcher meets the clients' range-watch contract** at the server's model
-(the closable one: the channel may be closed). -/
-theorem isEtcdRangeWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
-    (V : WEnv GF) (w : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
-    isEtcdRangeWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx := by
-  iintro ⟨#P1, #P2, #P3, #Hw⟩
-  unfold isEtcdRangeWatcher
-  iintro !> %ctx %cs %key %sl %gs %rev %Φ !> ⟨#Hctx, #Hopts, %Hpre⟩ HΦ
-  iapply (wp_Watch V w ctx cs key sl gs rev false) $$ [] [HΦ]
-  · iframe #
-    isplitr
-    · ipureintro; exact Hpre
-    unfold startOk; ileft; ipureintro; rfl
-  inext
-  iintro %ch %γ ⟨#Hs, Hc, #Hi, -, -⟩
-  iapply HΦ
-  iframe Hc
-  iframe #
-
 /-- A range watch response's header, owned, made read-only: the cache's `hdrAt`. -/
 theorem hdrAt_of_watchHdrOwn [EM : EtcdModel GF] (h : Loc) (r : RespModel) :
     watchHdrOwn (GF := GF) h r ⊢ |==> hdrAt h r.hdrRev := by
@@ -106,61 +75,6 @@ theorem etcdWatchElem_of_rangeWatchElem [EM : EtcdModel GF] (γ : EtcdWatchNames
   rw [← hk]
   iframe #
   ipureintro; exact Hf
-
-/-- **etcd's client's watcher meets the cache's watcher contract** at the server's model
-(K2e-8), for a cache whose prefix is not all `0xff` (`cplCond`'s condition, with the prefix
-non-empty, which `watchConnFacts` says: the client promises completeness only for such a prefix
-watch): the channel `Watch` returns, at its second cursor. -/
-theorem isEtcdWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
-    (V : WEnv GF) (w : Loc) (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
-    isEtcdWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx := by
-  iintro ⟨#P1, #P2, #P3, #Hw⟩
-  ihave %hf : ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ $$ [Hw]
-  · iunfold isClientWatcher at Hw
-    icases Hw with ⟨%cs, %vs, -, -, -, -, -, -, -, Hsf, -⟩
-    iunfold watchSrvFacts at Hsf
-    icases Hsf with ⟨-, Hcf⟩
-    ihave ⟨-, %h⟩ := watchConnFacts_cur V $$ Hcf
-    ipureintro; exact h
-  obtain ⟨hst, hp⟩ := hf
-  unfold isEtcdWatcher
-  iintro !> %ctx %cs %key %sl %gs %rev %Φ !> ⟨#Hctx, #Hopts, %Hpre, #Hrd⟩ HΦ
-  obtain ⟨hpw, hnp, hrev⟩ := Hpre
-  unfold OpFull.isPrefixWatch at hpw
-  simp only [decide_eq_true_eq, hp, if_false] at hpw
-  obtain ⟨ht, hr, -, -, hpk, hfr, hfp, hfd, hkey, hend⟩ := hpw
-  iapply (wp_Watch V w ctx cs key sl gs rev true) $$ [] [HΦ]
-  · iframe #
-    isplitr
-    · ipureintro
-      refine ⟨?_, hnp, by omega, ?_⟩
-      · unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
-        exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
-      · rw [hkey, hend]; exact concurrency.keyRangeUnder_prefix V.pfx hp
-    iapply startOk_of_etcdRead V rev hst hrev $$ Hrd
-  inext
-  iintro %ch %γ ⟨#Hs, Hc, #Hi, #Hi2, %Hcpl⟩
-  have hc : γ.cpl = true := by
-    rw [Hcpl]; unfold cplCond
-    have : rev ≠ W64 0 := fun h => by subst h; simp at hrev
-    simp only [hkey, hend, Bool.true_and, decide_eq_true_eq]
-    exact ⟨hp, trivial, hff, this⟩
-  ispecialize HΦ $$ %ch %(⟨γ.spsc, γ.cur2, γ.cur2, γ.cpl⟩ : EtcdWatchNames)
-  iapply HΦ
-  isplitr
-  · unfold isEtcdWatchChan
-    iexists rangeWatchElem (EM := V.WM) γ V.pfx (opWatchModel key gs) rev
-    iframe Hs
-    iintro !> %i %v H
-    iapply etcdWatchElem_of_rangeWatchElem (EM := V.WM) γ V.pfx (opWatchModel key gs) rev hc hkey
-      i v $$ H
-  unfold etcdWatchConsumer
-  iexists []
-  iframe Hc Hi2
-  ipureintro; rfl
 
 /-- **etcd's client's watcher is the cache's progress notifier** (K2e-9): `RequestProgress`
 returns an error whose `Error()` gives a string (grpc's `status` accepts it). -/

@@ -11,7 +11,8 @@ watchkv's (`Proof/.../watchkv/Defs.lean`) at cachekv's names, ports and prefix:
   client watcher's reconnection is verified).
 * The program's values: `genKeys`/`genVals` (`Gen`'s, under the prefix `ck/`), `pairOf` (a `kv`'s
   key and value), `CheckOk` (what `check` needs not to panic).
-* The workload (`watchkv.workload`), its logs (`watchkv.WkLog`) and `watchkv.revAt` are watchkv's.
+* The plan's fact about the KV state's changes (`watchkv.wkW`) and its logs (`watchkv.WkLog`) are
+  watchkv's.
 -/
 module
 

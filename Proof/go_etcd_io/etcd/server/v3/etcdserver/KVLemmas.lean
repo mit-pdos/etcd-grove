@@ -69,9 +69,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- An entry with data that decode to a plain request is plain. -/
-theorem plainEntry_of_data (W : SrvWorkload) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
-    (hd : e.data = d) (hdec : apply.irrDecode d = some rq) (hp : plainReq W rq) :
-    plainEntry W e := by
+theorem plainEntry_of_data (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
+    (hd : e.data = d) (hdec : apply.irrDecode d = some rq) (hp : plainReq rq) :
+    plainEntry e := by
   intro _ _ rq' h
   rw [hd, hdec] at h
   cases h
@@ -80,10 +80,10 @@ theorem plainEntry_of_data (W : SrvWorkload) (e : EntryModel) (d : List w8) (rq 
 /-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
-    (hok : plainLog γk.wl L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+    (hok : plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [])
-    (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry γk.wl e) :
-    plainLog γk.wl (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
+    (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
+    plainLog (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 + (L ++ [e]).length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
   obtain ⟨hplog, -, hc0, hch, h0⟩ := hok
@@ -206,7 +206,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         rw [hent]
         iframe HL Hσ Hw'
         ipureintro
-        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data γk.wl _ d rq hed hdec hplain)
+        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
       iintro !>
       itrivial
@@ -214,7 +214,6 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     obtain ⟨hplain, hop, -, hshape, hQr⟩ := Hop
     subst hQr
     iunfold kvOpAu at Hau
-    icases Hau with ⟨-, Hau⟩
     iunfold kvAu at Hau
     imodintro
     unfold srvPropAu1
@@ -267,7 +266,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         rw [hst]
         iframe HL Hσ Hw'
         ipureintro
-        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data γk.wl _ d rq hed hdec hplain)
+        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
       iintro !>
       rw [Hag]
@@ -277,7 +276,6 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     obtain ⟨hplain, hop, -, hshape, hQr⟩ := Hop
     subst hQr
     iunfold kvOpAu1 at Hau
-    icases Hau with ⟨-, Hau⟩
     iunfold kvAu1 at Hau
     imodintro
     unfold srvPropAu1
@@ -331,7 +329,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         rw [hst]
         iframe HL Hσ Hw'
         ipureintro
-        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data γk.wl _ d rq hed hdec hplain)
+        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
       imodintro
       iintro !>
       rw [Hag]
@@ -531,7 +529,7 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
     have he := hrq hnz
     subst he
     ipureintro
-    exact ⟨⟨hp.1, γk.wl.admits_header _ _ hp.2⟩, hnw, hnz, hs, hQ⟩
+    exact ⟨⟨hp.1, putgetKind_header _ _ hp.2⟩, hnw, hnz, hs, hQ⟩
   · iright; ileft
     obtain ⟨hp, hop, hnz, hs, hQ⟩ := Hop
     have he := hrq hnz
@@ -539,7 +537,7 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
     iexists op, Q
     iframe Hau
     ipureintro
-    exact ⟨⟨hp.1, γk.wl.admits_header _ _ hp.2⟩, hop, hnz, hs, hQ⟩
+    exact ⟨⟨hp.1, putgetKind_header _ _ hp.2⟩, hop, hnz, hs, hQ⟩
   · iright; iright
     obtain ⟨hp, hop, hnz, hs, hQ⟩ := Hop
     have he := hrq hnz
@@ -547,7 +545,7 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
     iexists op, Q, γc
     iframe Hau
     ipureintro
-    exact ⟨⟨hp.1, γk.wl.admits_header _ _ hp.2⟩, hop, hnz, hs, hQ⟩
+    exact ⟨⟨hp.1, putgetKind_header _ _ hp.2⟩, hop, hnz, hs, hQ⟩
 
 /-! ### The KV logs' certificates (2026-10-14, unit T1) -/
 

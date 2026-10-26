@@ -64,7 +64,7 @@ theorem store.updateOnce.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, %Hwl, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
@@ -130,7 +130,7 @@ theorem store.updateOnce.wp_proof
       (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
         (kubernetes.optPutTxn key val s.rev true)).1)
       (stepHand c (updStep key z f))
-      (sameAt key s.rev kv0) (fun x hx => Hwl x hx _)
+      (sameAt key s.rev kv0)
       (fun σ hw0 hb hA => ⟨(updStepOk c key hk kv0 s hs hr z f o' hok hw val hdv σ hw0 hb hA).1,
         fun hf => ⟨(updStepOk c key hk kv0 s hs hr z f o' hok hw val hdv σ hw0 hb hA).2 hf,
           fun hh => by simpa [stepHand] using hh⟩⟩)) $$ [HW Hau]

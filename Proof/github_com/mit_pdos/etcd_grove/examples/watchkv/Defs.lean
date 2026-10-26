@@ -17,7 +17,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.WatchBase
-public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.LogFacts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Workload
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.Defs
 
 @[expose] public section

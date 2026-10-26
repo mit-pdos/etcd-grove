@@ -29,19 +29,6 @@ namespace client
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
 open mvcc
 
-/-! ## The state of a log, by its length -/
-
-/-- A log's state's next revision is its length. -/
-theorem kvStateOf_rev_succ (l : mvcc.Log) (h : 2 ≤ l.length) :
-    (kvStateOf l).rev + 1 = l.length := by
-  unfold kvStateOf; simp only; omega
-
-/-- **A write's revision is its state's after the changes** (`writeRev`, `KVState.commit`). -/
-theorem kvStateOf_commit_rev (l : mvcc.Log) (cs : List mvcc.Change) (h : 2 ≤ l.length) :
-    ((kvStateOf l).commit cs).rev = mvcc.writeRev l cs := by
-  unfold KVState.commit mvcc.writeRev kvStateOf
-  by_cases hc : cs = [] <;> simp only [hc, ↓reduceIte] <;> omega
-
 section values
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

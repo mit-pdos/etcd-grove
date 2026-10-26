@@ -32,7 +32,7 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
     (wp_encodeV0 : encodeV0.spec (GF := GF) (hG := hG))
     (wp_setItem : setItem.spec (GF := GF) (hG := hG)) :
     seedOne.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl x V γs s0 g k σ hAs hW hk hg
+  intro _ _ cl x V γs s0 g k σ hAs hk hg
   wp_start as ⟨#Hnc, #Hwo, #Hregs, #Hsi, Hs, #Hst⟩
   wp_auto
   wp_apply context.wp_Background
@@ -54,7 +54,7 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
         (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x"))) σ) ∗
         ⌜σ' = σ⌝))) $$ [Hs]
   · iapply BigAndL.bigAndL_singleton.2
-    iapply seed_au γs x.γr.kv _ σ (hW _)
+    iapply seed_au γs x.γr.kv _ σ
     iframe Hsi Hs
   ihave #Hregs' : ([∗list] y ∈ [x], client.kvRegsAt y) $$ []
   · iapply BigSepL.bigSepL_singleton.2
