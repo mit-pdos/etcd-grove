@@ -14,6 +14,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
+public import Proof.go_etcd_io.raft.v3.MemstorageAU
 public import Spec.errors.Is
 public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Logger__Debug
@@ -47,6 +48,8 @@ theorem EtcdServer.compactRaftLog.wp_proof
     (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG)) :
     EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) := by
+  -- (D22 J3, integration) `Compact`'s spec is logically atomic since J3; the token is in hand here
+  replace hCompact := MemoryStorage.Compact.spec_tok_of hCompact
   intro s snapi ms γs σ scu l Hprev Hss Hpos Hcap
   wp_start as ⟨Hlr, #Hlgf, %Hlgn, #Hinf, #Hrs, Htok, #Hfl, #Hscu⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []

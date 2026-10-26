@@ -46,22 +46,31 @@ least `x`, the storage holding entries up to it). Premise, for a `ci` above the 
 within the floor and at or below the storage's snapshot (a compacted storage keeps a snapshot
 covering its boundary). The entry at `ci` is numbered `ci`: the storage keeps its entries numbered
 by their positions (`HistOk`), which raft's batches are (`PendOk`). (2026-10-19, D21 M3) And within
-the storage's cap (`MemStorNames.cap`), which no compaction passes. -/
+the storage's cap (`MemStorNames.cap`), which no compaction passes.
+
+**Logically atomic (D22 J3, 2026-10-26).** etcd's raft goroutine may replace the storage's
+boundary (`ApplySnapshot`) while the apply job compacts (`notes/j3-overlap-test/`), so the token's
+ghost part (`memSnapTokG`: the boundary and the snapshot) is shared, and the method is atomic in
+it: the caller gives it at the linearization point (inside the storage's lock, where nobody else
+can change it), with the premise checked against it then, and gets it back unchanged
+(`ErrCompacted`) or at the new boundary (at the term the storage has at `ci`). Mask
+`⊤ \ ↑memSnapN`. The triple of the token in hand (D19i part 1 to D22 J3) is its corollary
+`MemoryStorage.Compact.spec_tok` (`MemstorageAU.lean`). -/
 abbrev MemoryStorage.Compact.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σt : StorState) (x ci : w64) (ecomp : GoInterface),
-  (uint.Z σt.prev.index' < uint.Z ci →
-    uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z σt.ss.index' ∧
-    -- (2026-10-19, D21 M3) and within the storage's cap
-    uint.Z ci ≤ γs.cap) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Htok" ∷ memSnapTok ms γs σt ∗
-      "#Hfw" ∷ memFloorTok ms γs x ∗
-      "#Herr" ∷ globalAddr ErrCompacted ↦□ ecomp }}
-    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Compact")) (Val #ci))
-  {{ (err : GoInterface), RET #err;
-      (⌜uint.Z ci ≤ uint.Z σt.prev.index' ∧ err = ecomp⌝ ∗ memSnapTok ms γs σt) ∨
-      (∃ (t : w64), ⌜uint.Z σt.prev.index' < uint.Z ci ∧ err = interface.nil⌝ ∗
-        memSnapTok ms γs { σt with prev := entryID.mk t ci }) }}
+  ∀ (ms : Loc) (γs : MemStorNames) (x ci : w64) (ecomp : GoInterface),
+  ⊢ ∀ Φ : val → IProp GF,
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      memSnapRO ms γs ∗ memFloorTok ms γs x ∗ globalAddr ErrCompacted ↦□ ecomp) -∗
+    (|={⊤ \ ↑memSnapN, ∅}=> ∃ σt : StorState, memSnapTokG γs σt ∗
+      ⌜uint.Z σt.prev.index' < uint.Z ci →
+        uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z σt.ss.index' ∧ uint.Z ci ≤ γs.cap⌝ ∗
+      ((⌜uint.Z ci ≤ uint.Z σt.prev.index'⌝ -∗ memSnapTokG γs σt ={∅, ⊤ \ ↑memSnapN}=∗
+          Φ #ecomp) ∧
+       (∀ t : w64, ⌜uint.Z σt.prev.index' < uint.Z ci⌝ -∗
+          memSnapTokG γs { σt with prev := entryID.mk t ci } ={∅, ⊤ \ ↑memSnapN}=∗
+          Φ #interface.nil))) -∗
+    WP (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Compact")) (Val #ci))
+      {{ Φ }}
 
 end spec
 

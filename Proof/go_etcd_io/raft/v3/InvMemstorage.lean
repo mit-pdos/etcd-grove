@@ -146,6 +146,16 @@ theorem memSnapCreated_confState (σ : StorState) (i t : w64) (c : ConfStateM) (
 theorem memSnapCreated_snapId (σ : StorState) (i t : w64) (oc : Option ConfStateM)
     (bs : List w8) : snapId (memSnapCreated σ i t oc bs) = entryID.mk t i := rfl
 
+/-- (D22 J3) The storage's state with the snapshot `CreateSnapshot(i)` makes at the term `t`
+(`memSnapCreated`): what its proof's linearization point names (the record written out in the
+spec, `MemoryStorage.CreateSnapshot.spec`, is this, `rfl`). -/
+def memStorCreated (σ : StorState) (i t : w64) (oc : Option ConfStateM) (bs : List w8) :
+    StorState :=
+  { σ with ss := entryID.mk t i,
+           scs := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.lists,
+           sal := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.AutoLeave',
+           sdat := bs }
+
 /-- `storApp` agrees with the stored entries below the batch. -/
 theorem storApp_take (σ : StorState) (p : List EntryM) (m : Nat)
     (Hm : ∀ e0, p.head? = some e0 → (m : Int) ≤ uint.Z e0.Index' - uint.Z σ.prev.index' - 1)
@@ -899,6 +909,72 @@ def memSnapTok (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF :=
   "Hak" ∷ memKey γs.ak ∗
   "Hsv" ∷ ghostVar γs.sn memQ (snapPart σ) ∗
   "Hcbt" ∷ ghostVar γs.cb (1 : Qp).half σ.prev)
+
+/-! ### The token split for the logically atomic specs (D22 J3, 2026-10-26)
+
+`ApplySnapshot` (raft's goroutine, etcd's `raftNode.start`) and `CreateSnapshot`/`Compact` (the
+apply job) overlap in Go (`notes/j3-overlap-test/`), so the token's ghost part is shared, in an
+invariant of the application's (D22 J4), and the three methods are logically atomic over it
+(`MemoryStorage.<M>.spec`): `memSnapTok = memSnapRO ∗ memKey γs.ak ∗ memSnapTokG`
+(`memSnapTok_split`). The application's key `ak` is not in the shared part: `CreateSnapshot` takes
+the snapshot out of `memSnapInv` with it (`memSnapKeys` 2) for the whole critical section, which a
+logically atomic access (one instant) cannot lend; only the apply job calls `CreateSnapshot`, so
+it keeps the key (decision in `notes/decisions.md`, "D22 J3"). -/
+
+/-- The token's persistent part (D22 J3): the package, the storage's lock, the snapshot's
+invariant. -/
+def memSnapRO (ms : Loc) (γs : MemStorNames) : IProp GF :=
+  iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+    sync.isMutex (ms.[MemoryStorage, go!"Mutex"]) (memstorageInv ms γs) ∗
+    inv memSnapN (memSnapInv ms γs))
+
+instance memSnapRO_persistent (ms : Loc) (γs : MemStorNames) :
+    Persistent (memSnapRO (GF := GF) ms γs) := by
+  unfold memSnapRO; infer_instance
+
+/-- The token's shared ghost part (D22 J3): a quarter of the snapshot's ghost value (its part of
+`σ`, `snapPart σ`) and half of the boundary's, `σ.prev`. What the logically atomic
+`ApplySnapshot`/`CreateSnapshot`/`Compact` change, at their linearization points. -/
+def memSnapTokG (γs : MemStorNames) (σ : StorState) : IProp GF :=
+  iprop(ghostVar γs.sn memQ (snapPart σ) ∗ ghostVar γs.cb (1 : Qp).half σ.prev)
+
+instance memSnapTokG_timeless (γs : MemStorNames) (σ : StorState) :
+    Timeless (memSnapTokG (GF := GF) γs σ) := by
+  unfold memSnapTokG; infer_instance
+
+omit package_sem in
+/-- The ghost part reads only the snapshot's part and the boundary. -/
+theorem memSnapTokG_congr (γs : MemStorNames) (σ σ' : StorState) (h1 : snapPart σ' = snapPart σ)
+    (h2 : σ'.prev = σ.prev) :
+    memSnapTokG (GF := GF) γs σ ⊢ memSnapTokG γs σ' := by
+  unfold memSnapTokG
+  rw [h1, h2]
+
+/-- (D22 J3) `CreateSnapshot`'s `cs` argument: `nil` (`oc = none`, the previous `ConfState` kept)
+or a `ConfState` at any fraction. Named so that its precondition and its postcondition mention the
+same term (two `match`es elaborate to two auxiliary functions, which the proof mode does not
+unify). -/
+def memCsArg (cs : Loc) (dq : DFrac) (oc : Option ConfStateM) : IProp GF :=
+  match oc with
+  | none => iprop(⌜cs = null⌝)
+  | some c => ownCSM cs dq c
+
+/-- **The token split** (D22 J3). -/
+theorem memSnapTok_split (ms : Loc) (γs : MemStorNames) (σ : StorState) :
+    memSnapTok (GF := GF) ms γs σ ⊣⊢ memSnapRO ms γs ∗ memKey γs.ak ∗ memSnapTokG γs σ := by
+  unfold memSnapTok memSnapRO memSnapTokG
+  simp only [named]
+  constructor
+  · iintro ⟨#H1, #H2, #H3, H4, H5, H6⟩
+    iframe H4 H5 H6
+    isplitl []; · iexact H1
+    isplitl []; · iexact H2
+    iexact H3
+  · iintro ⟨⟨#H1, #H2, #H3⟩, H4, H5, H6⟩
+    iframe H4 H5 H6
+    isplitl []; · iexact H1
+    isplitl []; · iexact H2
+    iexact H3
 
 /-- The owner's ghost view at `σ` (2026-10-10; D19i part 1): the history `hist` it has
 sanctioned (`HistOk`), and either nothing pending -- all of `hist`'s authority, ending at `σ`, the

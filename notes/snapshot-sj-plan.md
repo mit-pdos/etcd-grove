@@ -445,7 +445,11 @@ so the baseline is S8d's. The first Lean stage to merge runs `--check --update` 
 - **J2** also: `examples/common/Alloc*` allocate the receivers' directory maps; `NewServer`'s
   `snapDir_alloc` → `snapDir_init` (one binder: merge J2's `NewServer` edit before J1a's, or J1a
   rebases on it).
-- **J3**: the specs become the AU forms (item 2), the old triples corollaries.
+- **J3**: the specs become the AU forms (item 2), the old triples corollaries. *Done 2026-10-26,
+  with one change to item 2: `memSnapTokG` holds no `memKey γs.ak` (`CreateSnapshot` needs the key
+  for its whole critical section; its caller, the apply job, keeps it), so J4's `srvSnapState`
+  keeps `memKey γs.ak` beside `memSnapRO`; `ApplySnapshot` takes no `memSnapRO`. `notes/decisions.md`,
+  "D22 J3".*
 - **J4** after J3 and **J5** (J5's write counter, which `snapshot`'s `Commit` advances); also
   `Release` restated and the new `Rm` in `snapDirInv`'s users (`NewServer`, `specSnap`,
   `SnapApplyWalk`).
