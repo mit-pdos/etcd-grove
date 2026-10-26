@@ -257,8 +257,17 @@ translate = [
   "lessor.recvKeepAlive", "lessor.deadlineLoop", "lessor.sendKeepAliveLoop", "keepAlive.close",
   "RetryLeaseClient", "retryLeaseClient", "retryLeaseClient.LeaseGrant",
   "retryLeaseClient.LeaseRevoke", "retryLeaseClient.LeaseKeepAlive", "canceledByCaller",
+  # the auth plan's E2h (2026-10-26): the client's Auth API for the admin calls
+  # `examples/authkv`'s `SetUp` makes (auth.go's `NewAuth` and `authClient`'s `UserAdd`,
+  # `UserGrantRole`, `RoleAdd`, `RoleGrantPermission`, `AuthEnable`, the permission types;
+  # retry.go's `RetryAuthClient` and `retryAuthClient`'s same five)
+  "NewAuth", "authClient", "authClient.UserAdd", "authClient.UserGrantRole", "authClient.RoleAdd",
+  "authClient.RoleGrantPermission", "authClient.AuthEnable", "PermissionType", "PermRead",
+  "PermWrite", "PermReadWrite", "RetryAuthClient", "retryAuthClient", "retryAuthClient.UserAdd",
+  "retryAuthClient.UserGrantRole", "retryAuthClient.RoleAdd", "retryAuthClient.RoleGrantPermission",
+  "retryAuthClient.AuthEnable",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io", "google.golang.org/grpc/metadata"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io", "google.golang.org/grpc/metadata"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

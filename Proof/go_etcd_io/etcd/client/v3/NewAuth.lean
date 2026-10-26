@@ -1,10 +1,11 @@
 /-
-Proof of `Spec/go_etcd_io/etcd/client/v3/NewAuth.lean`: a trust-boundary axiom (item 5, client construction). Lean-first (no
-Rocq counterpart).
+Proof of `Spec/go_etcd_io/etcd/client/v3/NewAuth.lean` (the auth plan's E2h; a trust-boundary
+axiom of item 5 before). Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.NewAuth
+public import Spec.go_etcd_io.etcd.client.v3.RetryAuthClient
 
 @[expose] public section
 
@@ -13,7 +14,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -22,9 +23,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **Trust boundary** (item 5): `NewAuth(c)` returns `&authClient{remote: RetryAuthClient(c), callOpts: c.callOpts}`: allocations and reads of `c`'s
-fields, which `New` set and never writes again; it returns. -/
-axiom NewAuth.wp_proof : NewAuth.spec (GF := GF) (hG := hG)
+theorem NewAuth.wp_proof (wp_RetryAuthClient : RetryAuthClient.spec (GF := GF) (hG := hG)) :
+    NewAuth.spec (GF := GF) (hG := hG) := by
+  intro cl addr
+  wp_start as #Hcl
+  iunfold clientKVAt at Hcl
+  icases Hcl with ⟨%Hne, %conn, %sl, #Hconn, #Hkc, #Hcopts, #Hok⟩
+  wp_auto
+  wp_apply wp_RetryAuthClient cl conn $$ [] as %v ⟨%rac, %Hv, #Hrac⟩
+  · iexact Hconn
+  subst Hv
+  iStructNamed «$r0»
+  ipersist remote
+  simp only [decide_eq_false Hne]
+  iapply wp_fupd
+  wp_auto
+  ipersist callOpts
+  imodintro
+  iapply HΦ
+  iexists _
+  isplitl []
+  · ipureintro; rfl
+  unfold authObjAt
+  iexists rac, conn, sl
+  iframe #
 
 end proof
 
