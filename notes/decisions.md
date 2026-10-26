@@ -19104,6 +19104,10 @@ under the batch lock, the user chose (b).
   `GetRole` and `GetAllUsers` schema's read transaction answering from the latest state while the
   admin side holds its half of the history (the auth buckets' only writer is the apply thread,
   whose batch transactions write back at `Unlock`), `GetAllRoles` the batch transaction;
+- the read transaction's latest-state clause (appended by E2r, 2026-10-26: "E2r of the auth
+  plan"): `RLock()` begun while the admin side holds its authority (`authOwn`, outside a batch
+  transaction) holds the latest state (`histLast`), true of the real backend, whose batch writes
+  back to the read buffer at `Unlock`;
 - `CreateAuthBuckets` (one transaction, from `rbOwn` with the auth buckets absent or empty);
 - at a backend swap (`applySnapshot`'s restore, `Recover`), the old lock's `authLockI` given out
   and the new one's installed (the share with the restored state appended, `Recover`'s post).
@@ -20302,3 +20306,68 @@ admission) are not done.
 `kv_log_plain_on`.
 
 **Trust base.** Unchanged (721 axioms, 6 sorries); the new file has no axiom and no `sorry`.
+
+## E2r of the auth plan: the apply thread's checks at the latest state (2026-10-26 · `notes/auth-plan.md`)
+
+Item 3 of E2p's design: the checks' specs give their verdict at *some* recorded state per read
+(S3's `permVerdict`: the flag, the revision, the user and the cache each at its own), all a
+concurrent reader can be promised; the apply thread, the store's only writer, holds the admin side's
+authority between its batch transactions, and E2q's model step needs its checks at the latest state.
+Of the four reads, the revision was already latest (`Revision`'s `authOwnOpt`, S4); the other three
+needed a tie to the authority:
+- **The user (the backend's read transaction).** `authReadTxOk` gains a second `RLock()` clause:
+  begun while the caller holds `authOwn M hs`, the state is the latest (`histLast M hs st`). True of
+  the real backend (the apply thread's batch writes back to the read buffer at `Unlock`, before its
+  next read transaction), added to D22's list (S4f's "What D22 must discharge"). No proof constructs
+  `authReadTxOk` (it is a premise everywhere: `NewAuthStore`'s axiom, `authSchemaBoot`/`Srv`,
+  `Recover`), so the two consumers that destructure it (`lockedReadTx`, `Recover`) skip the clause.
+  `lockedReadTx.specL` uses it (`authReadTxLockedL`).
+- **The flag.** The admin side already holds half of `enabled` (`enabledHalf`, S4); `flagAt st b` is
+  that half with its value exposed, and `IsAuthEnabled.specL` returns it (the guard's half agrees).
+- **The cache.** Like the flag: the field `rangePermCache` is now split between `rangePermCacheMu`'s
+  guard (`cacheP`, at `q.half`) and the admin side (`cacheHalf`, in `authWR` and so in every admin
+  operation's resources, and in the apply thread's `authApplyRes`); `refreshRangePermCache`, the
+  only writer of the field (from an admin operation, `NewAuthStore` or `Recover`, all the apply
+  thread's or the boot's), joins the halves to replace it and hands the admin side back the cache at
+  the refreshed state (`cacheAt st sta`: the field's half, the map read-only, `cacheOf sta`). The
+  map is read-only once built (`mp ↦$□`: Go never writes a published map again), so the two halves
+  agree on it (`ownMap_agree`). `isRangeOpPermitted.specL` gives the verdict at the admin side's
+  state (`cacheVerdictP`).
+- **The tie.** `latestTie M hs b sc`: in `on`, the flag's half is the latest state's flag and, while
+  enabled, the cache's half is the latest state's cache (`AuthDisable` does not refresh; the check
+  returns before the cache then). `isOpPermitted.specL` takes the authority, the two halves and the
+  tie and gives `permVerdictL` (pure): at the latest state `stl`, a pass is `permitted stl` with the
+  token's revision not below `stl.revision` (or auth disabled), a refusal `refusedV ⟨stl,stl,stl,stl⟩`;
+  for a request of the cache's shape exact (`permVerdictL_iff`), and in `kvGranted`'s form for one
+  permission (`permVerdictL_granted`). `IsPutPermitted`/`IsRangePermitted`/`IsDeleteRangePermitted`
+  `.specL` follow. Restated linked in `etcdserver/Results.lean` (`auth_op_permitted_latest`,
+  `auth_put_permitted_latest`, `auth_range_permitted_latest`, `auth_delete_range_permitted_latest`);
+  the specs and proofs are in `auth/Latest.lean`, beside the generic ones (S3's split stays right for
+  concurrent readers: the API layer's checks).
+
+**Why halves rather than a ghost name for the cache.** A ghost variable of the cache's state would
+need a fifth name in `AuthNames` (its allocation, `ModeTag`'s encoding); the field's half is the
+same device as `enabled`'s, costs no ghost state, and tells the admin side the map itself.
+
+**Exported statements changed.** Definitions: `authReadTxOk` (the second clause), `cacheP` (the
+field at `q.half`, the map read-only), `authWR` (`∗ cacheHalf`), `authWRAt` and `authApplyRes`
+(likewise); the spec `refreshRangePermCache.spec` (pre `cacheHalf`, post `cacheAt st sta`). Every
+admin operation's and `NewAuthStore`'s statement keeps its text (they carry `authWR`). New:
+`authReadTxLockedL`, `flagAt` (`enabledHalf_flagAt`, `flagAt_enabledHalf`), `cacheOf`, `cacheAt`,
+`cacheHalf` (`cacheHalf_of_at`), `latestTie`, `cacheVerdictP` (`_entry`, `_absent`,
+`_false_not_covers`, `_true_covers`), `permVerdictL` (`_iff`, `_granted`, `_permOp`, `_on_disabled`,
+`_on_refused`, `_on_pass`), the `specL`s and `wp_latest`s above.
+
+**Not done.**
+- The tie's maintenance: the apply thread's resource keeping `latestTie` across its steps (the admin
+  operations' posts giving the flag's value and the refreshed cache at the new latest state; today
+  `authWR`'s halves come back existentially, `refreshRangePermCache` already gives `cacheAt` at the
+  committed state).
+- The auth applier's KV triples in the mode `on` (`authApplierV3`'s `Put`/`Range`/`DeleteRange`/`Txn`
+  and `checkTxnReqsPermission`'s loop, over `isAuthStore` clauses at the latest state), for E2q's
+  `kvEntryOn_of_granted`/`_of_refused`: the store-level checks they call are now these `specL`s.
+- `IsAdminPermitted` at the latest state (the same pieces: flag, user).
+
+**Trust base.** Unchanged (721 axioms, 6 sorries). The strengthened `authReadTxOk` makes the
+premises that state it (`NewAuthStore`'s axiom, D22's `authSchemaBoot`/`authSchemaSrv`) say more of
+the real backend: the clause above, true of it.
