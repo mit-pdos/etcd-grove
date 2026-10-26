@@ -18810,6 +18810,18 @@ buckets (the members and removed map they decode to), replacing the opaque `ccVa
 (alternative: translate `readMembersFromBackend` with a read transaction's `UnsafeForEach` spec and
 a `json.Unmarshal` axiom, rejected as a detour).
 
+**M5c scoping: the handlers' `AddRemote` (2026-10-26; the user's decision).** W3 (above) did not
+consider that the pipeline and snapshot handlers call `addRemoteFromRequest` → `AddRemote` on every
+request (`http.go:117,226`), which really starts a remote for a sender that is not a peer -- a
+just-removed member, which keeps sending until it learns. On the frozen transport every member is
+a peer, so `AddRemote` is a no-op (`AddRemote_frozen`); on a live one it is not. Decided: the
+owner's right (`trLive`) tracks the **peer ids only** (the owner's `AddPeer`/`RemovePeer` change
+them); the remote ids live only in the lock's resource, which any lock holder (a handler's
+`AddRemote`) may extend. Open, found while scoping: a remote's goroutines borrow four `R`s for
+good (`startRemote`), and a handler invocation is lent one; where the handler's `AddRemote` gets
+them is a design question (a pool in the lock per network member, refilled by `Stop`s?), raised
+with the user before M5c goes on.
+
 **M5a carried out (2026-10-26, branch `membership-m5`).** rafthttp's peer removal.
 - The leader stats' followers' map (`v2stats.lsFollowers`: the `Followers` field read-only, the map
   fractional, its values non-nil) is the transport's lock's (`trStats` in `trLockP`, from
