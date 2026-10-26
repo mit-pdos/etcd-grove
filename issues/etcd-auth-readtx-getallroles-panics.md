@@ -1,6 +1,6 @@
 ---
-upstream: unchecked
-checked: 2026-10-23
+upstream: none
+checked: 2026-10-26
 links: []
 ---
 
