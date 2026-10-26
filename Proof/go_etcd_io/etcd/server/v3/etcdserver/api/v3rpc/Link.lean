@@ -149,6 +149,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
 public import Proof.go_opentelemetry_io.otel.trace.WithAttributes
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.unicode.utf8.ValidString
+public import Proof.unicode.utf8.word
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer__Watch
 public import Proof.go_uber_org.zap.Duration
@@ -250,9 +251,13 @@ theorem metadata.MD.wp_Get :
     EtcdGrove.metadata.MD.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.metadata.MD.Get.wp_proof
 
+theorem utf8.wp_word :
+    EtcdGrove.utf8.word.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.utf8.word.wp_proof
+
 theorem utf8.wp_ValidString :
     EtcdGrove.utf8.ValidString.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.utf8.ValidString.wp_proof
+  EtcdGrove.utf8.ValidString.wp_proof utf8.wp_word
 
 theorem prometheus.CounterVec.wp_WithLabelValues :
     EtcdGrove.prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG) :=

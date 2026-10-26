@@ -21300,6 +21300,59 @@ changed, and no closed theorem proves less:
   M4 (merged in the second `lean`) generalized (`rcLockInv` at any side condition): the build
   passes; no root reaches the axiom yet (J8b).
 
+## `utf8.ValidString` proved (2026-10-26)
+
+`utf8.ValidString.wp_proof` (`Spec/unicode/utf8/ValidString.lean`, unchanged: it returns
+`decide (utf8Valid s)`) was a trust-boundary axiom, `unicode/utf8` names-only. It is now a theorem
+over Go 1.27's source:
+
+- **Translation.** `Code/unicode/utf8.toml` translates `ValidString`, `word` (generic over
+  `string | []byte`; goose instantiates it at `string`, `FuncUnfold word [T]`), the tables `first`
+  and `acceptRanges` (their initializers: array literals) and the constants they use (`ptrSize`
+  evaluates to `8`: the 64-bit build, so `word`'s 32-bit branch is `if false`). The rest stays
+  names-only.
+- **Package fact.** `utf8Init` (`Proof/unicode/utf8/Base.lean`, where the `IsPkgInit` instance
+  moved from `v3rpc/Base.lean`): `first ↦□ array.mk 256 firstTable` and
+  `acceptRanges ↦□ array.mk 16 acceptTable`, the tables as Lean lists. `etc/gen-init.py`'s
+  `SPECIAL['unicode.utf8']` proves it from the initializer (the stored literals are the lists, by
+  `rfl`; `first`'s 256 `let`s need `maxRecDepth`). With both initializers translated the package's
+  `opaqueInitsOk` axiom is gone too.
+- **Proof.** `Proof/unicode/utf8/word.lean` (`word(s)` is `wordOf s`, the first eight bytes
+  little-endian); `ValidAscii.lean` (pure: ASCII bytes do not change `utf8ValidB`; the mask test
+  `wordOf s &&& 0x8080808080808080 = 0` makes the eight bytes ASCII, bit by bit, not `bv_decide`,
+  whose proof rests on native evaluation); `ValidTable.lean` (pure: the tables against
+  `utf8Lead`, by `decide +kernel` over the 256 bytes, and `validB_lead`, one step of `utf8ValidB`
+  at a byte `≥ 0x80` as Go's switch on `first[b] & 7` with `acceptRanges[first[b] >> 4]`);
+  `ValidString.lean`: the loop invariant is `utf8ValidB s = utf8ValidB str` for the remaining
+  `s`, the same for the ASCII fast path's inner loop (joined with `wp_join … at next`).
+  `utf8ValidB` turned out to be exactly Go's `ValidString`: no mismatch.
+
+Trust base: 721 → 719 axioms (`utf8.ValidString.wp_proof`, `unicode.utf8.opaqueInitsOk`), 6
+`sorry`s unchanged; the baseline and the nine collections that listed them updated.
+
+## `container/heap`'s `Push` and `Fix` proved (2026-10-26)
+
+`heap.Push` and `heap.Fix` were trust-boundary axioms (`container/heap` names only, a
+standard-library package Perennial does not translate). This repository's `etcd` project now
+translates `Fix`, `Push` and the sift loops `up`, `down` they call (`Code/container/heap.toml`;
+the rest of the package stays names only), and proves them over the same generic interface
+`heap.heapIface h R E`:
+
+- `up`/`down` get their own specs (`Spec/container/heap/{up,down}.lean`): `up(h, j)` for `j` in
+  range, `down(h, i0, n)` for `i0` in range and `n` the length (`down` returns a Boolean, left
+  unconstrained: `Fix` only needs that `up` is then called in range, which the permutation gives);
+  both end with the contents a permutation of the start. Their loop invariant is the index in
+  range and the contents a permutation of the start (`listSwap_perm`, `Proof/container/heap/Lemmas.lean`,
+  from Perennial's `Permutation_insert_swap`); `up`'s parent `(j-1)/2` in `[0, j]` is `word`'s
+  (`parent_range`), `down`'s child `2i+1` in range from the loop's own checks (`j1 >= n || j1 < 0`;
+  `j1+1` cannot overflow since `j1 < n`).
+- The specs of `Fix` and `Push` are unchanged; their proofs (and `up`'s, `down`'s) take
+  `[container.heap.Assumptions]` (the generated `FuncUnfold` facts), which the server's
+  `Assumptions` provides through `lease`'s import. `heapIface` gains a `Persistent` instance.
+- The heap order is still not tracked (only permutations): the lessor needs no more.
+
+Trust base: -2 axioms (`heap.Fix.wp_proof`, `heap.Push.wp_proof`).
+
 ## `verify.Assert` proved; the axiom survey of 2026-10-26 (2026-10-26 · reducing the axiom count)
 
 `verify.Assert` is translated with its body (`Code/.../client/pkg/v3/verify.toml`: `Assert`, and
