@@ -166,6 +166,15 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   naming a package not imported), so `processEvent` and `UpdateResourceVersion`, which build one,
   cannot be proved until the general fix.
 
+### Specs: the builtin `max` (2026-10-26, branch `kep-6404`)
+
+- **Missing.** No spec of the predeclared `max` (`functions go.max [t, t]`): each proof proves its
+  own: raft's `wp_max2_uint64` (`raft/v3/InvTracker.lean`), mvcc's `sw_wp_max_int64`
+  (`watchableStore__syncWatchers.lean`), the watch cache store's `wp_max_uint64` (`cacher/store/
+  DefsWCS.lean`).
+- **Proposed.** A spec of `max`/`min` on the integer types in Perennial's predeclared theory.
+- **Status.** Not started.
+
 ### Goose: a constraint interface's `comparable` term (2026-10-26, branch `kep-6404`)
 
 - **Missing.** `translate_types` accepts an interface that embeds `comparable`
