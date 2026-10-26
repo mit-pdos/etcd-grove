@@ -19,6 +19,12 @@ wc.RLocker())`), then load the store's latest snapshot.
   UTF-8 (the read-wait histogram's labels).
 * `isWC wc γ Ψ`: the store (`isWCS`, with the caller's fact `Ψ` of every state it publishes), the
   condition variable over the read lock, the configuration, and the lock's writer guard.
+* `wcGetOk wc parseRV curRV`: the configuration's fields a GET uses to find the version to wait
+  for (`WaitUntilFreshAndGet`): the versioner (an interface, from the cacher's `Config`), whose
+  `ParseResourceVersion` returns `parseRV s` (or an error if it is `none`), and `getCurrentRV` (a
+  function, from the cacher: the store's current revision, a quorum read of etcd), whose result `n`
+  without an error comes with `curRV n`, the caller's fact (that `n` is a revision etcd had reached
+  when it was called, for a linearizable read).
 -/
 module
 
@@ -97,6 +103,28 @@ def isWC (wc : Loc) (γ : WCSNames) (Ψ : SnapSt → IProp GF) : IProp GF :=
 instance isWC_persistent (wc : Loc) (γ : WCSNames) (Ψ : SnapSt → IProp GF) :
     Persistent (isWC (GF := GF) wc γ Ψ) := by
   unfold isWC; infer_instance
+
+/-- **The configuration's fields a GET uses to find its version** (persistent; see the file
+header). -/
+def wcGetOk (wc : Loc) (parseRV : GoString → Option w64) (curRV : w64 → IProp GF) : IProp GF :=
+  iprop(∃ (cfg : Loc) (vi : GoInterfaceOk) (f : GoFunc),
+    structFieldRef watchCache go!"config" wc ↦□ cfg ∗
+    structFieldRef ImmutableWatchCacheConfig go!"versioner" cfg ↦□ GoInterface.ok vi ∗
+    structFieldRef ImmutableWatchCacheConfig go!"getCurrentRV" cfg ↦□ f ∗
+    □ (∀ (s : GoString) (Φ : val → IProp GF),
+      ▷ (∀ (n : w64) (err : GoInterface),
+          ⌜match parseRV s with
+            | some m => err = GoInterface.nil ∧ n = m
+            | none => err ≠ GoInterface.nil⌝ -∗ Φ (PairV #n #err)) -∗
+      WP (App (Val #(methods vi.ty go!"ParseResourceVersion" vi.v)) (Val #s)) {{ Φ }}) ∗
+    □ (∀ (ctx : GoInterface) (Φ : val → IProp GF),
+      ▷ (∀ (n : w64) (err : GoInterface), (⌜err = GoInterface.nil⌝ -∗ curRV n) -∗
+          Φ (PairV #n #err)) -∗
+      WP (App (Val #f) (Val #ctx)) {{ Φ }}))
+
+instance wcGetOk_persistent (wc : Loc) (parseRV : GoString → Option w64) (curRV : w64 → IProp GF) :
+    Persistent (wcGetOk (GF := GF) wc parseRV curRV) := by
+  unfold wcGetOk; infer_instance
 
 end defs
 
