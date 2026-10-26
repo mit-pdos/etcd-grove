@@ -1,7 +1,7 @@
-# Names only, types axiomatized: the watch cache's store names its indexers (`Indexers`,
-# `IndexFunc`, `Indexer`; project k8s-apiserver, notes/kep-6404-plan.md). Not `translate_types`:
-# it takes the constraint interface `Object` (`interface { GetName() string; GetNamespace() string;
-# comparable }`), whose `comparable` term the Lean side has no name for (`go.comparable`,
-# notes/perennial-changes.md).
-translate = ["!*"]
+# Names only, types axiomatized but the indexers' (`IndexFunc`, `Indexers`), which the watch
+# cache's store ranges over (`indexer.updateElem`; project k8s-apiserver, notes/kep-6404-plan.md).
+# Not `translate_types`: it takes the constraint interface `Object` (`interface { GetName() string;
+# GetNamespace() string; comparable }`), whose `comparable` term the Lean side has no name for
+# (`go.comparable`, notes/perennial-changes.md).
+translate = ["!*", "IndexFunc", "Indexers"]
 imports = ["!*"]

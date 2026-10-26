@@ -862,11 +862,7 @@ axiom InformerNameAndResource.underlying [FfiSyntax] [GoGlobalContext] : go.GoTy
 
 axiom Indexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom IndexFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom index.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Indexers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom Indices.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -2240,18 +2236,15 @@ attribute [instance] Indexer.TypeAssumptions.type_repr
   Indexer.TypeAssumptions.underlying
   Indexer.TypeAssumptions.isUnderlying
 
-axiom IndexFunc : Type
-axiom IndexFunc.zero_val : ZeroVal IndexFunc
-attribute [instance] IndexFunc.zero_val
+abbrev IndexFunc [FfiSyntax] : Type := GoFunc
+
+@[reducible] noncomputable def IndexFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.SliceType go.string), go.error]))
 
 class IndexFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying IndexFunc.underlying IndexFunc
   underlying : go.UnderlyingDirectedEq IndexFunc.ty IndexFunc.underlying
-  isUnderlying : go.IsUnderlying IndexFunc.underlying IndexFunc.underlying
 
-attribute [instance] IndexFunc.TypeAssumptions.type_repr
-  IndexFunc.TypeAssumptions.underlying
-  IndexFunc.TypeAssumptions.isUnderlying
+attribute [instance] IndexFunc.TypeAssumptions.underlying
 
 axiom index : Type
 axiom index.zero_val : ZeroVal index
@@ -2266,18 +2259,15 @@ attribute [instance] index.TypeAssumptions.type_repr
   index.TypeAssumptions.underlying
   index.TypeAssumptions.isUnderlying
 
-axiom Indexers : Type
-axiom Indexers.zero_val : ZeroVal Indexers
-attribute [instance] Indexers.zero_val
+abbrev Indexers [FfiSyntax] : Type := GoMap
+
+@[reducible] noncomputable def Indexers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.MapType go.string IndexFunc.ty)
 
 class Indexers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Indexers.underlying Indexers
   underlying : go.UnderlyingDirectedEq Indexers.ty Indexers.underlying
-  isUnderlying : go.IsUnderlying Indexers.underlying Indexers.underlying
 
-attribute [instance] Indexers.TypeAssumptions.type_repr
-  Indexers.TypeAssumptions.underlying
-  Indexers.TypeAssumptions.isUnderlying
+attribute [instance] Indexers.TypeAssumptions.underlying
 
 axiom Indices : Type
 axiom Indices.zero_val : ZeroVal Indices

@@ -890,25 +890,6 @@ noncomputable instance Indexer_into_val_typed :
 end def_
 end Indexer
 
-namespace IndexFunc
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
-
-noncomputable instance IndexFunc_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.IndexFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance IndexFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.IndexFunc k8s_io.client_go.tools.cache.IndexFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end IndexFunc
-
 namespace index
 section def_
 
@@ -927,25 +908,6 @@ noncomputable instance index_into_val_typed :
 
 end def_
 end index
-
-namespace Indexers
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
-
-noncomputable instance Indexers_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.Indexers :=
-  sorry -- axiomatized type
-
-noncomputable instance Indexers_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.Indexers k8s_io.client_go.tools.cache.Indexers.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Indexers
 
 namespace Indices
 section def_
