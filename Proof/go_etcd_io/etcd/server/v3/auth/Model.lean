@@ -342,6 +342,8 @@ structure AuthNames where
   pub : GName
   /-- the ghost variable of the field `enabled`'s value (the auth plan's E3h: its freshness) -/
   fen : GName
+  /-- the ghost variable of the permission cache's state (the auth plan's E3h: its freshness) -/
+  fca : GName
 
 /-- **A contract's mode** (see the file header). -/
 inductive AuthMode where
@@ -440,7 +442,8 @@ theorem authPubAuth_lb_le (γa : AuthNames) (p i : Nat) :
 latest state's ghost variable that the store's revision invariant takes (`revCur`), and the
 published index's authority at `0` (the invariant's freshness, `revFresh`). -/
 def authStoreInit (γa : AuthNames) (st : AuthState) : IProp GF :=
-  iprop(authCurHalf γa st ∗ authPubAuth γa 0 ∗ ∃ b : Bool, ghostVar γa.fen 1 b)
+  iprop(authCurHalf γa st ∗ authPubAuth γa 0 ∗ (∃ b : Bool, ghostVar γa.fen 1 b) ∗
+    ∃ v : Loc × Nat, ghostVar γa.fca 1 v)
 
 theorem authStateAt_permKeysOk (γa : AuthNames) (i : Nat) (st : AuthState) :
     authStateAt (GF := GF) γa i st ⊢ ⌜permKeysOk st⌝ := by
@@ -481,16 +484,17 @@ theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
     (hk : ∀ st ∈ hs, permKeysOk st) :
     ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ authHist (GF := GF) γa hs ∗
       authCurHalf γa cur ∗
-      authCurHalf γa cur ∗ authPubAuth γa 0 ∗ ghostVar γa.fen 1 false := by
+      authCurHalf γa cur ∗ authPubAuth γa 0 ∗ ghostVar γa.fen 1 false ∗ ghostVar γa.fca 1 ((null : Loc), 0) := by
   unfold authHist authCurHalf authPubAuth
   iintro
   imod (mono_list_own_alloc (GF := GF) hs) with ⟨%γ, H, -⟩
   imod (ghostVar_alloc (GF := GF) cur) with ⟨%γc, Hc⟩
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γp, Hp, -⟩
   imod (ghostVar_alloc (GF := GF) false) with ⟨%γe, He⟩
+  imod (ghostVar_alloc (GF := GF) ((null : Loc), 0)) with ⟨%γk, Hk⟩
   imodintro
-  iexists ⟨γ, γc, γt, γf, γp, γe⟩
-  iframe H Hp He
+  iexists ⟨γ, γc, γt, γf, γp, γe, γk⟩
+  iframe H Hp He Hk
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
   isplitr

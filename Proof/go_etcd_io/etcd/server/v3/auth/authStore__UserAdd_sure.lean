@@ -247,17 +247,17 @@ theorem auth.authStore.UserAdd.wp_sure
       imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
-      iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState))
-        $$ [HL Hca]
+      iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState) (hs ++ [bump (putUser st0 urN.name urN.roles)]))
+        $$ [HL Hca Hown]
       · iframe Hpkg Hinv Hca
         isplitr
         · iapply HRd
         isplitl [HL]
         · iExactEq HL; rfl
         iframe Hsnap
-        ipureintro; exact permsFit_rev _ rev Hfit'
+        iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
       inext
-      iintro ⟨HL, Hca⟩
+      iintro ⟨HL, Hca, Hown⟩
       ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
       (try wp_auto)
       wp_apply h_String _ _ as %f1 -
@@ -336,17 +336,17 @@ theorem auth.authStore.UserAdd.wp_sure
     imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
-    iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState))
-      $$ [HL Hca]
+    iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState) (hs ++ [bump (putUser st0 urN.name urN.roles)]))
+      $$ [HL Hca Hown]
     · iframe Hpkg Hinv Hca
       isplitr
       · iapply HRd
       isplitl [HL]
       · iExactEq HL; rfl
       iframe Hsnap
-      ipureintro; exact permsFit_rev _ rev Hfit'
+      iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
     inext
-    iintro ⟨HL, Hca⟩
+    iintro ⟨HL, Hca, Hown⟩
     ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
     (try wp_auto)
     wp_apply h_String _ _ as %f1 -

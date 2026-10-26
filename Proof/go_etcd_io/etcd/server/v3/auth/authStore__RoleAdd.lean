@@ -198,7 +198,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     ipureintro; exact Hl1
   (try wp_auto)
   by_cases hc : b0 = true ∧ sc0 = st0
-  · ihave Hca := cacheAt_congr st sc0 ({ putRole st0 rrN.name rrN.toRole with revision := rev })
+  · ihave Hca := cacheAt_congr st M sc0 ({ putRole st0 rrN.name rrN.toRole with revision := rev })
       (by rw [hc.2]; rfl) (fun u => by
         rw [hc.2]; exact (userPerms_putRole_empty st0 name Hnone u).symm) $$ Hca
     ihave ⟨Hown, #Hsn'⟩ := authSnap_of_own_last M _ _ Hl1 $$ Hown

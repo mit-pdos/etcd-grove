@@ -373,15 +373,6 @@ def authInfoAt (a : Loc) (dq : DFrac) (ai : Option AuthInfo) : IProp GF :=
   | none => iprop(⌜a = null⌝)
   | some info => iprop(a ↦{dq} info)
 
-/-- What `rangePermCacheMu` guards at `q` in the mode `M`: half of the field `rangePermCache`
-(the other half is the admin side's, `cacheHalf`: only the apply thread replaces the map,
-`refreshRangePermCache`, under the lock, with both halves; the auth plan's E2r, 2026-10-26), the map
-it points to, read-only (`refreshRangePermCache` builds a new map and never writes it again), and
-its model `cacheOk`. -/
-def cacheP (st : Loc) (M : AuthMode) (q : Qp) : IProp GF :=
-  iprop(∃ (mp : GoMap) (Mp : GMap GoString Loc), aF go!"rangePermCache" st ↦{DFrac.own q.half} mp ∗
-    mp ↦${DFrac.discard} Mp ∗ cacheOk M Mp)
-
 /-- **A cache map of the state `sta`** (persistent): its keys `sta`'s users, each entry the
 user's permissions at `sta` (`cacheEntryIs`). -/
 def cacheOf (sta : AuthState) (Mp : GMap GoString Loc) : IProp GF :=
@@ -393,20 +384,141 @@ instance cacheOf_persistent (sta : AuthState) (Mp : GMap GoString Loc) :
     Persistent (cacheOf (GF := GF) sta Mp) := by
   unfold cacheOf; infer_instance
 
+/-- **A state's permissions by user** (the auth plan's E3h): for each user of the state, the
+permissions its roles grant (`userPerms`); what a permission cache of the state holds
+(`cacheOf_permView`), whatever the flag, the revision and the roles' other contents. -/
+def permView (s : AuthState) : GoString → Option (List Perm) :=
+  fun u => (s.users !! u).map (userPerms s)
+
+theorem cacheEntryIs_permView (s s' : AuthState) (h : permView s = permView s') (u : GoString)
+    (Lr Lw : List adt.Entry) : cacheEntryIs s u Lr Lw → cacheEntryIs s' u Lr Lw := by
+  have hu := congrFun h u
+  unfold permView at hu
+  rintro ⟨roles, hr, h1, h2⟩
+  rw [hr] at hu
+  cases hr' : s'.users !! u with
+  | none => rw [hr'] at hu; cases hu
+  | some roles' =>
+    rw [hr'] at hu
+    simp only [Option.map_some, Option.some.injEq] at hu
+    refine ⟨roles', hr', ?_, ?_⟩
+    · rw [← hu]; exact h1
+    · rw [← hu]; exact h2
+
+theorem cacheOf_permView (s s' : AuthState) (h : permView s = permView s') (Mp : GMap GoString Loc) :
+    cacheOf (GF := GF) s Mp ⊢ cacheOf s' Mp := by
+  unfold cacheOf
+  iintro ⟨%Hdom, #Hall⟩
+  isplitr
+  · ipureintro
+    intro u
+    rw [Hdom u]
+    have hu := congrFun h u
+    unfold permView at hu
+    cases h1 : s.users !! u <;> cases h2 : s'.users !! u <;> simp_all
+  iapply (BigSepM.bigSepM_mono (Φ := fun (u : GoString) (p : Loc) =>
+      iprop(∃ Lr Lw, permsAt p Lr Lw ∗ ⌜cacheEntryIs s u Lr Lw⌝))) ?_ $$ Hall
+  intro u p _
+  iintro ⟨%Lr, %Lw, Hp, %He⟩
+  iexists Lr, Lw
+  iframe Hp
+  ipureintro; exact cacheEntryIs_permView s s' h u Lr Lw He
+
+/-- **A share `q` of the cache's ghost variable at the map `mp` of the state at the index `j`**
+(the auth plan's E3h): in `on γa`, `ghostVar γa.fca q (mp, j)`; otherwise nothing. The guard holds
+a half (`caGM`, with the map's model at that state), the admin side a quarter (`caA`), the store's
+freshness a quarter (`revFresh`: the state at `j` has the permissions of a state no older than the
+published index). -/
+def caG (M : AuthMode) (q : Qp) (v : GoMap × Nat) : IProp GF :=
+  match M with
+  | .on γa => ghostVar γa.fca q v
+  | _ => iprop(True)
+
+instance caG_timeless (M : AuthMode) (q : Qp) (v : GoMap × Nat) : Timeless (caG (GF := GF) M q v) := by
+  unfold caG; cases M <;> infer_instance
+
+/-- **The guard's share of the cache's ghost variable for the map `mp` holding `Mp`**: in `on γa`,
+the share at `(mp, j)`, the map the cache of the state recorded at `j`; otherwise nothing. -/
+def caGM (M : AuthMode) (q : Qp) (mp : GoMap) (Mp : GMap GoString Loc) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ (j : Nat) (sj : AuthState), ghostVar γa.fca q (mp, j) ∗ authStateAt γa j sj ∗
+      cacheOf sj Mp)
+  | _ => iprop(True)
+
+theorem caGM_split (M : AuthMode) (q1 q2 : Qp) (mp : GoMap) (Mp : GMap GoString Loc) :
+    caGM (GF := GF) M (q1 + q2) mp Mp ⊣⊢ caGM M q1 mp Mp ∗ caGM M q2 mp Mp := by
+  cases M with
+  | on γa =>
+    simp only [caGM]
+    constructor
+    · iintro ⟨%j, %sj, H, #Hs, #Hc⟩
+      icases ((ghostVar_fractional γa.fca (mp, j)).fractional q1 q2).1 $$ H with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists j, sj; iframe H1 Hs Hc
+      · iexists j, sj; iframe H2 Hs Hc
+    · iintro ⟨⟨%j, %sj, H1, #Hs, #Hc⟩, ⟨%j', %sj', H2, -, -⟩⟩
+      icombine H1 H2 gives %Heq
+      obtain ⟨-, Heq⟩ := Heq
+      cases Heq
+      iexists j, sj
+      iframe Hs Hc
+      iapply ((ghostVar_fractional γa.fca (mp, j)).fractional q1 q2).2 $$ [$H1 $H2]
+  | off =>
+    simp only [caGM]
+    constructor
+    · iintro -; isplitl []; itrivial; itrivial
+    · iintro -; itrivial
+  | any =>
+    simp only [caGM]
+    constructor
+    · iintro -; isplitl []; itrivial; itrivial
+    · iintro -; itrivial
+
+/-- **The admin side's quarter of the cache's ghost variable for the map `mp` of the state `sc`**:
+in `on γa`, the quarter at `(mp, j)`, the state at `j` with `sc`'s permissions; otherwise
+nothing. -/
+def caA (M : AuthMode) (mp : GoMap) (sc : AuthState) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ (j : Nat) (sj : AuthState), ghostVar γa.fca (1 : Qp).half.half (mp, j) ∗
+      authStateAt γa j sj ∗ ⌜permView sj = permView sc⌝)
+  | _ => iprop(True)
+
+/-- `caA` holds for any state with the same permissions. -/
+theorem caA_congr (M : AuthMode) (mp : GoMap) (sa sb : AuthState) (h : permView sa = permView sb) :
+    caA (GF := GF) M mp sa ⊢ caA M mp sb := by
+  cases M with
+  | on γa =>
+    simp only [caA]
+    iintro ⟨%j, %sj, H, #Hs, %Hp⟩
+    iexists j, sj; iframe H Hs; ipureintro; rw [Hp, h]
+  | off => simp only [caA]; iintro -; itrivial
+  | any => simp only [caA]; iintro -; itrivial
+
+/-- What `rangePermCacheMu` guards at `q` in the mode `M`: half of the field `rangePermCache`
+(the other half is the admin side's, `cacheHalf`: only the apply thread replaces the map,
+`refreshRangePermCache`, under the lock, with both halves; the auth plan's E2r, 2026-10-26), the map
+it points to, read-only (`refreshRangePermCache` builds a new map and never writes it again), its
+model `cacheOk`, and (E3h) half of the cache's ghost variable at the map (`caGM`). -/
+def cacheP (st : Loc) (M : AuthMode) (q : Qp) : IProp GF :=
+  iprop(∃ (mp : GoMap) (Mp : GMap GoString Loc), aF go!"rangePermCache" st ↦{DFrac.own q.half} mp ∗
+    mp ↦${DFrac.discard} Mp ∗ cacheOk M Mp ∗ caGM M q.half mp Mp)
+
 /-- **The admin side's half of the cache at the state `sta`** (the auth plan's E2r): half of the
 field `rangePermCache`, the map it points to (read-only) and the map's model, `sta`'s cache
-(`cacheOf`); what `refreshRangePermCache` gives the apply thread back. -/
-def cacheAt (st : Loc) (sta : AuthState) : IProp GF :=
+(`cacheOf`); what `refreshRangePermCache` gives the apply thread back; with (E3h) a quarter of the
+cache's ghost variable at the map (`caA`). -/
+def cacheAt (st : Loc) (M : AuthMode) (sta : AuthState) : IProp GF :=
   iprop(∃ (mp : GoMap) (Mp : GMap GoString Loc),
-    aF go!"rangePermCache" st ↦{DFrac.own (1 : Qp).half} mp ∗ mp ↦${DFrac.discard} Mp ∗ cacheOf sta Mp)
+    aF go!"rangePermCache" st ↦{DFrac.own (1 : Qp).half} mp ∗ mp ↦${DFrac.discard} Mp ∗ cacheOf sta Mp ∗
+    caA M mp sta)
 
 /-- **The admin side's half of the cache** in the mode `M` (the auth plan's E2r; in `authWR`): at
 some state of the mode (`authSnap`). -/
 def cacheHalf (st : Loc) (M : AuthMode) : IProp GF :=
-  iprop(∃ sta : AuthState, cacheAt st sta ∗ authSnap M sta)
+  iprop(∃ sta : AuthState, cacheAt st M sta ∗ authSnap M sta)
 
 theorem cacheHalf_of_at (st : Loc) (M : AuthMode) (sta : AuthState) :
-    cacheAt (GF := GF) st sta ⊢ authSnap M sta -∗ cacheHalf st M := by
+    cacheAt (GF := GF) st M sta ⊢ authSnap M sta -∗ cacheHalf st M := by
   iintro H #Hs
   iunfold cacheHalf
   iexists sta
@@ -651,16 +763,20 @@ instance revCur_timeless (M : AuthMode) (r : w64) : Timeless (revCur (GF := GF) 
 /-- **The store's freshness** in the mode `M` at the atomic's value `r` (the auth plan's E3h,
 2026-10-27; `notes/decisions.md`, "E3h of the auth plan"): in `on γa`, the published index `p`'s
 authority (`authPubAuth`; a reader's lower bound `authPubLb γa i` is at most `p`), `p` an index of
-the history, `r` the revision of a state recorded at an index at least `p`, and a quarter of the
-field `enabled`'s ghost variable (`enG`) at the flag of such a state (so a reader with the lower
-bound `i` reads a revision and, under the lock, a flag no older than `i`'s); in the other modes
-nothing. -/
+the history, `r` the revision of a state recorded at an index at least `p`, a quarter of the field
+`enabled`'s ghost variable (`enG`) at the flag of such a state, and a quarter of the cache's ghost
+variable (`caG`) at a map of a state with the permissions of such a state (`permView`) (so a reader with the lower
+bound `i` reads a revision and, under the locks, a flag and a cache no older than `i`'s); in the
+other modes nothing. -/
 def revFresh (M : AuthMode) (r : w64) : IProp GF :=
   match M with
   | .on γa => iprop(∃ p : Nat, authPubAuth γa p ∗ (∃ sp : AuthState, authStateAt γa p sp) ∗
       (∃ (j : Nat) (s : AuthState), authStateAt γa j s ∗ ⌜p ≤ j ∧ uint.nat r = s.revision⌝) ∗
-      ∃ b : Bool, ghostVar γa.fen (1 : Qp).half.half b ∗
-        ∃ (j : Nat) (s : AuthState), authStateAt γa j s ∗ ⌜p ≤ j ∧ b = s.enabled⌝)
+      (∃ b : Bool, ghostVar γa.fen (1 : Qp).half.half b ∗
+        ∃ (j : Nat) (s : AuthState), authStateAt γa j s ∗ ⌜p ≤ j ∧ b = s.enabled⌝) ∗
+      ∃ v : GoMap × Nat, ghostVar γa.fca (1 : Qp).half.half v ∗
+        ∃ (s : AuthState) (j' : Nat) (s' : AuthState), authStateAt γa v.2 s ∗ authStateAt γa j' s' ∗
+          ⌜p ≤ j' ∧ permView s = permView s'⌝)
   | _ => iprop(True)
 
 instance revFresh_timeless (M : AuthMode) (r : w64) : Timeless (revFresh (GF := GF) M r) := by
@@ -1168,7 +1284,7 @@ theorem authOwnF_revFresh (M : AuthMode) (hs : List AuthState) (s : AuthState) (
   | on γa =>
     have hl := hl γa rfl
     simp only [authOwnF, revFresh]
-    iintro ⟨Hh, Hc⟩ ⟨%p, Hp, ⟨%sp, #Hsp⟩, -, Hen⟩
+    iintro ⟨Hh, Hc⟩ ⟨%p, Hp, ⟨%sp, #Hsp⟩, -, Hen, Hca⟩
     ihave ⟨Hh, %Hlk⟩ := authHist_lookup_keep γa hs p sp $$ [Hh]
     · iframe Hh Hsp
     have hi : hs[hs.length - 1]? = some s := by
@@ -1184,7 +1300,7 @@ theorem authOwnF_revFresh (M : AuthMode) (hs : List AuthState) (s : AuthState) (
     iframe Hp
     isplitl []
     · iexists sp; iexact Hsp
-    iframe Hen
+    iframe Hen Hca
     iexists hs.length - 1, s
     iframe Hst
     ipureintro
@@ -1265,7 +1381,7 @@ theorem enG_update (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState
     iunfold revInv at Hi
     icases Hi with ⟨%r, Hr, Hv, Hc, >Hf⟩
     iunfold revFresh at Hf
-    icases Hf with ⟨%p, Hp, #Hsp, Hrv, %b0, Hq0, Hj⟩
+    icases Hf with ⟨%p, Hp, #Hsp, Hrv, ⟨%b0, Hq0, Hj⟩, Hcf⟩
     iunfold enG at Hg
     iunfold enG at Hq
     iunfold enG
@@ -1283,14 +1399,14 @@ theorem enG_update (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState
     imod (ghostVar_update_2 b' γa.fen b _ b _ hq) $$ Hg Hq2 with ⟨Hg, Hq2⟩
     icases ((ghostVar_fractional γa.fen b').fractional (1 : Qp).half.half
       (1 : Qp).half.half).1 $$ Hq2 with ⟨Hq, Hq0⟩
-    imod Hclose $$ [Hr Hv Hc Hp Hrv Hq0] with -
+    imod Hclose $$ [Hr Hv Hc Hp Hrv Hq0 Hcf] with -
     · inext
       iunfold revInv
       iexists r
       iframe Hr Hv Hc
       iunfold revFresh
       iexists p
-      iframe Hp Hrv
+      iframe Hp Hrv Hcf
       isplitl []
       · iexists sp; iexact Hsp
       iexists b'
@@ -1310,6 +1426,87 @@ theorem enG_update (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState
   | any =>
     simp only [enG]
     iintro - Hown - -
+    imodintro
+    iframe Hown
+    isplitl []; itrivial; itrivial
+
+/-- **The cache's ghost variable set to a new map of the latest state** (the auth plan's E3h): the
+writer holding `rangePermCacheMu` (the guard's half, at the old map) and the admin side's quarter,
+with the whole authority at `hs` whose latest state is `sta`, sets the ghost variable to the new map
+`mp'` of `sta` at its index (the store's freshness's quarter too). -/
+theorem caG_update (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState)
+    (mp mp' : GoMap) (Mp Mp' : GMap GoString Loc) (sc sta : AuthState)
+    (hl : ∀ γa, M = .on γa → hs.getLast? = some sta) :
+    authInv (GF := GF) st R M ⊢ authOwnF M hs -∗ caGM M (1 : Qp).half mp Mp -∗ caA M mp sc -∗
+      cacheOf sta Mp' ={⊤}=∗
+      authOwnF M hs ∗ caGM M (1 : Qp).half mp' Mp' ∗ caA M mp' sta := by
+  cases M with
+  | on γa =>
+    have hl := hl γa rfl
+    iintro #Hinv Hown Hg Hq #Hof
+    icases (authOwnF_split (.on γa) hs).1 $$ Hown with ⟨Hown, Hsh⟩
+    iunfold authInv at Hinv
+    icases Hinv with ⟨-, #Hrev, -⟩
+    iinv Hrev with Hi Hclose
+    iunfold revInv at Hi
+    icases Hi with ⟨%r, Hr, Hv, Hc, >Hf⟩
+    iunfold revFresh at Hf
+    icases Hf with ⟨%p, Hp, #Hsp, Hrv, Hen, %v0, Hq0, Hj⟩
+    iunfold caGM at Hg
+    icases Hg with ⟨%j1, %s1, Hg, -, -⟩
+    iunfold caA at Hq
+    icases Hq with ⟨%j2, %s2, Hq, -, -⟩
+    icombine Hg Hq0 gives %H1
+    obtain ⟨-, H1⟩ := H1
+    subst H1
+    icombine Hq Hq0 gives %H2
+    obtain ⟨-, H2⟩ := H2
+    cases H2
+    icases Hsp with ⟨%sp, #Hsp⟩
+    ihave ⟨Hown, %stl, %Hl, #Hst⟩ := authOwn_lastAt γa hs p sp $$ [Hown]
+    · iframe Hown Hsp
+    have hstl : stl = sta := by rw [hl] at Hl; exact (Option.some.inj Hl.1).symm
+    subst hstl
+    have hq : (1 : Qp).half + ((1 : Qp).half.half + (1 : Qp).half.half) = 1 := by
+      rw [Qp.half_add_half, Qp.half_add_half]
+    ihave Hq2 := ((ghostVar_fractional γa.fca (mp, j1)).fractional (1 : Qp).half.half
+      (1 : Qp).half.half).2 $$ [Hq Hq0]
+    · iframe Hq Hq0
+    imod (ghostVar_update_2 (mp', hs.length - 1) γa.fca (mp, j1) _ (mp, j1) _ hq) $$ Hg Hq2
+      with ⟨Hg, Hq2⟩
+    icases ((ghostVar_fractional γa.fca (mp', hs.length - 1)).fractional (1 : Qp).half.half
+      (1 : Qp).half.half).1 $$ Hq2 with ⟨Hq, Hq0⟩
+    imod Hclose $$ [Hr Hv Hc Hp Hrv Hen Hq0] with -
+    · inext
+      iunfold revInv
+      iexists r
+      iframe Hr Hv Hc
+      iunfold revFresh
+      iexists p
+      iframe Hp Hrv Hen
+      isplitl []
+      · iexists sp; iexact Hsp
+      iexists (mp', hs.length - 1)
+      iframe Hq0
+      iexists stl, hs.length - 1, stl
+      iframe Hst
+      ipureintro
+      exact ⟨Hl.2, rfl⟩
+    imodintro
+    isplitl [Hown Hsh]
+    · iapply (authOwnF_split (.on γa) hs).2 $$ [$Hown $Hsh]
+    isplitl [Hg]
+    · iunfold caGM; iexists hs.length - 1, stl; iframe Hg Hst Hof
+    · iunfold caA; iexists hs.length - 1, stl; iframe Hq Hst; ipureintro; rfl
+  | off =>
+    simp only [caGM, caA]
+    iintro - Hown - - -
+    imodintro
+    iframe Hown
+    isplitl []; itrivial; itrivial
+  | any =>
+    simp only [caGM, caA]
+    iintro - Hown - - -
     imodintro
     iframe Hown
     isplitl []; itrivial; itrivial

@@ -142,7 +142,7 @@ the cache's half at `sc` (a recorded state). -/
 def authWRx (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) : IProp GF :=
   iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
-    T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc)
+    T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc)
 
 theorem authWR_of_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) : authWRx (GF := GF) st M P f T b sc ⊢ authWR st M P f T := by
@@ -197,24 +197,21 @@ theorem adminOutP_adminOut (M : AuthMode) (hs : List AuthState) (R : StepRel)
 
 set_option synthInstance.maxSize 512 in
 /-- The cache's map of a state is that of another with the same users and permissions. -/
-theorem cacheAt_congr (st : Loc) (sa sb : AuthState) (hu : sa.users = sb.users)
+theorem cacheAt_congr (st : Loc) (M : AuthMode) (sa sb : AuthState) (hu : sa.users = sb.users)
     (hp : ∀ u : User, userPerms sa u = userPerms sb u) :
-    cacheAt (GF := GF) st sa ⊢ cacheAt st sb := by
-  unfold cacheAt cacheOf
-  iintro ⟨%mp, %Mp, Hf, #HM, %Hdom, #Hall⟩
+    cacheAt (GF := GF) st M sa ⊢ cacheAt st M sb := by
+  have hv : permView sa = permView sb := by
+    funext u; unfold permView; rw [hu]
+    cases sb.users !! u with
+    | none => rfl
+    | some r => simp only [Option.map_some, hp r]
+  unfold cacheAt
+  iintro ⟨%mp, %Mp, Hf, #HM, #Hof, Hq⟩
   iexists mp, Mp
   iframe Hf HM
-  isplitr
-  · ipureintro; intro u; rw [← hu]; exact Hdom u
-  iapply (BigSepM.bigSepM_mono (Φ := fun (u : GoString) (p : Loc) =>
-      iprop(∃ Lr Lw, permsAt p Lr Lw ∗ ⌜cacheEntryIs sa u Lr Lw⌝))) ?_ $$ Hall
-  intro u p _
-  iintro ⟨%Lr, %Lw, Hp, %He⟩
-  iexists Lr, Lw
-  iframe Hp
-  ipureintro
-  obtain ⟨roles, hr, h1, h2⟩ := He
-  exact ⟨roles, hu ▸ hr, hp roles ▸ h1, hp roles ▸ h2⟩
+  isplitl []
+  · iapply (cacheOf_permView sa sb hv Mp) $$ Hof
+  iapply (caA_congr M mp sa sb hv) $$ Hq
 
 end res
 

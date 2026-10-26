@@ -340,8 +340,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post)
-      ({ putUser st0 name roles' with revision := rev } : AuthState))
-    $$ [HL Hca]
+      ({ putUser st0 name roles' with revision := rev } : AuthState) (hs ++ [bump (putUser st0 name roles')]))
+    $$ [HL Hca Hown]
   · iframe Hpkg Hinv
     isplitl [Hca]
     · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
@@ -351,9 +351,9 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     · iExactEq HL
       all_goals rfl
     iframe Hsnap
-    ipureintro; exact permsFit_rev _ rev Hfit'
+    iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
   inext
-  iintro ⟨HL, Hca⟩
+  iintro ⟨HL, Hca, Hown⟩
   (try wp_auto)
   wp_apply h_String _ _ as %f1 -
   (try wp_auto)

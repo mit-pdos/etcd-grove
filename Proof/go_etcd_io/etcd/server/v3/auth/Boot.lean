@@ -64,7 +64,7 @@ theorem authBoot_alloc (γt γf : GName) :
   iintro
   imod (authHist_alloc (GF := GF) γt γf [bootState] bootState
     (by intro st h; rw [List.mem_singleton] at h; subst h; exact bootState_permKeysOk))
-    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He⟩
+    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, Hp, He, Hk⟩
   imodintro
   iexists γa
   isplitr
@@ -75,7 +75,9 @@ theorem authBoot_alloc (γt γf : GName) :
     iexists bootState; iframe Hc1; ipureintro; rfl
   icases authOwnF_lockI_split (.on γa) [bootState] bootState rfl $$ HF with ⟨Hown, HI⟩
   iframe Hown HI
-  iunfold authStoreInit; iframe Hc2 Hp; iexists false; iframe He
+  iunfold authStoreInit; iframe Hc2 Hp; isplitl [He]
+  · iexists false; iframe He
+  iexists ((null : Loc), 0); iframe Hk
 
 /-- **A right to issue a token, minted** from the rights' authority (`tokenSimple_new` gives it,
 empty, with the provider): one for any token not minted before. The server's apply thread, which

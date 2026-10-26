@@ -256,8 +256,8 @@ theorem auth.authStore.AuthEnable.wp_tie
   ihave #Hev2 := enabledVerdict_of_snap M _ $$ Hsnap
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
-  iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with enabled := true } : AuthState))
-    $$ [HL Hca]
+  iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with enabled := true } : AuthState) (hs ++ [{ st0 with enabled := true }]))
+    $$ [HL Hca Hown]
   · iframe Hpkg Hinv
     isplitl [Hca]
     · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
@@ -267,9 +267,9 @@ theorem auth.authStore.AuthEnable.wp_tie
     · iExactEq HL
       all_goals rfl
     iframe Hsnap
-    ipureintro; exact Hfit
+    iframe Hown; ipureintro; exact ⟨Hfit, fun _ h => by subst h; exact Hl1⟩
   inext
-  iintro ⟨HL, Hca⟩
+  iintro ⟨HL, Hca, Hown⟩
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
   iapply HRR $$ %({ st0 with enabled := true } : AuthState) HL

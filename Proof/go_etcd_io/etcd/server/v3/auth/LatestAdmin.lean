@@ -51,7 +51,7 @@ halves' recorded verdicts (`enabledVerdict`, `authSnap`, persistent), so that it
 authority with the tie (`authOwnT`, `TieRes.lean`) and the apply thread can lend it and take it
 back (`authOwnT_lend`). -/
 def latestRes (st : Loc) (M : AuthMode) (hs : List AuthState) : IProp GF :=
-  iprop(authOwn M hs ∗ ∃ (b : Bool) (sc : AuthState), flagAt st M b ∗ cacheAt st sc ∗
+  iprop(authOwn M hs ∗ ∃ (b : Bool) (sc : AuthState), flagAt st M b ∗ cacheAt st M sc ∗
     enabledVerdict M b ∗ authSnap M sc ∗ ⌜latestTie M hs b sc⌝)
 
 /-- **The latest state recorded** (persistent): in `on γa`, the last state of `hs` at its index;

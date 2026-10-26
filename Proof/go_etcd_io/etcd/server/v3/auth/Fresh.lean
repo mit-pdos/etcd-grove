@@ -116,7 +116,7 @@ theorem enG_fresh (st : Loc) (R : IProp GF) (M : AuthMode) (i : Nat) (q : Qp) (b
     iunfold revInv at Hi
     icases Hi with ⟨%r, Hr, Hv, Hc, >Hf⟩
     iunfold revFresh at Hf
-    icases Hf with ⟨%p, Hp, #Hsp, Hrv, %b0, Hq0, %j, %s, #Hs, %Hj⟩
+    icases Hf with ⟨%p, Hp, #Hsp, Hrv, ⟨%b0, Hq0, %j, %s, #Hs, %Hj⟩, Hcf⟩
     iunfold enG at Hg
     icombine Hg Hq0 gives %Hb0
     obtain ⟨-, Hb0⟩ := Hb0
@@ -125,14 +125,14 @@ theorem enG_fresh (st : Loc) (R : IProp GF) (M : AuthMode) (i : Nat) (q : Qp) (b
     ihave ⟨⟨Hp, -⟩, %Hle⟩ := ((and_intro (P := iprop(authPubAuth (GF := GF) γa p ∗ authPubLb γa i))
       .rfl (authPubAuth_lb_le γa p i)).trans persistent_and_sep_mp) $$ [Hp]
     · iframe Hp Hlb
-    imod Hclose $$ [Hr Hv Hc Hp Hrv Hq0] with -
+    imod Hclose $$ [Hr Hv Hc Hp Hrv Hq0 Hcf] with -
     · inext
       iunfold revInv
       iexists r
       iframe Hr Hv Hc
       iunfold revFresh
       iexists p
-      iframe Hp Hrv Hsp
+      iframe Hp Hrv Hsp Hcf
       iexists b
       iframe Hq0
       iexists j, s

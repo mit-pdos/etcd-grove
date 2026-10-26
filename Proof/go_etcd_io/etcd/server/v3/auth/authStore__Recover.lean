@@ -122,11 +122,11 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
-  iapply (h_refresh st R M ti Hs sta) $$ [Htok Hca]
-  · iframe Hpkg Hinv Hca Hrd Htok Hsnap
-    ipureintro; exact Hfit'
+  iapply (h_refresh st R M ti Hs sta (hs ++ [sta])) $$ [Htok Hca Hown]
+  · iframe Hpkg Hinv Hca Hrd Htok Hsnap Hown
+    ipureintro; exact ⟨Hfit', fun _ h => by subst h; exact Hlast⟩
   inext
-  iintro ⟨Htok, Hca⟩
+  iintro ⟨Htok, Hca, Hown⟩
   ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
