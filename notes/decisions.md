@@ -18183,6 +18183,8 @@ peer, and in a static cluster every member adds every other one as a peer before
 two a handler's `AddRemote` would add a remote (Go's behavior). The coverage invariant above does
 not hold through that window; S-j must state it differently (e.g. `RemoveAllPeers` keeping the
 recorded ids, and the window's remotes stopped by the re-add, or a premise).
+(2026-10-26, D22 J0: "the window's remotes stopped by the re-add" is false of Go: `AddPeer` never
+looks at `t.remotes`, only `Stop` removes a remote. Settled in "D22 J0", item 7.)
 *Rejected:* a premise that the handlers' `AddRemote` returns (it is the code's behavior and
 provable); letting the handlers add remotes (their URLs come from the request).
 
@@ -19376,3 +19378,77 @@ phase 1"). Two gaps the statements found, both closed with what is true of the c
 - `isRaftStatus`/`isSnapshotServer`/`isConsistentIndexer` of the new options are built from the
   server's method specs, as `NewServer` does (the old applier's options say nothing of `s`), so
   `wp_proof_snap` takes the `Leader`, `Term`, `ForceSnapshot` specs (unlinked: nothing else moves).
+
+## D22 J0: the design pass for the rest of the snapshot track (2026-10-26 · decided by the orchestrator while the user was away (J0))
+
+The seven gaps of `notes/snapshot-sj-plan.md` and three open questions, decided for the user's goal
+(the KV examples proved with snapshots on at etcd's defaults), choosing what is true of the Go code
+at the etcd pin and adds the least to the trust base. The plan's section "J0 decisions" has the
+exact shapes and the stage amendments; here, what was decided and why. Each item is decided by the
+orchestrator while the user was away (J0).
+
+- **R-loc** (gap 1): the receiver's "snapshot saved" fact is a per-receiver family in `RaftNames`,
+  `reSnapLoc : w64 → Option GName` (default `fun _ => none`), read through
+  `snapLocal γ id i` (`True`, or `ghostMapElem γd i □ ()`, which is rafthttp's `snapSaved γd i`).
+  Not a `NodeNames` field: between `Step` and `Ready` the pending snapshot lives in `ownRawNode`,
+  which sees only `RaftNames` and `id`. `ownRawNode` keeps `snapLocal` of its pending snapshot;
+  `raft.Step`'s spec is unchanged (its post already says how the pending snapshot moves);
+  `RawNode.Step`, `netP`, `RawNode.Ready`, `readySnapData` carry it. The members' directory maps are
+  allocated with raft's names (`examples/common/Alloc*`), `NewServer` initializes `snapDirInv` from
+  the given map. No axiom.
+- **R-tok** (gap 2): `MemoryStorage.{ApplySnapshot, CreateSnapshot, Compact}.spec` become logically
+  atomic in the token's ghost part (`memSnapTokG`; the persistent part `memSnapRO`); the old triples
+  are corollaries. The server keeps the token in an invariant with `prev ≤ ss`, a lower bound of a
+  new ceiling `γsc` (authority: raft's goroutine, at the committed log handed out before the current
+  `Ready`, which refutes `ApplySnapshot`'s out-of-date branch, whose error Go ignores) and the
+  authority of `γss` (the snapshot index, whose lower bounds give `Compact`'s `ci ≤ ss` even after
+  `CreateSnapshot`'s out-of-date return). No axiom.
+- **Gap 3**: `Rm j := snapTakenLb γt j ∨ appliedAtLeast γr (j + 1)` (supersedes S8d's W1 form:
+  `snapshot(toDisk)`'s `Release` removes files saved but never opened, below the applied index);
+  `storage.Release.spec` restated over any `Rm` given `□ ∀ j < i, Rm j` (weaker premise, true:
+  `ReleaseSnapDBs` removes only files below `i`). J4 translates and proves `EtcdServer.snapshot` and
+  `compactRaftLog` (−2 axioms; `snapshot`'s axiom is false once `.snap.db` files exist); callees all
+  specified but `verifyConsistentIndexIsLatest` (to translate, over `verify.Verify`'s spec) and
+  `storage.SaveSnap` (a clause of `bootOk`'s storage contract).
+- **Gap 4: a real Go issue**, `issues/etcd-applied-index-stale-after-snapshot.md` (reproduced by an
+  integration test at the pin): `applySnapshot` never updates `s.appliedIndex`, so the request limit
+  refuses every write through a member that installed a snapshot (default configuration) until
+  another member's write commits. The verified code stays as Go has it; `srvAppliedInv` becomes
+  "atomic ≤ ghost" (`applied_jump`, readers get a lower bound). Found with it: the write counter
+  (`srvWTAt γp ai`, one token and one time receipt per entry) cannot follow a jump; it becomes the
+  tokens taken, not the applied index (J5).
+- **Gap 5**: the loop's resources listed (the plan's table). Restated: `os.Rename.spec` (axiom)
+  gives back `pathOwn dst`, not `pathOwn src` (the program keeps its right to `dst`; `pathOwn src`
+  was dubious, the transport may create a file at that index again). The `lgMu` slots
+  (`RemoveAllPeers` gives back 4 per peer, 6 with `streamWriter.stop`'s spec strengthened, not 8:
+  `peer.stop` does not join the `Process` goroutines) and the auth store's `E.RD` leak one stock
+  item per snapshot in the model (not in Go): the general fix is a Perennial change (`RLock` paid
+  by a thread token; `notes/perennial-changes.md`), which gates J8b and L3; fallback, a named
+  premise bounding the snapshots per run, for the user to approve.
+- **Gap 6**: `applyRes`'s `entriesStep` becomes `kvReach` (entries, or an image then entries); the
+  write counter as above; `applyAll.spec`'s post gains the snapshot case, a statement change of the
+  closed `applyAll_model` (beside J8b's approved instances).
+- **Gap 7 / J-T / W8**: the transport's records split (peers' ids and the stopped flag in `γr`,
+  half with the apply thread; remotes owned by the lock, with a per-member budget and a no-remote
+  token `trNoRem` for `CutPeer`/`MendPeer`); `NewServer` no longer freezes. W8 is real (a handler's
+  `AddRemote` in the window between `RemoveAllPeers` and the `AddPeer` loop adds a permanent
+  remote); fixed by the protocol stating `X-PeerURLs` as the sender's directory URLs (untrusted
+  definitions only). `linkv3p_safe`'s statement survives (its `CutPeer` premise is internal, now the
+  token). D40's note was wrong ("the window's remotes stopped by the re-add": Go's `AddPeer` never
+  looks at the remotes), corrected there; so was the reachability claim of
+  `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md` (verdict kept: a test hook). J-T
+  takes from M5 what `applySnapshot` needs (`notes/membership-plan.md`, M5).
+- **`srvAuthRecoverOk`'s source**: `auth.NewAuthStore.spec` (axiom) restated, its post gaining the
+  `Recover` triple (`authRecoverOk`, today's `srvAuthRecoverOk` moved beside `authApplyOk`); true in
+  the axiom's mode (auth off; S8c's argument). The auth E stage is not close. No axiom added; the
+  named premise goes.
+- **`clusterImageOk`**: an axiom (+1, `membership.clusterImageOk_restModel`: the rest model's
+  membership buckets are a good image of its members), not a definition over schema's codec (that
+  would unseal the opaque member encodings and model JSON).
+- **The collection**: `etc/tcb-collections/snapshot.txt` exists; `specSnap`'s proof is not a root
+  until J8b links it, so nothing to add.
+
+Net trust base after the track, revised: −1 axiom (−2, +1), −1 `sorry`; restated axioms:
+`os.Rename`, `storage.Release`, `NewAuthStore`, `Transport.ActiveSince` (and `bootOk`'s storage
+source if it is an axiom). Order: J5 now precedes J4; J8b and L3 wait on the Perennial reader-slot
+change or the fallback premise.
