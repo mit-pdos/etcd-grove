@@ -638,6 +638,11 @@ PROJECTS = [
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
+            # the watch cache's store, with bodies (notes/kep-6404-plan.md)
+            "k8s.io/apiserver/pkg/storage/cacher/store",
+            "k8s.io/apiserver/pkg/storage/cacher/consistency",
+            "k8s.io/apiserver/pkg/storage/cacher/key",
+            "k8s.io/client-go/tools/cache",
             # types and names only (their .toml): what the two name
             "k8s.io/apimachinery/pkg/api/errors",
             "k8s.io/apimachinery/pkg/api/validate/content",
@@ -674,6 +679,7 @@ PROJECTS = [
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+               os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
                os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
                os.path.join("encoding", "base64"), "iter",
