@@ -15,5 +15,11 @@ authkv_LastIn: authkv_InRange
 authkv_CheckHistory: authkv_Writer authkv_Permitted
 authkv_checkKVs: authkv_Permitted
 authkv_checkTxnReads: authkv_checkKVs
+# the request contexts: the timeout context, and the bad principal's token appended (C3, grpc's
+# `metadata` a trust boundary)
+context_WithTimeoutBackground:
+context_ErrAny: @
+metadata_AppendToOutgoingContext:
+authkv_reqCtx: context_WithTimeoutBackground context_ErrAny metadata_AppendToOutgoingContext
 # `Main`: not proved yet (a `sorry`; Main.lean lists what its proof needs)
 authkv_Main:

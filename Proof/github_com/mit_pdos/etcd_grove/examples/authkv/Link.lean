@@ -19,6 +19,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.checkKVs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.checkTxnReads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.keyOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.refused
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.reqCtx
+public import Proof.context.WithTimeoutBackground
+public import Proof.google_golang_org.grpc.metadata.AppendToOutgoingContext
+public import Proof.context.Link
 
 @[expose] public section
 
@@ -91,6 +95,18 @@ theorem wp_Main :
 theorem wp_checkTxnReads :
     EtcdGrove.authkv.checkTxnReads.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.checkTxnReads.wp_proof wp_checkKVs
+
+theorem context.wp_WithTimeoutBackground :
+    EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithTimeoutBackground.wp_proof
+
+theorem metadata.wp_AppendToOutgoingContext :
+    EtcdGrove.metadata.AppendToOutgoingContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metadata.AppendToOutgoingContext.wp_proof
+
+theorem wp_reqCtx :
+    EtcdGrove.authkv.reqCtx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.reqCtx.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny metadata.wp_AppendToOutgoingContext
 
 end links_hasLC
 
