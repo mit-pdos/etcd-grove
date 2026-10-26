@@ -72,6 +72,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.Latest
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_uber_org.zap.Int
 
@@ -1292,6 +1293,26 @@ end latest
 #print axioms Perennial.EtcdGrove.auth_put_permitted_latest
 #print axioms Perennial.EtcdGrove.auth_range_permitted_latest
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_latest
+
+section userAddSure
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **`UserAdd` of a request whose password choice cannot fail** (the auth plan's E2u,
+`auth/authStore__UserAdd_sure.lean`): no `ErrNoPasswordUser`, the outcome the step's alone, every
+callee linked (`selectPassword`'s boundary says a base64 encoding decodes without an error). -/
+theorem auth_user_add_sure :
+    auth.authStore.UserAdd.specSure (GF := GF) (hG := hG) :=
+  auth.authStore.UserAdd.wp_sure auth.authStore.wp_commitRevision
+    auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
+    zap.Logger.wp_Info
+
+end userAddSure
+
+#print axioms Perennial.EtcdGrove.auth_user_add_sure
 
 section tokens
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

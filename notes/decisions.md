@@ -20442,3 +20442,86 @@ definitions and theorems of `KVApplyOn.lean` above.
   `kvInv_ch0_on_false` stops applying).
 
 **Trust base.** Unchanged (721 axioms, 6 sorries). The decode axiom says more, as above.
+
+## E2u of the auth plan: `UserAdd` without `ErrNoPasswordUser`; the KV invariant's readers in the mode `on`; why `NewServer.specM on` is not yet over `kvInvM on` (2026-10-26 · `notes/auth-plan.md`)
+
+E2t left four items (its "Not done"): `UserAdd`'s triple excluding `ErrNoPasswordUser` at a sure
+password choice, `EtcdServer.UserAdd` giving that choice, the KV invariant's readers in the mode
+`on`, and `NewServer.specM on` over `kvInvM on` (so that `server_new_auth_on`, which E2p found
+vacuous, `KVChainOff.lean`, holds for some caller). E2u does the first and the third; the second
+needs a Perennial change; the fourth is the server's whole KV path in the mode `on` (below).
+
+1. **`selectPassword`'s boundary says more** (the axiom `auth.authStore.selectPassword.wp_proof`
+   keeps its name; its spec, `Spec/.../auth/authStore__selectPassword.lean`, is strengthened): the
+   error is `nil` when `password` is empty and `hashedPassword` is `stdB64Enc` of some bytes. True
+   of the Go code: with `password == ""`, `selectPassword` returns
+   `base64.StdEncoding.DecodeString(hashedPassword)`, and `DecodeString` accepts whatever
+   `EncodeToString` produced (the alphabet's characters, padded to a multiple of 4). `stdB64Enc`
+   (opaque, `encoding/base64`'s `StdEncoding.EncodeToString`) moved from the apply package's request
+   model to the auth package's (`auth/Requests.lean`), so that the auth store's boundary can name
+   it, with **`auth.pwSureP pw hpw nob`** (no password, or `pw` empty and `hpw` an encoding);
+   `apply.UserAddModel.pwSure` is now `auth.pwSureP` of the model's fields (the same proposition).
+   - **`auth.userAddSure r`** (persistent): the request's `Password`, `HashedPassword` and options'
+     `NoPassword` satisfy `pwSureP`; `apply.authUserAddIs_sure` gives it from the request model and
+     `UserAddModel.pwSure`.
+   - **`auth.authStore.UserAdd.specSure`** (beside `UserAdd.spec`, whose text stays): with
+     `userAddSure r`, the post's extra errors are `noExtra`: the outcome is the step's alone.
+     Proved by `UserAdd.wp_sure` (`auth/authStore__UserAdd_sure.lean`): `UserAdd.wp_proof`'s proof,
+     with the options' `NoPassword` carried through the join (`b = nob`) and the error branch of
+     `selectPassword` ruled out (the fields agree with `userAddSure`'s, `userOptsAt_agree`).
+     Restated with its callees linked as `auth_user_add_sure` (`etcdserver/Results.lean`).
+   - *Why a second spec, not `UserAdd.spec` strengthened:* the apply package's `UserAdd` clause and
+     the stage E2s (running beside E2u) work on `UserAdd.spec`'s post; a separate spec leaves their
+     text alone. The apply layer's `UserAdd` triple can switch to `specSure` once E2s's posts land
+     (the request model gives `userAddSure` when `pwSure`).
+2. **`EtcdServer.UserAdd` giving `pwSure`: not done, a Perennial change.** The handler hashes the
+   password (bcrypt, names-only since E2a) and encodes the hash with `encoding/base64`, a standard
+   library package: Perennial's, and Perennial has no `encoding/base64` (not even names-only), so
+   the handler cannot be translated here (the reason A3 left it out, `etcdserver.toml`). Recorded in
+   `notes/perennial-changes.md` ("`encoding/base64`"): `StdEncoding`'s `EncodeToString` with a
+   spec whose result is `stdB64Enc` of its input (or a model of the encoding), and `DecodeString`'s
+   round trip; then `EtcdServer.UserAdd`'s proof gives `pwSure` of its request (clientv3 sends
+   `NoPassword: false`, the handler clears `Password` and sets `HashedPassword`). No axiom is added
+   here for it: until then, `pwSure` of a committed `UserAdd` is the proposer's obligation in
+   `commitOkOn` (E2t), which `examples/authkv`'s workload states.
+3. **The KV invariant's readers in the mode `on`** (`etcdserver/KVReadOn.lean`, new):
+   `kvRaftOfOn_prefix` (the mode-`on` model monotone in the raft log), **`kv_cert_read_on`**
+   (`kv_cert_read`'s: a certified store log has at most two revisions or is the mode-`on` model of
+   a committed raft prefix, over `kvCertInvOn`), **`kv_cert_floor_on`** (`kv_cert_floor`'s: a
+   certified log is below the committed KV state, over `kvInvOn`/`kvCertInvOn`), and the commit's
+   ghost step where a client's update fires: `kvInvOn_facts_snoc` (the invariant's pure facts one
+   entry on, from the committer's `commitOkOn`), **`kvInvOn_commit_granted`** (a granted plain
+   write: the invariant's half and the client's `etcdKV` agree and move to the request's step, the
+   mode-`on` model's state after the entry, `kvModelOn_snoc_granted`), `kvInvOn_commit_keep` (an
+   admin entry or a refused one: the state kept, no update fires).
+4. **`NewServer.specM on` over `kvInvM on`: not done; what it needs.** `kvInv` is not only
+   `NewServer`'s premise: it is part of the server's start fact (`InvStart.lean`, `srvMintInv ρ ∗
+   kvInv ρ.raft ρ.kv`), of the apply thread's invariants (`InvApplier.lean`, `srvKVInvs`), of the
+   proposers' request path (`InvProposer.lean`: every KV handler's proposal opens it at the commit to
+   fire its client's update, `KVLemmas.lean`), and of `BuildGap`/`BuildAlloc`. Moving the mode `on`
+   to `kvInvOn` means each of these in the mode `on`:
+   - the apply thread (`applyEntryNormal`) over `srvKVInvsOn`, with E2s's auth-applier triples
+     (`outcomeOn`) and E2t's `kv_applied_out_on`;
+   - **the proposers' update in the mode `on`, a design question:** a client's update for a KV
+     write fires at the commit only if the auth state after the committed log grants it
+     (`kvInvOn_commit_granted`); for a refused one nothing fires, and the client's result must say
+     so (an `ErrPermissionDenied` reply, `Q` of the refusal). Today's `kvOpAu`/`kvOpAu1` always
+     fire (the mode off has no refusal at the apply), so the mode `on` needs an update of the form
+     "the step if granted at the commit's auth state, else the refusal", whose `Q` the handler
+     returns to the client; and the proposer must establish `commitOkOn` (the entry admitted and
+     determinate) at the commit, which for a KV request is `kvDet` of the auth state then: the
+     permission cache decides the request's shape (E2q). Both are the workload's and the client's
+     (examples/authkv's `Work`), so they are designed with the closed theorem;
+   - the start fact and `BuildGap`/`BuildAlloc` over `kvInvM on`, the reads (`kv_read_log`'s
+     users) over `kv_cert_read_on`.
+   `kvInv_ch0_on_false` keeps its role (the mode-`on` `NewServer.specM` is vacuous) until then.
+
+**Exported statements changed.** The spec `auth.authStore.selectPassword.spec` (its post gains the
+pure clause); the definition `apply.UserAddModel.pwSure` (now `auth.pwSureP` of the fields: the same
+proposition); `stdB64Enc` moved from `apply` to `auth` (`auth.stdB64Enc`). No closed theorem
+changed. New: `auth.pwSureP`, `auth.userAddSure`, `apply.authUserAddIs_sure`,
+`auth.authStore.UserAdd.specSure`, `UserAdd.wp_sure`, `userOptsAt_agree`, `auth_user_add_sure`, and
+`KVReadOn.lean`'s theorems.
+
+**Trust base.** Unchanged in count (721 axioms, 6 sorries): the `selectPassword` axiom says more,
+as above, a strengthening that holds of `encoding/base64`.

@@ -142,7 +142,7 @@ theorem auth.authStore.UserChangePassword.wp_proof
   wp_if_destruct
   · -- the password selected
     (try wp_auto)
-    wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl⟩
+    wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl, -⟩
     · ipureintro; exact Hst
     (try wp_auto)
     cases e with

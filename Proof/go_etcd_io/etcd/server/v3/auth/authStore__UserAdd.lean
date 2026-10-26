@@ -170,7 +170,7 @@ theorem auth.authStore.UserAdd.wp_proof
   cases b
   · -- the password selected
     (try wp_auto)
-    wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl⟩
+    wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl, -⟩
     · ipureintro; exact Hst
     (try wp_auto)
     cases e with

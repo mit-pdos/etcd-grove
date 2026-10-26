@@ -76,11 +76,6 @@ structure AuthenticateModel where
   password : GoString
   simpleToken : GoString
 
-/-- **base64's standard encoding** (`encoding/base64`'s `StdEncoding.EncodeToString`), of a byte
-string. Opaque: the model only needs that what it encodes decodes without an error (`UserAdd`'s
-`selectPassword`, the trust boundary of `authStore.selectPassword`), not the encoding itself. -/
-opaque stdB64Enc : List w8 → GoString
-
 /-- An `AuthUserAddRequest`'s `Name`, `Password`, `HashedPassword` and its options' `NoPassword`
 (`Options` nil reads as `false`, as `UserAdd` does). The auth plan's E2t (2026-10-26): the request
 model keeps the password choice, which decides `UserAdd`'s `ErrNoPasswordUser`. -/
@@ -95,7 +90,7 @@ password asked for, or the server's own form of a password (`EtcdServer.UserAdd`
 password cleared and its bcrypt hash in `HashedPassword`, base64-encoded), which `selectPassword`
 decodes without an error. -/
 def UserAddModel.pwSure (m : UserAddModel) : Prop :=
-  m.noPassword = true ∨ (m.password = [] ∧ ∃ bs : List w8, m.hashed = stdB64Enc bs)
+  auth.pwSureP m.password m.hashed m.noPassword
 
 /-- A `ClusterMemberAttrSetRequest`'s `Member_ID` and its `MemberAttributes`' `Name` and
 `ClientUrls`. -/
@@ -348,6 +343,16 @@ theorem authUserAddIs_req (u : Loc) (m : UserAddModel) :
   isplit; · iexact Hn
   isplit; · iexists m.password, m.hashed; isplit <;> iassumption
   iexists o, m.noPassword; isplit <;> iassumption
+
+/-- A request whose model's password choice cannot fail gives the auth store's `userAddSure`
+(the auth plan's E2u: `UserAdd.specSure`). -/
+theorem authUserAddIs_sure (u : Loc) (m : UserAddModel) (h : m.pwSure) :
+    authUserAddIs (GF := GF) u m ⊢ auth.userAddSure u := by
+  unfold authUserAddIs auth.userAddSure
+  iintro ⟨%hu, #Hn, #Hp, #Hh, %o, #Ho, #Hb⟩
+  iexists m.password, m.hashed, o, m.noPassword
+  iframe Hp Hh Ho Hb
+  ipureintro; exact h
 
 /-- The `*pb.AuthRoleAddRequest` `r` (not nil): its `Name`, read-only (unit N4, 2026-10-17). -/
 def authRoleAddIs (r : Loc) (name : GoString) : IProp GF :=
