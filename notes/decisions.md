@@ -21237,3 +21237,60 @@ satisfy it; no Go change, no statement change, no axiom.**
   its closer; the `bemu` reader slots the request path carries (`srvServeBuilt`'s `K`) stay valid
   across epochs (same `γbe`). The epoch's `srvBeRO d` is still in `bemuP` for `Backend()`'s callers
   that do need it (the storage-version monitor, `VerifyBackendConsistency`).
+
+## D22 integration of 2026-10-26: S8d, J2, J3, J7, L1 with `lean` (auth E2a-E2u, D44, membership M4, KEP-6404) (decided by the orchestrator while the user was away (integration))
+
+Merged in order: `origin/lean`, J2, J3, J7, L1, `origin/lean` again. The textual conflicts were the
+notes (both sides kept; STATUS's "Last updated" line rebuilt from `lean`'s entries plus the snapshot
+track's, which also removes duplicated entries the line had accumulated in earlier merges) and the
+allocations (below). The semantic ones, and how each was resolved; no statement of the auth track
+changed, and no closed theorem proves less:
+
+- **`srvApplyKV` gained `srvAuthApplyRes s E`** (auth E2m: the apply thread's auth resource).
+  `applySnapshot`'s walk (`SnapApplyWalk.lean`) took `srvApplyKV` apart with the old pattern. Now
+  `snapWalkPost` (`SnapApplyDefs.lean`, not an exported statement) carries `srvAuthApplyRes s E`
+  from the old applier state, and `snap_applyKV` (`SnapApplyKV.lean`) takes it as a premise and
+  gives it to the new environment's `srvApplyKV` (`srvAuthApplyRes s (snapE …)` is the same
+  resource: `snapE_authMode`). In the mode off (`specSnap`'s `hoff`) it is the `authStore` field's
+  `↦□` and `True`. *For a mode-on `applySnapshot`* (not now): the resource's `authWBackendOk be`
+  names the old backend, so the swap must hand the store's `Recover` the admin side's write resource
+  and get one back at the new backend; `Recover`'s spec (`srvAuthRecoverOk`, a named premise of
+  `specSnap`) would then have to say so.
+- **`NewServer.specM`** (auth E2k, generic in the mode; `NewServer.spec` is derived from
+  `wp_proofM false`): J2 added the binder `γd` and the premises `%Hsloc`/`Hsdir` to `NewServer.spec`
+  only. `specM` gains the same binder and premises (with J2's comment), so that `wp_proofM`'s body
+  (J2's `snapDir_init` from `Hsdir`) proves both; `wp_proof` passes `γd` through. This is a change to
+  an auth-track statement, the minimal one: `specM` follows `spec`, as E2k made it (and its
+  `server_new_auth_on` takes the premises from its caller as `spec`'s callers do). Noted in
+  `notes/auth-plan.md`.
+- **D44 dropped `SrvWorkload` from the allocations** (`srvBootOut`, `srvRaftBoot_alloc`,
+  `memberBoot`, the `wl` conjuncts); J2 had threaded the snapshot directories (`sl`, `Hsd`) through
+  the old signatures. Resolved as D44's statements with J2's additions (`sl`, the `reSnapLoc`
+  conjunct, the directory maps), in `NewServerAlloc.lean` and `examples/common/{Alloc,Alloc3,
+  newServer}.lean`.
+- **`compactRaftLog`** (proved on `lean` after J3 branched) applied `MemoryStorage.Compact.spec`
+  as the token-in-hand triple, which J3 made logically atomic. Its proof now uses J3's corollary
+  (`replace hCompact := MemoryStorage.Compact.spec_tok_of hCompact`, importing
+  `Proof/go_etcd_io/raft/v3/MemstorageAU.lean`, as `examples/kv`'s `KV.run` does);
+  `compactRaftLog.wp_proof`'s statement is unchanged (its hypothesis is `Compact.spec`, now the AU).
+  J4 replaces it with the shared token (`Compact.wp_shared`). `lean` also dropped the phantom
+  `StorageModel` binder from `Compact`: J3's `omit [StorageModel GF] package_sem` in
+  `InvMemstorage.lean` became `omit package_sem`, and `MemstorageAU.lean`'s `Compact.spec_tok`,
+  `spec_tok_of` and their two helper lemmas omit it, so the server (which has no `StorageModel`)
+  can use the corollary.
+
+**For the next stages** (J5, J1a, J7b, J4, J6a), the auth track's statements that meet D22's:
+- the apply thread's state has `srvAuthApplyRes` (above); in the mode on it holds the admin side's
+  authority with fuel, the backend write side and token, `enabledHalf`, `cacheHalf`, `tpAdmin`; the
+  store's user's half of `be` stays in the rest (`authBeOn`) and is *borrowed* by an admin
+  request's application (E2m), so `Recover`'s spec keeps `authBeOn`'s half;
+- D22's named premises in the mode on: `authSchemaBoot`/`authSchemaSrv` (E2e, E2i:
+  `srv_auth_tp_on`, `server_new_auth_on`), with `authReadTxOk`'s second `RLock` clause (a read
+  begun while the admin half is held sees the latest state, E2r) and `authBackendReads` (E2j) on
+  D22's list; in the mode on the auth buckets' content is under the batch lock, so the rest
+  model's tracked buckets (`RestM.bk`) must stop naming it (E2l/E2m notes);
+- `specSnap` stays at `hoff : E.authMode = .off`; `NewServer.specM true`'s server would need
+  `specSnap` in the mode on (the bullet above);
+- J7's axiom `membership.clusterImageOk_restModel` is stated over `isRaftCluster`, which membership
+  M4 (merged in the second `lean`) generalized (`rcLockInv` at any side condition): the build
+  passes; no root reaches the axiom yet (J8b).

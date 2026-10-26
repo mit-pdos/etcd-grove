@@ -373,3 +373,12 @@ docstring takes over). No axiom is added and the premise goes. When the E stage 
 `NewAuthStore` (the authority at the server), it proves this clause too, from the proved
 `auth.authStore.Recover.spec`; a server with auth on needs it restated as the S8c note above says.
 (`notes/snapshot-sj-plan.md`, "J0 decisions", item 8.)
+
+## Note from the snapshot track (D22 integration, 2026-10-26; decided by the orchestrator while the user was away (integration))
+
+`NewServer.specM` gained D22 J2's binder `γd` and premises `%Hsloc`/`Hsdir` (the member's snapshot
+directory at raft's `RaftNames.reSnapLoc`), as `NewServer.spec` did, so that `wp_proofM` keeps
+proving both: `specM` follows `spec` as E2k made it. `snapWalkPost`/`snap_applyKV` carry the apply
+thread's `srvAuthApplyRes` across `applySnapshot`'s swap (mode off only; a mode-on swap must
+re-establish its backend write side through `Recover`). `notes/decisions.md`, "D22 integration of
+2026-10-26".
