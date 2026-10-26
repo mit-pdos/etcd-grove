@@ -10,7 +10,10 @@ revision. The pure reasoning is `ServerKVPut.lean`'s (`applyTxnOp_put_underPfx`,
 log instead of the apply thread's.
 
 * `putResult_of_km`, `deleteResult_of_km`: what a write's reply gives the model, the state after
-  it well formed (`kvLogOk`).
+  it well formed (`kvLogOk`, which the specs give of the state after a write).
+* `isEtcdPutKVTodo_of_km`, `isEtcdDeleteKVTodo_of_km`: the recipes' contracts. A put with a lease
+  or that needs the key's previous key-value (`kv.Put.spec` covers neither, or does not say such
+  a put wrote) by the premise `kmPutRestTodo`; a delete given that etcd reached revision `1`.
 -/
 module
 
@@ -92,7 +95,7 @@ theorem putResult_of_km (γ : KMNames) (pfx : GoString) (lo : w64) (w : OpFull) 
   ihave ⟨#Hs2, -⟩ := km_etcdState_last γ _ pfx hpost $$ Hlb'
   ihave ⟨#Hreach, -⟩ := km_reached_of γ (σ.commit [putChangeOf w (findKey w.key σ.kvs)]).changes
     (σ.rev + 1) (by have := kvLogOk_rev _ hpost; omega) (by omega) $$ Hlb'
-  rw [hrev', e2] at *
+  rw [hrev', e2]
   unfold putResult
   iright
   isplitr
@@ -113,7 +116,7 @@ theorem putResult_of_km (γ : KMNames) (pfx : GoString) (lo : w64) (w : OpFull) 
     · iexact Hs2
   · rw [etcdModelOfKV_etcdRevToken]
     unfold kmRevTok
-    rw [hr, show ((σ.rev + 1 : Nat) : Int).toNat = σ.rev + 1 by omega]
+    rw [hr, show ((σ.rev : Int) + 1).toNat = σ.rev + 1 by omega]
     iexact Htok
 
 /-- **What a delete's reply gives the clients' model** (as `putResult_of_km`): for the delete `o`
@@ -191,7 +194,7 @@ theorem deleteResult_of_km (γ : KMNames) (pfx : GoString) (lo : w64) (o : OpFul
     ihave ⟨#Hreach, -⟩ := km_reached_of γ
       (σ.commit (delChanges (stateAfter σ.log) (deleteWireOf o))).changes
       (σ.rev + 1) (by have := kvLogOk_rev _ hpost; omega) (by omega) $$ Hlb'
-    rw [hrev', e2] at *
+    rw [hrev', e2]
     have hne : ((rangeIn (stateAfter σ.log) o).length != 0) = true := by
       simp [List.length_eq_zero_iff, hE]
     iright
@@ -212,6 +215,137 @@ theorem deleteResult_of_km (γ : KMNames) (pfx : GoString) (lo : w64) (o : OpFul
     · iexact Hs2
 
 end proofs
+
+/-! ## The bridges -/
+
+section bridges
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- **The puts `kv.Put.spec` does not cover, in the clients' model** (a premise, persistent; as
+`ServerKVPut.lean`'s `kvLeasedPutTodo`): the recipes' put contract for a put with a lease, or one
+that needs the key's previous key-value (`WithIgnoreValue`, `WithIgnoreLease`: `txn.needsPrev`;
+the spec's reply does not say that such a put wrote, so gives no revision token). -/
+def kmPutRestTodo (api : Loc) (γ : KMNames) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp)
+      (lo : w64),
+    ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
+      op.Under pfx ∧ (opPutModel key val gs).t = W64 2 ∧
+      ((putWireOf (opPutModel key val gs)).leaseID ≠ W64 0 ∨
+        txn.needsPrev (putWireOf (opPutModel key val gs)) = true)⌝ -∗
+    {{ optsAt sl gs ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
+      (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
+        (Val #(GoInterface.ok todoCtxVal))) (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        putResult (EM := etcdModelOfKV γ) pfx lo op err }})
+
+instance kmPutRestTodo_persistent (api : Loc) (γ : KMNames) (pfx : GoString) :
+    Persistent (kmPutRestTodo (GF := GF) api γ pfx) := by
+  unfold kmPutRestTodo; infer_instance
+
+/-- **A client of etcd's KV meets the recipes' put contract** (`isEtcdPutKVTodo`) at the adapter's
+model: `kv.Put(context.TODO(), ...)` returns `putResult` (`putResult_of_km`), a put with no lease
+that needs no previous key-value by `kv.Put.spec` with the adapter's write update (fired at most
+once: `isKv api γ.kv false`), any other by the premise `kmPutRestTodo`; `errors.As` can take
+`*rpctypes.EtcdError` (`hAs`, `todo_ctx`). -/
+theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) (pfx : GoString)
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ.kv false ∗
+        kmInv γ ∗ kmPutRestTodo api γ pfx ⊢
+      isEtcdPutKVTodo (EM := etcdModelOfKV γ) (kvIfaceOf api) pfx := by
+  iintro ⟨#Pc, #Hkv, #Hinv, #Hrest⟩
+  unfold isEtcdPutKVTodo
+  iintro !> %key %val %sl %gs %op %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
+  obtain ⟨hpan, hop, hu, ht⟩ := Hp
+  have hw := putTxnOp_wire _ _ hop ht
+  by_cases hl : (putWireOf (opPutModel key val gs)).leaseID = W64 0 ∧
+    txn.needsPrev (putWireOf (opPutModel key val gs)) = false
+  rotate_left
+  · have hl' : (putWireOf (opPutModel key val gs)).leaseID ≠ W64 0 ∨
+        txn.needsPrev (putWireOf (opPutModel key val gs)) = true := by
+      by_cases h0 : (putWireOf (opPutModel key val gs)).leaseID = W64 0
+      · right; simpa [h0] using hl
+      · left; exact h0
+    iunfold kmPutRestTodo at Hrest
+    ihave #Ht := Hrest $$ %key %val %sl %gs %op %lo %(⟨hpan, hop, hu, ht, hl'⟩)
+    iapply Ht $$ [] HΦ
+    iframe #
+  imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
+  imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
+  ihave Hau := km_write_au γ l0 (.put (putWireOf (opPutModel key val gs))) $$ [$Hinv $Hl0]
+  iunfold kvOpAu1 at Hau
+  iunfold kvAu1 at Hau
+  iapply (v3.kv.wp_Put api γ.kv false todoCtxVal cd key val sl gs
+    (kmWriteQ γ l0 (.put (putWireOf (opPutModel key val gs))))) $$ [Hau]
+  · iframe #
+    isplitl []
+    · ipureintro; exact ⟨hpan, ht, hl.1⟩
+    iexact Hau
+  inext
+  iintro %resp %err Hout
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, %σ, -, HQ, %Hs⟩ | ⟨%Herr, -⟩)
+  · subst Herr
+    obtain ⟨-, -, h63, hok, hpost⟩ := Hs
+    iapply (putResult_of_km γ pfx lo _ op hw hu hl.2 l0 Hll σ hok h63 hpost) $$ HQ
+  · unfold putResult
+    ileft
+    ipureintro; exact Herr.1
+
+/-- **A client of etcd's KV meets the recipes' delete contract** (`isEtcdDeleteKVTodo`) at the
+adapter's model: `kv.Delete(context.TODO(), ...)` returns `deleteResult` (`deleteResult_of_km`),
+by `kv.Delete.spec` with the adapter's write update (fired at most once: `isKv api γ.kv false`),
+given that etcd has reached revision `1` (`kmReachedAt γ (W64 1)`: a delete that deletes nothing
+answers the state's revision, which the contract has positive; etcd's store starts at revision
+`1`) and that `errors.As` can take `*rpctypes.EtcdError` (`hAs`). -/
+theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) (pfx : GoString)
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ.kv false ∗
+        kmInv γ ∗ kmReachedAt γ (W64 1) ⊢
+      isEtcdDeleteKVTodo (EM := etcdModelOfKV γ) (kvIfaceOf api) pfx := by
+  iintro ⟨#Pc, #Hkv, #Hinv, #H1⟩
+  unfold isEtcdDeleteKVTodo
+  iintro !> %key %sl %gs %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
+  obtain ⟨hpan, hu, hz, ht⟩ := Hp
+  imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
+  imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
+  -- the longer of the floor and the first revision's changes
+  iunfold kmReachedAt at H1
+  icases H1 with ⟨%l1, #Hl1, %H1l⟩
+  ihave %Hcmp := mono_list_lb_valid γ.ch l0 l1 $$ Hl0 Hl1
+  have h1z : sint.Z (W64 1) = 1 := by decide
+  ihave ⟨%L, #HL, %HLl⟩ : ∃ L : List (List Change), monoListLbOwn γ.ch L ∗
+      ⌜sint.Z lo ≤ L.length ∧ 1 ≤ L.length⌝ $$ []
+  · rcases Hcmp with h | h
+    · iexists l1; iframe Hl1; ipureintro
+      have := h.length_le; omega
+    · iexists l0; iframe Hl0; ipureintro
+      have := h.length_le; omega
+  ihave Hau := km_write_au γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))) $$ [$Hinv $HL]
+  iunfold kvOpAu1 at Hau
+  iunfold kvAu1 at Hau
+  iapply (v3.kv.wp_Delete api γ.kv false todoCtxVal cd key sl gs
+    (kmWriteQ γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))))) $$ [Hau]
+  · iframe #
+    isplitl []
+    · ipureintro; exact ⟨hpan, ht, by simpa [deleteWireOf, txn.deleteOpOf] using hz⟩
+    iexact Hau
+  inext
+  iintro %resp %err Hout
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, %σ, -, HQ, %Hs⟩ | ⟨%Herr, -⟩)
+  · subst Herr
+    obtain ⟨-, -, -, h63, hok, hpost⟩ := Hs
+    iapply (deleteResult_of_km γ pfx lo _ hu L HLl.1 HLl.2 σ hok h63 hpost) $$ HQ
+  · unfold deleteResult
+    ileft
+    ipureintro; exact Herr.1
+
+end bridges
+
 
 end client
 end EtcdGrove

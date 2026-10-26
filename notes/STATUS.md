@@ -357,15 +357,34 @@ state, candidate spec `watcher.Watch.specσ` in `client/v3/WatchState.lean`).
   leasing, kubernetes, k8s's etcd3 store (its `New` without the writes premise), and the examples
   putget, putget3, linkvtxn, linkv3p's `Main`, k8setcd3 build. `SrvWorkload`, `KVNames.wl`, the
   `writes` predicate and the examples' `W`/`noGrant` arguments are gone.
-- Open: watchkv, cachekv and linkv3p's `MainWatch` do not build: their `srvNoDupKeys` and the
-  watch model's steps (`WkLog`: every revision from 2 a plan put) came from the workload
-  (`watchkv/Workload.lean`). The route (D46): restate the watch over `σ` (the candidate
-  `watcher.Watch.specσ`, awaiting the user's audit), port the client watcher's proof
-  (`WatchContent`, `WatchRun`, ...) and the watch's clients (the cache, the recipes, concurrency,
-  leasing: `EtcdModel`) to it, and give watchkv an invariant over `σ`'s changes (each revision
-  from 2 a plan put). Not run: `etc/tcb-report.py --check` (needs the full build).
-- Not yet written: an `isKv` constructor lemma (that `isKv` is satisfiable from a started
-  cluster's facts).
+- Done since (D46, D47, 2026-10-26): `watcher.Watch.spec` is the watch as repeated reads of the
+  KV state (`watchStateElem`: each response one firing of the caller's read update, its events
+  exactly the state's range events, a progress notification at or past the position, which moves
+  to it), proved over the client watcher's pipeline (the positions' facts `posQ`, `cur2Places`).
+  The KV replies say their state is a well-formed small log's (`kvLogOk`, the writes' state after
+  too; a moving watch response `kvLogOkTo` through the new position; from the receipts' bound in
+  `isKv` and `srvKVFacts`). The clients' model of etcd is an adapter over the KV state
+  (`client/v3/EtcdModelKV.lean`, `etcdModelOfKV γ`, invariant `kmInv`), and the libraries'
+  contracts are proved from the public specs at it: `KMGet` (`isEtcdKVE`, `isEtcdKVTodo`:
+  linearizable gets only), `KMTxn` (`isEtcdTxnKVTodo`, with `kmReachedAt γ 1` and the
+  uncovered transactions as a premise, `kmTxnUncoveredTodo`), `KMWatch` (`isEtcdWatcher`,
+  `isEtcdProgressNotifier`), `KMClient` (`isEtcdClient`, `isKv_of_regs`); the cache's end-to-end
+  results over them (`cache_end_to_end_client`, `_new`).
+- `KMPut` (task B): `isEtcdPutKVTodo_of_km` (with `kmPutRestTodo`, an assumed contract for the
+  puts `kv.Put.spec` cannot serve: leased ones, and `IgnoreValue`/`IgnoreLease` ones of an absent
+  key, which the spec lets succeed without writing although the server answers `ErrKeyNotFound`:
+  stating in `putStOk` that a successful put wrote would leave only the leased ones),
+  `isEtcdDeleteKVTodo_of_km` (with `kmReachedAt γ 1`).
+- Open: the recipes' end-to-end
+  results (`isRecipesKV`, the queue) over the adapter; the recipes' range watcher
+  (`isEtcdRangeWatcher`: single-key watches): the Watch spec covers prefix watches only, its
+  generalization is about half a day (`cplCond`, `covers_prefix`), then the header's ownership,
+  `rev = 0` and the cursor on progress (one to two days); until then a premise. watchkv, cachekv
+  and linkv3p's `MainWatch` over `σ.changes`; the old server-model bridges (`CacheClient`,
+  `ServerKV*`'s server theorems, `v3rpc.etcdModelOfServer`'s uses) to delete. Not run:
+  `etc/tcb-report.py --check` (needs the full build).
+- STM's serializable reads cannot be connected through the adapter (a serializable read fires no
+  update; D47).
 
 ## The watch shapes (A4) (2026-10-24, branch `auth-a4`, worktree `/shared/etcd-grove-a4`)
 
