@@ -27,15 +27,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`le.Recover(b, rd)`** of the lessor `lp` on the real backend at `oldbe` (its user's half of
-`le.b`, `lessorBeOn`), no lease live (`leaseOwn γl []`, the user's half of the live set), onto the
+`le.b`, `lessorBeOn`), the user's half of the live set at some `L` (`leaseOwn γl L`), onto the
 real backend `d` whose lease bucket is empty (absent or empty: the image's, under the workload,
-which grants no lease): the lessor on `d`, still no lease, the lease bucket of `d` present and
-empty, at two write-back tokens.
+which grants no lease): the lessor on `d`, no lease live (`leaseOwn γl []`), the lease bucket of `d`
+present and empty, at two write-back tokens. (D22 receiver epochs, S8d, 2026-10-25, the user's
+decision: any `L` before, until then `[]`; the apply thread holds the live set existentially.)
 
 Why it is true of the Go code (`lessor.go:600-609`, `initAndRecover` `:808-835` at the etcd pin):
 under `le.mu` (the lessor's lock, `lessorInv`: the lock's half of `le.b` with the user's makes the
-field whole), `le.b = b`, `le.rd = rd`, fresh `leaseMap` and `itemMap` (the live set was empty,
-`leaseOwn`, so the lock's half of it stays `[]` and the maps' empty contents agree), then
+field whole), `le.b = b`, `le.rd = rd`, fresh `leaseMap` and `itemMap` (empty: the live set's two halves, the
+lock's and the user's, both go to `[]`, which the fresh maps' contents are), then
 `initAndRecover`: `b.BatchTx()`, `LockOutsideApply` (the backend open: the share `qo`),
 `UnsafeCreateLeaseBucket` (present or created: its data `∅`), `MustUnsafeGetAllLeases` (no record:
 nothing decoded, no panic), `Unlock` (the create's pending operation written back: one token),
@@ -45,9 +46,9 @@ pre-commit hook runs at the new backend's registered names: `applySnapshot` call
 (`lessorApplyOk`, for whichever backend the user's half of `le.b` names) stay true. -/
 abbrev lease.lessor.Recover.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (oldbe : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
-    (r : GMap GoString backend.BktData) (rd : GoFunc),
+    (r : GMap GoString backend.BktData) (rd : GoFunc) (L : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γl ∗ lease.lessorBeOn lp oldbe ∗ lease.leaseOwn γl [] ∗
+      lease.lessorInv lp γl ∗ lease.lessorBeOn lp oldbe ∗ lease.leaseOwn γl L ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ ownToks d.γB.wb 2 ∗
       backend.rbOwn d.γB r ∗ ⌜(r.lookup go!"lease").getD ∅ = ∅⌝ }}
     (App (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!

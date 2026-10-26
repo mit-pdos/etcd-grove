@@ -19322,3 +19322,11 @@ that do not fit, one of them too strong:
   new backend's lease bucket, empty in the image), the ghost's other half in `lessorInv` updated by
   the axiom; (b) a premise `L = []` of `applySnapshot.spec`, from the workload (`noGrant`), which
   S-j1 would have to carry as an invariant. Recommendation: (a).
+
+**Decided (2026-10-26, the user, via the orchestrator): (a) for both.** `RaftCluster.Recover`'s
+axiom restated: it takes `clusterMem c mem` and gives `clusterMem c mem'`, the image premise naming
+the decoded members (`clusterImageOk c r mem'`, `memBucketsOk c ms …`). `lessor.Recover`'s axiom
+restated: any live set `L` before (`leaseOwn γl L`), `leaseOwn γl []` after. Neither axiom had a
+caller; no axiom added or removed. The other boot resources S8d needs (`srvKVCloser`,
+`NewUberApplier`'s configuration fields and the feature gate, `8 · |peers|` of `lgMu`'s reader
+slots) are named premises of `applySnapshot.spec` like the others (the orchestrator).
