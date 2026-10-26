@@ -4,12 +4,17 @@
 proposer's view of the server (`srvReqFieldsAt`, `isServerReq`) and the proposal's permission
 (`reqPropOk`) name the mode-off KV model (`kvModel`, `kvInv`); E2z found that the mode-`on` server
 needs each over the mode-`on` model (`kvModelOn`, `kvInvOn`, E2q). Here are their mode-indexed
-counterparts, each today's at `on = false` by definition (`kvModelM_false`, `entryWitM_false`, ...:
+counterparts, each today's at `on = false` by definition (`kvModelM_false`, `resultΨM_false`, ...:
 the match reduces), so nothing mode-off changes:
 
 - `kvModelM`: `kvModel` off, `kvModelOn … srvAuthSt0` on.
-- `entryWitM`, `resultΨM`, `reqWaitRM`, `waitInvM`, `srvReqFieldsAtM`, `isServerReqM`: the wait's
-  results and the proposer's view, over `kvModelM` and `kvInvM` (E2w).
+- `resultΨM`: the result the proposer expects, `resultΨ` off, `resultΨOn` on: the result with the
+  auth state `st` and the log `lb` the entry met (`entryWitOn`: the mode-`on` model of the raft
+  prefix before it is `(st, lb)`) and **the auth layer's verdict the model's** (`authTie`: a KV
+  request was rejected by the auth layer exactly when `st` does not grant it), which the apply thread
+  in the mode `on` hands over (E2t/E2y's `outcomeOn`). `reqWaitRM`, `waitInvM`, `srvReqFieldsAtM`,
+  `isServerReqM`: the wait's registration and the proposer's view over it and `kvInvM` (E2w).
+- `resPostM`: the applied result as `processInternalRaftRequestOnce.specM` reports it.
 - `reqPropOkM`: the proposal's permission **at the wire request**. In the mode `on` the check reads
   the request's principal, the header `processInternalRaftRequestOnce` fills in from the context
   (`AuthInfoFromCtx`) before it proposes, so the result `Qh hm` is a function of that header: for
@@ -86,29 +91,87 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The committed entry a result is of, in the auth mode `on`** (`entryWit` with `kvModelM`). -/
-def entryWitM (on : Bool) (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log) : IProp GF :=
+/-- **The auth layer's verdict is the model's** (`authTie st rq out`): an application of the KV
+request `rq` dispatched to the outcome `o` was rejected by the auth layer exactly when the model's
+auth state `st` (the state the entry met) does not grant it (`kvGranted`). What the apply thread in
+the mode `on` knows of every KV entry it applies (E2t's `outcomeOn`, at the apply layer E2y's
+`outcomeOn_of_kvOutL`), handed to the proposer with the result. -/
+def authTie (st : auth.AuthState) (rq : apply.IRRModel) (out : apply.ApplyOut) : Prop :=
+  apply.isKVKind (apply.dispatchKind rq) = true → ∀ o skip, out = .dispatched o skip →
+    (o = .rejected .auth ↔ ¬ kvGranted st rq)
+
+/-- **The result `ar` of applying `rq`, with its witness, in the mode `on`** (`resultIsW`'s, with
+the auth layer's verdict the model's at the auth state `st` the entry met, `authTie`). -/
+def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
+    (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) : IProp GF :=
+  iprop(⌜ar ≠ null⌝ ∗
+    ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
+      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb ∧
+        out.waived = false ∧ authTie st rq out⌝ ∗
+      apply.applyResultIs rq true y.log ar out ∗
+      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
+      mvcc.certOk E.γ y'.log)
+
+/-- `resultIsWOn` forgets to `resultIsW`. -/
+theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
+    (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) :
+    resultIsWOn (GF := GF) E γr rq F ar lb st ⊢ resultIsW E γr rq F ar lb := by
+  iunfold resultIsWOn
+  iunfold resultIsW
+  iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk⟩
+  isplitr
+  · ipureintro; exact Hnn
+  iexists y, y', out
+  iframe Hr Hc Hm Hw Hk
+  ipureintro; exact ⟨Hs.1, Hs.2.1, Hs.2.2.1, Hs.2.2.2.1⟩
+
+/-- **The committed entry a result is of, in the mode `on`** (`entryWit`'s, see the file header):
+the mode-`on` model of the raft prefix before it is `(st, lb)`, the auth state and the log the
+entry met. -/
+def entryWitOn (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log) (st : auth.AuthState) :
+    IProp GF :=
   iprop(∃ (L : List EntryModel) (m : Nat) (e : EntryModel) (id : w64) (γf : GName),
     srvRLogLb ρ.raft L ∗ idClaim ρ.ids id e.data γf ∗
     ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ apply.irrDecode e.data = some rq ∧
-      apply.irrId rq = some id ∧ kvModelM on ρ.kv (L.take m) = lb⌝)
+      apply.irrId rq = some id ∧
+      kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L.take m) = (st, lb)⌝)
 
-instance entryWitM_persistent (on : Bool) (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log) :
-    Persistent (entryWitM (GF := GF) on ρ rq lb) := by
-  unfold entryWitM; infer_instance
+instance entryWitOn_persistent (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log)
+    (st : auth.AuthState) : Persistent (entryWitOn (GF := GF) ρ rq lb st) := by
+  unfold entryWitOn; infer_instance
 
-theorem entryWitM_false (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log) :
-    entryWitM (GF := GF) false ρ rq lb = entryWit ρ rq lb := rfl
-
-/-- **The result the proposer expects, in the auth mode `on`** (`resultΨ` with `entryWitM`). -/
-def resultΨM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
+/-- **The result the proposer expects in the mode `on`** (`resultΨ`'s, with `resultIsWOn` and
+`entryWitOn` at the auth state and the log the entry met). -/
+def resultΨOn (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (x : GoInterface) : IProp GF :=
-  iprop(∃ (ar : Loc) (lb : mvcc.Log),
+  iprop(∃ (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState),
     ⌜x = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar⌝ ∗
-    apply.resTrace ar ∗ resultIsW E ρ.rd rq F ar lb ∗ entryWitM on ρ rq lb)
+    apply.resTrace ar ∗ resultIsWOn E ρ.rd rq F ar lb st ∗ entryWitOn ρ rq lb st)
+
+/-- **The result the proposer expects, in the auth mode `on`**: `resultΨ` off, `resultΨOn` on. -/
+def resultΨM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log) :
+    GoInterface → IProp GF :=
+  match on with
+  | false => resultΨ E ρ rq F
+  | true => resultΨOn E ρ rq F
 
 theorem resultΨM_false (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log) :
     resultΨM (GF := GF) false E ρ rq F = resultΨ E ρ rq F := rfl
+
+theorem resultΨM_true (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log) :
+    resultΨM (GF := GF) true E ρ rq F = resultΨOn E ρ rq F := rfl
+
+/-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
+`processInternalRaftRequestOnce.specM`): off, `resultIsW` at the log `lb` the entry met and `lb` the
+mode-off model of the committed prefix `L` before it; on, `resultIsWOn` at the auth state `st` and
+the log `lb` the entry met, `(st, lb)` the mode-`on` model of `L` (so the auth layer's verdict is the
+model's grant at `L`, `authTie`). -/
+def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
+    (res : Loc) (L : List EntryModel) : IProp GF :=
+  match on with
+  | false => iprop(∃ lb : mvcc.Log, resultIsW E ρ.rd rq F res lb ∗ ⌜kvModel ρ.kv L = lb⌝)
+  | true => iprop(∃ (lb : mvcc.Log) (st : auth.AuthState), resultIsWOn E ρ.rd rq F res lb st ∗
+      ⌜kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) L = (st, lb)⌝)
 
 /-- **The server's registration condition, in the auth mode `on`** (`reqWaitR` with `resultΨM`). -/
 def reqWaitRM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)

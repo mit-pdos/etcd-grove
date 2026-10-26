@@ -265,8 +265,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           ⌜v = returnVal (PairV #res #e)⌝ ∗ start_ptr ↦ start ∗ srvLeadTimeReader s ∗ E.RD ∗
           ((⌜e = GoInterface.nil⌝ ∗ ∃ hm rq',
               ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
-              ∃ lb, resultIsW E ρ.rd rq' F res lb ∗ ∃ L, srvRLogLb ρ.raft L ∗ ⌜kvModelM on ρ.kv L = lb⌝ ∗
-                □ Qh hm L) ∨
+              ∃ L, srvRLogLb ρ.raft L ∗ resPostM on E ρ rq' F res L ∗ □ Qh hm L) ∨
             ⌜res = null ∧ e ≠ GoInterface.nil⌝ ∗ applyErrIs e ∗ srvMaybeDeposited ρ rq)))
         at (let: "$ch1" := _ in _) with [-HΦ defer reqType err]
       · ihave #Hcctx' := Hcctx
@@ -307,42 +306,85 @@ local macro "piro_tail" : tactic => `(tactic| (
           · iunfold handoffConsumer at Hcons' Hc2
             ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hcons' Hc2
             cases Hbad
-          iunfold resultΨM at Hres
-          icases Hres with ⟨%ar, %lb, %Hx, HTr, Hri, #HeW⟩
-          subst Hx
-          wp_auto_lc 2
-          iunfold entryWitM at HeW
-          icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
-          obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
-          have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
-          subst hidd
-          ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
-          replace Hdd := Hdd.1
-          ihave #HWits' := HWits
-          iunfold srvPropWits at HWits'
-          imod HWits' $$ %bs %(Qh ⟨idw, hv.Username', hv.AuthRevision'⟩) %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
-          · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
-          · iapply (lc_split (n := 1) (m := 1)).2; iframe
-          ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
-          · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
-          wp_apply HAddEv
-          (try wp_auto)
-          iexists _, _
-          isplitr
-          · ipureintro; rfl
-          iframe start Hrd Hard
-          ileft
-          isplitr
-          · ipureintro; rfl
-          iexists ⟨idw, hv.Username', hv.AuthRevision'⟩, rq'
-          iframe HTr
-          isplitr
-          · ipureintro; exact Hwire
-          iexists lb
-          iframe Hri
-          iexists Lw.take mw
-          iframe HLt HQr
-          ipureintro; exact hlbw
+          cases on
+          · -- the mode off: `resultΨ`, the mode-off model
+            rw [resultΨM_false]
+            iunfold resultΨ at Hres
+            icases Hres with ⟨%ar, %lb, %Hx, HTr, Hri, #HeW⟩
+            subst Hx
+            wp_auto_lc 2
+            iunfold entryWit at HeW
+            icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
+            obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
+            have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
+            subst hidd
+            ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
+            replace Hdd := Hdd.1
+            ihave #HWits' := HWits
+            iunfold srvPropWits at HWits'
+            imod HWits' $$ %bs %(Qh ⟨idw, hv.Username', hv.AuthRevision'⟩) %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
+            · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
+            · iapply (lc_split (n := 1) (m := 1)).2; iframe
+            ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
+            · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
+            wp_apply HAddEv
+            (try wp_auto)
+            iexists _, _
+            isplitr
+            · ipureintro; rfl
+            iframe start Hrd Hard
+            ileft
+            isplitr
+            · ipureintro; rfl
+            iexists ⟨idw, hv.Username', hv.AuthRevision'⟩, rq'
+            iframe HTr
+            isplitr
+            · ipureintro; exact Hwire
+            iexists Lw.take mw
+            iframe HLt HQr
+            iunfold resPostM
+            iexists lb
+            iframe Hri
+            ipureintro; exact hlbw
+          · -- the mode on: `resultΨOn`, the mode-`on` model and the auth layer's verdict
+            rw [resultΨM_true]
+            iunfold resultΨOn at Hres
+            icases Hres with ⟨%ar, %lb, %st, %Hx, HTr, Hri, #HeW⟩
+            subst Hx
+            wp_auto_lc 2
+            iunfold entryWitOn at HeW
+            icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
+            obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
+            have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
+            subst hidd
+            ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
+            replace Hdd := Hdd.1
+            ihave #HWits' := HWits
+            iunfold srvPropWits at HWits'
+            imod HWits' $$ %bs %(Qh ⟨idw, hv.Username', hv.AuthRevision'⟩) %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
+            · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
+            · iapply (lc_split (n := 1) (m := 1)).2; iframe
+            ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
+            · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
+            wp_apply HAddEv
+            (try wp_auto)
+            iexists _, _
+            isplitr
+            · ipureintro; rfl
+            iframe start Hrd Hard
+            ileft
+            isplitr
+            · ipureintro; rfl
+            iexists ⟨idw, hv.Username', hv.AuthRevision'⟩, rq'
+            iframe HTr
+            isplitr
+            · ipureintro; exact Hwire
+            iexists Lw.take mw
+            iframe HLt HQr
+            iunfold resPostM
+            iexists lb, st
+            iframe Hri
+            ipureintro; exact hlbw
         iapply BigAndL.bigAndL_cons.2
         isplit
         · -- the context done: give up
@@ -585,10 +627,25 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     ihave Hok' := reqPropOkM_of_false ρ.kv rq Qr $$ Hok
     rw [isServerReqM_false]
     iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
-  · iintro !> %res %err Hpost
+  · iintro !> %res %err ⟨Hrd, Hard, Hpost⟩
     iapply HΦ
-    simp only [kvModelM_false]
-    iexact Hpost
+    iframe Hrd Hard
+    icases Hpost with (⟨%He, %hm, %rq', %Hw, HTr, %L, #HL, Hp, #HQ⟩ | Herr)
+    · ileft
+      isplitr
+      · ipureintro; exact He
+      iexists hm, rq'
+      iframe HTr
+      isplitr
+      · ipureintro; exact Hw
+      iunfold resPostM at Hp
+      icases Hp with ⟨%lb, Hri, %Hlb⟩
+      iexists lb
+      iframe Hri
+      iexists L
+      iframe HL HQ
+      ipureintro; exact Hlb
+    · iright; iexact Herr
 
 end proof
 
