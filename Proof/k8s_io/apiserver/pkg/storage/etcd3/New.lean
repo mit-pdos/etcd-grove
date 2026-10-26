@@ -76,7 +76,7 @@ theorem New.wp_proof
   · iPkgInit
   ihave #Hsg : (k8s_io.apiserver.pkg.storage.etcd3.storageInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Psg
-  icases Hsg with ⟨%rw, #Hrw⟩
+  icases Hsg with ⟨%rw, %tl, #Hrw, -⟩
   ihave #Pcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto

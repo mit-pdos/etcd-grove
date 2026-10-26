@@ -407,6 +407,82 @@ noncomputable def newCacheIntervalFromLazySnapshot [FfiSyntax] [GoGlobalContext]
 noncomputable def storeElementToWatchCacheEvent [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.storeElementToWatchCacheEvent"
 
+/-- go: cacher.go:734:18 -/
+noncomputable def Cacher.get.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Lam "key"
+  (Lam "resourceVersion"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cacher.ty)))) (Var "c"))
+  (Let "resourceVersion" (App (Val (GoInstruction (GoAlloc go.string))) (Var "resourceVersion"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "resourceVersion"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchCache.ty) go!"WaitUntilFreshAndGet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchCache.ty)))) (App (Val (GoInstruction (StructFieldRef Cacher.ty go!"watchCache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cacher.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Fst (Fst (Var "__p"))))
+  (Let "$ret1" (Snd (Fst (Fst (Var "__p"))))
+  (Let "$ret2" (Snd (Fst (Var "__p")))
+  (Let "$ret3" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "$r3" (Var "$ret3")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "readResourceVersion" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "obj" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "elem" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Pair (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty go!"Object"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty)))) (Var "elem")))) (Val #true)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "readResourceVersion"))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doReturn)
+  (Pair (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (Val #false)) (Val #(W64 0))) (Let "$a0" (Val #(go!"non *store.Element returned from storage: %v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "obj"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty)))) (Pair (Var "elem") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists")))
+  (App (Val doReturn)
+  (Pair (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (Val #false)) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "readResourceVersion"))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Val UntypedNil)) (Val #false)) (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r3")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "readResourceVersion") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "obj") (Var "$r0")))))))))))))))))))))))))))
+
 /-- Add takes runtime.Object as an argument.
 
     go: watch_cache.go:167:22 -/
@@ -1893,10 +1969,12 @@ class Cacher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Cacher.underlying Cacher
   underlying : go.UnderlyingDirectedEq Cacher.ty Cacher.underlying
   isUnderlying : go.IsUnderlying Cacher.underlying Cacher.underlying
+  ptr_get_unfold : MethodUnfold (go.GoType.PointerType Cacher.ty) go!"get" Cacher.get.impl
 
 attribute [instance] Cacher.TypeAssumptions.type_repr
   Cacher.TypeAssumptions.underlying
   Cacher.TypeAssumptions.isUnderlying
+  Cacher.TypeAssumptions.ptr_get_unfold
 
 structure listResp [FfiSyntax] where
   mk ::

@@ -328,8 +328,11 @@ T3).
   watch cache translated, its store's writes and lock-free read proved over the B-tree (a quarter
   ghost split; the indexer's `updateElem` over its nested maps too), the freshness wait and the cached GET
   (`WaitUntilFreshAndGet`: the key's value in a published state at the requested version or
-  later) proved and linked (`cacher/Link.lean`); tying the published states to etcd's next; a bug
-  found (`issues/k8s-watchcache-index-error-partial-update.md`).
+  later) proved and linked (`cacher/Link.lean`, resting on four trust-boundary axioms and no
+  `sorry`), with `btreeStore.Replace`, `Cacher.get` (unlinked: `Cacher`'s type is axiomatized),
+  `apierrors.NewTimeoutError` and the etcd3 store's `GetCurrentResourceVersion`; tying the
+  published states to etcd's next (blocked on Goose's G3 for `processEvent`); a bug found
+  (`issues/k8s-watchcache-index-error-partial-update.md`).
 
 - `auth-plan.md`: etcd's authentication and authorization (the auth store, RBAC at the API
   layer, an auth-enabled closed theorem; etcd-io/etcd#22595, #22540). **Active**: A0 done
