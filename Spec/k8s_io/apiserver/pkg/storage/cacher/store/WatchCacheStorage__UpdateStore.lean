@@ -41,7 +41,7 @@ abbrev WatchCacheStorage.UpdateStore.spec : Prop :=
     (App (App (App (Val (w @!! go.GoType.PointerType WatchCacheStorage.ty @!! go!"UpdateStore")) (Val #et)) (Val #e)) (Val #rv))
   {{ RET (PairV #(lookupElem st.1 k) #GoInterface.nil);
       wcsOwn γ 1 (updSt et e k st rv) ∗
-      (match btree.lookup st.1 k with | some e' => isElem e' k | none => True) }}
+      lookupFact st.1 k }}
 
 end spec
 
