@@ -206,6 +206,177 @@ theorem snap_isApplyLessor
   · ipureintro; exact hgnn
   · iapply srvRestRWH_lens_lessor
 
+/-! ## The KV and the hook -/
+
+/-- The new options' KV: the walk's watchable store, at the store's names on the new physical
+names (`isWatchableStore_withPhys`), with its inner store's `ReadView`. -/
+theorem snap_isApplyKV (ws st : Loc) (γw : mvcc.WsNames) (p' : mvcc.PhysNames)
+    (γ : mvcc.StoreNames) (hγw : γw.st = γ) :
+    mvcc.isWatchableStore (GF := GF) ws st γw ⊢
+    apply.isApplyKV
+      (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType #ws)
+      st (γ.withPhys p') := by
+  iintro #Hws
+  iunfold apply.isApplyKV
+  isplitr
+  · iunfold txn.isKV
+    iright
+    iexists ws, { γw with st := γw.st.withPhys p' }
+    rw [mvcc.isWatchableStore_withPhys]
+    iframe Hws
+    ipureintro; exact ⟨rfl, by rw [hγw]⟩
+  · iunfold mvcc.isWatchableStore at Hws
+    icases Hws with ⟨%vc, %stc, %rv, %γv, Hws⟩
+    iNamed Hws
+    iexists rv
+    iframe Hrv
+    iunfold mvcc.isReadView
+    iexists _
+    iframe Hrvkv
+    rw [mvcc.isStore_withPhys, ← hγw]
+    iframe Hs
+    iunfold mvcc.kvOver; iright; iexists ws; iframe Hst; ipureintro; rfl
+
+/-- The new store's hook: the recorded invariant and the backend's frozen hook `g`. -/
+theorem snap_hookOk (γ : mvcc.StoreNames) (p' : mvcc.PhysNames) (d' : mvcc.KBReal)
+    (hk : p'.kb = some d') (P : IProp GF) (g : GoFunc) (hgnn : g ≠ func.nil) :
+    mvcc.hookP (γ.withPhys p') P ∗ backend.plHookRO d'.γB g ⊢ mvcc.hookOk (γ.withPhys p') P #g := by
+  iintro ⟨#HP, #Hg⟩
+  iunfold mvcc.hookOk
+  iframe HP
+  unfold mvcc.hookFn
+  rw [show (γ.withPhys p').kb = some d' from hk]
+  unfold mvcc.kbHookIs mvcc.bkHookIs
+  iexists g
+  iframe Hg
+  ipureintro; exact ⟨rfl, hgnn⟩
+
+/-! ## The server's own interfaces -/
+
+/-- The server as the new options' `RaftStatusGetter`: from `srvFieldsAt`'s `memberID` and
+`srvLeadInv`, and `srvAtomics`' term invariant. -/
+theorem snap_isRaftStatus
+    (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
+    (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
+    (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
+    (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServer s γ ci TM E ρ γr ⊢
+    apply.isRaftStatus (interface.mkOk EtcdServer.ty.PointerType #s) := by
+  iintro ⟨#Hpkg, #HS⟩
+  iunfold isServer at HS
+  icases HS with ⟨-, -, ⟨%v, #Hf⟩, #Hat, -⟩
+  iunfold srvFieldsAt at Hf
+  icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, #Hlead, -⟩
+  iunfold srvAtomics at Hat
+  icases Hat with ⟨-, #Hti, -⟩
+  iunfold apply.isRaftStatus
+  iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iintro !> !> %Φ' - HΦ'
+    iapply (hMID s v.memberID) $$ [] [HΦ']
+    · iframe Hpkg Hmid
+    inext; iintro -; iapply HΦ'; itrivial
+  isplitr
+  · iintro !> !> %Φ' - HΦ'
+    iapply (hLead s) $$ [] [HΦ']
+    · iframe Hpkg Hlead
+    inext; iintro %l -; iapply HΦ'; itrivial
+  · iintro !> !> %Φ' - HΦ'
+    iapply (hTerm s) $$ [] [HΦ']
+    · iframe Hti Hpkg
+    inext; iintro %t' -; iapply HΦ'; itrivial
+
+/-- The server as the new options' `SnapshotServer`, under the environment's `FS` (`srvEnvOk`'s
+`E.FS = srvFS s`). -/
+theorem snap_isSnapshotServer
+    (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
+    (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServer s γ ci TM E ρ γr ⊢
+    apply.isSnapshotServer (interface.mkOk EtcdServer.ty.PointerType #s) E.FS := by
+  iintro ⟨#Hpkg, #HS⟩
+  iunfold isServer at HS
+  icases HS with ⟨-, -, ⟨%v, #Hf⟩, -⟩
+  iunfold srvFieldsAt at Hf
+  icases Hf with ⟨-, -, -, -, -, %Henv, -⟩
+  rw [Henv.1]
+  iunfold apply.isSnapshotServer
+  iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
+  isplitr
+  · ipureintro; rfl
+  iintro !> !> %Φ' Hfs HΦ'
+  iapply (hFS s) $$ [Hfs] [HΦ']
+  · iframe Hpkg; iframe Hfs
+  inext; iintro Hfs; iapply HΦ'; iexact Hfs
+
+/-! ## The consistent indexer -/
+
+/-- **`srvCiC` restricted to loaded states** (`stLoaded γ st = st`: the index is not 0, or the
+backend's meta index is): the resources over which `ConsistentIndex` leaves the protocol's state
+as it was. -/
+def srvCiCLoaded (γ : ApplyNames) (ci : Loc) (C : IProp GF) : Prop :=
+  ∃ (st : ApplyState) (b : GoInterface),
+    C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false ∧ stLoaded γ st = st
+
+/-- The consistent index as an indexer, over the loaded states (what `wp_ci_get` gives: it
+returns the state `stLoaded γ st`, which is `st` exactly for these). -/
+theorem isConsistentIndexer_loaded
+    (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
+    (s : Loc) (γ : ApplyNames) (ci : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerCI s γ ci ⊢
+    apply.isConsistentIndexer (ciIface ci) (srvCiCLoaded γ ci) := by
+  iintro ⟨#Hpkg, #HCI⟩
+  ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex
+    $$ []
+  · iPkgInit
+  iunfold isServerCI at HCI
+  icases HCI with ⟨-, #HisCI, #Hcons⟩
+  iunfold apply.isConsistentIndexer
+  iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩
+  isplitr
+  · ipureintro; rfl
+  iintro !> %C %HC
+  obtain ⟨cst, cb, hC, hcp, hld⟩ := HC
+  subst hC
+  iintro %Φ' !> Hpre HΦ'
+  iapply (wp_wand (Φ := fun w => iprop((∀ x : w64,
+      iprop(applyThread γ cst ∗ applyBackend γ ci cb) -∗ Φ' #x) ∗
+      (⌜w = #(ciEff γ cst.k)⌝ ∗ applyThread γ cst ∗ applyBackend γ ci cb))))
+    $$ [Hpre HΦ']
+  · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
+    iframe HΦ'
+    icases Hpre with ⟨Hcst, Hcb⟩
+    iapply (wp_ci_get hCIg γ ci cb cst hcp) $$ [Hcst Hcb]
+    · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb
+    iintro ⟨Hcst, Hcb⟩
+    rw [hld]
+    iframe Hcst Hcb
+    ipureintro; rfl
+  · iintro %w ⟨HΦ', %Hw, HP⟩
+    subst Hw
+    iapply HΦ' $$ HP
+
+/-- **The consistent indexer over `srvCiC γ' ci` at the snapshot's names: not provable as
+stated.** `srvCiC` admits a state with `st.k = 0`; `ConsistentIndex` then loads the backend's
+meta index `γ'.m0.1` (`wp_ci_get`'s `stLoaded`), which after a snapshot is the snapshot's index,
+so the state it gives back is not `st` (`isConsistentIndexer`'s `{{ C }} … {{ C }}`). At boot
+`γ.m0.1 = 0` and `stLoaded` is the identity (`NewServer`'s `hLoaded`). The fix is `srvCiC` with
+`stLoaded γ st = st` (`srvCiCLoaded`, proved: `isConsistentIndexer_loaded`), true of every
+state the apply thread lends. -/
+theorem snap_isConsistentIndexer
+    (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
+    (s : Loc) (γ : ApplyNames) (ci : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerCI s γ ci ⊢
+    apply.isConsistentIndexer (ciIface ci) (srvCiC γ ci) := by
+  sorry
+
 end proof
 end EtcdGrove
 end Perennial

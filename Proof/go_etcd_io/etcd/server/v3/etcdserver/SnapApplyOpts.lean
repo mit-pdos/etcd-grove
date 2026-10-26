@@ -6,6 +6,7 @@ environment, what the walk's `NewUberApplier` post (`Hube`) takes.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyNames
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOptsLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
@@ -100,7 +101,41 @@ theorem snap_backendOptsOk
       lease.lessorInv lp E.γ.leases ⊢
     apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be)
       opts' := by
-  sorry
+  subst hγB
+  obtain ⟨Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9⟩ := hopts
+  have hk : (E.γ.withPhys p').kb = some d' := hkb'
+  iintro ⟨#Hpkg, #HS, #Hlg, #HCI, #HB, #Hhook, #HhP, #Hws, #HalA, #HauA, #HleA, #HclA, #Hlcfg,
+    #Hllk, #Hvcn, #Hlinv⟩
+  iunfold apply.backendOptsOk
+  simp only [snapE_s, snapE_γ, snapE_P, snapE_f, snapE_RD, snapE_authMode, snapE_FS, snapE_ciC,
+    snapE_RO, snapE_RW]
+  rw [Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9, hoff]
+  isplitr
+  · iapply snap_lg_nn s γ ci TM E ρ γr lg $$ [$HS $Hlg]
+  isplitr
+  · iapply snap_isApplyKV ws E.s γw p' E.γ hγw $$ Hws
+  isplitr
+  · rw [← hγw]
+    iapply snap_hookOk γw.st p' d' hkb' _ g hgnn $$ [$HhP $Hhook]
+  isplitr
+  · iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL al ast lp cl E.s d'
+      (E.γ.withPhys p') hk _ g hgnn
+    iframe Hpkg HleA Hlcfg Hllk HB Hhook
+    rw [mvcc.StoreNames.withPhys_leases]; iexact Hlinv
+  isplitr
+  · iapply snap_isAuthStore al ast lp cl E.RD d' (E.γ.withPhys p') hk _ g hgnn
+    iframe HauA HB Hhook
+  isplitr
+  · iapply snap_isAlarmStore al ast lp cl d' (E.γ.withPhys p') hk _ g hgnn
+    iframe HalA HB Hhook
+  isplitr
+  · iapply snap_isCluster al ast lp cl d' (E.γ.withPhys p') hk _ g hgnn
+    iframe HclA HB Hhook Hvcn
+  isplitr
+  · iapply snap_isRaftStatus hMID hLead hTerm s γ ci TM E ρ γr $$ [$Hpkg $HS]
+  isplitr
+  · iapply snap_isSnapshotServer hFS s γ ci TM E ρ γr $$ [$Hpkg $HS]
+  · iapply snap_isConsistentIndexer hCIg s _ ci $$ [$Hpkg $HCI]
 
 end proof
 end EtcdGrove
