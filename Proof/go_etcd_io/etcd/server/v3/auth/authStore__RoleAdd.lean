@@ -44,7 +44,7 @@ theorem auth.authStore.RoleAdd.wp_proof
   iunfold roleAddReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -58,8 +58,8 @@ theorem auth.authStore.RoleAdd.wp_proof
     iapply HΦ
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -119,8 +119,8 @@ theorem auth.authStore.RoleAdd.wp_proof
     iapply HΦ
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -193,8 +193,8 @@ theorem auth.authStore.RoleAdd.wp_proof
   iapply HΦ
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; intro h; exact absurd rfl h

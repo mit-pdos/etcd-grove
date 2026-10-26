@@ -311,16 +311,67 @@ def enabledP (st : Loc) (M : AuthMode) (q : Qp) : IProp GF :=
 def enabledHalf (st : Loc) (M : AuthMode) : IProp GF :=
   iprop(∃ b : Bool, aF go!"enabled" st ↦{DFrac.own (1 : Qp).half} b ∗ enabledVerdict M b)
 
+/-- **The admin side's half of `enabled` at `b`** (the auth plan's E2r): `enabledHalf` with its
+value exposed, for the apply thread's checks (`IsAuthEnabled.specL`: the guard's half agrees). -/
+def flagAt (st : Loc) (b : Bool) : IProp GF :=
+  aF go!"enabled" st ↦{DFrac.own (1 : Qp).half} b
+
+theorem enabledHalf_flagAt (st : Loc) (M : AuthMode) :
+    enabledHalf (GF := GF) st M ⊢ ∃ b : Bool, flagAt st b ∗ enabledVerdict M b := by
+  unfold enabledHalf flagAt
+  iintro ⟨%b, H, #Hv⟩
+  iexists b; iframe H Hv
+
+theorem flagAt_enabledHalf (st : Loc) (M : AuthMode) (b : Bool) :
+    flagAt (GF := GF) st b ∗ enabledVerdict M b ⊢ enabledHalf st M := by
+  unfold enabledHalf flagAt
+  iintro ⟨H, #Hv⟩
+  iexists b; iframe H Hv
+
 /-- The `*AuthInfo` `a` at `dq` holds `ai`: `none`, a `nil` pointer; `some info`, the message. -/
 def authInfoAt (a : Loc) (dq : DFrac) (ai : Option AuthInfo) : IProp GF :=
   match ai with
   | none => iprop(⌜a = null⌝)
   | some info => iprop(a ↦{dq} info)
 
-/-- What `rangePermCacheMu` guards at `q` in the mode `M`: the cache's map, `cacheOk`. -/
+/-- What `rangePermCacheMu` guards at `q` in the mode `M`: half of the field `rangePermCache`
+(the other half is the admin side's, `cacheHalf`: only the apply thread replaces the map,
+`refreshRangePermCache`, under the lock, with both halves; the auth plan's E2r, 2026-10-26), the map
+it points to, read-only (`refreshRangePermCache` builds a new map and never writes it again), and
+its model `cacheOk`. -/
 def cacheP (st : Loc) (M : AuthMode) (q : Qp) : IProp GF :=
-  iprop(∃ (mp : GoMap) (Mp : GMap GoString Loc), aF go!"rangePermCache" st ↦{DFrac.own q} mp ∗
-    mp ↦${DFrac.own q} Mp ∗ cacheOk M Mp)
+  iprop(∃ (mp : GoMap) (Mp : GMap GoString Loc), aF go!"rangePermCache" st ↦{DFrac.own q.half} mp ∗
+    mp ↦${DFrac.discard} Mp ∗ cacheOk M Mp)
+
+/-- **A cache map of the state `sta`** (persistent): its keys `sta`'s users, each entry the
+user's permissions at `sta` (`cacheEntryIs`). -/
+def cacheOf (sta : AuthState) (Mp : GMap GoString Loc) : IProp GF :=
+  iprop(⌜∀ u, (Mp !! u).isSome ↔ (sta.users !! u).isSome⌝ ∗
+    [∗map] u ↦ p ∈ Mp, ∃ Lr Lw, permsAt p Lr Lw ∗ ⌜cacheEntryIs sta u Lr Lw⌝)
+
+set_option synthInstance.maxSize 512 in
+instance cacheOf_persistent (sta : AuthState) (Mp : GMap GoString Loc) :
+    Persistent (cacheOf (GF := GF) sta Mp) := by
+  unfold cacheOf; infer_instance
+
+/-- **The admin side's half of the cache at the state `sta`** (the auth plan's E2r): half of the
+field `rangePermCache`, the map it points to (read-only) and the map's model, `sta`'s cache
+(`cacheOf`); what `refreshRangePermCache` gives the apply thread back. -/
+def cacheAt (st : Loc) (sta : AuthState) : IProp GF :=
+  iprop(∃ (mp : GoMap) (Mp : GMap GoString Loc),
+    aF go!"rangePermCache" st ↦{DFrac.own (1 : Qp).half} mp ∗ mp ↦${DFrac.discard} Mp ∗ cacheOf sta Mp)
+
+/-- **The admin side's half of the cache** in the mode `M` (the auth plan's E2r; in `authWR`): at
+some state of the mode (`authSnap`). -/
+def cacheHalf (st : Loc) (M : AuthMode) : IProp GF :=
+  iprop(∃ sta : AuthState, cacheAt st sta ∗ authSnap M sta)
+
+theorem cacheHalf_of_at (st : Loc) (M : AuthMode) (sta : AuthState) :
+    cacheAt (GF := GF) st sta ⊢ authSnap M sta -∗ cacheHalf st M := by
+  iintro H #Hs
+  iunfold cacheHalf
+  iexists sta
+  iframe H Hs
 
 /-- **The reads of an `UnsafeAuthReader`** `ti` (a read or a batch transaction) under the held
 token `Hs st` of the state `st`: `UnsafeGetUser(name)` and `UnsafeGetRole(name)` return the
@@ -867,10 +918,11 @@ theorem authWBackendOk_of_R (be : GoInterface) (M : AuthMode) (P : IProp GF) (f 
 /-- **The admin side's write resource** of the store `st` (what the apply package's write right
 `RW` lends its writes, `apply/AuthDerive.lean`): the store's user's half of `be` (the other half
 is `beMu`'s, `beP`; `Recover` takes both) with the backend's write side, the write token, and the
-admin side's half of `enabled` (`enabledHalf`). -/
+admin side's halves of `enabled` (`enabledHalf`) and of the permission cache (`cacheHalf`, the
+auth plan's E2r). -/
 def authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) : IProp GF :=
   iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
-    T ∗ enabledHalf st M)
+    T ∗ enabledHalf st M ∗ cacheHalf st M)
 
 /-- **The admin side's share of the token provider** of the store `st` in the mode `M` (the auth
 plan's S5d, 2026-10-25): the store's provider with its contract at some admin resource `A`, and

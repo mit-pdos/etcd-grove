@@ -71,6 +71,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
+public import Proof.go_etcd_io.etcd.server.v3.auth.Latest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_uber_org.zap.Int
 
@@ -1250,6 +1251,29 @@ end backend
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
+
+section latest
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The apply thread's permission check at the latest state** (the auth plan's E2r,
+`auth/Latest.lean`): with the admin side's authority `hs` and its halves of the flag and the
+cache tied to the latest state (`latestTie`), `isOpPermitted`'s verdict is the latest state's
+(`permVerdictL`), every callee linked. -/
+theorem auth_op_permitted_latest :
+    auth.authStore.isOpPermitted.specL (GF := GF) (hG := hG) :=
+  auth.authStore.isOpPermitted.wp_latest auth.authStore.IsAuthEnabled.wp_latest
+    auth.authStore.wp_Revision zap.wp_Uint64 zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn
+    zap.wp_String zap.Logger.wp_Error auth.wp_hasRootRole auth.authStore.lockedReadTx.wp_latest
+    (auth.authStore.isRangeOpPermitted.wp_latest zap.wp_String zap.Logger.wp_Error
+      auth.wp_checkKeyInterval auth.wp_checkKeyPoint)
+
+end latest
+
+#print axioms Perennial.EtcdGrove.auth_op_permitted_latest
 
 section tokens
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

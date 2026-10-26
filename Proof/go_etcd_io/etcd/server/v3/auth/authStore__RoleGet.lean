@@ -36,7 +36,7 @@ theorem auth.authStore.RoleGet.wp_proof :
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eNF, #HeNF⟩
   simp only [AuthErr.var]
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, -, -, #HRds⟩
@@ -55,8 +55,8 @@ theorem auth.authStore.RoleGet.wp_proof :
     (try wp_auto)
     iapply HΦ
     iframe Hown
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists sta
     isplitr
     · ipureintro; exact Hl
@@ -97,8 +97,8 @@ theorem auth.authStore.RoleGet.wp_proof :
     (try wp_auto)
     iapply HΦ
     iframe Hown
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists sta
     isplitr
     · ipureintro; exact Hl
@@ -121,8 +121,8 @@ theorem auth.authStore.RoleGet.wp_proof :
   (try wp_auto)
   iapply HΦ
   iframe Hown
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   iexists sta
   isplitr
   · ipureintro; exact Hl

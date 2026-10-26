@@ -54,7 +54,7 @@ theorem auth.authStore.AuthEnable.wp_proof
   icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
   subst Htpi
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   iunfold enabledHalf at Hen
   icases Hen with ⟨%en, Hen, #Hev⟩
   ihave #Hbeok' := Hbeok
@@ -89,8 +89,8 @@ theorem auth.authStore.AuthEnable.wp_proof
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hca; isplitl [Hbe]
       · iexists (GoInterface.ok bi); iframe Hbe Hbeok
       · iunfold enabledHalf; iexists true; iframe Hen Hev
     iexists true
@@ -153,8 +153,8 @@ theorem auth.authStore.AuthEnable.wp_proof
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hca; isplitl [Hbe]
       · iexists (GoInterface.ok bi); iframe Hbe Hbeok
       · iunfold enabledHalf; iexists false; iframe Hen Hev
     iexists false
@@ -199,8 +199,8 @@ theorem auth.authStore.AuthEnable.wp_proof
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hca; isplitl [Hbe]
       · iexists (GoInterface.ok bi); iframe Hbe Hbeok
       · iunfold enabledHalf; iexists false; iframe Hen Hev
     iexists false
@@ -247,8 +247,8 @@ theorem auth.authStore.AuthEnable.wp_proof
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with enabled := true } : AuthState))
-    $$ [HL]
-  · iframe Hpkg Hinv
+    $$ [HL Hca]
+  · iframe Hpkg Hinv Hca
     isplitr
     · iapply HRd
     isplitl [HL]
@@ -257,7 +257,8 @@ theorem auth.authStore.AuthEnable.wp_proof
     iframe Hsnap
     ipureintro; exact Hfit
   inext
-  iintro HL
+  iintro ⟨HL, Hca⟩
+  ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
   iapply HRR $$ %({ st0 with enabled := true } : AuthState) HL
@@ -299,8 +300,8 @@ theorem auth.authStore.AuthEnable.wp_proof
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWR; iframe HT Hca; isplitl [Hbe]
     · iexists (GoInterface.ok bi); iframe Hbe Hbeok
     · iunfold enabledHalf; iexists true; iframe Hen Hev2
   iexists false

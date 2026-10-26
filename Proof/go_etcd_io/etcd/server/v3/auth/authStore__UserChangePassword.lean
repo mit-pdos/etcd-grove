@@ -56,7 +56,7 @@ theorem auth.authStore.UserChangePassword.wp_proof
   iunfold userChangePasswordReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN, ⟨%pw, %hpw, #Hpw, #Hhpw⟩⟩
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -97,8 +97,8 @@ theorem auth.authStore.UserChangePassword.wp_proof
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -159,8 +159,8 @@ theorem auth.authStore.UserChangePassword.wp_proof
       · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hen Hca]
+      · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
         · ipureintro; intro _; rfl
@@ -217,8 +217,8 @@ theorem auth.authStore.UserChangePassword.wp_proof
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
       iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState))
-        $$ [HL]
-      · iframe Hpkg Hinv
+        $$ [HL Hca]
+      · iframe Hpkg Hinv Hca
         isplitr
         · iapply HRd
         isplitl [HL]
@@ -227,7 +227,8 @@ theorem auth.authStore.UserChangePassword.wp_proof
         iframe Hsnap
         ipureintro; exact permsFit_rev _ rev Hfit'
       inext
-      iintro HL
+      iintro ⟨HL, Hca⟩
+      ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
       (try wp_auto)
       wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
       iapply HInval $$ %name [HA] [-]
@@ -266,8 +267,8 @@ theorem auth.authStore.UserChangePassword.wp_proof
       · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hen Hca]
+      · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
         · ipureintro; intro h; exact absurd rfl h
@@ -323,8 +324,8 @@ theorem auth.authStore.UserChangePassword.wp_proof
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
     iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState))
-      $$ [HL]
-    · iframe Hpkg Hinv
+      $$ [HL Hca]
+    · iframe Hpkg Hinv Hca
       isplitr
       · iapply HRd
       isplitl [HL]
@@ -333,7 +334,8 @@ theorem auth.authStore.UserChangePassword.wp_proof
       iframe Hsnap
       ipureintro; exact permsFit_rev _ rev Hfit'
     inext
-    iintro HL
+    iintro ⟨HL, Hca⟩
+    ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
     (try wp_auto)
     wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
     iapply HInval $$ %name [HA] [-]
@@ -372,8 +374,8 @@ theorem auth.authStore.UserChangePassword.wp_proof
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
       · ipureintro; intro h; exact absurd rfl h

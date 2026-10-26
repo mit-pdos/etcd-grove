@@ -46,7 +46,7 @@ theorem auth.authStore.AuthDisable.wp_proof
   icases Htpok with ⟨%tpi, %Htpi, -, -, #HDisable, -, -⟩
   subst Htpi
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   iunfold enabledHalf at Hen
   icases Hen with ⟨%en, Hen, #Hev⟩
   ihave #Hbeok' := Hbeok
@@ -78,8 +78,8 @@ theorem auth.authStore.AuthDisable.wp_proof
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hca; isplitl [Hbe]
       · iexists (GoInterface.ok bi); iframe Hbe Hbeok
       · iunfold enabledHalf; iexists false; iframe Hen Hev
     iexists false
@@ -161,8 +161,8 @@ theorem auth.authStore.AuthDisable.wp_proof
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWR; iframe HT Hca; isplitl [Hbe]
     · iexists (GoInterface.ok bi); iframe Hbe Hbeok
     · iunfold enabledHalf; iexists false; iframe Hen Hev2
   iexists true

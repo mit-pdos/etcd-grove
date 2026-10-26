@@ -119,7 +119,7 @@ theorem auth.authStore.RoleDelete.wp_proof
   iunfold roleDeleteReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   iunfold enabledHalf at Hen
   icases Hen with ⟨%en, Hen, #Hev⟩
   ihave #Hbeok' := Hbeok
@@ -157,8 +157,8 @@ theorem auth.authStore.RoleDelete.wp_proof
     iapply HΦ
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hca; isplitl [Hbe]
       · iexists (GoInterface.ok bi); iframe Hbe Hbeok
       · iunfold enabledHalf; iexists true; iframe Hen Hev
     isplitr
@@ -211,8 +211,8 @@ theorem auth.authStore.RoleDelete.wp_proof
     iapply HΦ
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hca; isplitl [Hbe]
       · iexists (GoInterface.ok bi); iframe Hbe Hbeok
       · iunfold enabledHalf; iexists en; iframe Hen Hev
     isplitr
@@ -478,8 +478,8 @@ theorem auth.authStore.RoleDelete.wp_proof
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post)
       ({ delRole st0 role with revision := rev } : AuthState))
-    $$ [HL]
-  · iframe Hpkg Hinv
+    $$ [HL Hca]
+  · iframe Hpkg Hinv Hca
     isplitr
     · iapply HRd
     isplitl [HL]
@@ -488,7 +488,8 @@ theorem auth.authStore.RoleDelete.wp_proof
     iframe Hsnap
     ipureintro; exact permsFit_rev _ rev Hfit'
   inext
-  iintro HL
+  iintro ⟨HL, Hca⟩
+  ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   wp_apply h_String _ _ as %f1 -
   (try wp_auto)
@@ -515,8 +516,8 @@ theorem auth.authStore.RoleDelete.wp_proof
   iapply HΦ
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWR; iframe HT Hca; isplitl [Hbe]
     · iexists (GoInterface.ok bi); iframe Hbe Hbeok
     · iunfold enabledHalf; iexists en; iframe Hen Hev
   isplitl [Header]

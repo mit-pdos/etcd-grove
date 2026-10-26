@@ -229,7 +229,7 @@ theorem authStoreKit_on
     ipureintro; rfl
   ihave ⟨Hopen, Hhook, Hrbo⟩ := Hback $$ HPost
   iunfold auth.authWRAt at HWR
-  icases HWR with ⟨⟨Hbe, #Hwok⟩, HT', Hen⟩
+  icases HWR with ⟨⟨Hbe, #Hwok⟩, HT', Hen, Hca⟩
   -- (E2k) the boot state's revision is `0`: the history `[bootState, bump bootState]`, its fuel
   have hhs' : hs' = [auth.bootState, auth.bump auth.bootState] := by
     rcases Hhs' with ⟨h, -⟩ | ⟨-, h⟩
@@ -237,12 +237,12 @@ theorem authStoreKit_on
     · exact h
   ihave ⟨#HisReq, #HisAuth⟩ := authSrvContracts_on hCtx hTLS hPut hRange hDel hAdmin hEn h_Revision
     stp R γa $$ [$Hpkg $Hinv]
-  ihave HAR : authApplyRes (.on γa) stp $$ [Hown' Hfu HT' Hen HtpAd]
+  ihave HAR : authApplyRes (.on γa) stp $$ [Hown' Hfu HT' Hen Hca HtpAd]
   · unfold authApplyRes
     iexists hs', P, f, T, (authBkIface abl)
     subst hhs'
     iunfold auth.authOwnFu
-    iframe Hown' Hfu HT' Hen HtpAd Hwok
+    iframe Hown' Hfu HT' Hen Hca HtpAd Hwok
   iapply HΦ
   iframe Hopen Hhook Hrbo
   iexists (auth.authRd stp R (.on γa)), stp

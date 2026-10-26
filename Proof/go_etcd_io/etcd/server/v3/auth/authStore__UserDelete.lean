@@ -56,7 +56,7 @@ theorem auth.authStore.UserDelete.wp_proof
   iunfold userDeleteReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   iunfold enabledHalf at Hen
   icases Hen with ⟨%en, Hen, #Hev⟩
   ihave #Hbeok' := Hbeok
@@ -98,8 +98,8 @@ theorem auth.authStore.UserDelete.wp_proof
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hca; isplitl [Hbe]
       · iexists (GoInterface.ok bi); iframe Hbe Hbeok
       · iunfold enabledHalf; iexists true; iframe Hen Hev
     isplitr
@@ -156,8 +156,8 @@ theorem auth.authStore.UserDelete.wp_proof
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hca; isplitl [Hbe]
       · iexists (GoInterface.ok bi); iframe Hbe Hbeok
       · iunfold enabledHalf; iexists en; iframe Hen Hev
     isplitr
@@ -200,8 +200,8 @@ theorem auth.authStore.UserDelete.wp_proof
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post) ({ delUser st0 name with revision := rev } : AuthState))
-    $$ [HL]
-  · iframe Hpkg Hinv
+    $$ [HL Hca]
+  · iframe Hpkg Hinv Hca
     isplitr
     · iapply HRd
     isplitl [HL]
@@ -210,7 +210,8 @@ theorem auth.authStore.UserDelete.wp_proof
     iframe Hsnap
     ipureintro; exact permsFit_rev _ rev Hfit'
   inext
-  iintro HL
+  iintro ⟨HL, Hca⟩
+  ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
   iapply HInval $$ %name [HA] [-]
@@ -254,8 +255,8 @@ theorem auth.authStore.UserDelete.wp_proof
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWR; iframe HT Hca; isplitl [Hbe]
     · iexists (GoInterface.ok bi); iframe Hbe Hbeok
     · iunfold enabledHalf; iexists en; iframe Hen Hev
   isplitl [Header]

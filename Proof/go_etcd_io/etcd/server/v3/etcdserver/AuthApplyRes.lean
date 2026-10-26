@@ -38,7 +38,7 @@ def authApplyRes (M : auth.AuthMode) (stl : Loc) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : val) (T : IProp GF)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.authWBackendOk be (.on γa) P f T ∗ T ∗
-      auth.enabledHalf stl (.on γa) ∗ auth.tpAdmin stl (.on γa))
+      auth.enabledHalf stl (.on γa) ∗ auth.cacheHalf stl (.on γa) ∗ auth.tpAdmin stl (.on γa))
   | _ => iprop(True)
 
 /-- **The server's auth resource for its apply thread** (E2k): the store its `authStore` field

@@ -54,7 +54,7 @@ theorem auth.authStore.Authenticate.wp_proof
   icases Htpok with ⟨%Atp, %tpi, %Htpi, -, -, -, -, #HAssign⟩
   subst Htpi
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Henh⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Henh, Hca⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, -, -, #HRds⟩
@@ -70,8 +70,8 @@ theorem auth.authStore.Authenticate.wp_proof
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     iframe Hen Hown
-    isplitl [Hbe HT Henh]
-    · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Henh Hca]
+    · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iunfold authenticated
     ileft; ipureintro; exact ⟨by simp, rfl⟩
   (try wp_auto)
@@ -90,8 +90,8 @@ theorem auth.authStore.Authenticate.wp_proof
     isplitl [HPost]
     · iexact HPost
     iframe Hen Hown
-    isplitl [Hbe HT Henh]
-    · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Henh Hca]
+    · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iunfold authenticated
     ileft; ipureintro; exact ⟨by simp, rfl⟩
   ihave Hu' := userOut_some u sta username Hif $$ Hu
@@ -121,8 +121,8 @@ theorem auth.authStore.Authenticate.wp_proof
       isplitl [HPost]
       · iexact HPost
       iframe Hen Hown
-      isplitl [Hbe HT Henh]
-      · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Henh Hca]
+      · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       iunfold authenticated
       ileft; ipureintro; exact ⟨by simp, rfl⟩
     | nil =>
@@ -142,8 +142,8 @@ theorem auth.authStore.Authenticate.wp_proof
         isplitl [HPost]
         · iexact HPost
         iframe Hen Hown
-        isplitl [Hbe HT Henh]
-        · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        isplitl [Hbe HT Henh Hca]
+        · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
         iunfold authenticated
         iright
         isplitr
@@ -174,8 +174,8 @@ theorem auth.authStore.Authenticate.wp_proof
         isplitl [HPost]
         · iexact HPost
         iframe Hen Hown
-        isplitl [Hbe HT Henh]
-        · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        isplitl [Hbe HT Henh Hca]
+        · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
         iunfold authenticated
         iright
         isplitr
@@ -203,8 +203,8 @@ theorem auth.authStore.Authenticate.wp_proof
       isplitl [HPost]
       · iexact HPost
       iframe Hen Hown
-      isplitl [Hbe HT Henh]
-      · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Henh Hca]
+      · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       iunfold authenticated
       ileft; ipureintro; exact ⟨by simp, rfl⟩
     (try wp_auto)
@@ -225,8 +225,8 @@ theorem auth.authStore.Authenticate.wp_proof
       isplitl [HPost]
       · iexact HPost
       iframe Hen Hown
-      isplitl [Hbe HT Henh]
-      · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Henh Hca]
+      · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       iunfold authenticated
       ileft; ipureintro; exact ⟨by simp, rfl⟩
     | nil =>
@@ -246,8 +246,8 @@ theorem auth.authStore.Authenticate.wp_proof
         isplitl [HPost]
         · iexact HPost
         iframe Hen Hown
-        isplitl [Hbe HT Henh]
-        · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        isplitl [Hbe HT Henh Hca]
+        · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
         iunfold authenticated
         iright
         isplitr
@@ -278,8 +278,8 @@ theorem auth.authStore.Authenticate.wp_proof
         isplitl [HPost]
         · iexact HPost
         iframe Hen Hown
-        isplitl [Hbe HT Henh]
-        · iunfold authWR; iframe HT Henh; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        isplitl [Hbe HT Henh Hca]
+        · iunfold authWR; iframe HT Henh Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
         iunfold authenticated
         iright
         isplitr

@@ -164,7 +164,7 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
   icases Hr with ⟨%Hrnn, #HN, %pp, #HP, Hw⟩
   (try wp_auto)
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -180,8 +180,8 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
     iapply HΦ
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -217,8 +217,8 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
       iapply HΦ
       isplitl [Hcs]
       · iapply csContract_noWrite $$ Hcs
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hen Hca]
+      · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
         · ipureintro; intro _; rfl
@@ -267,8 +267,8 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
       iapply HΦ
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hen Hca]
+      · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
         · ipureintro; intro _; rfl
@@ -482,8 +482,8 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
         (Val #(GoInterface.ok ti)))
       iapply (h_refresh st R M ti (fun x => Lk x Post)
           ({ putRole st0 name rr'.toRole with revision := rev } : AuthState))
-        $$ [HL]
-      · iframe Hpkg Hinv
+        $$ [HL Hca]
+      · iframe Hpkg Hinv Hca
         isplitr
         · iapply HRd
         isplitl [HL]
@@ -492,7 +492,8 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
         iframe Hsnap
         ipureintro; exact permsFit_rev _ rev Hfit'
       inext
-      iintro HL
+      iintro ⟨HL, Hca⟩
+      ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
       (try wp_auto)
       ihave #Htn' := Htn
       iunfold auth.typeNamesOk at Htn'
@@ -530,8 +531,8 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
       iapply HΦ
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hen Hca]
+      · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
         · ipureintro; intro h; exact absurd rfl h
@@ -651,8 +652,8 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
         (Val #(GoInterface.ok ti)))
       iapply (h_refresh st R M ti (fun x => Lk x Post)
           ({ putRole st0 name rr'.toRole with revision := rev } : AuthState))
-        $$ [HL]
-      · iframe Hpkg Hinv
+        $$ [HL Hca]
+      · iframe Hpkg Hinv Hca
         isplitr
         · iapply HRd
         isplitl [HL]
@@ -661,7 +662,8 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
         iframe Hsnap
         ipureintro; exact permsFit_rev _ rev Hfit'
       inext
-      iintro HL
+      iintro ⟨HL, Hca⟩
+      ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
       (try wp_auto)
       ihave #Htn' := Htn
       iunfold auth.typeNamesOk at Htn'
@@ -699,8 +701,8 @@ theorem auth.authStore.RoleGrantPermission.wp_proof
       iapply HΦ
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hen Hca]
+      · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
         · ipureintro; intro h; exact absurd rfl h

@@ -138,7 +138,7 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
   iunfold roleRevokePermissionReqIs at Hr
   icases Hr with ⟨%Hrnn, #HRole, ⟨%ks, #HKey, #Hks⟩, ⟨%res, #HRE, #Hres⟩⟩
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
@@ -175,8 +175,8 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
     iapply HΦ
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -368,8 +368,8 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
     iapply HΦ
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -430,8 +430,8 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post)
       ({ putRole st0 role ps' with revision := rev } : AuthState))
-    $$ [HL]
-  · iframe Hpkg Hinv
+    $$ [HL Hca]
+  · iframe Hpkg Hinv Hca
     isplitr
     · iapply HRd
     isplitl [HL]
@@ -440,7 +440,8 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
     iframe Hsnap
     ipureintro; exact permsFit_rev _ rev Hfit'
   inext
-  iintro HL
+  iintro ⟨HL, Hca⟩
+  ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   wp_apply h_String _ _ as %f1 -
   (try wp_auto)
@@ -475,8 +476,8 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
   iapply HΦ
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; intro h; exact absurd rfl h
