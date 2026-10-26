@@ -1,7 +1,6 @@
 /-
-Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__IsLearner.lean`. Lean-first (no
-Rocq counterpart); the trust boundary of unit P3b (names-only) until 2026-10-26: a call of the
-server's `*RaftCluster`'s `IsLocalMemberLearner`.
+Proof of `EtcdServer.IsLearner` (`server.go`; until D43 M4, 2026-10-26, the trust boundary of
+unit P3b): a call of the server's cluster's `IsLocalMemberLearner`.
 -/
 module
 
@@ -9,8 +8,6 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsLearner
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsLocalMemberLearner
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -27,14 +24,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.IsLearner.wp_proof
-    (hL : membership.RaftCluster.IsLocalMemberLearner.spec (GF := GF) (hG := hG)) :
+    (wp_IsLocalMemberLearner : membership.RaftCluster.IsLocalMemberLearner.spec (GF := GF) (hG := hG)) :
     EtcdServer.IsLearner.spec (GF := GF) (hG := hG) := by
-  intro s c
-  wp_start as ⟨#Hcf, #Hrc, #Hlk⟩
-  (try wp_auto)
-  wp_apply hL c $$ [] as %b -
+  intro s c RM
+  wp_start as ⟨#Hcl, #Hrc⟩
+  ihave #Hmpkg : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply wp_IsLocalMemberLearner c RM as %b -
   · iframe #
-  (try wp_auto)
   iapply HΦ
   itrivial
 

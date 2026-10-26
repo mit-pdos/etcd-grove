@@ -30,6 +30,7 @@ module
 
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
+public import GeneratedProof.encoding.json
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
@@ -340,15 +341,42 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.pkg.v3.notify
 
+-- `encoding/json` (names only; D43 M4, 2026-10-26: membership's `ValidateConfigurationChange`
+-- unmarshals a conf change's context; moved here from the Kubernetes store's `Base.lean`)
+namespace encoding.json
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.encoding.json :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
+  build_get_is_pkg_init_wf
+
+end encoding.json
+
 -- `api/membership` (names only but `RaftCluster.ID`; 2026-10-13, the request path's unit 4c: the
 -- package variable `ClusterVersionMetrics`, which the server's `start` sets, holds some
 -- `*GaugeVec`, with its label name `cluster_version`: D19l (iii), 2026-10-18)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
-  define_is_pkg_init iprop(∃ gv : Loc,
+/-- (D43 M4, 2026-10-26) The package's error variables and their messages (`errors.go`: each an
+`errors.New(msg)`). -/
+def membershipErrMsgs : List (GoString × GoString) :=
+  [(ErrIDRemoved, go!"membership: ID removed"),
+    (ErrIDExists, go!"membership: ID exists"),
+    (ErrIDNotFound, go!"membership: ID not found"),
+    (ErrPeerURLexists, go!"membership: peerURL exists"),
+    (ErrMemberNotLearner, go!"membership: can only promote a learner member"),
+    (ErrTooManyLearners, go!"membership: too many learner members in cluster")]
+
+/-- `api/membership`'s package facts: `ClusterVersionMetrics` (above), and (D43 M4, 2026-10-26)
+every error variable its `errors.New` error (`errorsNewVars membershipErrMsgs`). -/
+abbrev membershipInit : IProp GF :=
+  iprop((∃ gv : Loc,
     globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics ↦□ gv ∗
-    ⌜EtcdGrove.prometheus.vecLabels gv [go!"cluster_version"]⌝)
+    ⌜EtcdGrove.prometheus.vecLabels gv [go!"cluster_version"]⌝) ∗
+    EtcdGrove.errorsNewVars membershipErrMsgs)
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
+  define_is_pkg_init membershipInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   build_get_is_pkg_init_wf
 

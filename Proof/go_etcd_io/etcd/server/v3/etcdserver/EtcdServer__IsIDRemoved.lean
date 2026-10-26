@@ -37,7 +37,7 @@ theorem EtcdServer.IsIDRemoved.wp_proof
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_IsIDRemoved c x
+  wp_apply (membership.RaftCluster.IsIDRemoved.spec_static wp_IsIDRemoved c x)
   · iframe #
   iapply HΦ
   itrivial

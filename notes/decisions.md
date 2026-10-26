@@ -18753,6 +18753,37 @@ raft's mode; the static examples' statements are unchanged (trust base 718 axiom
   `bootInit γ md`, in the dynamic mode at `srvDec` and the peers' configuration); `NewServer`
   passes `.static`.
 
+**M4 carried out (2026-10-26, branch `membership-m4`; the user's decisions).** The membership
+writers of a removal, and the validation, proved; the static examples unchanged.
+- *M4a* (the user's decision: the fork fix): `IsLocalMemberLearner` returns `false` for a removed
+  local member (`goose-lean-learnerfix`, `c00a2dc06`, as etcd-io/etcd#22188;
+  `issues/etcd-unary-interceptor-learner-removed.md`); it and `EtcdServer.IsLearner` translated and
+  proved (`EtcdServer.IsLearner.wp_proof` no longer an axiom), `IsLearner`'s spec without
+  `localKept`. (`lean` proved both meanwhile, `4bbd466c3a`, over the unfixed code with the premise
+  `localKept`; the merge keeps M4's, without it, and `lean`'s `IsMemberExist`, over `isRaftCluster`.)
+- *M4b.* `isRaftCluster` keeps its definition (the boot contract names it: the static examples'
+  premises); the lock invariant generally, `rcLockInvG c RM` (the side condition `RM` of the local
+  id, the members map and the removed map; the local id's read-only cell now the invariant's own),
+  `isRaftCluster` its static instance (`rcStatic`, by `isMutex`'s non-expansiveness:
+  `isRaftCluster_static`), the dynamic one `rcDyn γ` (the removed map's ghost halves, the writer's
+  `rcRemovedOwn`). `Members`, `IsIDRemoved` (the removed map's entry, under what `RM` says of it),
+  `IsLocalMemberLearner` and `IsLearner` proved at any `RM`; their callers use the static
+  corollaries (`spec_static`), so no caller's statement changed.
+- *M4c.* `RemoveMember` translated and proved in the dynamic instance: the backend's delete by the
+  caller's triple (`beDeleteOk`: the buckets are the caller's, M5's), the member out of the map,
+  the removed map and both ghost halves extended, the log lines. Trust boundary +1:
+  `updateMembershipMetric` (names only: the `known_peers` gauge).
+- *M4d* (the user's decision: proved, `json.Unmarshal` an axiom): `ValidateConfigurationChange`
+  translated and proved for `AddNode` (not a promotion) and `RemoveNode`: the backend's read by the
+  caller's triple (`beReadOk`, its answer `membersRead` of the members' peer URLs and the removed
+  map), the verdict `ccValidM` (not removed; an `AddNode` of a non-member whose peer URLs no member
+  has; a `RemoveNode` of a member), `nil` exactly when it holds. Trust boundary +2:
+  `encoding.json.Unmarshal.wp_proof` (into a `*ConfigChangeContext`, over the opaque
+  `ccContextOf`/`ccMemberOf`) and membership's `errorsNewVarsInit` (its six error variables'
+  `errors.New`, now package facts, `membershipInit`; they leave `opaqueInitsOk`). The membership
+  package imports `raftpb` and `encoding/json` (the k8s-apiserver project's names-only translation,
+  its package instance moved to `etcdserver/apply/Base.lean`).
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL

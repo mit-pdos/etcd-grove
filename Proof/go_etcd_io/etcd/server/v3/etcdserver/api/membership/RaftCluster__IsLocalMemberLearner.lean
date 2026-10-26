@@ -1,8 +1,8 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/RaftCluster__IsLocalMemberLearner.lean`.
-Lean-first (no Rocq counterpart); 2026-10-26: under the cluster's mutex, the members map has an
-entry for `c.localID` (`rcLockInv`'s `rcLocalIn`), so the `Panic` branch is dead; the entry's
-member is owned (`ownMember`), its `IsLearner` field read and returned.
+Lean-first (no Rocq counterpart); D43 M4 (2026-10-26): under the cluster's mutex, a lookup of the
+local id in the members map, the member's `IsLearner` read if found (its record owned in the
+map, `rcLockInv`).
 -/
 module
 
@@ -26,60 +26,81 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- A member's `IsLearner` field, borrowed. -/
+theorem membership.ownMember_isLearner_acc (m : Loc) :
+    membership.ownMember (GF := GF) m ⊢ ∃ il : Bool,
+      membership.mIsLearnerAddr m ↦ il ∗ (membership.mIsLearnerAddr m ↦ il -∗ membership.ownMember m) := by
+  unfold membership.ownMember membership.memberIs
+  iintro ⟨%id, %Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
+  iexists il
+  iframe Hil
+  iintro Hil
+  iexists id
+  isplitr
+  · ipureintro; exact Hnn
+  iexists pu, cu, il, nm, pus, cus
+  iframe
+  ipureintro; exact Hpok
+
 theorem membership.RaftCluster.IsLocalMemberLearner.wp_proof :
     membership.RaftCluster.IsLocalMemberLearner.spec (GF := GF) (hG := hG) := by
-  intro c
+  intro c RM
   wp_start as #Hrc
-  iunfold membership.localKept at Hrc
-  iunfold membership.isRaftCluster at Hrc
+  iunfold membership.isRaftClusterG at Hrc
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
-  iunfold membership.rcLockInv at Hinv
-  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, #Hloc, %rp, Hrf, Hrm⟩
-  ihave #Hloc' := Hloc
-  iunfold membership.rcLocalIn at Hloc'
-  icases Hloc' with ⟨%lid, #Hlid, %Hin⟩
-  obtain ⟨m, Hm⟩ := Option.ne_none_iff_exists'.1 Hin
+  iunfold membership.rcLockInvG at Hinv
+  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, %lid, %rp, %rm, #Hlid, Hrf, Hrm, HRM⟩
   (try wp_auto)
   wp_apply wp_map_lookup2 _ _ mp mm lid (DFrac.own 1) $$ [$Hmap] as Hmap
-  rw [Hm]
-  simp only [Option.getD_some, Option.isSome_some, decide_true]
   (try wp_auto)
-  icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : w64) (m : Loc) =>
-      membership.ownMember (GF := GF) m) Hm).1 $$ Hmems with ⟨Hown, Hclose⟩
-  iunfold membership.ownMember at Hown
-  icases Hown with ⟨%mid, Hmi⟩
-  iunfold membership.memberIs at Hmi
-  icases Hmi with ⟨%Hnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus,
-    %Hpok⟩
-  (try wp_auto)
-  ihave Hmems := Hclose $$ [Hid Hpu Hil Hnm Hcu Hpus Hcus]
-  · iunfold membership.ownMember
-    iexists mid
-    iunfold membership.memberIs
-    isplitr
-    · ipureintro; exact Hnn
-    iexists pu, cu, il, nm, pus, cus
-    iframe
-    ipureintro; exact Hpok
-  wp_method_call
-  wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrf Hrm]
-  · inext
-    iunfold membership.rcLockInv
+  -- the lock invariant, as it was
+  ihave Hclose : iprop(membership.rcMembersAddr c ↦ mp -∗ mp ↦$ mm -∗
+      ([∗map] _k ↦ m ∈ mm, membership.ownMember m) -∗ membership.rcLockInvG c RM)
+    $$ [Hrf Hrm HRM]
+  · iintro Hmf Hmap Hmems
+    iunfold membership.rcLockInvG
     iexists mp, mm
-    iframe Hmf Hmap Hmems Hloc
+    iframe Hmf Hmap Hmems
     isplitr
     · ipureintro; exact Hsz
-    iexists rp
+    iexists lid, rp, rm
     iframe
-  (try wp_auto)
-  iapply HΦ
-  itrivial
+    iexact Hlid
+  cases Hm : mm !! lid with
+  | none =>
+    -- (the fork's fix) the local member removed: no learner
+    simp only [Option.getD_none, Option.isSome_none]
+    (try wp_auto)
+    wp_method_call
+    wp_call
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hclose]
+    · inext
+      iapply Hclose $$ Hmf Hmap Hmems
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  | some m =>
+    simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
+    (try wp_auto)
+    icases (BigSepM.bigSepM_lookup_acc (Φ := fun _ m => membership.ownMember (GF := GF) m) Hm).1
+      $$ Hmems with ⟨Hmem, Hmems⟩
+    icases membership.ownMember_isLearner_acc m $$ Hmem with ⟨%il, Hil, Hmem⟩
+    wp_auto
+    ihave Hmem := Hmem $$ Hil
+    ihave Hmems := Hmems $$ Hmem
+    wp_method_call
+    wp_call
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hclose]
+    · inext
+      iapply Hclose $$ Hmf Hmap Hmems
+    (try wp_auto)
+    iapply HΦ
+    itrivial
 
 end proof
 

@@ -184,12 +184,7 @@ instance k8s_io_apimachinery_pkg_util_validation_field_get_is_pkg_init_wf_inst :
 -- `encoding/base64`: its instance is in `Proof/encoding/base64/Base.lean` (the auth plan's E2x,
 -- 2026-10-26: the server reads its `StdEncoding`)
 
-instance encoding_json_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.encoding.json :=
-  define_is_pkg_init iprop(True)
-instance encoding_json_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
-  build_get_is_pkg_init_wf
+-- `encoding/json`'s instance: `etcdserver/apply/Base.lean` (D43 M4, 2026-10-26: membership's).
 
 instance path_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.path :=
