@@ -30,7 +30,7 @@ end `[0]`), an atomic update by the transaction (`kvOpStep`); persistent
 if the client's writes may be delivered more than once (`□?dup`): `nil` and the reply's message
 `m` with the state `σ` the update fired at (`Q σ` if writing, `□ Q σ` if a linearizable read), the
 reply's verdict, responses and revision as the run's at `σ`, `σ` a well-formed small log's state
-(`kvLogOk`, D47); or a client error (`kvErr`, through
+(`kvLogOk`, D47), and so the state after a writing transaction's changes; or a client error (`kvErr`, through
 `ContextError`) and no reply. The builder is spent (its slices are now the
 request's). -/
 abbrev txn.Commit.spec : Prop :=
@@ -57,7 +57,9 @@ abbrev txn.Commit.spec : Prop :=
           opRespsRel false ((txnWireOf b.model).branch m.succeeded) (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.2 m.resps ∧
           m.hdr.revision = W64 ((if txn.txnReadonly (txnWireOf b.model) then σ.rev else
             (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1).rev : Nat) : Int) ∧
-          σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝) ∨
+          σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ ∧
+          (txn.txnReadonly (txnWireOf b.model) = false →
+            kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1))⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 
 end spec

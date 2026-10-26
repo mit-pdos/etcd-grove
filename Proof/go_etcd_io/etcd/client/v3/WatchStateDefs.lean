@@ -11,8 +11,9 @@ firing of the caller's read update; the client watcher's pipeline (`InvWatch.lea
   the log's (`rangeEvents_kvStateOf`, `mvcc.logEvents`);
 * `watchStateRespOk o σ c c' v r`: a response `v` (modelled by `r`), received when the stream is
   at revision `c` and leaving it at `c'`, is an error (position kept), a response without events
-  that is not a progress notification (position kept), a progress notification at `p` (if `p > c`:
-  `p ≤ σ.rev`, no event in `(c, p]`, position `p`; else the position kept), or events: exactly
+  that is not a progress notification (position kept), a progress notification at `p ≥ c`
+  (position `p`; unless it is at the watch's start, `c = p = rev - 1`: `p ≤ σ.rev`, no event in
+  `(c, p]`), or events: exactly
   `rangeEvents σ o (c + 1) (c' + 1)` for some `c < c' ≤ σ.rev` (`eventsIs`: each event's type,
   key, revision and key-value); when the position moves, `σ` is a well-formed small log's state
   through the new one (`kvLogOkTo`, D47);
@@ -121,11 +122,12 @@ def watchStateRespOk (o : OpFull) (σ : KVState) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
   iprop((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
     ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
-    ⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z r.hdrRev ∧
-      (sint.Z c < sint.Z r.hdrRev → c' = r.hdrRev ∧ sint.Z r.hdrRev ≤ (σ.rev : Int) ∧
-        σ.rangeEvents o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = [] ∧
-        kvLogOkTo σ (sint.nat r.hdrRev)) ∧
-      (sint.Z r.hdrRev ≤ sint.Z c → c' = c)⌝ ∨
+    ⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z c ∧ sint.Z c ≤ sint.Z r.hdrRev ∧
+      c' = r.hdrRev ∧
+      ((sint.Z c = sint.Z r.hdrRev ∧ sint.Z c + 1 = sint.Z o.base.rev) ∨
+        (sint.Z r.hdrRev ≤ (σ.rev : Int) ∧
+          σ.rangeEvents o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = [] ∧
+          kvLogOkTo σ (sint.nat r.hdrRev)))⌝ ∨
     (⌜¬ watchErr v ∧ r.events ≠ [] ∧ 0 ≤ sint.Z c ∧ sint.Z c < sint.Z c' ∧
         sint.Z c' ≤ (σ.rev : Int) ∧
         (r.events.getLast?.map EvModel.rev) = some c' ∧ kvLogOkTo σ (sint.nat c')⌝ ∗
@@ -161,6 +163,36 @@ def watchStateElem (γw : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF
     monoListIdxOwn γw.cur i.toNat c ∗ monoListIdxOwn γw.cur (i.toNat + 1) c' ∗
     watchStateRespOk o σ c c' v r)
 
+/-- **A position of a watch of `o` with the read update's `Q`** (persistent; D47): the watch's start
+(`c + 1` its revision), or a revision of a state the update fired at, well formed through it. -/
+def posQ (o : OpFull) (Q : KVState → IProp GF) (c : w64) : IProp GF :=
+  iprop(⌜sint.Z c + 1 = sint.Z o.base.rev⌝ ∨
+    ∃ σ : KVState, □ Q σ ∗ ⌜0 ≤ sint.Z c ∧ sint.Z c ≤ (σ.rev : Int) ∧ kvLogOkTo σ (sint.nat c)⌝)
+
+instance posQ_persistent (o : OpFull) (Q : KVState → IProp GF) (c : w64) :
+    Persistent (posQ (GF := GF) o Q c) := by
+  unfold posQ; infer_instance
+
+open Iris.ProofMode in
+/-- **A response moves the watch to a position**: the one before, the start, or a revision of the
+state it read. -/
+theorem posQ_of_resp (o : OpFull) (Q : KVState → IProp GF) (σ : KVState) (c c' : w64)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
+    posQ (GF := GF) o Q c ∗ □ Q σ ∗ watchStateRespOk o σ c c' v r ⊢ posQ o Q c' := by
+  iintro ⟨#Hc, #HQ, #Hr⟩
+  unfold watchStateRespOk
+  icases Hr with (⟨%H, -⟩ | %H | %H | ⟨%H, -⟩)
+  · rw [H.2]; iexact Hc
+  · rw [H.2.2.2]; iexact Hc
+  · obtain ⟨-, -, h0, hle, hc', hcase⟩ := H
+    rcases hcase with ⟨heq, hst⟩ | ⟨hrv, -, hok⟩
+    · unfold posQ; ileft; ipureintro; rw [hc', ← heq]; exact hst
+    · unfold posQ; iright; iexists σ; iframe HQ; ipureintro
+      rw [hc']; exact ⟨by omega, hrv, hok⟩
+  · obtain ⟨-, -, h0, hlt, hrv, -, hok⟩ := H
+    unfold posQ; iright; iexists σ; iframe HQ; ipureintro
+    exact ⟨by omega, hrv, hok⟩
+
 end resp
 
 namespace client
@@ -185,12 +217,11 @@ def rawRespOk (γs : mvcc.StoreNames) (o : OpFull) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
   iprop((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
     ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
-    (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z r.hdrRev ∧
-        sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
-      ((⌜sint.Z c < sint.Z r.hdrRev ∧ c' = r.hdrRev ∧ 0 ≤ sint.Z c⌝ ∗
-          ∃ L : mvcc.Log, mvcc.evLog γs L ∗ ⌜sint.Z r.hdrRev < L.length ∧
-            rangeLogEvents L o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = []⌝) ∨
-        ⌜sint.Z r.hdrRev ≤ sint.Z c ∧ c' = c⌝)) ∨
+    (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z c ∧ sint.Z c ≤ sint.Z r.hdrRev ∧
+        c' = r.hdrRev ∧ sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
+      (⌜sint.Z c = sint.Z r.hdrRev⌝ ∨
+        ∃ L : mvcc.Log, mvcc.evLog γs L ∗ ⌜sint.Z r.hdrRev < L.length ∧
+          rangeLogEvents L o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = []⌝)) ∨
     (⌜¬ watchErr v ∧ r.events ≠ [] ∧ 0 ≤ sint.Z c ∧ sint.Z c < sint.Z c' ∧
         (r.events.getLast?.map EvModel.rev) = some c'⌝ ∗
       ∃ (L : mvcc.Log) (kvs : List Loc), mvcc.evLog γs L ∗

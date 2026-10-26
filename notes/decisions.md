@@ -18583,3 +18583,42 @@ these are mvcc's `logEvents`, what the server sends. Neither `srvNoDupKeys` nor 
 premise. The candidate keeps the current completeness promise's scope (a non-empty prefix not all
 `0xff`, `rev ≥ 1`) and one member (`isKvWatcher`); the existing `watcher.Watch.spec` and its
 proofs are unchanged until the candidate is audited.
+
+## D47: the clients' model of etcd an adapter over the KV state; the specs say the state is a well-formed log's (2026-10-26 · the user: "keep EtcdModel as an adapter on top of the new spec", "do (a)")
+
+**The question.** The libraries (the cache, the recipes; concurrency and leasing over an abstract
+model) state their results over `EtcdModel GF`, which the server instantiated with its own facts
+(`v3rpc.etcdModelOfServer`: sealed logs, certificates, the apply thread's revision tokens); their
+contracts were proved at the server's members. With the client's specs stated over etcd's KV state
+(D43, D46), the libraries should rest on those specs only.
+
+**The adapter** (`client/v3/EtcdModelKV.lean`, `etcdModelOfKV γ`). A client keeps the KV state's
+half in an invariant (`kmInv`, D44's "a client's own facts in its invariant") with the append-only
+list of the state's changes (`monoListAuthOwn γ.ch`: every change of the KV is some client's
+update, which fires in the invariant) and the revisions' tokens. `etcdState`/`EtcdStep` are the
+server's definitions over logs the client saw (`kmLog`: a prefix of `[] :: l` for a lower bound
+`l` of the changes, well formed and small), `etcdReachedAt`/`etcdReadAt` a lower bound,
+`etcdRevToken` minted by the adapter's write update (`km_write_au`). Every law is the server's
+proof over `kmLog`: two logs a client saw are in prefix order, as two sealed logs were.
+
+**What the specs had to add (option (a)).** The laws (positive versions, `createRev ≤ modRev ≤ r`)
+are facts about well-formed small logs (`txn.stateAt_client_revs`), which an arbitrary `σ` need
+not be. So every successful KV reply gives `kvLogOk σ` (`KVLogOk.lean`: `σ = kvStateOf σ.log`, its
+log `LogWf'`, fewer than `2 ^ 63` revisions, at most `2 ^ 62` changes); a write's reply also of the
+state after (the log after the write is the certificate's); a watch response that moves the
+position gives `kvLogOkTo σ c'` (through the new position only: the update fires at the committed
+state, whose log the store has not applied, so has no bound; the events are of a sealed prefix).
+The server proves them from the reply's certificate and the receipts' bound, which `isKv` and the
+watch's member facts now carry (`receiptBound GF ≤ 2 ^ 62`, pure: the end-to-end results bound it).
+
+**What the adapter cannot give.** A serializable read fires no update, so the client's model learns
+nothing from it: the get contracts (`isEtcdKVE`, `isEtcdKVTodo`) take linearizable gets
+(`serializable = false`), as every get of the cache and the recipes is; STM's serializable reads
+(`concurrency/stm.go`) could not be connected this way. A write's token needs its update fired at
+most once: the write contracts are proved for a client that sends a write at most once
+(`isKv api γ false`).
+
+**Rejected.** A per-reply persistent "this state is the KV's" fact in the specs (it would answer
+serializable reads too): a second, server-maintained history at the KV's names, against D43's
+abstract `isKv`. Keeping `etcdModelOfServer` for the libraries: the watch spec's responses are
+read updates the caller chooses, so they cannot carry the server's sealed logs.

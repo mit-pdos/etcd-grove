@@ -606,7 +606,7 @@ theorem watchGRPCStream.run.wp_proof
           simp only [WPh.id]
           iframe id
           isplitl [Hrprod Hhia Hh2a Hrev2 Hpsq Hupi]
-          · iapply client.queued_fresh V γs _ P si (regB0_ok V.pfx P Hok rfl)
+          · iapply client.queued_fresh V γs _ P si (regB0_ok V.pfx P Hok rfl) (hro := client.wsReqOk_rev (pfx := V.pfx) Hok)
             (try rw [show P.γr = γrr from rfl])
             (try rw [show P.γhi = γhi from rfl])
             (try rw [show P.rev = P0.rev from rfl])
@@ -666,7 +666,7 @@ theorem watchGRPCStream.run.wp_proof
           simp only [WPh.id]
           iframe id
           isplitl [Hrprod Hhia Hh2a Hrev2 Hpsq]
-          · iapply client.queued_fresh V γs _ P none (regB0_ok V.pfx P Hok rfl)
+          · iapply client.queued_fresh V γs _ P none (regB0_ok V.pfx P Hok rfl) (hro := client.wsReqOk_rev (pfx := V.pfx) Hok)
             (try rw [show P.γr = γrr from rfl])
             (try rw [show P.γhi = γhi from rfl])
             (try rw [show P.rev = P0.rev from rfl])
@@ -1320,8 +1320,16 @@ theorem watchGRPCStream.run.wp_proof
               ihave #Hi1 := monoListIdxOwn_get (γ := P.γhi) (sent.length + 1) B.hb (by
                 rw [List.getElem?_append_right (by omega), HCl]; simp) $$ Hlb
               -- (K2e-7d) the second cursor: one more, the same
-              imod monoListAuthOwn_update_app (γ := P.γh2) (l := C2) [B.rr - W64 1]
-                $$ Hauth2 with ⟨Hauth2, #Hlb2⟩
+              ihave Hu2 : iprop(|==> (client.cur2Places P (C2 ++ [B.rr - W64 1]) ∗
+                  monoListLbOwn P.γh2 (C2 ++ [B.rr - W64 1]))) $$ [Hauth2]
+              · cases hcp : P.γ.cpl
+                · iapply client.cur2Places_app P C2 _
+                  iframe Hauth2; ileft; ipureintro; exact hcp
+                · ihave ⟨Hauth2, #Hl2⟩ := client.cur2Places_last P C2 (B.rr - W64 1) (HC2 hcp).2
+                    $$ Hauth2
+                  iapply client.cur2Places_app P C2 _
+                  iframe Hauth2 Hl2
+              imod Hu2 with ⟨Hauth2, #Hlb2⟩
               ihave #Hcm0 : client.recvCmpl V P (sent.length : Int) (client.wrOf m h sl)
                   ⟨[], W64 0, false, true, m.hdr.revision⟩ $$ []
               · unfold client.recvCmpl

@@ -143,7 +143,7 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
       · ipureintro; intro h; rw [Hcf] at h; cases h
       icases Hw with ⟨%γst, Hw⟩
       iunfold rawRespOk at Hw
-      icases Hw with (⟨%H, -⟩ | %H | ⟨%H, (⟨%Hm, -⟩ | %Hk)⟩ | ⟨%H, -⟩)
+      icases Hw with (⟨%H, -⟩ | %H | ⟨%H, -⟩ | ⟨%H, -⟩)
       · exact absurd H.1 hnoerr
       · -- not a progress notification: its revision is 0
         ipureintro; intro hcp
@@ -165,46 +165,55 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
           have : sint.Z (W64 0 + W64 1) = 1 := by word
           omega
         · rw [he, H.2.2.2, hc2]
-      · -- a progress notification past the cursor: at its revision
-        ipureintro; intro hcp
-        have hc2 := Hr3 hcp
-        obtain ⟨-, -, -, Hlt⟩ := H
-        obtain ⟨Hle, Heq, -⟩ := Hm
-        rw [Heq]
-        rcases h0 with ⟨-, he⟩ | ⟨hnl, he⟩
-        · rw [he]; word
-        · exfalso
-          rw [hc2] at Hle
-          have hpos : 1 ≤ sint.Z P.rev := by
-            have hcp' : cplOf P = true := by rw [← hc]; exact hcp
-            have := (cplCond_rev hcp').2
-            have : sint.Z P.rev ≠ 0 := fun h => this (by word)
+      · -- a progress notification: past the cursor (at its revision) or at it (the cursor kept)
+        obtain ⟨Hn0, Hn1, Hn2, Hn3, Hn4, Hn5⟩ := H
+        have H : ¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z r.hdrRev ∧
+            sint.Z r.hdrRev < 2 ^ 63 - 1 := ⟨Hn0, Hn1, by omega, Hn5⟩
+        by_cases hlt' : sint.Z c2 < sint.Z r.hdrRev
+        · have Hm : sint.Z c2 < sint.Z r.hdrRev ∧ h2A = r.hdrRev ∧ 0 ≤ sint.Z c2 := ⟨hlt', Hn4, Hn2⟩
+          ipureintro; intro hcp
+          have hc2 := Hr3 hcp
+          obtain ⟨-, -, -, Hlt⟩ := H
+          obtain ⟨Hle, Heq, -⟩ := Hm
+          rw [Heq]
+          rcases h0 with ⟨-, he⟩ | ⟨hnl, he⟩
+          · rw [he]; word
+          · exfalso
+            rw [hc2] at Hle
+            have hpos : 1 ≤ sint.Z P.rev := by
+              have hcp' : cplOf P = true := by rw [← hc]; exact hcp
+              have := (cplCond_rev hcp').2
+              have : sint.Z P.rev ≠ 0 := fun h => this (by word)
+              omega
+            have hrv : sint.Z P.rev ≤ sint.Z rv :=
+              Hr1.resolve_left (by intro h; rw [h] at hpos; simp at hpos)
+            have : sint.Z (r.hdrRev + W64 1) = sint.Z r.hdrRev + 1 := by word
+            have : sint.Z (rv - W64 1) = sint.Z rv - 1 := by word
             omega
-          have hrv : sint.Z P.rev ≤ sint.Z rv :=
-            Hr1.resolve_left (by intro h; rw [h] at hpos; simp at hpos)
-          have : sint.Z (r.hdrRev + W64 1) = sint.Z r.hdrRev + 1 := by word
-          have : sint.Z (rv - W64 1) = sint.Z rv - 1 := by word
-          omega
-      · -- a progress notification at or below the cursor: the cursor kept
-        ipureintro; intro hcp
-        have hc2 := Hr3 hcp
-        obtain ⟨-, -, -, Hlt⟩ := H
-        obtain ⟨Hle, Heq⟩ := Hk
-        rw [Heq, hc2]
-        rcases h0 with ⟨hlt, he⟩ | ⟨-, he⟩
-        · exfalso
-          rw [hc2] at Hle
-          have hpos : 1 ≤ sint.Z P.rev := by
-            have hcp' : cplOf P = true := by rw [← hc]; exact hcp
-            have := (cplCond_rev hcp').2
-            have : sint.Z P.rev ≠ 0 := fun h => this (by word)
+        · have Hk : sint.Z r.hdrRev ≤ sint.Z c2 ∧ h2A = c2 := by
+            refine ⟨by omega, ?_⟩
+            rw [Hn4]
+            have : sint.Z c2 = sint.Z r.hdrRev := by omega
+            word
+          ipureintro; intro hcp
+          have hc2 := Hr3 hcp
+          obtain ⟨-, -, -, Hlt⟩ := H
+          obtain ⟨Hle, Heq⟩ := Hk
+          rw [Heq, hc2]
+          rcases h0 with ⟨hlt, he⟩ | ⟨-, he⟩
+          · exfalso
+            rw [hc2] at Hle
+            have hpos : 1 ≤ sint.Z P.rev := by
+              have hcp' : cplOf P = true := by rw [← hc]; exact hcp
+              have := (cplCond_rev hcp').2
+              have : sint.Z P.rev ≠ 0 := fun h => this (by word)
+              omega
+            have hrv : sint.Z P.rev ≤ sint.Z rv :=
+              Hr1.resolve_left (by intro h; rw [h] at hpos; simp at hpos)
+            have : sint.Z (r.hdrRev + W64 1) = sint.Z r.hdrRev + 1 := by word
+            have : sint.Z (rv - W64 1) = sint.Z rv - 1 := by word
             omega
-          have hrv : sint.Z P.rev ≤ sint.Z rv :=
-            Hr1.resolve_left (by intro h; rw [h] at hpos; simp at hpos)
-          have : sint.Z (r.hdrRev + W64 1) = sint.Z r.hdrRev + 1 := by word
-          have : sint.Z (rv - W64 1) = sint.Z rv - 1 := by word
-          omega
-        · rw [he]
+          · rw [he]
       · exact absurd H.2.1 (by rw [hne]; simp)
     unfold resumeOk
     rw [hnr]

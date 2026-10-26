@@ -136,12 +136,92 @@ instance cursorOk_persistent (V : WEnv GF) (P : WsPrm GF) (B : RegB) (Dm : List 
     (rg : mvcc.WatchRange) (lo : Nat) (hi : w64) : Persistent (cursorOk V P B Dm w rg lo hi) := by
   unfold cursorOk; infer_instance
 
+/-- **The second cursor's positions** (D47): `γh2`'s list, each a position of the stream
+(`posQ`: the watch's start or a revision of a state the read update fired at), unless the watch promises no
+completeness or the substream stopped. -/
+def cur2Places (P : WsPrm GF) (C2 : List w64) : IProp GF :=
+  iprop(monoListAuthOwn P.γh2 1 C2 ∗
+    (⌜P.γ.cpl = false⌝ ∨ dghostVar P.γx DFrac.discard true ∨ [∗list] c ∈ C2, posQ P.o P.Q c))
+
+/-- A stopped substream's positions. -/
+theorem cur2Places_dead (P : WsPrm GF) (C2 : List w64) :
+    monoListAuthOwn P.γh2 1 C2 ∗ dghostVar P.γx DFrac.discard true ⊢ cur2Places P C2 := by
+  unfold cur2Places
+  iintro ⟨Ha, #Hx⟩
+  iframe Ha
+  iright; ileft; iexact Hx
+
+/-- The watch's start, its first position. -/
+theorem cur2Places_start (P : WsPrm GF) (hro : P.o.base.rev = P.rev)
+    (h1 : P.γ.cpl = true → 1 ≤ sint.Z P.rev) :
+    monoListAuthOwn P.γh2 1 [P.rev - W64 1] ⊢ cur2Places P [P.rev - W64 1] := by
+  unfold cur2Places
+  iintro Ha
+  iframe Ha
+  cases hc : P.γ.cpl
+  · ileft; ipureintro; rfl
+  iright; iright
+  iapply (BigSepL.bigSepL_singleton (Φ := fun _ c => posQ P.o P.Q c)).2
+  unfold posQ; ileft; ipureintro
+  have := h1 hc
+  rw [hro]; word
+
+/-- The positions' list, with its last position's fact. -/
+theorem cur2Places_last (P : WsPrm GF) (C2 : List w64) (c : w64)
+    (h : C2.getLast? = some c) :
+    cur2Places P C2 ⊢ cur2Places P C2 ∗
+      (⌜P.γ.cpl = false⌝ ∨ dghostVar P.γx DFrac.discard true ∨ posQ P.o P.Q c) := by
+  unfold cur2Places
+  iintro ⟨Ha, (%Hf | #Hx | #Hl)⟩
+  · iframe Ha; isplitl []
+    · ileft; ipureintro; exact Hf
+    ileft; ipureintro; exact Hf
+  · iframe Ha; isplitl []
+    · iright; ileft; iexact Hx
+    iright; ileft; iexact Hx
+  · have hm : c ∈ C2 := List.mem_of_getLast? h
+    ihave #Hc := (BigSepL.bigSepL_mem (Φ := fun c => posQ P.o P.Q c) hm) $$ Hl
+    iframe Ha
+    isplitl []
+    · iright; iright; iexact Hl
+    iright; iright; iexact Hc
+
+/-- A position appended. -/
+theorem cur2Places_app (P : WsPrm GF) (C2 : List w64) (c : w64) :
+    cur2Places P C2 ∗
+      (⌜P.γ.cpl = false⌝ ∨ dghostVar P.γx DFrac.discard true ∨ posQ P.o P.Q c) ⊢
+    |==> (cur2Places P (C2 ++ [c]) ∗ monoListLbOwn P.γh2 (C2 ++ [c])) := by
+  unfold cur2Places
+  iintro ⟨⟨Ha, Hs⟩, #Hc⟩
+  imod monoListAuthOwn_update_app (γ := P.γh2) (l := C2) [c] $$ Ha with ⟨Ha, #Hlb⟩
+  imodintro
+  iframe Hlb Ha
+  icases Hs with (%Hf | #Hx | #Hl)
+  · ileft; ipureintro; exact Hf
+  · iright; ileft; iexact Hx
+  icases Hc with (%Hf | #Hx | #Hc)
+  · ileft; ipureintro; exact Hf
+  · iright; ileft; iexact Hx
+  iright; iright
+  iapply (BigSepL.bigSepL_snoc (Φ := fun _ c => posQ P.o P.Q c)).2
+  iframe Hl Hc
+
+/-- The positions' authority, and back. -/
+theorem cur2Places_auth (P : WsPrm GF) (C2 : List w64) :
+    cur2Places P C2 ⊢ monoListAuthOwn P.γh2 1 C2 ∗
+      (monoListAuthOwn P.γh2 1 C2 -∗ cur2Places P C2) := by
+  unfold cur2Places
+  iintro ⟨Ha, Hs⟩
+  iframe Ha
+  iintro Ha
+  iframe Ha Hs
+
 /-- **The second dispatch cursor of a registered substream** (K2e-7d; `sent` the responses
 dispatched): `γh2`'s positions `C2`, and, unless the watch promises no completeness or the
 substream stopped, one more than the responses, the last the cursor (`cur2Ok`). -/
 def cur2St (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF) (B : RegB)
     (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc) : IProp GF :=
-  iprop(∃ C2 : List w64, monoListAuthOwn P.γh2 1 C2 ∗
+  iprop(∃ C2 : List w64, cur2Places P C2 ∗
     (⌜P.γ.cpl = false⌝ ∨ dghostVar P.γx DFrac.discard true ∨
       ⌜C2.length = sent.length + 1⌝ ∗ ∃ c2 : w64, ⌜C2.getLast? = some c2⌝ ∗
         cur2Ok V γs B.rr Dm X w rg lo c2))
@@ -178,7 +258,7 @@ def wsRest (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : W
     WPh → IProp GF
   | .queued si => iprop((∃ (B : RegB) (sent : List Loc) (C C2 : List w64),
       ⌜regBOk P B⌝ ∗ startOk V B.srr B.rr ∗ sspscProducer P.γr sent ∗
-      monoListAuthOwn P.γhi 1 C ∗ monoListAuthOwn P.γh2 1 C2 ∗
+      monoListAuthOwn P.γhi 1 C ∗ cur2Places P C2 ∗
       ⌜C.length = sent.length + 1 ∧ C.getLast? = some B.hb ∧
         (P.γ.cpl = true → C2.length = sent.length + 1 ∧ C2.getLast? = some (B.rr - W64 1))⌝ ∗
       wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} B.rr ∗ psSt P sent.length ∗
@@ -200,15 +280,22 @@ def wsRest (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : W
   | .closed => dghostVar P.γx DFrac.discard true
   | .orphan => iprop(True)
 
+/-- A request's revision is its `Op`'s. -/
+theorem wsReqOk_rev {pfx : GoString} {P : WsPrm GF} (h : wsReqOk pfx P) : P.o.base.rev = P.rev := by
+  have h1 := h.1
+  simp only [OpFull.isRangeWatch, decide_eq_true_eq] at h1
+  exact h1.2.1
+
 /-- **A fresh substream's queued state** (its first create, base `regB0`). -/
 theorem queued_fresh (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF)
-    (si : Option Nat) (hB : regBOk P (regB0 P)) :
+    (si : Option Nat) (hB : regBOk P (regB0 P)) (hro : P.o.base.rev = P.rev) :
     startOk V P.sr P.rev ∗ sspscProducer P.γr ([] : List Loc) ∗
       monoListAuthOwn P.γhi 1 [P.rev - W64 1] ∗ monoListAuthOwn P.γh2 1 [P.rev - W64 1] ∗
       wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} P.rev ∗ psQ P ∗
       upAtOpt γs si (createOfP P) ⊢
     wsRest V γs Dm P (.queued si) := by
   iintro ⟨#Hso, Hprod, Ha, Ha2, Hrv, Hps, Hup⟩
+  ihave Ha2 := cur2Places_start P hro (fun h => (hB.2.2 h).2) $$ Ha2
   simp only [wsRest]
   ileft
   iexists regB0 P, [], [P.rev - W64 1], [P.rev - W64 1]
@@ -281,7 +368,8 @@ theorem reg_post_dead (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB
   · ileft; iexact Hx
   unfold cur2St
   iexists C2
-  iframe Hauth2
+  isplitl [Hauth2]
+  · iapply cur2Places_dead; iframe Hauth2 Hx
   iright; ileft; iexact Hx
 
 /-- **A registered substream's id was never cancelled, unless it stopped** (persistent; unit W-K):
@@ -759,7 +847,8 @@ theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (h
     (hst : V.R.γ.st = V.R.E.γ) (hv : ¬ watchErr v)
     (hr : r.events = [] ∧ r.created = false ∧ r.canceled = false ∧ r.compactRev = W64 0 ∧
       r.hdrRev = m.hdr.revision) (hwc : w ∈ x.cov) :
-    cur2Ok V γs B.rr Dm X w rg lo c2 ∗ v3rpc.mvccOk γs V.R.γ j m ∗ v3rpc.downLbW γs Dm ∗
+    cur2Ok V γs B.rr Dm X w rg lo c2 ∗ v3rpc.mvccOk γs V.R.γ j m ∗
+      v3rpc.downLbW γs Dm ∗
       regFacts V γs Dm P B X w rg fcs lo ∗ startOk V B.srr B.rr ∗ srvLogsSmall V.R ∗
       watchLaws V ⊢
       |={⊤}=> ∃ c2' : w64, rawRespOk V.R.γ.st P.o c2 c2' v r ∗
@@ -826,7 +915,7 @@ def cur2Pend (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P :
     (B : RegB) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc)
     (C2 : List w64) :
     IProp GF :=
-  iprop(monoListAuthOwn P.γh2 1 C2 ∗
+  iprop(cur2Places P C2 ∗
     (⌜P.γ.cpl = false⌝ ∨ dghostVar P.γx DFrac.discard true ∨
       ⌜C2.length = sent.length + 2⌝ ∗ ∃ c2 : w64, ⌜C2.getLast? = some c2⌝ ∗
         cur2Ok V γs B.rr Dm X w rg lo c2))
@@ -870,6 +959,16 @@ theorem cmpl_step (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
     isplitr
     · ileft; ipureintro; exact hcpl
     iright; unfold recvCmpl; ileft; ipureintro; exact hcpl
+  ihave ⟨Ha, #Hcp⟩ := cur2Places_last P C2 c2 Hlc $$ Ha
+  icases Hcp with (%Hf | #Hx | #Hcp)
+  · rw [hcpl] at Hf; cases Hf
+  · imodintro
+    iexists C2
+    unfold cur2Pend
+    iframe Ha
+    isplitr
+    · iright; ileft; iexact Hx
+    ileft; iexact Hx
   imod (hstep hcpl c2) $$ [Hcur HQ] with ⟨%c2', #Hok, #Hcur'⟩
   · iframe Hcur HQ
   -- (D46) the caller's read update, fired at the response's watched log
@@ -877,10 +976,14 @@ theorem cmpl_step (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
   icases Hkf with ⟨%γr, #Hinvs, #H0, %Hkr⟩
   iunfold wsAu at Hau
   imod (raw_to_state V.R.E γr P.kv (by rw [hkst, Hkr.1]) Hkr.2.1 Hkr.2.2 P.o c2 c2' v r P.Q)
-    $$ Hinvs H0 Hau
+    $$ Hinvs H0 Hau Hcp
     [Hok] with ⟨%σ, #HQσ, #Hsσ⟩
   · rw [← hst]; iexact Hok
-  imod monoListAuthOwn_update_app (γ := P.γh2) (l := C2) [c2'] $$ Ha with ⟨Ha, #Hlb⟩
+  ihave #Hcp' := posQ_of_resp P.o P.Q σ c2 c2' v r $$ [Hcp HQσ Hsσ]
+  · iframe Hcp HQσ Hsσ
+  ihave Hu := cur2Places_app P C2 c2' $$ [Ha]
+  · iframe Ha; iright; iright; iexact Hcp'
+  imod Hu with ⟨Ha, #Hlb⟩
   have h0 : (C2 ++ [c2'])[sent.length]? = some c2 := by
     rw [List.getElem?_append_left (by omega)]
     rw [List.getLast?_eq_getElem?] at Hlc

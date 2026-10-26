@@ -168,20 +168,33 @@ theorem raw_to_state (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst :
     ⊢ srvKVInvs E γr -∗ mvcc.idxSealed E.γ.idx [[], []] -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ, COMM □ Q σ }>) -∗
-      client.rawRespOk E.γ o c c' v r ={⊤}=∗
+      posQ o Q c -∗ client.rawRespOk E.γ o c c' v r ={⊤}=∗
       ∃ σ : KVState, □ Q σ ∗ watchStateRespOk o σ c c' v r := by
   have hn : ∀ x : w64, sint.nat x = (sint.Z x).toNat := fun _ => rfl
-  iintro #Hinvs #H0 #Hau #Hraw
+  iintro #Hinvs #H0 #Hau #Hpos #Hraw
   -- the update fired at the start log (a certified log of two revisions)
   imod watch_fire E γr γ hst hlog [[], []] Q $$ Hinvs H0 H0 [] Hau with ⟨%C0, #HQ0, -⟩
   · unfold mvcc.certOk; ileft; ipureintro; simp
   unfold client.rawRespOk
-  icases Hraw with (⟨%Herr, #Hse⟩ | %Hne | ⟨%Hp, (⟨%Hlt, %L, #HL, %HLp⟩ | %Hle)⟩ |
+  icases Hraw with (⟨%Herr, #Hse⟩ | %Hne | ⟨%Hp, (%Hle | ⟨%L, #HL, %HLp⟩)⟩ |
     ⟨%Hev, %L, %kvs, #HL, %HLe, #Hkv⟩)
   · imodintro; iexists kvStateOf C0; iframe HQ0
     unfold watchStateRespOk; ileft; iframe Hse; ipureintro; exact Herr
   · imodintro; iexists kvStateOf C0; iframe HQ0
     unfold watchStateRespOk; iright; ileft; ipureintro; exact Hne
+  · -- at the cursor: the watch's start, or a state the update fired at before (`posQ`)
+    obtain ⟨hv, hpn, hc0, hcl, hc', -⟩ := Hp
+    iunfold posQ at Hpos
+    icases Hpos with (%Hst | ⟨%σ', #HQ', %Hσ'⟩)
+    · imodintro; iexists kvStateOf C0; iframe HQ0
+      unfold watchStateRespOk; iright; iright; ileft; ipureintro
+      exact ⟨hv, hpn, hc0, hcl, hc', Or.inl ⟨Hle, Hst⟩⟩
+    · imodintro; iexists σ'; iframe HQ'
+      unfold watchStateRespOk; iright; iright; ileft; ipureintro
+      obtain ⟨-, hle', hok'⟩ := Hσ'
+      have hn' : sint.nat r.hdrRev = sint.nat c := by simp only [hn]; omega
+      refine ⟨hv, hpn, hc0, hcl, hc', Or.inr ⟨by omega, ?_, by rw [hn']; exact hok'⟩⟩
+      unfold KVState.rangeEvents; rw [hn']; simp
   · imod watch_fire E γr γ hst hlog L Q $$ Hinvs H0 [HL] [HL] Hau with ⟨%C, #HQ, %HLC⟩
     · iapply mvcc.evLog_sealed $$ HL
     · iapply mvcc.evLog_certOk $$ HL
@@ -189,20 +202,15 @@ theorem raw_to_state (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst :
     ihave %Hlk := sealed_logOk _ _ hrb $$ HLs
     imodintro; iexists kvStateOf C; iframe HQ
     unfold watchStateRespOk; iright; iright; ileft; ipureintro
-    obtain ⟨hv, hpn, hp0, -⟩ := Hp
-    obtain ⟨hcp, hc', hc0⟩ := Hlt
+    obtain ⟨hv, hpn, hc0, hcl, hc', -⟩ := Hp
     obtain ⟨hpl, hnone⟩ := HLp
     have hCl := HLC.length_le
-    refine ⟨hv, hpn, hp0, fun _ => ⟨hc', ?_, ?_, ?_⟩, fun h => absurd h (by omega)⟩
+    refine ⟨hv, hpn, hc0, hcl, hc', Or.inr ⟨?_, ?_, ?_⟩⟩
     · rw [kvStateOf_rev]; omega
     · rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
         ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
       exact hnone
     · exact kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2 Hlk.2.1 (by simp only [hn]; omega)
-  · imodintro; iexists kvStateOf C0; iframe HQ0
-    unfold watchStateRespOk; iright; iright; ileft; ipureintro
-    obtain ⟨hv, hpn, hp0, -⟩ := Hp
-    exact ⟨hv, hpn, hp0, fun h => absurd h (by omega), fun _ => Hle.2⟩
   · imod watch_fire E γr γ hst hlog L Q $$ Hinvs H0 [HL] [HL] Hau with ⟨%C, #HQ, %HLC⟩
     · iapply mvcc.evLog_sealed $$ HL
     · iapply mvcc.evLog_certOk $$ HL

@@ -646,15 +646,17 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     have := W64_inj_of_lt (a := p) (b := 0) (by omega) (by omega) (by simpa using h)
     exact hp0 this
   by_cases hq : q = p
-  · -- at the cursor: the cursor kept
+  · -- at the cursor
     subst hq
+    have hc2r : c2 = r.hdrRev := by rw [hrh, hpx, hqc]
     iexists c2
     iframe Hcm
     unfold rawRespOk
     iright; iright; ileft
     isplitr
-    · ipureintro; exact ⟨hv, hprog, by omega, by omega⟩
-    iright; ipureintro; exact ⟨by omega, rfl⟩
+    · ipureintro
+      exact ⟨hv, hprog, by omega, by omega, hc2r, by omega⟩
+    ileft; ipureintro; rw [hc2r]
   -- `q < p`: no event of the range in `(q, p]`
   have hqp' : q < p := by omega
   have hdL : p + 1 ≤ Lc.length := hd3.resolve_right (by omega)
@@ -668,11 +670,8 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
   · unfold rawRespOk
     iright; iright; ileft
     isplitr
-    · ipureintro; exact ⟨hv, hprog, by omega, by omega⟩
-    ileft
-    isplitr
-    · ipureintro
-      refine ⟨by omega, by rw [hrh, hpx], by omega⟩
+    · ipureintro; exact ⟨hv, hprog, by omega, by omega, by rw [hrh, hpx], by omega⟩
+    iright
     iexists Lc
     iframe HLc
     ipureintro
