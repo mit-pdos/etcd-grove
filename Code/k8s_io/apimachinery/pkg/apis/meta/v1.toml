@@ -3,7 +3,9 @@
 # that the types the etcd3 store and the storage package's versioner read objects through
 # (the `Object` interface `meta.Accessor` returns, `ObjectMeta`, `ListMeta`) are translated
 # (translate_types skips a type naming a package that is not imported).
-translate = ["!*"]
+# The status constants `apierrors.NewTimeoutError` and `storage.NewTooLargeResourceVersionError`
+# build their errors with (KEP-6404): a names-only constant is a value of unknown shape.
+translate = ["!*", "StatusFailure", "StatusReasonTimeout", "CauseTypeResourceVersionTooLarge"]
 imports = ["!*", "k8s.io/apimachinery/pkg/types", "k8s.io/apimachinery/pkg/runtime",
   "k8s.io/apimachinery/pkg/runtime/schema", "time"]
 

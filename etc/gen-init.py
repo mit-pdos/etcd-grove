@@ -52,7 +52,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # the auth plan's E2b (2026-10-25): the authentication example
          'github_com.mit_pdos.etcd_grove.examples.authkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
-         'github_com.mit_pdos.etcd_grove.examples.k8setcd3']
+         'github_com.mit_pdos.etcd_grove.examples.k8setcd3',
+         # KEP-6404 (2026-10-26): the watch cache and its store
+         'k8s_io.apiserver.pkg.storage.cacher']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -347,6 +349,23 @@ trust-boundary axiom `ErrTransactionConflict_init` states the one the fact reads
             'imodintro', 'iexists _', 'iexact HErrTransactionConflict'],
 )
 
+# KEP-6404 (2026-10-26): the watch cache's metrics; their facts are in
+# `Proof/k8s_io/apiserver/pkg/storage/cacher/Base.lean`.
+SPECIAL['k8s_io.apiserver.pkg.storage.cacher.metrics'] = dict(
+    doc='''Its fact (`cacherMetricsInit`, `storage/cacher/Base.lean`): `WatchCacheReadWait` holds a
+histogram vector of the labels `group` and `resource`. Its initializer runs its variables'
+untranslated initializers (`metrics.go`); the trust-boundary axiom `WatchCacheReadWait_init` states
+the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`),
+`opaqueInitsOk` the others.''',
+    custom={'WatchCacheReadWait': dict(
+        doc='/-- `WatchCacheReadWait = compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`\n(`metrics.go`): a `*HistogramVec` with those labels (`kmetrics.vecLabels`). -/',
+        post='∃ v : Loc, globalAddr WatchCacheReadWait ↦ v ∗ ⌜EtcdGrove.kmetrics.vecLabels v [go!"group", go!"resource"]⌝',
+        pat='⟨%v@, H@, %L@⟩')},
+    finish=['ipersist HWatchCacheReadWait'] + FIN_PRE[:7] + [
+            'imodintro', 'iexists _', 'iframe HWatchCacheReadWait', 'ipureintro',
+            'exact LWatchCacheReadWait'],
+)
+
 SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
     doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a feature
 gate whose `Enabled` answers some `bool` for any feature. Its initializer initializes its import
@@ -381,7 +400,8 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
 )
 
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
-    doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` holds a string.
+    doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
+`tooLargeResourceVersionCauseMsg` hold strings.
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
@@ -404,8 +424,8 @@ its imports and runs the translated initializers.''',
         'try wp_auto',
         'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -',
         'try wp_auto']},
-    finish=['ipersist HRequestWatchProgress'] + FIN_PRE[:7] + [
-            'imodintro', 'iexists _', 'iexact HRequestWatchProgress'],
+    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg'] +
+           FIN_PRE[:7] + ['imodintro', 'iexists _, _', 'iframe #'],
 )
 
 # the driver's error variables and the tags of their `errors.New` results

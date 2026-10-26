@@ -1,0 +1,5 @@
+# Names only, types axiomatized: the metric types the watch cache's metrics are of (`CounterVec`,
+# `HistogramVec`, ...; project k8s-apiserver, notes/kep-6404-plan.md). Not `translate_types`: they
+# wrap prometheus' collectors, which are not translated.
+translate = ["!*"]
+imports = ["!*"]

@@ -155,6 +155,37 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   make `pkgRef` an error, never a substitution, when the package is not imported under its own
   name.
 - **Status.** Not started. The substitution is worth fixing first: it is wrong, not missing.
+- **Also the watch cache (2026-10-26, branch `kep-6404`, `notes/kep-6404-plan.md`).** The cacher's
+  `processEvent`, `UpdateResourceVersion` and `waitUntilFreshLocked` use the cacher's `metrics`
+  variables, of component-base's `metrics` types (`CounterVec`, `HistogramVec`), which the cacher
+  does not import: the substitution names them `cacher.metrics.CounterVec` (`Unknown identifier`).
+  Workaround here: `cacher.toml` drops its import of the cacher's `metrics` (both are then named
+  by their paths) and the names arrive through `consistency`'s public import of the cacher's
+  `metrics` and its of component-base's (names only). Its cost: `watchCacheEvent`, whose
+  `timeline` field is a `metrics.DispatchTimeline`, is axiomatized (`translate_types` skips a type
+  naming a package not imported), so `processEvent` and `UpdateResourceVersion`, which build one,
+  cannot be proved until the general fix.
+
+### Specs: the builtin `max` (2026-10-26, branch `kep-6404`)
+
+- **Missing.** No spec of the predeclared `max` (`functions go.max [t, t]`): each proof proves its
+  own: raft's `wp_max2_uint64` (`raft/v3/InvTracker.lean`), mvcc's `sw_wp_max_int64`
+  (`watchableStore__syncWatchers.lean`), the watch cache store's `wp_max_uint64` (`cacher/store/
+  DefsWCS.lean`).
+- **Proposed.** A spec of `max`/`min` on the integer types in Perennial's predeclared theory.
+- **Status.** Not started.
+
+### Goose: a constraint interface's `comparable` term (2026-10-26, branch `kep-6404`)
+
+- **Missing.** `translate_types` accepts an interface that embeds `comparable`
+  (client-go's `tools/cache.Object`: `interface { GetName() string; GetNamespace() string;
+  comparable }`) and emits `go.type_term.TypeTerm go.comparable`, which Perennial does not define
+  (`Unknown identifier go.comparable`).
+- **Needed by.** Nothing yet: the watch cache's store names `tools/cache`'s indexer types only.
+- **Workaround here.** `client_go/tools/cache.toml` without `translate_types` (types axiomatized).
+- **Proposed.** Either a `go.comparable` type set in Perennial's semantics, or Goose rejecting
+  (axiomatizing) such an interface under `translate_types`, as it does other unsupported types.
+- **Status.** Not started.
 
 ### Specs: `reflect`
 

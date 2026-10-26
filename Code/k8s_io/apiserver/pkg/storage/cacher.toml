@@ -1,0 +1,28 @@
+# The watch cache (notes/kep-6404-plan.md): `watch_cache.go`'s `watchCache` with bodies, its
+# freshness wait and reads (what KEP-6404 serves every GET from), the rest of the package names
+# only (the cacher, the delegator, the watchers, the interval and history, for now).
+translate = ["!*",
+  "watchCache.Add", "watchCache.Update", "watchCache.Delete",
+  "watchCache.objectToVersionedRuntimeObject", "watchCache.processEvent",
+  "watchCache.UpdateResourceVersion", "watchCache.waitUntilFreshLocked",
+  "watchCache.waitAndGetLatestSnapshot", "watchCache.getLatestSnapshotLocked",
+  "watchCache.checkSnapshotResourceVersion", "watchCache.notFresh",
+  "watchCache.WaitUntilFreshAndGet",
+  # the cacher's read over it (`cacher.go`; its `Get` is the read's API, KEP-6404)
+  "Cacher.get",
+  # its embedded `RWMutex`'s promoted methods (the method-set rules `watchCache.TypeAssumptions.
+  # ptr_RLock_unfold`, ...: a method resolution on the field)
+  "watchCache.RLock", "watchCache.RUnlock", "watchCache.Lock", "watchCache.Unlock",
+  "watchCache.RLocker",
+  # the freshness wait's constants (a names-only constant is a value of unknown shape)
+  "blockTimeout", "resourceVersionTooHighRetrySeconds"]
+# (`runtime/debug`, which the cacher's own files import, is not translated.) Not the cacher's
+# `metrics`: its variables are of component-base's `metrics` types (`CounterVec`, ...), which the
+# cacher does not import, and Goose names a type of a package the file does not import through an
+# imported package of the same name (gap G3, `notes/perennial-changes.md`), here the cacher's
+# `metrics`. Without it both are named by their paths, and their modules reach this one through
+# `consistency`'s public import of the cacher's `metrics` and its of component-base's.
+imports = ["*", "!runtime/debug", "!k8s.io/apiserver/pkg/storage/cacher/metrics"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
