@@ -1,6 +1,9 @@
-# Names only: `utf8.ValidString`, which the server's unary interceptor calls on the client's API
-# version (unit P3b; an axiom, `Spec/unicode/utf8/ValidString.lean`).
-translate = ["!*"]
+# `utf8.ValidString` with its body (the server's unary and stream interceptors check the client's
+# API version with it; until 2026-10-26 names only, an axiom), with what it reads: `word` (the
+# ASCII fast path's loads), the tables `first` and `acceptRanges` (their initializers translated:
+# the package fact `utf8Init` holds their values) and the constants. The rest names only.
+translate = ["!*", "ValidString", "word", "first", "acceptRanges", "RuneSelf", "ptrSize",
+  "hiBits", "locb", "hicb", "xx", "as", "s1", "s2", "s3", "s4", "s5", "s6", "s7"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
