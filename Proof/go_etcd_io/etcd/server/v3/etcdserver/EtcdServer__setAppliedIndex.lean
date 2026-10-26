@@ -41,8 +41,9 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  icases Hi with ⟨%v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0, #Hkl⟩
-  iexists v0
+  iunfold srvAppliedBody at Hi
+  icases Hi with ⟨%vat, %v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0, #Hkl⟩
+  iexists vat
   iframe Hv
   iintro Hv
   imod Hmask with -
@@ -59,13 +60,14 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   imod ghostVar_update_halves false γr.pend true true $$ Hpo Hp with ⟨Hpo, Hp⟩
   imod Hclose $$ [Hv Hauth HM Hp] with -
   · inext
-    iexists v', L, M, false
+    iunfold srvAppliedBody
+    iexists v', v', L, M, false
     iframe Hv Hauth HM Hp Hc HLv' Hkl
     ipureintro
-    refine ⟨?_, HMk.2⟩
+    refine ⟨Int.le_refl _, ?_, HMk.2.2⟩
     intro k L' hk
     left
-    rcases HMk.1 k L' hk with h | ⟨-, h⟩ <;> omega
+    rcases HMk.2.1 k L' hk with h | ⟨-, h⟩ <;> omega
   imodintro
   wp_auto
   iapply HΦ

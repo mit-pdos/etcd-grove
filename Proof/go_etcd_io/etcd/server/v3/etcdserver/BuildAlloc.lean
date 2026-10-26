@@ -222,19 +222,16 @@ theorem srvIndices_alloc (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Ec : C
     iexists []
     iframe HL
     ipureintro; rw [hai]; simp
-  imod inv_alloc srvN Ec (iprop(∃ (v : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
-      sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v ∗
-      monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗
-      ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
-      ⌜appliedKeysOk M v p ∧ appliedMonoMap M⌝ ∗
-      appliedLogAt γr v L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOk γr M))
+  imod inv_alloc srvN Ec (srvAppliedBody s E γr)
     $$ [Hai Hap1 Hlogs Hp1] with #Hainv
   · inext
-    iexists W64 0, γr.kv.log0, (∅ : GMap w64 mvcc.Log).insert (W64 0) γr.kv.log0, false
+    iunfold srvAppliedBody
+    iexists W64 0, W64 0, γr.kv.log0, (∅ : GMap w64 mvcc.Log).insert (W64 0) γr.kv.log0, false
     rw [h0]
     iframe Hai Hap1 Hlogs Hp1 Hcert
     isplitr
     · ipureintro
+      refine ⟨Int.le_refl _, ?_⟩
       constructor
       · intro k L' hk
         rw [GMap.lookup_insert_Some] at hk
