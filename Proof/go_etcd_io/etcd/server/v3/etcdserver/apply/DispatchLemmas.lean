@@ -157,7 +157,7 @@ theorem rejErrIs_errIs (bk : GoInterface → IProp GF) (k : RejectKind) (err : G
   cases k <;> simp only [rejErrIs]
   · iapply errVarIs_errIs _ _ $$ HC H
   · iapply errVarIs_errIs _ _ $$ HN H
-  · icases H with ⟨-, #H⟩; iexact H
+  · icases H with ⟨-, #H⟩; iapply authApplyErrIs_apply $$ H
   · iapply hbk $$ Hv H
 
 /-- An applied write's error: `nil` or the quota's `ErrNoSpace`. -/

@@ -268,7 +268,7 @@ theorem mvcc.storeTxnWrite.End.spec_frozen (h : mvcc.storeTxnWrite.End.spec (GF 
     mvcc.storeTxnWrite.End.specFrozen (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend chs ps sealed P f
   iintro %Φ H HΦ
-  iapply (h trace tw s γ ilog pend chs ps sealed P f (-1) (mvcc.crevFrozen γ)) $$ %Φ [H]
+  iapply (h trace tw s γ ilog pend chs ps sealed P f (-1) (mvcc.crevFrozen γ) false) $$ %Φ [H]
   · iexact H
   inext
   iintro ⟨Hr, #Hf, Hrest⟩

@@ -116,12 +116,16 @@ section pure
 variable [GooseExts]
 
 /-- **The tie of the admin side's halves to the latest state** of `hs` (the auth plan's E2r): in
-`on γa`, the flag's half holds the latest state's flag, and while auth is enabled the cache's half
-is the latest state's cache. (What the apply thread's resource is to keep across its steps: they
+`on γa`, the flag's half holds the latest state's flag, while auth is enabled the cache's half
+is the latest state's cache, and always the cache's state has the latest state's permissions
+(`permView`, the auth plan's E3j: every admin operation but `RoleAdd`, which adds a role without
+permissions, and `AuthDisable`, which changes no user or role, refreshes the cache from the state it
+commits, whatever the flag). (What the apply thread's resource is to keep across its steps: they
 set the flag at `AuthEnable`/`AuthDisable` and refresh the cache from the state they commit.) -/
 def latestTie (M : AuthMode) (hs : List AuthState) (b : Bool) (sc : AuthState) : Prop :=
   match M with
-  | .on _ => ∀ stl, hs.getLast? = some stl → b = stl.enabled ∧ (b = true → sc = stl)
+  | .on _ => ∀ stl, hs.getLast? = some stl →
+      b = stl.enabled ∧ (b = true → sc = stl) ∧ permView sc = permView stl
   | _ => True
 
 /-- **`isRangeOpPermitted`'s verdict at the cache's state `sc`** (pure): for a request of the shape
@@ -234,7 +238,7 @@ theorem permVerdictL_on_refused (γa : AuthNames) (hs : List AuthState) (sc : Au
             ∀ u', stl.users !! ai.user = some u' → ¬ covers stl u' op key rangeEnd)) :
     permVerdictL (.on γa) hs ai key rangeEnd op err := by
   intro stl hl
-  obtain ⟨he, hc⟩ := ht stl hl
+  obtain ⟨he, hc, -⟩ := ht stl hl
   refine ⟨fun h => absurd h herr, fun _ => ?_⟩
   exact ⟨he.symm, hwhy stl hl (hc rfl)⟩
 
@@ -248,7 +252,7 @@ theorem permVerdictL_on_pass (γa : AuthNames) (hs : List AuthState) (sc : AuthS
         (isRoot u ∨ (reqShape key rangeEnd → covers stl u op key rangeEnd))) :
     permVerdictL (.on γa) hs ai key rangeEnd op GoInterface.nil := by
   intro stl hl
-  obtain ⟨-, hc⟩ := ht stl hl
+  obtain ⟨-, hc, -⟩ := ht stl hl
   obtain ⟨h0, hrev, u, hu, hcov⟩ := hok stl hl (hc rfl)
   exact ⟨fun _ => ⟨Or.inr ⟨h0, u, hu, hcov⟩, Or.inr hrev⟩, fun h => absurd rfl h⟩
 
@@ -292,9 +296,9 @@ it returns `b` (the guard's half agrees), with the mode's verdict. -/
 abbrev auth.authStore.IsAuthEnabled.specL : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      enabledRd st M ∗ flagAt st b }}
+      enabledRd st M ∗ flagAt st M b }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsAuthEnabled")) (Val #()))
-  {{ (en : Bool), RET #en; enabledRd st M ∗ flagAt st b ∗ enabledVerdict M en ∗ ⌜en = b⌝ }}
+  {{ (en : Bool), RET #en; enabledRd st M ∗ flagAt st M b ∗ enabledVerdict M en ∗ ⌜en = b⌝ }}
 
 /-- `as.isRangeOpPermitted(user, key, rangeEnd, pt)` for a caller holding the admin side's half of
 the cache at the state `sc` (`cacheAt`): the verdict at `sc` (`cacheVerdictP`; the guard's map is
@@ -304,11 +308,11 @@ abbrev auth.authStore.isRangeOpPermitted.specL : Prop :=
     (key re : GoSlice) (k e : GoString) (dk de : DFrac)
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      cacheRd st M ∗ cacheAt st sc ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ ∗
+      cacheRd st M ∗ cacheAt st M sc ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ ∗
       ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
     (App (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"isRangeOpPermitted"))
       (Val #user)) (Val #key)) (Val #re)) (Val #pt))
-  {{ (b : Bool), RET #b; cacheRd st M ∗ cacheAt st sc ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗
+  {{ (b : Bool), RET #b; cacheRd st M ∗ cacheAt st M sc ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗
       ⌜cacheVerdictP sc user k e pt b⌝ }}
 
 /-- `as.isOpPermitted(...)` on the apply thread: with the admin side's authority `hs`, its halves of
@@ -320,12 +324,12 @@ abbrev auth.authStore.isOpPermitted.specL : Prop :=
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ ∗
-      ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗ authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜latestTie M hs b sc⌝ }}
     (App (App (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"isOpPermitted"))
       (Val #info.Username')) (Val #info.Revision')) (Val #key)) (Val #re)) (Val #pt))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ authErrIs err ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜permVerdictL M hs (authInfoM info) k e (permOp pt) err⌝ }}
 
 end spec
@@ -357,17 +361,21 @@ theorem auth.authStore.IsAuthEnabled.wp_latest :
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold enabledP at HP
-  icases HP with ⟨%b', Hb, #Hv⟩
+  icases HP with ⟨%b', Hb, #Hv, Hg⟩
   iunfold flagAt at Hfl
+  icases Hfl with ⟨Hfl, HflQ⟩
   icombine Hb Hfl gives %Heq
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb] as Hrd
-  · inext; iunfold enabledP; iexists b'; iframe Hb; iexact Hv
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb Hg] as Hrd
+  · inext; iunfold enabledP; iexists b'; iframe Hb Hg; iexact Hv
   iapply HΦ
   iunfold enabledRd
-  iunfold flagAt
-  iframe Hrd Hfl Hv
-  ipureintro; exact Heq
+  subst Heq
+  iframe Hrd
+  isplitl [Hfl HflQ]
+  · iunfold flagAt; iframe Hfl HflQ
+  iframe Hv
+  ipureintro; rfl
 
 theorem auth.authStore.isRangeOpPermitted.wp_latest
     (h_String : zap.String.spec (GF := GF) (hG := hG))
@@ -387,14 +395,14 @@ theorem auth.authStore.isRangeOpPermitted.wp_latest
   have he0 := adt.slice_len_eq_zero Hle
   iunfold cacheRd at Hrd
   iunfold cacheAt at Hca
-  icases Hca with ⟨%mp', %Mp', Hmp', #HM', #Hof⟩
+  icases Hca with ⟨%mp', %Mp', Hmp', #HM', #Hof, Hq⟩
   iunfold cacheOf at Hof
   icases Hof with ⟨%Hdom, #Hall⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold cacheP at HP
-  icases HP with ⟨%mp, %Mp, Hmp, #HM, #Hok⟩
+  icases HP with ⟨%mp, %Mp, Hmp, #HM, #Hok, HgM⟩
   icombine Hmp Hmp' gives %Heq
   subst Heq
   ihave %HMeq := ownMap_agree mp _ _ Mp Mp' $$ [$HM $HM']
@@ -415,13 +423,13 @@ theorem auth.authStore.isRangeOpPermitted.wp_latest
     wp_apply h_Error
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp] as Hrd
-    · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hok
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HgM] as Hrd
+    · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hok HgM
     iapply HΦ
     iunfold cacheRd
     iframe Hrd Hk He
-    isplitl [Hmp']
-    · iunfold cacheAt; iexists mp, Mp; iframe Hmp' HM; iunfold cacheOf; iframe Hall
+    isplitl [Hmp' Hq]
+    · iunfold cacheAt; iexists mp, Mp; iframe Hmp' HM Hq; iunfold cacheOf; iframe Hall
       ipureintro; exact Hdom
     ipureintro; exact cacheVerdictP_absent sc Mp user k e pt Hdom HMu
   | some p =>
@@ -436,13 +444,13 @@ theorem auth.authStore.isRangeOpPermitted.wp_latest
       wp_apply (h_checkKeyPoint lg p Lr Lw key k dk pt) $$ [$Hp $Hk] as %b ⟨Hk, %Hb⟩
       · ipureintro; exact ⟨Hpt, Hlen⟩
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp] as Hrd
-      · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hok
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HgM] as Hrd
+      · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hok HgM
       iapply HΦ
       iunfold cacheRd
       iframe Hrd Hk He
-      isplitl [Hmp']
-      · iunfold cacheAt; iexists mp, Mp; iframe Hmp' HM; iunfold cacheOf; iframe Hall
+      isplitl [Hmp' Hq]
+      · iunfold cacheAt; iexists mp, Mp; iframe Hmp' HM Hq; iunfold cacheOf; iframe Hall
         ipureintro; exact Hdom
       ipureintro
       apply cacheVerdictP_entry sc user k e pt b Lr Lw Hpt Hent
@@ -454,13 +462,13 @@ theorem auth.authStore.isRangeOpPermitted.wp_latest
         as %b ⟨Hk, He, %Hb⟩
       · ipureintro; exact Hpt
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp] as Hrd
-      · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hok
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hmp HgM] as Hrd
+      · inext; iunfold cacheP; iexists mp, Mp; iframe Hmp HM Hok HgM
       iapply HΦ
       iunfold cacheRd
       iframe Hrd Hk He
-      isplitl [Hmp']
-      · iunfold cacheAt; iexists mp, Mp; iframe Hmp' HM; iunfold cacheOf; iframe Hall
+      isplitl [Hmp' Hq]
+      · iunfold cacheAt; iexists mp, Mp; iframe Hmp' HM Hq; iunfold cacheOf; iframe Hall
         ipureintro; exact Hdom
       ipureintro
       apply cacheVerdictP_entry sc user k e pt b Lr Lw Hpt Hent
@@ -808,10 +816,10 @@ abbrev auth.authStore.IsPutPermitted.specL : Prop :=
     (dk : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗ ⌜latestTie M hs b sc⌝ }}
     (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsPutPermitted")) (Val #a)) (Val #key))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ authErrIs err ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜permVerdictL M hs (authInfoM info) k [] .write err⌝ }}
 
 /-- `as.IsRangePermitted(authInfo, key, rangeEnd)` on the apply thread: the latest state's verdict
@@ -822,10 +830,10 @@ abbrev auth.authStore.IsRangePermitted.specL : Prop :=
     (k e : List w8) (dk de : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗ ⌜latestTie M hs b sc⌝ }}
     (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsRangePermitted")) (Val #a)) (Val #key)) (Val #re))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
-      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜permVerdictL M hs (authInfoM info) k e .read err⌝ }}
 
 /-- `as.IsDeleteRangePermitted(authInfo, key, rangeEnd)` on the apply thread: the latest state's
@@ -836,10 +844,10 @@ abbrev auth.authStore.IsDeleteRangePermitted.specL : Prop :=
     (k e : List w8) (dk de : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗ ⌜latestTie M hs b sc⌝ }}
     (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsDeleteRangePermitted")) (Val #a)) (Val #key)) (Val #re))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
-      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
       ⌜permVerdictL M hs (authInfoM info) k e .write err⌝ }}
 
 end spec

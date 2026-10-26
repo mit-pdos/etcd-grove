@@ -7,6 +7,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup
 public import Spec.go_uber_org.zap.NewNop
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchFrac
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
 
@@ -32,10 +34,12 @@ theorem mvcc.newWatchableStore.wp_proof
     (hNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (hNewStore : mvcc.NewStore.spec (GF := GF) (hG := hG))
     (hNewWG : mvcc.newWatcherGroup.spec (GF := GF) (hG := hG))
-    (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG)) :
+    (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG))
+    (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f γi γok γtag Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok0⟩
+  intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -44,9 +48,9 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ f true γi γok Hcfg0 Hrb0)
-    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0] as %st
-    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Hcfg0 Hrb0)
+    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
+    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
       Hwsd, Hfrag, Hright, Hret⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right's
   -- half of the revision's authority given up, the readers those of a never-compacted store (the
@@ -144,14 +148,7 @@ theorem mvcc.newWatchableStore.wp_proof
   imod start_bag (V := Unit) (fun _ => iprop(True)) _ vc γv trivial $$ Hvc Hvown with #Hvcb
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γstc stc $$ Hstc Hstown with Hstop
   ihave #Hstop0 := ownBroadcastChan_Unknown _ _ _ _ $$ Hstop
-  (try wp_auto)
-  wp_apply HSetRD
-  (try wp_auto)
-  iapply HΦ
-  iexists st, γ
-  isplitr
-  · ipureintro; exact ⟨hγb, hγl, hγk, hγi, hγok, rfl⟩
-  isplitr
+  ihave #Hws : mvcc.isWatchableStore «$r0_ptr» st γ $$ []
   · iunfold mvcc.isWatchableStore
     iexists vc, stc, rv, γv
     simp only [named]
@@ -160,6 +157,36 @@ theorem mvcc.newWatchableStore.wp_proof
     · iunfold mvcc.isStopChan
       iexists γstc; iexact Hstop0
     ipureintro; exact hγw
+  ipersist s
+  (try wp_auto)
+  wp_apply HSetRD $$ [Hro] as Hro
+  · rw [hγl]; iexact Hro
+  (try wp_auto)
+  iapply HΦ
+  iexists st, γ
+  isplitr
+  · ipureintro; exact ⟨hγb, hγl, hγk, hγi, hγok, rfl⟩
+  isplitr
+  · iexact Hws
+  isplitl [Hro]
+  · iexists _; rw [← hγl]; iframe Hro
+    -- the deleter: `s.Write(traceutil.TODO())`, as a `lease.TxnDelete`
+    iunfold mvcc.rdIs
+    isplitr
+    · ipureintro; intro h; injection h with _ _ h3; cases h3
+    iintro !> %L %Pw %Pre %Q %fw %Φ' !> ⟨Hrd, Hwt, Hww, %Hlen, Hh, Hpre, #Hfw⟩ HΦ'
+    ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
+    · iPkgInit
+    ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+    · iPkgInit
+    wp_auto
+    wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
+    wp_apply (hWrite «$r0_ptr» st γ tr L Pw Pre Q fw true)
+      $$ [$Hrd $Hwt $Hww $Hh $Hpre $Htr] as %tw ⟨Htw, HQ, Hh'⟩
+    · iframe #
+      ipureintro; exact ⟨Hlen, Htrnn⟩
+    iapply HΦ'
+    iframe Htw HQ Hh'
   iframe HhookP Hsclose wg Hfrag Hret
   isplitr [Hmus Hreaders Hstop Htw Hok]
   · iunfold mvcc.watchWriter

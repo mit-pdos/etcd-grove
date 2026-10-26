@@ -329,6 +329,7 @@ theorem Main.wp_proof
     as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -⟩
   (try wp_auto)
   -- the client's invariant, the floor, no options
+  rw [kvModelSt_boot _ _ _ bootLog Hbf.boot]
   imod (client.putGetInv_alloc_log ρ₁.rd (kvModel ρ₁.rd.kv (bootEntries bootLog)) go!"k" go!"v" ⊤)
     $$ Hetcd with ⟨%γf, #Hinv⟩
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0

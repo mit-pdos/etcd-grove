@@ -57,6 +57,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   iunfold authWRx at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
   iunfold flagAt at Hen
+  icases Hen with ⟨Hen, HenQ⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
@@ -96,8 +97,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     iexists true, sc0
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -151,8 +152,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     iexists en, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -276,8 +277,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     iexists en, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -339,8 +340,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post)
-      ({ putUser st0 name roles' with revision := rev } : AuthState))
-    $$ [HL Hca]
+      ({ putUser st0 name roles' with revision := rev } : AuthState) (hs ++ [bump (putUser st0 name roles')]))
+    $$ [HL Hca Hown]
   · iframe Hpkg Hinv
     isplitl [Hca]
     · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
@@ -350,9 +351,9 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     · iExactEq HL
       all_goals rfl
     iframe Hsnap
-    ipureintro; exact permsFit_rev _ rev Hfit'
+    iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
   inext
-  iintro ⟨HL, Hca⟩
+  iintro ⟨HL, Hca, Hown⟩
   (try wp_auto)
   wp_apply h_String _ _ as %f1 -
   (try wp_auto)
@@ -392,8 +393,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   iexists en, ({ putUser st0 name roles' with revision := rev } : AuthState)
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen Hca]
-  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hen HenQ Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; intro h; exact absurd rfl h

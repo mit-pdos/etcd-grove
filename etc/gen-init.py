@@ -663,23 +663,26 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
     doc='''Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `AuthUsers` and
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
-(`auth.go`; the auth plan's S1, 2026-10-23). Its initializer allocates and sets those translated
-variables (with the buckets' names), initializes its imports and runs its other variables'
-untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says run.''',
+(`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
+2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
+names), initializes its imports and runs its other variables' untranslated initializers, which
+the trust-boundary axiom `opaqueInitsOk` says run.''',
     alloc_types={'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
                  'Meta': 'GoInterface', 'Key': 'GoInterface', 'metaBucketName': 'GoSlice',
                  'keyBucketName': 'GoSlice', 'authEnabled': 'GoSlice', 'authDisabled': 'GoSlice',
                  'authBucketName': 'GoSlice', 'authUsersBucketName': 'GoSlice',
                  'authRolesBucketName': 'GoSlice', 'Auth': 'GoInterface', 'AuthUsers': 'GoInterface',
                  'AuthRoles': 'GoInterface', 'AuthEnabledKeyName': 'GoSlice',
-                 'AuthRevisionKeyName': 'GoSlice'},
+                 'AuthRevisionKeyName': 'GoSlice', 'Lease': 'GoInterface',
+                 'leaseBucketName': 'GoSlice'},
     before={
         '«_»': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
                 'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto'],
         'leaseBucketName': ['wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩', 'try wp_auto',
-                            'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto'],
+                            'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto',
+                            'wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩', 'try wp_auto'],
         'testBucketName': ['wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩', 'try wp_auto',
                            'wp_apply wp_string_to_bytes go!"authUsers" as %sausers ⟨Hsausers, -⟩', 'try wp_auto',
                            'wp_apply wp_string_to_bytes go!"authRoles" as %saroles ⟨Hsaroles, -⟩', 'try wp_auto'],
@@ -697,8 +700,8 @@ untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says r
             'ipersist HKey', 'ipersist HMeta', 'ipersist HMetaConsistentIndexKeyName',
             'ipersist HMetaTermKeyName', 'ipersist HAuth', 'ipersist HAuthUsers', 'ipersist HAuthRoles',
             'ipersist HAuthEnabledKeyName', 'ipersist HAuthRevisionKeyName', 'ipersist HauthEnabled',
-            'ipersist HauthDisabled'] + FIN_PRE[:6] + ['imodintro',
-            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName',
+            'ipersist HauthDisabled', 'ipersist Hslease', 'ipersist HLease'] + FIN_PRE[:6] + ['imodintro',
+            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName',
             'iframe #', 'repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))'],
 )
 
@@ -906,7 +909,9 @@ _AUTH_ERRS = ['ErrRootUserNotExist', 'ErrRootRoleNotExist', 'ErrUserAlreadyExist
               'ErrRoleNotGranted', 'ErrPermissionNotGranted', 'ErrAuthNotEnabled', 'ErrAuthOldRevision',
               'ErrInvalidAuthToken', 'ErrInvalidAuthOpts', 'ErrInvalidAuthMgmt']
 def _auth_news(names):
-    return [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{n} #M{n}' for n in names]
+    # with the message cells (the auth plan's E3i, 2026-10-27: `authErrMsgs`, what tells them apart
+    # from `etcdserver/errors.ErrNoSpace`)
+    return [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{n} ⟨#M{n}, #C{n}⟩' for n in names]
 SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
     doc='''Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
 `ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`, and the admin side's eleven
@@ -915,7 +920,7 @@ SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).''',
-    imports=['Proof.errors.NewVar', 'Perennial.Proof.context.NewErrorString',
+    imports=['Proof.errors.NewVar', 'Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString',
              'Perennial.Proof.sync.RWMutexGuard'],
     vars=['[EtcdGrove.ErrorStringLeaf]'],
     alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
@@ -933,6 +938,13 @@ initializers are untranslated (`opaqueInitsOk`).''',
     },
     finish=[f'ipersist H{n}' for n in _AUTH_ERRS] + ['ipersist HsimpleTokenTTLResolution'] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
+            # the message cells (E3i): `errVarCells authErrMsgs`
+            'ihave #VCells : (EtcdGrove.errVarCells go_etcd_io.etcd.server.v3.auth.authErrMsgs : IProp GF) $$ []',
+            '· unfold go_etcd_io.etcd.server.v3.auth.authErrMsgs',
+            '  simp only [EtcdGrove.errVarCells, EtcdGrove.errVarCell]',
+            '  iframe #',
+            '  repeat (first | (isplitl []; · (iexists _; iframe #)) | (iexists _; iframe #))',
+            '  try itrivial'] + [
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
             '· iapply isPkgInit_access $$ Hd17',
             'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩',
@@ -1251,7 +1263,15 @@ errors by the premise `EtcdGrove.ErrorStringLeaf`.""",
              'ihave #LMC := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMC',
              'ihave #LMF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMF'] +
             _noSpaceApart() +
-            FIN_PRE[:6] + ['imodintro', 'unfold applyInit applyErrVars', 'iframe #']),
+            # (the auth plan's E3i, 2026-10-27) `ErrNoSpace` apart from the auth package's error
+            # variables, from their message cells (`authInit`'s last conjunct)
+            ['ihave Hau : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.auth}',
+             'icases Hau with ⟨' + '-, ' * 23 + '#AUC⟩',
+             'ihave #AAU := EtcdGrove.errVarApart_cells go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace'
+             ' go!"etcdserver: no space" go_etcd_io.etcd.server.v3.auth.authErrMsgs'
+             ' (go_etcd_io.etcd.server.v3.auth.authErrMsgs_ne_of _ (by decide)) $$ CNSP AUC'] +
+            FIN_PRE[:6] + ['imodintro', 'unfold applyInit applyErrVars authErrsApart', 'iframe #']),
 )
 
 _SRV_ERRS = [('ErrTooManyRequests', 'etcdserver: too many requests', 'TMR'),

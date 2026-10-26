@@ -5,9 +5,10 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.schema`
 Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `AuthUsers` and
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
-(`auth.go`; the auth plan's S1, 2026-10-23). Its initializer allocates and sets those translated
-variables (with the buckets' names), initializes its imports and runs its other variables'
-untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says run.
+(`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
+2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
+names), initializes its imports and runs its other variables' untranslated initializers, which
+the trust-boundary axiom `opaqueInitsOk` says run.
 -/
 module
 
@@ -54,13 +55,11 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([«_».init,
         «_».init,
         «_».init,
-        leaseBucketName.init,
         alarmBucketName.init,
         clusterBucketName.init,
         membersBucketName.init,
         membersRemovedBucketName.init,
         testBucketName.init,
-        Lease.init,
         Alarm.init,
         Cluster.init,
         Members.init,
@@ -135,11 +134,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) AuthRoles _ as HAuthRoles
   wp_apply wp_GlobalAlloc (V := GoInterface) AuthUsers _ as HAuthUsers
   wp_apply wp_GlobalAlloc (V := GoInterface) Auth _ as HAuth
+  wp_apply wp_GlobalAlloc (V := GoInterface) Lease _ as HLease
   wp_apply wp_GlobalAlloc (V := GoInterface) Meta _ as HMeta
   wp_apply wp_GlobalAlloc (V := GoInterface) Key _ as HKey
   wp_apply wp_GlobalAlloc (V := GoSlice) authRolesBucketName _ as HauthRolesBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) authUsersBucketName _ as HauthUsersBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) authBucketName _ as HauthBucketName
+  wp_apply wp_GlobalAlloc (V := GoSlice) leaseBucketName _ as HleaseBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) metaBucketName _ as HmetaBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) keyBucketName _ as HkeyBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) authDisabled _ as HauthDisabled
@@ -169,11 +170,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   -- translated initializer of keyBucketName))
   -- translated initializer of metaBucketName))
+  -- translated initializer of leaseBucketName))
   wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩
   try wp_auto
   wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩
   try wp_auto
-  wp_apply (opaqueInitsOk leaseBucketName.init (by mem_tac))
+  wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩
+  try wp_auto
   wp_apply (opaqueInitsOk alarmBucketName.init (by mem_tac))
   wp_apply (opaqueInitsOk clusterBucketName.init (by mem_tac))
   wp_apply (opaqueInitsOk membersBucketName.init (by mem_tac))
@@ -190,8 +193,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk testBucketName.init (by mem_tac))
   -- translated initializer of Key))
   -- translated initializer of Meta))
+  -- translated initializer of Lease))
   try wp_auto
-  wp_apply (opaqueInitsOk Lease.init (by mem_tac))
   wp_apply (opaqueInitsOk Alarm.init (by mem_tac))
   wp_apply (opaqueInitsOk Cluster.init (by mem_tac))
   wp_apply (opaqueInitsOk Members.init (by mem_tac))
@@ -226,6 +229,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of authRolesBucketName))
   -- translated initializer of authUsersBucketName))
   -- translated initializer of authBucketName))
+  -- translated initializer of leaseBucketName))
   -- translated initializer of metaBucketName))
   -- translated initializer of keyBucketName))
   ipersist Hskey
@@ -253,6 +257,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HAuthRevisionKeyName
   ipersist HauthEnabled
   ipersist HauthDisabled
+  ipersist Hslease
+  ipersist HLease
   iframe Hown
   imodintro
   isplitr
@@ -260,7 +266,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName
+  unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName
   iframe #
   repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))
 

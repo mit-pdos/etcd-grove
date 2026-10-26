@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.Changes.wp_proof :
     mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend crev Z
+  intro trace tw s γ ilog pend crev Z ld
   wp_start as Htw
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw

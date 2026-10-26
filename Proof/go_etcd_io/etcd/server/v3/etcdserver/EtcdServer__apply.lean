@@ -66,8 +66,9 @@ local macro "cc_kv_applied" : tactic => `(tactic| (
     · iframe He
     icases srvApplyKV_idxCert s E ρ.wait xj $$ HKV with ⟨HKV, #Hcert⟩
     ihave %Hlxj := idxCert_len E.γ.idx xj.log $$ Hcert
-    have hcc0 : kvEntry γr.kv.c0 xj.chain xj.log m = xj.log :=
-      kvEntry_nonwrite _ _ _ m (Or.inr (Or.inl (by rw [h1]; decide)))
+    have hcc0 : kvEntry γr.kv.c0 xj.chain (kvLeases γr.kv (A ++ ms.take (sint.nat j))) xj.log m =
+        xj.log :=
+      kvEntry_nonwrite _ _ _ _ m (Or.inr (Or.inl (by rw [h1]; decide)))
     imod kv_applied_step E γr (A ++ ms.take (sint.nat j)) m xj (by rw [hcc0]; exact Hlxj)
       $$ Hkvi Hka HlbJ with ⟨%Hpe, Hka⟩
     ihave ⟨Hka, #HkL⟩ := kvApplied_next γr (A ++ ms.take (sint.nat j)) m xj xj m.index hiA

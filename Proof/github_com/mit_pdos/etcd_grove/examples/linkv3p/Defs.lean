@@ -309,7 +309,7 @@ def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (pfx : GoString)
     isNewClient cl₁ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     isNewClient cl₂ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     isNewClient cl₃ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
-    etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) ∗
+    etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries bootLog)) ∗
     ⌜ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st⌝)
 
 end cluster

@@ -202,8 +202,8 @@ theorem MainWatch.wp_proof
     unfold kvModel
     rw [linkv.kvRaftOf_boot _ _ _ (putget3.ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃) bootLog
       Hbf.boot, hlog₁]
-  have hW0 : wkW (trs.map pairOf) (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))).changes := by
-    rw [hboot]; exact wkW_start _
+  have hW0 : wkW (trs.map pairOf) (kvModelSt ρ₁.rd.kv (bootEntries bootLog)).changes := by
+    rw [kvModelSt_boot _ _ _ bootLog Hbf.boot, hboot]; exact wkW_start _
   imod (client.kmInv_alloc ρ₁.rd.kv _ (wkW (trs.map pairOf)) hW0) $$ Hetcd
     with ⟨%γ, %Hγ, #Hkm, #Hlb0⟩
   obtain ⟨hγk, hγW⟩ := Hγ

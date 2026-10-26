@@ -616,6 +616,7 @@ axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom schema.UnsafeDeleteLease.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof
@@ -631,6 +632,7 @@ axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom sort.Stable.wp_proof
+axiom sort.StringSlice.Sort.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof

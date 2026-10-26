@@ -46,19 +46,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 section pure
 variable [GooseExts]
 
-/-- **The KV model of the committed log `L` in the auth mode `on`**: `kvModel` off, the mode-`on`
-model from the server's start state (`kvModelOn … srvAuthSt0`) on. -/
-def kvModelM (on : Bool) (γk : KVNames) (L : List EntryModel) : mvcc.Log :=
-  match on with
-  | false => kvModel γk L
-  | true => kvModelOn γk srvAuthSt0 L
-
-theorem kvModelM_false (γk : KVNames) (L : List EntryModel) :
-    kvModelM false γk L = kvModel γk L := rfl
-
-theorem kvModelM_true (γk : KVNames) (L : List EntryModel) :
-    kvModelM true γk L = kvModelOn γk srvAuthSt0 L := rfl
-
 /-- The header the server stamps is all `withHeader` changes: its kind, its KV operation, its
 permissions and its shape facts are the request's. -/
 theorem irrNoZeroEnd_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :

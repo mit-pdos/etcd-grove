@@ -90,7 +90,7 @@ theorem wkW_start (P : List (GoString × GoString)) : wkW P [[]] :=
 /-- **The client's put of `k ↦ v`** (no lease, no flag) commits the one change `put k v 0`. -/
 theorem kvOpStep_putKeyOp (k v : GoString) (σ : KVState) :
     kvOpStep (.put (client.putKeyOp k v)) σ = σ.commit [.put k v (W64 0)] := by
-  simp [kvOpStep, client.putKeyOp, txn.putOpOf, txn.needsPrev, txn.putChangeOf, txn.putValOf,
+  simp [kvOpStep, KVState.leaseMissing, client.putKeyOp, txn.putOpOf, txn.needsPrev, txn.putChangeOf, txn.putValOf,
     txn.putLeaseOf]
 
 /-- A put of the plan keeps the property. -/

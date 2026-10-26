@@ -36,7 +36,7 @@ theorem auth.decomposeOpts.wp_proof (h_Error : zap.Logger.Error.spec (GF := GF) 
   wp_start as %Hlg
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HIO⟩
+  icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HIO, -⟩
   iunfold authErrVar at HIO
   icases HIO with ⟨%eIO, #HeIO, -⟩
   ihave #Hstr : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []

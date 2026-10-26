@@ -86,6 +86,16 @@ inductive KVOp where
   | range (o : OpFull)
   | deleteRange (o : OpFull)
   | txn (t : TxnModel)
+  /-- (unit T3, 2026-10-24) `LeaseGrant(id, ttl)`, its id fixed before the proposal -/
+  | leaseGrant (id ttl : w64)
+  /-- (unit T3) `LeaseRevoke(id)` -/
+  | leaseRevoke (id : w64)
+
+/-- **A key-value operation** (unit T3): not a lease's grant or revocation. -/
+def KVOp.isKV : KVOp → Prop
+  | .leaseGrant _ _ => False
+  | .leaseRevoke _ => False
+  | _ => True
 
 /-- **The KV operation of a request**, by `dispatch`'s kind. -/
 def reqKVOp (rq : apply.IRRModel) : Option KVOp :=
@@ -94,6 +104,8 @@ def reqKVOp (rq : apply.IRRModel) : Option KVOp :=
   | .range => rq.range.map .range
   | .deleteRange => rq.deleteRange.map .deleteRange
   | .txn => rq.txn.map .txn
+  | .leaseGrant => rq.leaseGrant.map fun g => .leaseGrant g.id g.ttl
+  | .leaseRevoke => rq.leaseRevoke.map .leaseRevoke
   | _ => none
 
 /-- **The kinds the server's verified proposers send**: the KV writes and the monitors' requests
@@ -190,17 +202,50 @@ theorem srvIdxOk_of_W [GooseExts] (ai₀ : w64) (L : List EntryModel) (h : srvId
 
 /-! ## The deterministic step -/
 
+/-- **The lessor's table** (unit T3, 2026-10-24): every live lease's id and granted TTL, in
+grant order. Not a function of the mvcc log: a grant makes no revision. -/
+abbrev LeaseTable := List (w64 × w64)
+
+/-- The live leases' ids. -/
+def LeaseTable.ids (ls : LeaseTable) : List w64 := ls.map Prod.fst
+
+/-- `lessor.Grant`'s maximum TTL (`MaxLeaseTTL`, `lessor.go`). -/
+def maxLeaseTTL : Int := 9000000000
+
+/-- **A grant of `id` with TTL `ttl` succeeds at the table `lt`** (unit T3, L3a, 2026-10-26;
+`lessor.Grant`): the id is not `NoLease` (`ErrLeaseNotFound`), the TTL at most `MaxLeaseTTL`
+(`ErrLeaseTTLTooLarge`), the id not live (`ErrLeaseExists`). -/
+def leaseGrantOk (lt : LeaseTable) (id ttl : w64) : Prop :=
+  id ≠ W64 0 ∧ sint.Z ttl ≤ maxLeaseTTL ∧ id ∉ lt.ids
+
+instance (lt : LeaseTable) (id ttl : w64) : Decidable (leaseGrantOk lt id ttl) := by
+  unfold leaseGrantOk; infer_instance
+
+/-- A put's lease is set and not in the table (`ErrLeaseNotFound`, the request rejected). -/
+def leaseMissingIn (lt : LeaseTable) (l : w64) : Prop := l ≠ W64 0 ∧ l ∉ lt.ids
+
+instance (lt : LeaseTable) (l : w64) : Decidable (leaseMissingIn lt l) := by
+  unfold leaseMissingIn; infer_instance
+
+/-- **A revocation's deletions** (unit T3): every key attached to `id`, in key order (the
+lessor's `Revoke` sorts its item set; the state is sorted by key). -/
+def revokeChanges (s : List EtcdKv) (id : w64) : List mvcc.Change :=
+  (s.filter (fun v => v.lease = id)).map fun v => .del v.key
+
 open Classical in
 /-- **The backend's effect on the log**, deterministically (`apply.backendStep`'s outcome for a
-plain request): a put not finding the previous key-value an ignore flag needs is rejected, else
-its change appended; a delete commits its range's deletions; a transaction whose path does not
-find a previous key-value it needs is rejected (`checkTxn`), else the server's run committed. -/
-def backendLog (rq : apply.IRRModel) (log : mvcc.Log) : mvcc.Log :=
+plain request), at the lease table `lt` (unit T3, L3a): a put naming a lease not in the table, or
+not finding the previous key-value an ignore flag needs, is rejected, else its change appended; a
+delete commits its range's deletions; a transaction whose path does not find a previous key-value
+it needs or names a lease not in the table is rejected (`checkTxn`), else the server's run
+committed; a revocation of a live lease deletes its keys at one revision. -/
+def backendLog (lt : LeaseTable) (rq : apply.IRRModel) (log : mvcc.Log) : mvcc.Log :=
   match apply.dispatchKind rq with
   | .put =>
       match rq.put with
       | some op =>
-        if txn.needsPrev op && (mvcc.findKey op.key (mvcc.stateAfter log)).isNone then log
+        if leaseMissingIn lt op.leaseID then log
+        else if txn.needsPrev op && (mvcc.findKey op.key (mvcc.stateAfter log)).isNone then log
         else log ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter log))]]
       | none => log
   | .deleteRange =>
@@ -210,59 +255,160 @@ def backendLog (rq : apply.IRRModel) (log : mvcc.Log) : mvcc.Log :=
   | .txn =>
       match rq.txn with
       | some t =>
-        if txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) then
+        if txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+            txn.PathsLeaseOk (mvcc.stateAfter log) lt.ids
+              (t.branch (txn.txnOk (mvcc.stateAfter log) t)) then
           mvcc.commitLog log (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1
         else log
       | none => log
+  | .leaseRevoke =>
+      match rq.leaseRevoke with
+      | some id =>
+        if id ∈ lt.ids then mvcc.commitLog log (revokeChanges (mvcc.stateAfter log) id) else log
+      | none => log
   | _ => log
+
+open Classical in
+/-- **The backend's effect on the lease table** (unit T3, L3a): a grant that succeeds
+(`leaseGrantOk`) appends its lease, a revocation of a live lease removes it; nothing else changes
+it (it does not depend on the log). -/
+def backendTable (rq : apply.IRRModel) (lt : LeaseTable) : LeaseTable :=
+  match apply.dispatchKind rq with
+  | .leaseGrant =>
+      match rq.leaseGrant with
+      | some g => if leaseGrantOk lt g.id g.ttl then lt ++ [(g.id, g.ttl)] else lt
+      | none => lt
+  | .leaseRevoke =>
+      match rq.leaseRevoke with
+      | some id => if id ∈ lt.ids then lt.filter (fun p => p.1 ≠ id) else lt
+      | none => lt
+  | _ => lt
+
+/-- A request the generic proofs cover changes no table (unit T3, L3a: `plainCover` admits no
+lease kind). -/
+theorem backendTable_plain (rq : apply.IRRModel) (lt : LeaseTable) (hp : plainCover rq) :
+    backendTable rq lt = lt := by
+  unfold backendTable
+  split
+  · rename_i hk; unfold plainCover at hp; rw [hk] at hp; exact hp.elim
+  · rename_i hk; unfold plainCover at hp; rw [hk] at hp; exact hp.elim
+  · rfl
 
 /-- **The chain's effect on the log**, deterministically: the corrupt and capped layers reject
 what they always reject; the auth layer lets everything through (auth disabled); the quota layer
 changes no log. -/
-def chainLog : apply.Chain → apply.IRRModel → mvcc.Log → mvcc.Log
-  | .backend, rq, log => backendLog rq log
-  | .corrupt c, rq, log =>
-      if apply.corruptRejects (apply.dispatchKind rq) then log else chainLog c rq log
-  | .capped c, rq, log =>
-      if apply.cappedRejects (apply.dispatchKind rq) then log else chainLog c rq log
-  | .auth _ c, rq, log => chainLog c rq log
-  | .quota c, rq, log => chainLog c rq log
+def chainLog : apply.Chain → apply.IRRModel → LeaseTable → mvcc.Log → mvcc.Log
+  | .backend, rq, lt, log => backendLog lt rq log
+  | .corrupt c, rq, lt, log =>
+      if apply.corruptRejects (apply.dispatchKind rq) then log else chainLog c rq lt log
+  | .capped c, rq, lt, log =>
+      if apply.cappedRejects (apply.dispatchKind rq) then log else chainLog c rq lt log
+  | .auth _ c, rq, lt, log => chainLog c rq lt log
+  | .quota c, rq, lt, log => chainLog c rq lt log
+
+/-- **The chain's effect on the lease table** (unit T3, L3a), as `chainLog`'s on the log. -/
+def chainTable : apply.Chain → apply.IRRModel → LeaseTable → LeaseTable
+  | .backend, rq, lt => backendTable rq lt
+  | .corrupt c, rq, lt =>
+      if apply.corruptRejects (apply.dispatchKind rq) then lt else chainTable c rq lt
+  | .capped c, rq, lt =>
+      if apply.cappedRejects (apply.dispatchKind rq) then lt else chainTable c rq lt
+  | .auth _ c, rq, lt => chainTable c rq lt
+  | .quota c, rq, lt => chainTable c rq lt
 
 /-- **`dispatch(rq, v3)`'s effect on the log**, deterministically (`apply.dispatchStep`). -/
-def dispatchLog (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (log : mvcc.Log) :
-    mvcc.Log :=
+def dispatchLog (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (lt : LeaseTable)
+    (log : mvcc.Log) : mvcc.Log :=
   if apply.preV3Kind (apply.dispatchKind rq) = true ∨ v3 = false then log
-  else if apply.storeKind (apply.dispatchKind rq) = true then chainLog c rq log
+  else if apply.storeKind (apply.dispatchKind rq) = true then chainLog c rq lt log
   else log
 
+/-- **`dispatch(rq, v3)`'s effect on the lease table** (unit T3, L3a): a grant is dispatched to the
+chain too (`applyV3.LeaseGrant`), though not a store kind (it changes no log). -/
+def dispatchTable (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (lt : LeaseTable) :
+    LeaseTable :=
+  if apply.preV3Kind (apply.dispatchKind rq) = true ∨ v3 = false then lt
+  else chainTable c rq lt
+
 /-- **An entry's effect on the log**, from the consistent index `c₀` with the chain `ch`: a normal
-entry with data that decodes is dispatched (`v3` iff above `c₀`); nothing else changes the log. -/
-def kvEntry (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (m : EntryModel) : mvcc.Log :=
+entry with data that decodes is dispatched (`v3` iff above `c₀`); nothing else changes the log.
+(Unit T3, L3a) At the lease table `lt`. -/
+def kvEntry (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvcc.Log) (m : EntryModel) :
+    mvcc.Log :=
   if m.typ = W32 0 then
     if m.data = [] then log
     else match apply.irrDecode m.data with
-      | some rq => dispatchLog ch rq (decide (uint.Z c₀ < uint.Z m.index)) log
+      | some rq => dispatchLog ch rq (decide (uint.Z c₀ < uint.Z m.index)) lt log
       | none => log
   else log
 
+/-- **An entry's effect on the lease table** (unit T3, L3a), as `kvEntry`'s on the log. -/
+def kvTable (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : EntryModel) : LeaseTable :=
+  if m.typ = W32 0 then
+    if m.data = [] then lt
+    else match apply.irrDecode m.data with
+      | some rq => dispatchTable ch rq (decide (uint.Z c₀ < uint.Z m.index)) lt
+      | none => lt
+  else lt
+
+/-- **An entry's effect on the log and the lease table** (unit T3, L3a). -/
+def kvEntrySt (c₀ : w64) (ch : apply.Chain) (s : mvcc.Log × LeaseTable) (m : EntryModel) :
+    mvcc.Log × LeaseTable :=
+  (kvEntry c₀ ch s.2 s.1 m, kvTable c₀ ch s.2 m)
+
+/-- **The lease table of a raft log** `A` from the table `lt₀` (unit T3, L3a). -/
+def kvTableOf (c₀ : w64) (ch : apply.Chain) (lt₀ : LeaseTable) (A : List EntryModel) : LeaseTable :=
+  A.foldl (kvTable c₀ ch) lt₀
+
+/-- **The model of a raft log** `A`, the log and the lease table, from `s₀` (unit T3, L3a). -/
+def kvRaftSt (c₀ : w64) (ch : apply.Chain) (s₀ : mvcc.Log × LeaseTable) (A : List EntryModel) :
+    mvcc.Log × LeaseTable :=
+  A.foldl (kvEntrySt c₀ ch) s₀
+
 /-- **The KV model of a raft log** `A` (the entries after the start index), from the log `log₀`
-at the start (the snapshot's), the consistent index `c₀` and the chain `ch`. -/
+at the start (the snapshot's), the consistent index `c₀` and the chain `ch`; (unit T3, L3a) each
+entry at the lease table of the entries before it, from the empty table (the lessor `NewLessor`
+gives has no lease). -/
 def kvRaftOf (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A : List EntryModel) : mvcc.Log :=
-  A.foldl (kvEntry c₀ ch) log₀
+  (kvRaftSt c₀ ch (log₀, []) A).1
 
 /-- **The value of `k`** in the state after `log`. -/
 def kvVal (log : mvcc.Log) (k : GoString) : Option GoString :=
   (mvcc.findKey k (mvcc.stateAfter log)).map EtcdKv.value
 
+theorem kvRaftSt_nil (c₀ : w64) (ch : apply.Chain) (s₀ : mvcc.Log × LeaseTable) :
+    kvRaftSt c₀ ch s₀ [] = s₀ := rfl
+
+theorem kvRaftSt_append (c₀ : w64) (ch : apply.Chain) (s₀ : mvcc.Log × LeaseTable)
+    (A B : List EntryModel) :
+    kvRaftSt c₀ ch s₀ (A ++ B) = kvRaftSt c₀ ch (kvRaftSt c₀ ch s₀ A) B := by
+  unfold kvRaftSt; exact List.foldl_append
+
+theorem kvRaftSt_snoc (c₀ : w64) (ch : apply.Chain) (s₀ : mvcc.Log × LeaseTable)
+    (A : List EntryModel) (m : EntryModel) :
+    kvRaftSt c₀ ch s₀ (A ++ [m]) = kvEntrySt c₀ ch (kvRaftSt c₀ ch s₀ A) m := by
+  rw [kvRaftSt_append]; rfl
+
+/-- The model's table is the entries' table (it does not depend on the log). -/
+theorem kvRaftSt_snd (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) :
+    ∀ s₀ : mvcc.Log × LeaseTable, (kvRaftSt c₀ ch s₀ A).2 = kvTableOf c₀ ch s₀.2 A := by
+  induction A with
+  | nil => intro s₀; rfl
+  | cons m A ih => intro s₀; exact ih (kvEntrySt c₀ ch s₀ m)
+
+theorem kvTableOf_snoc (c₀ : w64) (ch : apply.Chain) (lt₀ : LeaseTable) (A : List EntryModel)
+    (m : EntryModel) : kvTableOf c₀ ch lt₀ (A ++ [m]) = kvTable c₀ ch (kvTableOf c₀ ch lt₀ A) m := by
+  unfold kvTableOf; rw [List.foldl_append]; rfl
+
 theorem kvRaftOf_nil (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) : kvRaftOf c₀ ch log₀ [] = log₀ := rfl
 
-theorem kvRaftOf_append (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A B : List EntryModel) :
-    kvRaftOf c₀ ch log₀ (A ++ B) = kvRaftOf c₀ ch (kvRaftOf c₀ ch log₀ A) B := by
-  unfold kvRaftOf; exact List.foldl_append
-
+/-- **An entry's step on the model** (unit T3, L3a: at the table of the entries before it). -/
 theorem kvRaftOf_snoc (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A : List EntryModel)
-    (m : EntryModel) : kvRaftOf c₀ ch log₀ (A ++ [m]) = kvEntry c₀ ch (kvRaftOf c₀ ch log₀ A) m := by
-  rw [kvRaftOf_append]; rfl
+    (m : EntryModel) :
+    kvRaftOf c₀ ch log₀ (A ++ [m]) = kvEntry c₀ ch (kvTableOf c₀ ch [] A) (kvRaftOf c₀ ch log₀ A) m := by
+  unfold kvRaftOf
+  rw [kvRaftSt_snoc, ← kvRaftSt_snd c₀ ch A (log₀, [])]
+  rfl
 
 /-! ## Shape: at most one revision per entry -/
 
@@ -273,14 +419,16 @@ theorem commitLog_grow (log : mvcc.Log) (pend : List mvcc.Change) :
   · left; rfl
   · right; exact ⟨_, rfl⟩
 
-theorem backendLog_grow (rq : apply.IRRModel) (log : mvcc.Log) :
-    backendLog rq log = log ∨ ∃ cs, backendLog rq log = log ++ [cs] := by
+theorem backendLog_grow (lt : LeaseTable) (rq : apply.IRRModel) (log : mvcc.Log) :
+    backendLog lt rq log = log ∨ ∃ cs, backendLog lt rq log = log ++ [cs] := by
   unfold backendLog
   split
   · split
     · split
       · left; rfl
-      · right; exact ⟨_, rfl⟩
+      · split
+        · left; rfl
+        · right; exact ⟨_, rfl⟩
     · left; rfl
   · split
     · exact commitLog_grow _ _
@@ -290,63 +438,75 @@ theorem backendLog_grow (rq : apply.IRRModel) (log : mvcc.Log) :
       · exact commitLog_grow _ _
       · left; rfl
     · left; rfl
+  · split
+    · split
+      · exact commitLog_grow _ _
+      · left; rfl
+    · left; rfl
   · left; rfl
 
-theorem chainLog_grow : ∀ (c : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log),
-    chainLog c rq log = log ∨ ∃ cs, chainLog c rq log = log ++ [cs]
-  | .backend, rq, log => backendLog_grow rq log
-  | .corrupt c, rq, log => by
+theorem chainLog_grow : ∀ (c : apply.Chain) (rq : apply.IRRModel) (lt : LeaseTable) (log : mvcc.Log),
+    chainLog c rq lt log = log ∨ ∃ cs, chainLog c rq lt log = log ++ [cs]
+  | .backend, rq, lt, log => backendLog_grow lt rq log
+  | .corrupt c, rq, lt, log => by
     simp only [chainLog]; split
     · left; rfl
-    · exact chainLog_grow c rq log
-  | .capped c, rq, log => by
+    · exact chainLog_grow c rq lt log
+  | .capped c, rq, lt, log => by
     simp only [chainLog]; split
     · left; rfl
-    · exact chainLog_grow c rq log
-  | .auth _ c, rq, log => by simp only [chainLog]; exact chainLog_grow c rq log
-  | .quota c, rq, log => by simp only [chainLog]; exact chainLog_grow c rq log
+    · exact chainLog_grow c rq lt log
+  | .auth _ c, rq, lt, log => by simp only [chainLog]; exact chainLog_grow c rq lt log
+  | .quota c, rq, lt, log => by simp only [chainLog]; exact chainLog_grow c rq lt log
 
-theorem dispatchLog_grow (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (log : mvcc.Log) :
-    dispatchLog c rq v3 log = log ∨ ∃ cs, dispatchLog c rq v3 log = log ++ [cs] := by
+theorem dispatchLog_grow (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (lt : LeaseTable)
+    (log : mvcc.Log) :
+    dispatchLog c rq v3 lt log = log ∨ ∃ cs, dispatchLog c rq v3 lt log = log ++ [cs] := by
   unfold dispatchLog
   split
   · left; rfl
   · split
-    · exact chainLog_grow c rq log
+    · exact chainLog_grow c rq lt log
     · left; rfl
 
 /-- **An entry appends at most one revision.** -/
-theorem kvEntry_grow (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (m : EntryModel) :
-    kvEntry c₀ ch log m = log ∨ ∃ cs, kvEntry c₀ ch log m = log ++ [cs] := by
+theorem kvEntry_grow (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvcc.Log)
+    (m : EntryModel) :
+    kvEntry c₀ ch lt log m = log ∨ ∃ cs, kvEntry c₀ ch lt log m = log ++ [cs] := by
   unfold kvEntry
   split
   · split
     · left; rfl
     · split
-      · exact dispatchLog_grow _ _ _ _
+      · exact dispatchLog_grow _ _ _ _ _
       · left; rfl
   · left; rfl
 
-theorem kvEntry_prefix (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (m : EntryModel) :
-    log <+: kvEntry c₀ ch log m := by
-  rcases kvEntry_grow c₀ ch log m with h | ⟨cs, h⟩
+theorem kvEntry_prefix (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvcc.Log)
+    (m : EntryModel) : log <+: kvEntry c₀ ch lt log m := by
+  rcases kvEntry_grow c₀ ch lt log m with h | ⟨cs, h⟩
   · rw [h]; exact List.prefix_refl _
   · rw [h]; exact List.prefix_append _ _
 
-theorem kvRaftOf_extends (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A : List EntryModel) :
-    log₀ <+: kvRaftOf c₀ ch log₀ A := by
-  induction A generalizing log₀ with
-  | nil => exact List.prefix_refl _
+theorem kvRaftSt_extends (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) :
+    ∀ s₀ : mvcc.Log × LeaseTable, s₀.1 <+: (kvRaftSt c₀ ch s₀ A).1 := by
+  induction A with
+  | nil => intro s₀; exact List.prefix_refl _
   | cons m A ih =>
-    show log₀ <+: kvRaftOf c₀ ch (kvEntry c₀ ch log₀ m) A
-    exact (kvEntry_prefix c₀ ch log₀ m).trans (ih _)
+    intro s₀
+    exact (kvEntry_prefix c₀ ch s₀.2 s₀.1 m).trans (ih (kvEntrySt c₀ ch s₀ m))
+
+theorem kvRaftOf_extends (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A : List EntryModel) :
+    log₀ <+: kvRaftOf c₀ ch log₀ A :=
+  kvRaftSt_extends c₀ ch A (log₀, [])
 
 /-- **The model grows with the raft log.** -/
 theorem kvRaftOf_prefix (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A B : List EntryModel)
     (h : A <+: B) : kvRaftOf c₀ ch log₀ A <+: kvRaftOf c₀ ch log₀ B := by
   obtain ⟨D, rfl⟩ := h
-  rw [kvRaftOf_append]
-  exact kvRaftOf_extends _ _ _ _
+  unfold kvRaftOf
+  rw [kvRaftSt_append]
+  exact kvRaftSt_extends _ _ _ _
 
 
 /-! ## A plain put's and a write-free request's effect on the values -/
@@ -356,13 +516,15 @@ open mvcc
 
 end putValues
 
-/-- **A write kind**: a put, a delete or a transaction (2026-10-15, unit T2: a transaction too). -/
-def writeKind (k : apply.ReqKind) : Prop := k = .put ∨ k = .deleteRange ∨ k = .txn
+/-- **A write kind**: a put, a delete or a transaction (2026-10-15, unit T2: a transaction too);
+(unit T3, L3a) a lease's grant or revocation (the table, and a revocation's deletions). -/
+def writeKind (k : apply.ReqKind) : Prop :=
+  k = .put ∨ k = .deleteRange ∨ k = .txn ∨ k = .leaseGrant ∨ k = .leaseRevoke
 
-/-- A request that is no put, no delete and no transaction changes no log through any chain. -/
-theorem chainLog_nonwrite (rq : apply.IRRModel) (log : mvcc.Log)
+/-- A request that is no write changes no log through any chain. -/
+theorem chainLog_nonwrite (rq : apply.IRRModel) (lt : LeaseTable) (log : mvcc.Log)
     (hk : ¬ writeKind (apply.dispatchKind rq)) :
-    ∀ c : apply.Chain, chainLog c rq log = log := by
+    ∀ c : apply.Chain, chainLog c rq lt log = log := by
   intro c
   unfold writeKind at hk
   induction c with
@@ -371,19 +533,39 @@ theorem chainLog_nonwrite (rq : apply.IRRModel) (log : mvcc.Log)
     split
     · rename_i hk'; exact absurd (Or.inl hk') hk
     · rename_i hk'; exact absurd (Or.inr (Or.inl hk')) hk
-    · rename_i hk'; exact absurd (Or.inr (Or.inr hk')) hk
+    · rename_i hk'; exact absurd (Or.inr (Or.inr (Or.inl hk'))) hk
+    · rename_i hk'; exact absurd (Or.inr (Or.inr (Or.inr (Or.inr hk')))) hk
     · rfl
   | corrupt c ih => simp only [chainLog]; split <;> simp [ih]
   | capped c ih => simp only [chainLog]; split <;> simp [ih]
   | auth _ c ih => simp only [chainLog]; exact ih
   | quota c ih => simp only [chainLog]; exact ih
 
+/-- A request that is no write changes no table through any chain. -/
+theorem chainTable_nonwrite (rq : apply.IRRModel) (lt : LeaseTable)
+    (hk : ¬ writeKind (apply.dispatchKind rq)) :
+    ∀ c : apply.Chain, chainTable c rq lt = lt := by
+  intro c
+  unfold writeKind at hk
+  induction c with
+  | backend =>
+    simp only [chainTable, backendTable]
+    split
+    · rename_i hk'; exact absurd (Or.inr (Or.inr (Or.inr (Or.inl hk')))) hk
+    · rename_i hk'; exact absurd (Or.inr (Or.inr (Or.inr (Or.inr hk')))) hk
+    · rfl
+  | corrupt c ih => simp only [chainTable]; split <;> simp [ih]
+  | capped c ih => simp only [chainTable]; split <;> simp [ih]
+  | auth _ c ih => simp only [chainTable]; exact ih
+  | quota c ih => simp only [chainTable]; exact ih
+
 /-- **A write-free entry keeps the model** (an empty entry, a conf change, or a request that is
-no put, no delete and no transaction). -/
-theorem kvEntry_nonwrite (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (e : EntryModel)
+no write). -/
+theorem kvEntry_nonwrite (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (log : mvcc.Log)
+    (e : EntryModel)
     (h : e.data = [] ∨ e.typ ≠ W32 0 ∨ ∀ rq, apply.irrDecode e.data = some rq →
       ¬ writeKind (apply.dispatchKind rq)) :
-    kvEntry c₀ ch log e = log := by
+    kvEntry c₀ ch lt log e = log := by
   unfold kvEntry
   split
   · rename_i ht
@@ -399,20 +581,43 @@ theorem kvEntry_nonwrite (c₀ : w64) (ch : apply.Chain) (log : mvcc.Log) (e : E
           split
           · rfl
           · split
-            · exact chainLog_nonwrite rq log (h rq hdec) ch
+            · exact chainLog_nonwrite rq lt log (h rq hdec) ch
             · rfl
+      · rfl
+  · rfl
+
+/-- **A write-free entry keeps the table** (unit T3, L3a). -/
+theorem kvTable_nonwrite (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (e : EntryModel)
+    (h : e.data = [] ∨ e.typ ≠ W32 0 ∨ ∀ rq, apply.irrDecode e.data = some rq →
+      ¬ writeKind (apply.dispatchKind rq)) :
+    kvTable c₀ ch lt e = lt := by
+  unfold kvTable
+  split
+  · rename_i ht
+    split
+    · rfl
+    · rename_i hd
+      split
+      · rename_i rq hdec
+        rcases h with h | h | h
+        · exact absurd h hd
+        · exact absurd ht h
+        · unfold dispatchTable
+          split
+          · rfl
+          · exact chainTable_nonwrite rq lt (h rq hdec) ch
       · rfl
   · rfl
 
 /-- **`dispatch` through the base chain, with `v3`, is the backend's** (whatever the kind: the
 pre-v3 kinds and the kinds the chain does not run change no log, as the backend's model). -/
-theorem dispatchLog_base (rq : apply.IRRModel) (log : mvcc.Log) :
-    dispatchLog (apply.alarmChain false false false) rq true log = backendLog rq log := by
-  have hb : chainLog (apply.alarmChain false false false) rq log = backendLog rq log := by
+theorem dispatchLog_base (rq : apply.IRRModel) (lt : LeaseTable) (log : mvcc.Log) :
+    dispatchLog (apply.alarmChain false false false) rq true lt log = backendLog lt rq log := by
+  have hb : chainLog (apply.alarmChain false false false) rq lt log = backendLog lt rq log := by
     simp only [apply.alarmChain, apply.baseChain, Bool.false_eq_true, ↓reduceIte, chainLog]
-  have hnw : ¬ writeKind (apply.dispatchKind rq) → backendLog rq log = log := by
+  have hnw : ¬ writeKind (apply.dispatchKind rq) → backendLog lt rq log = log := by
     intro hk
-    have := chainLog_nonwrite rq log hk .backend
+    have := chainLog_nonwrite rq lt log hk .backend
     simpa only [chainLog] using this
   unfold dispatchLog
   rw [hb]
@@ -421,26 +626,93 @@ theorem dispatchLog_base (rq : apply.IRRModel) (log : mvcc.Log) :
     rcases h with h | h
     · rw [hnw]
       unfold writeKind
-      intro hk; rcases hk with hk | hk | hk <;> rw [hk] at h <;> cases h
+      intro hk; rcases hk with hk | hk | hk | hk | hk <;> rw [hk] at h <;> cases h
     · cases h
   · split
     · rfl
     · rename_i _ h
-      rw [hnw]
-      unfold writeKind
-      intro hk; rcases hk with hk | hk | hk <;> rw [hk] at h <;> exact h rfl
+      unfold backendLog
+      split <;> first | rfl | (rename_i hk; rw [hk] at h; exact absurd rfl h)
+
+/-- **`dispatch`'s table through the base chain, with `v3`, is the backend's** (unit T3, L3a). -/
+theorem dispatchTable_base (rq : apply.IRRModel) (lt : LeaseTable) :
+    dispatchTable (apply.alarmChain false false false) rq true lt = backendTable rq lt := by
+  have hb : chainTable (apply.alarmChain false false false) rq lt = backendTable rq lt := by
+    simp only [apply.alarmChain, apply.baseChain, Bool.false_eq_true, ↓reduceIte, chainTable]
+  unfold dispatchTable
+  rw [hb]
+  split
+  · rename_i h
+    rcases h with h | h
+    · unfold backendTable
+      split <;> first | rfl | (rename_i hk; rw [hk] at h; cases h)
+    · cases h
+  · rfl
 
 /-- **An entry above the consistent index, through the base chain**: its request's backend log
 (2026-10-15, unit T2; it was `kvEntry_put`, for a put). -/
-theorem kvEntry_base (c₀ : w64) (log : mvcc.Log) (e : EntryModel) (rq : apply.IRRModel)
-    (ht : e.typ = W32 0) (hd : e.data ≠ []) (hdec : apply.irrDecode e.data = some rq)
-    (hidx : uint.Z c₀ < uint.Z e.index) :
-    kvEntry c₀ (apply.alarmChain false false false) log e = backendLog rq log := by
+theorem kvEntry_base (c₀ : w64) (lt : LeaseTable) (log : mvcc.Log) (e : EntryModel)
+    (rq : apply.IRRModel) (ht : e.typ = W32 0) (hd : e.data ≠ [])
+    (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z c₀ < uint.Z e.index) :
+    kvEntry c₀ (apply.alarmChain false false false) lt log e = backendLog lt rq log := by
   unfold kvEntry
   rw [if_pos ht, if_neg hd, hdec]
   simp only
   rw [decide_eq_true hidx]
-  exact dispatchLog_base rq log
+  exact dispatchLog_base rq lt log
+
+/-- A covered request changes no table through any chain (unit T3, L3a). -/
+theorem chainTable_plain (rq : apply.IRRModel) (lt : LeaseTable) (hp : plainCover rq) :
+    ∀ c : apply.Chain, chainTable c rq lt = lt := by
+  intro c
+  induction c with
+  | backend => exact backendTable_plain rq lt hp
+  | corrupt c ih => simp only [chainTable]; split <;> simp [ih]
+  | capped c ih => simp only [chainTable]; split <;> simp [ih]
+  | auth _ c ih => simp only [chainTable]; exact ih
+  | quota c ih => simp only [chainTable]; exact ih
+
+/-- A plain entry changes no table (unit T3, L3a: until lease requests are admitted, the committed
+log's table stays empty). -/
+theorem kvTable_plain (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : EntryModel)
+    (hp : plainEntry m) : kvTable c₀ ch lt m = lt := by
+  unfold kvTable
+  split
+  · rename_i ht
+    split
+    · rfl
+    · rename_i hd
+      split
+      · rename_i rq hdec
+        unfold dispatchTable
+        split
+        · rfl
+        · exact chainTable_plain rq lt (hp ht hd rq hdec).1 ch
+      · rfl
+  · rfl
+
+/-- A plain log changes no table. -/
+theorem kvTableOf_plain (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) (hp : plainLog A) :
+    ∀ lt, kvTableOf c₀ ch lt A = lt := by
+  induction A with
+  | nil => intro lt; rfl
+  | cons m A ih =>
+    intro lt
+    show kvTableOf c₀ ch (kvTable c₀ ch lt m) A = lt
+    rw [kvTable_plain c₀ ch lt m (hp m (List.mem_cons_self ..))]
+    exact ih (fun m' hm' => hp m' (List.mem_cons_of_mem _ hm')) lt
+
+/-- **An entry's table above the consistent index, through the base chain**: its request's
+backend table (unit T3, L3a). -/
+theorem kvTable_base (c₀ : w64) (lt : LeaseTable) (e : EntryModel) (rq : apply.IRRModel)
+    (ht : e.typ = W32 0) (hd : e.data ≠ []) (hdec : apply.irrDecode e.data = some rq)
+    (hidx : uint.Z c₀ < uint.Z e.index) :
+    kvTable c₀ (apply.alarmChain false false false) lt e = backendTable rq lt := by
+  unfold kvTable
+  rw [if_pos ht, if_neg hd, hdec]
+  simp only
+  rw [decide_eq_true hidx]
+  exact dispatchTable_base rq lt
 
 /-! ## etcd's KV state, at every revision it keeps (D47, 2026-10-25; D46 kept a store per revision)
 
@@ -466,6 +738,8 @@ structure KVState where
   base : KVStore
   /-- the changes of revisions `compacted + 1`, ..., the current one, each revision's in order -/
   changes : List (List mvcc.Change)
+  /-- (unit T3) the lessor's table -/
+  leases : LeaseTable := []
 
 /-- **The key-values after the revisions `l`**, applied in order from `s`, the first of them
 revision `r0 + 1` (`mvcc.stateAfter`'s step: each revision's changes at its own revision). -/
@@ -528,21 +802,22 @@ theorem KVState.kvs_eq (σ : KVState) : σ.kvs = runFrom σ.compacted σ.base.kv
     List.take_of_length_le (by unfold KVState.rev; omega)]
 
 /-- **The state of a log**: its first revision's store, then each later revision's changes, none
-compacted; its current revision the log's last (`log.length - 1`: a read at `log` answers it). -/
-def kvStateOf (l : mvcc.Log) : KVState :=
-  ⟨0, storeOf (mvcc.stateAt l 0), l.drop 1⟩
+compacted; its current revision the log's last (`log.length - 1`: a read at `log` answers it);
+(unit T3, L3a) the lease table `lt` (none by default). -/
+def kvStateOf (l : mvcc.Log) (lt : LeaseTable := []) : KVState :=
+  { compacted := 0, base := storeOf (mvcc.stateAt l 0), changes := l.drop 1, leases := lt }
 
 /-- A write's commit of the changes `cs` at the next revision (none if it changed nothing:
-`mvcc.commitLog`'s). -/
+`mvcc.commitLog`'s); the lease table unchanged. -/
 def KVState.commit (σ : KVState) (cs : List mvcc.Change) : KVState :=
   if cs = [] then σ else { σ with changes := σ.changes ++ [cs] }
 
 theorem KVState.kvs_sorted (σ : KVState) : σ.kvs.Pairwise etcdKvLess := KVStore.kvs_sorted _
 
-theorem kvStateOf_rev (l : mvcc.Log) : (kvStateOf l).rev = l.length - 1 := by
+theorem kvStateOf_rev (l : mvcc.Log) {lt : LeaseTable} : (kvStateOf l lt).rev = l.length - 1 := by
   simp [kvStateOf, KVState.rev]
 
-theorem kvStateOf_compacted (l : mvcc.Log) : (kvStateOf l).compacted = 0 := rfl
+theorem kvStateOf_compacted (l : mvcc.Log) {lt : LeaseTable} : (kvStateOf l lt).compacted = 0 := rfl
 
 /-- The log's states, revision by revision from `i`, are the changes of its later revisions
 applied in order. -/
@@ -564,8 +839,8 @@ theorem runFrom_stateAt (l : mvcc.Log) :
     omega
 
 /-- The store at revision `r` of a log's state (`r` at most its last). -/
-theorem kvStateOf_at (l : mvcc.Log) (r : Nat) (hr : r ≤ l.length - 1) :
-    (kvStateOf l).at r = storeOf (mvcc.stateAt l r) := by
+theorem kvStateOf_at (l : mvcc.Log) {lt : LeaseTable} (r : Nat) (hr : r ≤ l.length - 1) :
+    (kvStateOf l lt).at r = storeOf (mvcc.stateAt l r) := by
   unfold kvStateOf KVState.at
   simp only [Nat.not_lt_zero, ↓reduceIte, Nat.sub_zero]
   rw [kvs_storeOf _ (mvcc.stateAt_sorted l 0)]
@@ -574,21 +849,21 @@ theorem kvStateOf_at (l : mvcc.Log) (r : Nat) (hr : r ≤ l.length - 1) :
   rw [this]
 
 /-- Revision `r`'s key-values of a log's state are the log's state at `r`. -/
-theorem kvStateOf_at_kvs (l : mvcc.Log) (r : Nat) (hr : r ≤ l.length - 1) :
-    ((kvStateOf l).at r).kvs = mvcc.stateAt l r := by
+theorem kvStateOf_at_kvs (l : mvcc.Log) {lt : LeaseTable} (r : Nat) (hr : r ≤ l.length - 1) :
+    ((kvStateOf l lt).at r).kvs = mvcc.stateAt l r := by
   rw [kvStateOf_at l r hr, kvs_storeOf _ (mvcc.stateAt_sorted l r)]
 
-theorem kvStateOf_store (l : mvcc.Log) : (kvStateOf l).store = storeOf (mvcc.stateAfter l) := by
+theorem kvStateOf_store (l : mvcc.Log) {lt : LeaseTable} : (kvStateOf l lt).store = storeOf (mvcc.stateAfter l) := by
   unfold KVState.store
   rw [kvStateOf_rev, kvStateOf_at l _ (Nat.le_refl _), mvcc.stateAt_last]
 
-theorem kvStateOf_kvs (l : mvcc.Log) : (kvStateOf l).kvs = mvcc.stateAfter l := by
+theorem kvStateOf_kvs (l : mvcc.Log) {lt : LeaseTable} : (kvStateOf l lt).kvs = mvcc.stateAfter l := by
   unfold KVState.kvs
   rw [kvStateOf_store, kvs_storeOf _ (mvcc.stateAfter_sorted l)]
 
 /-- Revision `r`'s changes in a log's state are the log's (`r` a later revision). -/
-theorem kvStateOf_changesAt (l : mvcc.Log) (r : Nat) (h0 : 0 < r) :
-    (kvStateOf l).changesAt r = l.getD r [] := by
+theorem kvStateOf_changesAt (l : mvcc.Log) {lt : LeaseTable} (r : Nat) (h0 : 0 < r) :
+    (kvStateOf l lt).changesAt r = l.getD r [] := by
   unfold kvStateOf KVState.changesAt
   simp only
   rw [if_neg (by omega), List.getElem?_drop, List.getD_eq_getElem?_getD]
@@ -644,21 +919,41 @@ theorem KVState.commit_changesAt (σ : KVState) (cs : List mvcc.Change) (r : Nat
     · have : r - σ.compacted - 1 < σ.changes.length := by unfold KVState.rev at hr; omega
       rw [List.getElem?_append_left this]
 
+/-- A put's lease is set and not live (unit T3: `ErrLeaseNotFound`, the request rejected). -/
+def KVState.leaseMissing (σ : KVState) (l : w64) : Prop := l ≠ W64 0 ∧ l ∉ σ.leases.ids
+
+instance (σ : KVState) (l : w64) : Decidable (σ.leaseMissing l) := by
+  unfold KVState.leaseMissing; infer_instance
+
+theorem KVState.leaseMissing_zero (σ : KVState) : ¬ σ.leaseMissing (W64 0) := by
+  simp [KVState.leaseMissing]
+
 open Classical in
 /-- **The operation's effect on the state**: a put not finding the previous key-value its
 ignore flag needs changes nothing, else commits its one change; a range changes nothing; a
 delete commits its range's deletions; a transaction whose path does not find a previous
 key-value it needs changes nothing (`checkTxn`'s error), else commits the server's run
-(`srvRunTxn`, nested branches by their verdicts at the state). -/
+(`srvRunTxn`, nested branches by their verdicts at the state). (Unit T3) A put or transaction
+naming a lease not in the table changes nothing (`ErrLeaseNotFound`); a grant that succeeds
+(`leaseGrantOk`) adds its lease to the table; a revocation of a live lease deletes its keys at one
+revision and removes it. -/
 def kvOpStep : KVOp → KVState → KVState
   | .put o, σ =>
-    if txn.needsPrev o && (mvcc.findKey o.key σ.kvs).isNone then σ
+    if σ.leaseMissing o.leaseID then σ
+    else if txn.needsPrev o && (mvcc.findKey o.key σ.kvs).isNone then σ
     else σ.commit [txn.putChangeOf o (mvcc.findKey o.key σ.kvs)]
   | .range _, σ => σ
   | .deleteRange o, σ => σ.commit (txn.delChanges σ.kvs o)
   | .txn t, σ =>
-    if txn.PathsIgnOk σ.kvs (t.branch (txn.txnOk σ.kvs t)) then
+    if txn.PathsIgnOk σ.kvs (t.branch (txn.txnOk σ.kvs t)) ∧
+        txn.PathsLeaseOk σ.kvs σ.leases.ids (t.branch (txn.txnOk σ.kvs t)) then
       σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1
+    else σ
+  | .leaseGrant id ttl, σ =>
+    if leaseGrantOk σ.leases id ttl then { σ with leases := σ.leases ++ [(id, ttl)] } else σ
+  | .leaseRevoke id, σ =>
+    if id ∈ σ.leases.ids then
+      { σ.commit (revokeChanges σ.kvs id) with leases := σ.leases.filter (fun p => p.1 ≠ id) }
     else σ
 
 /-- **A request's effect on the state**: its operation's, or none. -/
@@ -667,8 +962,8 @@ def kvReqStep (rq : apply.IRRModel) (σ : KVState) : KVState :=
   | some op => kvOpStep op σ
   | none => σ
 
-theorem kvStateOf_commitLog (l : mvcc.Log) (cs : List mvcc.Change) (hl : l ≠ []) :
-    kvStateOf (mvcc.commitLog l cs) = (kvStateOf l).commit cs := by
+theorem kvStateOf_commitLog (l : mvcc.Log) {lt : LeaseTable} (cs : List mvcc.Change) (hl : l ≠ []) :
+    kvStateOf (mvcc.commitLog l cs) lt = (kvStateOf l lt).commit cs := by
   have hpos := List.length_pos_iff.2 hl
   unfold mvcc.commitLog
   by_cases hc : cs = []
@@ -677,22 +972,34 @@ theorem kvStateOf_commitLog (l : mvcc.Log) (cs : List mvcc.Change) (hl : l ≠ [
   unfold KVState.commit kvStateOf
   rw [if_neg hc, mvcc.stateAt_append_lt _ _ hpos, List.drop_append_of_le_length (by omega)]
 
-/-- **The backend's log follows the state**: the state after a request's backend log is the
-request's step on the state before (a log with a revision: the server's always has two). -/
-theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []) :
-    kvStateOf (backendLog rq l) = kvReqStep rq (kvStateOf l) := by
+/-- A commit keeps the table. -/
+theorem KVState.commit_leases (σ : KVState) (cs : List mvcc.Change) :
+    (σ.commit cs).leases = σ.leases := by
+  unfold KVState.commit; split <;> rfl
+
+/-- **The backend's log follows the state**: the state after a request's backend log, at the
+backend's table after it, is the request's step on the state before (a log with a revision: the
+server's always has two); (unit T3, L3a) at any table, for any request. -/
+theorem kvStateOf_backendLog (lt : LeaseTable) (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []) :
+    kvStateOf (backendLog lt rq l) (backendTable rq lt) = kvReqStep rq (kvStateOf l lt) := by
   have hpos := List.length_pos_iff.2 hl
-  have hrev : (kvStateOf l).rev + 1 = l.length := by rw [kvStateOf_rev]; omega
-  have hs : (kvStateOf l).kvs = mvcc.stateAfter l := kvStateOf_kvs l
+  have hrev : (kvStateOf l lt).rev + 1 = l.length := by rw [kvStateOf_rev]; omega
+  have hs : (kvStateOf l lt).kvs = mvcc.stateAfter l := kvStateOf_kvs l
+  have hT : apply.dispatchKind rq ≠ .leaseGrant → apply.dispatchKind rq ≠ .leaseRevoke →
+      backendTable rq lt = lt := by
+    intro h1 h2; unfold backendTable; split <;> first | rfl | contradiction
   unfold backendLog kvReqStep reqKVOp
   cases hk : apply.dispatchKind rq
   case put =>
+    rw [hT (by rw [hk]; decide) (by rw [hk]; decide)]
     dsimp only
     cases hp : rq.put with
     | none => rfl
     | some op =>
       simp only [Option.map_some, kvOpStep]
-      rw [hs]
+      by_cases hm : leaseMissingIn lt op.leaseID
+      · rw [if_pos hm, if_pos (show (kvStateOf l lt).leaseMissing op.leaseID from hm)]
+      rw [if_neg hm, if_neg (show ¬ (kvStateOf l lt).leaseMissing op.leaseID from hm), hs]
       split
       · rfl
       · have : l ++ [[txn.putChangeOf op (mvcc.findKey op.key (mvcc.stateAfter l))]] =
@@ -700,11 +1007,13 @@ theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []
           simp [mvcc.commitLog]
         rw [this, kvStateOf_commitLog _ _ hl]
   case range =>
+    rw [hT (by rw [hk]; decide) (by rw [hk]; decide)]
     dsimp only
     cases hp : rq.range with
     | none => rfl
     | some o => rfl
   case deleteRange =>
+    rw [hT (by rw [hk]; decide) (by rw [hk]; decide)]
     dsimp only
     cases hp : rq.deleteRange with
     | none => rfl
@@ -712,16 +1021,45 @@ theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []
       simp only [Option.map_some, kvOpStep]
       rw [kvStateOf_commitLog _ _ hl, hs]
   case txn =>
+    rw [hT (by rw [hk]; decide) (by rw [hk]; decide)]
     dsimp only
     cases hp : rq.txn with
     | none => rfl
     | some t =>
       simp only [Option.map_some, kvOpStep]
-      rw [hs, hrev]
-      split
-      · rw [kvStateOf_commitLog _ _ hl]
-      · rfl
-  all_goals rfl
+      rw [hs, hrev, show (kvStateOf l lt).leases = lt from rfl]
+      by_cases hi : txn.PathsIgnOk (mvcc.stateAfter l) (t.branch (txn.txnOk (mvcc.stateAfter l) t)) ∧
+          txn.PathsLeaseOk (mvcc.stateAfter l) lt.ids (t.branch (txn.txnOk (mvcc.stateAfter l) t))
+      · rw [if_pos hi, if_pos hi, kvStateOf_commitLog _ _ hl]
+      · rw [if_neg hi, if_neg hi]
+  case leaseGrant =>
+    dsimp only
+    unfold backendTable
+    rw [hk]
+    dsimp only
+    cases hp : rq.leaseGrant with
+    | none => rfl
+    | some g =>
+      simp only [Option.map_some, kvOpStep]
+      by_cases hg : leaseGrantOk lt g.id g.ttl
+      · rw [if_pos hg, if_pos (show leaseGrantOk (kvStateOf l lt).leases g.id g.ttl from hg)]; rfl
+      · rw [if_neg hg, if_neg (show ¬ leaseGrantOk (kvStateOf l lt).leases g.id g.ttl from hg)]
+  case leaseRevoke =>
+    dsimp only
+    unfold backendTable
+    rw [hk]
+    dsimp only
+    cases hp : rq.leaseRevoke with
+    | none => rfl
+    | some id =>
+      simp only [Option.map_some, kvOpStep]
+      by_cases hi : id ∈ lt.ids
+      · rw [if_pos hi, if_pos hi, if_pos (show id ∈ (kvStateOf l lt).leases.ids from hi),
+          kvStateOf_commitLog _ _ hl, hs]
+        unfold KVState.commit
+        split <;> rfl
+      · rw [if_neg hi, if_neg hi, if_neg (show id ∉ (kvStateOf l lt).leases.ids from hi)]
+  all_goals rw [hT (by rw [hk]; decide) (by rw [hk]; decide)]; try rfl
 
 end EtcdGrove
 end Perennial

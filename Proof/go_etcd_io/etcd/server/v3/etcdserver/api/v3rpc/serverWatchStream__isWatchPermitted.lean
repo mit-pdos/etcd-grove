@@ -85,9 +85,10 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     · iframe #
     subst Hai
     (try wp_auto)
-    wp_apply HIRP $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -, #Hv⟩
+    wp_apply HIRP $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2a, -, #Hv⟩
     · iframe #
       ipureintro; word
+    ihave #Herr2 := authApplyErrIs_apply err2 $$ Herr2a
     (try wp_auto)
     iapply HΦ
     iframe
@@ -106,9 +107,10 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     · iframe #
     subst Hai
     (try wp_auto)
-    wp_apply HIRP $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -, #Hv⟩
+    wp_apply HIRP $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2a, -, #Hv⟩
     · iframe #
       ipureintro; word
+    ihave #Herr2 := authApplyErrIs_apply err2 $$ Herr2a
     (try wp_auto)
     iapply HΦ
     iframe

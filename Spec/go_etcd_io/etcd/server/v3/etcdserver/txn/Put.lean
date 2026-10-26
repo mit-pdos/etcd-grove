@@ -48,13 +48,16 @@ all but the transaction's), and gets the writer's part back at the log it leaves
 abbrev txn.Put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (le kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
-    (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool)
+    (P Pre Q Post : IProp GF) (f : val) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ot : Option Loc) (te : Bool)
     (Lw : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
       mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
       txn.wlogOwn s γ Lw ∗ ⌜γ.watchQ = true → m + 1 = txn.soleBudget Lw ∧ Lw.length + 4 ≤ 2 ^ 63⌝ ∗
       txn.isTxnLessor le γ.leases ∗
-      lease.lessorUser γ.leases L ∗
+      lease.lessorUser γ.leases L I ∗
+      □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog⌝ -∗
+        ⌜I = mvcc.leaseItemsOf (mvcc.stateAfter ilog)⌝) ∗
       txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
       □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ o.ignoreLease = true⌝ -∗
         txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog)))) ∗
@@ -65,15 +68,16 @@ abbrev txn.Put.spec : Prop :=
     (App (App (App (App (App (Val (@! txn.Put)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le))
       (Val #kv)) (Val #p))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      mvcc.storeReader s γ ∗ mvcc.hookIs γ P f ∗ ownToks γ.revs m ∗ lease.lessorUser γ.leases L ∗ ⌜trace ≠ null⌝ ∗
+      mvcc.storeReader s γ ∗ mvcc.hookIs γ P f ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-      ((⌜o.leaseID ≠ W64 0 ∧ resp = null⌝ ∗
+      ((⌜o.leaseID ≠ W64 0 ∧ o.leaseID ∉ L ∧ resp = null⌝ ∗
           txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ mvcc.revToken γ ∗
-          txn.wlogOwn s γ Lw ∗ Pre) ∨
+          txn.wlogOwn s γ Lw ∗ Pre ∗ lease.lessorUser γ.leases L I) ∨
        ∃ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ ilog ≠ []⌝ ∗ Post ∗
         ((⌜txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter ilog) = none ∧ resp = null⌝ ∗
             txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound err ∗
-            mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog ∗ txn.wlogOwn s γ ilog) ∨
+            mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog ∗ txn.wlogOwn s γ ilog ∗
+            lease.lessorUser γ.leases L I) ∨
          (⌜err = GoInterface.nil ∧
               (txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter ilog)).isSome)⌝ ∗
             txn.putResponseIs resp (W64 (ilog.length : Int))
@@ -81,7 +85,9 @@ abbrev txn.Put.spec : Prop :=
             txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
             mvcc.idxCert γ.idx (ilog ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]]) ∗
             txn.wlogOwn s γ (ilog ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]]) ∗
-            txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog)))))) }}
+            txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))) ∗
+            lease.lessorUser γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter
+              (ilog ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]])))))) }}
 
 end spec
 

@@ -30,7 +30,7 @@ theorem lease.NewLease.wp_proof : lease.NewLease.spec (GF := GF) (hG := hG) := b
   wp_start as -
   (try wp_auto)
   wp_apply wp_map_make1 (K := LeaseItem) (V := Unit) as %sm Hsm
-  wp_apply chan.wp_make1 (V := Unit) as %c %γc ⟨-, -, -⟩
+  wp_apply chan.wp_make1 (V := Unit) as %c %γc ⟨#Hch, -, Hown⟩
   (try wp_auto)
   wp_alloc l as Hl
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hl
@@ -40,6 +40,8 @@ theorem lease.NewLease.wp_proof : lease.NewLease.spec (GF := GF) (hG := hG) := b
   isplitr
   · ipureintro; exact Hnn
   iframe
+  iunfold revokeCloser
+  iexists γc; iframe Hch Hown
 
 end proof
 

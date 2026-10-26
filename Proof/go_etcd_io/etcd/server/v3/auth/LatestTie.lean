@@ -63,50 +63,70 @@ theorem tieStep_refresh (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc
     intro ht stl hl
     have h1 : hs'.getLast? = some sc := hl'
     rw [h1] at hl; cases hl
-    refine ⟨?_, fun _ => rfl⟩
+    refine ⟨?_, fun _ => rfl, rfl⟩
     rw [he]; exact (ht st0 hl0).1
   | off => intro _; trivial
   | any => intro _; trivial
 
-/-- The flag set to the state after's (`b`), the cache that state's when the flag is set. -/
+/-- The flag set to the state after's (`b`), the cache that state's when the flag is set and with
+that state's permissions (`hp`). -/
 theorem tieStep_set (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc0 : AuthState)
     (b : Bool) (sc s' : AuthState) (hl' : histLast M hs' s') (hb : b = s'.enabled)
-    (hc : b = true → sc = s') : tieStep M hs b0 sc0 b sc hs' := by
+    (hc : b = true → sc = s') (hp : permView sc = permView s') : tieStep M hs b0 sc0 b sc hs' := by
   cases M with
   | on γa =>
     intro _ stl hl
     have h1 : hs'.getLast? = some s' := hl'
     rw [h1] at hl; cases hl
-    exact ⟨hb, hc⟩
+    exact ⟨hb, hc, hp⟩
   | off => intro _; trivial
   | any => intro _; trivial
 
-/-- The flag and the cache kept, auth disabled: the step kept the flag. -/
+/-- The flag set to the state after's (`b`), the cache kept (the auth plan's E3j: `AuthDisable`),
+the step keeping the permissions (`hp`): the cache that state's when the flag is set. -/
+theorem tieStep_setKeep (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc0 st0 : AuthState)
+    (b : Bool) (s' : AuthState) (hl0 : histLast M hs st0) (hl' : histLast M hs' s')
+    (hb : b = s'.enabled) (hc : b = true → sc0 = s') (hp : permView s' = permView st0) :
+    tieStep M hs b0 sc0 b sc0 hs' := by
+  cases M with
+  | on γa =>
+    intro ht stl hl
+    have h1 : hs'.getLast? = some s' := hl'
+    rw [h1] at hl; cases hl
+    obtain ⟨-, -, hpv⟩ := ht st0 hl0
+    exact ⟨hb, hc, hpv.trans hp.symm⟩
+  | off => intro _; trivial
+  | any => intro _; trivial
+
+/-- The flag and the cache kept, auth disabled: the step kept the flag and the permissions. -/
 theorem tieStep_keep (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc0 st0 s' : AuthState)
     (hl0 : histLast M hs st0) (hl' : histLast M hs' s') (he : s'.enabled = st0.enabled)
+    (hp : permView s' = permView st0)
     (hb : b0 = false) : tieStep M hs b0 sc0 b0 sc0 hs' := by
   cases M with
   | on γa =>
     intro ht stl hl
     have h1 : hs'.getLast? = some s' := hl'
     rw [h1] at hl; cases hl
-    refine ⟨?_, fun h => absurd (hb ▸ h) (by simp)⟩
-    rw [he]; exact (ht st0 hl0).1
+    obtain ⟨hb0, -, hpv⟩ := ht st0 hl0
+    refine ⟨?_, fun h => absurd (hb ▸ h) (by simp), hpv.trans hp.symm⟩
+    rw [he]; exact hb0
   | off => intro _; trivial
   | any => intro _; trivial
 
 /-- The flag and the cache kept, unless the cache was the state before's with the flag set (then
-the step must refresh it, `cacheAt_congr`): the step kept the flag. -/
+the step must refresh it, `cacheAt_congr`): the step kept the flag and the permissions. -/
 theorem tieStep_keep' (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc0 st0 s' : AuthState)
     (hl0 : histLast M hs st0) (hl' : histLast M hs' s') (he : s'.enabled = st0.enabled)
+    (hp : permView s' = permView st0)
     (hc : ¬ (b0 = true ∧ sc0 = st0)) : tieStep M hs b0 sc0 b0 sc0 hs' := by
   cases M with
   | on γa =>
     intro ht stl hl
     have h1 : hs'.getLast? = some s' := hl'
     rw [h1] at hl; cases hl
-    obtain ⟨hb, hcs⟩ := ht st0 hl0
-    refine ⟨by rw [he]; exact hb, fun h => absurd ⟨h, hcs h⟩ hc⟩
+    obtain ⟨hb, hcs, hpv⟩ := ht st0 hl0
+    refine ⟨by rw [he]; exact hb, fun h => absurd ⟨h, hcs h⟩ hc, hpv.trans hp.symm⟩
   | off => intro _; trivial
   | any => intro _; trivial
 
@@ -119,12 +139,23 @@ theorem userPerms_putRole_empty (st : AuthState) (name : GoString) (h : st.roles
   · subst hr; simp only [putRole, GMap.lookup_insert, h, Option.getD_some, Option.getD_none]
   · simp only [putRole, GMap.lookup_insert_ne _ _ (Ne.symm hr)]
 
+/-- `bump` keeps the permissions. -/
+theorem permView_bump (s : AuthState) : permView (bump s) = permView s := rfl
+
+/-- A new role without permissions keeps the permissions (the auth plan's E3j: `RoleAdd`). -/
+theorem permView_putRole_empty (st : AuthState) (name : GoString) (h : st.roles !! name = none) :
+    permView (putRole st name []) = permView st := by
+  funext u
+  unfold permView
+  show (st.users !! u).map (userPerms (putRole st name [])) = (st.users !! u).map (userPerms st)
+  congr 1; funext r; exact userPerms_putRole_empty st name h r
+
 /-- The tie gives the latest state's flag. -/
 theorem latestTie_flag (M : AuthMode) (hs : List AuthState) (b : Bool) (sc st0 : AuthState)
     (ht : latestTie M hs b sc) (hl : histLast M hs st0) (hon : M.isOn = true) (hany : M ≠ .any) :
     b = st0.enabled ∧ (b = true → sc = st0) := by
   cases M with
-  | on γa => exact ht st0 hl
+  | on γa => exact ⟨(ht st0 hl).1, (ht st0 hl).2.1⟩
   | off => cases hon
   | any => exact absurd rfl hany
 
@@ -142,7 +173,7 @@ the cache's half at `sc` (a recorded state). -/
 def authWRx (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) : IProp GF :=
   iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
-    T ∗ flagAt st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc)
+    T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc)
 
 theorem authWR_of_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) : authWRx (GF := GF) st M P f T b sc ⊢ authWR st M P f T := by
@@ -197,24 +228,21 @@ theorem adminOutP_adminOut (M : AuthMode) (hs : List AuthState) (R : StepRel)
 
 set_option synthInstance.maxSize 512 in
 /-- The cache's map of a state is that of another with the same users and permissions. -/
-theorem cacheAt_congr (st : Loc) (sa sb : AuthState) (hu : sa.users = sb.users)
+theorem cacheAt_congr (st : Loc) (M : AuthMode) (sa sb : AuthState) (hu : sa.users = sb.users)
     (hp : ∀ u : User, userPerms sa u = userPerms sb u) :
-    cacheAt (GF := GF) st sa ⊢ cacheAt st sb := by
-  unfold cacheAt cacheOf
-  iintro ⟨%mp, %Mp, Hf, #HM, %Hdom, #Hall⟩
+    cacheAt (GF := GF) st M sa ⊢ cacheAt st M sb := by
+  have hv : permView sa = permView sb := by
+    funext u; unfold permView; rw [hu]
+    cases sb.users !! u with
+    | none => rfl
+    | some r => simp only [Option.map_some, hp r]
+  unfold cacheAt
+  iintro ⟨%mp, %Mp, Hf, #HM, #Hof, Hq⟩
   iexists mp, Mp
   iframe Hf HM
-  isplitr
-  · ipureintro; intro u; rw [← hu]; exact Hdom u
-  iapply (BigSepM.bigSepM_mono (Φ := fun (u : GoString) (p : Loc) =>
-      iprop(∃ Lr Lw, permsAt p Lr Lw ∗ ⌜cacheEntryIs sa u Lr Lw⌝))) ?_ $$ Hall
-  intro u p _
-  iintro ⟨%Lr, %Lw, Hp, %He⟩
-  iexists Lr, Lw
-  iframe Hp
-  ipureintro
-  obtain ⟨roles, hr, h1, h2⟩ := He
-  exact ⟨roles, hu ▸ hr, hp roles ▸ h1, hp roles ▸ h2⟩
+  isplitl []
+  · iapply (cacheOf_permView sa sb hv Mp) $$ Hof
+  iapply (caA_congr M mp sa sb hv) $$ Hq
 
 end res
 

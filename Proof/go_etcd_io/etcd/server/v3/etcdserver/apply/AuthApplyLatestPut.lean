@@ -61,7 +61,7 @@ abbrev apply.checkPutAuth.specL : Prop :=
       txn.putRequestIs r o ∗ ⌜apply.shapedL on hs (apply.putPerms o)⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkPutAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #r))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ L hs ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ L hs ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.putClass on info o) ∗
       ⌜(err = GoInterface.nil → apply.passedL on hs (auth.authInfoM info) (apply.putPerms o)) ∧
@@ -154,7 +154,7 @@ theorem apply.checkPutAuth.wp_latest
   · wp_auto
     iapply HΦ; iframe Hai Hrd HLr
     isplitl []
-    · iapply applyErrIs_nil
+    · iapply authApplyErrIs_nil
     isplitl []
     · ipureintro; intro _; rfl
     isplitl []
@@ -192,7 +192,7 @@ theorem apply.checkPutAuth.wp_latest
     wp_auto
     iapply HΦ; iframe Hai Hrd HLr
     isplitl []
-    · iapply applyErrIs_nil
+    · iapply authApplyErrIs_nil
     isplitl []
     · ipureintro; intro _; rfl
     isplitl []

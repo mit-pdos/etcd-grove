@@ -49,6 +49,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   iunfold authWRx at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
   iunfold flagAt at Hen
+  icases Hen with ⟨Hen, HenQ⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -57,7 +58,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlk, HP⟩
   iunfold enabledP at HP
-  icases HP with ⟨%en', Hen', #Hev'⟩
+  icases HP with ⟨%en', Hen', #Hev', Hg⟩
   icombine Hen Hen' gives %Heq
   subst Heq
   ihave Hen := (typedPointsto_half_split _ _ (1 : Qp)).2 $$ [Hen Hen']
@@ -68,8 +69,8 @@ theorem auth.authStore.AuthDisable.wp_tie
     (try wp_auto)
     ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen']
-    · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen' Hg]
+    · inext; iunfold enabledP; iexists false; iframe Hen' Hg; iexact Hev
     (try wp_auto)
     iapply HΦ
     iexists false, sc0
@@ -79,8 +80,8 @@ theorem auth.authStore.AuthDisable.wp_tie
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists false
     iframe Hev
     iunfold adminOutP
@@ -152,8 +153,14 @@ theorem auth.authStore.AuthDisable.wp_tie
   · ipureintro; exact Hlgnn
   (try wp_auto)
   ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen']
-  · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev2
+  -- (E3h) the field's ghost variable set to the new latest state's flag
+  imod (enG_update st R M (hs ++ [bump { st0 with enabled := false }]) true false
+    (fun γa stl _ hl => by
+      simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or,
+        Option.some.injEq] at hl
+      subst hl; rfl)) $$ Hinv Hown Hg HenQ with ⟨Hown, Hg, HenQ⟩
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen' Hg]
+  · inext; iunfold enabledP; iexists false; iframe Hen' Hg; iexact Hev2
   (try wp_auto)
   iapply HΦ
   iexists false, sc0
@@ -163,15 +170,15 @@ theorem auth.authStore.AuthDisable.wp_tie
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen Hca]
-  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev2 Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hen HenQ Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev2 Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   iexists true
   iframe Hev
   iunfold adminOutP
   iright
   iexists st0, (.next (bump { st0 with enabled := false }))
   isplitr
-  · ipureintro; exact tieStep_set M hs _ _ _ false sc0 _ Hl1 rfl (fun h => by cases h)
+  · ipureintro; exact tieStep_setKeep M hs _ _ sc0 st0 false _ Hl0 Hl1 rfl (fun h => by cases h) rfl
   isplitr
   · ipureintro; exact ⟨Hl0, hstep.symm⟩
   simp only [outRes]

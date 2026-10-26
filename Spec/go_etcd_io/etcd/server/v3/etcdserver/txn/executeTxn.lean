@@ -42,7 +42,8 @@ responses partly filled, read-only (`roRespsRd`: the ranges before the failed on
 others' `ResponseRange` still `nil`; unit P4, 2026-10-14, for the server's warning of a slow
 read-only transaction, `txn.WarnOfExpensiveReadOnlyTxnRequest`).
 2026-10-14 (unit P1b): the context carries the transaction's trace (`ctxTraceIs`), which
-`Get` returns. -/
+`Get` returns. (Unit T3, L2b, 2026-10-25) The lease owner's item map is the pending state's,
+before and after. -/
 abbrev txn.executeTxn.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change)
@@ -55,7 +56,7 @@ abbrev txn.executeTxn.spec : Prop :=
       txn.leasesOk L (txn.opsLeases (mvcc.stateAfter ilog)
         (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))) ∗
       (if ro then iprop(True) else txn.leasesKnown L (txn.pendState ilog pend)) ∗
-      (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L) ∗
+      (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend)) ∗
       ⌜txn.OpsOk false (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (txn.pendState ilog pend)
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∧
         (ro = true → txn.LogSmall ilog) ∧
@@ -75,7 +76,9 @@ abbrev txn.executeTxn.spec : Prop :=
           txn.leasesKnown L (txn.pendState ilog (pend ++ (txn.srvOps (mvcc.stateAfter ilog)
             (W64 (ilog.length : Int)) (txn.pendState ilog pend)
             (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1))) ∗
-        (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L)) ∨
+        (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ (txn.srvOps
+          (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (txn.pendState ilog pend)
+          (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1)))) ∨
       (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
         (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend') ∗
         txn.roRespsRd tresp) }}

@@ -84,7 +84,8 @@ abbrev apply.Apply.adminSpecL : Prop :=
         ⌜(out = .rejected → apply.needAdminPermission rq = true ∧ apply.adminRejL E.authMode hs rq) ∧
           (∀ o s, out = .dispatched o s → apply.adminPassL E.authMode hs rq)⌝ ∗
         apply.applyResultIs rq v3 x.log ar out ∗
-        (⌜out.waived = false⌝ ∨ G ot id) ∗ W ∗ apply.adminOut Own γa E.authMode hs rq v3 ar out }}
+        (⌜out.waived = false⌝ ∨ G ot id) ∗ W ∗ apply.adminOut Own γa E.authMode hs rq v3 ar out ∗
+        apply.adminRejErr ar out }}
 
 end defs
 
@@ -99,7 +100,7 @@ set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` through its admin triple and the postcondition. -/
 local macro "call_tail_adminL" : tactic => `(tactic| (
   wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 Pre Q Post W γa hs Own L hsplit)
-      $$ [Hown Hkv Hcs Ho Hrc HW] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, %Hlat, Htr, Hres, HW, Hdone⟩
+      $$ [Hown Hkv Hcs Ho Hrc HW] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, %Hlat, Htr, Hres, HW, Hdone, HRE⟩
   · iframe # Hown Hkv Hcs Ho Hrc HW
     isplitr
     · ipureintro; exact ⟨Hmode, Hadm, Hdk, Hrb⟩
@@ -121,7 +122,7 @@ local macro "call_tail_adminL" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iexists x', out
-  iframe Hres HW Hdone
+  iframe Hres HW Hdone HRE
   isplitl [Hown Hkv]
   · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
   isplitr
@@ -264,7 +265,7 @@ theorem apply.Apply.wp_adminL
       isplitr
       · ipureintro; rfl
       iexists x, .skipped
-      simp only [apply.applyResultIs, apply.adminOut]
+      simp only [apply.applyResultIs, apply.adminOut, apply.adminRejErr]
       iframe HW Ho Hrc
       isplitl [Hown Hkv]
       · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl

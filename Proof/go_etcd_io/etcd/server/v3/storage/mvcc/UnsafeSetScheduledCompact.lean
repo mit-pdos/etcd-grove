@@ -44,7 +44,7 @@ theorem mvcc.UnsafeSetScheduledCompact.wp_proof
   icases Hsi with ⟨⟨%bM, #HMetaG, -⟩, -⟩
   iunfold mvcc.batchTxSpec at Hbt
   iunfold mvcc.batchTxSpecG at Hbt
-  icases Hbt with ⟨-, -, -, -, -, -, -, -, #HPut⟩
+  icases Hbt with ⟨-, -, -, -, -, -, -, -, #HPut, -⟩
   ihave #HPut' := HPut $$ []
   · ipureintro; trivial
   (try wp_auto)

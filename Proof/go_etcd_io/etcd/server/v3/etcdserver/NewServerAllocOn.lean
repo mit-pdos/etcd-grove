@@ -37,7 +37,7 @@ change: neither is a normal entry with data, so neither is decoded). -/
 theorem kvEntryOn_noop (cfg : GSet w64) (c₀ : w64) (ch : apply.Chain)
     (s : auth.AuthState × mvcc.Log) (e : EntryModel) (h : srvNoopEntry cfg e) :
     kvEntryOn c₀ ch s e = s := by
-  have hk : kvEntry c₀ ch s.2 e = s.2 := by
+  have hk : kvEntry c₀ ch [] s.2 e = s.2 := by
     apply kvEntry_nonwrite
     rcases h with ⟨-, hd⟩ | ⟨ht, -⟩
     · left; exact hd

@@ -22058,6 +22058,56 @@ what blocks it, in order:
    receipt at an apply-thread step); the result to the waiter (`resultΨOn`: `authTie` from the
    outcome, `entryWitOn`); replays (`v3 = false`). Then `applyAll`, `run`, `start`.
 
+## E3h of the auth plan: the store's in-memory fields fresh; publication; the checks' lower-bound specs (2026-10-27 · `notes/auth-plan.md`, E3g's "Not done")
+
+E3g's design, carried out (`auth/InvAuth.lean`, `auth/Fresh.lean`, `auth/FreshCheck.lean`).
+
+**Done.**
+1. *The freshness invariant inside `revInv`* (`revFresh`; `authInv` keeps its text): in `on γa`,
+   the published index `p`'s authority (`authPubAuth`), `p` an index of the history, the atomic
+   `revision` the revision of a state at an index `≥ p`, a quarter of the field `enabled`'s ghost
+   variable (`AuthNames.fen`, `enG`) at the flag of such a state, and a quarter of the cache's ghost
+   variable (`AuthNames.fca`, `caG`) at `(mp, j)`, the state at `j` having the permissions
+   (`permView`) of a state at an index `≥ p`. The guards hold halves (`enabledP`: `enG`; `cacheP`:
+   `caGM`, the map the cache of the state at `j`), the admin side a quarter (`flagAt`, `cacheAt`,
+   both now taking the mode: `caA` with the state at `j` of `sc`'s permissions).
+   - *Why `(mp, j)` and `permView`, not the cache's state.* `RoleAdd` keeps the map though the
+     state changes (`cacheAt_congr`): what is invariant is the map and its users' permissions. And
+     `cacheOf` is not timeless (the interval trees), so the invariant states the permissions'
+     equality purely (`permView`) and the map's model stays in the guard.
+2. *The writers* update the ghost variables with all three shares: `AuthEnable`, `AuthDisable`,
+   `Recover` (`enG_update`, over the admin side's authority: the new state is at the last index,
+   `≥ p`); `refreshRangePermCache` (`caG_update`) -- its spec now takes the whole authority at
+   `hs` whose latest state is the one refreshed from, and its eleven callers pass it;
+   `commitRevision`, `setRevision` (`authOwnF_revFresh`); the constructor allocates them
+   (`authStoreInit`: the half of the latest state's ghost variable, `authPubAuth γa 0`, the two
+   ghost variables; `authHist_alloc` allocates them, `authBoot_alloc` passes them).
+3. *Not done: the tie strengthened* to "the cache's permissions are the latest state's always"
+   (across E2s's `specT`s). Publication takes it as a hypothesis (`hc`) instead: true of Go (every
+   step changing a user's permissions refreshes the cache; `AuthDisable` changes none; `RoleAdd`
+   keeps them, `cacheAt_congr`); to add it to `latestTie`, `tieStep_set`/`_keep`/`_keep'` gain a
+   permissions premise, and `tieRes_of_disabled` (the boot) needs the cache's state, which
+   `newAuthStore_on`'s post would have to expose (the refreshed latest).
+4. *Publication* (`authPublish`, `Fresh.lean`): the apply thread with the admin side's authority,
+   its flag and cache halves with the latest state's flag and permissions, raises the published
+   index to the latest one and gets `authPubLbM M (hs.length - 1)`. Its call site (after an admin
+   step's batch `Unlock`, the waiter's reply carrying the bound) is the apply loop's.
+5. *The checks' lower-bound specs*, beside today's: `Revision.specLb`, `IsAuthEnabled.specLb`
+   (`Fresh.lean`), `isRangeOpPermitted.specLb` (`cacheFresh`), `isOpPermitted.specLb`, the verdict
+   `permVerdictFrom` (S3's, each recorded state at an index `≥ n`; `permVerdictFrom_verdict` gives
+   S3's) with its lemmas (`FreshCheck.lean`); restated in `etcdserver/Results.lean`
+   (`auth_revision_lb`, `auth_enabled_lb`, `auth_range_op_permitted_lb`, `auth_op_permitted_lb`).
+   Not done: the read wrappers (`IsRangePermitted` & co.) and the auth applier's read checks at
+   the lower bound (each a wrapper over `isOpPermitted.specLb`).
+
+**Exported statements changed.** `AuthNames` (fields `fen`, `fca`), `AuthMode.enc`/`dec`;
+`authHist_alloc`'s post; `authStoreInit` (new) in `newAuthStore_on`'s precondition and
+`authBoot_alloc`'s post, `AuthSrv.authStoreKit_on`, `Results.auth_store_new_on`; the definitions
+`revInv`, `enabledP`, `cacheP`, `flagAt`, `cacheAt` (each with the mode), `enabledHalf`, `cacheHalf`;
+`refreshRangePermCache.spec` (the authority); `cacheAt_congr` (the mode). No closed theorem changed.
+
+**Trust base.** Unchanged: no axiom or `sorry` added.
+
 ## E3g of the auth plan: the reads' freshness, a lower bound of the published index (2026-10-27 · the user's decision; `notes/auth-plan.md`, E3d's "Not done" (2))
 
 **The decision (the user's, 2026-10-27, as recommended).** With auth on, a read's check gives its
@@ -22191,6 +22241,60 @@ text and say what they said of a heap-determined model (now with each put's `Pre
 **Left.** `noZeroEnds` stays the workload's premise (a range end `"\x00"` is where a check can see
 another range than the model's). The read path and the handlers (E3d's (2), (3)).
 
+## E3i of the auth plan: an auth rejection told apart from `ErrNoSpace`; the apply thread's state with auth on (2026-10-27 · `notes/auth-plan.md`, E3f's blockers 2 and 3)
+
+**Blocker 2: done for a covered (KV or monitor) entry.** `applyEntryNormal` raises the NOSPACE alarm
+when `errors.Is(ar.Err, ErrNoSpace)`. With auth on, a refused entry's error was only `err ≠ nil ∗
+applyErrIs err` (`rejErrIs .auth`), which does not rule `ErrNoSpace` out.
+- *The auth package's error variables with their message cells.* `auth.authErrMsgs` (the 19
+  translated `errors.New` variables of `store.go` with their messages) and `authErrTexts`;
+  `authInit` gains `errVarCells authErrMsgs` as its last conjunct (gen-init's auth recipe now uses
+  `wp_New_errorString_cell`); `errVarApart_cells` (`errors/NewVarCell.lean`): one variable apart
+  from each of a list's whose messages differ.
+- *The apply package's fact.* `applyErrVars` gains `authErrsApart` (last conjunct): `ErrNoSpace`
+  apart from each auth error variable, from the cells (gen-init's apply recipe).
+- *The rejection's error.* `authErrVarIs err` (`nil`, or a leaf error some variable of
+  `authErrMsgs` holds) and `authApplyErrIs err := applyErrIs err ∗ authErrVarIs err`
+  (`apply/Base.lean`); `rejErrIs .auth err := ⌜err ≠ nil⌝ ∗ authApplyErrIs err`. The permission
+  checks' contracts state `authApplyErrIs` instead of `applyErrIs` (`permCheck2`/`permCheck3`,
+  `permCheck2L`/`permCheck3L`, and the specs of `checkPutAuth`, `checkLeasePuts`,
+  `checkLeasePutsKeys`, `checkTxnPermission`, `checkTxnReqsPermission`, `CheckTxnAuth` and their
+  latest-state forms); the real store meets them (`authErrIs_authApplyErrIs`, `AuthDerive.lean`:
+  the store's five request-side errors are among `authErrMsgs`, with `authInit`'s leafness).
+  `IsAdminPermitted`'s and the admin requests' clauses keep `applyErrIs`.
+- *The branch dead* (`NoSpaceDeadOn.lean`): `dispatchStep_on_off` (a dispatch at the auth-on start
+  chain is the auth layer's refusal or the auth-off chain's), `authErrVarIs_notNoSpace`,
+  `dispatchAnswer_notNoSpaceOn`, `applyResultIs_notNoSpaceOn` (restated
+  `server_apply_not_nospace_on`).
+- *Not covered:* an admin entry's result error (`apply.Apply.adminSpecL`'s), which the admin case
+  of `applyEntryNormal` with auth on will need: the admin requests' errors are the auth store's
+  (`authErrMsgs`'s variables) or the backend's, so the same device applies once the admin
+  clauses state `authApplyErrIs`.
+
+**Blocker 3: the definitions and the deposit; their construction left** (`AppliedOn.lean`; each
+today's at `false` by `rfl`): `kvLogAtM`, `kvLogsOkM` (`kvLogsOkM_insert`), `srvAppliedBodyM`/`srvAppliedInvM` (D22
+J5's body, the atomic lagging the ghost index; the applied logs the mode's model, `kvModelM`), `applied_predepositM` (restated
+`server_applied_predeposit_on`), `appliedLogAt_kvLogAtM`; `srvAtomicsM` (with `srvKVInvsM`),
+`srvFieldsAtM` (with `waitInvM`), `isServerM`; and `srvApplyKVOn s E γw x st ci L W Own`
+(`srvApplyKV`'s with `srvAuthApplyResAt s E st` in place of `srvAuthApplyRes`, and the server
+applier's `apply.uberKVL ua E ci L` and `apply.uberAuthStepsL ua E W Own L`). Left:
+- `isServerBuiltOn` still carries the mode-off `srvAppliedInv` (E2z's row): the boot must allocate
+  `srvAppliedInvM true` (its log map `{ai₀ ↦ log0}` is `kvModelOn`'s at `[]`, as `kvModel`'s), and
+  `isServerBuilt_of_gapM` give `isServerM true`;
+- the construction handing over `uberKVL`/`uberAuthStepsL` for the store's families (`latestRes`,
+  the admin steps' `W`, which is blocker 1's decision, and `Own`);
+- with D22's integration (2026-10-26): `srvApplyKVOn` holds `srvAuthApplyResAt` where `srvApplyKV`
+  holds `srvAuthApplyRes`; a mode-on `applySnapshot` would hand it on as D22's notes say for
+  `srvAuthApplyRes` (not now: `specSnap` stays at `hoff`).
+
+**Exported statements changed.** Definitions: `apply.rejErrIs` (its `.auth` case),
+`apply.permCheck2`, `apply.permCheck3`, `apply.permCheck2L`, `apply.permCheck3L`, `apply.txnPermT`,
+`applyErrVars` (a last conjunct), `auth.authInit` (a last conjunct). Specs (their posts state
+`authApplyErrIs`): `apply.checkPutAuth.spec`, `apply.checkLeasePuts.spec`,
+`apply.checkLeasePutsKeys.spec`, `apply.checkTxnPermission.spec`, `apply.checkTxnReqsPermission.spec`,
+`apply.CheckTxnAuth.spec`, and the latest-state forms in `AuthApplyLatestPut.lean`/`AuthApplyLatestTxn.lean`;
+the theorem `apply.checkTxnReqs_of`. No closed theorem's statement changed; trust base unchanged.
+
 ## D22 J5: the applied index lags its ghost; the write counter decoupled (2026-10-26 · decided by the orchestrator while the user was away (J5/J4))
 
 J0's item 4, carried out (`notes/snapshot-sj-plan.md`, J5). No axiom, no `sorry`; no closed theorem
@@ -22231,3 +22335,193 @@ changes.
   `applyAll`'s snapshot case (where `ai` jumps past `w`), makes it conditional on the mode (or
   replaces the compaction's bound by `γs.cap ≥ 2^61`, L3) and drops `applyAll.spec`'s premise
   `uint.Z ai ≤ w` there.
+
+## E3j of the auth plan: the cache's permissions in the tie, the read wrappers at the lower bound, the admin path's errors (2026-10-27 · `notes/auth-plan.md`)
+
+E3h's "Left" (the stronger tie, the read wrappers) and E3i's first "Left" item (an admin entry's
+error), in `auth/` and `apply/`; no exported statement of a closed theorem changed, the trust base
+unchanged (724 axioms, 6 sorries).
+
+**(1) The tie carries the cache's permissions always.** `auth.latestTie` (`Latest.lean`) gains a
+third conjunct, `permView sc = permView stl`: whatever the flag, the cache's state has the latest
+state's permissions. True of Go: every admin operation but `RoleAdd` (a role without permissions,
+`permView_putRole_empty`) and `AuthDisable` (no user or role changes) calls
+`refreshRangePermCache(tx)` unconditionally (`store.go`: `AuthEnable`, `Recover`, `UserAdd`,
+`UserDelete`, `UserChangePassword`, `UserGrantRole`, `UserRevokeRole`, `RoleRevokePermission`,
+`RoleDelete`, `RoleGrantPermission`, `NewAuthStore`). The tie lemmas (`LatestTie.lean`):
+`tieStep_refresh` unchanged in statement; `tieStep_set` gains `hp : permView sc = permView s'`;
+`tieStep_keep`, `tieStep_keep'` gain `hp : permView s' = permView st0` (the step keeps the
+permissions); new `tieStep_setKeep` (the flag set, the cache kept: `AuthDisable`), `permView_bump`,
+`permView_putRole_empty`. `tieRes_of_disabled` (`TieRes.lean`) gains
+`hpv : ∀ s ∈ hs, ∀ s' ∈ hs, permView s = permView s'` (the cache's state is a recorded one, in `hs`
+by `authHistHalf_lookup`); its one caller (`etcdserver/AuthSrv.lean`, the boot's
+`[bootState, bump bootState]`) proves it by `rfl`. `authPublishT` (`FreshWrap.lean`): E3h's
+`authPublish` with its hypotheses `hb`, `hc` from the tie.
+
+**(2) The read wrappers at the lower bound** (`auth/FreshWrap.lean`): `IsPutPermitted`,
+`IsRangePermitted`, `IsDeleteRangePermitted` `.specLb`, thin wrappers over E3h's
+`isOpPermitted.specLb` (verdict `permVerdictFrom M n info k e op err`), restated linked as
+`auth_put_permitted_lb`, `auth_range_permitted_lb`, `auth_delete_range_permitted_lb`.
+`IsRangePermitted` is what the read path checks for `Range` (`doSerialize`'s `chk`). Not done: a
+lower-bound `CheckTxnAuth` (the read-only `Txn`'s check), which would repeat E2s's latest-state
+proof of `checkTxnPermission`/`checkTxnReqsPermission` (Löb induction over the requests) at
+`permVerdictFrom`.
+
+**(3) The admin path's errors are the auth package's.** `isAuthStoreL`'s `IsAdminPermitted`
+clause (`apply/AuthLatest.lean`) states `authApplyErrIs err` (was `applyErrIs`), from
+`authErrIs_authApplyErrIs`. The auth applier's rejection on the latest-state path is
+`apply.rejectResultIsA` (`rejectResultIs` with `authApplyErrIs`) in `authApplierV3.Apply.specL`
+and `applierAdmL` (`apply/ApplyAdminL.lean`); `uberApplier.Apply.adminSpecL` and
+`apply.Apply.adminSpecL` (`ApplyFnAdminL.lean`) gain a last conjunct `apply.adminRejErr ar out`
+(for a rejection, the result's error read-only and `authApplyErrIs`). New `authErrVar_authApplyErrIs`
+and `authErrOf_authApplyErrIs` (`apply/AuthDerive.lean`: each `AuthErr`'s variable, by its package
+fact `authErrVar`). New `etcdserver/NoSpaceDeadAdminOn.lean`: `adminOutX_authApplyErrIs`,
+`adminReqResult_authApplyErrIs`, and `applyResultIs_notNoSpaceAdmin` (restated as
+`server_apply_admin_not_nospace_on`): with `apply.Apply.adminSpecL`'s post, an admin entry's result
+is `nil` or its error not `ErrNoSpace`'s, so `applyEntryNormal`'s NOSPACE branch is dead for admin
+entries too.
+
+**Exported statements changed.** Definitions: `auth.latestTie`, `apply.isAuthStoreL` (its admin
+clause), `apply.applierAdmL`. Specs: `apply.authApplierV3.Apply.specL`,
+`apply.uberApplier.Apply.adminSpecL`, `apply.Apply.adminSpecL` (posts). Lemmas: `tieStep_set`,
+`tieStep_keep`, `tieStep_keep'`, `tieRes_of_disabled` (a premise each), `latestTie_flag`
+(unchanged statement). New: `tieStep_setKeep`, `permView_bump`, `permView_putRole_empty`,
+`authPublishT`, the three `*.specLb`/`wp_lb`, `rejectResultIsA`, `adminRejErr`, the lemmas above.
+
+**Left.** A lower-bound `CheckTxnAuth` (the read-only `Txn`); `authPublishT`'s call site in the
+apply loop (with the waiter's reply carrying the lower bound); the apply loop itself
+(`applyEntryNormal.specOn`, E3a's blocker 4).
+
+## E3k of the auth plan: the boot's mode-on applied invariant; the apply thread's latest-state KV triples from the construction (2026-10-27 · `notes/auth-plan.md`, E3i's left items 2-3)
+
+**(1) The applied index's invariant in the mode `on`, allocated at the boot.** `kvModelM` (from
+`ReqOn`) and the applied invariant's mode-indexed definitions (`kvLogAtM`, `kvLogsOkM`,
+`srvAppliedBodyM`, `srvAppliedInvM`, from `AppliedOn`) move to `ServerOn` (the built part's file,
+which `ReqOn`/`AppliedOn` import), each still today's at `false` by `rfl`. `srvIndices_allocM on`
+(`ServerOn`) is `srvIndices_alloc` with `srvAppliedInvM on`: the start log is the mode's model of
+the empty log either way (`kvModelM on γk [] = γk.log0`, `cases on <;> rfl`); `NewServer.wp_proofM`
+calls it. `srvBuiltG on`'s `#Hai` row is `srvAppliedInvM on` (`srvBuiltG_false` still `rfl`) and
+`isServerBuiltOn`'s is `srvAppliedInvM true`; `srvAtomicsM_of_builtOn` (`AppliedOn`) gives the
+apply thread's mode-`on` atomics from `start`'s mode-`on` premise. `isServerM true` itself (its
+`srvFieldsAtM` with `waitInvM true`) is `start`'s to build: the wait is created in `start`
+(`s.w = wait.New()`), so it is not derivable from the construction premise; it comes with
+`start`'s mode-`on` spec. `BuildAlloc`'s `buildGhostVarHalves`/`buildMonoNatHalves` are no longer
+`private` (used by `srvIndices_allocM`).
+
+**(2) The server applier's latest-state KV triples from its construction.**
+- **The base applier's auth layer in `uberIs`** (`apply/InvUber.lean`, `baseAuth E opts base`):
+  the base applier is an `*authApplierV3` `pa` with `authIs E pa inner`, its inner applier an
+  applier of `quota` over `backend`, and its `as`/`lessor` fields the options' store and lessor.
+  Chosen over a new conjunct of `NewUberApplier`'s post (first tried): D22's snapshot walk restates
+  that post's shape (`SnapApplyDefs`, `SnapApplyKV`: `apply.uberIs E1 up' opts' ∗ ∃ ns cr, …`), so a
+  change there would change D22's statements; `uberIs` is opaque to them. `uberIs`'s five
+  destructuring sites end in `-` but `AdminChain`'s (`#Hsh` → `#Hsh, -`).
+- **Its source:** `newAuthApplierV3`'s post gives its `as`/`lessor` fields read-only and, for any
+  environment, `authIs E p base`; `newApplierV3`'s post gives `baseAuth E opts a` for every
+  environment meeting the options' contracts; `NewUberApplier` frames it into `uberIs`.
+- **`apply.uberKVL_of_base`** (`apply/UberKVLBase.lean`): `uberBaseAuth ua E au le` (the
+  `UberApplier` whose base's store is `au` and lessor `le`, `apply/BaseAuth.lean`), the store's
+  checks at the latest state (`isAuthStoreL au …`) and the lessor finding no lease (`lookupNil le`)
+  give `uberKVL ua E (.quota .backend) L`, through E2y's `applierKVL_auth`.
+- **The server's row** (`ServerOn`): `srvUberRowM on` is the built part's uber-applier row, today's
+  at `false` (`rfl`), with `srvUberBase s ua E` (the base auth layer at the server's `authStore`
+  and `lessor` fields) at `true`; `NewServer.wp_proofM` builds it from `NewUberApplier`'s `uberIs`
+  and the fields (`srvUberRowM_of_On`); `applyBuiltOn`'s uber-applier row carries `srvUberBase`.
+- **`srv_uberKVL`** (`UberOn.lean`; restated linked as `server_uber_kvl`): `srvUberBase` with two
+  named premises gives the apply thread's `uberKVL`:
+  - `srvStoreLatest s E L`: the server's store meets `isAuthStoreL` for `L`; the real store does
+    from its invariant (`isAuthStoreL_of_authInv`, with `E.RD = authRd …` and `L = latestRes …`),
+    but the server's rows do not carry the store's invariant yet;
+  - `srvLessorNil s`: the server's lessor finds no lease. A premise: the real lessor finds a lease
+    once one is granted; `examples/authkv` grants none.
+- **The admin side** (`uberAuthStepsL`'s `W`, the store's `be` half) stays a hypothesis of
+  `srvApplyKVOn`'s users; E3k did not reach it.
+
+**E3f's blocker 1, decided (2026-10-27, the user):** the store's half of its `be` field
+(`authBeOn`, which stays in the server's rest and is borrowed by an admin application, E2m) is tied
+to the apply thread's `authWBackendOk` backend by a **separate row** (an equation of the backend
+names, or a persistent agreement fact), leaving `srvObjsOn`'s text and D22's `Recover` premise (a)
+unchanged. The admin entry's `W` (in `uberAuthStepsL`, `applyEntryNormal`'s admin case) is to be
+built from that row, not taken as a named hypothesis.
+
+**Exported statements changed.** Specs: `apply.newAuthApplierV3.spec` (post: the `as`/`lessor`
+fields and an `authIs` clause), `apply.newApplierV3.spec` (post: a `baseAuth` clause). Definitions:
+`apply.uberIs` (a `baseAuth` conjunct), `srvBuiltG` (`#Hai` the mode's, `Hua` `srvUberRowM on`),
+`isServerBuiltOn` (`#Hai`), `applyBuiltOn` (`srvUberBase` in its uber row). Moved (same text):
+`kvModelM`, `kvLogAtM`, `kvLogsOkM`, `srvAppliedBodyM`, `srvAppliedInvM` with their lemmas. New:
+`srvIndices_allocM`, `srvUberBase`, `srvUberRowM`, `srvUberRowM_of_On`, `srvAtomicsM_of_builtOn`,
+`apply.baseAuth`, `apply.uberBaseAuth`, `apply.uberKVL_of_base`, `srvStoreLatest`, `srvLessorNil`,
+`srv_uberKVL`, `server_uber_kvl`. No closed theorem changed; `NewServer.spec`,
+`EtcdServer.NewUberApplier.spec` and `apply.NewUberApplier.spec` keep their text.
+
+**Left.** `start`'s mode-`on` spec (building `isServerM true`: the wait in the mode, `waitInvM
+true`); the server's rows carrying the store's invariant (discharging `srvStoreLatest`); the admin
+facts (the separate row of blocker 1's decision, then `uberAuthStepsL`'s `W`); `applyEntryNormal.specOn` (no-data, KV, cluster; admin entries) handing
+`resultΨOn` to the waiter, then `applyAll`, `run`.
+
+**Trust base.** Unchanged.
+
+
+## Features without re-proving: state records, named conjuncts, bundled callees, lifted wrappers (2026-10-26 · proposed; the user asked for it written up)
+
+**Status: proposed**, not yet adopted. It is the first step of L3b part 2 of `notes/leases-plan.md`
+if the user adopts it; the auth and snapshot tracks work in the same apply-layer files, so it is
+recorded here for them to weigh first.
+
+**The problem.** Over the last sessions most of the cost of a new feature has not been new
+reasoning but the mechanical breakage it causes in proofs that do not use it. In the leases unit
+(T3), sessions of 2026-10-24 to 2026-10-26:
+
+- *L3b part 2 needs the lessor's live set in the apply relation* (a leased put is rejected iff its
+  lease is not live), and the apply layer's specs take the state's components one by one
+  (`(log : mvcc.Log)`, `kvOwn E log`, `mPre E c a info log …`, `chainStep backendStep c rq log o`).
+  Adding one component (the lease table) touches about 130 files, 45 of them specs, though only
+  the put, transaction, grant and revoke appliers read it. The apply thread already has a record
+  (`apply.ApplyKV`: `log`, `chain`); the specs do not take it.
+- *Positional destructuring.* Adding a conjunct to a pre- or postcondition breaks every
+  `icases … ⟨H1, …, -, H11⟩` downstream: in this unit's merges, mvcc's `retiredAt` (`Hret`, from
+  the snapshot track) against the deleter (`Hro`, from leases) in `New`, `newWatchableStore`,
+  `StoreBackend`, `BuildLemmas`, `Results`, `NewServer`; the revoke rights in `lessorUser` in five
+  of the snapshot track's files; the lease check in `Txn`'s success. Each is a one-token fix found
+  only by a full build.
+- *Positional hypothesis lists.* `NewServer.wp_proofM` takes `h0 … h94`; its wrapper, `Results`'
+  restatements, and the snapshot walk (`applySnapshot_walk`, `wp_proof_snap`) list them again.
+  Adding the backend's `UnsafeDelete` spec (L2) meant editing each list by hand.
+- *Wrappers restate the inner relation.* Each applier layer (corrupt, capped, auth, quota,
+  `dispatch`, `Apply`) states its own copy of the relation (`chainStep backendStep (.corrupt c) …`),
+  so changing the backend's relation reaches every layer's spec.
+- *Merges.* `lean` moved 3 to 80 commits between this branch's merges, mostly in the same apply
+  files; each of the patterns above turns a parallel change into a conflict.
+
+**The proposal** (four changes, each local in its effect once made):
+
+1. **Specs over state records** (CLAUDE.md's "Records", applied to the apply layer). The applier
+   specs, `kvOwn`, `mPre`/`mPost`/`kvPostF` and the relations (`backendStep`, `dispatchStep`,
+   `applyStep`) take `x : apply.ApplyKV` (or a record of what the KV side of the apply thread
+   holds) instead of `log`; a spec that reads only the log uses `x.log`. A new component (the
+   lease table now; an auth state or alarm set later) is then a field: only its readers change.
+2. **Named conjuncts in the large resources** (`"Hx" ∷ P`, destructured with `iNamed`, as
+   Perennial's struct predicates are): `kvOwn`, `lessorUser`, the mvcc constructors' posts
+   (`New`, `newWatchableStore`, `server_kv_watchable_of`), `snapWalkPost`, the server's built rows.
+   A new conjunct then breaks only the proofs that use it.
+3. **Bundled callee specs.** A structure per linking theorem (e.g. `ServerCallees` for
+   `NewServer`'s 95 hypotheses), one argument instead of the list; `etc/gen-link.py` fills it from
+   the linked names. A new callee is one field and one line of the generated link.
+4. **Wrappers as lifts.** A wrapper layer's spec states the inner layer's spec lifted (its own
+   rejections, else the inner outcome), with one lifting lemma per layer; changing the backend's
+   relation then touches the backend and the lemmas only.
+
+Two practices go with it: a **default argument at a definition** where the default is honestly
+the old meaning (L3a's `kvStateOf l (lt := [])` kept about 135 call sites unchanged), and
+**module-level checking while editing** (`lake build <module>`, `etc/lean-check.py`), keeping full
+builds (15 to 25 minutes each in these sessions) for the end of a step.
+
+**Cost and order.** (1) for the apply layer is the same set of files L3b part 2 would edit anyway
+to thread the table through today's signatures, so doing it first costs about the same and leaves
+the next feature local. (2) to (4) can be done file by file when a file is next touched. Merge into
+`lean` in small steps, so the other tracks build on the new signatures early.
+
+**Rejected.** Hiding the lease table in ghost state so the specs keep their text (the relation is
+pure, and its outcome must be exact for the model's step: the table has to appear in it); a
+degenerate L3b over an always-empty live set (correct today, since no grant is admitted, but L3c
+would redo the threading).

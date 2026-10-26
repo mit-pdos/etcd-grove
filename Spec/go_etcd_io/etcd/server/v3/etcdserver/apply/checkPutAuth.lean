@@ -35,7 +35,7 @@ abbrev apply.checkPutAuth.spec : Prop :=
       txn.putRequestIs r o }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkPutAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #r))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.putClass on info o) }}
 

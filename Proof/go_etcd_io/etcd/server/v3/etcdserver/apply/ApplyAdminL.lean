@@ -98,6 +98,24 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The auth layer's admin rejection's result** (`apply.rejectResultIs`'s), its error one of the
+auth package's error variables (`authApplyErrIs`; the auth plan's E3j: what `IsAdminPermitted`
+returns, `isAuthStoreL`), so that it is told apart from `ErrNoSpace`. -/
+def apply.rejectResultIsA (ar : Loc) : IProp GF :=
+  iprop(⌜ar ≠ null⌝ ∗ ∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, ar ↦ v ∗
+    ⌜v.Err' ≠ GoInterface.nil ∧ v.Resp' = GoInterface.nil⌝ ∗ authApplyErrIs v.Err')
+
+/-- **An admin entry's rejection's error** (read-only; the auth plan's E3j): for a rejected
+request, its result's error is one of the auth package's (`authApplyErrIs`). -/
+def apply.adminRejErr (ar : Loc) : apply.ApplyOut → IProp GF
+  | .rejected => iprop(∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, ar ↦□ v ∗
+      authApplyErrIs v.Err')
+  | _ => iprop(True)
+
+instance apply.adminRejErr_persistent (ar : Loc) (out : apply.ApplyOut) :
+    Persistent (apply.adminRejErr (GF := GF) ar out) := by
+  cases out <;> unfold apply.adminRejErr <;> infer_instance
+
 /-- **An applier of the chain `c` whose `Apply` always runs its `applyFunc`** (persistent): the
 `applyFunc` under the chain's resources at the request's principal, its result returned. -/
 def apply.applyNR (c : apply.Chain) (a : GoInterface) : IProp GF :=
@@ -131,7 +149,7 @@ def apply.applierAdmL (E : apply.AEnv GF) (c : apply.Chain) (a : GoInterface)
       {{ (ar : Loc), RET #ar;
           (B ar ∗ ⌜apply.adminPassL E.authMode hs rq⌝) ∨
             (⌜apply.needAdminPermission rq = true ∧ apply.adminRejL E.authMode hs rq⌝ ∗ A ∗ L hs ∗
-              apply.rejectResultIs ar) }}))
+              apply.rejectResultIsA ar) }}))
 
 instance apply.applierAdmL_persistent (E : apply.AEnv GF) (c : apply.Chain) (a : GoInterface)
     (L : List auth.AuthState → IProp GF) : Persistent (apply.applierAdmL E c a L) := by
@@ -160,7 +178,7 @@ abbrev apply.authApplierV3.Apply.specL : Prop :=
   {{ (ar : Loc), RET #ar;
       (B ar ∗ ⌜apply.adminPassL E.authMode hs rq⌝) ∨
         (⌜apply.needAdminPermission rq = true ∧ apply.adminRejL E.authMode hs rq⌝ ∗ A ∗ L hs ∗
-          apply.rejectResultIs ar) }}
+          apply.rejectResultIsA ar) }}
 
 /-- **`a.Apply(r, shouldApplyV3)` on an admitted admin request with no alarm set, the admin check
 at the latest state** (see the file header): E2o's `adminSpec` with the current chain the base one,
@@ -191,7 +209,7 @@ abbrev apply.uberApplier.Apply.adminSpecL : Prop :=
       ⌜(out = .rejected → apply.needAdminPermission rq = true ∧ apply.adminRejL E.authMode hs rq) ∧
         (∀ o, out = .dispatched o skip → apply.adminPassL E.authMode hs rq)⌝ ∗
       apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗ W ∗
-      apply.adminOut Own γa E.authMode hs rq v3 ar out }}
+      apply.adminOut Own γa E.authMode hs rq v3 ar out ∗ apply.adminRejErr ar out }}
 
 end defs
 
@@ -423,7 +441,7 @@ theorem apply.authApplierV3.Apply.wp_latest
     isplitr
     · ipureintro
       exact ⟨rfl, apply.adminRejL_of_verdict _ _ _ _ (by simp) Hv⟩
-    iunfold apply.rejectResultIs
+    iunfold apply.rejectResultIsA
     isplitr
     · ipureintro; exact Harn
     iexists _
@@ -532,7 +550,7 @@ theorem apply.uberApplier.Apply.wp_adminL
   · imodintro
     iapply HΦ
     iexists ⟨o.logAfter x.log, x.chain⟩, (.dispatched o skip)
-    simp only [apply.applyResultIs, apply.adminOut]
+    simp only [apply.applyResultIs, apply.adminOut, apply.adminRejErr]
     iframe Hkv HPP Htr Hres HW Hdone
     isplitl [Ha']
     · iunfold apply.uberOwn; iexists _; iframe Ha' Hs Hsh; ipureintro; exact HcE
@@ -541,8 +559,9 @@ theorem apply.uberApplier.Apply.wp_adminL
     ipureintro
     refine ⟨fun h => (by cases h), fun _ _ => Hpass⟩
   · ihave Ho := Hback $$ HL
-    iunfold apply.rejectResultIs at Hrej
-    icases Hrej with ⟨%Harn, %v, Hv, %Hvf, #HeI⟩
+    iunfold apply.rejectResultIsA at Hrej
+    icases Hrej with ⟨%Harn, %v, Hv, %Hvf, #HeA⟩
+    ihave #HeI := authApplyErrIs_apply _ $$ HeA
     ipersist Hv
     imodintro
     iapply HΦ
@@ -562,12 +581,16 @@ theorem apply.uberApplier.Apply.wp_adminL
       exact ⟨fun _ => Hrj, fun _ h => by cases h⟩
     isplitl []
     · iapply apply.resTrace_err ar v Hvf.1 $$ Hv
-    iunfold apply.rejectedResultIs
     isplitr
-    · ipureintro; exact Harn
+    · iunfold apply.rejectedResultIs
+      isplitr
+      · ipureintro; exact Harn
+      iexists v
+      iframe Hv HeI
+      ipureintro; exact Hvf
+    simp only [apply.adminRejErr]
     iexists v
-    iframe Hv HeI
-    ipureintro; exact Hvf
+    iframe Hv HeA
 
 end proof
 

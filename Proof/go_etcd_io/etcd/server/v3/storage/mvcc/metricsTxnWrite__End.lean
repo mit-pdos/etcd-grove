@@ -79,7 +79,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
   | write ilog pend puts deletes putSize =>
     simp only [mvcc.isTxnEnd, mvcc.txnEndPost, mvcc.txnEndPre]
     icases Hpre with ⟨%P, %f, Hhook, HP⟩
-    icases Htx with ⟨%chs, %ps, %sealed, Htx⟩
+    icases Htx with ⟨%chs, %ps, %sealed, %ld, Htx⟩
     iunfold mvcc.isTxnWriteCore at Htx
     iNamed Htx
     wp_apply wp_with_defer as %defer defer
@@ -97,7 +97,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
       wp_apply HcdA
       (try wp_auto)
       -- the deferred `tw.TxnWrite.End()`: `storeTxnWrite.End`
-      wp_apply (hEndW trace tw s γ ilog pend chs ps sealed P f crev Z) $$ [$Htw $Hhook $HP] as ⟨Hrd, #HZ, #Hcert, Htok⟩
+      wp_apply (hEndW trace tw s γ ilog pend chs ps sealed P f crev Z ld) $$ [$Htw $Hhook $HP] as ⟨Hrd, #HZ, #Hcert, Htok⟩
       (try wp_auto)
       iapply HΦ
       iframe Hrd HZ Htok Hcert Htrc

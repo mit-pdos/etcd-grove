@@ -86,6 +86,7 @@ axiom backend.wBkt_persistent
 axiom backend.wrTok
 axiom bbolt.Bucket.Cursor_kvr.wp_proof
 axiom bbolt.Bucket.Cursor_kvw.wp_proof
+axiom bbolt.Bucket.Delete_kv.wp_proof
 axiom bbolt.Bucket.Put_kv.wp_proof
 axiom bbolt.Cursor.Next_kv.wp_proof
 axiom bbolt.Cursor.Seek_kv.wp_proof
@@ -215,6 +216,7 @@ axiom rate.NewLimiter.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom schema.UnsafeDeleteLease.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof
@@ -230,6 +232,7 @@ axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom sort.Stable.wp_proof
+axiom sort.StringSlice.Sort.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof

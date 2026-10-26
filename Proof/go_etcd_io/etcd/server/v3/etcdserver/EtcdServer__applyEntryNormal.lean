@@ -244,7 +244,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   icases srvApplyKV_idxCert s E ρ.wait x $$ HKV with ⟨HKV, #Hcx⟩
   ihave %Hlx := idxCert_len E.γ.idx x.log $$ Hcx
   icases kvApplied_log γr.raft γr.kv A x $$ Hka with ⟨Hka, %Hxl⟩
-  imod kv_applied_step E γr A m x (kvEntry_len _ _ x m Hok Hlx) $$ Hkvi Hka HAm with ⟨%Hpe, Hka⟩
+  imod kv_applied_step E γr A m x (kvEntry_len _ _ _ x m Hok Hlx) $$ Hkvi Hka HAm with ⟨%Hpe, Hka⟩
   obtain ⟨Hpe, Hxch, Hoff⟩ := Hpe
   -- the start's chain (D19k: no NOSPACE outcome there)
   ihave #Hkvi'' := Hkvi
@@ -291,8 +291,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     · -- no data
       have hnil : m.data = [] := by
         apply List.eq_nil_of_length_eq_zero; rw [Hdlen.1, Hif]; rfl
-      have hl0 : x.log = kvEntry γr.kv.c0 x.chain x.log m :=
-        (kvEntry_nonwrite _ _ _ m (Or.inl hnil)).symm
+      have hl0 : x.log = kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m :=
+        (kvEntry_nonwrite _ _ _ _ m (Or.inl hnil)).symm
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x m.index hiA hl0 Hxch $$ Hka
       imod applied_predeposit s E γr v m.index x.log x.log Hvi (List.prefix_refl _) $$ Hainv Hao HLv HkL
         with Hpre
@@ -340,7 +340,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq false
+      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq false
         (Hpe Htyp hdata rq hdec).1 Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       ihave HFSE : E.FS $$ [HFS]
@@ -376,7 +376,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       (try wp_auto)
       have hes : entryStep m false x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
-      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 m x x' Hpe Hoff
+      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 (kvLeases γr.kv A) m x x' Hpe Hoff
         (batchStep_of_entryStep γr.kv.c0 m false x x' out Htyp HkA.2 hes)
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
@@ -410,8 +410,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     · -- no data: processed with no writes
       have hnil : m.data = [] := by
         apply List.eq_nil_of_length_eq_zero; rw [Hdlen.1, Hif]; rfl
-      have hl0 : x.log = kvEntry γr.kv.c0 x.chain x.log m :=
-        (kvEntry_nonwrite _ _ _ m (Or.inl hnil)).symm
+      have hl0 : x.log = kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m :=
+        (kvEntry_nonwrite _ _ _ _ m (Or.inl hnil)).symm
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x m.index hiA hl0 Hxch $$ Hka
       imod applied_predeposit s E γr v m.index x.log x.log Hvi (List.prefix_refl _) $$ Hainv Hao HLv HkL
         with Hpre
@@ -464,7 +464,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
-      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq true
+      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq true
         (Hpe Htyp hdata rq hdec).1 Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       obtain ⟨HEP, HEf⟩ := HE
@@ -584,7 +584,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, HMint⟩
       have hes : entryStep m true x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
-      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 m x x' Hpe Hoff
+      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 (kvLeases γr.kv A) m x x' Hpe Hoff
         (batchStep_of_entryStep γr.kv.c0 m true x x' out Htyp HkA.2 hes)
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi

@@ -22,14 +22,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- `le.Detach(id, items)` (locked): removes the items from the lease's item set and the item
-map, if the lease is there (else `ErrLeaseNotFound`). -/
+/-- `le.Detach(id, items)` (locked), by the lease owner (`leaseOwn γl L I`) for items the item
+map puts on `id` (so `id` is live): removes the items from the lease's item set and the item map
+(the owner's `I`, unit T3, L2b) and returns `nil`. -/
 abbrev lease.lessor.Detach.spec : Prop :=
-  ∀ (lp : Loc) (γl : GName) (id : w64) (items : GoSlice) (xs : List LeaseItem) (dq : DFrac),
+  ∀ (lp : Loc) (γl : GName) (id : w64) (items : GoSlice) (xs : List LeaseItem) (dq : DFrac)
+    (L : List w64) (I : GMap LeaseItem w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      items ↦*{dq} xs }}
+      leaseOwn γl L I ∗ ⌜xs ≠ []⌝ ∗ ⌜∀ it ∈ xs, I.lookup it = some id⌝ ∗ items ↦*{dq} xs }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Detach")) (Val #id)) (Val #items))
-  {{ (err : GoInterface), RET #err; items ↦*{dq} xs }}
+  {{ RET #GoInterface.nil; leaseOwn γl L (deleteAll I xs) ∗ items ↦*{dq} xs }}
 
 end spec
 

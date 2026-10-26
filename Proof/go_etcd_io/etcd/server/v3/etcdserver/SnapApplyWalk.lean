@@ -81,6 +81,7 @@ theorem applySnapshot_walk
     (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
     (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
     (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
     (hkI : mvcc.keyImage ([[], []] ++ R) D) (hbr : mvcc.bridgeParams d.P)
     (hGTP : EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
@@ -330,7 +331,7 @@ theorem applySnapshot_walk
   iunfold apply.leasesLive at HlLive
   icases HlLive with ⟨%Ll, #HlK, HlUser⟩
   iunfold lease.lessorUser at HlUser
-  icases HlUser with ⟨HlOwn, HlRd⟩
+  icases HlUser with ⟨HlOwn, HlRd, HlRv⟩
   ihave %Hwseq := isWatchableStore_agree ws wsl E.s γw γw0 $$ [$Hws $Hwsl]
   subst Hwseq
   (try wp_auto)
@@ -346,9 +347,9 @@ theorem applySnapshot_walk
   · iPkgInit
   wp_apply hLR lp E.γ.leases d.be d' (mvcc.lateW gx')
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (1 : Qp).half
-      (backend.rbData d.P D) _ Ll $$ [HoLe HlOwn HnOh Hwb2 HnRB]
-    as ⟨HnLe, HlOwn, HnOh, HnRB⟩
-  · rw [hγ', hP']; iframe #; iframe HoLe HlOwn HnOh Hwb2 HnRB
+      (backend.rbData d.P D) _ Ll _ $$ [HoLe HlOwn HlRv HnOh Hwb2 HnRB]
+    as ⟨HnLe, HlOwn, HlRv, HnOh, HnRB⟩
+  · rw [hγ', hP']; iframe #; iframe HoLe HlOwn HlRv HnOh Hwb2 HnRB
     ipureintro; exact hlease
   (try wp_auto)
   -- `s.kv.Restore(newbe)`: the store over the image's log at the new backend
@@ -371,7 +372,7 @@ theorem applySnapshot_walk
   · rw [hP']; iapply HkSz $$ %d'.γB %d'.be
   have hbr' : mvcc.bridgeParams d'.P := by rw [hP']; exact hbr
   ihave #HsbT := mvcc.storeBackendT_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-    hrUR hLI hLO hSP hUL hBUR hCB hID hName hSafe d' hbr'
+    hrUR hLI hLO hSP hUL hBUR hCB hDel hID hName hSafe d' hbr'
     (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) E.γ.bucket $$ [$Hbpkg $Hschpkg $HnB' $HnSz]
   ihave #HkcR := mvcc.keyCleanRead_of_backend hRT hrRL hrRU hrUR hID hName hSafe
     d' hbr'

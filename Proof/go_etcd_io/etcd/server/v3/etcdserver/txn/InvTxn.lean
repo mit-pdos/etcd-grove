@@ -414,6 +414,21 @@ theorem leasesOk_one (L : List w64) (l : w64) : leaseOk (GF := GF) L l ⊢ lease
   subst hl
   iexact H
 
+/-- **The checked leases pass a path's lease checks** (unit T3, L3b). -/
+theorem leasesOk_paths (L : List w64) (s0 : List EtcdKv) (ops : List TxnOp) :
+    leasesOk (GF := GF) L (opsLeases s0 ops) ⊢ ⌜PathsLeaseOk s0 L ops⌝ := by
+  unfold leasesOk leaseOk
+  iintro #H
+  ihave %Hp : ⌜∀ l, l ∈ opsLeases s0 ops → l = W64 0 ∨ l ∈ L⌝ $$ []
+  · iapply BI.pure_forall.2
+    iintro %l
+    by_cases hl : l ∈ opsLeases s0 ops
+    · ihave %h := H $$ %l %hl
+      ipureintro; exact fun _ => h
+    · ipureintro; exact fun h => absurd h hl
+  ipureintro
+  exact pathsLeaseOk_of_leases s0 L ops Hp
+
 /-- A lease of the list. -/
 theorem leasesOk_mem (L : List w64) (ls : List w64) (l : w64) (h : l ∈ ls) :
     leasesOk (GF := GF) L ls ⊢ leaseOk L l := by

@@ -366,9 +366,10 @@ theorem AEnv.authOn_eq (E : AEnv GF) : E.authOn = E.authMode.isOn := rfl
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
-which every lease of `s` is. -/
+which every lease of `s` is; (unit T3, L2b, 2026-10-25) its item map `s`'s (each key's lease, the
+lessor's `itemMap` and the leases' item sets). -/
 def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
-  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L)
+  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L (mvcc.leaseItemsOf s))
 
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
 the KV's writer of `log` (`txn.kvWriter`: the sole writer, and for a watchable store the writer's
@@ -555,12 +556,13 @@ theorem adminPass_wrap (M : auth.AuthMode) (c c' : Chain) (rq : IRRModel) (h : c
 /-! ## The outcomes, in the heap -/
 
 /-- The error of a rejection `k`: the corrupt applier's `ErrCorrupt`, the capped applier's
-`ErrNoSpace`, the auth store's (not nil, one `errors.Is` can take: `applyErrIs`, the contract's),
+`ErrNoSpace`, the auth store's (not nil, one `errors.Is` can take and one of the auth package's
+error variables: `authApplyErrIs`, the contract's; the auth plan's E3i, 2026-10-27),
 or the backend's (`bk`, by the request). -/
 def rejErrIs (bk : GoInterface → IProp GF) : RejectKind → GoInterface → IProp GF
   | .corrupt, err => txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err
   | .noSpace, err => txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace err
-  | .auth, err => iprop(⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)
+  | .auth, err => iprop(⌜err ≠ GoInterface.nil⌝ ∗ authApplyErrIs err)
   | .backend, err => bk err
 
 /-- The error of an applied request: `nil`, or the quota's `ErrNoSpace` (`ns`). -/

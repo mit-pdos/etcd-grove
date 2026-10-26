@@ -292,6 +292,7 @@ axiom backend.wBkt_persistent
 axiom backend.wrTok
 axiom bbolt.Bucket.Cursor_kvr.wp_proof
 axiom bbolt.Bucket.Cursor_kvw.wp_proof
+axiom bbolt.Bucket.Delete_kv.wp_proof
 axiom bbolt.Bucket.Put_kv.wp_proof
 axiom bbolt.Cursor.Next_kv.wp_proof
 axiom bbolt.Cursor.Seek_kv.wp_proof

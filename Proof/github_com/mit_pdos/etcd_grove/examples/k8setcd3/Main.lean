@@ -207,11 +207,11 @@ theorem Main.wp_proof
   · iunfold client.kvRegsAt
     iframe #
   -- the seeding, from the server's start state (`σb`: no key, revision `1`)
-  have hboot0 : kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog)) = σb := by
+  have hboot0 : kvModelSt ρ.rd.kv (bootEntries bootLog) = σb := by
     have h : kvModel ρ.rd.kv (bootEntries bootLog) = [[], []] := by
       unfold kvModel
       rw [linkv.kvRaftOf_boot _ _ _ (putget.ccOk id) [id] bootLog Hbf.boot, hlog]
-    rw [h]; rfl
+    rw [kvModelSt_boot _ _ _ bootLog Hbf.boot, h]; rfl
   imod (seedInv_alloc ρ.rd.kv σb ⊤) $$ [Hetcd] with ⟨%γs, #Hsi, Hs⟩
   · rw [← hboot0]; iexact Hetcd
   ihave #Hkc' := Hkc

@@ -466,6 +466,10 @@ theorem mvcc.wp_newWatcherGroup :
     mvcc.newWatcherGroup.spec (GF := GF) (hG := hG) :=
   mvcc.newWatcherGroup.wp_proof adt.wp_NewIntervalTree
 
+theorem traceutil.wp_TODO :
+    traceutil.TODO.spec (GF := GF) (hG := hG) :=
+  traceutil.TODO.wp_proof
+
 theorem mvcc.watcherGroup.wp_size :
     mvcc.watcherGroup.size.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.size.wp_proof
@@ -525,10 +529,6 @@ theorem mvcc.wp_newKVHasher :
 theorem mvcc.wp_newMetricsTxnRead :
     mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG) :=
   mvcc.newMetricsTxnRead.wp_proof
-
-theorem traceutil.wp_TODO :
-    traceutil.TODO.spec (GF := GF) (hG := hG) :=
-  traceutil.TODO.wp_proof
 
 theorem schema.bucket.wp_ID :
     schema.bucket.ID.spec (GF := GF) (hG := hG) :=
@@ -721,9 +721,21 @@ theorem mvcc.metricsTxnWrite.wp_Rev :
     mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.metricsTxnWrite.Rev.wp_proof mvcc.storeTxnCommon.wp_Rev mvcc.storeTxnWrite.wp_Rev
 
+theorem mvcc.wp_newMetricsTxnWrite :
+    mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG) :=
+  mvcc.newMetricsTxnWrite.wp_proof
+
+theorem mvcc.store.wp_Write :
+    mvcc.store.Write.spec (GF := GF) (hG := hG) :=
+  mvcc.store.Write.wp_proof mvcc.wp_newMetricsTxnWrite
+
+theorem mvcc.watchableStore.wp_Write :
+    mvcc.watchableStore.Write.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.Write.wp_proof mvcc.store.wp_Write
+
 theorem mvcc.wp_newWatchableStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) :=
-  mvcc.newWatchableStore.wp_proof zap.wp_NewNop mvcc.wp_NewStore mvcc.wp_newWatcherGroup adt.wp_ownIvt_split
+  mvcc.newWatchableStore.wp_proof zap.wp_NewNop mvcc.wp_NewStore mvcc.wp_newWatcherGroup adt.wp_ownIvt_split mvcc.watchableStore.wp_Write traceutil.wp_TODO
 
 theorem time.wp_NewTicker :
     time.NewTicker.spec (GF := GF) (hG := hG) :=
@@ -772,10 +784,6 @@ theorem mvcc.watchableStore.wp_syncVictimsLoop :
 theorem mvcc.wp_New [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.New.spec (GF := GF) (hG := hG) :=
   mvcc.New.wp_proof mvcc.wp_newWatchableStore mvcc.watchableStore.wp_syncWatchersLoop mvcc.watchableStore.wp_syncVictimsLoop
-
-theorem mvcc.wp_newMetricsTxnWrite :
-    mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG) :=
-  mvcc.newMetricsTxnWrite.wp_proof
 
 theorem mvcc.store.wp_Read :
     mvcc.store.Read.spec (GF := GF) (hG := hG) :=
@@ -864,10 +872,6 @@ theorem mvcc.store.wp_Restore [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem mvcc.store.wp_Rev :
     mvcc.store.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.store.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
-
-theorem mvcc.store.wp_Write :
-    mvcc.store.Write.spec (GF := GF) (hG := hG) :=
-  mvcc.store.Write.wp_proof mvcc.wp_newMetricsTxnWrite
 
 theorem mvcc.store.wp_compactLockfree [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) :=
@@ -976,10 +980,6 @@ theorem mvcc.watchableStore.wp_NewWatchStream :
 theorem mvcc.watchableStore.wp_Restore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.Restore.wp_proof mvcc.store.wp_Restore mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add
-
-theorem mvcc.watchableStore.wp_Write :
-    mvcc.watchableStore.Write.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.Write.wp_proof mvcc.store.wp_Write
 
 theorem mvcc.writeView.wp_DeleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.writeView.DeleteRange.spec (GF := GF) (hG := hG) :=

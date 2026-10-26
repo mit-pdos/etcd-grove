@@ -270,7 +270,9 @@ theorem NewServer.wp_proofM (on : Bool)
     (h90 : EtcdServer.Process.spec (GF := GF) (hG := hG))
     (h91 : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
-    (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG)) :
+    (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG))
+    -- (leases T3, 2026-10-25) the backend's delete, for the lessor's in the store's contract
+    (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on := by
   intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir γd HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok Hauthcfg
@@ -498,7 +500,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard) (backend.rbData d.P D))
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, #Hlck, HleOn, #Hlbe, #Hllk⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk⟩
   · iframe HB Hclok
     unfold backend.wbTok
     iframe Hopen Hwl Hrbo
@@ -555,13 +557,13 @@ theorem NewServer.wp_proofM (on : Bool)
   icases replicate_take1 _ _ hM1 $$ Hlrd with ⟨Hlrd, Hlrds⟩
   icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, -⟩
   wp_apply (lc := 2) (server_kv_watchable_of h26 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73
-      h74 h75 h76 h77 h46 h47 h48 cfg.Logger' (lease.lessorIface lp) _ d HbP E₀.γ.bucket γl
-      (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok M Hcbl Hrb)
-    $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok]
+      h74 h75 h76 h77 h94 h46 h47 h48 cfg.Logger' (lease.lessorIface lp) _ d HbP E₀.γ.bucket γl
+      (batchLockInv γA (metaTM d.γB d.P)) #func.nil func.nil N E₀.γ.idx E₀.γ.cok M Hcbl Hrb)
+    $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hro Hidx Hcok]
     as %ws ⟨%kst, %γw, %Hγw, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
-      Hwrds, Hwcl, Hret0, #Htag⟩
+      Hwrds, Hwcl, Hret0, -, #Htag⟩
   · iframe Hisl HB Hsz
-    iframe Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok
+    iframe Hview Hncmp Hlate Hwkv Hrts Hlrd Hro Hidx Hcok
   -- (D19g (b)) the store's reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwsr, Hwrds⟩
   -- (2026-10-20, watchkv) 64 more for the watch service's run slots (`srvWatchReaders`)
@@ -994,7 +996,7 @@ theorem NewServer.wp_proofM (on : Bool)
     icases Hrli with ⟨-, #H, -⟩
     iexact H
   -- the indices
-  imod (srvIndices_alloc s
+  imod (srvIndices_allocM on s
       ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ ρ.rd ⊤
       (by rw [HρRaft]))
     $$ [appliedIndex] [committedIndex] [term] Hap Hcm Hlogs Hpend [] Hrlb
@@ -1584,8 +1586,18 @@ theorem NewServer.wp_proofM (on : Bool)
   isplitr [Hwtok]
   rotate_left
   · iexact Hwtok
+  iapply srvUberRowM_of_On
   iexists ua
   iframe uberApply
+  isplitr
+  · -- (E3k) the base applier's auth layer, at the server's store and lessor
+    iunfold srvUberBase
+    iexists _, _
+    iframe authStore lessor
+    iunfold apply.uberBaseAuth
+    iexists up, uopts
+    iframe Hui
+    ipureintro; exact ⟨Hua, Huopts.2.2.2.1, Huopts.2.2.2.2.1⟩
   isplitr
   · iunfold apply.applierFor
     iexists up, uopts
@@ -1614,7 +1626,11 @@ theorem NewServer.wp_proofM (on : Bool)
     simp [mvcc.applyChanges] at ha
   iunfold lease.lessorUser
   rw [Hγw.2.1]
-  iframe Hlown Hlrd2
+  iframe Hlrd2 Hlrvk
+  -- the initial state has no key: its item map is the lessor's, empty
+  have h0 : (∅ : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) =
+      mvcc.leaseItemsOf (mvcc.stateAfter ([[], []] : mvcc.Log)) := GMap.ext fun _ => rfl
+  iapply (lease.leaseOwn_eq h0) $$ Hlown
 
 -- (2026-10-22) the unused-variables linter walks the proof's info tree: 30s of this module's
 -- CPU (on the build's critical path)
@@ -1715,13 +1731,14 @@ theorem NewServer.wp_proof
     (h90 : EtcdServer.Process.spec (GF := GF) (hG := hG))
     (h91 : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
-    (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG)) :
+    (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG))
+    (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   have h := NewServer.wp_proofM false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) h26 h27 h28 h29 h31 h32 h33 h34 h35 h36
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
-    h87 h88 h89 h90 h91 h92 h93
+    h87 h88 h89 h90 h91 h92 h93 h94
   intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir γd HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok
   -- the mode off's post (the apply thread's auth resource, `True` in the mode off, is in

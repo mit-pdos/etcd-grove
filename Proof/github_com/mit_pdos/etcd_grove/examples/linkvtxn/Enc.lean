@@ -283,8 +283,9 @@ theorem absSt_step (σ : KVState) (h : GoodKV σ) (i : MI) :
     linkv.absSt (kvOpStep (opIn i) σ) = (linkv.mStep wks i (linkv.absSt σ)).1 :=
   linkv.absSt_kvOpStep wks listFrom listTo σ h.1 i
 
-/-- A step's revision: the same state, or the next revision. -/
-theorem kvOpStep_cases (op : KVOp) (σ : KVState) :
+/-- A step's revision: the same state, or the next revision (a key-value operation's: a lease's
+grant changes the state at the same revision). -/
+theorem kvOpStep_cases (op : KVOp) (σ : KVState) (hop : op.isKV) :
     kvOpStep op σ = σ ∨ (kvOpStep op σ).rev = σ.rev + 1 := by
   have hc : ∀ cs, σ.commit cs = σ ∨ (σ.commit cs).rev = σ.rev + 1 := by
     intro cs
@@ -296,6 +297,8 @@ theorem kvOpStep_cases (op : KVOp) (σ : KVState) :
     simp only [kvOpStep]
     split
     · exact Or.inl rfl
+    split
+    · exact Or.inl rfl
     · exact hc _
   | range o => exact Or.inl rfl
   | deleteRange o => exact hc _
@@ -304,6 +307,8 @@ theorem kvOpStep_cases (op : KVOp) (σ : KVState) :
     split
     · exact hc _
     · exact Or.inl rfl
+  | leaseGrant _ _ => exact hop.elim
+  | leaseRevoke _ => exact hop.elim
 
 end enc
 

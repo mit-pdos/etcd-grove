@@ -43,14 +43,14 @@ theorem mvcc.New.wp_proof
     (hSWL : mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG))
     (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
     mvcc.New.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f γi γok γtag Hcfg0 Hrb0
-  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok0⟩
+  intro lg b le cfg kb γb γl P f rd0 γi γok γtag Hcfg0 Hrb0
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok0⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hNew _ _ _ _ _ _ _ _ f γi γok γtag Hcfg0 Hrb0)
-    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0]
-    as %s ⟨%st, %γ, %Hγ, #Hws, #Hhook, Hww, Htw, Hok, Hreaders,
+  wp_apply (hNew _ _ _ _ _ _ _ _ f _ γi γok γtag Hcfg0 Hrb0)
+    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0]
+    as %s ⟨%st, %γ, %Hγ, #Hws, Hro, #Hhook, Hww, Htw, Hok, Hreaders,
     ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hfrag, Hret, Hwg⟩
   (try wp_auto)
   imod sync.init_WaitGroup mvcc.wsWgWGN (mvcc.wsWgAddr s) $$ Hwg with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
@@ -85,7 +85,7 @@ theorem mvcc.New.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists st, γ
-  iframe Hws Hhook Hww Htw Hok Hreaders Hfrag Hret
+  iframe Hws Hro Hhook Hww Htw Hok Hreaders Hfrag Hret
   isplitr
   · ipureintro; exact Hγ
   iunfold mvcc.wsCloser

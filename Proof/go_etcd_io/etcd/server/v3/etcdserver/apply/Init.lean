@@ -205,6 +205,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ihave #ALNF := EtcdGrove.errVarApart_of go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound go!"etcdserver: no space" go!"lease not found" (by decide) $$ CNSP CLNF
   ihave #AMF := EtcdGrove.errVarApart_of go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev go!"etcdserver: no space" go!"mvcc: required revision is a future revision" (by decide) $$ CNSP CMF
   ihave #AMC := EtcdGrove.errVarApart_of go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted go!"etcdserver: no space" go!"mvcc: required revision has been compacted" (by decide) $$ CNSP CMC
+  ihave Hau : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd9
+  icases Hau with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #AUC⟩
+  ihave #AAU := EtcdGrove.errVarApart_cells go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace go!"etcdserver: no space" go_etcd_io.etcd.server.v3.auth.authErrMsgs (go_etcd_io.etcd.server.v3.auth.authErrMsgs_ne_of _ (by decide)) $$ CNSP AUC
   iframe Hown
   imodintro
   isplitr
@@ -212,7 +216,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold applyInit applyErrVars
+  unfold applyInit applyErrVars authErrsApart
   iframe #
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

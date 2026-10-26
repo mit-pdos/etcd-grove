@@ -241,7 +241,8 @@ theorem txn.executeTxn.wp_proof
         (srvOps s0 r st (ops.take (sint.nat n))).2 ∗
       "#Hknown" ∷ (if ro then iprop(True) else leasesKnown L
         (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1)) ∗
-      "Hown" ∷ (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L) ∗
+      "Hown" ∷ (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L
+        (mvcc.pendItems ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1))) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ops.length⌝) $$ [i iv req txns txnPath err Htw Hskel Hown]
   · iexists W64 0, _, _, pl, ok, GoInterface.nil
     simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero, srvOps_nil,
@@ -523,11 +524,13 @@ theorem txn.executeTxn.wp_proof
           puts deletes putSize $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
       wp_auto
-      wp_apply (hDel trace ctx cd true mw s γ ilog _ puts deletes putSize dr o _ _)
-        $$ [$Hctx $Htx $Hwr $Hdr] as %dresp %derr Hout
+      icases Hown with (%Hro | Hown)
+      · cases Hro
+      wp_apply (hDel trace ctx cd true mw s γ ilog _ puts deletes putSize dr o L _ _)
+        $$ [$Hctx $Htx $Hwr $Hdr $Hown] as %dresp %derr Hout
       · simp only [↓reduceIte]; iexact Hnd
       rw [hps]
-      icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hdresp, -⟩ | ⟨%Hc, -⟩)
+      icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hdresp, -, Hown⟩ | ⟨%Hc, -⟩)
       rotate_left
       · exact Hc.elim
       subst Herr
@@ -571,6 +574,8 @@ theorem txn.executeTxn.wp_proof
         iexact Hdresp
       isplitl []
       · iapply leasesKnown_delete $$ Hknown
+      isplitl [Hown]
+      · iright; try simp only [List.append_assoc]; iexact Hown
       ipureintro; exact ⟨by word, by omega⟩
     | txn cs ts es =>
       iunfold txn.opSkel at Hp
@@ -684,6 +689,13 @@ theorem txn.executeTxn.wp_proof
           from fun A B => by rw [List.append_assoc, pendState_append, hr, hst]]
         simp only [TxnModel.branch, txnOk]
         iexact Hknown'
+      isplitl [Hown]
+      · icases Hown with (%Hc | Hown)
+        · cases Hc
+        iright
+        try simp only [List.append_assoc]
+        simp only [TxnModel.branch, txnOk]
+        iexact Hown
       ipureintro; exact ⟨by word, by omega⟩
     | _ =>
       -- a put (of any of the three kinds): `putTxnOp o`
@@ -807,7 +819,7 @@ theorem txn.executeTxn.wp_proof
         iapply leasesKnown_put $$ [Hknown Hlo]
         iframe Hknown Hlo
       isplitl [Hown]
-      · iright; iexact Hown
+      · iright; try simp only [List.append_assoc]; iexact Hown
       ipureintro; exact ⟨by word, by omega⟩
   · -- the end of the loop: every operation done
     have hge : ¬ sint.Z n < sint.Z bsl.len := by simpa using Hif

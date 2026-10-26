@@ -215,7 +215,7 @@ abbrev apply.checkTxnPermission.specL : Prop :=
       txn.txnRequestIsW rt t ∗ ⌜apply.shapedMay on hs (apply.txnMay t)⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.txnClass on info t.toModel) ∗
       ⌜(err = GoInterface.nil → ∃ L, apply.txnChecked t L ∧
@@ -232,7 +232,7 @@ abbrev apply.CheckTxnAuth.specL : Prop :=
       txn.txnRequestIsW rt t ∗ ⌜apply.shapedMay on hs (apply.txnMay t)⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.txnClass on info t.toModel) ∗
       ⌜(err = GoInterface.nil → ∃ L, apply.txnChecked t L ∧
@@ -283,7 +283,7 @@ def apply.txnPermTL (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.isAuthStoreL st RD on Lr ∗ apply.lookupNil le ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
       txn.txnRequestIsW rt t ∗ ⌜apply.shapedMay on hs (apply.txnMay t)⌝ -∗
-    (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ Lr hs ∗ applyErrIs err ∗
+    (▷ ∀ err : GoInterface, ai ↦{dq} info ∗ RD ∗ Lr hs ∗ authApplyErrIs err ∗
         ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
         (∀ _ : err = GoInterface.nil, apply.txnClass on info t.toModel) ∗
         ⌜(err = GoInterface.nil → ∃ L, apply.txnChecked t L ∧
@@ -312,7 +312,7 @@ theorem apply.checkTxnReqs_latest
       ⌜apply.shapedMay on hs (apply.opsMay ops)⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lr hs ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.opsClass on info (txn.TxnOpW.toOps ops)) ∗
       ⌜(err = GoInterface.nil → ∃ L, apply.opsChecked ops L ∧
@@ -663,7 +663,7 @@ theorem apply.checkTxnReqs_latest
   have hle : ops.length ≤ sint.nat n := by unfold sint.nat at *; word
   rw [List.take_of_length_le hle] at Hpass
   isplitl []
-  · iapply applyErrIs_nil
+  · iapply authApplyErrIs_nil
   isplitl []
   · ipureintro; intro _; rfl
   isplitl []

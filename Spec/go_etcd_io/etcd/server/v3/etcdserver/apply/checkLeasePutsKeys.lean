@@ -33,7 +33,7 @@ abbrev apply.checkLeasePutsKeys.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ ai ↦{dq} info ∗ apply.leaseIs l id ∗ RD }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePutsKeys))
       (Val #st)) (Val #ai)) (Val #l))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ authApplyErrIs err ∗
       ⌜on.isOn = false → err = GoInterface.nil⌝ }}
 
 end spec

@@ -177,7 +177,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
-    lease.leaseOwn E.γ.leases [] ∗ lease.lessorRdOf E.γ.leases ∗
+    lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
     mvcc.bkRTx d'.γB d'.P d'.be ∗
     backend.rbOwn d'.γB (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
     membership.clusterMem cl memI ∗ backend.bOpen d'.γB (1 : Qp).half ∗

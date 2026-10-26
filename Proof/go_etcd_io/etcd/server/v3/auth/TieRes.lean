@@ -129,7 +129,7 @@ theorem adminOutX_fu (γa : AuthNames) (X : List AuthState → IProp GF) (hs : L
 /-- **The halves tied to the latest state of `hs`** (see the file header): the flag's half at `b`
 (with its verdict) and the cache's half at `sc` (a recorded state), `latestTie M hs b sc`. -/
 def tieRes (st : Loc) (M : AuthMode) (hs : List AuthState) : IProp GF :=
-  iprop(∃ (b : Bool) (sc : AuthState), flagAt st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗
+  iprop(∃ (b : Bool) (sc : AuthState), flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗
     authSnap M sc ∗ ⌜latestTie M hs b sc⌝)
 
 /-- **The authority with the tie** (see the file header). -/
@@ -146,14 +146,14 @@ def authWB (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) : I
 theorem authWRx_split (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) :
     authWRx (GF := GF) st M P f T b sc ⊢
-      authWB st M P f T ∗ flagAt st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc := by
+      authWB st M P f T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc := by
   unfold authWRx authWB
   iintro ⟨Hbe, HT, Hfl, #Hev, Hca, #Hs⟩
   iframe Hbe HT Hfl Hev Hca Hs
 
 theorem authWRx_join (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) :
-    authWB (GF := GF) st M P f T ∗ flagAt st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗
+    authWB (GF := GF) st M P f T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗
       authSnap M sc ⊢ authWRx st M P f T b sc := by
   unfold authWRx authWB
   iintro ⟨⟨Hbe, HT⟩, Hfl, #Hev, Hca, #Hs⟩
@@ -164,7 +164,7 @@ by `tieStep` from the halves before (tied to `hs`), are tied to the history afte
 theorem adminOutP_tieRes (st : Loc) (M : AuthMode) (hs : List AuthState) (R : StepRel)
     (extra : AuthErr → Prop) (err : GoInterface) (b0 : Bool) (sc0 : AuthState) (b : Bool)
     (sc : AuthState) (ht : latestTie M hs b0 sc0) :
-    flagAt (GF := GF) st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc ∗
+    flagAt (GF := GF) st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc ∗
       adminOutP M hs R extra err (tieStep M hs b0 sc0 b sc) ⊢
       adminOutX M (authOwnT st M) hs R extra err := by
   iintro ⟨Hfl, #Hev, Hca, #Hs, Hout⟩
@@ -261,9 +261,12 @@ theorem keep_pure {A : IProp GF} {φ : Prop} (h : A ⊢ ⌜φ⌝) : A ⊢ A ∗ 
 
 /-- **The tie at a history of disabled states** (the store's start: `NewAuthStore`'s
 `[bootState, bump bootState]`): the flag's half is `false` (its verdict is a recorded state's flag,
-and the admin side's half of the history holds every recorded state), so the halves are tied. -/
+and the admin side's half of the history holds every recorded state), and the cache's state, a
+recorded one, has the latest state's permissions when the history's states all have the same
+(`hpv`, the auth plan's E3j), so the halves are tied. -/
 theorem tieRes_of_disabled (st : Loc) (γa : AuthNames) (hs : List AuthState)
-    (hdis : ∀ s ∈ hs, s.enabled = false) :
+    (hdis : ∀ s ∈ hs, s.enabled = false)
+    (hpv : ∀ s ∈ hs, ∀ s' ∈ hs, permView s = permView s') :
     authOwn (GF := GF) (.on γa) hs ∗ enabledHalf st (.on γa) ∗ cacheHalf st (.on γa) ⊢
       authOwn (.on γa) hs ∗ tieRes st (.on γa) hs := by
   iintro ⟨Ho, Hen, Hca⟩
@@ -280,6 +283,12 @@ theorem tieRes_of_disabled (st : Loc) (γa : AuthNames) (hs : List AuthState)
   · iframe Hh Hat
   icases Hk with ⟨⟨Hh, -⟩, %Hi⟩
   have hb : b = false := by rw [Hb]; exact hdis st' (List.mem_of_getElem? Hi)
+  ihave #Hs' := Hs
+  iunfold authSnap at Hs'
+  icases Hs' with ⟨%j, #Hj⟩
+  ihave Hk2 := (keep_pure (authHistHalf_lookup (GF := GF) γa hs j sc)) $$ [Hh]
+  · iframe Hh Hj
+  icases Hk2 with ⟨⟨Hh, -⟩, %Hj'⟩
   isplitl [Hh Hc]
   · iunfold authOwn
     isplitl [Hh]
@@ -287,11 +296,11 @@ theorem tieRes_of_disabled (st : Loc) (γa : AuthNames) (hs : List AuthState)
     iexact Hc
   iunfold tieRes
   iexists b, sc
-  iunfold flagAt
   iframe Hfl Hev Hca Hs
   ipureintro
   intro stl hl
-  refine ⟨?_, fun h => absurd (hb ▸ h) (by simp)⟩
+  refine ⟨?_, fun h => absurd (hb ▸ h) (by simp),
+    hpv sc (List.mem_of_getElem? Hj') stl (List.mem_of_getLast? hl)⟩
   rw [hb, hdis stl (List.mem_of_getLast? hl)]
 
 end res
