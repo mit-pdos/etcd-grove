@@ -62,6 +62,43 @@ theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (
   iexists j, γc
   iframe Htc Hidx
 
+/-- **Two watchable stores over one inner store are one** (persistent facts only): the inner store's
+`ReadView` field names one read view, whose `kv` names its watchable store. -/
+theorem isWatchableStore_agree [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (s1 s2 st : Loc) (γ1 γ2 : mvcc.WsNames) :
+    mvcc.isWatchableStore (GF := GF) s1 st γ1 ∗ mvcc.isWatchableStore s2 st γ2 ⊢ ⌜s1 = s2⌝ := by
+  iintro ⟨H1, H2⟩
+  iunfold mvcc.isWatchableStore at H1 H2
+  icases H1 with ⟨%vc1, %stc1, %rv1, %γv1, H1⟩
+  icases H2 with ⟨%vc2, %stc2, %rv2, %γv2, H2⟩
+  iNamed H1
+  icases H2 with ⟨-, -, #Hrv', #Hrvkv', -⟩
+  icombine Hrv Hrv' gives %Heq
+  have h1 : rv1 = rv2 := by
+    simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq
+    exact GoGlobalContext.intoVal_inj_loc Heq
+  subst h1
+  icombine Hrvkv Hrvkv' gives %Heq2
+  ipureintro
+  simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq2
+  exact GoGlobalContext.intoVal_inj_loc Heq2
+
+/-- **The readers' tokens' open shares** (W7): each reader token of the backend carries the share
+`rdOpen` of its open token. -/
+theorem bkRTx_shares (γB : backend.BNames) (P : backend.BParams) (b : Loc) : ∀ n : Nat,
+    ([∗list] _x ∈ List.replicate n (), mvcc.bkRTx (GF := GF) γB P b) ⊢
+      [∗list] _x ∈ List.replicate n (), backend.bOpen γB backend.rdOpen
+  | 0 => by simp only [List.replicate]; iintro -; iapply BigSepL.bigSepL_nil.2; itrivial
+  | n + 1 => by
+    simp only [List.replicate]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
+    iunfold mvcc.bkRTx at H1
+    icases H1 with ⟨-, H1⟩
+    iapply BigSepL.bigSepL_cons.2
+    iframe H1
+    iapply bkRTx_shares γB P b n $$ H
+
 section swap
 variable [cindex_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 
