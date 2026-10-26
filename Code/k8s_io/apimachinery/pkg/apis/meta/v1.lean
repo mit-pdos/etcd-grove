@@ -430,7 +430,8 @@ axiom FieldValidationStrict [FfiSyntax] [GoGlobalContext] : val
 
 axiom StatusSuccess [FfiSyntax] [GoGlobalContext] : val
 
-axiom StatusFailure [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusFailure [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Failure")
 
 axiom StatusReasonUnknown [FfiSyntax] [GoGlobalContext] : val
 
@@ -452,7 +453,8 @@ axiom StatusReasonServerTimeout [FfiSyntax] [GoGlobalContext] : val
 
 axiom StatusReasonStoreReadError [FfiSyntax] [GoGlobalContext] : val
 
-axiom StatusReasonTimeout [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonTimeout [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Timeout")
 
 axiom StatusReasonTooManyRequests [FfiSyntax] [GoGlobalContext] : val
 
@@ -500,7 +502,8 @@ axiom CauseTypeUnexpectedServerResponse [FfiSyntax] [GoGlobalContext] : val
 
 axiom CauseTypeFieldManagerConflict [FfiSyntax] [GoGlobalContext] : val
 
-axiom CauseTypeResourceVersionTooLarge [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def CauseTypeResourceVersionTooLarge [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"ResourceVersionTooLarge")
 
 axiom LabelSelectorOpIn [FfiSyntax] [GoGlobalContext] : val
 

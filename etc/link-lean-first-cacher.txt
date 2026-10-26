@@ -8,8 +8,11 @@ tracing_SpanFromContext:
 Span__AddEvent:
 HistogramVec__WithContext:
 time_Duration__Seconds:
-# k8s.io/apiserver/pkg/storage (its proof `sorry`: it needs `apierrors.NewTimeoutError`)
-NewTooLargeResourceVersionError:
+# k8s.io/apimachinery/pkg/api/errors (`NewTimeoutError` translated with its body; it and
+# `NewTooLargeResourceVersionError` call Perennial's `fmt.wp_Sprintf`)
+NewTimeoutError:
+# k8s.io/apiserver/pkg/storage
+NewTooLargeResourceVersionError: NewTimeoutError
 # the B-tree, linked in its own package's Link.lean
 btree_New: @
 BTree__Clone: @

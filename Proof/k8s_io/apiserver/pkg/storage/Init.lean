@@ -2,7 +2,8 @@
 Package initialization of `k8s_io.apiserver.pkg.storage`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` holds a string.
+Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
+`tooLargeResourceVersionCauseMsg` hold strings.
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
@@ -152,6 +153,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -
   try wp_auto
   ipersist HRequestWatchProgress
+  ipersist HtooLargeResourceVersionCauseMsg
   iframe Hown
   imodintro
   isplitr
@@ -160,8 +162,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   try (isplitl []; · (imodintro; itrivial))
   imodintro
-  iexists _
-  iexact HRequestWatchProgress
+  iexists _, _
+  iframe #
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

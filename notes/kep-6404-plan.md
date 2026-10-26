@@ -111,8 +111,11 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
   store published (with `□ Ψ st`), at that version or later, and `rv = st.2`. The callees' trust
   specs: the config's clock (`clockOk`), component-base's `HistogramVec.WithContext` (axiom), the
   cacher metrics' package fact (`WatchCacheReadWait`'s labels, axiom),
-  `tracing.SpanFromContext` (axiom), `storage.NewTooLargeResourceVersionError` (proof `sorry`: it
-  needs `apierrors.NewTimeoutError`).
+  `tracing.SpanFromContext` (axiom), `storage.NewTooLargeResourceVersionError` (proved:
+  `apierrors.NewTimeoutError` translated with its body and proved, over Perennial's
+  `fmt.wp_Sprintf` and metav1's status constants, now translated; the cause message from the
+  `storage` package's fact, `storageInit`, which now holds `tooLargeResourceVersionCauseMsg` too).
+  The cacher's results rest on no `sorry` now.
 - **The cacher's read** (`Cacher.get`, `cacher.go`, translated with its body): proved over
   `WaitUntilFreshAndGet`: without an error, the key's object in a published state `st` (its
   element's `Object`, through `ownStore_lookup`: the type assertion to `*store.Element` holds) or

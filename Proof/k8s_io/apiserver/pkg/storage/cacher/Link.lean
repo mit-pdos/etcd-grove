@@ -12,6 +12,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.cacher.Cacher__get
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester__Add
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester__Remove
 public import Proof.k8s_io.component_base.metrics.HistogramVec__WithContext
+public import Proof.k8s_io.apimachinery.pkg.api.errors.NewTimeoutError
 public import Proof.k8s_io.apiserver.pkg.storage.NewTooLargeResourceVersionError
 public import Proof.k8s_io.component_base.tracing.Span__AddEvent
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage__LatestSnapshot
@@ -83,9 +84,13 @@ theorem kmetrics.HistogramVec.wp_WithContext :
     EtcdGrove.kmetrics.HistogramVec.WithContext.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kmetrics.HistogramVec.WithContext.wp_proof
 
+theorem apierrors.wp_NewTimeoutError :
+    EtcdGrove.apierrors.NewTimeoutError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.NewTimeoutError.wp_proof
+
 theorem storage.wp_NewTooLargeResourceVersionError :
     EtcdGrove.storage.NewTooLargeResourceVersionError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.NewTooLargeResourceVersionError.wp_proof
+  EtcdGrove.storage.NewTooLargeResourceVersionError.wp_proof apierrors.wp_NewTimeoutError
 
 theorem watchCache.wp_waitUntilFreshLocked :
     EtcdGrove.cacher.watchCache.waitUntilFreshLocked.spec (GF := GF) (hG := hG) :=
