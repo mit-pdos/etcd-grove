@@ -1,18 +1,35 @@
 /-
-The trust boundary: `EtcdServer.compactRaftLog` (names-only: the `MemoryStorage`'s compaction).
+Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__compactRaftLog.lean`. Lean-first
+(no Rocq counterpart); the trust boundary (names-only) until 2026-10-26.
+
+The body (`server.go`): `s.inflightSnapshots.Load()` (its invariant, `srvInflight`), returning
+after an `Info` if it is not `0`; `compacti` from `SnapshotCatchUpEntries`;
+`s.r.raftStorage.Compact(compacti)` (`MemoryStorage.Compact`'s premises: `compacti ≤ snapi`, at
+most the floor and the snapshot, within the cap). `Compact` returns `nil` or raft's
+`ErrCompacted`; of the latter `errors.Is(err, raft.ErrCompacted)` is `true` (an `errors.New`
+error, `ErrCompactedNew`: a leaf pointer error, `ErrorStringLeaf`), so the `Panic` is dead.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
+public import Spec.errors.Is
+public import Spec.go_uber_org.zap.Logger__Info
+public import Spec.go_uber_org.zap.Logger__Debug
+public import Spec.go_uber_org.zap.Uint64
+public import Perennial.Spec.sync.atomic.Int64__Load
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -20,14 +37,135 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [ErrorStringLeaf]
 
-/-- **Trust boundary** (names-only; restated in D22 S-h, 2026-10-20, with the in-flight skip): the
-body (`server.go`) loads `s.inflightSnapshots` (an atomic in its invariant, `srvInflight`) and
-returns if it is not `0`; else computes `compacti` from `SnapshotCatchUpEntries` (read-only) and
-calls `s.r.raftStorage.Compact(compacti)` (`MemoryStorage.Compact`'s premises as stated), returning
-on `ErrCompacted` and logging with the logger's reader slot. What would discharge it: translating
-it with its body over `MemoryStorage.Compact`'s spec, `errors.Is` and raft's `ErrCompacted`. -/
-axiom EtcdServer.compactRaftLog.wp_proof : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)
+theorem EtcdServer.compactRaftLog.wp_proof
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hCompact : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
+    (hIs : errors.Is.spec (GF := GF) (hG := hG))
+    (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
+    (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
+    (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG)) :
+    EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) := by
+  intro s snapi ms γs σ scu l Hprev Hss Hpos Hcap
+  wp_start as ⟨Hlr, #Hlgf, %Hlgn, #Hinf, #Hrs, Htok, #Hfl, #Hscu⟩
+  ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
+  · iPkgInit
+  ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
+  · iPkgInit
+  ihave #Praft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply hLg s l $$ [$Hlr] as ⟨-, Hlr⟩
+  · iframe #; ipureintro; exact Hlgn
+  (try wp_auto)
+  -- `s.inflightSnapshots.Load()`
+  wp_apply_core sync.atomic.Int64.wp_Load (srvInflightAddr s) (DFrac.own 1) $$ [] [-]
+  · iexact Patm
+  ihave #Hinf' := Hinf
+  iunfold srvInflight at Hinf'
+  iinv Hinf' with Hi Hclose
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  inext
+  icases Hi with ⟨%v0, Hv⟩
+  iexists v0
+  iframe Hv
+  iintro Hv
+  imod Hmask with -
+  imod Hclose $$ [Hv] with -
+  · inext; iexists _; iexact Hv
+  imodintro
+  (try wp_auto)
+  by_cases hv : v0 = W64 0
+  · -- nothing in flight: compact
+    subst hv
+    (try wp_auto)
+    iunfold memFloorAtLeast at Hfl
+    icases Hfl with ⟨%x, #Hft, %Hx⟩
+    ihave #Hrinit := go_etcd_io.raft.v3.isInitialized_access $$ Praft
+    unfold go_etcd_io.raft.v3.isInitialized
+    icases Hrinit with ⟨%e1, %e2, %e3, %e4, %e5, %_, %_, %_, %_, %_, #Hrinit⟩
+    iNamed Hrinit
+    iunfold EtcdGrove.errorsNewVar at ErrCompactedNew
+    icases ErrCompactedNew with ⟨%xc, #Hxc, -⟩
+    icombine ErrCompacted Hxc gives %Heq
+    subst Heq
+    -- the compaction index, at most `snapi`
+    have Hci : ∀ ci : w64, uint.Z ci =
+        (if uint.Z scu < uint.Z snapi then uint.Z snapi - uint.Z scu else 1) →
+        (uint.Z σ.prev.index' < uint.Z ci →
+          uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z σ.ss.index' ∧ uint.Z ci ≤ γs.cap) ∧
+        uint.Z ci ≤ uint.Z snapi := by
+      intro ci h
+      have h0 : 0 ≤ uint.Z scu := by word
+      have hle : uint.Z ci ≤ uint.Z snapi := by split at h <;> omega
+      exact ⟨fun _ => ⟨by omega, by omega, by rw [h]; exact Hcap⟩, hle⟩
+    wp_if_destruct
+    all_goals (
+      (try wp_auto)
+      first
+        | (wp_apply hCompact ms γs σ x (snapi - scu) _
+             (Hci (snapi - scu) (by rw [if_pos (by word)]; word)).1 $$ [$Htok] as %err Hor
+           · iframe #)
+        | (wp_apply hCompact ms γs σ x (W64 1) _
+             (Hci (W64 1) (by rw [if_neg (by word)]; word)).1 $$ [$Htok] as %err Hor
+           · iframe #)
+      icases Hor with (⟨⟨%Hle, %Herr⟩, Htok⟩ | ⟨%t, ⟨%Hlt, %Herr⟩, Htok⟩)
+      · -- `ErrCompacted`: `errors.Is` is `true`, return
+        subst Herr
+        (try wp_auto)
+        obtain ⟨Hptr, Hleaf, HnoIs⟩ := errorString_leaf xc
+        wp_apply hIs (· = interface.mkOk
+            (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xc) (fun _ => False)
+            _ _ (fun tii h => by cases h; exact Hptr)
+            (_root_.Perennial.errors.treeTyped_pointer _ _ Hptr) $$ []
+          as %b ⟨-, %Hb, -⟩
+        · iframe #
+          isplitl
+          · iapply _root_.Perennial.errors.errorIsTree_leaf _ (fun _ => False) _ Hleaf HnoIs
+          ipureintro; rfl
+        rw [Hb _ rfl Hptr rfl]
+        (try wp_auto)
+        iapply HΦ
+        iframe Hlr
+        iexists σ
+        iframe Htok
+        ipureintro; exact ⟨Hprev, rfl⟩
+      · -- compacted to `compacti`: log it
+        subst Herr
+        (try wp_auto)
+        wp_apply hU64 $$ [] as %f -
+        (try wp_auto)
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %fsl ⟨-, -⟩
+        (try wp_auto)
+        wp_apply hDebug l $$ []
+        · iframe #; ipureintro; exact Hlgn
+        (try wp_auto)
+        iapply HΦ
+        iframe Hlr
+        iexists _
+        iframe Htok
+        ipureintro
+        first
+          | exact ⟨(Hci (snapi - scu) (by rw [if_pos (by word)]; word)).2, rfl⟩
+          | exact ⟨(Hci (W64 1) (by rw [if_neg (by word)]; word)).2, rfl⟩)
+  · -- a snapshot in flight: skip
+    rw [decide_eq_false hv]
+    (try wp_auto)
+    wp_apply hInfo l $$ []
+    · iframe #; ipureintro; exact Hlgn
+    (try wp_auto)
+    iapply HΦ
+    iframe Hlr
+    iexists σ
+    iframe Htok
+    ipureintro; exact ⟨Hprev, rfl⟩
 
 end proof
 

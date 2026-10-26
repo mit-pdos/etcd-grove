@@ -5,11 +5,8 @@ axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
-axiom EtcdServer.IsLearner.wp_proof
-axiom EtcdServer.IsMemberExist.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
-axiom EtcdServer.compactRaftLog.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -99,6 +96,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.auth.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.opaqueInitsOk
@@ -360,6 +358,7 @@ axiom bbolt.Tx.DeleteBucket_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
@@ -382,6 +381,7 @@ axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom conversion.EnforcePtr.wp_proof
+axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
@@ -512,6 +512,7 @@ axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
+axiom kmetrics.HistogramVec.WithContext.wp_proof
 axiom labels.Everything.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
@@ -523,6 +524,7 @@ axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
+axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.FromOutgoingContext.wp_proof
@@ -664,6 +666,7 @@ axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
+axiom tracing.SpanFromContext.wp_proof
 axiom tracing.Start.wp_proof
 axiom transport.IsClosedConnError.wp_proof
 axiom txn.ApplySecObserve.wp_proof
@@ -690,7 +693,6 @@ axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
-axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof

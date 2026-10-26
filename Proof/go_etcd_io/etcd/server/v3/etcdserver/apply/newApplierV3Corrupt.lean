@@ -48,6 +48,8 @@ theorem apply.newApplierV3Corrupt.wp_proof
   ipersist applierV3
   wp_auto
   iapply HΦ
+  isplitr
+  · iunfold apply.corruptIs; iexact applierV3
   iintro !> %E %c #Hbase
   ihave #Hb := Hbase
   iunfold apply.applierSpec at Hb

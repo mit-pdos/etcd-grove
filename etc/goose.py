@@ -170,12 +170,15 @@ PROJECTS = [
         # leader's raft loop waits for its apply loop before `Advance` when a `Ready` commits a
         # conf change, as a follower's does (4d9282b0f,
         # issues/etcd-leader-advance-before-applyconfchange.md; raft's dynamic mode needs a
-        # `Ready`'s conf changes applied before `Advance`).
+        # `Ready`'s conf changes applied before `Advance`). Then (D43 M4, 2026-10-26) branch
+        # `goose-lean-learnerfix` (on 4d9282b0f): a removed local member is no learner, rather
+        # than a panic (c00a2dc06, issues/etcd-unary-interceptor-learner-removed.md;
+        # etcd-io/etcd#22188's fix).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="4d9282b0fb0922133a0a9b92d05268aef7efa44a",
+        rev="c00a2dc062245b2afbc37678b4e5423eff351bfd",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -186,6 +189,9 @@ PROJECTS = [
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
                     "crypto/tls=",
+                    # (D43 M4, 2026-10-26) membership's `json.Unmarshal` (the k8s-apiserver
+                    # project's names-only translation, `Code/encoding/json.lean`)
+                    "encoding/json=",
                     "github.com/grpc-ecosystem="],
         packages=[
             # with bodies (cache/v3.toml)
@@ -638,6 +644,18 @@ PROJECTS = [
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
+            # the watch cache's store, with bodies (notes/kep-6404-plan.md)
+            "k8s.io/apiserver/pkg/storage/cacher",
+            "k8s.io/apiserver/pkg/storage/cacher/store",
+            "k8s.io/apiserver/pkg/storage/cacher/delegator",
+            "k8s.io/apiserver/pkg/storage/cacher/metrics",
+            "k8s.io/apiserver/pkg/storage/cacher/progress",
+            "k8s.io/client-go/util/consistencydetector",
+            "k8s.io/client-go/util/watchlist",
+            "k8s.io/component-base/metrics",
+            "k8s.io/apiserver/pkg/storage/cacher/consistency",
+            "k8s.io/apiserver/pkg/storage/cacher/key",
+            "k8s.io/client-go/tools/cache",
             # types and names only (their .toml): what the two name
             "k8s.io/apimachinery/pkg/api/errors",
             "k8s.io/apimachinery/pkg/api/validate/content",
@@ -674,6 +692,7 @@ PROJECTS = [
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+               os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
                os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
                os.path.join("encoding", "base64"), "iter",

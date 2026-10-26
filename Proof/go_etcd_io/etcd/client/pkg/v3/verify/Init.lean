@@ -8,6 +8,7 @@ variable).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
+public import Perennial.Proof.fmt.Link
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -46,6 +47,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish
 

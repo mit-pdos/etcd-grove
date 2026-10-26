@@ -18,11 +18,8 @@ axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
-axiom EtcdServer.IsLearner.wp_proof
-axiom EtcdServer.IsMemberExist.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
-axiom EtcdServer.compactRaftLog.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -36,6 +33,8 @@ axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom Perennial.crypto.tls.opaqueInitsOk
 axiom Perennial.encoding.hex.opaqueInitsOk
+axiom Perennial.encoding.json.initFuncsOk
+axiom Perennial.encoding.json.opaqueInitsOk
 axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
 axiom Perennial.github_com.Masterminds.semver.v3.opaqueInitsOk
 axiom Perennial.github_com.dustin.go_humanize.initFuncsOk
@@ -109,6 +108,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.auth.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.opaqueInitsOk
@@ -553,7 +553,6 @@ axiom v3compactor.New.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.logUnaryRequestStats.wp_proof
-axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof

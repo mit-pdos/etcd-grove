@@ -35,6 +35,9 @@ abbrev apply.newQuotaApplierV3.spec : Prop :=
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newQuotaApplierV3))
       (Val #lg)) (Val #cfg)) (Val #be)) (Val #app))
   {{ (a : GoInterface), RET #a;
+      -- (the auth plan's E2m) its shape: a quota applier over `app`, read-only
+      (∃ p : Loc, ⌜a = interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p⌝ ∗
+        structFieldRef quotaApplierV3 go!"applierV3" p ↦□ app) ∗
       □ (∀ (E : AEnv GF) (c : apply.Chain), apply.applierSpec E c app -∗
         apply.applierSpec E (.quota c) a) }}
 

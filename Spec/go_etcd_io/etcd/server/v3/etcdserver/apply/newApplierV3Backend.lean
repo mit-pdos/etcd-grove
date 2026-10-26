@@ -32,6 +32,9 @@ abbrev apply.newApplierV3Backend.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Backend)) (Val #opts))
   {{ (a : GoInterface), RET #a;
+      -- (the auth plan's E2m) its shape: a backend applier with its options, read-only
+      (∃ p : Loc, ⌜a = interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p⌝ ∗
+        structFieldRef applierV3backend go!"options" p ↦□ opts) ∗
       □ (∀ E : AEnv GF, apply.backendOptsOk E opts -∗ apply.applierSpec E .backend a) }}
 
 end spec

@@ -141,7 +141,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     · iexact H
   imod log_ck γk P hW hpk rangeEnd hkeys (rs ++ [r]) hc' $$ Hinv Hlog' with #Hall
   ihave #Hevf : □ ∀ (j : Nat) (e : EvModel), ⌜r.events[j]? = some e⌝ -∗
-      watchkv.evFact γk P (2 + evs0.length + j) e $$ []
+      evFact γk P (2 + evs0.length + j) e $$ []
   · iintro !> %j %e %hj
     have he : (eventsOf (rs ++ [r]))[(eventsOf rs).length + j]? = some e := by
       simp only [eventsOf, List.map_append, List.flatten_append, List.map_cons, List.map_nil,
@@ -187,7 +187,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     ihave #Hf := Hevf $$ %(sint.nat j) %e %he
     iunfold eventAt at Hea
     icases Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
-    iunfold watchkv.evFact at Hf
+    iunfold evFact at Hf
     iunfold common.evFactR at Hf
     icases Hf with ⟨%Hfe, %val, %kvv, #Hkvv, %Hval, #Hra⟩
     iunfold kvValAt at Hkvv

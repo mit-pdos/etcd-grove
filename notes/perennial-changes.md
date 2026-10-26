@@ -171,6 +171,37 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   make `pkgRef` an error, never a substitution, when the package is not imported under its own
   name.
 - **Status.** Not started. The substitution is worth fixing first: it is wrong, not missing.
+- **Also the watch cache (2026-10-26, branch `kep-6404`, `notes/kep-6404-plan.md`).** The cacher's
+  `processEvent`, `UpdateResourceVersion` and `waitUntilFreshLocked` use the cacher's `metrics`
+  variables, of component-base's `metrics` types (`CounterVec`, `HistogramVec`), which the cacher
+  does not import: the substitution names them `cacher.metrics.CounterVec` (`Unknown identifier`).
+  Workaround here: `cacher.toml` drops its import of the cacher's `metrics` (both are then named
+  by their paths) and the names arrive through `consistency`'s public import of the cacher's
+  `metrics` and its of component-base's (names only). Its cost: `watchCacheEvent`, whose
+  `timeline` field is a `metrics.DispatchTimeline`, is axiomatized (`translate_types` skips a type
+  naming a package not imported), so `processEvent` and `UpdateResourceVersion`, which build one,
+  cannot be proved until the general fix.
+
+### Specs: the builtin `max` (2026-10-26, branch `kep-6404`)
+
+- **Missing.** No spec of the predeclared `max` (`functions go.max [t, t]`): each proof proves its
+  own: raft's `wp_max2_uint64` (`raft/v3/InvTracker.lean`), mvcc's `sw_wp_max_int64`
+  (`watchableStore__syncWatchers.lean`), the watch cache store's `wp_max_uint64` (`cacher/store/
+  DefsWCS.lean`).
+- **Proposed.** A spec of `max`/`min` on the integer types in Perennial's predeclared theory.
+- **Status.** Not started.
+
+### Goose: a constraint interface's `comparable` term (2026-10-26, branch `kep-6404`)
+
+- **Missing.** `translate_types` accepts an interface that embeds `comparable`
+  (client-go's `tools/cache.Object`: `interface { GetName() string; GetNamespace() string;
+  comparable }`) and emits `go.type_term.TypeTerm go.comparable`, which Perennial does not define
+  (`Unknown identifier go.comparable`).
+- **Needed by.** Nothing yet: the watch cache's store names `tools/cache`'s indexer types only.
+- **Workaround here.** `client_go/tools/cache.toml` without `translate_types` (types axiomatized).
+- **Proposed.** Either a `go.comparable` type set in Perennial's semantics, or Goose rejecting
+  (axiomatizing) such an interface under `translate_types`, as it does other unsupported types.
+- **Status.** Not started.
 
 ### Specs: `reflect`
 
@@ -424,6 +455,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   (`deadlineExceededError`); then `ErrAny` drops the two facts.
 - **Status.** Not started (found 2026-10-23).
 
+### `encoding/base64` (the auth plan's E2u, 2026-10-26)
+
+- **Missing.** Perennial has no `encoding/base64`, not even names-only, so etcd's
+  `EtcdServer.UserAdd` and `UserChangePassword` (they hash the password with bcrypt and put the
+  hash in the request base64-encoded, `v3_server.go`) cannot be translated here.
+- **Workaround here.** The apply side names the encoding as an opaque function
+  (`auth.stdB64Enc`, `auth/Requests.lean`) and `selectPassword`'s boundary spec says its decoding
+  of an encoding has no error; that the handler's request is of that form (`UserAddModel.pwSure`)
+  is a proposer's obligation (`commitOkOn`, E2t) until the handler is proved.
+- **Proposed change.** `encoding/base64` in Perennial: `StdEncoding` (a package variable with its
+  fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at least
+  `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models.
+
 ## Landed
 
 ### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`
@@ -641,3 +685,30 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   `iintro`.
 - **Proposed change.** Not designed: a minimal reproduction first; the tactic should report
   where and why it fails.
+
+### `strconv.NumError`'s `Error()` has no spec
+
+- **Missing.** Perennial specifies `strconv.ParseUint`'s errors as fresh `*NumError`s
+  (`strconv.numErrorOf`) but not `(*NumError).Error` (`"strconv." + Func + ": parsing " +
+  Quote(Num) + ": " + Err.Error()`, through `strconv.Quote`), so a caller that must show the error
+  prints (`http.errStrOk`, `zap.Error`'s callers) cannot. Found 2026-10-26 when trying
+  `types.IDFromString` (`strconv.ParseUint(s, 16, 64)`): its proof would need a new axiom for
+  `NumError.Error` in place of the one it discharges, so it stays an axiom.
+- **Workaround here.** None: `types.IDFromString.wp_proof` stays a trust-boundary axiom. Its success
+  case is provable over `ParseUint.spec` (a pure lemma that `parseUint (types.idStr x) 16 64 = .ok
+  x`, by induction on `types.hexNatF`'s fuel with `parseDigits_append_ok`).
+- **Proposed change.** A spec of `(*NumError).Error` (returns some string; or the string, with a
+  spec of `Quote`) in Perennial's `Proof/strconv`.
+
+### `errors.Is`/`errors.As` at non-pointer targets and for leaves
+
+- **Missing.** Perennial's `errors.Is.spec` takes a `nil` or pointer target, and its
+  `errors.As.spec` allows any result. Four axioms here are specializations it does not cover
+  (2026-10-26 survey): `errors.IsDeadlineExceeded` and `errors.IsCtxErr` (the target
+  `context.DeadlineExceeded`, an empty struct), `errors.IsStatusErr` (an `EtcdError` value
+  target), `errors.AsLeaf` (`As` of an `errors.New` error against a type whose set excludes
+  `*errorString` returns `false`).
+- **Workaround here.** The four stay trust-boundary axioms (`Proof/errors/`).
+- **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
+  with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
+  says `false` for a leaf error not in the target's type set; then the four are proved here.
