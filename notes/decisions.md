@@ -19905,3 +19905,41 @@ most once: the write contracts are proved for a client that sends a write at mos
 serializable reads too): a second, server-maintained history at the KV's names, against D44's
 abstract `isKv`. Keeping `etcdModelOfServer` for the libraries: the watch spec's responses are
 read updates the caller chooses, so they cannot carry the server's sealed logs.
+
+## The server's compaction and membership checks proved (2026-10-26 · three trust-boundary axioms discharged)
+
+`EtcdServer.compactRaftLog`, `EtcdServer.IsLearner` and `EtcdServer.IsMemberExist` were
+names-only trust-boundary axioms (the request path's unit 4b, P3b); they are now translated with
+their bodies (`Code/.../etcdserver.toml`) and proved, over raft's proved `MemoryStorage.Compact`
+and over two membership methods translated and proved with them
+(`RaftCluster.IsLocalMemberLearner`, `RaftCluster.IsMemberExist`, `membership.toml`), both under
+the cluster's lock invariant `rcLockInv` as `IsIDRemoved` is. `IsLocalMemberLearner`'s `Panic`
+branch is dead by `rcLocalIn` (the local member's entry, `localKept`); the specs are unchanged.
+v3rpc's interceptors now link the two wrappers through the server's Link (`@`).
+
+**`compactRaftLog`** (`EtcdServer__compactRaftLog.lean`): the atomic `inflightSnapshots` read in
+its invariant (`srvInflight`), `compacti` within `Compact.spec`'s premises (at most `snapi`, hence
+the floor and the snapshot; the cap from the spec's premise). `Compact` returns `nil` or raft's
+`ErrCompacted`, and of the latter `errors.Is` is `true`, so the `Panic` is dead. That needs
+`ErrCompacted` to be the `errors.New` error it is: raft's `isInitialized` gains
+`"#ErrCompactedNew" ∷ errorsNewVar ErrCompacted msg` (as `ErrStoppedNew`; its init proof already
+had it), and the proof takes the semantic premise `ErrorStringLeaf` (a `*errorString` is a leaf
+error without `Is`). `gen-link.py` carries the premise to the results that reach it:
+`applyAll`, `run`, `start`, `Start` and their restatements in the server's `Results.lean`
+(`applyAll_model`, `server_run`, `server_start`, `server_Start`, `start_gives_views`). Every
+example result that starts the server already took `ErrorStringLeaf` (rafthttp's handlers), so no
+example's statement changes.
+
+Two spec-side changes the proof needed: `compactRaftLog.spec` takes the logger's cell
+(`srvLgAddr s ↦□ l`, `l ≠ null`, which `Logger.spec` needs), and `isServerApplyAll` carries it
+(`start` has it from `srvFieldsAt`), so `snapshotIfNeededAndCompactRaftLog` passes it on.
+
+**Phantom `StorageModel` binders dropped.** `MemoryStorage.Compact`'s and `lastIndex`'s spec and
+proof files, and `InvMemstorage.lean`'s `section proof`, declared `[StorageModel GF]` without using
+it: theorems take such an instance argument anyway, and `gen-link.py` adds it to the result when
+the spec file mentions it, so `MemoryStorage.wp_Compact` asked for a storage model the server's
+Link (no `MemStorReg`) does not have. None of them uses one (the `MemoryStorage`'s own predicates
+are not stated over the abstract model); removed, the results are unchanged but for the binder.
+
+**Trust base.** -3 axioms (`EtcdServer.compactRaftLog.wp_proof`, `EtcdServer.IsLearner.wp_proof`,
+`EtcdServer.IsMemberExist.wp_proof`); `ErrorStringLeaf` is an existing semantic premise.

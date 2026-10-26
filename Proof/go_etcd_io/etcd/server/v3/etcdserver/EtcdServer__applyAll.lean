@@ -54,7 +54,7 @@ theorem EtcdServer.applyAll.wp_proof
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γc, %Pm, #Hmscb, #Hnosnap⟩, #Hsc,
-    ⟨%stg, #Hstgf, #Hstgc⟩, -, -⟩
+    ⟨%stg, #Hstgf, #Hstgc⟩, -, -, -⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, ⟨%g, #Hg, #Hgs⟩, ⟨%bsl, #Hbsl⟩, -⟩

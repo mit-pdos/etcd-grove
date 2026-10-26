@@ -449,7 +449,7 @@ end pure
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -665,7 +665,7 @@ instance memStorCert_persistent (γs : MemStorNames) (k : SnapTrip) :
     Persistent (memStorCert (GF := GF) γs k) := by
   unfold memStorCert; infer_instance
 
-omit [StorageModel GF] package_sem in
+omit package_sem in
 /-- An entry of the registry gives its certificate. -/
 theorem memStorCert_of_lb (γs : MemStorNames) (L : List CertKey) (e : CertKey) (k : SnapTrip)
     (he : e ∈ L) (hc : certCovers e k) :
@@ -692,7 +692,7 @@ instance memSnapCertOk_persistent (γs : MemStorNames) (σ : StorState) :
     Persistent (memSnapCertOk (GF := GF) γs σ) := by
   unfold memSnapCertOk; infer_instance
 
-omit [StorageModel GF] package_sem in
+omit package_sem in
 /-- `memSnapCertOk` reads only the snapshot's part of the state. -/
 theorem memSnapCertOk_congr (γs : MemStorNames) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)
     (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) (h4 : σ'.sdat = σ.sdat) :
@@ -700,7 +700,7 @@ theorem memSnapCertOk_congr (γs : MemStorNames) (σ σ' : StorState) (h1 : σ'.
   unfold memSnapCertOk StorState.trip
   rw [h1, h2, h3, h4]
 
-omit [StorageModel GF] package_sem in
+omit package_sem in
 /-- A snapshot record whose id, lists and `AutoLeave` are the state's: its certificate is the
 state's. -/
 theorem memSnapCertOk_sv (γs : MemStorNames) (σ : StorState) (sv : SnapshotM)
@@ -715,7 +715,7 @@ theorem memSnapCertOk_sv (γs : MemStorNames) (σ : StorState) (sv : SnapshotM)
   unfold memSnapCertOk
   exact .rfl
 
-omit [StorageModel GF] package_sem in
+omit package_sem in
 /-- ... and conversely: a certificate of the snapshot record certifies the state. -/
 theorem memSnapCertOk_of_sv (γs : MemStorNames) (σ : StorState) (sv : SnapshotM)
     (h : snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.lists = σ.scs ∧
@@ -1388,7 +1388,7 @@ theorem memStorCut_mono (γs : MemStorNames) (n m : Int) (h : m ≤ n) (h0 : 0 �
   · iapply monoNatLbOwn_le (GF := GF) m.toNat (by omega) $$ Hlb
   · ipureintro; omega
 
-omit [StorageModel GF] package_sem in
+omit package_sem in
 /-- (D21 M3) A cut fact is within the cap. -/
 theorem memStorCut_cap (γs : MemStorNames) (n : Int) :
     ⊢ memStorCut (GF := GF) γs n -∗ ⌜n ≤ γs.cap⌝ := by
