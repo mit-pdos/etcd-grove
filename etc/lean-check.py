@@ -20,8 +20,12 @@ open file (`incremental`) or opened it (`fresh`), and exits 1 if there are error
 Lines are 1-based, columns 0-based, as in Lean's messages. `--goal LINE[:COL]` (COL
 defaults to the line's end) prints the proof state there, the goals before the tactic
 at that position, after the check; `--goal` may be repeated. `-e`/`--first-error` returns
-as soon as the server reports an error, printing the messages so far; the server goes on
-elaborating the rest, which the next check reuses.
+as soon as the server reports an error in what the edit changed (from the first changed line to
+the end of its declaration; anywhere on a first check), or as soon as that declaration is
+elaborated without one, printing the messages so far, older errors elsewhere in the file
+included; the server goes on elaborating the rest (the declarations after it, and, when the
+early return is for an error, the once-per-declaration work), which the next check reuses or
+cancels.
 
 What an edit costs: the tactics from the edit on, then, for the declaration edited, the
 work done once its proof is complete, which no snapshot saves: instantiating its proof
@@ -179,6 +183,7 @@ class Server:
         self.diags = {}      # uri -> (version, [diagnostic])
         self.progress = {}   # uri -> (version, processing list)
         self.progress_logged = {}  # uri -> when its progress was last logged
+        self.busy_versions = {}    # uri -> the versions it has reported in progress
         self.files = {}      # path -> {"version", "text", "deps", "used", "lock"}
         self.files_lock = threading.Lock()
         self.roots = source_roots()
@@ -255,6 +260,8 @@ class Server:
             uri = p["textDocument"]["uri"]
             with self.state:
                 self.progress[uri] = (p["textDocument"].get("version"), p["processing"])
+                if p["processing"]:
+                    self.busy_versions.setdefault(uri, set()).add(p["textDocument"].get("version"))
                 self.state.notify_all()
             now = time.time()
             if p["processing"] and now - self.progress_logged.get(uri, 0) > 5:
@@ -299,6 +306,11 @@ class Server:
                     os.path.relpath(stale[0], ROOT) + (" and %d more" % (len(stale) - 1)
                                                       if len(stale) > 1 else "")
                     if stale else "imports")
+        # the lines whose errors `-e` returns at (0-based, end exclusive): the declaration the
+        # edit starts in, from the first changed line on (everything on a fresh open)
+        watch = (0, None)
+        if ent["text"] is not None and text != ent["text"]:
+            watch = edited_region(ent["text"], text)
         if ent["text"] is None:
             if mode == "incremental":
                 mode = "fresh"
@@ -331,10 +343,22 @@ class Server:
 
         def has_error():
             ver, ds = self.diags.get(uri, (None, []))
-            return ver == v and any(d.get("severity", 1) == 1 for d in ds)
+            return ver == v and any(
+                d.get("severity", 1) == 1 and watch[0] <= d["range"]["start"]["line"]
+                and (watch[1] is None or d["range"]["start"]["line"] < watch[1]) for d in ds)
+
+        def region_done():
+            """The server has worked on version `v` and no longer elaborates the watched lines."""
+            ver, prog = self.progress.get(uri, (None, None))
+            if ver != v or v not in self.busy_versions.get(uri, ()):
+                return False
+            return not any(r["range"]["end"]["line"] >= watch[0] and
+                           (watch[1] is None or r["range"]["start"]["line"] < watch[1])
+                           for r in prog)
 
         with self.state:
-            self.state.wait_for(lambda: self.dead or done.is_set() or (first_error and has_error()))
+            self.state.wait_for(lambda: self.dead or done.is_set() or
+                                (first_error and (has_error() or region_done())))
             stopped_early = not done.is_set()
         if not stopped_early:
             with self.state:
@@ -349,7 +373,9 @@ class Server:
         if split:
             mode += ", split %d" % split
         if stopped_early:
-            mode += ", stopped at the first error (the server goes on elaborating)"
+            mode += (", stopped at the first error" if has_error() else
+                     ", stopped when the edited declaration was done") + \
+                " (the server goes on elaborating)"
         out = {"file": path, "mode": mode, "seconds": time.time() - t0, "diagnostics": diags,
                "goals": []}
         lines = text.split("\n")
@@ -430,6 +456,23 @@ def file_imports_text(text):
         else:
             break
     return head
+
+
+DECL_STARTS = ("theorem", "lemma", "def", "abbrev", "instance", "example", "structure",
+               "inductive", "class", "opaque", "axiom", "set_option", "@[", "private", "protected",
+               "noncomputable", "/--", "end", "section", "namespace", "open", "variable", "#")
+
+
+def edited_region(old, new):
+    """The 0-based lines [first changed line, start of the next declaration after it) of
+    `new`: where an error is a consequence of the edit rather than one already there. A
+    declaration starts at column 0 (`DECL_STARTS`); the end is None for the end of the file."""
+    a, b = old.split("\n"), new.split("\n")
+    first = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
+    for i in range(first + 1, len(b)):
+        if b[i].startswith(DECL_STARTS):
+            return (first, i)
+    return (first, None)
 
 
 def first_line(processing):
