@@ -83,7 +83,7 @@ theorem rafthttp.Transport.AddPeer_core
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HP⟩
   · iframe #
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
   ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hlive Hgr
   cases Hag
   obtain ⟨Hrs1, Hnn, Hcov⟩ := Hrs
@@ -100,7 +100,7 @@ theorem rafthttp.Transport.AddPeer_core
     -- a known peer: nothing
     simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
     · iframe #; iframe Hwl
       inext
       iunfold trLockP; iexists pm, rm, PM, RM, (rs.1, rs.2 ++ [id]), false; iframe; iframe #
@@ -126,8 +126,14 @@ theorem rafthttp.Transport.AddPeer_core
   · iPkgInit
   wp_apply hIDStringPtr _ _ _ $$ [id] as %ids ⟨id, -⟩
   · iexact id
-  wp_apply hFollower ls ids $$ [] as %fs %Hfs
-  · iframe #; ipureintro; exact Hlsnn
+  iunfold trStats at Hts
+  icases Hts with ⟨%ls', #Hls', #Hlsi, Hlsf⟩
+  ihave %Hlseq := typedPointsto_agree_wand _ _ _ _ _ $$ Hls Hls'
+  subst Hlseq
+  wp_apply hFollower ls ids $$ [Hlsf] as %fs ⟨%Hfs, Hlsf⟩
+  · iframe; iframe #
+  ihave Hts : trStats t 1 $$ [Hlsf]
+  · iunfold trStats; iexists ls; iframe; iframe #
   (try wp_auto)
   have Hune : uvs ≠ [] := by
     intro h; rw [h] at Huvs; exact Hne (List.length_eq_zero_iff.1 Huvs.1.symm)
@@ -160,12 +166,12 @@ theorem rafthttp.Transport.AddPeer_core
     | wp_auto)
   -- the deferred unlock: the peer in the map, its facts
   iunfold peersOk at Hpo
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl
     inext
     iunfold trLockP
     iexists pm, rm, _, RM, (rs.1, rs.2 ++ [id]), false
-    iframe Hp Hr Hrm Hg Hgr
+    iframe Hp Hr Hrm Hg Hgr Hts
     isplitl [Hpm]
     · iunfold mapOrNil; iright; iexact Hpm
     isplitr
@@ -191,7 +197,7 @@ set_option hygiene false in
 /-- `AddRemote`'s early returns: the write lock given back (`id` now among the remotes' ids). -/
 local macro "ar_return" : tactic => `(tactic| (
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl
     inext
     iunfold trLockP; iexists pm, rm, PM, RM, (rs.1 ++ [id], rs.2), false; iframe; iframe #
@@ -238,7 +244,7 @@ theorem rafthttp.Transport.AddRemote_core
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HP⟩
   · iframe #
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
   ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hlive Hgr
   cases Hag
   obtain ⟨Hrs1, Hnn, Hcov⟩ := Hrs
@@ -299,12 +305,12 @@ theorem rafthttp.Transport.AddRemote_core
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)
   iunfold remotesOk at Hro
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl
     inext
     iunfold trLockP
     iexists pm, rm, PM, _, (rs.1 ++ [id], rs.2), false
-    iframe Hp Hr Hpm Hg Hgr
+    iframe Hp Hr Hpm Hg Hgr Hts
     isplitl [Hrm]
     · iunfold mapOrNil; iright; iexact Hrm
     isplitr
@@ -328,7 +334,7 @@ set_option hygiene false in
 /-- `AddRemote`'s early returns after the freeze: the write lock given back unchanged. -/
 local macro "arf_return" : tactic => `(tactic| (
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl
     inext
     iunfold trLockP; iexists pm, rm, PM, RM, rs', sb; iframe; iframe #
@@ -359,7 +365,7 @@ theorem rafthttp.Transport.AddRemote_frozen
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HP⟩
   · iframe #
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
   imod trRemotes_agree γr rs rs' sb _ $$ Hfr Hgr with ⟨Hgr, %Heq⟩
   rw [← Heq] at Hid
   (try wp_auto)

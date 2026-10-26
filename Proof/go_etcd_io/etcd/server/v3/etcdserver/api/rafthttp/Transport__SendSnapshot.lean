@@ -56,7 +56,7 @@ set_option hygiene false in
 /-- The deferred `t.mu.Unlock()`, the lock's state as it was; the return. -/
 local macro "unlock_ret" : tactic => `(tactic| (
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl
     inext
     iunfold trLockP; iexists pm, rm, PM, RM, rs', sb; iframe; iframe #
@@ -92,7 +92,7 @@ theorem rafthttp.Transport.SendSnapshot.wp_proof
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HPl⟩
   · iframe #
   iunfold trLockP at HPl
-  icases HPl with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
+  icases HPl with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
   (try wp_auto)
   -- `m.GetTo()`: the raft message's (promoted from the embedded `*raftpb.Message`)
   rw [go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.TypeAssumptions.ptr_GetTo_unfold.method_unfold]

@@ -666,9 +666,11 @@ EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__St
 rafthttp_NewRoundTripper:
 rafthttp_Transport__ActiveSince:
 rafthttp_Transport__AddPeer: types_NewURLs v2stats_LeaderStats__Follower rafthttp_startPeer rafthttp_addPeerToProber types_ID__String types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
-# (D22 receiver epochs, S8d, 2026-10-25) `applySnapshot`'s transport reset over `trLive`; its proof
-# is the membership track's M5's (`sorry` on purpose, the user's decision).
-rafthttp_Transport__RemoveAllPeers:
+# (D22 receiver epochs, S8d, 2026-10-25) `applySnapshot`'s transport reset over `trLive`; proved in
+# the membership track's M5a (2026-10-26, a `sorry` on purpose until then), with `RemovePeer`
+# (`applyConfChange`'s `RemoveNode`): `removePeer` stops the peer and deletes it.
+rafthttp_Transport__RemoveAllPeers: rafthttp_peer__stop types_ID__String_ptr zap_Logger__Info zap_Logger__Warn zap_String
+rafthttp_Transport__RemovePeer: rafthttp_peer__stop types_ID__String_ptr zap_Logger__Info zap_Logger__Warn zap_String
 rafthttp_Transport__AddRemote: types_NewURLs rafthttp_startRemote types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
 rafthttp_Transport__CutPeer: rafthttp_peer__Pause
 rafthttp_Transport__Get:
@@ -758,6 +760,7 @@ rafthttp_urlPicker__pick:
 rafthttp_urlPicker__unreachable:
 rafthttp_waitSchedule:
 types_NewURLs:
+# (D43 M5a, 2026-10-26) translated with its body (an axiom until then)
 v2stats_LeaderStats__Follower:
 probing_NewHandler:
 v2stats_ServerStats__SendAppendReq:

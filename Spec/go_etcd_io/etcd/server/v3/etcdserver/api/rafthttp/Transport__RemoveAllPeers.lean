@@ -3,7 +3,7 @@
 (2026-10-25), for `applySnapshot`'s transport reset, stated over the transport's live state
 (`trLive`, the peers right: the user's decision on W3, D43); its proof is left to the membership
 track's M5 (`notes/membership-plan.md`), which proves it rather than restating it (the user's
-decision, 2026-10-25).
+decision, 2026-10-25): proved in M5a (2026-10-26, `TransportRemove.lean`).
 -/
 module
 

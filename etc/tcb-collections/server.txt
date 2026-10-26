@@ -263,7 +263,6 @@ axiom types.NewURLs.wp_proof
 axiom types.URLs.StringSlice.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
-axiom v2stats.LeaderStats.Follower.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v2stats.ServerStats.RecvAppendReq.wp_proof
@@ -295,4 +294,3 @@ axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
-sorry rafthttp.Transport.RemoveAllPeers.wp_proof

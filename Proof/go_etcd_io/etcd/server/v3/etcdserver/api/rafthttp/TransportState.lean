@@ -204,14 +204,15 @@ theorem rafthttp.Transport.Start_full
           tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ []⌝ ∗
         tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
         snap.isSnapshotter tv.Snapshotter' ∗
-        inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' }}
+        inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
+        v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Start")) (Val #()))
     {{ (err : GoInterface), RET #err;
         ⌜err ≠ GoInterface.nil⌝ ∨
         ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R⌝ ∗
           trLive γn t c ([], []) ∗
           [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), trTok γn t c }} := by
-  wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet⟩
+  wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf⟩
   iStructNamed Ht
   obtain ⟨Hlgnn, Hssnn, Hlsnn, Hmu0, Hmem⟩ := Hpre
   iapply wp_fupd
@@ -250,8 +251,9 @@ theorem rafthttp.Transport.Start_full
     · iapply BigSepM.bigSepM_empty.2; itrivial
   -- the lock
   rw [Hmu0]
+  ipersist LeaderStats
   imod sync.init_RWMutex (trLockP (netRh γn) t tv.ID' γd R γs γr) (E := ⊤)
-    (t.[rafthttp.Transport, go!"mu"]) $$ [Hpm Hrm Hpmm Hrmm Hgs1 Hgr1] mu with Htoks
+    (t.[rafthttp.Transport, go!"mu"]) $$ [Hpm Hrm Hpmm Hrmm Hgs1 Hgr1 Hlsf] mu with Htoks
   · inext
     iunfold trLockP
     iexists pm, rm, ∅, ∅, ([], []), false
@@ -265,14 +267,18 @@ theorem rafthttp.Transport.Start_full
       refine ⟨fun id h => by simp at h, fun _ => ⟨Hpmnn, Hrmnn⟩, fun _ id h => by simp at h⟩
     isplitr
     · imodintro; iunfold peersOk; iapply BigSepM.bigSepM_empty.2; itrivial
+    isplitr
     · imodintro; iunfold remotesOk; iapply BigSepM.bigSepM_empty.2; itrivial
+    iunfold trStats
+    iexists tv.LeaderStats'
+    iframe; iframe #
   ihave ⟨Htoks, #Hgd⟩ := sync.ownRWMutex_slots_guard _ _ $$ Htoks
   -- the fixed fields
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, #HSP, -⟩
   ipersist Logger; ipersist ID; ipersist URLs; ipersist ClusterID; ipersist Raft
-  ipersist ErrorC; ipersist Hsrt; ipersist Hprt; ipersist Hdrf; ipersist LeaderStats
+  ipersist ErrorC; ipersist Hsrt; ipersist Hprt; ipersist Hdrf
   ipersist ServerStats; ipersist Hpp; ipersist Hsp; ipersist Snapshotter
   iunfold netHttpOk at Hnet
   icases Hnet with ⟨#Hreg, #Hpreg⟩

@@ -39,7 +39,7 @@ local macro "cut_body" : tactic => `(tactic| (
   wp_apply sync.RWMutex.wp_RLock $$ [Htok] as ⟨Hrl, HP⟩
   · iframe Htok
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
   imod trRemotes_agree γr rs rs' sb _ $$ Hfr Hgr with ⟨Hgr, %Heq⟩
   subst Heq
   have Hnone : RM !! id = none := by
@@ -53,7 +53,7 @@ local macro "cut_body" : tactic => `(tactic| (
   wp_apply wp_lookup2_mapOrNil _ rm _ RM id $$ [Hrm] as Hrm
   · iframe Hrm
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [Hrl Hp Hr Hpm Hrm Hg Hgr] as Htok
+  wp_apply sync.RWMutex.wp_RUnlock $$ [Hrl Hp Hr Hpm Hrm Hg Hgr Hts] as Htok
   · iframe Hrl
     iunfold trLockP; iexists pm, rm, PM, RM, rs', sb; iframe; iframe #
     (try inext)

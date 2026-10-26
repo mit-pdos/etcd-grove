@@ -333,6 +333,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Handler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__MendPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__RemoveAllPeers
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__RemovePeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Send
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__SendSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Start
@@ -2568,7 +2569,11 @@ theorem raftNode.wp_stop :
 
 theorem rafthttp.Transport.wp_RemoveAllPeers :
     rafthttp.Transport.RemoveAllPeers.spec (GF := GF) (hG := hG) :=
-  rafthttp.Transport.RemoveAllPeers.wp_proof
+  rafthttp.Transport.RemoveAllPeers.wp_proof rafthttp.peer.wp_stop types.ID.wp_String_ptr zap.Logger.wp_Info zap.Logger.wp_Warn zap.wp_String
+
+theorem rafthttp.Transport.wp_RemovePeer :
+    rafthttp.Transport.RemovePeer.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.RemovePeer.wp_proof rafthttp.peer.wp_stop types.ID.wp_String_ptr zap.Logger.wp_Info zap.Logger.wp_Warn zap.wp_String
 
 theorem rafthttp.wp_reportCriticalError :
     rafthttp.reportCriticalError.spec (GF := GF) (hG := hG) :=

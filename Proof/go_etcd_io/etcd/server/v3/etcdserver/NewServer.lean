@@ -331,7 +331,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply h4 as %sstats %Hssnn
   (try wp_auto)
   wp_apply h7 $$ [$nodeID] as %ids ⟨nodeID, -⟩
-  wp_apply h6 as %lstats %Hlsnn
+  wp_apply h6 as %lstats ⟨%Hlsnn, #Hlsi, Hlsf⟩
   (try wp_auto)
   -- the server's literal: `readych`, `lgMu`, `errorc`, the raft wrapper
   wp_apply chan.wp_make1 (V := Unit) as %rdc %γrdc ⟨#Hrdc, %Hrdcap, Hrdo⟩
@@ -775,12 +775,12 @@ theorem NewServer.wp_proofM (on : Bool)
     iexact H
   have Hdid : γn.dir id ≠ [] := by
     rw [Hγn.2]; exact (Hdirps.1 id).2 (Hrid ▸ Hrmem)
-  wp_apply (h38 γn t _ (srvLgReader s) γd (fun _ => iprop(True)) U.peer) $$ [«$r0»]
+  wp_apply (h38 γn t _ (srvLgReader s) γd (fun _ => iprop(True)) U.peer) $$ [«$r0» Hlsf]
     as %terr Htres
   · iframe «$r0»
     simp only
     rw [Hid]
-    iframe Hnro Hss Hsdir HpU Hnet
+    iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf
     ipureintro; refine ⟨Hlgnn, Hssnn, Hlsnn, ?_, Hdid⟩ <;> first | rfl | trivial
   icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #Htstart⟩)
   · -- the transport could not start: the error returned, the store and `b` closed

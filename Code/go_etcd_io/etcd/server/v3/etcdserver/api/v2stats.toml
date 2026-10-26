@@ -2,7 +2,9 @@
 # only: `ServerStats`'s type has an anonymous struct field (`serverStats.LeaderInfo`), which Goose
 # does not translate, so its methods (`BecomeLeader`, `RecvAppendReq`) and `NewServerStats` stay
 # trust-boundary axioms.
-translate = ["!*", "NewLeaderStats"]
+# (D43 M5a, 2026-10-26) `LeaderStats.Follower` with its body (and the mutex's promoted methods): the
+# transport's `AddPeer` calls it; its map is the transport's (`removePeer` deletes from it).
+translate = ["!*", "NewLeaderStats", "LeaderStats.Follower", "LeaderStats.Lock", "LeaderStats.Unlock"]
 imports = ["!*", "sync", "time", "go.uber.org/zap", "go.etcd.io/raft/v3"]
 
 # translate the definitions of all type declarations goose supports

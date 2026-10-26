@@ -224,6 +224,28 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   consumed by `Stop`; the readers restated over `trState`, D43 "W3 settled"); `Process`'s removed-sender branch and the
   `403` it answers made reachable: the raft protocol's "no 403" weakened to "no 403 to a member not
   removed", `checkPostResponse`'s `errMemberRemoved` then a real error.
+  *Scoped 2026-10-26* (D43 "M5"; the user's decisions): (i) `AddMember` translated and proved,
+  `json.Marshal` of a `*Member` a new trust-boundary axiom over the opaque `memberEnc` (as M4d's
+  `Unmarshal`); (ii) the server's dynamic policy admits `RemoveNode` of **another** member only until
+  M6 (`applyConfChange`'s spec covers either, `removed = (id = local)`; `apply`'s `shouldStop` stays
+  `false`); (iii) `probing.NewProber` restated: `proberOk` also promises `Remove(id)` (`removePeer`'s).
+  Found while scoping: `removePeer` deletes from `LeaderStats.Followers` without the stats' lock; no
+  race in the server (the map's only other writer, `Follower`, runs from `AddPeer` under the same
+  transport write lock; `LeaderStats.JSON`, which reads it outside any lock, has no caller in the
+  server), so the map's ownership goes in the transport's lock (`trLockP`) and `Follower` is
+  translated and proved (its axiom goes). Sub-stages:
+  - *M5a.* rafthttp's peer removal: `Follower` proved, `removePeer`/`RemovePeer` specified and
+    proved on `trLive` (the id leaves the peers' ids), `RemoveAllPeers` proved (its `sorry` goes).
+    **Done (2026-10-26, branch `membership-m5`)**: D43 "M5a carried out".
+  - *M5b.* The backend's member writers: schema's `MustSaveMemberToBackend`,
+    `MustDeleteMemberFromBackend` (and the read `MustReadMembersFromBackend`) proved over the batch
+    transaction, `ccRest` with `RemoveNode` (`members_removed`); `AddMember` and
+    `BackendHooks.SetConfState` translated and proved.
+  - *M5c.* W3: the apply thread holds `trLive` (`NewServer` stops freezing it; the readers over
+    `trState` and their tokens).
+  - *M5d.* The server's cluster in the dynamic mode: `isRaftClusterG c (rcDyn γ)`, `rcRemovedOwn`
+    the apply thread's; `srvCCPolicy`'s dynamic case admits a `RemoveNode` of another member.
+  - *M5e.* `applyConfChange` proved (the axiom goes).
 - **M6. The stopping server** (Q4 (A)): `apply`'s `shouldStop`, `stopWithDelay` translated, `errorc`
   carrying a stop request, `run`'s return and deferred shutdown (`Cleanup`, `raftNode.stop`,
   `transport.Stop` consuming the peers right), the "server open" token (D19m (B)) through every

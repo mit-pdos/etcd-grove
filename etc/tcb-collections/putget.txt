@@ -526,7 +526,6 @@ axiom types.URLs.StringSlice.wp_proof
 axiom utf8.ValidString.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
-axiom v2stats.LeaderStats.Follower.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v2stats.ServerStats.RecvAppendReq.wp_proof

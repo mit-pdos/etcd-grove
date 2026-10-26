@@ -6,7 +6,9 @@
   called for (the remotes' keys among them), those `AddPeer` was (stage 6d: the peers' keys, until
   `Stop` empties the maps) and whether `Stop` ran (the maps are not `nil` until it does); the
   other half with `transportLive` (not stopped) while peers and remotes may be added, then in an
-  invariant (`trRemotesFrozen`: the ids for good, `Stop` sets the flag).
+  invariant (`trRemotesFrozen`: the ids for good, `Stop` sets the flag); and (D43 M5a, 2026-10-26)
+  the leader's stats' followers' map (`trStats`: `AddPeer`'s `Follower` and `removePeer`'s
+  `delete` write it, both under the write lock).
 * `trStopInv` (an invariant): the other half of the record, with the right to stop each peer and
   remote it lists (`peerStop`, `remoteStop`): `AddPeer`/`AddRemote` add one under the write lock,
   `Stop` takes them all under it.
@@ -14,6 +16,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Defs
 
 @[expose] public section
 
@@ -54,6 +57,30 @@ def peersOk (Rh : RaftHttp GF) (lid : w64) (γd : GName) (R : IProp GF)
 def remotesOk (Rh : RaftHttp GF) (lid : w64) (R : IProp GF) (RM : GMap w64 Loc) : IProp GF :=
   iprop([∗map] id ↦ g ∈ RM, remoteOk Rh lid id R g)
 
+/-- The transport's leader stats (`t.LeaderStats`) with their followers' map at the fraction `q`
+(D43 M5a). -/
+def trStats (t : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ ls : Loc, t.[rafthttp.Transport, go!"LeaderStats"] ↦□ ls ∗ v2stats.isLeaderStats ls ∗
+    v2stats.lsFollowers ls q)
+
+instance trStats_fractional (t : Loc) : Fractional (trStats (GF := GF) t) where
+  fractional q1 q2 := by
+    unfold trStats
+    refine ⟨?_, ?_⟩
+    · iintro ⟨%ls, #Hl, #Hi, Hf⟩
+      icases ((v2stats.lsFollowers_fractional (GF := GF) ls).fractional q1 q2).1 $$ Hf
+        with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists ls; iframe; iframe #
+      · iexists ls; iframe; iframe #
+    · iintro ⟨⟨%ls, #Hl, #Hi, H1⟩, ⟨%ls', #Hl', -, H2⟩⟩
+      ihave %Hla := typedPointsto_agree_wand _ _ _ _ _ $$ Hl Hl'
+      subst Hla
+      iexists ls
+      iframe #
+      iapply ((v2stats.lsFollowers_fractional (GF := GF) ls).fractional q1 q2).2
+      iframe
+
 /-- **What the transport `t`'s mutex guards** at the fraction `q` (see the file header). -/
 def trLockP (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
     (q : Qp) : IProp GF :=
@@ -65,7 +92,7 @@ def trLockP (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     ghostVar γr q.half (rs, sb) ∗
     ⌜(∀ id, (RM !! id).isSome → id ∈ rs.1) ∧ (sb = false → pm ≠ null ∧ rm ≠ null) ∧
       (rm ≠ null → ∀ id ∈ rs.2, (PM !! id).isSome)⌝ ∗
-    □ peersOk Rh lid γd R PM ∗ □ remotesOk Rh lid R RM)
+    □ peersOk Rh lid γd R PM ∗ □ remotesOk Rh lid R RM ∗ trStats t q)
 
 /-- **A reader's token of the transport's mutex** (exclusive): what `RLock` takes; `Start` gives a
 supply of them (`Send`'s caller, each handler invocation's `Get`, `CutPeer`'s and `MendPeer`'s). -/
@@ -141,18 +168,20 @@ instance trLockP_fractional (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GNam
     unfold trLockP
     rw [Qp_half_add]
     refine ⟨?_, ?_⟩
-    · iintro ⟨%pm, %rm, %PM, %RM, %rs, %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
+    · iintro ⟨%pm, %rm, %PM, %RM, %rs, %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
+      icases ((trStats_fractional (GF := GF) t).fractional q1 q2).1 $$ Hts with ⟨Hts1, Hts2⟩
       icases (hgr (rs, sb)).1 $$ Hgr with ⟨Hgr1, Hgr2⟩
       icases (hpt pm _).1 $$ Hp with ⟨Hp1, Hp2⟩
       icases (hpt rm _).1 $$ Hr with ⟨Hr1, Hr2⟩
       icases (mapOrNil_fractional pm PM q1 q2).1 $$ Hpm with ⟨Hpm1, Hpm2⟩
       icases (mapOrNil_fractional rm RM q1 q2).1 $$ Hrm with ⟨Hrm1, Hrm2⟩
       icases (hgv (pm, rm, PM, RM)).1 $$ Hg with ⟨Hg1, Hg2⟩
-      isplitl [Hp1 Hr1 Hpm1 Hrm1 Hg1 Hgr1]
+      isplitl [Hp1 Hr1 Hpm1 Hrm1 Hg1 Hgr1 Hts1]
       · iexists pm, rm, PM, RM, rs, sb; iframe; iframe #; ipureintro; exact Hrs
       · iexists pm, rm, PM, RM, rs, sb; iframe; iframe #; ipureintro; exact Hrs
-    · iintro ⟨⟨%pm, %rm, %PM, %RM, %rs, %sb, Hp1, Hr1, Hpm1, Hrm1, Hg1, Hgr1, %Hrs, #Hpo, #Hro⟩,
-        ⟨%pm', %rm', %PM', %RM', %rs', %sb', Hp2, Hr2, Hpm2, Hrm2, Hg2, Hgr2, -, -, -⟩⟩
+    · iintro ⟨⟨%pm, %rm, %PM, %RM, %rs, %sb, Hp1, Hr1, Hpm1, Hrm1, Hg1, Hgr1, %Hrs, #Hpo, #Hro,
+          Hts1⟩,
+        ⟨%pm', %rm', %PM', %RM', %rs', %sb', Hp2, Hr2, Hpm2, Hrm2, Hg2, Hgr2, -, -, -, Hts2⟩⟩
       ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg1 Hg2
       ihave %Hagr := ghostVar_agree γr _ _ _ _ $$ Hgr1 Hgr2
       cases Hag
@@ -170,8 +199,11 @@ instance trLockP_fractional (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GNam
       · iapply (hgv (pm, rm, PM, RM)).2; iframe
       isplitl [Hgr1 Hgr2]
       · iapply (hgr (rs, sb)).2; iframe
+      isplitr
+      · ipureintro; exact Hrs
       iframe #
-      ipureintro; exact Hrs
+      iapply ((trStats_fractional (GF := GF) t).fractional q1 q2).2
+      iframe
 
 /-- `v, ok := m[k]` of a map keyed by member ids that may be `nil` (`mapOrNil`). -/
 theorem wp_lookup2_mapOrNil [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]

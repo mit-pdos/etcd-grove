@@ -75,8 +75,8 @@ theorem rafthttp.Transport.Stop_core
   iunfold trProbers at Hprb
   icases Hprb with ⟨%pp, %sp, #Hppf, #Hppok, #Hspf, #Hspok⟩
   iunfold probing.proberOk at Hppok Hspok
-  icases Hppok with ⟨%pti, %Hpti, #Hprm⟩
-  icases Hspok with ⟨%sti, %Hsti, #Hsrm⟩
+  icases Hppok with ⟨%pti, %Hpti, #Hprm, -⟩
+  icases Hspok with ⟨%sti, %Hsti, #Hsrm, -⟩
   subst Hpti Hsti
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -85,7 +85,7 @@ theorem rafthttp.Transport.Stop_core
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HP⟩
   · iframe #
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
   imod trRemotes_agree γr rs rs' sb _ $$ Hfr Hgr with ⟨Hgr, %Heq⟩
   subst Heq
   wp_auto_lc 2
@@ -150,7 +150,7 @@ theorem rafthttp.Transport.Stop_core
   all_goals (ihave #Hrtk := Hprtok; close_rt)
   all_goals (
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hg Hgr]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hg Hgr Hts]
     · iframe #; iframe Hwl
       inext
       iunfold trLockP

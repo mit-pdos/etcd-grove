@@ -18784,6 +18784,38 @@ writers of a removal, and the validation, proved; the static examples unchanged.
   package imports `raftpb` and `encoding/json` (the k8s-apiserver project's names-only translation,
   its package instance moved to `etcdserver/apply/Base.lean`).
 
+**M5 scoped (2026-10-26; the user's decisions).** `applyConfChange` for an `AddNode` of a known
+member and a `RemoveNode`, in sub-stages M5a-M5e (`notes/membership-plan.md`).
+- `AddMember` proved, with `json.Marshal` of a `*Member` an axiom over the opaque `memberEnc`
+  (alternative: `AddMember` itself an axiom, rejected: the writer would stay opaque).
+- Until M6 the server admits a `RemoveNode` of another member only: removing the local member
+  returns `removed = true`, which only M6's stopping server handles. `applyConfChange`'s spec covers
+  both cases.
+- `probing.NewProber` restated: `proberOk` also promises `Remove(id)` (alternative: translate
+  xiang90/probing, a new concurrent package, rejected as a detour).
+- `removePeer`'s unlocked `delete(t.LeaderStats.Followers, ...)`: not a race in the server (both of
+  the map's writers run under the transport's write lock; `LeaderStats.JSON`, the unlocked reader,
+  has no caller in the server; a `-race` test of `JSON` against `Follower` does report one, dead
+  code), so the map is owned through `trLockP`, `NewLeaderStats` hands it out and `Follower` is
+  translated and proved over it (one axiom fewer), its own mutex guarding nothing the proof needs.
+
+**M5a carried out (2026-10-26, branch `membership-m5`).** rafthttp's peer removal.
+- The leader stats' followers' map (`v2stats.lsFollowers`: the `Followers` field read-only, the map
+  fractional, its values non-nil) is the transport's lock's (`trStats` in `trLockP`, from
+  `Transport.Start`'s precondition, which `NewServer` gets from `NewLeaderStats`' post, now with the
+  stats' mutex, `v2stats.isLeaderStats`). `LeaderStats.Follower` translated and proved over it (its
+  axiom goes); `AddPeer` hands it the map.
+- `removePeer_core` (`TransportRemove.lean`): a known peer's stop right leaves the stop invariant
+  (`trStop_remove_peer`), the peer stopped (`peer.stop`), deleted from the peers' map, the record
+  and the followers' map, removed from both probers (`proberOk`'s new `Remove`, `NewProber`
+  restated); an unknown id only logs. `RemovePeer` (new spec: `trLive` to `trLive` with
+  `rs.2.filter (· != id)`) and `RemoveAllPeers` (ranging over the map it deletes from,
+  `wp_map_for_range_gen`) proved over the write lock; `RemoveAllPeers`' `sorry` goes.
+- Trust base: −1 axiom (`Follower`), −1 `sorry` (`RemoveAllPeers`): 720 axioms, 5 `sorry`s.
+- Proof note: the write lock's `▷ trLockP` does not destructure while `trStats` (not timeless) is in
+  it unless a later credit strips it first (`wp_apply (lc := 1)` on the step before the lock, then
+  `lc_fupd_elim_later`); `AddPeer_core`'s direct `icases` still works, for reasons not pinned down.
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
