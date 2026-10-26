@@ -93,7 +93,8 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
   split between the invariant, the lock and the writer, `wcs_update`) proved.
   `indexer.updateElem` proved over `indexer.add`/`delete` (the map range over the index
   functions, the nested maps through `ownIdx`; its spec keeps only the indexer's ownership: no
-  read through an index is verified); `btreeStore.Replace`'s proof, `Replace`,
+  read through an index is verified); `btreeStore.Replace` proved (the cleared tree, then the
+  elements inserted in order); `WatchCacheStorage.Replace`,
   `NewWatchCacheStorage` and the read-locked methods (they need reader tokens) are left.
 - **The progress requester**'s `Add`/`Remove` proved (`isPR`).
 - **The watch cache's reads** (`Proof/k8s_io/apiserver/pkg/storage/cacher/`, `DefsWC.lean`; linked
@@ -110,8 +111,18 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
   store published (with `□ Ψ st`), at that version or later, and `rv = st.2`. The callees' trust
   specs: the config's clock (`clockOk`), component-base's `HistogramVec.WithContext` (axiom), the
   cacher metrics' package fact (`WatchCacheReadWait`'s labels, axiom),
-  `tracing.SpanFromContext` (axiom), `storage.NewTooLargeResourceVersionError` (proof `sorry`: it
-  needs `apierrors.NewTimeoutError`).
+  `tracing.SpanFromContext` (axiom), `storage.NewTooLargeResourceVersionError` (proved:
+  `apierrors.NewTimeoutError` translated with its body and proved, over Perennial's
+  `fmt.wp_Sprintf` and metav1's status constants, now translated; the cause message from the
+  `storage` package's fact, `storageInit`, which now holds `tooLargeResourceVersionCauseMsg` too).
+  The cacher's results rest on no `sorry` now.
+- **The cacher's read** (`Cacher.get`, `cacher.go`, translated with its body): proved over
+  `WaitUntilFreshAndGet`: without an error, the key's object in a published state `st` (its
+  element's `Object`, through `ownStore_lookup`: the type assertion to `*store.Element` holds) or
+  `exists` false, and `st`'s version. Not linked: its spec names `Cacher`'s `watchCache` field, and
+  `Cacher`'s type is axiomatized (its generated instances are `sorry`; translating it needs its
+  fields' types). (`Cacher.Get` itself refuses a consistent read at this pin:
+  `resourceVersion == ""` is an internal error, the KEP not being implemented upstream yet.)
 - **The current revision** (step 2): `store.GetCurrentResourceVersion` (the etcd3 store's, the
   cacher's `getCurrentRV`) proved, linked in the etcd3 store's Link: a linearizable read through
   the client's `Get` with the caller's read updates as `store.Get`'s, returning the revision of

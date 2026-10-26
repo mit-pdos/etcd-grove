@@ -7,7 +7,7 @@ A second triple of `apply.uberApplier.Apply` (`uber_applier.go`), beside its spe
 (`adminKindOk`): the current applier's `Apply` (the chain's `applierTriples` clause, which takes
 any `applyFunc` with a triple of its own) runs `dispatch` through its admin triple
 (`dispatch.adminSpec`, `DispatchAdmin.lean`), whose admin triples of the current applier come from
-the base applier's and the current applier's shape (`applierAdmin_cur`). The auth layer's admin
+the base applier's and the current applier's shape (`applierAdmin_curG`). The auth layer's admin
 check either passes (the request's admin outcome, `adminDone`) or rejects the request (the
 authority, its receipt and `W` back). The current chain is unchanged (`dispatch` keeps it).
 -/

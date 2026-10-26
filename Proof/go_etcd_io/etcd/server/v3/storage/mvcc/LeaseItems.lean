@@ -47,6 +47,18 @@ theorem leaseItemsOf_lookup (s : List EtcdKv) (it : LeaseItem) :
 theorem leaseItem_eq_iff (it : LeaseItem) (k : GoString) : it = LeaseItem.mk k ↔ it.Key' = k := by
   cases it; simp
 
+/-- **A state with no lease has the empty item map** (unit T3, L3b). -/
+theorem leaseItemsOf_zero (s : List EtcdKv) (h : ∀ kv ∈ s, kv.lease = W64 0) :
+    leaseItemsOf s = ∅ := by
+  apply GMap.ext
+  intro it
+  rw [leaseItemsOf_lookup]
+  cases hf : findKey it.Key' s with
+  | none => rfl
+  | some kv =>
+    have hz := h kv (List.mem_of_find?_eq_some hf)
+    simp [kvLease, hz]
+
 /-- A put of `k` with lease `l` makes `k`'s entry `l`'s (none for `0`). -/
 theorem leaseItemsOf_putKv {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (r : w64)
     (k v : GoString) (l : w64) (it : LeaseItem) :

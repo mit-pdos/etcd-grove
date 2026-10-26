@@ -34,6 +34,25 @@ namespace apply
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3 go_etcd_io.etcd.server.v3.etcdserver.apply
   go_etcd_io.etcd.api.v3
 
+section pure
+
+/-- **`AuthEnable`'s step at the flag `en` its check read** (the auth plan's E3c), that flag the
+latest state's in the mode `on` (`auth.stepOf (auth.authEnableF en)` alone allows the flag of any
+recorded state, which is all `AuthEnable.spec` says; with the tie, `AuthEnable.specT`, it is the
+admin side's half, the latest state's). -/
+def authEnableR (M : auth.AuthMode) (en : Bool) : auth.StepRel :=
+  fun st o => (∀ γa, M = .on γa → st.enabled = en) ∧ auth.stepOf (auth.authEnableF en) st o
+
+theorem stepSmall_authEnableR (M : auth.AuthMode) (en : Bool) : auth.StepSmall (authEnableR M en) :=
+  fun st st' h hR => auth.stepSmall_authEnable en st st' h hR.2
+
+/-- In the mode `on`, `authEnableR` is the model's step at the state's own flag. -/
+theorem authEnableR_on (γa : auth.AuthNames) (en : Bool) (st : auth.AuthState) (o : auth.Outcome)
+    (h : authEnableR (.on γa) en st o) : auth.stepOf (auth.authEnableF st.enabled) st o := by
+  rw [h.1 γa rfl]; exact h.2
+
+end pure
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -57,7 +76,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode)
         (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ W ∗ applyErrIs err ∗
           ∃ en : Bool, auth.enabledVerdict M en ∗
-            auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.authEnableF en)) auth.noExtra err }}) ∗
+            auth.adminOutX M (ownX M X) hs (authEnableR M en) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.userAddReqIs r name ∗ auth.userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
           auth.authOwn M hs ∗ X hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
@@ -170,6 +189,16 @@ theorem adminOutX_applyErrIs (M : auth.AuthMode) (Own : List auth.AuthState → 
         iframe Ho
       iapply applyErrIs_nil
 
+/-- **An admin result's relation weakened at the latest state**. -/
+theorem adminOutX_rel (M : auth.AuthMode) (Own : List auth.AuthState → IProp GF)
+    (hs : List auth.AuthState) (R R' : auth.StepRel) (extra : auth.AuthErr → Prop) (err : GoInterface)
+    (h : ∀ st o, auth.histLast M hs st → R st o → R' st o) :
+    auth.adminOutX M Own hs R extra err ⊢ auth.adminOutX M Own hs R' extra err := by
+  unfold auth.adminOutX
+  iintro (⟨%e, %hx, Ho, He⟩ | ⟨%st, %o, %ho, Hr⟩)
+  · ileft; iexists e; iframe Ho He; ipureintro; exact hx
+  · iright; iexists st, o; iframe Hr; ipureintro; exact ⟨ho.1, h st o ho.1 ho.2⟩
+
 /-- **`isAuthStepsX` of the real store** at `st`, with `X = auth.tieRes st M` and the write
 resource but the halves (`auth.authWB`) with the provider's admin share, from E2s's `X.specT`. -/
 theorem isAuthStepsX_of_authInvT
@@ -195,10 +224,14 @@ theorem isAuthStepsX_of_authInvT
     · iframe; iframe #
     iapply (hEnable st R M P f T hs Pre Q Post b0 sc0) $$ [Ho HWR HA Hcs]
     · iframe; iframe #; ipureintro; exact ⟨Hon, Hok⟩
-    iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, #Hv, Hout⟩
+    iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
     icases auth.authWRx_split st M P f T b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
     · iframe; iframe #
+    -- (E3c) the flag read is the admin side's half, tied to the latest state
+    ihave Hout := adminOutX_rel M _ hs _ (authEnableR M en) _ err
+      (fun stl o hl hR => ⟨fun γa hM => by
+        subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
     iframe HPP HW HA Ha
@@ -367,7 +400,7 @@ abbrev applierV3backend.AuthEnable.stepSpecX : Prop :=
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
-        auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.authEnableF en)) auth.noExtra err }}
+        auth.adminOutX E.authMode (ownX E.authMode X) hs (authEnableR E.authMode en) auth.noExtra err }}
 
 /-- **`a.UserAdd(r)` in the mode `on γa`, from the fuel, carrying `X`** (`UserAdd.fuelSpec`'s). -/
 abbrev applierV3backend.UserAdd.fuelSpecX : Prop :=
@@ -448,7 +481,7 @@ abbrev applierV3backend.AuthEnable.fuelSpecX : Prop :=
       applyErrIs err ∗ W ∗
       ∃ en : Bool, auth.enabledVerdict E.authMode en ∗
         auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs
-          (auth.stepOf (auth.authEnableF en)) auth.noExtra err }}
+          (authEnableR E.authMode en) auth.noExtra err }}
 
 end stepSpecs
 
@@ -784,7 +817,7 @@ theorem applierV3backend.AuthEnable.wp_fuelX
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Hpost, #He, HW, %en, #Hv, Hout⟩
   rw [hM]
-  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (auth.stepSmall_authEnable en) $$ [Hf Hout]
+  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (stepSmall_authEnableR _ en) $$ [Hf Hout]
   · iframe
   iapply HΦ
   iframe; iframe #

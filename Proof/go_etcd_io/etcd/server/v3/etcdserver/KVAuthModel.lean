@@ -129,27 +129,27 @@ theorem adminNext_of_det (rq : apply.IRRModel) (st st' : auth.AuthState) (hd : a
 /-! ## The KV entries' check -/
 
 mutual
-/-- The permissions a transaction's operation needs (`checkTxnReqsPermission`'s walk, `opClass`):
-a get's read, a put's write of its key, a delete's write and `PrevKv` read, a nested transaction's
-comparisons and both branches. -/
-def opPerms : TxnOp → List apply.Perm3
+/-- The permissions a transaction's operation needs (`checkTxnReqsPermission`'s walk, `opClass`), of
+its wire operation (E3e: a put's `PrevKv` kept): a get's read, a put's write of its key and with
+`PrevKv` its read (`checkPutAuth`, `apply.putPerms`), a delete's write and `PrevKv` read, a nested
+transaction's comparisons and both branches. -/
+def opPerms : txn.TxnOpW → List apply.Perm3
   | .get o => [(o.key, o.base.rangeEnd, .read)]
-  | .put k _ _ => [(k, [], .write)]
-  | .putKeep k _ => [(k, [], .write)]
-  | .putIgnVal k _ => [(k, [], .write)]
+  | .put o => apply.putPerms o
   | .delete o => (o.key, o.base.rangeEnd, .write) ::
       if o.base.prevKV then [(o.key, o.base.rangeEnd, .read)] else []
   | .txn cs ts es => cs.map (fun cm => (cm.key, cm.rangeEnd, .read)) ++ opsPerms ts ++ opsPerms es
 
 /-- The permissions a list of operations needs, in order. -/
-def opsPerms : List TxnOp → List apply.Perm3
+def opsPerms : List txn.TxnOpW → List apply.Perm3
   | [] => []
   | op :: ops => opPerms op ++ opsPerms ops
 end
 
 /-- **The permissions a KV request needs** (`apply.reqClass`, purely): a put's (`apply.putPerms`),
 a delete's write and `PrevKv` read of its range, a range's read, a transaction's comparisons'
-reads and both branches' operations. -/
+reads and both branches' operations (of its wire transaction, `txnW`: a put's `PrevKv` read
+included, E3e). -/
 def reqPerms (rq : apply.IRRModel) : List apply.Perm3 :=
   match apply.dispatchKind rq with
   | .put => match rq.put with
@@ -162,7 +162,7 @@ def reqPerms (rq : apply.IRRModel) : List apply.Perm3 :=
   | .range => match rq.range with
       | some o => [(o.key, o.base.rangeEnd, .read)]
       | none => []
-  | .txn => match rq.txn with
+  | .txn => match rq.txnW with
       | some t => t.cmps.map (fun cm => (cm.key, cm.rangeEnd, .read)) ++ opsPerms t.thenOps ++
           opsPerms t.elseOps
       | none => []

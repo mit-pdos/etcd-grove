@@ -1929,7 +1929,7 @@ def appliedMonoMap (M : GMap w64 mvcc.Log) : Prop :=
 /-- A deposit at the next index of a log extending the current one keeps the order. -/
 theorem appliedMonoMap_insert (M : GMap w64 mvcc.Log) (v v' : w64) (L0 L : mvcc.Log)
     (hk : ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v) (hmono : appliedMonoMap M)
-    (hv : M.lookup v = some L0) (hp : L0 <+: L) (hv' : uint.Z v' = uint.Z v + 1) :
+    (hv : M.lookup v = some L0) (hp : L0 <+: L) (hv' : uint.Z v < uint.Z v') :
     appliedMonoMap (M.insert v' L) := by
   intro k k' L1 L2 h1 h2 hle
   rw [GMap.lookup_insert_Some] at h1 h2
@@ -1948,14 +1948,26 @@ deposits a fresh one), and the log applied through `v`, with mvcc's certificate.
 (unit C2a): half of the ghost variable `γr.pend` (`p`: the apply thread deposited the log of `v +
 1` ahead, `applied_predeposit`, so the key `v + 1` may be present), and the applied logs in their
 indices' order as prefixes (`appliedMonoMap`: what `appliedMono` reads). Since 2026-10-14 (unit
-T1): every applied log the KV model of the committed raft log through its index (`kvLogsOk`). -/
-def srvAppliedInv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  inv srvN iprop(∃ (v : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
+T1): every applied log the KV model of the committed raft log through its index (`kvLogsOk`).
+
+(D22 J5, 2026-10-26) **The atomic lags the ghost index**: the atomic is at some `v` at most the
+ghost applied index `a` (`uint.Z v ≤ uint.Z a`), and the authority, the applied logs' keys and the
+current log are the ghost index's. Go's `applySnapshot` raises the applied index (`ep.appliedi`)
+to the snapshot's without calling `setAppliedIndex` (`issues/etcd-applied-index-stale-after-snapshot.md`),
+so after a snapshot the atomic stays behind until the next entry's `setAppliedIndex`: the ghost
+index jumps (`applied_jump`), the atomic does not. A reader of the atomic still learns a lower
+bound of the ghost index (`appliedAtLeast γr v`). Until J5 the atomic was the ghost index. -/
+def srvAppliedBody (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(∃ (v a : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
     sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v ∗
-    monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗
+    monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat a) ∗
     ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
-    ⌜appliedKeysOk M v p ∧ appliedMonoMap M⌝ ∗
-    appliedLogAt γr v L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOk γr M)
+    ⌜uint.Z v ≤ uint.Z a ∧ appliedKeysOk M a p ∧ appliedMonoMap M⌝ ∗
+    appliedLogAt γr a L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOk γr M)
+
+/-- The applied index's invariant: `srvAppliedBody` (see there). -/
+def srvAppliedInv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  inv srvN (srvAppliedBody s E γr)
 
 instance srvAppliedInv_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvAppliedInv s E γr) := by
@@ -2006,7 +2018,8 @@ theorem applied_predeposit (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v'
   iintro #Hinv Hown #HL₀ #HkA
   iunfold srvAppliedInv at Hinv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%v0, %Lc, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HLc, >#Hc, >#Hkl⟩
+  iunfold srvAppliedBody at Hi
+  icases Hi with ⟨%vat, %v0, %Lc, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HLc, >#Hc, >#Hkl⟩
   iunfold srvAppliedOwn at Hown
   icases Hown with ⟨Hown, Hpo⟩
   ihave %Hag := monoNatAuthOwn_agree γr.applied _ _ _ _ $$ Hown Hauth
@@ -2024,7 +2037,7 @@ theorem applied_predeposit (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v'
     iapply ghost_map_lookup $$ HM HLc
   have hk : ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v0 := by
     intro k L' h
-    rcases HMk.1 k L' h with h | ⟨h, -⟩
+    rcases HMk.2.1 k L' h with h | ⟨h, -⟩
     · exact h
     · cases h
   have hfresh : M.lookup v' = none := by
@@ -2037,10 +2050,11 @@ theorem applied_predeposit (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v'
   · iframe Hkl HkA
   imod Hclose $$ [Hat Hauth HM Hp] with -
   · inext
-    iexists v0, Lc, M.insert v' L, true
+    iunfold srvAppliedBody
+    iexists vat, v0, Lc, M.insert v' L, true
     iframe Hat Hauth HM Hp HLc Hc Hkl'
     ipureintro
-    refine ⟨?_, appliedMonoMap_insert M v0 v' Lc L hk HMk.2 HMv hp hv⟩
+    refine ⟨HMk.1, ?_, appliedMonoMap_insert M v0 v' Lc L hk HMk.2.2 HMv hp (by omega)⟩
     intro k L' h
     rw [GMap.lookup_insert_Some] at h
     rcases h with ⟨rfl, -⟩ | ⟨-, h⟩
@@ -2053,6 +2067,87 @@ theorem applied_predeposit (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v'
   · iunfold appliedLogAt; iexact HLv'
   ipureintro; exact hv
 
+/-- Two halves of a mono nat's authority move together. -/
+theorem monoNat_halves_update (γ : GName) (n n' : Nat) (h : n ≤ n') :
+    ⊢ monoNatAuthOwn (GF := GF) γ (1 : Qp).half n -∗ monoNatAuthOwn γ (1 : Qp).half n ==∗
+      monoNatAuthOwn γ (1 : Qp).half n' ∗ monoNatAuthOwn γ (1 : Qp).half n' ∗ monoNatLbOwn γ n' := by
+  iintro H1 H2
+  have hf := (monoNatAuthOwn_fractional (GF := GF) γ n).fractional (1 : Qp).half (1 : Qp).half
+  have hf' := (monoNatAuthOwn_fractional (GF := GF) γ n').fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hf hf'
+  ihave H := hf.2 $$ [H1 H2]
+  · iframe H1 H2
+  imod mono_nat_own_update n' h $$ H with ⟨H, #Hlb⟩
+  icases hf'.1 $$ H with ⟨H1, H2⟩
+  imodintro
+  iframe H1 H2 Hlb
+
+/-- (D22 J5, 2026-10-26) **The ghost applied index jumps** (a snapshot's install): the apply
+thread at the ghost index `a` with its log `L₀`, no log deposited ahead (`srvAppliedOwn`), raises
+the ghost index to `i > a` and publishes `L`, extending `L₀`, the KV model of the committed log
+through `i` (`kvLogAt`), with mvcc's certificate, as the log applied through `i`. The atomic
+`s.appliedIndex` is not touched (Go's `applySnapshot` does not call `setAppliedIndex`): it lags
+until the next entry's `setAppliedIndex`. -/
+theorem applied_jump (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (a i : w64)
+    (L₀ L : mvcc.Log) (hi : uint.Z a < uint.Z i) (hp : L₀ <+: L) :
+    ⊢ srvAppliedInv (GF := GF) s E γr -∗ srvAppliedOwn γr a -∗ appliedLogAt γr a L₀ -∗
+      kvLogAt γr i L -∗ mvcc.idxCert E.γ.idx L ={⊤}=∗
+      srvAppliedOwn γr i ∗ appliedAtLeast γr i ∗ appliedLogAt γr i L := by
+  iintro #Hinv Hown #HL₀ #HkA #HcL
+  iunfold srvAppliedInv at Hinv
+  iinv Hinv with Hi Hclose
+  iunfold srvAppliedBody at Hi
+  icases Hi with ⟨%vat, %v0, %Lc, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HLc, >#Hc, >#Hkl⟩
+  iunfold srvAppliedOwn at Hown
+  icases Hown with ⟨Hown, Hpo⟩
+  ihave %Hag := monoNatAuthOwn_agree γr.applied _ _ _ _ $$ Hown Hauth
+  have hv0 : v0 = a := by
+    have h2 := Hag.2
+    unfold uint.nat at h2
+    exact (BitVec.eq_of_toNat_eq h2).symm
+  subst hv0
+  ihave %Hpg := ghostVar_agree γr.pend _ _ _ _ $$ Hpo Hp
+  subst Hpg
+  ihave %HLeq := appliedLogAt_agree γr v0 Lc L₀ $$ HLc HL₀
+  subst HLeq
+  ihave %HMv : iprop(⌜M.lookup v0 = some Lc⌝) $$ [HM]
+  · iunfold appliedLogAt at HLc
+    iapply ghost_map_lookup $$ HM HLc
+  have hk : ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v0 := by
+    intro k L' h
+    rcases HMk.2.1 k L' h with h | ⟨h, -⟩
+    · exact h
+    · cases h
+  have hfresh : M.lookup i = none := by
+    cases h : M.lookup i with
+    | none => rfl
+    | some L' => have := hk i L' h; omega
+  imod ghost_map_insert_persist i L hfresh $$ HM with ⟨HM, #HLi⟩
+  ihave #Hkl' := kvLogsOk_insert γr M i L $$ [Hkl HkA]
+  · iframe Hkl HkA
+  imod monoNat_halves_update γr.applied (uint.nat v0) (uint.nat i) (by word) $$ Hown Hauth
+    with ⟨Hown, Hauth, #Hlb⟩
+  imod Hclose $$ [Hat Hauth HM Hp] with -
+  · inext
+    iunfold srvAppliedBody
+    iexists vat, i, L, M.insert i L, false
+    iframe Hat Hauth HM Hp HcL Hkl'
+    isplitr
+    · ipureintro
+      refine ⟨by omega, ?_, appliedMonoMap_insert M v0 i Lc L hk HMk.2.2 HMv hp hi⟩
+      intro k L' h
+      rw [GMap.lookup_insert_Some] at h
+      rcases h with ⟨rfl, -⟩ | ⟨-, h⟩
+      · exact Or.inl (Int.le_refl _)
+      · exact Or.inl (by have := hk k L' h; omega)
+    iunfold appliedLogAt; iexact HLi
+  imodintro
+  iunfold srvAppliedOwn
+  iframe Hown Hpo
+  iunfold appliedAtLeast
+  iframe Hlb
+  iunfold appliedLogAt; iexact HLi
+
 /-- **The applied logs grow with the index** (`appliedMono`, from the invariant). -/
 theorem appliedMono_of_inv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvAppliedInv (GF := GF) s E γr ⊢ appliedMono γr := by
@@ -2061,7 +2156,8 @@ theorem appliedMono_of_inv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   iintro !> %i %j %L1 %L2 %hij #H1 #H2
   iunfold srvAppliedInv at Hinv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
+  iunfold srvAppliedBody at Hi
+  icases Hi with ⟨%vat, %v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
   ihave %Hm1 : iprop(⌜M.lookup i = some L1⌝) $$ [HM]
   · iunfold appliedLogAt at H1
     iapply ghost_map_lookup $$ HM H1
@@ -2070,12 +2166,13 @@ theorem appliedMono_of_inv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     iapply ghost_map_lookup $$ HM H2
   imod Hclose $$ [Hat Hauth HM Hp] with -
   · inext
-    iexists v, L, M, p
+    iunfold srvAppliedBody
+    iexists vat, v, L, M, p
     iframe Hat Hauth HM Hp HL Hc Hkl
     ipureintro; exact HMk
   imodintro
   ipureintro
-  exact HMk.2 i j L1 L2 Hm1 Hm2 hij
+  exact HMk.2.2 i j L1 L2 Hm1 Hm2 hij
 
 /-- **An applied log is the KV model of the committed raft log through its index** (2026-10-14,
 unit T1). -/
@@ -2084,13 +2181,15 @@ theorem appliedLogAt_kvLogAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (i 
   iintro #Hinv #H1
   iunfold srvAppliedInv at Hinv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
+  iunfold srvAppliedBody at Hi
+  icases Hi with ⟨%vat, %v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
   ihave %Hm1 : iprop(⌜M.lookup i = some L1⌝) $$ [HM]
   · iunfold appliedLogAt at H1
     iapply ghost_map_lookup $$ HM H1
   imod Hclose $$ [Hat Hauth HM Hp] with -
   · inext
-    iexists v, L, M, p
+    iunfold srvAppliedBody
+    iexists vat, v, L, M, p
     iframe Hat Hauth HM Hp HL Hc Hkl
     ipureintro; exact HMk
   imodintro
@@ -2164,21 +2263,6 @@ instance srvIndexInvs_persistent (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvIndexInvs (GF := GF) s E) := by
   unfold srvIndexInvs; infer_instance
 
-/-- Two halves of a mono nat's authority move together. -/
-theorem monoNat_halves_update (γ : GName) (n n' : Nat) (h : n ≤ n') :
-    ⊢ monoNatAuthOwn (GF := GF) γ (1 : Qp).half n -∗ monoNatAuthOwn γ (1 : Qp).half n ==∗
-      monoNatAuthOwn γ (1 : Qp).half n' ∗ monoNatAuthOwn γ (1 : Qp).half n' ∗ monoNatLbOwn γ n' := by
-  iintro H1 H2
-  have hf := (monoNatAuthOwn_fractional (GF := GF) γ n).fractional (1 : Qp).half (1 : Qp).half
-  have hf' := (monoNatAuthOwn_fractional (GF := GF) γ n').fractional (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at hf hf'
-  ihave H := hf.2 $$ [H1 H2]
-  · iframe H1 H2
-  imod mono_nat_own_update n' h $$ H with ⟨H, #Hlb⟩
-  icases hf'.1 $$ H with ⟨H1, H2⟩
-  imodintro
-  iframe H1 H2 Hlb
-
 /-- **A lower bound of the applied index has a certified applied log**: from `readIndexOk γr c`
 (the applied index reached some `ci₀ ≥ c`) and the applied index's invariant, the log applied
 through the current applied index `v ≥ ci₀`, with mvcc's certificate. -/
@@ -2191,11 +2275,12 @@ theorem readIndexOk_log (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64
   icases Hok with ⟨%ci, %Hci, #Hlb⟩
   iunfold srvAppliedInv at Hinv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
+  iunfold srvAppliedBody at Hi
+  icases Hi with ⟨%vat, %v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
   iunfold appliedAtLeast at Hlb
   ihave %Hle := monoNatLbOwn_valid γr.applied _ _ _ $$ Hauth Hlb
   imod Hclose $$ [Hat Hauth HM Hp] with -
-  · inext; iexists v, L, M, p; iframe Hat Hauth HM Hp HL Hc Hkl; ipureintro; exact HMk
+  · inext; iunfold srvAppliedBody; iexists vat, v, L, M, p; iframe Hat Hauth HM Hp HL Hc Hkl; ipureintro; exact HMk
   imodintro
   iexists v, L
   iframe HL Hc

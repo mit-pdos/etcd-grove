@@ -623,6 +623,30 @@ private theorem stableHit_restored (γ : RaftNames) (id : w64) (s : NState) {md 
   ipureintro
   exact stableHit_miss HwL HwF HRA Hbp Hnb
 
+/-- (2026-10-26, D22 J2) A snapshot's acknowledgement keeps the pending snapshot or clears it
+(`logStableSnap`): what keeps its receiver-local fact (`snapLocOk_keep`). -/
+theorem ackSnapLog_snap (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) :
+    (ackSnapLog ls m t sv).snap = ls.snap ∨ (ackSnapLog ls m t sv).snap = none := by
+  have hl : (ackLog ls (some sv)).snap = ls.snap := by
+    simp only [ackLog]; split <;> rfl
+  have hA : (match ackStableId m t with
+       | some id => logStableTo (ackLog ls (some sv)) id
+       | none => ackLog ls (some sv)).snap = ls.snap := by
+    split
+    · unfold logStableTo; split <;> exact hl
+    · exact hl
+  have key : ∀ X : LogState, X.snap = ls.snap →
+      (logAppliedTo (logStableSnap X sv.Metadata'.Index') sv.Metadata'.Index' (W64 0)).snap = ls.snap ∨
+      (logAppliedTo (logStableSnap X sv.Metadata'.Index') sv.Metadata'.Index' (W64 0)).snap = none := by
+    intro X hX
+    show (logStableSnap X _).snap = _ ∨ (logStableSnap X _).snap = none
+    unfold logStableSnap
+    split
+    · exact .inr rfl
+    · exact .inl hX
+  unfold ackSnapLog
+  exact key _ hA
+
 /-- (D22 S-d3b) What a snapshot's acknowledgement leaves of the log after a restore (`ackSnapLog`):
 the restored snapshot still pending (`stableSnapTo` misses), the `stableTo` missed (`Hmiss`),
 `applied` and `applying` at the acknowledged snapshot's index, the rest kept. -/
@@ -796,7 +820,9 @@ theorem RawNode.Advance.wp_proof
                     (rs.psnap = false → s1.logst.snap = none) ∧
                     s1.logst.applying = l.snap.Metadata'.Index' ∧
                     s1.logst.applied = l.snap.Metadata'.Index' ∧ s1.logst.sip = false ∧
-                    s1.logst.sat = false ∧ s1.logst.lent = false)⌝ ∗
+                    s1.logst.sat = false ∧ s1.logst.lent = false ∧
+                    -- (2026-10-26, D22 J2) the pending snapshot kept or cleared (`ackSnapLog_snap`)
+                    (s1.logst.snap = s.logst.snap ∨ s1.logst.snap = none))⌝ ∗
         "%Hsg1" ∷ ⌜s1.logst.storage = s0.logst.storage ∧ s1.prevote = s0.prevote ∧ s1.gh = s0.gh⌝ ∗
         "%Hc1" ∷ ⌜uint.Z s0.logst.committed ≤ uint.Z s1.logst.committed⌝ ∗
         "%Hok1" ∷ ⌜StepsOk s1 (rs.steps.drop (sint.nat n))⌝ ∗
@@ -973,7 +999,8 @@ theorem RawNode.Advance.wp_proof
           ipureintro
           refine ⟨by word, ⟨by rw [List.length_set]; exact Hsteps1.1, ?_⟩, Hwf2,
             ⟨b6.trans Hs1.1, b7.trans Hs1.2.1, b8.trans Hs1.2.2.1,
-              fun h => absurd h (by omega), fun _ => ⟨fun _ => b1, b4, b5, b2, b3, b12.trans Hlt1⟩⟩,
+              fun h => absurd h (by omega), fun _ => ⟨fun _ => b1, b4, b5, b2, b3, b12.trans Hlt1,
+                by rw [Hl2]; exact (ackSnapLog_snap _ _ _ _).imp_left (fun h => h.trans Hsn1s)⟩⟩,
             ⟨b9.trans Hsg1.1, Hpv2.trans Hsg1.2.1, Hg2.trans Hsg1.2.2⟩,
             by rw [b11]; exact Hc1,
             by rw [Hdr]; trivial,
@@ -1104,7 +1131,8 @@ theorem RawNode.Advance.wp_proof
             ⟨b6.trans Hs1.1, b7.trans Hs1.2.1, b8.trans Hs1.2.2.1,
               fun h => absurd h (by omega),
               fun _ => ⟨(fun h => by rw [Hps2] at h; cases h), b4, b5, b2.trans Hsip1, b3,
-                b12.trans Hlt1⟩⟩,
+                b12.trans Hlt1,
+                by rw [Hl2']; exact (ackSnapLog_snap _ _ _ _).imp_left (fun h => h.trans Hsn1s)⟩⟩,
             ⟨b9.trans Hsg1.1, Hpv2.trans Hsg1.2.1, Hg2.trans Hsg1.2.2⟩,
             by rw [b11]; exact Hc1,
             by rw [Hdr]; trivial,
@@ -1136,7 +1164,8 @@ theorem RawNode.Advance.wp_proof
       rw [Hsub]
       have Hnn : sint.nat n = steps.length := loop_done_nat Hif' Hn Hsl.1 Hsl.2
       have Hgt : pre.length < sint.nat n := by rw [Hnn, Hlen, Hlen2]; omega
-      obtain ⟨Hsn1, Hap1, Happ1, Hsip1, Hsat1, Hlt1⟩ := Hs1.2.2.2.2 Hgt
+      obtain ⟨Hsn1, Hap1, Happ1, Hsip1, Hsat1, Hlt1, Hsk1⟩ := Hs1.2.2.2.2 Hgt
+      ihave #Hsloc' := snapLocOk_keep γ id Hsk1 $$ Hsloc
       -- the snapshot handed out, acknowledged: the mirror's record of it dropped
       icases ownRaftPhysC_log_at_snp cf rnv.raft' id s1 $$ Hphys with ⟨Hlog1, %Hgh1, Hback1⟩
       ihave Hphys := Hback1 $$ %s1.logst %false %none Hlog1
@@ -1203,7 +1232,7 @@ theorem RawNode.Advance.wp_proof
           (by show uint.Z rs.clb ≤ _
               have := Hs0f.2.2.2.2.2.2.2.1; rw [this] at Hc1; exact Int.le_trans Hrs_clb Hc1)
           HrnflA HloanA
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdl Hstr1 []
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdl Hstr1 [] Hsloc'
         · iapply lentPend_none rfl; iapply pendList_nil
         · iapply loanCom_none γ rfl
       isplitr
@@ -1492,6 +1521,7 @@ theorem RawNode.Advance.wp_proof
     have HloanA : LoanOk { rs with steps := [], term := s1.term, capplied := ca, flw := false } s1 :=
       ⟨by rw [Hsg1.2.2]; exact Hloan.1, fun h => ⟨by rw [Hsg1.2.2]; exact (Hloan.2.1 h).1,
         fun _ _ _ _ h => (by cases h)⟩, fun l h => (by simp only at h; rw [hsl] at h; cases h)⟩
+    ihave #Hsloc' := snapLocOk_keep γ id (.inl Hs1.2.2.1) $$ Hsloc
     iapply HΦ $$ %s1.term %ca
     rw [advRS_none s1.term ca hsl]
     isplitl
@@ -1506,7 +1536,7 @@ theorem RawNode.Advance.wp_proof
           by rw [Hsg1.2.2]; exact Hti1.2.2.2.1, fun h => by rw [Hsg1.2.2]; exact Hti1.2.2.2.2 h⟩
         (by rw [Hsg1.2.2]; exact Hrs_out)
         (by rw [Hsg1.2.2]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc1) HrnflA HloanA
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1 Hloanc
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsl0 Hcap0 [] Hdeliv Hstr1 Hloanc Hsloc'
       · iapply lentPend_none hsl; iapply pendList_nil
     isplitr
     · ipureintro

@@ -599,7 +599,9 @@ theorem EtcdServer.Txn.wp_proof
     ipersist ClusterMemberAttrSet
     ipersist DowngradeInfoSet
     ipersist DowngradeVersionTest
-    ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrTxn t) $$ []
+    ihave #⟨%tw, %Htw, #HrtW⟩ := txn.txnRequestIs_W _ t $$ Hrt
+    subst Htw
+    ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrTxn tw) $$ []
     · iunfold irrNoHdrIs
       simp only [irrTxn, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField]
       isplitr
@@ -612,13 +614,13 @@ theorem EtcdServer.Txn.wp_proof
     (try wp_auto)
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
-    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L)))
+    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L)))
         F rfl
         $$ [Hlt Hard Hcred Header Hnp] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hnp]
       · (try isimp only [hro, Bool.false_eq_true, ↓reduceIte] at Hnp)
-        iapply txnPermit_reqPropOk ρ.kv t Q γc $$ Hnp
+        iapply txnPermit_reqPropOk ρ.kv tw Q γc $$ Hnp
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -660,14 +662,14 @@ theorem EtcdServer.Txn.wp_proof
       isplitr
       · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
       iunfold txnAppliedOk
-      iexists hm, rq', t', x, x', log', skip
+      iexists tw, hm, rq', t', x, x', log', skip
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       iframe Hhdr Hcert Hpo HMint Hwit Hcok
       isplitr
       rotate_left
       · rw [Hxlb, ← HLlb]; iexact HQ
       ipureintro
-      refine ⟨Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
+      refine ⟨trivial, Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
       have := Hwire.2.2.2 hz
       subst this
       simp [apply.withHeader, irrTxn] at Ht'
@@ -688,6 +690,8 @@ theorem EtcdServer.Txn.wp_proof
         · ipureintro; exact ⟨by first | rfl | trivial, Hne⟩
         iframe HaE
         iunfold txnErrOk
+        iexists tw
+        isplitr; · ipureintro; rfl
         iexact Hfail
       · exact absurd rfl Hne
   · -- read-only: as `Range`, through `doSerialize`
@@ -960,7 +964,9 @@ theorem EtcdServer.Txn.wp_proofOn
     ipersist ClusterMemberAttrSet
     ipersist DowngradeInfoSet
     ipersist DowngradeVersionTest
-    ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrTxn t) $$ []
+    ihave #⟨%tw, %Htw, #HrtW⟩ := txn.txnRequestIs_W _ t $$ Hrt
+    subst Htw
+    ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrTxn tw) $$ []
     · iunfold irrNoHdrIs
       simp only [irrTxn, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField]
       isplitr
@@ -973,12 +979,12 @@ theorem EtcdServer.Txn.wp_proofOn
     (try wp_auto)
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
-    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) (txnQhOn ρ.kv t γc Q)
+    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (txnQhOn ρ.kv tw γc Q)
         F rfl
         $$ [Hlt Hard Hcred Header Hau] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hau]
-      · iapply txnPermitOn_reqPropOk ρ.kv t Q γc
+      · iapply txnPermitOn_reqPropOk ρ.kv tw Q γc
         iunfold txnPermitOn
         iunfold txnPermit
         iframe Hau
@@ -987,17 +993,17 @@ theorem EtcdServer.Txn.wp_proofOn
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
-      have hz : irrNoZeroEnd (apply.withHeader (irrTxn t) hm) := by
+      have hz : irrNoZeroEnd (apply.withHeader (irrTxn tw) hm) := by
         refine ⟨?_, ?_, ?_⟩
         · intro _ h; simp [apply.withHeader, irrTxn, apply.irrEmpty] at h
         · intro _ h; simp [apply.withHeader, irrTxn, apply.irrEmpty] at h
-        · intro t' h; simp only [apply.withHeader, irrTxn, Option.some.injEq] at h; subst h; exact Ht.2.1
-      have Hrq : rq' = apply.withHeader (irrTxn t) hm := Hwire.2.2.2 hz
+        · intro t' h; simp only [apply.withHeader_txn, irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
+      have Hrq : rq' = apply.withHeader (irrTxn tw) hm := Hwire.2.2.2 hz
       subst Hrq
       iunfold appliedOkM at Hok
       icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
       obtain ⟨Hstep, Hfl, Hskip, Hmo⟩ := Hstep0
-      have Hk : apply.dispatchKind (apply.withHeader (irrTxn t) hm) = .txn := by
+      have Hk : apply.dispatchKind (apply.withHeader (irrTxn tw) hm) = .txn := by
         simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
       have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
       iunfold apply.dispatchAnswer at Hans
@@ -1018,7 +1024,7 @@ theorem EtcdServer.Txn.wp_proofOn
         ipureintro; exact Hn
       wp_auto_lc 1
       -- the transaction's result, with its token: granted at the state its entry met
-      ihave #HQr := txnQhOn_res ρ.kv t γc Q hm Lq x.log log' skip Hmo $$ HQq
+      ihave #HQr := txnQhOn_res ρ.kv tw γc Q hm Lq x.log log' skip Hmo $$ HQq
       imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
       (try wp_auto)
       wp_apply HEnd
@@ -1030,14 +1036,14 @@ theorem EtcdServer.Txn.wp_proofOn
       isplitr
       · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
       iunfold txnAppliedOk
-      iexists hm, apply.withHeader (irrTxn t) hm, t', x, x', log', skip
+      iexists tw, hm, apply.withHeader (irrTxn tw) hm, t', x, x', log', skip
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       iframe Hhdr Hcert Hpo HMint Hwit Hcok
       isplitr
       rotate_left
       · iexact HQ
       ipureintro
-      refine ⟨Hwire, Ht', fun _ => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
+      refine ⟨trivial, Hwire, Ht', fun _ => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
       simp [apply.withHeader, irrTxn] at Ht'
       exact Ht'.symm
     · obtain ⟨rfl, Hne⟩ := Hre
@@ -1054,6 +1060,8 @@ theorem EtcdServer.Txn.wp_proofOn
         · ipureintro; exact ⟨by first | rfl | trivial, Hne⟩
         iframe HaE
         iunfold txnErrOk
+        iexists tw
+        isplitr; · ipureintro; rfl
         iexact Hfail
       · exact absurd rfl Hne
   · exfalso; rw [Hro] at hro; cases hro

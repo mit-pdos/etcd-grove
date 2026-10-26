@@ -314,13 +314,16 @@ images a member applies; D22 receiver epochs, S8d, W6, 2026-10-25): the `members
 keys and JSON values, the cluster version, the downgrade record), the members include `c`'s local
 member and are the static cluster's (those of `bootOk`'s `Members()` contract, with the directory's
 peer URLs), none removed, and the cluster version is one `MustDetectDowngrade` accepts for this
-server (no downgrade). -/
-opaque membership.memBucketsOk (c : Loc) (mem rem cl : Option backend.BktData) : Prop
+server (no downgrade); (2026-10-25, the user's decision) the members it decodes to are `ms`
+(`c.members` after `UnsafeLoad`, each as the record its JSON unmarshals to, `clusterMem`'s). -/
+opaque membership.memBucketsOk (c : Loc) (ms : GMap w64 apply.MemberM)
+  (mem rem cl : Option backend.BktData) : Prop
 
-/-- **The tracked buckets `r` hold an image good for the cluster `c`** (`memBucketsOk` of its three
-membership buckets; what `RaftCluster.Recover`'s axiom takes). -/
-def membership.clusterImageOk (c : Loc) (r : GMap GoString backend.BktData) : Prop :=
-  membership.memBucketsOk c (r.lookup go!"members") (r.lookup go!"members_removed")
+/-- **The tracked buckets `r` hold an image good for the cluster `c`, of the members `ms`**
+(`memBucketsOk` of its three membership buckets; what `RaftCluster.Recover`'s axiom takes). -/
+def membership.clusterImageOk (c : Loc) (r : GMap GoString backend.BktData)
+    (ms : GMap w64 apply.MemberM) : Prop :=
+  membership.memBucketsOk c ms (r.lookup go!"members") (r.lookup go!"members_removed")
     (r.lookup go!"cluster")
 
 /-- **The server's objects on the backend at `be`** (D22 receiver epochs, S7c, S7e): the alarm

@@ -61,38 +61,40 @@ snapshot from `Snapshot()` (an application's snapshot at or below the floor).
 
 (D22 S-b′2, 2026-10-20) The new snapshot comes with its certificate in the storage's registry, at
 any term (`memStorCert`; an any-term entry, `CertKey`, gives it), since the call reads the term
-from the storage: the snapshot's home keeps it (`memSnapHome`). -/
+from the storage: the snapshot's home keeps it (`memSnapHome`).
+
+**Logically atomic (D22 J3, 2026-10-26).** etcd's raft goroutine may apply a received snapshot
+(`ApplySnapshot`) while the apply job is here (`notes/j3-overlap-test/`), so the token's ghost part
+(`memSnapTokG`, the snapshot and the boundary) is shared, and the method is atomic in it: the
+caller gives it at the linearization point (inside the storage's lock, as soon as the call has read
+the storage's snapshot index), with the premise and the certificate for the token then, and gets
+it back unchanged (`ErrSnapOutOfDate`) or at the new snapshot. The application's key
+(`memKey γs.ak`, with which the call takes the snapshot out of `memSnapInv` for its whole critical
+section) is the caller's, given back; the clone, the conf state and the data bytes go to the
+postcondition. Mask `⊤ \ ↑memSnapN`. The triple of the token in hand (D19i part 1 to D22 J3) is
+its corollary `MemoryStorage.CreateSnapshot.spec_tok` (`MemstorageAU.lean`). -/
 abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σt : StorState) (x i : w64) (cs : Loc) (dq : DFrac)
+  ∀ (ms : Loc) (γs : MemStorNames) (x i : w64) (cs : Loc) (dq : DFrac)
     (oc : Option ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface),
-  (uint.Z σt.ss.index' < uint.Z i →
-    uint.Z σt.prev.index' ≤ uint.Z i ∧ uint.Z i ≤ uint.Z x) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Htok" ∷ memSnapTok ms γs σt ∗
-      "#Hfw" ∷ memFloorTok ms γs x ∗
-      "Hcs" ∷ (match oc with
-               | none => iprop(⌜cs = null⌝)
-               | some c => ownCSM cs dq c) ∗
-      "Hdata" ∷ data ↦* bs ∗
+  ⊢ ∀ Φ : val → IProp GF,
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      memSnapRO ms γs ∗ memKey γs.ak ∗ memFloorTok ms γs x ∗ memCsArg cs dq oc ∗ data ↦* bs ∗
+      globalAddr ErrSnapOutOfDate ↦□ eood) -∗
+    (|={⊤ \ ↑memSnapN, ∅}=> ∃ σt : StorState, memSnapTokG γs σt ∗
+      ⌜uint.Z σt.ss.index' < uint.Z i →
+        uint.Z σt.prev.index' ≤ uint.Z i ∧ uint.Z i ≤ uint.Z x⌝ ∗
       -- (D22 S-b′2, 2026-10-20) the new snapshot certified in the storage's registry, at whatever
       -- term the storage has at `i` (the call reads it)
-      "#Hcert" ∷ □ (∀ t : w64, memStorCert γs
+      □ (∀ t : w64, memStorCert γs
         (snapTrip (memSnapCreated σt i t oc bs) (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists)) ∗
-      "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
-    (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"CreateSnapshot"))
-      (Val #i)) (Val #cs)) (Val #data))
-  {{ (snap' : Loc) (err : GoInterface), RET (PairV #snap' #err);
-      (match oc with
-       | none => iprop(⌜cs = null⌝)
-       | some c => ownCSM cs dq c) ∗
-      ((⌜uint.Z i ≤ uint.Z σt.ss.index' ∧ snap' = null ∧ err = eood⌝ ∗
-        memSnapTok ms γs σt ∗ data ↦* bs) ∨
-      (∃ (t : w64), ⌜uint.Z σt.ss.index' < uint.Z i ∧ err = interface.nil⌝ ∗
-        ownSnapM snap' (DFrac.own 1) (memSnapCreated σt i t oc bs) ∗
-        memSnapTok ms γs { σt with ss := entryID.mk t i,
-                                   scs := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists,
-                                   sal := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.AutoLeave',
-                                   sdat := bs })) }}
+      ((⌜uint.Z i ≤ uint.Z σt.ss.index'⌝ -∗ memSnapTokG γs σt ={∅, ⊤ \ ↑memSnapN}=∗
+          (memKey γs.ak -∗ memCsArg cs dq oc -∗ data ↦* bs -∗ Φ (PairV #null #eood))) ∧
+       (∀ t : w64, ⌜uint.Z σt.ss.index' < uint.Z i⌝ -∗
+          memSnapTokG γs (memStorCreated σt i t oc bs) ={∅, ⊤ \ ↑memSnapN}=∗
+          (∀ snap' : Loc, ownSnapM snap' (DFrac.own 1) (memSnapCreated σt i t oc bs) -∗
+            memKey γs.ak -∗ memCsArg cs dq oc -∗ Φ (PairV #snap' #interface.nil))))) -∗
+    WP (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"CreateSnapshot"))
+      (Val #i)) (Val #cs)) (Val #data)) {{ Φ }}
 
 end spec
 

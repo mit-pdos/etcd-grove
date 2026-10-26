@@ -697,7 +697,6 @@ axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
-axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
@@ -732,4 +731,3 @@ sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
 sorry rafthttp.Transport.RemoveAllPeers.wp_proof
-sorry storage.NewTooLargeResourceVersionError.wp_proof

@@ -46,9 +46,18 @@ state keeps the owner's floor, which the snapshot must cover.
 (D22 S-d4, 2026-10-21) The snapshot owned, or at any fraction with every pointer field set
 (`snapArg`, `ownSnapS`): `EnsureSnapshot` then writes nothing, and the call only reads it -- a
 `Ready`'s snapshot, whose other half the node's queued acknowledgement holds (D22 S-d3a), applied
-by the application before `Advance`. Given back at the same fraction (`ownSnapM`). -/
+by the application before `Advance`. Given back at the same fraction (`ownSnapM`).
+
+**Logically atomic (D22 J3, 2026-10-26).** In etcd, raft's goroutine calls it while the apply job
+may be in `CreateSnapshot`/`Compact` (`notes/j3-overlap-test/`), so the application's token is
+shared: its ghost part (`memSnapTokG`, the snapshot and the boundary) is given at the
+linearization point (inside the storage's lock, where the storage's snapshot and boundary are the
+lock's and the home's), and comes back unchanged (`ErrSnapOutOfDate`, the test against the token's
+snapshot) or at the new snapshot. The owner's `ownMemoryStorage` and the argument are given to the
+postcondition, after the linearization point. Mask `⊤ \ ↑memSnapN`. The triple of the token in hand
+(D17d to D22 J3) is its corollary `MemoryStorage.ApplySnapshot.spec_tok` (`MemstorageAU.lean`). -/
 abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (sp : Loc) (sv : SnapshotM) (dq : DFrac)
+  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (sp : Loc) (sv : SnapshotM) (dq : DFrac)
     (eood : GoInterface),
   σ.pend = [] →
   uint.Z sv.Metadata'.Index' < 2^61 →
@@ -56,24 +65,22 @@ abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
   uint.Z σ.fl ≤ uint.Z sv.Metadata'.Index' →
   -- (2026-10-19, D21 M3) and is within the storage's cap, the new boundary
   uint.Z sv.Metadata'.Index' ≤ γs.cap →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms γs σ ∗
-      "Htok" ∷ memSnapTok ms γs σt ∗
-      "Hsnap" ∷ snapArg sp dq sv ∗
+  ⊢ ∀ Φ : val → IProp GF,
+    (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      ownMemoryStorage ms γs σ ∗ snapArg sp dq sv ∗
       -- (D22 S-b′2, 2026-10-20) the new snapshot certified in the storage's registry
-      "#Hcert" ∷ memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
-      "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
-    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot"))
-      (Val #sp))
-  {{ (err : GoInterface), RET #err;
-      ownSnapM sp dq sv ∗
-      ((⌜σt.ss.index' ≠ W64 0 ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index' ∧
-          err = eood⌝ ∗
-        ownMemoryStorage ms γs σ ∗ memSnapTok ms γs σt) ∨
-      (⌜¬ (σt.ss.index' ≠ W64 0 ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index') ∧
-          err = interface.nil⌝ ∗
-        ownMemoryStorage ms γs { memStorApplied sv with fl := σ.fl } ∗
-        memSnapTok ms γs (memStorApplied sv))) }}
+      memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
+      globalAddr ErrSnapOutOfDate ↦□ eood) -∗
+    (|={⊤ \ ↑memSnapN, ∅}=> ∃ σt : StorState, memSnapTokG γs σt ∗
+      ((⌜σt.ss.index' ≠ W64 0 ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index'⌝ -∗
+          memSnapTokG γs σt ={∅, ⊤ \ ↑memSnapN}=∗
+          (ownSnapM sp dq sv -∗ ownMemoryStorage ms γs σ -∗ Φ #eood)) ∧
+       (⌜¬ (σt.ss.index' ≠ W64 0 ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index')⌝ -∗
+          memSnapTokG γs (memStorApplied sv) ={∅, ⊤ \ ↑memSnapN}=∗
+          (ownSnapM sp dq sv -∗ ownMemoryStorage ms γs { memStorApplied sv with fl := σ.fl } -∗
+            Φ #interface.nil)))) -∗
+    WP (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot"))
+      (Val #sp)) {{ Φ }}
 
 end spec
 

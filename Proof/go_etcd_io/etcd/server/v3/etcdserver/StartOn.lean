@@ -48,14 +48,16 @@ def kvRunOn (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : appl
   iprop((∃ st : auth.AuthState, kvAppliedOn γr.raft γr.kv srvAuthSt0 A x st) ∗
     ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝)
 
-/-- **The apply thread's resources at `ai₀` in the mode `on`** (`applyBuilt` with `kvRunOn`). -/
+/-- **The apply thread's resources at `ai₀` in the mode `on`** (`applyBuilt` with `kvRunOn`, and,
+since E3c, the auth resource at the model's start state `srvAuthSt0`: the store's history's latest
+state, `srvAuthApplyResAt`). -/
 def applyBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
-    revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
+    revAuth E x₀.log ∗ srvAuthApplyResAt s E srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunOn γr ai₀ c₀ [] x₀ ∗
     srvRest E γr [] ∗ srvForceSnapAddr s ↦ f)
 
@@ -187,7 +189,7 @@ theorem isServerBuilt_of_gapOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
   · ipureintro; exact Hρrd
   isplitr
   · ipureintro; exact Hbound
-  unfold applyBuiltNA applyBuiltOn
+  unfold applyBuiltNAM applyBuiltNAOn applyBuiltOn
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hfs⟩
   iexists st₀, a, t, f
   iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hfs

@@ -56,7 +56,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           cs0 v2 m.asV2 (DFrac.own 1) Hpre s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
-          $Hloanc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
+          $Hloanc $Hsloc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
       simp only [named]
@@ -80,7 +80,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           cs0 p m dq Hpre s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
-          $Hloanc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
+          $Hloanc $Hsloc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
       simp only [named]
@@ -122,7 +122,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan (Hdom' ▸ Hok)
         (trackedOk_shrink Htrk Hlp Hdom') Hnl
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hlc1 with Hrn
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
       simp only [named]
@@ -209,7 +209,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan (Hdom' ▸ Hok)
         (trackedOk_shrink Htrk Hlp Hdom') Hnl
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hlc1 with Hrn
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
       simp only [named]

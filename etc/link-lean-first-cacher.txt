@@ -8,14 +8,18 @@ tracing_SpanFromContext:
 Span__AddEvent:
 HistogramVec__WithContext:
 time_Duration__Seconds:
-# k8s.io/apiserver/pkg/storage (its proof `sorry`: it needs `apierrors.NewTimeoutError`)
-NewTooLargeResourceVersionError:
+# k8s.io/apimachinery/pkg/api/errors (`NewTimeoutError` translated with its body; it and
+# `NewTooLargeResourceVersionError` call Perennial's `fmt.wp_Sprintf`)
+NewTimeoutError:
+# k8s.io/apiserver/pkg/storage
+NewTooLargeResourceVersionError: NewTimeoutError
 # the B-tree, linked in its own package's Link.lean
 btree_New: @
 BTree__Clone: @
 BTree__Get: @
 BTree__ReplaceOrInsert: @
 BTree__Delete: @
+BTree__Clear: @
 #
 # k8s.io/apiserver/pkg/storage/cacher/store (`btree.go`, `store.go`)
 newBtreeStore: btree_New
@@ -25,6 +29,7 @@ btreeStore__getByKey: BTree__Get
 btreeStore__GetByKey: btreeStore__getByKey
 btreeStore__addOrUpdateElem: BTree__ReplaceOrInsert
 btreeStore__deleteElem: BTree__Delete
+btreeStore__Replace: BTree__Clear btreeStore__addOrUpdateElem
 indexer__add:
 indexer__delete:
 indexer__updateElem: indexer__add indexer__delete
@@ -44,3 +49,6 @@ watchCache__getLatestSnapshotLocked: watchCache__checkSnapshotResourceVersion Wa
 watchCache__waitUntilFreshLocked: ConditionalProgressRequester__Add ConditionalProgressRequester__Remove HistogramVec__WithContext time_Duration__Seconds NewTooLargeResourceVersionError
 watchCache__waitAndGetLatestSnapshot: watchCache__waitUntilFreshLocked watchCache__getLatestSnapshotLocked tracing_SpanFromContext Span__AddEvent
 watchCache__WaitUntilFreshAndGet: watchCache__waitAndGetLatestSnapshot WatchCacheStorage__LatestSnapshot btreeStore__ResourceVersion btreeStore__GetByKey tracing_SpanFromContext Span__AddEvent
+# (not linked: `Cacher.get`'s spec names a field of `Cacher`, a type Goose axiomatizes, whose
+# generated instances are `sorry -- axiomatized type`, CLAUDE.md; its proof is
+# `Proof/k8s_io/apiserver/pkg/storage/cacher/Cacher__get.lean`)

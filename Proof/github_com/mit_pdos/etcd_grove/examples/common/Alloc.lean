@@ -65,7 +65,7 @@ theorem alloc1 (id : w64) (bootLog : List EntryM)
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hcinv, #Hcomm, -, Hghosts, #Hkv, Hetcd, #Hcl, #H0,
       #Hpm, #Hrc, Hms, Hwns⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hc0, hch, hlog, hiss⟩ := Hγ
-  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, HrdC⟩, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, HrdC, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
   imod budget_alloc_boot (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb⟩
   imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp Hwn
@@ -96,7 +96,7 @@ theorem alloc1 (id : w64) (bootLog : List EntryM)
   rw [etcdKV_congr ρ.rd.kv γk hst,
     show kvModelSt ρ.rd.kv (bootEntries bootLog) = kvModelSt γk (bootEntries bootLog) by
       unfold kvModelSt kvLeases kvModel; rw [hc0', hch', hlog']]
-  iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd
+  iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd Hsd
   isplitr
   · ipureintro
     refine ⟨rfl, ?_, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,

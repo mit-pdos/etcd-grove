@@ -164,6 +164,27 @@ theorem srvKVInvsM_false (E : apply.AEnv GF) (γr : ReadNames) :
 theorem srvKVInvsM_true (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) true E γr = srvKVInvsOn E γr srvAuthSt0 := rfl
 
+/-- **`applyBuiltNA` in the auth mode `on`** (the auth plan's E3c): the apply thread's auth
+resource at the store's start state (`srvAuthApplyResAt` at `srvAuthSt0`, the latest state of the
+store's history `[bootState, bump bootState]`), what ties the apply thread's auth state to the
+model's from the start (`applyBuiltOn`). -/
+def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
+    (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
+  iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
+    applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
+    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
+    revAuth E x₀.log ∗ srvAuthApplyResAt s E srvAuthSt0 ∗
+    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
+    srvForceSnapAddr s ↦ f)
+
+/-- **`applyBuiltNA` in the auth mode `on`**: `applyBuiltNA` at `on = false` (by definition),
+`applyBuiltNAOn` at `on = true`. -/
+def applyBuiltNAM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
+  match on with
+  | false => applyBuiltNA s γ ci b E γr ai₀ c₀ x₀
+  | true => applyBuiltNAOn s γ ci b E γr ai₀ c₀ x₀
+
 /-- **The built part in the auth mode `on`** (`srvBuilt` with `srvReqBuiltM`, `srvKVInvsM` and
 `srvCM`; the other rows `srvBuilt`'s). -/
 def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -202,7 +223,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hnot" ∷ (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
-    "Happ" ∷ applyBuiltNA s γ ci b E γr ai₀ c₀ x₀ ∗
+    "Happ" ∷ applyBuiltNAM on s γ ci b E γr ai₀ c₀ x₀ ∗
     "Hlr" ∷ srvLgReader s ∗
     "Hlrl" ∷ srvLgReader s ∗
     "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
@@ -227,6 +248,31 @@ theorem srvBuiltG_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → 
       srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N := rfl
 
 end defs
+
+section lemmas
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+open Iris.ProofMode in
+/-- **`applyBuiltNAM` from the mode-`on` row** (E3c): the mode-`on` row is the mode-off one with
+the auth resource at its latest state, which the mode-off row forgets (`srvAuthApplyRes_of_At`). -/
+theorem applyBuiltNAM_of_On (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) :
+    applyBuiltNAOn (GF := GF) s γ ci b E γr ai₀ c₀ x₀ ⊢ applyBuiltNAM on s γ ci b E γr ai₀ c₀ x₀ := by
+  cases on
+  · unfold applyBuiltNAM applyBuiltNAOn applyBuiltNA
+    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hfs⟩
+    iexists st₀, a, t, f
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hfs
+    isplitr
+    · ipureintro; exact Hok
+    iapply srvAuthApplyRes_of_At $$ Har
+  · unfold applyBuiltNAM
+    iintro H; iexact H
+
+end lemmas
 
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

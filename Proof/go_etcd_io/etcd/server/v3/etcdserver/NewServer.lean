@@ -274,7 +274,7 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (leases T3, 2026-10-25) the backend's delete, for the lessor's in the store's contract
     (h94 : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on := by
-  intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
+  intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir γd HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok Hauthcfg
   wp_start
   iNamed Hpre
@@ -766,8 +766,9 @@ theorem NewServer.wp_proofM (on : Bool)
     exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1, Hrn2],
       by rw [Hrn1]; exact Hnosnap.1, hb, by rw [Hrn1]; exact Hnoxfer⟩
   -- (D22 S-i) the member's snapshot directory, empty (a fresh data directory), for the
-  -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j)
-  imod (snapDir_alloc bs.ss' γn.N.img (fun _ => iprop(True)) ⊤) with ⟨%γd, #Hsdir⟩
+  -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j); (2026-10-26, D22 J2) at
+  -- the names raft's names give the member (`RaftNames.reSnapLoc`, `snapDir_init`)
+  imod (snapDir_init bs.ss' γd γn.N.img (fun _ => iprop(True)) ⊤) $$ Hsdir with #Hsdir
   ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
   -- (rafthttp stage 6d) the member's URLs, read-only; it is a member of the directory (raft's peer)
@@ -1226,13 +1227,14 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Hpool kv Hws Htag
     iframe Hwrx
   -- (the auth plan's E2k) the auth store's resources for the apply thread
-  ihave HAR : srvAuthApplyRes s
-      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF) $$ [HAres]
-  · unfold srvAuthApplyRes
+  ihave HAR : srvAuthApplyResAt s
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF) srvAuthSt0 $$ [HAres]
+  · unfold srvAuthApplyResAt
     iexists astl
     rw [← Hastl]
     iframe authStore
-    iexact HAres
+    iExactEq HAres
+    rfl
   imodintro
   iapply HΦ
   iright
@@ -1363,8 +1365,9 @@ theorem NewServer.wp_proofM (on : Bool)
   isplitl [Hnot]
   · iexact Hnot
   isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe]
-  · -- `Happ`
-    unfold applyBuiltNA srvBemuReaderAt
+  · -- `Happ` (E3c: the mode-`on` row, the auth resource at the store's start state)
+    iapply applyBuiltNAM_of_On
+    unfold applyBuiltNAOn srvBemuReaderAt
     iexists ⟨W64 0, W64 0, W64 0, false⟩, W64 0, W64 0, false
     iframe Hthr Happ Hlr5 Hbmr Haown forceDiskSnapshot
     isplitr
@@ -1553,7 +1556,7 @@ theorem NewServer.wp_proofM (on : Bool)
       isplitr
       · ipureintro; rfl
       iintro !> %C %HC
-      obtain ⟨cst, cb, hC, hcp⟩ := HC
+      obtain ⟨cst, cb, hC, hcp, -⟩ := HC
       subst hC
       iintro %Φ' !> Hpre HΦ'
       iapply (wp_wand (Φ := fun w => iprop((∀ x : w64,
@@ -1726,11 +1729,11 @@ theorem NewServer.wp_proof
     h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h87 h88 h89 h90 h91 h92 h93 h94
-  intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
+  intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir γd HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok
   -- the mode off's post (the apply thread's auth resource, `True` in the mode off, is in
   -- `srvBuilt`'s `applyBuiltNA` since E2m)
-  have h' := h cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn
+  have h' := h cfg U γ bud id bootLog ρ E₀ N Φs γn dir γd HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn
     Hcbl Hacr Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok (fun h => absurd h (by decide))
   rw [bootKVOf_false] at h'
   -- (the auth plan's E2w) the mode-indexed rows at `false` are today's

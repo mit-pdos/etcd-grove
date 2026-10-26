@@ -275,7 +275,6 @@ axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3compactor.New.wp_proof
-axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof

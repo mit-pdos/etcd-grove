@@ -72,6 +72,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.Latest
+public import Proof.go_etcd_io.etcd.server.v3.auth.ReadLb
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
@@ -84,6 +85,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AdminChain
 public import Proof.go_uber_org.zap.Int
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAllocOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyTieOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyEntryOn
 
 @[expose] public section
 
@@ -437,7 +441,9 @@ from an earlier application of the same id). With `request_handoff`: a proposer 
 context ended first. Since 2026-10-14 (unit C2a), with the apply thread's applied-index resources
 at `v = m.index - 1` (`srvAppliedOwn`, the log `appliedLogAt γr v x.log`) and the entry committed
 (`committedAtLeast γr m.index`): the KV log after the entry is deposited ahead as the log applied
-through `m.index` (`srvAppliedPre`), the witness the result carries. -/
+through `m.index` (`srvAppliedPre`), the witness the result carries. (D22 S8d, 2026-10-26: with
+`v3`, the state loaded, `stLoaded γ st = st`, as `apply`'s `ConsistentIndex` leaves it:
+`applyEntryNormal`'s premise, `notes/decisions.md`.) -/
 theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (b : GoInterface) (e : Loc) (m : EntryModel)
     (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV) (γr : ReadNames) (rq : apply.IRRModel)
@@ -454,7 +460,7 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
-              uint.Z (ciEff γ st.k) < uint.Z m.index⌝)
+              uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
          else iprop(True)) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
         (Val #e)) (Val #v3))
@@ -741,10 +747,10 @@ end read
 through the uber-applier's chain `alarmChain on ns cr`, the transaction `t'` of the decoded request
 has the outcome `alarmTxn` (the txn package's `txnModel`, or a layer's rejection), the log after
 the outcome's. -/
-theorem txn_applied_model (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
+theorem txn_applied_model (tw : txn.TxnModelW) (t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
     (x x' : apply.ApplyKV) (o : apply.Outcome) (skip on ns cr : Bool)
     (hc : x.chain = apply.alarmChain on ns cr)
-    (hw : irrWireOf (apply.withHeader (irrTxn t) hm) rq')
+    (hw : irrWireOf (apply.withHeader (irrTxn tw) hm) rq')
     (ht : rq'.txn = some t')
     (h : apply.applyStep rq' true x x' (.dispatched o skip)) :
     x'.log = o.logAfter x.log ∧ apply.alarmTxn ns cr t' x.log o := by
@@ -1221,18 +1227,6 @@ theorem apply_AuthDisable_fuel :
     EtcdGrove.apply.applierV3backend.AuthDisable.fuelSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.AuthDisable.wp_fuel apply_AuthDisable_step
 
-/-- **The backend applier's admin triples in the mode `on γa`** (the auth plan's E2m,
-`apply/AdminChain.lean`): `SetUp`'s five admin requests from the fuel triples, which every layer
-of the chain passes on (`applierAdmin_quota`, `_capped`, `_corrupt`, `_auth`). -/
-theorem apply_admin_backend (E : EtcdGrove.apply.AEnv GF) (W : IProp GF) (p : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      EtcdGrove.apply.backendIs E p ∗ EtcdGrove.apply.backendAuthSteps E p W ⊢
-      EtcdGrove.apply.applierAdmin E .backend
-        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) W
-        auth.authOwnFu :=
-  EtcdGrove.apply.applierAdmin_backend apply_UserAdd_fuel apply_RoleAdd_fuel apply_UserGrantRole_fuel
-    apply_RoleGrantPermission_fuel apply_AuthEnable_fuel E W p
-
 end backend
 
 #print axioms Perennial.EtcdGrove.lessor_server_contract
@@ -1263,7 +1257,6 @@ end backend
 #print axioms Perennial.EtcdGrove.apply_RoleRevokePermission_fuel
 #print axioms Perennial.EtcdGrove.apply_RoleDelete_fuel
 #print axioms Perennial.EtcdGrove.apply_AuthDisable_fuel
-#print axioms Perennial.EtcdGrove.apply_admin_backend
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
@@ -1308,6 +1301,25 @@ end latest
 #print axioms Perennial.EtcdGrove.auth_put_permitted_latest
 #print axioms Perennial.EtcdGrove.auth_range_permitted_latest
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_latest
+
+section readLb
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The store's locked read transaction no older than a published index** (the auth plan's E3g,
+`auth/ReadLb.lean`): a reader holding a lower bound `i` of the history's published index
+(`authPubLbM`) gets a read transaction at a state recorded at an index at least `i`, over the
+backend's read contract's lower-bound clause. -/
+theorem auth_locked_read_tx_lb :
+    auth.authStore.lockedReadTx.specLb (GF := GF) (hG := hG) :=
+  auth.authStore.lockedReadTx.wp_lb
+
+end readLb
+
+#print axioms Perennial.EtcdGrove.auth_locked_read_tx_lb
 
 section latestApply
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -1558,18 +1570,19 @@ end kvLatest
 /-- **The apply thread's KV outcome is the mode-`on` model's** (the auth plan's E2v/E2y,
 `KVOutcomeOn.lean`): the dispatched verdict at the latest state (`kvOutL`, `apply_apply_kv_latest`)
 gives E2t's `outcomeOn`, for a plain KV request at the start chain with auth on and no alarm,
-without `"\x00"` range ends and, for a transaction, `txnVerdictOwn`. -/
+without `"\x00"` range ends (a transaction's verdict on its own permissions a theorem since E3e,
+`txnVerdictOwn_of`). -/
 theorem kv_outcome_on_latest [ext : FfiSyntax] (c₀ : w64) (s : auth.AuthState × mvcc.Log)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : EtcdGrove.apply.needAdminPermission rq = false)
     (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true) (hp : plainCover rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
-    (hz : noZeroEnds rq) (htx : txnVerdictOwn (.on γa) hs rq) (oc : EtcdGrove.apply.Outcome)
+    (hz : noZeroEnds rq) (oc : EtcdGrove.apply.Outcome)
     (h : EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
       (.quota .backend) rq s.2 oc) :
     outcomeOn c₀ (EtcdGrove.apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) :=
-  outcomeOn_of_kvOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz htx oc h
+  outcomeOn_of_kvOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz oc h
 
 #print axioms Perennial.EtcdGrove.auth_user_add_tie_sure
 #print axioms Perennial.EtcdGrove.apply_applier_kv_latest
@@ -1577,6 +1590,91 @@ theorem kv_outcome_on_latest [ext : FfiSyntax] (c₀ : w64) (s : auth.AuthState 
 #print axioms Perennial.EtcdGrove.apply_uber_apply_kv_latest
 #print axioms Perennial.EtcdGrove.apply_apply_kv_latest
 #print axioms Perennial.EtcdGrove.kv_outcome_on_latest
+
+section adminLatest
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The auth applier's `Apply` with the admin check at the latest state** (the auth plan's E3c,
+`apply/ApplyAdminL.lean`), every callee linked. -/
+theorem apply_auth_apply_latest :
+    EtcdGrove.apply.authApplierV3.Apply.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission
+
+/-- **The base chain's inner applier does not reject** (the auth plan's E3c): the quota applier
+over the backend. -/
+theorem apply_apply_nr_base (pq pb : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3 go!"applierV3" pq ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #pb : GoInterface) ⊢
+      EtcdGrove.apply.applyNR (.quota .backend)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3.ty) #pq) :=
+  EtcdGrove.apply.applyNR_base Perennial.EtcdGrove.apply.applierV3backend.wp_Apply pq pb
+
+/-- **The auth applier's latest-state `Apply` as an applier fact** (the auth plan's E3c). -/
+theorem apply_applier_admin_latest (E : EtcdGrove.apply.AEnv GF) (c : EtcdGrove.apply.Chain)
+    (inner : GoInterface) (p : Loc) (L : List auth.AuthState → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      EtcdGrove.apply.authIs E p inner ∗ EtcdGrove.apply.authIsL E p L ∗
+      EtcdGrove.apply.applyNR c inner ⊢
+      EtcdGrove.apply.applierAdmL E (.auth E.authOn c)
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3.ty) #p) L :=
+  EtcdGrove.apply.applierAdmL_auth apply_auth_apply_latest E c inner p L
+
+/-- **`dispatch` on an admitted admin request** (the auth plan's E2n, `apply/DispatchAdmin.lean`),
+every callee linked. -/
+theorem apply_dispatch_admin :
+    EtcdGrove.apply.uberApplier.dispatch.adminSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.uberApplier.dispatch.wp_admin Perennial.EtcdGrove.apply.errors.wp_Is
+    Perennial.EtcdGrove.txn.wp_ApplySecObserve Perennial.EtcdGrove.apply.txn.wp_WarnOfExpensiveRequest
+    Perennial.EtcdGrove.apply.txn.wp_WarnOfFailedRequest
+
+/-- **The uber-applier's `Apply` on an admitted admin request with no alarm set, the admin check at
+the latest state** (the auth plan's E3c, `apply/ApplyAdminL.lean`). -/
+theorem apply_uber_apply_admin_latest :
+    EtcdGrove.apply.uberApplier.Apply.adminSpecL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.uberApplier.Apply.wp_adminL apply_dispatch_admin
+
+/-- **`apply.Apply` on an admitted admin entry with no alarm set, the admin check at the latest
+state** (the auth plan's E3c, `apply/ApplyFnAdminL.lean`): a rejected entry's check refused at the
+latest state (`adminStateR_of_rejL`), a dispatched one's passed (`adminOk_of_passL`). -/
+theorem apply_apply_admin_latest :
+    EtcdGrove.apply.Apply.adminSpecL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.Apply.wp_adminL Perennial.EtcdGrove.apply.pbutil.wp_MustUnmarshalMessage
+    Perennial.EtcdGrove.apply.zap.wp_Stringer Perennial.EtcdGrove.apply.zap.Logger.wp_Debug
+    Perennial.EtcdGrove.apply.wp_noSideEffect apply_uber_apply_admin_latest
+
+end adminLatest
+
+/-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
+auth plan's E3c, `ApplyTieOn.lean`): `adminStateR`'s two cases from the latest-state verdicts. -/
+theorem admin_state_of_latest [ext : FfiSyntax] (γa : auth.AuthNames) (hs : List auth.AuthState)
+    (st : auth.AuthState) (rq : EtcdGrove.apply.IRRModel) (hl : hs.getLast? = some st) :
+    (EtcdGrove.apply.adminRejL (.on γa) hs rq → adminStateR rq st st) ∧
+      (EtcdGrove.apply.needAdminPermission rq = true → EtcdGrove.apply.adminPassL (.on γa) hs rq →
+        auth.adminOk st (some (auth.authInfoM (EtcdGrove.apply.principalOf rq)))) :=
+  ⟨adminStateR_of_rejL γa hs st rq hl, adminOk_of_passL γa hs st rq hl⟩
+
+/-- **`AuthEnable`'s result is the model's step at the latest state's flag** (the auth plan's E3c,
+`ApplyTieOn.lean`): `AdminReq.result`'s relation `authEnableR` in the mode `on`. -/
+theorem admin_state_auth_enable [ext : FfiSyntax] (γa : auth.AuthNames) (rq : EtcdGrove.apply.IRRModel)
+    (st : auth.AuthState) (en : Bool) (o : auth.Outcome)
+    (ha : auth.adminOk st (some (auth.authInfoM (EtcdGrove.apply.principalOf rq))))
+    (hk : EtcdGrove.apply.dispatchKind rq = .authEnable) (h : EtcdGrove.apply.authEnableR (.on γa) en st o) :
+    adminStateR rq st (outState st o) :=
+  adminStateR_of_authEnable γa rq st en o ha hk h
+
+#print axioms Perennial.EtcdGrove.apply_auth_apply_latest
+#print axioms Perennial.EtcdGrove.admin_state_auth_enable
+#print axioms Perennial.EtcdGrove.apply_apply_nr_base
+#print axioms Perennial.EtcdGrove.apply_applier_admin_latest
+#print axioms Perennial.EtcdGrove.apply_dispatch_admin
+#print axioms Perennial.EtcdGrove.apply_uber_apply_admin_latest
+#print axioms Perennial.EtcdGrove.apply_apply_admin_latest
+#print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -1810,7 +1908,8 @@ theorem server_cluster_alloc_on (cfg nodes : GSet w64) (ccOk : w32 → List w8 �
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          rdCred γ (2 ^ 48))) ∗
+          rdCred γ (2 ^ 48) ∗
+          ∃ γd : GName, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) :=
   srvClusterBootOn_alloc cfg nodes ccOk ps bootLog Φs Hcne Hnz Hcfg hboot hpol Hpd Hp0
 
@@ -1992,6 +2091,51 @@ theorem server_txn_on : EtcdServer.Txn.specOn (GF := GF) (hG := hG) :=
 
 end serverProposeOn
 
+section applyEntryOn
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **Before `apply.Apply` on a KV entry with auth on** (the auth plan's E3f, `ApplyEntryOn.lean`):
+the model's state after the entry certified, and the certificates the latest-state triple asks. -/
+theorem apply_kv_entry_pre_on (E : EtcdGrove.apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState)
+    (A : List EntryModel) (m : EntryModel) (x : EtcdGrove.apply.ApplyKV) (st : auth.AuthState)
+    (rq : EtcdGrove.apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z γr.kv.c0 < uint.Z m.index)
+    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true)
+    (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some st)
+    (hz : noZeroEnds rq)
+    (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2.length < 2 ^ 63) :
+    ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st -∗
+      srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
+      ⌜plainCover rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
+        entryDetOn γr.kv.c0 (st, x.log) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false⌝ ∗
+      EtcdGrove.apply.certPreVW true E x.chain rq x.log
+        (EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
+          (.quota .backend) rq x.log) ∗
+      kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log) m) :=
+  kv_entry_pre_on E γr st₀ A m x st rq ht hd hdec hv hk γa hs hl hz hlen
+
+/-- **After `apply.Apply` on a KV entry with auth on** (E3f): the apply thread's state is the
+model's (`kvOn_after_kv`). -/
+theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (x x' : EtcdGrove.apply.ApplyKV)
+    (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (out : EtcdGrove.apply.ApplyOut)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : EtcdGrove.apply.irrDecode m.data = some rq)
+    (hv : uint.Z c₀ < uint.Z m.index) (hna : EtcdGrove.apply.needAdminPermission rq = false)
+    (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true) (hp : plainCover rq)
+    (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some st)
+    (hz : noZeroEnds rq)
+    (hdet : entryDetOn c₀ (st, x.log) m) (hch : x.chain = EtcdGrove.apply.alarmChain true false false)
+    (hstep : EtcdGrove.apply.applyStep rq true x x' out)
+    (hout : ∀ o b, out = .dispatched o b →
+      EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
+        (.quota .backend) rq x.log o) :
+    x'.chain = x.chain ∧ (st, x'.log) = kvEntryOn c₀ x.chain (st, x.log) m :=
+  kvOn_after_kv c₀ st x x' m rq out ht hd hdec hv hna hk hp γa hs hl hz hdet hch hstep hout
+
+end applyEntryOn
+
 end EtcdGrove
 end Perennial
 #print axioms Perennial.EtcdGrove.server_run
@@ -2004,3 +2148,6 @@ end Perennial
 #print axioms Perennial.EtcdGrove.server_put_on
 #print axioms Perennial.EtcdGrove.server_delete_range_on
 #print axioms Perennial.EtcdGrove.server_txn_on
+
+#print axioms Perennial.EtcdGrove.apply_kv_entry_pre_on
+#print axioms Perennial.EtcdGrove.apply_kv_after_on
