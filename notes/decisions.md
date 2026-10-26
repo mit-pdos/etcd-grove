@@ -21043,4 +21043,4 @@ No closed theorem changed. New: `auth/TieRes.lean`, `apply/AuthStepsX.lean`, `KV
 theorems, and in `etcdserver/Results.lean` `apply_auth_steps_tie`, `apply_X_fuelX`,
 `apply_admin_backendX`.
 
-**Trust base.** Unchanged (718 axioms, 6 sorries).
+**Trust base.** Unchanged by E2v (721 axioms, 6 sorries after merging `lean` at b8877b9fc6).
