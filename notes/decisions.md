@@ -20062,3 +20062,85 @@ non-null lemmas), `apply.adminReqOf`, `apply.adminDone`, `apply.uberApplier.disp
 (`pbutil.MustUnmarshalMessage.wp_proof`, its post `internalRaftRequestIs`) says
 more of a decoded `AuthUserAdd`, `AuthUserGrantRole` and `AuthRoleGrantPermission` request (their
 fields, read-only), as of every other request field.
+
+## E2o of the auth plan: the admin request through `uberApplier.Apply` and `apply.Apply`; the current applier's shape (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2n's "not done"): (1) a second `applyFunc` contract through the chain's `Apply` so that
+`uberApplier.Apply` runs `dispatch.wp_admin` for an admitted admin request; (2) `applyEntryNormal`
+in the mode `on` (the receipt at a Go step of the apply thread, the borrow of the rest's half of
+`be` as `W`, `srvAuthApplyRes`); (3) the current applier's admin triples at the apply thread
+((b): `uberOwn` after `restoreAlarms`); (4) the applied admin request's persistent witness to its
+waiter. Done: (1), (3), and `apply.Apply`'s admin triple (the first layer of (2)); (2)'s
+`applyEntryNormal` and (4) not (below).
+
+**(1) No second `applyFunc` contract was needed.** The chain's `Apply` clause
+(`applierTriples`' last) is already parametric in its `applyFunc`: it takes any function `af` with
+a triple `{chainRes c a (principalOf rq) ∗ A} af r v3 {chainResAny c a ∗ B ar}` of the caller's
+choosing. `apply.uberApplier.Apply.adminSpec`/`wp_admin` (new `apply/ApplyAdmin.lean`) instantiates
+it with `dispatch` and `dispatch.adminSpec`'s triple (E2n), `A` the authority with its fuel, the
+receipt and `W`, `B` `dispatch.adminSpec`'s post. Its precondition is `Apply.spec`'s but for the KV
+floor, the store's write token, the rest buckets and the certificates, with `adminKindOk rq` in
+place of `rqOk`, `isAuthSteps` of the options' auth store (for the base applier's admin triples),
+`auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W`; its post is `Apply.spec`'s (`applyStep`, `applyResultIs`,
+`applyAuthRes`, the uber-applier's state) but for the rest buckets (`restAfter` leaves them for an
+admin request, `restAfter_other`), with `W` back and `adminOut` (the dispatched request's
+`adminDone`; for a rejected one the authority and the unspent receipt back). The `applyAuthRes` of
+an admin request comes from `chainClass_nonKV` (new `adminKindOk_nonKV`).
+
+**`apply.Apply`'s admin triple** (`apply.Apply.adminSpec`/`wp_admin`, new
+`apply/ApplyFnAdmin.lean`): the same walk as `Apply.wp_proof` (decode, ID, the waiter check, the
+wrapper), with the uber-applier through its admin triple; a skipped request (no waiter, no side
+effect) spends nothing (`adminOut .skipped`: the authority and the receipt back). The uber-applier
+is given with its auth store's admin step facts (`apply.uberAuthSteps ua E W`, which implies
+`applierFor`).
+
+**(3) The current applier's shape in `uberOwn`, not a premise.** *Chosen:* `uberOwn E p c` gains
+`uberShape E p c a` (persistent): `c = alarmChain E.authOn ns cr` and `a` is the base applier
+(`applyV3base`) wrapped as those alarms ask (`alarmShape ns cr base a`, `Chain.lean`: the capped
+wrapper's and the corrupt wrapper's fields read-only, `cappedShape`/`corruptShape`).
+`applierAdmin_alarm` lifts the base's admin triples through the wrappers (E2m's
+`applierAdmin_capped`/`_corrupt`), `applierAdmin_cur` gives the current applier's from
+`applierAdmin_uber` and the shape (the two `applyV3base` points-to agree). *Considered:* "no alarm
+set" as a premise examples/authkv meets. *Rejected:* it is not smaller — the current applier is
+hidden in `uberOwn`'s existential, so even "no alarm" needs `uberOwn` to say which value the field
+holds; and the shape covers every alarm state, with no premise for the example to discharge.
+*Why it was cheap:* `uberOwn` has three users that take it apart (`uberApplier.Apply`,
+`NewUberApplier`, `InvApplier.applyKV_authOn`), not every proof that names it; and `dispatch`
+never changes the current applier (no alarm request is admitted, `rqOk`; its `Alarm` branch is
+dismissed), so `dispatch.spec`'s post now says so (`a' = a ∧ c' = c`), and the shape is kept by
+`Apply`. `restoreAlarms`' post gives the shape (from the capped and corrupt constructors' posts,
+which now give their fields).
+
+**(2) `applyEntryNormal` in the mode `on`: not done; the blocker is the committed log's
+invariant, not the apply call.** The server's KV invariants keep every committed normal entry's
+request "plain" (`kv_log_plain`, `plainCover`, `KVModelDefs.lean`: puts, deletes, plain
+transactions and two cluster requests, `| _ => False` for every auth request) and of a good shape
+(`entryShape`/`rqShape`, `WorkloadDefs.lean`); `applyEntryNormal` reads both (`Hpc0`, `Hpl`,
+`entryOk_of_shape`), and they are the proposer's guarantee about what reaches the log
+(`InvProposer.lean`, `InvRest.lean`, `KVModel.lean`, `NoSpaceDead.lean`, `WorkloadDefs.lean`: about
+40 uses). An admin entry in the log makes them false, so the mode `on` needs them to admit
+`adminKindOk` entries (as an entry that leaves the KV log, the rest model and the members as they
+are: `restAfter_other`), at the proposer (`processInternalRaftRequestOnce`'s premises, E2n's
+`irrUserGrantRole`/`irrRoleGrantPermission` names) and in the KV model's step (`kv_applied_step`).
+That is the next stage, before `applyEntryNormal`'s second triple, which then: takes the receipt at
+a Go step of the apply thread (`EtcdServer.apply` takes receipts already); lends `W` (the store's
+write resource with the rest's half of `be`, E2m's choice) out of `srvRest`/`srvApplyKV` for the
+call and back; uses `apply.Apply.wp_admin` with `srvAuthApplyRes`'s authority and fuel, and puts
+`adminOut`'s authority back into `srvAuthApplyRes`.
+
+**(4) Not done:** it needs (2): the waiter's delivery is `applyEntryNormal`'s (`entryDelivered`).
+The witness itself: `AdminReq.result` holds the authority after the step (`adminOutFu`), not a
+persistent record; a persistent fragment of the history (`authHist` at `hs ++ [st']`) handed
+through `dispatchResult` to the waiter is E2n's sketch, unchanged.
+
+**Exported statements changed.** The definitions `apply.uberOwn` (gains `uberShape`); the specs'
+posts of `apply.newApplierV3Capped` (its result's shape over `base`, `cappedIs`),
+`apply.newApplierV3Corrupt` (`corruptIs p a`), `apply.uberApplier.restoreAlarms`
+(`alarmShape ns cr base a'`) and `apply.uberApplier.dispatch` (`a' = a ∧ c' = c` in its pure
+conjunct). No closed theorem's statement changed. New: `apply.cappedShape`, `apply.corruptShape`,
+`apply.alarmShape`, `apply.uberShape` (with their persistence, and `cappedIs`'s and `corruptIs`'),
+`apply.applierAdmin_alarm`, `apply.applierAdmin_cur`, `apply.adminOut`, `apply.adminKindOk_nonKV`,
+`apply.uberApplier.Apply.adminSpec`/`wp_admin`, `apply.uberAuthSteps`,
+`apply.Apply.adminSpec`/`wp_admin`.
+
+**Trust base.** Unchanged (721 axioms, 6 sorries).
