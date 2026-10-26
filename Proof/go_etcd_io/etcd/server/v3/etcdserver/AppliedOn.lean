@@ -13,7 +13,7 @@ Then the server as the apply thread sees it (`isServer`): `isServerM`, with the 
 (`waitInvM`, E3b) and the atomics' row in the mode (`srvAtomicsM`: `srvAppliedInvM` and
 `srvKVInvsM`, E2w's `srvKVInvsOn` at `true`); and the apply thread's applier state with auth on
 (`srvApplyKVOn`): `srvApplyKV` with the auth resource at the model's latest auth state
-(`srvAuthApplyResAt`, E3c) and the server applier's latest-state facts (`apply.uberKVL`, E2y;
+(`srvAuthApplyResB`, E3c/E3l) and the server applier's latest-state facts (`apply.uberKVL`, E2y;
 `apply.uberAuthStepsL`, E3c), for the families the store's construction will name.
 -/
 module
@@ -235,7 +235,7 @@ theorem srvAtomicsM_of_builtOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
   iframe Hai Hkvi Hti
 
 /-- **The apply thread's applier state with auth on** at `x` and the model's auth state `st`
-(`srvApplyKV`'s): the auth resource at `st` (`srvAuthApplyResAt`: the store's history's latest state
+(`srvApplyKV`'s): the auth resource at `st` (`srvAuthApplyResB`: the store's history's latest state
 is the model's), and the server applier's latest-state facts for the families the store's
 construction names: the KV triples (`apply.uberKVL` at the current chain `ci` and the checks'
 family `L`) and the admin ones (`apply.uberAuthStepsL` with the admin steps' resource `W`, the
@@ -244,7 +244,7 @@ def srvApplyKVOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) (ci : apply.Chain) (L : List auth.AuthState → IProp GF) (W : IProp GF)
     (Own : auth.AuthNames → List auth.AuthState → IProp GF) : IProp GF :=
   iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
-    apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyResAt s E st ∗
+    apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyResB s E st ∗
     apply.uberKVL ua E ci L ∗ apply.uberAuthStepsL ua E W Own L ∗
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)

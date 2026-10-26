@@ -78,7 +78,7 @@ theorem srv_uberKVL
       apply.uberKVL ua E (.quota .backend) L := by
   iintro ⟨#Hpkg, #Hb, #Hst, #Hln⟩
   iunfold srvUberBase at Hb
-  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub⟩
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, -⟩
   iunfold srvStoreLatest at Hst
   icases Hst with ⟨%au', #Hauf', #HL⟩
   iunfold srvLessorNil at Hln
@@ -89,9 +89,49 @@ theorem srv_uberKVL
   iapply apply.uberKVL_of_base hRange hDel hPut hTxn ua E au le L
   iframe Hpkg Hub HL Hnil
 
+/-- **The server's uber-applier's KV triples at the latest state, with auth on** (the auth plan's
+E3l): `srv_uberKVL` with `srvStoreLatest` discharged by the built part's store fact
+(`srvUberBase`'s `authStoreLatestM`, of the store's invariant), at the family
+`auth.latestRes stl` of the store `stl` the server's `authStore` field holds. -/
+theorem srv_uberKVL_on
+    (hRange : apply.authApplierV3.Range.specL (GF := GF) (hG := hG))
+    (hDel : apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG))
+    (hPut : apply.authApplierV3.Put.specL (GF := GF) (hG := hG))
+    (hTxn : apply.authApplierV3.Txn.specL (GF := GF) (hG := hG))
+    (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (γa : auth.AuthNames)
+    (hM : E.authMode = .on γa) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      srvUberBase s ua E ∗ srvLessorNil s ⊢
+      ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        apply.uberKVL ua E (.quota .backend) (auth.latestRes stl (.on γa)) := by
+  iintro ⟨#Hpkg, #Hb, #Hln⟩
+  iunfold srvUberBase at Hb
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, %stl, %Hau, #HL⟩
+  subst Hau
+  have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
+      apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
+    rw [hM]; rfl
+  rw [hL]
+  iexists stl
+  iframe Hauf
+  iapply srv_uberKVL hRange hDel hPut hTxn s ua E (auth.latestRes stl (.on γa))
+  iframe Hpkg Hln
+  isplitr
+  · iunfold srvUberBase
+    iexists (auth.authIface stl), le
+    iframe Hauf Hlef Hub
+    iexists stl
+    isplitr
+    · ipureintro; rfl
+    rw [hL]; iexact HL
+  iunfold srvStoreLatest
+  iexists (auth.authIface stl)
+  iframe Hauf HL
+
 end proof
 
 end EtcdGrove
 end Perennial
 
 #print axioms Perennial.EtcdGrove.srv_uberKVL
+#print axioms Perennial.EtcdGrove.srv_uberKVL_on

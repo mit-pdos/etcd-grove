@@ -1595,6 +1595,19 @@ theorem server_uber_kvl (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv G
       EtcdGrove.apply.uberKVL ua E (.quota .backend) L :=
   srv_uberKVL apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest s ua E L
 
+/-- **The same with auth on, the store's fact from the construction** (the auth plan's E3l,
+`UberOn.lean`): `srvStoreLatest` discharged by the built part's store fact (of the store's
+invariant), at the family `auth.latestRes stl` of the store the server's `authStore` field holds;
+the lessor finding no lease stays a named premise. -/
+theorem server_uber_kvl_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
+    (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      srvUberBase s ua E ∗ srvLessorNil s ⊢
+      ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        EtcdGrove.apply.uberKVL ua E (.quota .backend) (auth.latestRes stl (.on γa)) :=
+  srv_uberKVL_on apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
+    s ua E γa hM
+
 /-- **`dispatch` on a KV request, the verdict at the latest state** (the auth plan's E2y,
 `apply/DispatchKVL.lean`), every callee linked. -/
 theorem apply_dispatch_kv_latest :
@@ -1871,7 +1884,21 @@ theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     auth.authStore.wp_AuthInfoFromCtx auth.authStore.wp_AuthInfoFromTLS
     auth.authStore.wp_IsPutPermitted auth.authStore.wp_IsRangePermitted
     auth.authStore.wp_IsDeleteRangePermitted auth.authStore.wp_IsAdminPermitted
-    auth.authStore.wp_IsAuthEnabled hD22
+    auth.authStore.wp_IsAuthEnabled auth_put_permitted_latest auth_range_permitted_latest
+    auth_delete_range_permitted_latest auth_admin_permitted_latest
+    (auth.authStore.AuthEnable.wp_tieB auth.authStore.wp_refreshRangePermCache
+      auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info)
+    (auth.authStore.UserAdd.wp_tieSureB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
+      zap.Logger.wp_Info)
+    (auth.authStore.RoleAdd.wp_tieB auth.authStore.wp_commitRevision zap.wp_String
+      zap.Logger.wp_Info)
+    (auth.authStore.UserGrantRole.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Warn
+      zap.Logger.wp_Info)
+    (auth.authStore.RoleGrantPermission.wp_tieB auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache auth.wp_isValidPermissionRange zap.wp_String
+      zap.wp_ByteString zap.Logger.wp_Info) hD22
 
 /-- **The same with auth off** (`authSrvTP_off`): of `NewTokenProvider`'s proof and
 `NewAuthStore`'s axiom, what `NewServer`'s proof takes today. -/
@@ -2261,3 +2288,4 @@ end Perennial
 #print axioms Perennial.EtcdGrove.server_applied_predeposit_on
 #print axioms Perennial.EtcdGrove.server_apply_not_nospace_on
 #print axioms Perennial.EtcdGrove.server_uber_kvl
+#print axioms Perennial.EtcdGrove.server_uber_kvl_on

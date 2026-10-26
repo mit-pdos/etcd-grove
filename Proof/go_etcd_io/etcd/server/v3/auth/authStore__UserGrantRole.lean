@@ -38,15 +38,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.UserGrantRole.wp_tie
+theorem auth.authStore.UserGrantRole.wp_tieB
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.UserGrantRole.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r user rn b0 sc0
+    auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r user rn b0 sc0 be
   wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hbound, %Hok⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩
@@ -58,8 +58,8 @@ theorem auth.authStore.UserGrantRole.wp_tie
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   iunfold userGrantRoleReqIs at Hr
   icases Hr with ⟨%Hrnn, #HU, #HR⟩
-  iunfold authWRx at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
+  iunfold authWRxB at HWR
+  icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
@@ -98,7 +98,7 @@ theorem auth.authStore.UserGrantRole.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -144,7 +144,7 @@ theorem auth.authStore.UserGrantRole.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -246,7 +246,7 @@ theorem auth.authStore.UserGrantRole.wp_tie
         isplitl [HPost]
         · ileft; iexact HPost
         isplitl [Hbe HT Hfl Hca]
-        · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
         isplitl [Header]
         · iunfold respOk; isplitr
           · ipureintro; intro h; exact absurd rfl h
@@ -388,7 +388,7 @@ theorem auth.authStore.UserGrantRole.wp_tie
       isplitl [HPost]
       · ileft; iexact HPost
       isplitl [Hbe HT Hfl Hca]
-      · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      · iunfold authWRxB; iframe HT Hfl Hev Hca Hsnap; iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
         · ipureintro; intro h; exact absurd rfl h
@@ -407,6 +407,16 @@ theorem auth.authStore.UserGrantRole.wp_tie
       · ipureintro; trivial
   )
 
+
+theorem auth.authStore.UserGrantRole.wp_tie
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
+    (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.UserGrantRole.specT (GF := GF) (hG := hG) :=
+  auth.authStore.UserGrantRole.specT_of_TB (auth.authStore.UserGrantRole.wp_tieB h_commitRevision h_refresh h_String h_Strings h_Warn h_Info)
 
 theorem auth.authStore.UserGrantRole.wp_proof
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))

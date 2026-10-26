@@ -625,7 +625,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      HAres⟩
+      #HstL, HAres⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -1225,14 +1225,17 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Hpool kv Hws Htag
     iframe Hwrx
   -- (the auth plan's E2k) the auth store's resources for the apply thread
-  ihave HAR : srvAuthApplyResAt s
+  ihave HAR : srvAuthApplyResB s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ : apply.AEnv GF) srvAuthSt0 $$ [HAres]
-  · unfold srvAuthApplyResAt
-    iexists astl
+  · unfold srvAuthApplyResB
+    iexists astl, d.be
     rw [← Hastl]
     iframe authStore
-    iExactEq HAres
-    rfl
+    isplitl [HAres]
+    · iExactEq HAres
+      rfl
+    -- (E3l) the equation of the backend names: the write right lends the store's half on `d.be`
+    iapply rwLens_authBeOn
   imodintro
   iapply HΦ
   iright
@@ -1593,9 +1596,15 @@ theorem NewServer.wp_proofM (on : Bool)
     iexists _, _
     iframe authStore lessor
     iunfold apply.uberBaseAuth
-    iexists up, uopts
-    iframe Hui
-    ipureintro; exact ⟨Hua, Huopts.2.2.2.1, Huopts.2.2.2.2.1⟩
+    isplitr
+    · iexists up, uopts
+      iframe Hui
+      ipureintro; exact ⟨Hua, Huopts.2.2.2.1, Huopts.2.2.2.2.1⟩
+    -- (E3l) the store's checks at the latest state, from the construction
+    iexists astl
+    isplitr
+    · ipureintro; exact Hastl
+    iexact HstL
   isplitr
   · iunfold apply.applierFor
     iexists up, uopts

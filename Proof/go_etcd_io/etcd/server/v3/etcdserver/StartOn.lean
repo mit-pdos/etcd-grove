@@ -50,7 +50,7 @@ def kvRunOn (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : appl
 
 /-- **The apply thread's resources at `ai₀` in the mode `on`** (`applyBuilt` with `kvRunOn`, and,
 since E3c, the auth resource at the model's start state `srvAuthSt0`: the store's history's latest
-state, `srvAuthApplyResAt`). -/
+state, `srvAuthApplyResB`, E3l). -/
 def applyBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
@@ -58,7 +58,7 @@ def applyBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀) ∗
-    revAuth E x₀.log ∗ srvAuthApplyResAt s E srvAuthSt0 ∗
+    revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunOn γr ai₀ c₀ [] x₀ ∗
     srvRest E γr [] ∗ srvForceSnapAddr s ↦ f)
 

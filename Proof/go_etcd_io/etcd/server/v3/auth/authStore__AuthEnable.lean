@@ -32,13 +32,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.AuthEnable.wp_tie
+theorem auth.authStore.AuthEnable.wp_tieB
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_setRevision : auth.authStore.setRevision.spec (GF := GF) (hG := hG))
     (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.AuthEnable.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post en sc0
+    auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post en sc0 be
   wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -54,8 +54,8 @@ theorem auth.authStore.AuthEnable.wp_tie
   iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
   subst Htpi
-  iunfold authWRx at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
+  iunfold authWRxB at HWR
+  icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
   iunfold flagAt at Hen
   icases Hen with ⟨Hen, HenQ⟩
   ihave #Hbeok' := Hbeok
@@ -92,7 +92,7 @@ theorem auth.authStore.AuthEnable.wp_tie
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hen HenQ Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iframe Hbe Hbeok
     iexists true
     isplitr
     · ipureintro; rfl
@@ -159,7 +159,7 @@ theorem auth.authStore.AuthEnable.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hen HenQ Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iframe Hbe Hbeok
     iexists false
     isplitr
     · ipureintro; rfl
@@ -208,7 +208,7 @@ theorem auth.authStore.AuthEnable.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hen HenQ Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iframe Hbe Hbeok
     iexists false
     isplitr
     · ipureintro; rfl
@@ -319,7 +319,7 @@ theorem auth.authStore.AuthEnable.wp_tie
   isplitl [HPost]
   · ileft; iexact HPost
   isplitl [Hbe HT Hen HenQ Hca]
-  · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev2 Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  · iunfold authWRxB; iunfold flagAt; iframe HT Hen HenQ Hev2 Hca Hsnap; iframe Hbe Hbeok
   iexists false
   isplitr
   · ipureintro; rfl
@@ -337,6 +337,14 @@ theorem auth.authStore.AuthEnable.wp_tie
     all_goals rfl
   · ipureintro; trivial
 
+
+theorem auth.authStore.AuthEnable.wp_tie
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_setRevision : auth.authStore.setRevision.spec (GF := GF) (hG := hG))
+    (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.AuthEnable.specT (GF := GF) (hG := hG) :=
+  auth.authStore.AuthEnable.specT_of_TB (auth.authStore.AuthEnable.wp_tieB h_refresh h_setRevision h_hasRootRole h_Info)
 
 theorem auth.authStore.AuthEnable.wp_proof
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))

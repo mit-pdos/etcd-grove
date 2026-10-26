@@ -29,12 +29,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.RoleAdd.wp_tie
+theorem auth.authStore.RoleAdd.wp_tieB
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.RoleAdd.specT (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name b0 sc0
+    auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name b0 sc0 be
   wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok⟩
   icases authErrVar_of_init .roleEmpty $$ Hpkg with ⟨%eRE, #HeRE⟩
   icases authErrVar_of_init .roleAlreadyExist $$ Hpkg with ⟨%eRAE, #HeRAE⟩
@@ -44,8 +44,8 @@ theorem auth.authStore.RoleAdd.wp_tie
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   iunfold roleAddReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
-  iunfold authWRx at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
+  iunfold authWRxB at HWR
+  icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -61,7 +61,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -125,7 +125,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -207,7 +207,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hsn'; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hsn'; iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
       · ipureintro; intro h; exact absurd rfl h
@@ -229,7 +229,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
       · ipureintro; intro h; exact absurd rfl h
@@ -247,6 +247,13 @@ theorem auth.authStore.RoleAdd.wp_tie
       all_goals rfl
     · ipureintro; trivial
 
+
+theorem auth.authStore.RoleAdd.wp_tie
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.RoleAdd.specT (GF := GF) (hG := hG) :=
+  auth.authStore.RoleAdd.specT_of_TB (auth.authStore.RoleAdd.wp_tieB h_commitRevision h_String h_Info)
 
 theorem auth.authStore.RoleAdd.wp_proof
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))

@@ -31,6 +31,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BaseAuth
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
 
 @[expose] public section
 
@@ -242,7 +243,7 @@ theorem srvKVInvsM_true (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) true E γr = srvKVInvsOn E γr srvAuthSt0 := rfl
 
 /-- **`applyBuiltNA` in the auth mode `on`** (the auth plan's E3c): the apply thread's auth
-resource at the store's start state (`srvAuthApplyResAt` at `srvAuthSt0`, the latest state of the
+resource at the store's start state (`srvAuthApplyResB` at `srvAuthSt0`, the latest state of the
 store's history `[bootState, bump bootState]`), what ties the apply thread's auth state to the
 model's from the start (`applyBuiltOn`). -/
 def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
@@ -250,7 +251,7 @@ def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E :
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
-    revAuth E x₀.log ∗ srvAuthApplyResAt s E srvAuthSt0 ∗
+    revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvForceSnapAddr s ↦ f)
 
@@ -264,10 +265,13 @@ def applyBuiltNAM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
 
 /-- **The server's uber-applier's base applier's auth layer** (the auth plan's E3k; persistent):
 its store and lessor the server's `authStore` and `lessor` fields' (`apply.uberBaseAuth`), what the
-apply thread's latest-state KV triples come from (`apply.uberKVL_of_base`). -/
+apply thread's latest-state KV triples come from (`apply.uberKVL_of_base`); with the store's
+checks at the latest state in the environment's mode (`authStoreLatestM`, E3l: with auth on, of the
+store's invariant). -/
 def srvUberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ au le : GoInterface, srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗
-    apply.uberBaseAuth ua E au le)
+    apply.uberBaseAuth ua E au le ∗
+    ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authStoreLatestM E.authMode au E.RD stl)
 
 instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
     Persistent (srvUberBase s ua E) := by
@@ -352,7 +356,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`applyBuiltNAM` from the mode-`on` row** (E3c): the mode-`on` row is the mode-off one with
-the auth resource at its latest state, which the mode-off row forgets (`srvAuthApplyRes_of_At`). -/
+the auth resource at its latest state, which the mode-off row forgets (`srvAuthApplyResAt_of_B`, `srvAuthApplyRes_of_At`). -/
 theorem srvUberRowM_of_On (on : Bool) (s : Loc) (E : apply.AEnv GF) (x₀ : apply.ApplyKV) :
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀) ⊢ srvUberRowM (GF := GF) on s E x₀ := by
@@ -374,7 +378,8 @@ theorem applyBuiltNAM_of_On (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (
     iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hfs
     isplitr
     · ipureintro; exact Hok
-    iapply srvAuthApplyRes_of_At $$ Har
+    iapply srvAuthApplyRes_of_At
+    iapply srvAuthApplyResAt_of_B $$ Har
   · unfold applyBuiltNAM
     iintro H; iexact H
 

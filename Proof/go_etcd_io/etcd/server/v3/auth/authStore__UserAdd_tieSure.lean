@@ -39,6 +39,30 @@ abbrev auth.authStore.UserAdd.specTSure : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
       respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOutP M hs (stepOf (userAddF name)) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
+/-- `UserAdd.specTSure` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
+abbrev auth.authStore.UserAdd.specTSureB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ mvcc.csContract P f Pre Q Post ∗
+      ⌜stepOk M hs (stepOf (userAddF name))⌝ }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T b sc be ∗
+      respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOutP M hs (stepOf (userAddF name)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
+theorem auth.authStore.UserAdd.specTSure_of_TB [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+    (h : auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG)) :
+    auth.authStore.UserAdd.specTSure (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, #Hsure, %Hlen, Hown, HWR, Hcs, %Hok⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T b0 sc0 $$ HWR
+  iapply (h st R M P f T hs Pre Q Post r name b0 sc0 be) $$ [Hown HWR Hcs]
+  · iframe; iframe #; ipureintro; exact ⟨Hlen, Hok⟩
+  iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe HPP Hrest
+  iapply authWRx_of_B $$ HWR
+
 end spec
 
 section proof
@@ -48,14 +72,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.UserAdd.wp_tieSure
+theorem auth.authStore.UserAdd.wp_tieSureB
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_selectPassword : auth.authStore.selectPassword.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.UserAdd.specTSure (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name b0 sc0
+    auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name b0 sc0 be
   wp_start as ⟨#Hinv, #Hr, #Hsure, %Hlen, Hown, HWR, Hcs, %Hok⟩
   icases authErrVar_of_init .userEmpty $$ Hpkg with ⟨%eUE, #HeUE⟩
   icases authErrVar_of_init .userAlreadyExist $$ Hpkg with ⟨%eUAE, #HeUAE⟩
@@ -66,8 +90,8 @@ theorem auth.authStore.UserAdd.wp_tieSure
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   iunfold userAddReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN, ⟨%pw, %hpw, #Hpw, #Hhpw⟩, ⟨%o, %nob, #Ho, #Hopts⟩⟩
-  iunfold authWRx at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
+  iunfold authWRxB at HWR
+  icases HWR with ⟨⟨Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -83,7 +107,7 @@ theorem auth.authStore.UserAdd.wp_tieSure
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -147,7 +171,7 @@ theorem auth.authStore.UserAdd.wp_tieSure
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -293,7 +317,7 @@ theorem auth.authStore.UserAdd.wp_tieSure
       isplitl [HPost]
       · ileft; iexact HPost
       isplitl [Hbe HT Hfl Hca]
-      · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      · iunfold authWRxB; iframe HT Hfl Hev Hca Hsnap; iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
         · ipureintro; intro h; exact absurd rfl h
@@ -386,7 +410,7 @@ theorem auth.authStore.UserAdd.wp_tieSure
     isplitl [HPost]
     · ileft; iexact HPost
     isplitl [Hbe HT Hfl Hca]
-    · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    · iunfold authWRxB; iframe HT Hfl Hev Hca Hsnap; iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
       · ipureintro; intro h; exact absurd rfl h
@@ -400,6 +424,15 @@ theorem auth.authStore.UserAdd.wp_tieSure
     · ipureintro; exact ⟨Hl0, hstep.symm⟩
     simp only [outRes]
     iframe Hown
+
+theorem auth.authStore.UserAdd.wp_tieSure
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_selectPassword : auth.authStore.selectPassword.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.UserAdd.specTSure (GF := GF) (hG := hG) :=
+  auth.authStore.UserAdd.specTSure_of_TB (auth.authStore.UserAdd.wp_tieSureB h_commitRevision h_refresh h_selectPassword h_String h_Info)
 
 end proof
 
