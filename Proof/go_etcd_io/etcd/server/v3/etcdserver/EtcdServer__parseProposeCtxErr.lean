@@ -54,7 +54,7 @@ local macro "ppce_tail" : tactic => `(tactic| (
     · wp_apply hMid s v.memberID $$ []
       · iframe #
       (try wp_auto)
-      wp_apply hMem v.cluster $$ [] as %msl ⟨%mms, Hmsl⟩
+      wp_apply (membership.RaftCluster.Members.spec_static hMem v.cluster) $$ [] as %msl ⟨%mms, Hmsl⟩
       · iframe #
       (try wp_auto)
       wp_apply hQ _ _ _ _ mms $$ [Hmsl] as %bq -

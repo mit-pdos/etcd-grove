@@ -28,10 +28,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `c.Members()` (`c` a cluster, `isRaftCluster`) returns a slice of fresh members (owned:
 clones of the cluster's; their order, by id, is not stated: no caller reads it). -/
 abbrev membership.RaftCluster.Members.spec : Prop :=
-  ∀ (c : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.isRaftCluster c }}
+  -- (D43 M4, 2026-10-26) at any side condition of the lock invariant (`isRaftClusterG`)
+  ∀ (c : Loc) (RM : membership.RcSide GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.isRaftClusterG c RM }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members")) (Val #()))
   {{ (sl : GoSlice), RET #sl; ∃ ms : List Loc, membership.membersAt sl ms }}
+
+/-- The static cluster's (`isRaftCluster`, `isRaftCluster_static`). -/
+theorem membership.RaftCluster.Members.spec_static (h : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
+    (c : Loc) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.isRaftCluster c }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members")) (Val #()))
+  {{ (sl : GoSlice), RET #sl; ∃ ms : List Loc, membership.membersAt sl ms }} := by
+  rw [(membership.isRaftCluster_static c).to_eq]
+  exact h c _
 
 end spec
 

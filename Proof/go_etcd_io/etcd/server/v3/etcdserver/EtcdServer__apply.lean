@@ -93,7 +93,7 @@ local macro "cc_respond" : tactic => `(tactic| (
       (by rw [hIdEq, ccIdOf_of_decode Hdec])) $$ [Hcc] as Hcc
     · iframe Hcc
     (try wp_auto)
-    wp_apply hMem sv.cluster $$ [] as %msl -
+    wp_apply (membership.RaftCluster.Members.spec_static hMem sv.cluster) $$ [] as %msl -
     · iframe #
     (try wp_auto)
     wp_alloc rsp as Hrsp
