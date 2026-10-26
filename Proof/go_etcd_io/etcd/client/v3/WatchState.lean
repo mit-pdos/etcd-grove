@@ -39,6 +39,8 @@ revision are defined whatever the start was.
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.go_etcd_io.etcd.client.v3.WatchStateDefs
+public import Proof.go_etcd_io.etcd.client.v3.WatchContent
 public import Proof.go_etcd_io.etcd.client.v3.KVService
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 
@@ -52,45 +54,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.server.v3.etcdserver
-
-/-! ## The events of the state (pure) -/
-
-section pure
-variable [ext : FfiSyntax]
-
-/-- **Revision `r`'s events in the state `σ`**: one per change of the revision, in order, each the
-key-value the change wrote at `r` (a put's, from the store before the revision and the changes up
-to it) or the deleted key with `ModRevision = r` (`mvcc.evsOfRevM`, as
-`watchableStoreTxnWrite.End` and `kvsToEvents` make them). -/
-def KVState.revEvents (σ : KVState) (r : Nat) : List mvcc.EvM :=
-  mvcc.evsOfRevM r (σ.at (r - 1)).kvs (σ.changesAt r)
-
-/-- **The events of the revisions `[lo, hi)` in the range of `o`**, in revision order (etcd's
-`rangeEvents` over the key bucket, filtered by the watcher's range). -/
-def KVState.rangeEvents (σ : KVState) (o : OpFull) (lo hi : Nat) : List mvcc.EvM :=
-  (((List.range' lo (hi - lo)).map σ.revEvents).flatten).filter
-    fun ev => inRange o.key o.base.rangeEnd ev.kv.key
-
-/-- At a log's state, a later revision's events are the log's (mvcc's watch events of it). -/
-theorem revEvents_kvStateOf (l : mvcc.Log) (r : Nat) (h0 : 0 < r) (hr : r ≤ l.length - 1) :
-    (kvStateOf l).revEvents r = mvcc.evsOfRevM r (mvcc.stateAt l (r - 1)) (l.getD r []) := by
-  unfold KVState.revEvents
-  rw [kvStateOf_at_kvs l (r - 1) (by omega), kvStateOf_changesAt l r h0]
-
-/-- **At a log's state, the range's events are mvcc's watch events of the log** (its revisions
-from `lo ≥ 1` below `hi ≤ l.length`), filtered by the range: what the server sends. -/
-theorem rangeEvents_kvStateOf (l : mvcc.Log) (o : OpFull) (lo hi : Nat) (h0 : 0 < lo)
-    (hh : hi ≤ l.length) :
-    (kvStateOf l).rangeEvents o lo hi =
-      (mvcc.logEvents l lo hi).filter fun ev => inRange o.key o.base.rangeEnd ev.kv.key := by
-  unfold KVState.rangeEvents mvcc.logEvents
-  congr 2
-  apply List.map_congr_left
-  intro m hm
-  rw [List.mem_range'] at hm
-  rw [revEvents_kvStateOf l m (by omega) (by omega)]
-
-end pure
 
 /-! ## Firing the caller's read update at a watched log -/
 
@@ -178,66 +141,109 @@ theorem watch_fire (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst : �
 
 end fire
 
-/-! ## A response of a watch, as a read of the state -/
+/-! ## A response at the server's level, as a read of the state -/
+
+section convert
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+open Iris.ProofMode
+
+/-- The delivered events of a watched log's events, their key-values fixed, are the events. -/
+theorem eventsIs_of_fixed (evs : List mvcc.EvM) (kvs : List Loc) (hkl : kvs.length = evs.length) :
+    □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
+        mvcc.kvPtrFixed (GF := GF) kv ev.kv) ⊢
+      eventsIs (List.zipWith client.evModelOf evs kvs) evs := by
+  iintro #Hkv
+  unfold eventsIs
+  isplitr
+  · ipureintro; simp [hkl]
+  iintro !> %i %e %ev %he %hev
+  cases hk : kvs[i]? with
+  | none => simp [List.getElem?_zipWith, hev, hk] at he
+  | some kv =>
+    simp [List.getElem?_zipWith, hev, hk] at he
+    subst he
+    ihave #Hf := Hkv $$ %i %ev %kv %hev %hk
+    ihave ⟨#Hv, -⟩ := client.kvPtrFixed_facts kv ev.kv $$ Hf
+    unfold eventIs client.evModelOf
+    iframe Hv
+    ipureintro
+    exact ⟨by unfold mvcc.evType; rfl, rfl, rfl⟩
+
+/-- **A response at the server's level is a read of the state** (see the file header): the caller's
+read update fires (`watch_fire`) at the watched log the response's facts are of (the start log if
+none), at a state `σ` whose events are that log's, so the response's are `σ`'s. -/
+theorem raw_to_state (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst : γ.st = γr.kv.st)
+    (hlog : γr.kv.log0 = [[], []]) (o : OpFull) (c c' : w64)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (Q : KVState → IProp GF) :
+    ⊢ srvKVInvs E γr -∗ mvcc.idxSealed E.γ.idx [[], []] -∗
+      □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ σ, COMM □ Q σ }>) -∗
+      client.rawRespOk E.γ o c c' v r ={⊤}=∗
+      ∃ σ : KVState, □ Q σ ∗ watchStateRespOk o σ c c' v r := by
+  have hn : ∀ x : w64, sint.nat x = (sint.Z x).toNat := fun _ => rfl
+  iintro #Hinvs #H0 #Hau #Hraw
+  -- the update fired at the start log (a certified log of two revisions)
+  imod watch_fire E γr γ hst hlog [[], []] Q $$ Hinvs H0 H0 [] Hau with ⟨%C0, #HQ0, -⟩
+  · unfold mvcc.certOk; ileft; ipureintro; simp
+  unfold client.rawRespOk
+  icases Hraw with (⟨%Herr, #Hse⟩ | %Hne | ⟨%Hp, (⟨%Hlt, %L, #HL, %HLp⟩ | %Hle)⟩ |
+    ⟨%Hev, %L, %kvs, #HL, %HLe, #Hkv⟩)
+  · imodintro; iexists kvStateOf C0; iframe HQ0
+    unfold watchStateRespOk; ileft; iframe Hse; ipureintro; exact Herr
+  · imodintro; iexists kvStateOf C0; iframe HQ0
+    unfold watchStateRespOk; iright; ileft; ipureintro; exact Hne
+  · imod watch_fire E γr γ hst hlog L Q $$ Hinvs H0 [HL] [HL] Hau with ⟨%C, #HQ, %HLC⟩
+    · iapply mvcc.evLog_sealed $$ HL
+    · iapply mvcc.evLog_certOk $$ HL
+    imodintro; iexists kvStateOf C; iframe HQ
+    unfold watchStateRespOk; iright; iright; ileft; ipureintro
+    obtain ⟨hv, hpn, hp0⟩ := Hp
+    obtain ⟨hcp, hc', hc0⟩ := Hlt
+    obtain ⟨hpl, hnone⟩ := HLp
+    have hCl := HLC.length_le
+    refine ⟨hv, hpn, hp0, fun _ => ⟨hc', ?_, ?_⟩, fun h => absurd h (by omega)⟩
+    · rw [kvStateOf_rev]; omega
+    · rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
+        ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
+      exact hnone
+  · imodintro; iexists kvStateOf C0; iframe HQ0
+    unfold watchStateRespOk; iright; iright; ileft; ipureintro
+    obtain ⟨hv, hpn, hp0⟩ := Hp
+    exact ⟨hv, hpn, hp0, fun h => absurd h (by omega), fun _ => Hle.2⟩
+  · imod watch_fire E γr γ hst hlog L Q $$ Hinvs H0 [HL] [HL] Hau with ⟨%C, #HQ, %HLC⟩
+    · iapply mvcc.evLog_sealed $$ HL
+    · iapply mvcc.evLog_certOk $$ HL
+    obtain ⟨hv, hne, hc0, hcc, hlast⟩ := Hev
+    obtain ⟨hcl, hkl, hre⟩ := HLe
+    have hCl := HLC.length_le
+    have hevs : (kvStateOf C).rangeEvents o (sint.nat c + 1) (sint.nat c' + 1) =
+        rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1) := by
+      rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
+        ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
+    imodintro; iexists kvStateOf C; iframe HQ
+    unfold watchStateRespOk; iright; iright; iright
+    isplitr
+    · ipureintro
+      refine ⟨hv, hne, hc0, hcc, ?_, hlast⟩
+      rw [kvStateOf_rev]; omega
+    rw [hevs, hre]
+    iapply eventsIs_of_fixed _ kvs hkl $$ Hkv
+
+end convert
+
+/-! ## A client watcher of etcd's KV -/
 
 section resp
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- **A delivered event is the state's event `ev`** (persistent): its type (`PUT` `0`, `DELETE`
-`1`), key and revision, and its `*KeyValue`'s fields `ev`'s (a delete's the key and `ModRevision`
-alone, the others empty, as etcd sends them). -/
-def eventIs (e : EvModel) (ev : mvcc.EvM) : IProp GF :=
-  iprop(⌜e.typ = (if ev.del then W32 1 else W32 0) ∧ e.key = ev.kv.key ∧ e.rev = ev.kv.modRev⌝ ∗
-    kvValAt e.kv ev.kv)
-
-instance eventIs_persistent (e : EvModel) (ev : mvcc.EvM) : Persistent (eventIs (GF := GF) e ev) := by
-  unfold eventIs; infer_instance
-
-/-- **The delivered events are the state's events `evs`**, one by one. -/
-def eventsIs (es : List EvModel) (evs : List mvcc.EvM) : IProp GF :=
-  iprop(⌜es.length = evs.length⌝ ∗
-    □ ∀ (i : Nat) (e : EvModel) (ev : mvcc.EvM), ⌜es[i]? = some e⌝ -∗ ⌜evs[i]? = some ev⌝ -∗
-      eventIs e ev)
-
-instance eventsIs_persistent (es : List EvModel) (evs : List mvcc.EvM) :
-    Persistent (eventsIs (GF := GF) es evs) := by
-  unfold eventsIs; infer_instance
-
-/-- **A watch's response `v` (modelled by `r`) as a read of the state `σ`**, received when the
-stream is at revision `c` and leaving it at `c'` (see the file header): an error, with a close
-error grpc's `status` accepts; a response without events that is not a progress notification; a
-progress notification at `p ≤ σ.rev` after which nothing in the range changed up to `p`; or events,
-exactly the range's events of `σ` from `c + 1` to `c' ≤ σ.rev`, the last at `c'`. -/
-def watchStateRespOk (o : OpFull) (σ : KVState) (c c' : w64)
-    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
-  iprop((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
-    ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
-    ⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z r.hdrRev ∧
-      sint.Z r.hdrRev ≤ (σ.rev : Int) ∧
-      (sint.Z c < sint.Z r.hdrRev → c' = r.hdrRev ∧
-        σ.rangeEvents o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = []) ∧
-      (sint.Z r.hdrRev ≤ sint.Z c → c' = c)⌝ ∨
-    (⌜¬ watchErr v ∧ r.events ≠ [] ∧ 0 ≤ sint.Z c ∧ sint.Z c < sint.Z c' ∧
-        sint.Z c' ≤ (σ.rev : Int) ∧
-        (r.events.getLast?.map EvModel.rev) = some c'⌝ ∗
-      eventsIs r.events (σ.rangeEvents o (sint.nat c + 1) (sint.nat c' + 1))))
-
-instance watchStateRespOk_persistent (o : OpFull) (σ : KVState) (c c' : w64)
-    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
-    Persistent (watchStateRespOk (GF := GF) o σ c c' v r) := by
-  unfold watchStateRespOk; infer_instance
-
-/-- **The `i`-th response `v` of a watch of `o` with the read update's `Q`**: modelled by some `r`
-(`respAt`: its events, header and flags), the update's `□ Q σ` at the state `σ` it fired at, and
-`watchStateRespOk` at the positions `i` and `i + 1` of the watch's cursor. -/
-def watchStateElem (γw : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (i : Int)
-    (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
-  iprop(∃ (r : RespModel) (σ : KVState) (c c' : w64), respAt v r ∗ □ Q σ ∗
-    monoListIdxOwn γw.cur i.toNat c ∗ monoListIdxOwn γw.cur (i.toNat + 1) c' ∗
-    watchStateRespOk o σ c c' v r)
 
 /-- **A client watcher of etcd's KV `γ`** (persistent; see the file header: one member, its watch
 server's apply environment running the KV at `γ`'s state variable). -/

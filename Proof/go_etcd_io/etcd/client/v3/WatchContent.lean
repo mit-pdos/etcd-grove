@@ -265,10 +265,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- The client's model of an mvcc event at `ev` whose key-value is at `kv`. -/
-def evModelOf (ev : mvcc.EvM) (kv : Loc) : EvModel :=
-  { typ := mvcc.evType ev, key := ev.kv.key, kv := kv, rev := ev.kv.modRev }
-
 /-- A key-value, read-only, as the contract reads it. -/
 theorem kvPtrFixed_facts (p : Loc) (kv : EtcdKv) :
     mvcc.kvPtrFixed (GF := GF) p kv ⊢

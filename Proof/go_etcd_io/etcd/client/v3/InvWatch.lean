@@ -72,6 +72,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClientModel
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.InvClient
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxn
+public import Proof.go_etcd_io.etcd.client.v3.WatchStateDefs
 public import Spec.google_golang_org.grpc.status.FromError
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
 public import Perennial.Golang.Theory.Chan.Idioms.SyncSpsc
