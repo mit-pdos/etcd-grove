@@ -78,6 +78,12 @@ theorem utf8.validB_drop8 (s : List w8) (h : 8 ≤ s.length)
   conv => rhs; rw [← List.take_append_drop 8 s]
   exact (utf8ValidB_ascii_append _ _ (utf8.wordOf_mask_ascii s h hm)).symm
 
+/-- `validB_drop8` at `s[k:]`. -/
+theorem utf8.validB_drop8_at (s : List w8) (k : Nat) (h : k + 8 ≤ s.length)
+    (hm : utf8.wordOf (s.drop k) &&& W64 9259542123273814144 = W64 0) :
+    utf8ValidB (s.drop (k + 8)) = utf8ValidB (s.drop k) := by
+  rw [← utf8.validB_drop8 (s.drop k) (by simp; omega) hm, List.drop_drop]
+
 theorem utf8.or_mask (a b m : w64) (h : (a ||| b) &&& m = W64 0) :
     a &&& m = W64 0 ∧ b &&& m = W64 0 := by
   have hW0 : (W64 0 : w64) = 0#64 := rfl
