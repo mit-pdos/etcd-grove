@@ -58,7 +58,7 @@ theorem apply.uberApplier.Alarm.wp_proof
   wp_if_destruct
   · -- `ACTIVATE`: the chain the alarms ask for
     wp_apply (hR p opts.AlarmStore' base (.ok ai) iprop(True) false) $$ [Ha]
-      as ⟨-, %ns, %cr, %a', -, Ha', #Hch⟩
+      as ⟨-, %ns, %cr, %a', -, Ha', #Hch, -⟩
     · iframe #
       iframe Ha
     iapply HΦ
@@ -71,7 +71,7 @@ theorem apply.uberApplier.Alarm.wp_proof
   wp_if_destruct
   · -- `DEACTIVATE`: likewise
     wp_apply (hR p opts.AlarmStore' base (.ok ai) iprop(True) false) $$ [Ha]
-      as ⟨-, %ns, %cr, %a', -, Ha', #Hch⟩
+      as ⟨-, %ns, %cr, %a', -, Ha', #Hch, -⟩
     · iframe #
       iframe Ha
     iapply HΦ

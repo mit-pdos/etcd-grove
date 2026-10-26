@@ -39,25 +39,25 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
     go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get")) (Val _))
   iapply HGet $$ HT
   inext
-  iintro %s1 ⟨HT, %Hs1⟩
+  iintro %s1 ⟨HT, %Hg1⟩
   (try wp_auto)
   wp_bind (App (Val (ast @!! go.GoType.PointerType
     go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get")) (Val _))
   iapply HGet $$ HT
   inext
-  iintro %s2 ⟨HT, %Hs2⟩
+  iintro %s2 ⟨HT, %Hg2⟩
   (try wp_auto)
   wp_if_destruct
   · -- a `NOSPACE` alarm: capped
     have hz : z = false := by
       cases z
       · rfl
-      · exfalso; have := Hs1 rfl; rw [this] at Hif; simp at Hif
+      · exfalso; have := Hg1 rfl; rw [this] at Hif; simp at Hif
     subst hz
-    wp_apply (hCap base) $$ [] as %a1 #Ha1
+    wp_apply (hCap base) $$ [] as %a1 ⟨#Hk1, #Ha1⟩
     (try wp_auto)
     wp_if_destruct
-    · wp_apply (hCor a1) $$ [] as %a2 #Ha2
+    · wp_apply (hCor a1) $$ [] as %a2 ⟨#Hk2, #Ha2⟩
       (try wp_auto)
       iapply HΦ
       iframe HT
@@ -65,26 +65,42 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
       iframe
       isplitr
       · ipureintro; intro h; cases h
-      iintro !> %E #Hb
-      simp only [apply.alarmChain, ↓reduceIte]
-      iapply Ha2 $$ %E %_ (Ha1 $$ %E %_ Hb)
+      isplitr
+      · iintro !> %E #Hb
+        simp only [apply.alarmChain, ↓reduceIte]
+        iapply Ha2 $$ %E %_ (Ha1 $$ %E %_ Hb)
+      iunfold apply.alarmShape
+      iexists a1
+      simp only [apply.cappedShape, apply.corruptShape]
+      isplitr
+      · iexact Hk1
+      iexists a2
+      iframe Hk2
+      ipureintro; rfl
     · iapply HΦ
       iframe HT
       iexists true, false, _
       iframe
       isplitr
       · ipureintro; intro h; cases h
-      iintro !> %E #Hb
-      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
-      iapply Ha1 $$ %E %_ Hb
+      isplitr
+      · iintro !> %E #Hb
+        simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+        iapply Ha1 $$ %E %_ Hb
+      iunfold apply.alarmShape
+      iexists a1
+      simp only [apply.cappedShape, apply.corruptShape]
+      isplitr
+      · iexact Hk1
+      ipureintro; simp
   · (try wp_auto)
     wp_if_destruct
     · have hz : z = false := by
         cases z
         · rfl
-        · exfalso; have := Hs2 rfl; rw [this] at Hif; simp at Hif
+        · exfalso; have := Hg2 rfl; rw [this] at Hif; simp at Hif
       subst hz
-      wp_apply (hCor base) $$ [] as %a2 #Ha2
+      wp_apply (hCor base) $$ [] as %a2 ⟨#Hk2, #Ha2⟩
       (try wp_auto)
       iapply HΦ
       iframe HT
@@ -92,18 +108,32 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
       iframe
       isplitr
       · ipureintro; intro h; cases h
-      iintro !> %E #Hb
-      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
-      iapply Ha2 $$ %E %_ Hb
+      isplitr
+      · iintro !> %E #Hb
+        simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+        iapply Ha2 $$ %E %_ Hb
+      iunfold apply.alarmShape
+      iexists base
+      simp only [apply.cappedShape, apply.corruptShape]
+      isplitr
+      · ipureintro; simp
+      iexists a2
+      iframe Hk2
+      ipureintro; rfl
     · iapply HΦ
       iframe HT
       iexists false, false, _
       iframe
       isplitr
       · ipureintro; intro _; exact ⟨rfl, rfl⟩
-      iintro !> %E #Hb
-      simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
-      iexact Hb
+      isplitr
+      · iintro !> %E #Hb
+        simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
+        iexact Hb
+      iunfold apply.alarmShape
+      iexists base
+      simp only [apply.cappedShape, apply.corruptShape]
+      ipureintro; simp
 
 end proof
 

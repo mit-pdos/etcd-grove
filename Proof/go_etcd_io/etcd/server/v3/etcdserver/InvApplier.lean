@@ -689,7 +689,7 @@ theorem applyKV_authOn (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV
   · iunfold apply.applyKV at H
     icases H with ⟨%p, -, Ho, -⟩
     iunfold apply.uberOwn at Ho
-    icases Ho with ⟨%a, -, -, %h⟩
+    icases Ho with ⟨%a, -, -, %h, -⟩
     ipureintro; exact h
   iframe H
   ipureintro; exact Hc

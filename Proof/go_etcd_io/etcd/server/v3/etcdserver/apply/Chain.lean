@@ -1065,9 +1065,17 @@ instance quotaIs_persistent (p : Loc) (inner : GoInterface) :
 def cappedIs (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef applierV3Capped go!"applierV3" p ↦□ inner)
 
+instance cappedIs_persistent (p : Loc) (inner : GoInterface) :
+    Persistent (cappedIs (GF := GF) p inner) := by
+  unfold cappedIs; infer_instance
+
 /-- **The `*applierV3Corrupt` `p`**: its inner applier, read-only. -/
 def corruptIs (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef applierV3Corrupt go!"applierV3" p ↦□ inner)
+
+instance corruptIs_persistent (p : Loc) (inner : GoInterface) :
+    Persistent (corruptIs (GF := GF) p inner) := by
+  unfold corruptIs; infer_instance
 
 /-- The auth layer's mutex's resource: its `authInfo`, the zero `AuthInfo` between `Apply`s
 (set at construction, `newAuthApplierV3`; reset after every `Apply`, and by `UserGet` and
@@ -1105,6 +1113,29 @@ def baseShape (opts : ApplierOptions) (a : GoInterface) : IProp GF :=
 instance baseShape_persistent (opts : ApplierOptions) (a : GoInterface) :
     Persistent (baseShape (GF := GF) opts a) := by
   unfold baseShape; infer_instance
+
+/-- **The shape of `restoreAlarms`' applier** `a` over the base applier `base` (the auth plan's
+E2o, 2026-10-26): `newApplierV3Capped` of `base` if a `NOSPACE` alarm is set (`ns`), then
+`newApplierV3Corrupt` of that if a `CORRUPT` alarm is (`cr`), their fields read-only (what
+`applierAdmin_alarm`, `AdminChain.lean`, needs to lift the base's admin triples). -/
+def cappedShape : Bool → GoInterface → GoInterface → IProp GF
+  | true, base, a => iprop(∃ pc : Loc,
+      ⌜a = interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #pc⌝ ∗ cappedIs pc base)
+  | false, base, a => iprop(⌜a = base⌝)
+
+/-- The corrupt wrapper's part of `alarmShape`. -/
+def corruptShape : Bool → GoInterface → GoInterface → IProp GF
+  | true, inner, a => iprop(∃ pr : Loc,
+      ⌜a = interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #pr⌝ ∗ corruptIs pr inner)
+  | false, inner, a => iprop(⌜a = inner⌝)
+
+def alarmShape (ns cr : Bool) (base a : GoInterface) : IProp GF :=
+  iprop(∃ a1 : GoInterface, cappedShape ns base a1 ∗ corruptShape cr a1 a)
+
+instance alarmShape_persistent (ns cr : Bool) (base a : GoInterface) :
+    Persistent (alarmShape (GF := GF) ns cr base a) := by
+  unfold alarmShape
+  cases ns <;> cases cr <;> simp only [cappedShape, corruptShape, cappedIs, corruptIs] <;> infer_instance
 
 end defs
 

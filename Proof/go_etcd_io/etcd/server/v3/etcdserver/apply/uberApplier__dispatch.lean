@@ -129,7 +129,7 @@ local macro "fin_kv" : tactic => `(tactic| (
   · simp only [apply.cPost, ↓reduceIte]; iexact HPP
   isplitr
   · ipureintro
-    refine ⟨?_, Or.inl rfl, ?_⟩
+    refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
     · simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
         Bool.false_eq_true, _root_.or_self, ↓reduceIte]
       first | exact Hst.1 | exact Hst
@@ -374,7 +374,7 @@ theorem apply.uberApplier.dispatch.wp_proof
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
-            apply.kvFloorOk rq true F log o⌝ ∗
+            apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
           apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
     with [a r ar op «$r0» Hc Hres Ha Hkv Hwt]

@@ -376,6 +376,64 @@ theorem applierAdmin_uber
   iapply applierAdmin_base hUA hRA hUGR hRGP hAE E W opts base $$ [Hpkg Hsh Hopts Hst]
   iframe #
 
+/-- **The alarms' wrappers' admin triples** (the auth plan's E2o): the base applier's, through
+`restoreAlarms`' capped and corrupt wrappers (`alarmShape`). -/
+theorem applierAdmin_alarm (E : AEnv GF) (ns cr : Bool) (base a : GoInterface) (W : IProp GF) :
+    alarmShape ns cr base a ⊢ applierAdmin E (baseChain E.authOn) base W -∗
+      applierAdmin E (alarmChain E.authOn ns cr) a W := by
+  iintro #Hsh #Hb
+  iunfold alarmShape at Hsh
+  icases Hsh with ⟨%a1, #H1, #H2⟩
+  ihave #Ha1 : applierAdmin E (if ns then Chain.capped (baseChain E.authOn) else baseChain E.authOn)
+      a1 W $$ []
+  · cases ns
+    · iunfold cappedShape at H1
+      icases H1 with %h1
+      subst h1
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iexact Hb
+    · iunfold cappedShape at H1
+      icases H1 with ⟨%pc, %h1, #Hc⟩
+      subst h1
+      iunfold cappedIs at Hc
+      simp only [↓reduceIte]
+      iapply applierAdmin_capped E _ pc base W $$ Hc Hb
+  unfold alarmChain
+  cases cr
+  · iunfold corruptShape at H2
+    icases H2 with %h2
+    subst h2
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iexact Ha1
+  · iunfold corruptShape at H2
+    icases H2 with ⟨%pr, %h2, #Hc⟩
+    subst h2
+    iunfold corruptIs at Hc
+    simp only [↓reduceIte]
+    iapply applierAdmin_corrupt E _ pr a1 W $$ Hc Ha1
+
+/-- **The current applier's admin triples** (the auth plan's E2o): from the uber-applier's base
+applier's (`applierAdmin_uber`) and the current applier's shape (`uberShape`, kept in
+`uberOwn`). -/
+theorem applierAdmin_cur
+    (hUA : applierV3backend.UserAdd.fuelSpec (GF := GF) (hG := hG))
+    (hRA : applierV3backend.RoleAdd.fuelSpec (GF := GF) (hG := hG))
+    (hUGR : applierV3backend.UserGrantRole.fuelSpec (GF := GF) (hG := hG))
+    (hRGP : applierV3backend.RoleGrantPermission.fuelSpec (GF := GF) (hG := hG))
+    (hAE : applierV3backend.AuthEnable.fuelSpec (GF := GF) (hG := hG))
+    (E : AEnv GF) (W : IProp GF) (p : Loc) (opts : ApplierOptions) (c : Chain) (a : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      uberIs E p opts ∗ isAuthSteps opts.AuthStore' E.P E.f E.authMode W ∗ uberShape E p c a ⊢
+      applierAdmin E c a W := by
+  iintro ⟨#Hpkg, #Hu, #Hst, #Hsh⟩
+  ihave ⟨%base, #Hbf, #Hb⟩ := applierAdmin_uber hUA hRA hUGR hRGP hAE E W p opts $$ [Hpkg Hu Hst]
+  · iframe #
+  iunfold uberShape at Hsh
+  icases Hsh with ⟨%base', %ns, %cr, %hc, #Hbf', #Has⟩
+  icombine Hbf Hbf' gives %hb
+  subst hb hc
+  iapply applierAdmin_alarm E ns cr base a W $$ Has Hb
+
 end proof
 
 end apply

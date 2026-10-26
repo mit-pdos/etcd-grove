@@ -169,11 +169,24 @@ instance uberIs_persistent (E : AEnv GF) (p : Loc) (opts : ApplierOptions) :
     Persistent (uberIs E p opts) := by
   unfold uberIs; infer_instance
 
+/-- **The current applier's shape** (the auth plan's E2o, 2026-10-26; persistent): the chain
+`c` is `restoreAlarms`' for some alarms (`alarmChain`), and the applier `a` is the base applier
+(`applyV3base`) wrapped as those alarms ask (`alarmShape`), what `applierAdmin_cur`
+(`AdminChain.lean`) needs to lift the base's admin triples to it. `dispatch` never changes the
+current applier (no alarm request is admitted, `rqOk`), so this is fixed after `NewUberApplier`. -/
+def uberShape (E : AEnv GF) (p : Loc) (c : Chain) (a : GoInterface) : IProp GF :=
+  iprop(∃ (base : GoInterface) (ns cr : Bool), ⌜c = alarmChain E.authOn ns cr⌝ ∗
+    structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗ alarmShape ns cr base a)
+
+instance uberShape_persistent (E : AEnv GF) (p : Loc) (c : Chain) (a : GoInterface) :
+    Persistent (uberShape E p c a) := by
+  unfold uberShape; infer_instance
+
 /-- **The uber-applier `p`'s current applier**, the apply thread's: its `applyV3` field, an
-applier of the chain `c`. -/
+applier of the chain `c`, with its shape (`uberShape`). -/
 def uberOwn (E : AEnv GF) (p : Loc) (c : Chain) : IProp GF :=
   iprop(∃ a : GoInterface, structFieldRef uberApplier go!"applyV3" p ↦ a ∗ applierSpec E c a ∗
-    ⌜c.authOn = E.authOn⌝)
+    ⌜c.authOn = E.authOn⌝ ∗ uberShape E p c a)
 
 /-- **The `UberApplier` `ua`** (`apply.Apply`'s, the server's `uberApply`): an `*uberApplier`
 in the environment `E` (persistent). The server's contract for its applier (`InvApplier.lean`),
