@@ -19376,3 +19376,42 @@ phase 1"). Two gaps the statements found, both closed with what is true of the c
 - `isRaftStatus`/`isSnapshotServer`/`isConsistentIndexer` of the new options are built from the
   server's method specs, as `NewServer` does (the old applier's options say nothing of `s`), so
   `wp_proof_snap` takes the `Leader`, `Term`, `ForceSnapshot` specs (unlinked: nothing else moves).
+
+## D22 L1 (S-k): the quota after the backend swap, already covered (2026-10-26 · decided by the orchestrator while the user was away (L1))
+
+Stage L1 of `notes/snapshot-sj-plan.md`. The goal: once `applySnapshot` swaps `s.be` and starts the
+old backend's `Close`, the quota checks (`newBackendQuota(s, name).Available(r)`: `s.Backend()`
+then `be.Size()`) stay provable, and no quota predicate holds a `bOpen` share that would block that
+`Close` (S8d's W7 takes the old backend's `bOpen 1`). Finding: **the current statements already
+satisfy it; no Go change, no statement change, no axiom.**
+- **The Go code** (`bc9c3868c`): `BackendQuota.Available` reads only `b.be.Size()`, which is
+  `atomic.LoadInt64(&b.size)` (`backend.go:455`); `Close` (`:481`) stops the goroutine and closes
+  the bbolt db, leaving `size`: a closed backend answers its last size, no panic. The applier's
+  quota (`newQuotaApplierV3`, over `opts.Backend = s.be`) is rebuilt by `applySnapshot`
+  (`s.uberApply = s.NewUberApplier()`, `server.go:1171`) after the swap; the gRPC one is built per
+  check since D22g (A).
+- **The axiom** `storage.NewBackendQuota.spec` takes any `be : GoInterface`, with no fact or
+  resource of it, and its `apply.isQuota` triples have the precondition `True`. So it already
+  "speaks of whichever backend `Backend()` returned", of any epoch, closed or not. It is true of Go
+  for a real backend at any epoch: the proved `backend.backend.Size.spec` needs only the persistent
+  `isBackend` (its `metricsInv` holds `b.size` and outlives `Close`, whose spec consumes `bOpen 1`
+  but not `isBackend`), and `backendUnderQuota` covers the answer as it does for the current
+  backend. Not restated to take an `isBackend` premise (which would rule out a nil `be`, where Go's
+  `Available` panics, the premise's answer then being false of that run): the applier side
+  (`newQuotaApplierV3.spec`, `be` arbitrary) has none to give, so it would add a premise up through
+  `newApplierV3`, `NewUberApplier`, `NewServer` and `applySnapshot` (weakening closed theorems,
+  and the latter in files under edit); both callers pass a real backend (`srvBeIface d.be` from
+  `EtcdServer.Backend`, `s.be`).
+- **No `bOpen` share anywhere in the quota**: `v3rpc.quotaAlarmerAt` (the server, the name, the
+  logger, `QuotaBackendBytes`, `backendUnderQuota`), `v3rpc.quotaRd` (reader slots of `lgMu` and
+  `bemu`), `quotaKVServerAt`, `isQuota`, and the request slots built on them (`etcdGrpcSlot`,
+  `etcdLeaseSlot`: `quotaRd` plus their own) name no backend. `v3rpc.newBackendQuota.wp_proof`
+  drops `Backend()`'s `srvBeRO d`; `srvBemuReader s` is a reader slot at the fixed name `γbe`, whose
+  value the swap changes under `bemu`'s write side, which a writer takes through the guard
+  (`isRWMutexGuard`), not the reader slots: outstanding slots block neither the swap nor `Close`.
+- **Done**: docstrings only (`storage.NewBackendQuota.spec`, `apply.backendUnderQuota`,
+  `v3rpc/InvQuota.lean`'s header) say the above. Trust base unchanged.
+- **For S8d/S-j**: the quota needs nothing at the swap: give the old backend's whole `bOpen 1` to
+  its closer; the `bemu` reader slots the request path carries (`srvServeBuilt`'s `K`) stay valid
+  across epochs (same `γbe`). The epoch's `srvBeRO d` is still in `bemuP` for `Backend()`'s callers
+  that do need it (the storage-version monitor, `VerifyBackendConsistency`).
