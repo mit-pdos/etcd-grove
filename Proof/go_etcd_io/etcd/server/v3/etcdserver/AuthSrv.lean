@@ -77,7 +77,8 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         backend.rbOwn d.γB (authBucketsAfter r) ∗
         ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
-        isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authApplyRes M stl ∗
+        isReqAuth st RD ∗ authApplyOkM M stl RD ∗
+        authApplyResAt M stl (auth.bump auth.bootState) ∗
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
         □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) }})
@@ -158,7 +159,7 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   isplitr
   · iExactEq Hok; rfl
   isplitr
-  · unfold authApplyRes
+  · unfold authApplyResAt
     itrivial
   iintro !> -
   iexact HauR
@@ -243,12 +244,18 @@ theorem authStoreKit_on
     · exact h
   ihave ⟨#HisReq, #HisAuth⟩ := authSrvContracts_on hCtx hTLS hPut hRange hDel hAdmin hEn h_Revision
     stp R γa $$ [$Hpkg $Hinv]
-  ihave HAR : authApplyRes (.on γa) stp $$ [Hown' Hfu HT' Hen Hca HtpAd]
-  · unfold authApplyRes
-    iexists hs', P, f, T, (authBkIface abl)
-    subst hhs'
+  subst hhs'
+  -- (E2v) the halves tied to the start's history, whose states are disabled
+  ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
+    (by intro s hs; simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
+        rcases hs with rfl | rfl <;> rfl) $$ [Hown' Hen Hca]
+  · iframe Hown' Hen Hca
+  ihave HAR : authApplyResAt (.on γa) stp (auth.bump auth.bootState) $$ [Hown' Hfu HT' HX HtpAd]
+  · unfold authApplyResAt
+    iexists [auth.bootState, auth.bump auth.bootState], P, f, T, (authBkIface abl)
     iunfold auth.authOwnFu
-    iframe Hown' Hfu HT' Hen Hca HtpAd Hwok
+    iframe Hown' Hfu HT' HX HtpAd Hwok
+    ipureintro; rfl
   iapply HΦ
   iframe Hopen Hhook Hrbo
   iexists (auth.authRd stp R (.on γa)), stp

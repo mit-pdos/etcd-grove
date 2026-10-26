@@ -11,10 +11,10 @@ own that folds the auth state with the KV log:
   that state (`auth.adminOk`, `authApplierV3.Apply`'s `IsAdminPermitted`), else not at all
   (`adminStateR`, `adminNext`). It leaves the KV log alone (`kvEntryOn_admin`).
 - **A KV entry** (a put, a delete, a range, a transaction) writes iff the auth state at that point
-  grants its principal every permission the request needs (`kvGranted`: auth disabled, or a
-  revision that is not `0` and not below the store's -- `ErrAuthOldRevision` -- and a user with the
-  root role or whose permissions cover each of `reqPerms`); otherwise it is refused and leaves the
-  log alone.
+  grants its principal every permission the request needs (`kvGranted`: for each of `reqPerms`,
+  auth disabled, or a revision that is not `0` and not below the store's -- `ErrAuthOldRevision`
+  -- and a user with the root role or whose permissions cover it; a request needing none is let
+  through); otherwise it is refused and leaves the log alone.
 - Every other entry is today's (`kvEntry`).
 
 **Why a function of the committed log, and why determinacy is a premise of the log.** The KV
@@ -73,7 +73,7 @@ def outState (st : auth.AuthState) : auth.Outcome → auth.AuthState
   | .next st' => st'
 
 /-- A step relation's successors of `st`, as states. -/
-def relState (R : auth.StepRel) (st st' : auth.AuthState) : Prop :=
+def authRelState (R : auth.StepRel) (st st' : auth.AuthState) : Prop :=
   ∃ o, R st o ∧ st' = outState st o
 
 open Classical in
@@ -89,21 +89,21 @@ def adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState) : Prop :=
     match apply.dispatchKind rq with
     | .authUserAdd =>
         match rq.authUserAdd with
-        | some m => (¬ m.pwSure ∧ st' = st) ∨ relState (auth.stepOf (auth.userAddF m.name)) st st'
+        | some m => (¬ m.pwSure ∧ st' = st) ∨ authRelState (auth.stepOf (auth.userAddF m.name)) st st'
         | none => st' = st
     | .authRoleAdd =>
         match rq.authRoleAdd with
-        | some n => relState (auth.stepOf (auth.roleAddF n)) st st'
+        | some n => authRelState (auth.stepOf (auth.roleAddF n)) st st'
         | none => st' = st
     | .authUserGrantRole =>
         match rq.authUserGrantRole with
-        | some (u, r) => relState (auth.userGrantRoleR u r) st st'
+        | some (u, r) => authRelState (auth.userGrantRoleR u r) st st'
         | none => st' = st
     | .authRoleGrantPermission =>
         match rq.authRoleGrantPermission with
-        | some (r, w) => relState (auth.roleGrantPermissionR r w) st st'
+        | some (r, w) => authRelState (auth.roleGrantPermissionR r w) st st'
         | none => st' = st
-    | .authEnable => relState (auth.stepOf (auth.authEnableF st.enabled)) st st'
+    | .authEnable => authRelState (auth.stepOf (auth.authEnableF st.enabled)) st st'
     | _ => st' = st
   else st' = st
 
@@ -129,27 +129,27 @@ theorem adminNext_of_det (rq : apply.IRRModel) (st st' : auth.AuthState) (hd : a
 /-! ## The KV entries' check -/
 
 mutual
-/-- The permissions a transaction's operation needs (`checkTxnReqsPermission`'s walk, `opClass`):
-a get's read, a put's write of its key, a delete's write and `PrevKv` read, a nested transaction's
-comparisons and both branches. -/
-def opPerms : TxnOp → List apply.Perm3
+/-- The permissions a transaction's operation needs (`checkTxnReqsPermission`'s walk, `opClass`), of
+its wire operation (E3e: a put's `PrevKv` kept): a get's read, a put's write of its key and with
+`PrevKv` its read (`checkPutAuth`, `apply.putPerms`), a delete's write and `PrevKv` read, a nested
+transaction's comparisons and both branches. -/
+def opPerms : txn.TxnOpW → List apply.Perm3
   | .get o => [(o.key, o.base.rangeEnd, .read)]
-  | .put k _ _ => [(k, [], .write)]
-  | .putKeep k _ => [(k, [], .write)]
-  | .putIgnVal k _ => [(k, [], .write)]
+  | .put o => apply.putPerms o
   | .delete o => (o.key, o.base.rangeEnd, .write) ::
       if o.base.prevKV then [(o.key, o.base.rangeEnd, .read)] else []
   | .txn cs ts es => cs.map (fun cm => (cm.key, cm.rangeEnd, .read)) ++ opsPerms ts ++ opsPerms es
 
 /-- The permissions a list of operations needs, in order. -/
-def opsPerms : List TxnOp → List apply.Perm3
+def opsPerms : List txn.TxnOpW → List apply.Perm3
   | [] => []
   | op :: ops => opPerms op ++ opsPerms ops
 end
 
 /-- **The permissions a KV request needs** (`apply.reqClass`, purely): a put's (`apply.putPerms`),
 a delete's write and `PrevKv` read of its range, a range's read, a transaction's comparisons'
-reads and both branches' operations. -/
+reads and both branches' operations (of its wire transaction, `txnW`: a put's `PrevKv` read
+included, E3e). -/
 def reqPerms (rq : apply.IRRModel) : List apply.Perm3 :=
   match apply.dispatchKind rq with
   | .put => match rq.put with
@@ -162,23 +162,35 @@ def reqPerms (rq : apply.IRRModel) : List apply.Perm3 :=
   | .range => match rq.range with
       | some o => [(o.key, o.base.rangeEnd, .read)]
       | none => []
-  | .txn => match rq.txn with
+  | .txn => match rq.txnW with
       | some t => t.cmps.map (fun cm => (cm.key, cm.rangeEnd, .read)) ++ opsPerms t.thenOps ++
           opsPerms t.elseOps
       | none => []
   | _ => []
 
 /-- **The auth layer lets the KV request `rq` through at `st`** (`isOpPermitted` for each of its
-permissions, at one state: the apply thread is the store's only writer): auth disabled, or the
-principal's revision not `0` (`ErrUserEmpty`) and not below the store's (`ErrAuthOldRevision`), and
-its user existing with the root role or with permissions covering each permission the request
-needs. -/
+permissions, at one state: the apply thread is the store's only writer): every permission the
+request needs passes, each check passing when auth is disabled, or when the principal's revision
+is not `0` (`ErrUserEmpty`) and not below the store's (`ErrAuthOldRevision`) and its user exists
+with the root role or with permissions covering it. A request needing no permission (a transaction
+without comparisons or operations) is let through whatever the principal, as the code applies it
+unchecked (E2v; until then the model asked the revision and the user of it too). -/
 def kvGranted (st : auth.AuthState) (rq : apply.IRRModel) : Prop :=
-  st.enabled = false ∨
+  ∀ x ∈ reqPerms rq, st.enabled = false ∨
     ((auth.authInfoM (apply.principalOf rq)).rev ≠ 0 ∧
       st.revision ≤ (auth.authInfoM (apply.principalOf rq)).rev ∧
       ∃ u, st.users !! (auth.authInfoM (apply.principalOf rq)).user = some u ∧
-        (auth.isRoot u ∨ ∀ x ∈ reqPerms rq, auth.covers st u x.2.2 x.1 x.2.1))
+        (auth.isRoot u ∨ auth.covers st u x.2.2 x.1 x.2.1))
+
+/-- With auth disabled, every request is let through. -/
+theorem kvGranted_of_disabled (st : auth.AuthState) (rq : apply.IRRModel)
+    (hen : st.enabled = false) : kvGranted st rq :=
+  fun _ _ => Or.inl hen
+
+/-- A request needing no permission is let through. -/
+theorem kvGranted_of_nil (st : auth.AuthState) (rq : apply.IRRModel) (h : reqPerms rq = []) :
+    kvGranted st rq := by
+  intro x hx; rw [h] at hx; cases hx
 
 /-- **The check is decided at `st`**: with auth enabled, every permission the request needs is of
 the shape the permission cache decides (`auth.reqShape`). -/
@@ -271,7 +283,7 @@ theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthSt
           unfold kvEntryOn
           rw [if_pos hc, hdec]
           have hna := hm rq hdec
-          have hg : kvGranted st₀ rq := Or.inl hen
+          have hg : kvGranted st₀ rq := kvGranted_of_disabled st₀ rq hen
           simp only [hna, Bool.false_eq_true, and_false, ↓reduceIte, hg, not_true_eq_false]
         | none =>
           unfold kvEntryOn kvEntry
