@@ -555,12 +555,13 @@ theorem adminPass_wrap (M : auth.AuthMode) (c c' : Chain) (rq : IRRModel) (h : c
 /-! ## The outcomes, in the heap -/
 
 /-- The error of a rejection `k`: the corrupt applier's `ErrCorrupt`, the capped applier's
-`ErrNoSpace`, the auth store's (not nil, one `errors.Is` can take: `applyErrIs`, the contract's),
+`ErrNoSpace`, the auth store's (not nil, one `errors.Is` can take and one of the auth package's
+error variables: `authApplyErrIs`, the contract's; the auth plan's E3i, 2026-10-27),
 or the backend's (`bk`, by the request). -/
 def rejErrIs (bk : GoInterface → IProp GF) : RejectKind → GoInterface → IProp GF
   | .corrupt, err => txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err
   | .noSpace, err => txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace err
-  | .auth, err => iprop(⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)
+  | .auth, err => iprop(⌜err ≠ GoInterface.nil⌝ ∗ authApplyErrIs err)
   | .backend, err => bk err
 
 /-- The error of an applied request: `nil`, or the quota's `ErrNoSpace` (`ns`). -/

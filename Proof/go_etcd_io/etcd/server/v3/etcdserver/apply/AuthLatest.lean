@@ -183,7 +183,7 @@ def permCheck2L (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.Au
       (dk : DFrac) (hs : List auth.AuthState),
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ L hs ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ L hs ∗ applyErrIs err ∗
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ L hs ∗ authApplyErrIs err ∗
         ⌜auth.permVerdictL M hs (auth.authInfoM info) k [] .write err⌝ ∗
         auth.permVerdict M info k [] .write err }}))
 
@@ -195,7 +195,7 @@ def permCheck3L (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.Au
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ L hs ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
     {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ L hs ∗
-        applyErrIs err ∗ ⌜auth.permVerdictL M hs (auth.authInfoM info) k e op err⌝ ∗
+        authApplyErrIs err ∗ ⌜auth.permVerdictL M hs (auth.authInfoM info) k e op err⌝ ∗
         auth.permVerdict M info k e op err }}))
 
 /-- **The auth store's checks at the latest state** (see the file header): the three permission
@@ -254,7 +254,7 @@ theorem isAuthStoreL_of_authInv
     isplitl [Hown Hfl Hca]
     · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
-    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · ipureintro; exact Hv
     · iapply (auth.permVerdict_of_L M hs info _ _ _ err Hv) $$ Hsnap
@@ -272,7 +272,7 @@ theorem isAuthStoreL_of_authInv
     isplitl [Hown Hfl Hca]
     · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
-    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · ipureintro; exact Hv
     · iapply (auth.permVerdict_of_L M hs info _ _ _ err Hv) $$ Hsnap
@@ -290,7 +290,7 @@ theorem isAuthStoreL_of_authInv
     isplitl [Hown Hfl Hca]
     · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
-    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · ipureintro; exact Hv
     · iapply (auth.permVerdict_of_L M hs info _ _ _ err Hv) $$ Hsnap
