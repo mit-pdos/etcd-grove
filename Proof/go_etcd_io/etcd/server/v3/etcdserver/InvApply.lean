@@ -229,11 +229,12 @@ theorem retiredInv_mono (l : List ApplyPhys) (c c' : w64) (h : uint.Z c ≤ uint
   ipureintro; omega
 
 /-- **A future backend's deposit** (D22 receiver epochs, S8b, 2026-10-24): the fresh payment rights
-(`backend.bFresh`: every write-back token and the clients' whole open token) of a backend whose
-write-back and open names are `π`'s. While they are here no commit runs that backend's hooks
-(`backend.hook_bFresh_false`). -/
+of a backend whose write-back and open names are `π`'s: every write-back token and the clients'
+half of the open ghost (D22 S8d, 2026-10-26: until then all of `backend.bFresh`, whose close right
+`γB.cls` the deposit does not name, so its depositor keeps it: `ci_announce`). While they are here
+no commit runs that backend's hooks (`backend.hook_fresh_false`). -/
 def futStash (π : ApplyPhys) : IProp GF :=
-  iprop(∃ γB : backend.BNames, backend.bFresh γB ∗ ⌜γB.wb = π.bwb ∧ γB.opn = π.bopn⌝)
+  iprop(ownToks π.bwb backend.wbInit ∗ dghostVar π.bopn (DFrac.own (1 : Qp).half) false)
 
 /-- **The announced backends** (S8b) against the registry's list `L`: the authority of the futures'
 list `M`, each entry registered (its names in `L`, its claim token here) or still future (its
@@ -244,7 +245,7 @@ def futInv (γ : ApplyNames) (L : List ApplyPhys) : IProp GF :=
 
 instance futInv_timeless (γ : ApplyNames) (L : List ApplyPhys) :
     Timeless (futInv (GF := GF) γ L) := by
-  unfold futInv futStash backend.bFresh backend.bOpen; infer_instance
+  unfold futInv futStash; infer_instance
 
 /-- The announced backends against a longer registry. -/
 theorem futInv_mono (γ : ApplyNames) (L L' : List ApplyPhys) (h : ∀ π, π ∈ L → π ∈ L') :
@@ -1226,10 +1227,10 @@ theorem fut_resolve [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
     iexists i
     iexact Hreg
   · iunfold futStash at Hst
-    icases Hst with ⟨%γB', Hfr, %Hlink⟩
+    icases Hst with ⟨Htoks, Hop⟩
     iexfalso
-    iapply backend.hook_bFresh_false γB γB' P b st stop m u (by rw [hwb]; exact Hlink.1)
-      (by rw [hopn]; exact Hlink.2) $$ [$Hl $Hpay $Hfr]
+    rw [← hwb, ← hopn]
+    iapply backend.hook_fresh_false γB P b st stop m u $$ [$Hl $Hpay $Htoks $Hop]
 
 /-- **A backend announced** (D22 receiver epochs, S8b, 2026-10-24), in the open's batch-lock step
 (`backend.New`'s, `OpenSnapshotBackend`'s `openPre`): the new backend's physical names `π` (fresh
@@ -1242,9 +1243,14 @@ theorem ci_announce (γ : ApplyNames) (π : ApplyPhys) (γB : backend.BNames) (T
     (mm : MetaCI) (hwb : γB.wb = π.bwb) (hopn : γB.opn = π.bopn) :
     inv applyN (consInv (GF := GF) γ) ⊢ backend.bFresh γB -∗ token π.pend -∗
       ghostVar π.mt (1 : Qp).half mm.1 -∗ TM mm -∗
-      |={⊤}=> batchLockInv (γ.withPh π) TM ∗
+      |={⊤}=> batchLockInv (γ.withPh π) TM ∗ ghostVar γB.cls 1 () ∗
         ∃ (j : Nat) (γc : GName), token γc ∗ monoListIdxOwn γ.fut j (π, γc) := by
   iintro #Hinv Hfr Hpend Hmt HTM
+  iunfold backend.bFresh at Hfr
+  iunfold backend.bOpen at Hfr
+  icases Hfr with ⟨Htoks, Hop, Hcls⟩
+  ihave Hfr : futStash (GF := GF) π $$ [Htoks Hop]
+  · iunfold futStash; rw [← hwb, ← hopn]; iframe Htoks Hop
   imod token_alloc with ⟨%γc, Htc⟩
   iinv Hinv with Hi Hclose
   imod Hi with Hi
@@ -1269,11 +1275,9 @@ theorem ci_announce (γ : ApplyNames) (π : ApplyPhys) (γB : backend.BNames) (T
     iapply BigSepL.bigSepL_snoc.2
     iframe HM
     iright
-    iunfold futStash
-    iexists γB
-    iframe Hfr
-    ipureintro; exact ⟨hwb, hopn⟩
+    iexact Hfr
   imodintro
+  iframe Hcls
   isplitl [Hpend Hmt HTM]
   · iunfold batchLockInv
     iexists mm

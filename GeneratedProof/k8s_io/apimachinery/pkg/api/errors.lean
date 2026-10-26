@@ -2,6 +2,9 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
+public import GeneratedProof.net.http
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.api.errors
 
@@ -25,34 +28,36 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 
 noncomputable instance StatusError_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.errors.StatusError :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.errors.StatusError where
+  typedPointstoDef l v dq := iprop(
+    "ErrStatus" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance StatusError_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.errors.StatusError k8s_io.apimachinery.pkg.api.errors.StatusError.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.errors.StatusError k8s_io.apimachinery.pkg.api.errors.StatusError.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance StatusError_access_load_ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance StatusError_access_store_ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (ErrStatus' : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) ErrStatus' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrStatus' := ErrStatus' } : k8s_io.apimachinery.pkg.api.errors.StatusError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end StatusError
-
-namespace APIStatus
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.errors.Assumptions]
-
-noncomputable instance APIStatus_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.errors.APIStatus :=
-  sorry -- axiomatized type
-
-noncomputable instance APIStatus_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.errors.APIStatus k8s_io.apimachinery.pkg.api.errors.APIStatus.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end APIStatus
 
 namespace UnexpectedObjectError
 section def_

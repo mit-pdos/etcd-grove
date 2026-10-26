@@ -180,19 +180,21 @@ theorem srvBootClientOn (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 �
 (`srvRaftBoot_alloc`'s). -/
 theorem srvRaftBootOn_alloc (E : CoPset) (cfg nodes : GSet w64) (ccOk : w32 → List w8 → Prop)
     (ps : List w64) (bootLog : List EntryM) (ids : IdNames)
+    -- (2026-10-26, D22 J2) the members' snapshot directories (`RaftNames.reSnapLoc`)
+    (sl : w64 → Option GName)
     (Hcne : cfg ≠ ∅) (Hnz : W64 0 ∉ nodes) (Hcfg : cfg = GMap.listToSet ps)
     (hboot : BootLogOk ccOk ps bootLog)
     (hpol : ∀ ty d, ccOk ty d →
       ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d) :
     ⊢ |={E}=> ∃ γ : RaftNames,
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
-          γ.reTracked = some cfg ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true⌝ ∗
+          γ.reTracked = some cfg ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true ∧ γ.reSnapLoc = sl⌝ ∗
         raftCommitInv (GF := GF) γ ∗ isCommitted γ bootLog ∗
         ([∗map] id ↦ _u ∈ toMap nodes, ownRaftGhost γ id (bootPState bootLog)) ∗
         srvBootOutOn ids bootLog γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
   iapply (ownRaftGhost_alloc_boot E cfg nodes ccOk ps bootLog (srvBootOutOn ids bootLog) true true
-    Hcne Hnz Hcfg hboot)
+    sl Hcne Hnz Hcfg hboot)
   iapply srvBootClientOn E cfg ccOk ps bootLog ids hboot hpol
 
 /-- **A new cluster's resources, for the servers, in the mode `on`** (`srvClusterBoot_alloc`'s:
@@ -218,13 +220,16 @@ theorem srvClusterBootOn_alloc (cfg nodes : GSet w64) (ccOk : w32 → List w8 �
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          rdCred γ (2 ^ 48))) ∗
+          rdCred γ (2 ^ 48) ∗
+          -- (2026-10-26, D22 J2) and its snapshot directory, empty (`RaftNames.reSnapLoc`)
+          ∃ γd : GName, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) := by
   obtain ⟨Hnd, Hok, Hlen⟩ := idPfxsOf_ok ps Hpd Hp0
   istart
   imod (idCluster_alloc (GF := GF) (idPfxsOf ps) Φs ⊤ Hnd Hok) with ⟨%issued, %cnt, #Hcl, #H0, Hps⟩
   imod (idWait_alloc_list (GF := GF) (idPfxsOf ps) Hnd) with ⟨%wn, Hwns⟩
-  imod (srvRaftBootOn_alloc (GF := GF) ⊤ cfg nodes ccOk ps bootLog ⟨issued, cnt, 0, 0, wn⟩
+  imod (snapDirs_alloc (GF := GF) ps (nodup_of_map _ Hpd)) with ⟨%sl, Hsd⟩
+  imod (srvRaftBootOn_alloc (GF := GF) ⊤ cfg nodes ccOk ps bootLog ⟨issued, cnt, 0, 0, wn⟩ sl
       Hcne Hnz Hcfg hboot hpol)
     with ⟨%γ, %Hγ, #Hcinv, #Hcomm, Hghosts, Hout, HrdC, #HrdI⟩
   iunfold srvBootOutOn at Hout
@@ -240,11 +245,18 @@ theorem srvClusterBootOn_alloc (cfg nodes : GSet w64) (ccOk : w32 → List w8 �
   iframe Hcinv Hcomm HrdI Hghosts Hkv Hetcd Hcl H0 Hpm Hrc
   isplitr
   · ipureintro
-    obtain ⟨h1, h2, h3, h4, -, h5, h6⟩ := Hγ
+    obtain ⟨h1, h2, h3, h4, -, h5, h6, -⟩ := Hγ
     exact ⟨h1, h2, h3, h4, h5, h6, hc0, hch, hlog, by rw [hids]⟩
-  isplitl [Hps Hcr]
+  isplitl [Hps Hcr Hsd]
   · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
-    iframe Hcr
+    ihave Hbc : iprop([∗list] id ∈ ps, (rdCred γ (2 ^ 48) ∗
+        ∃ γd : GName, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth (GF := GF) γd 1 (∅ : GMap w64 Unit)))
+      $$ [Hcr Hsd]
+    · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
+      iframe Hcr
+      rw [Hγ.2.2.2.2.2.2.2]
+      iexact Hsd
+    iframe Hbc
     have hm : ([∗list] p ∈ idPfxsOf ps, p ↪[cnt] ([] : List w64)) =
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) : IProp GF)) := by
       unfold idPfxsOf; rw [BigSepL.bigSepL_map]

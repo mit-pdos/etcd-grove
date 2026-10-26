@@ -341,6 +341,14 @@ structure RaftNames where
   knowing what it says. `fun _ _ => True` for an application that states nothing of its data. Read
   it as `RaftNames.reSnapOk`. -/
   reSnapOkRaw : List BootEntry → List w8 → Prop
+  /-- Each node's snapshot directory (2026-10-26, D22 J2, R-loc; `notes/snapshot-sj-plan.md`, "J0
+  decisions" item 1): `some γd` names the ghost map `index ↦ ()` of the snapshot indices saved in
+  node `id`'s directory (rafthttp's `snapSaved γd i`, whose authority the directory's invariant
+  holds), `none` for a node that states nothing of it. Pure data (as `reSnapOkRaw`), fixed at
+  allocation, so that raft carries a received snapshot's receiver-local fact (`snapLocal`) from
+  `node.Step` to the `Ready` that hands it out. Raft's own results, `examples/kv` and the
+  no-snapshot clusters keep the default. -/
+  reSnapLoc : w64 → Option GName := fun _ => none
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -599,6 +607,41 @@ def SnapTrip.cfgM (k : SnapTrip) : CfgM :=
   csCfgM k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext k.al
 
 end snapcert_pure
+
+section snaploc
+variable {GF : BundledGFunctors} [AllG GF]
+
+/-- **A snapshot of index `i` is local to node `id`** (2026-10-26, D22 J2, R-loc;
+`RaftNames.reSnapLoc`): with a directory named for `id`, the index saved there (the body of
+rafthttp's `snapSaved γd i`, `snapLocal_of_saved`), and nothing otherwise. Persistent; what
+`node.Step` takes of a `MsgSnap` beside its cluster-level certificates, and what a `Ready` that
+hands the snapshot out gives back. -/
+def snapLocal (γ : RaftNames) (id i : w64) : IProp GF :=
+  match γ.reSnapLoc id with
+  | none => iprop(True)
+  | some γd => ghostMapElem (K := w64) (V := Unit) γd i DFrac.discard ()
+
+instance snapLocal_persistent (γ : RaftNames) (id i : w64) :
+    Persistent (snapLocal (GF := GF) γ id i) := by
+  unfold snapLocal; split <;> infer_instance
+
+instance snapLocal_timeless (γ : RaftNames) (id i : w64) :
+    Timeless (snapLocal (GF := GF) γ id i) := by
+  unfold snapLocal; split <;> infer_instance
+
+/-- Without a directory for `id`, every index is local. -/
+theorem snapLocal_none {γ : RaftNames} {id : w64} (h : γ.reSnapLoc id = none) (i : w64) :
+    ⊢ snapLocal (GF := GF) γ id i := by
+  unfold snapLocal; rw [h]
+  try (iintro; itrivial)
+
+/-- With the directory `γd` for `id`, the saved index's element. -/
+theorem snapLocal_of_elem {γ : RaftNames} {id : w64} {γd : GName} (h : γ.reSnapLoc id = some γd)
+    (i : w64) :
+    ghostMapElem (GF := GF) (K := w64) (V := Unit) γd i DFrac.discard () ⊢ snapLocal γ id i := by
+  unfold snapLocal; rw [h]
+
+end snaploc
 
 section ghost
 variable [FfiSyntax]
