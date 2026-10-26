@@ -21468,3 +21468,77 @@ both checks at the latest state (`apply.Apply.kvSpecL`, `apply.Apply.adminSpecL`
 `authApplyRes` (`tieRes` to `latestRes`, `latestRes_of_T`; the inverse wand for `hsplit`), the
 receipt and the borrow of `be`'s half; the server's base applier's `applierAdmL` (`applierAdmL_auth`
 with `applyNR_base`) from its construction.
+
+## E3f of the auth plan: the latest-state KV triples ask only the certificates their verdict admits; the KV entry's ghost steps with auth on; the apply loop left, with what blocks it (2026-10-27 · `notes/auth-plan.md`, E3a's blocker 4)
+
+**Found: the KV case of the apply loop with auth on was blocked by a certificate premise.**
+`apply.Apply`'s KV triple at the latest state (E2y's `kvSpecL`, down to the auth applier's
+`Put`/`DeleteRange`/`Txn.specL`, E2s) took `certPreV`: a certificate of the log *every* outcome of
+the auth chain leaves (`certPre`, what the store's writer mints a revision's token on). The auth
+chain's relation (`chainStep`'s auth layer) admits the write whatever the latest state says, but
+with auth on the apply thread certifies only the mode-`on` model's log after the entry
+(`kv_applied_step_on`, `certMapOkOn`), which a write the latest state refuses is not: no committed
+prefix's model. So the premise was unprovable at the server for a request the model refuses.
+
+**Done.**
+1. *The certificates of the admitted outcomes only* (`apply/AuthApplyLatest.lean`): `certPreW E c rq
+   log X` (`certPre` for the outcomes of `c` meeting `X`), `certPreVW` (with `v3`), and
+   `putPreW`/`deletePreW`/`txnPreW` (`putPre`/... with `certPreW`); `certPreW_of_certPre`,
+   `certPreW_mono`, `certPreVW_true`, `certPreVW_of_certPreV`, and `certPreW_inner`: past a passed
+   check every inner outcome is admitted, so the auth chain's `certPreW` is the inner chain's
+   `certPre`. The auth applier's latest-state `Put`/`DeleteRange`/`Txn` take `…PreW` at their verdict
+   (`authOutL` / the delete's / the transaction's) and derive the inner `certPre` in the pass branch,
+   where the inner call is; `applierKVL`'s clauses take the same; `dispatch.kvSpecL`,
+   `uberApplier.Apply.kvSpecL` and `apply.Apply.kvSpecL` take `certPreVW … (kvOutL …)`, the dispatch
+   narrowing it per kind (`certPreW_mono`). Weaker premises: each triple says more.
+2. *The apply thread gives them* (`etcdserver/ApplyEntryOn.lean`): `kv_certPreW_on`/`kv_certPreVW_on`
+   (an admitted outcome is the model's: `outcomeOn_of_kvOutL`, `outcomeOn_eq` at a determinate entry,
+   and the model's log after the entry is certified).
+3. *The KV entry's ghost steps with auth on*: `kv_entry_pre_on` (before the call: the entry plain,
+   not an admin one, determinate, the chain the start's; the model's state after it certified; the
+   certificates `kvSpecL` asks), `kvOn_after_kv` (after the call: the chain kept and `(st, x'.log)`
+   the model's step, from `kvSpecL`'s `applyStep` and `kvOutL`), `kv_entry_post_on` (the apply
+   thread's `kvAppliedOn` at `x'`, the auth state kept). Restated: `apply_kv_entry_pre_on`,
+   `apply_kv_after_on` (`etcdserver/Results.lean`).
+4. *Lending the checks' resource*: `auth.latestRes` also carries the halves' recorded verdicts
+   (`enabledVerdict`, `authSnap`, persistent), so it is exactly the authority with the tie
+   (`authOwnT_of_latestRes`); `authOwnT_lend` and `ownFuT_lend` (the apply thread's authority with
+   its fuel and tie lends `latestRes` and takes it back: `apply.Apply.adminSpecL`'s `hsplit`, and the
+   KV checks' `L hs`). Before, the checks could give back `latestRes` at other halves' values, which
+   the tie (`tieRes`, asking `authSnap` of the cache's state) could not be rebuilt from.
+
+**Exported statements changed.**
+- *Specs:* `apply.authApplierV3.Put.specL`, `.DeleteRange.specL`, `.Txn.specL` (`putPreW`,
+  `deletePreW`, `txnPreW` at their verdict), `apply.uberApplier.dispatch.kvSpecL`,
+  `apply.uberApplier.Apply.kvSpecL`, `apply.Apply.kvSpecL` (`certPreVW … kvOutL`): weaker premises.
+- *Definitions:* `apply.applierKVL` (its `Put`/`DeleteRange`/`Txn` clauses), `auth.latestRes`.
+- No closed theorem changed; trust base unchanged (725 axioms, 7 sorries).
+
+**Left: the apply loop with auth on** (`applyEntryNormal`, then `applyAll`, `run`, `start`), with
+what blocks it, in order:
+1. *The admin entry's borrow of the store's half of `be`.* The admin triples' `W` is `auth.authWB st
+   M P f T ∗ tpAdmin` (`isAuthStepsX_of_authInvT`): the store's half of its `be` field *at the same
+   backend* as `authWBackendOk be …`. The apply thread holds `authWBackendOk be …` for some `be`
+   (`authApplyRes`, from `authStoreKit`, where `be = authBkIface abl`), and the field's half is in the
+   server's rest (`authBeOn st d.be`, in `srvObjsOn`, inside `E.RO`) at *some* `abl'`; nothing ties
+   `abl'` to `abl`. Needed: `authApplyResAt` records the backend the field holds (`be = authBkIface
+   abl` with `abl`'s fields), and `authBeOn` names its `abl` (or a ghost agreement on it). That
+   touches `srvObjsOn`, which D22's `Recover` premise (a) is stated over: a decision to take with
+   D22.
+2. *The auth layer's rejection error is not known to be other than `ErrNoSpace`.* `rejErrIs .auth`
+   is `err ≠ nil ∗ applyErrIs err`, so with auth on `applyEntryNormal`'s NOSPACE alarm branch
+   (`errors.Is(ar.Err, ErrNoSpace)`) is not dead for a refused KV entry (`applyResultIs_notNoSpace` is
+   at the auth-off chain). Needed: the auth applier's rejections stated at the store's error
+   variables, apart from `etcdserver/errors`' (`errVarApart`).
+3. *The apply thread's state in the mode `on`*: `srvAppliedInv` (`kvLogsOk`), `kvLogAt` and
+   `applied_predeposit` are of the mode-off model (`kvModel`); their mode-`on` counterparts over
+   `kvModelOn` (the read side uses `srvAppliedInv` too: 15 users). `isServer` with `waitInvM true`
+   and `srvKVInvsOn`; `srvApplyKV` with `srvAuthApplyResAt` (the latest state) and the server
+   applier's latest-state facts (`uberKVL` from `applierKVL_auth`, `uberAuthStepsL` from
+   `applierAdmin_uberX`/`applierAdmL_auth`), which the construction must hand over.
+4. Then `applyEntryNormal.specOn`: no data; a KV entry (`kv_entry_pre_on`, `apply.Apply.kvSpecL`,
+   `kvOn_after_kv`, `kv_entry_post_on`, the lending `ownFuT_lend`); a cluster entry (`apply.Apply.spec`:
+   the auth layer passes it); an admin entry (`apply.Apply.adminSpecL`, `adminStateR_of_*`, the
+   receipt at an apply-thread step); the result to the waiter (`resultΨOn`: `authTie` from the
+   outcome, `entryWitOn`); replays (`v3 = false`). Then `applyAll`, `run`, `start`.
+
