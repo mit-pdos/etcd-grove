@@ -22372,3 +22372,76 @@ facts (the separate row of blocker 1's decision, then `uberAuthStepsL`'s `W`); `
 
 **Trust base.** Unchanged.
 
+
+## E3m of the auth plan: a read-only transaction's checks at a reader's lower bound; the model's users' roles sorted, so admin entries determinate; the admin proposal (2026-10-27 · `notes/auth-plan.md`, E3j's left first item, E2z's Found 3 and Left 3, E3b's Left 4)
+
+**(1) A read-only transaction's `CheckTxnAuth` no older than a reader's lower bound**
+(`apply/AuthCheckTxnLb.lean`). The read path checks a read-only transaction outside the apply
+thread (`v3_server.go`'s `Txn`: `doSerialize`'s check `apply2.CheckTxnAuth(s.authStore, ai,
+s.lessor, r)`). A read-only transaction (`txn.IsTxnReadonly`: every operation of both branches a
+range; `apply.readonlyW`, from the model's `txnReadonly` by `readonlyW_of_txnReadonly`) makes only
+`IsRangePermitted` checks, and has no nested transaction (a nested transaction is not a range), so
+E2s's Löb induction is not needed: the comparisons' loop, then each branch's loop, whose put,
+delete and nested-transaction cases are dead. Each check reads the store afresh, so each verdict is
+`IsRangePermitted.specLb`'s (E3j) at states no older than the reader's bound `n`, each possibly at
+a different state:
+- the store as the apply package sees it at the lower bound: `apply.isAuthStoreRangeLb st RD M n`
+  (`permCheck3Lb`: the verdict `auth.permVerdictFrom M n`), met by the real store from `authInv`
+  and `authPubLbM M n` (`isAuthStoreRangeLb_of_authInv`, restated `apply_auth_store_range_lb`);
+- `checkTxnPermission.specLb`/`CheckTxnAuth.specLb` (proved, restated `apply_check_txn_auth_lb`):
+  a pass is every checked permission's verdict passed no older than `n` (`verdictsFrom`, a big
+  separating conjunction of `permVerdictFrom … nil` over `txnChecked t`), with `txnClass`; a
+  refusal one checkable permission (`txnMay t`) refused there; in the mode `off` a pass.
+No lessor premise: the read-only transaction's checks never reach `checkPutAuth`.
+
+**(2) The model's auth states keep their users' roles sorted, so its admin entries are
+determinate** (`KVAuthShape.lean`). E2z found that admin determinacy needs a shape invariant of the
+model's states. The invariant is `rolesSorted st`: every user's roles strictly ascending
+(`GoStringLt`), what `UserGrantRole` writes (`sort.Strings`) and `UserAdd`'s empty list; not E2l's
+`authSmall` (its bounds are the fuel's, not determinacy's). `rolesSorted_adminStateR`: every admin
+step keeps it; `rolesSorted_adminNext` (a successor, or the state kept) and so
+`rolesSorted_kvRaftOfOn`: kept along the whole model of any log, whether or not its entries were
+determinate, from a sorted start (the server's `bump bootState`, `rolesSorted_model_boot`).
+`authDet_of_sorted`: at a sorted state an admin entry is determinate when it is a `UserAdd` with a
+password choice that cannot fail (`pwSure`), `RoleAdd`, `UserGrantRole` (its successor unique:
+two strictly sorted permutations of one list are equal, `eq_of_perm_sorted`; and existing: the
+sorted insertion `insLt`), `AuthEnable`, any other kind, or a `RoleGrantPermission` to a fresh
+role (`grantPermFresh`: the role has no permission at that state).
+
+**Found (a limit of S4's model, not a Go bug): `RoleGrantPermission` is determinate only to a
+fresh role.** `roleGrantPermissionR` lets the role's permissions after the append and `sort.Sort`
+be any permutation of the old ones with the new one (Go's `permSlice` compares keys only and
+`sort.Sort` is not stable, so the model does not pin the order), and also allows the append where
+Go updates an existing permission in place. Its successor is unique only when that list has one
+element. No invariant of the states gives that; the proposer must know it of the state its entry
+meets (`examples/authkv`'s `SetUp`: one grant to the role `r` it just added). The options: tighten
+`roleGrantPermissionR` (sorted by key, Go's update branch; then still ambiguous for two permissions
+with one key and different range ends), or the client's knowledge of the auth state (a ghost
+variable of the model's auth state in `kvInvOn`, which the sequential `SetUp` would hold).
+
+**(3) An admin proposal in the mode `on`** (`ProposeOn.lean`). `reqPropOkOn` gains a third case
+(appended: `A ∨ (B ∨ C)`): an admin request meeting `adminPropOk st₀ rq` (admitted, `adminKindOk`;
+needing the admin permission; its `UserAdd`, if any, `pwSure`; no `RoleGrantPermission`, which the
+proposer cannot know determinate; a sorted start), its result `adminPropRes`: at the commit the users'
+roles sorted and the step determinate, so the auth state after the entry is the model's
+`adminNext rq` of the state after the committed prefix. `commitOkOn_admin`: the committer's
+obligation for such an entry (admitted, determinate by `authDet_of_sorted`, not a KV kind).
+`kv_prop_au_on`'s admin case: the KV state kept (`kvModelOn_snoc_admin`), the invariant extended
+(`kvInvOn_facts_snoc`, the entry's shape the admin disjunct of `entryShapeOn`), `adminPropRes` at the
+commit. `ReqOn`'s `reqPropOkM_true_write` and `reqPropOkOn_noZero` adapted to the third case.
+
+**Not done.** The admin proposers over `processInternalRaftRequestOnce.specM true`
+(`EtcdServer.UserAdd`, `RoleAdd`, `UserGrantRole`, `AuthEnable` with `authRaftOk` discharged from
+`raftRequest.specM true`): `raftRequest`'s success post gives `appliedOkM`, whose
+`dispatchAnswer` says nothing of an admin kind's response (`| _ => True`), so `authRaftOk`'s
+`resp = *T` cannot follow; it needs the apply thread's admin answer handed to the waiter (E2n's
+`adminDone`, E3l's `applyEntryNormal` admin case) in `resultΨOn`/`appliedOkM`. Then the v3rpc Auth
+handlers and `setupAuthOk`. `RoleGrantPermission`'s determinacy (above).
+
+**Exported statements changed.** The definition `reqPropOkOn` (a third disjunct). Everything else
+is new: `apply.opW_isGet`, `readonlyW`, `readonlyW_of_txnReadonly`, `permCheck3Lb`,
+`isAuthStoreRangeLb`, `verdictsFrom`, `permVerdictFrom_isOn`, `isAuthStoreRangeLb_of_authInv`,
+`checkTxnReqs_lb`, `checkTxnPermission.specLb`/`wp_lb`, `CheckTxnAuth.specLb`/`wp_lb`;
+`insLt`, `eq_of_perm_sorted`, `rolesSorted` and its lemmas, `authDet_of_sorted`, `grantPermFresh`,
+`adminDetReq`; `adminPropOk`, `adminPropRes`, `commitOkOn_admin`; restated `apply_auth_store_range_lb`,
+`apply_check_txn_auth_lb`. No closed theorem changed. Trust base unchanged.
