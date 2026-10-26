@@ -48,6 +48,8 @@ consistentIndex__UnsafeConsistentIndex: consistentIndex__SetConsistentIndex sche
 schema_MustUnsafeSaveConfStateToBackend:
 storage_NewBackendHooks:
 storage_BackendHooks__OnPreCommitUnsafe: schema_MustUnsafeSaveConfStateToBackend batchTxBuffered__UnsafePut schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+# (D43 M5b′, 2026-10-26) `applyConfChange`'s `SetConfState`, with its body
+storage_BackendHooks__SetConfState: proto_CloneConfState
 batchTxBuffered__UnsafePut: @
 backend__ConcurrentReadTx: @
 backend__ReadTx: @
