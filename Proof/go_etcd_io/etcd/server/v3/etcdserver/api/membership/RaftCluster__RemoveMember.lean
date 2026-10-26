@@ -163,7 +163,7 @@ theorem membership.RaftCluster.RemoveMember.wp_proof
       wp_apply wp_Warn $$ []
       · ipureintro; exact Hlgnn
       have Hmem0 : mem !! id = none := by
-        have := Hdom id; rw [Hm] at this; cases h : mem !! id <;> simp_all
+        have := Hdom.1 id; rw [Hm] at this; cases h : mem !! id <;> simp_all
       ihave Hmem : membership.memAt c 1 (GMap.delete id mm) (GMap.delete id mem)
         $$ [Hmf Hmap Hmems]
       · rw [GMap.delete_notin mm id Hm, GMap.delete_notin mem id Hmem0]

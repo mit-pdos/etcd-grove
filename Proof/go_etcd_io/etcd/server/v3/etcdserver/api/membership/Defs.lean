@@ -103,13 +103,17 @@ def membership.memberAt (m : Loc) (q : Qp) (mm : apply.MemberM) : IProp GF :=
     membership.mClientURLsAddr m ↦{DFrac.own q} cu ∗ pu ↦*{DFrac.own q} mm.peerURLs ∗
     cu ↦*{DFrac.own q} mm.clientURLs ∗ ⌜membership.peerURLsOk mm.peerURLs⌝)
 
+/-- The members map and their values have the same keys (and so the same size). -/
+def membership.memDom (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM) : Prop :=
+  (∀ k, (ms !! k).isSome = (mem !! k).isSome) ∧ GMap.size ms = GMap.size mem
+
 /-- **The cluster `c`'s members map at the fraction `q`** (D43 M5b, 2026-10-26): `c.members` is
 `mp`, holding the members `ms`, each member at `q` with its value in `mem` (the two maps with the
 same keys). The cluster's lock holds it at half; the apply thread's `clusterMem` the other half. -/
 def membership.memAt (c : Loc) (q : Qp) (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM) :
     IProp GF :=
   iprop(∃ mp : Loc, membership.rcMembersAddr c ↦{DFrac.own q} mp ∗ mp ↦${DFrac.own q} ms ∗
-    ⌜∀ k, (ms !! k).isSome = (mem !! k).isSome⌝ ∗
+    ⌜membership.memDom ms mem⌝ ∗
     [∗map] k ↦ m ∈ ms, membership.memberAt m q ((mem !! k).getD default))
 
 /-- **The cluster `c`'s in-memory members are `mem`** (exclusive; D22, 2026-10-23, option (i) of
@@ -443,8 +447,8 @@ theorem membership.memAt_agree (c : Loc) (q1 q2 : Qp) (ms ms' : GMap w64 Loc)
     (fun _ => membership.memberAt_agree _ _ _ _ _)).trans BigSepM.bigSepM_pure_intro $$ Hb
   ipureintro
   refine ⟨rfl, GMap.ext fun k => ?_⟩
-  have hd := Hdom k
-  have hd' := Hdom' k
+  have hd := Hdom.1 k
+  have hd' := Hdom'.1 k
   cases hk : ms !! k with
   | none =>
     rw [hk] at hd hd'
@@ -522,12 +526,58 @@ theorem membership.memMembers_delete (q : Qp) (ms : GMap w64 Loc) (mem : GMap w6
 
 /-- The keys of the two maps, with `id` deleted from both. -/
 theorem membership.memDom_delete (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM) (id : w64)
-    (h : ∀ k, (ms !! k).isSome = (mem !! k).isSome) :
-    ∀ k, ((GMap.delete id ms) !! k).isSome = ((GMap.delete id mem) !! k).isSome := by
-  intro k
-  by_cases hk : id = k
-  · subst hk; simp
-  · rw [GMap.lookup_delete_ne _ hk, GMap.lookup_delete_ne _ hk]; exact h k
+    (h : membership.memDom ms mem) :
+    membership.memDom (GMap.delete id ms) (GMap.delete id mem) := by
+  refine ⟨fun k => ?_, ?_⟩
+  · by_cases hk : id = k
+    · subst hk; simp
+    · rw [GMap.lookup_delete_ne _ hk, GMap.lookup_delete_ne _ hk]; exact h.1 k
+  · rw [GMap.map_size_delete, GMap.map_size_delete, h.1 id, h.2]
+
+/-- The keys of the two maps, with `id` inserted into both. -/
+theorem membership.memDom_insert (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM) (id : w64)
+    (m : Loc) (mm : apply.MemberM) (h : membership.memDom ms mem) :
+    membership.memDom (GMap.insert id m ms) (GMap.insert id mm mem) := by
+  refine ⟨fun k => ?_, ?_⟩
+  · by_cases hk : id = k
+    · subst hk; simp [GMap.lookup_insert]
+    · rw [GMap.lookup_insert_ne _ _ hk, GMap.lookup_insert_ne _ _ hk]; exact h.1 k
+  · rw [GMap.map_size_insert, GMap.map_size_insert, h.1 id, h.2]
+
+/-- The members of a map with the member `m` of value `mm` put at `id` (in the map and the values),
+replacing the old member there (dropped). -/
+theorem membership.memMembers_insert (q : Qp) (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM)
+    (id : w64) (m : Loc) (mm : apply.MemberM) :
+    ([∗map] k ↦ x ∈ ms, membership.memberAt (GF := GF) x q ((mem !! k).getD default)) ∗
+      membership.memberAt m q mm ⊢
+      [∗map] k ↦ x ∈ GMap.insert id m ms,
+        membership.memberAt x q (((GMap.insert id mm mem) !! k).getD default) := by
+  iintro ⟨H, Hm⟩
+  ihave H' : iprop([∗map] k ↦ x ∈ GMap.delete id ms,
+      membership.memberAt (GF := GF) x q (((GMap.insert id mm mem) !! k).getD default)) $$ [H]
+  · cases h : ms !! id with
+    | none =>
+      rw [GMap.delete_notin _ _ h]
+      iapply BigSepM.bigSepM_mono (fun {k _} hk => by
+        have hne : id ≠ k := fun he => by
+          subst he
+          have : (Iris.Std.get? ms id) = ms !! id := rfl
+          rw [this, h] at hk; cases hk
+        rw [GMap.lookup_insert_ne _ _ hne]) $$ H
+    | some m0 =>
+      icases membership.memMembers_delete q ms mem id m0 h $$ H with ⟨-, H⟩
+      iapply BigSepM.bigSepM_mono (fun {k _} hk => by
+        have hne : id ≠ k := fun he => by
+          subst he
+          have : (Iris.Std.get? (GMap.delete id ms) id) = (GMap.delete id ms) !! id := rfl
+          rw [this, GMap.lookup_delete] at hk; cases hk
+        rw [GMap.lookup_insert_ne _ _ hne, GMap.lookup_delete_ne _ hne]) $$ H
+  iapply (BigSepM.bigSepM_insert_delete (Φ := fun k x => membership.memberAt (GF := GF) x q
+    (((GMap.insert id mm mem) !! k).getD default)) (m := ms) (i := id) (x := m)).2
+  iframe H'
+  rw [GMap.lookup_insert]
+  simp only [Option.getD_some]
+  iexact Hm
 
 end lemmas
 

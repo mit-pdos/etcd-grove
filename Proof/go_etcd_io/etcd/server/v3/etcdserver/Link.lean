@@ -122,6 +122,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Receive
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetLease
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__AddMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsIDRemoved
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsLocalMemberLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsMemberExist
@@ -443,6 +444,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthEnabl
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthRevision
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
 public import Proof.github_com.Masterminds.semver.v3.New
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.setIsLearnerMetric
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__CloseNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__CloseWithError
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__GetTo
@@ -940,6 +942,10 @@ theorem membership.RaftCluster.wp_updateMembershipMetric :
     membership.RaftCluster.updateMembershipMetric.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.updateMembershipMetric.wp_proof
 
+theorem membership.wp_setIsLearnerMetric :
+    membership.setIsLearnerMetric.spec (GF := GF) (hG := hG) :=
+  membership.setIsLearnerMetric.wp_proof
+
 theorem zap.wp_Strings :
     zap.Strings.spec (GF := GF) (hG := hG) :=
   zap.Strings.wp_proof
@@ -947,6 +953,10 @@ theorem zap.wp_Strings :
 theorem zap.wp_Bool :
     zap.Bool.spec (GF := GF) (hG := hG) :=
   zap.Bool.wp_proof
+
+theorem membership.RaftCluster.wp_AddMember :
+    membership.RaftCluster.AddMember.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.AddMember.wp_proof membership.RaftCluster.wp_updateMembershipMetric membership.wp_setIsLearnerMetric types.ID.wp_String_ptr zap.Logger.wp_Info zap.wp_String zap.wp_Strings zap.wp_Bool
 
 theorem membership.RaftCluster.wp_RemoveMember :
     membership.RaftCluster.RemoveMember.spec (GF := GF) (hG := hG) :=

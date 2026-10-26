@@ -18827,6 +18827,27 @@ a `json.Unmarshal` axiom, rejected as a detour).
   it unless a later credit strips it first (`wp_apply (lc := 1)` on the step before the lock, then
   `lc_fupd_elim_later`); `AddPeer_core`'s direct `icases` still works, for reasons not pinned down.
 
+**M5b carried out (2026-10-26, branch `membership-m5`; the user's decisions of "M5 scoped
+further", and: the member backend's writers are contract axioms, not proved through the batch
+lock's hook, as the cluster's other writers are).** The cluster's in-memory members and `AddMember`.
+- `clusterMem` defined **without a ghost name**: the cluster's lock invariant (`rcLockInv`,
+  `rcLockInvG`) holds **half** of the members map (`memAt c ½ ms mem`: the `members` field, the map,
+  and each member's fields at half, `memberAt m q mm`, its value from `mem`, the two maps with the
+  same keys and size, `memDom`), and `clusterMem c mem` is the other half. Readers under the lock
+  (`Members` with `Member.Clone` over a member share, `IsIDRemoved`, `IsLocalMemberLearner`,
+  `IsMemberExist`) need only theirs; the apply thread's writers join both (`memAt_join`), write
+  the whole map and split it again (`memAt_halve`). The user's decision said "a ghost model ...
+  restated with the cluster's ghost name"; the fractional split reaches the same (no opaque
+  predicate, no new axiom) with no ghost name to thread, so no statement that names `clusterMem`
+  (bootstrap's contract, `UpdateAttributes`, `Recover`, `applyConfChange`) changed its signature;
+  their meaning did (still axioms; `bootstrap`'s now asserts both halves).
+- `RemoveMember`'s spec takes and gives back `clusterMem` (without `id` after, with `v3`).
+- `AddMember` translated and proved over any side condition an insert keeps: the learner metric
+  for the local member (`setIsLearnerMetric`, names only: **+1 axiom**, a prometheus gauge, as
+  `updateMembershipMetric`), with `v3` the backend's save by the caller's triple (`beSaveOk`),
+  the member into the map (replacing a member of its id: the boot `AddNode`s re-add known members),
+  the metric, the log line; `clusterMem` at `mem` with the member's value at its id.
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL

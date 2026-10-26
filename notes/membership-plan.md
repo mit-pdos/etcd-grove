@@ -237,10 +237,13 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   - *M5a.* rafthttp's peer removal: `Follower` proved, `removePeer`/`RemovePeer` specified and
     proved on `trLive` (the id leaves the peers' ids), `RemoveAllPeers` proved (its `sorry` goes).
     **Done (2026-10-26, branch `membership-m5`)**: D43 "M5a carried out".
-  - *M5b.* The backend's member writers: schema's `MustSaveMemberToBackend`,
-    `MustDeleteMemberFromBackend` (and the read `MustReadMembersFromBackend`) proved over the batch
-    transaction, `ccRest` with `RemoveNode` (`members_removed`); `AddMember` and
-    `BackendHooks.SetConfState` translated and proved.
+  - *M5b.* The cluster's in-memory members (`clusterMem` defined from the lock invariant, the
+    user's decision) and `AddMember` translated and proved. **Done (2026-10-26)**: D43 "M5b
+    carried out".
+  - *M5b′* (rescoped, the user's decisions): the member backend's writers and read
+    (`MustSaveMemberToBackend`, `MustDeleteMemberFromBackend`, `MustReadMembersFromBackend`)
+    contract axioms over the tracked buckets (replacing the opaque `ccValidOn`), `ccRest` with
+    `RemoveNode` (`members_removed`); `BackendHooks.SetConfState` translated and proved.
   - *M5c.* W3: the apply thread holds `trLive` (`NewServer` stops freezing it; the readers over
     `trState` and their tokens).
   - *M5d.* The server's cluster in the dynamic mode: `isRaftClusterG c (rcDyn γ)`, `rcRemovedOwn`
