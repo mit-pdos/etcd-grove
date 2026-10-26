@@ -21026,3 +21026,45 @@ lose their workload parameter, with the same meaning: `plainEntryOn m`, `plainLo
 `NewServer.spec` did. `kv_cert_floor_on` reads the revision through `kvStateOf_rev` (the KV state
 became a record of compaction, base and changes). After the merge: 718 axioms, 6 sorries (lean's 721
 less the three server axioms `origin/lean` proved).
+
+## D22 J2: R-loc implemented (2026-10-26 · decided by the orchestrator while the user was away (J2))
+
+J0's item 1 (`notes/snapshot-sj-plan.md`, "J0 decisions"), implemented. No axiom, no `sorry`.
+
+- **`RaftNames.reSnapLoc : w64 → Option GName`** (default `fun _ => none`) and
+  `snapLocal γ id i` (`Protocol/Ghost.lean`, its own section with only `[AllG GF]`), as J0 said.
+  The allocations take the directories: `ownRaftGhost_alloc_core`/`_boot` a parameter `sl` with the
+  conjunct `γ.reSnapLoc = sl`; `_gen` (raft's own results) and `_snap` (`examples/kv`) fix
+  `fun _ => none`, `_snap` stating it (`examples/kv` needs it: `kvPeerOk` gains
+  `γn.raft.reSnapLoc id = none`, `stepP_deliverable` builds the new clause by `snapLocal_none`).
+- **Carried by the node as `snapLocOk γ id s.logst.snap`** (`InvRawnode.lean`: `True` with no
+  pending snapshot, `snapLocal γ id p.index'` with `some p`), a function of the pending snapshot
+  rather than J0's `□ ∀ p, ⌜s.logst.snap = some p⌝ → …` (equivalent; a step that keeps or clears
+  the snapshot transports it by rewriting, `snapLocOk_keep`). In `ownRawNode`, `ownRawNodeIdle` and
+  `ownRawNodeReady` (`"#Hsloc"`), and an extra wand of the intro lemmas (`ownRawNode_intro`,
+  `_intro_static`, `ownRawNodeIdle_intro`, `rawNode_applyCC_reseal`). `RawNode.Advance`'s loop
+  invariant gains "kept or cleared" after the snapshot's acknowledgement (`ackSnapLog_snap`: a
+  later restored snapshot stays pending, with its own fact).
+- **Where it enters**: `RawNode.Step.spec`'s `"#Hsnap"`, `wp_rn_raft_Step_net`'s, and `netP`'s (so
+  `node.Step`'s precondition) gain `snapLocal γ id sv.Metadata'.Index'`. `raft.Step.spec` unchanged.
+- **Where it leaves**: `readySnapData` gains `snapLocal γ.raft γ.id l.snap.Metadata'.Index'`,
+  built in `node.run` from the fresh `Ready` (`ownRawNodeReady_loanLoc`: `SnapRdy` names the pending
+  snapshot). Deviation from J0: `RawNode.Ready`/`readyWithoutAccept`/`acceptReady`'s specs are
+  **unchanged**: their posts already hold the node, from which `ownRawNode_loanLoc` (after
+  `Ready`: `slent = some l`, `psnap = false`) and `ownRawNodeReady_loanLoc` give the fact; stating
+  it again in the posts adds nothing.
+- **The server.** `srvClusterBoot_alloc` allocates the members' directory maps first
+  (`snapDirs_alloc`, from the members' ids distinct) and gives each member
+  `∃ γd, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅` with its share; `examples/common`'s
+  `memberBoot` carries it to `NewServer.spec`, which gains the binder `γd` and the premises
+  `"%Hsloc" ∷ ⌜γ.reSnapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 ∅` and calls `snapDir_init`
+  (rafthttp `Net.lean`; `snapDir_alloc` now derived from it, unused). `snapLocal_of_saved`
+  (`Net.lean`) turns `snapSaved γd i` into `snapLocal`.
+- **Deviation: `EtcdServer.Process` is unchanged.** In the server's current mode
+  (`reNoSnap = true`) `stepP_of_recv` refutes every `MsgSnap` (`isRaftMsg_not_snap`), so `netP`'s
+  new clause is discharged there by the refutation, as the rest of the snapshot clause is. Making
+  it non-vacuous needs `γ.node.raft.reSnapLoc id = some γd` inside `Process`, i.e. `srvProcOk`
+  (and `srvNetMember`, and the four specs over it) taking `γd`: a cascade into the transport's files
+  J-T is editing, for a fact no proof reads before L3. Left to L3 (which removes the refutation):
+  add `γd` to `srvProcOk` with that conjunct (`NewServer` has `Hsloc`), and in `stepP_of_recv` use
+  `netSnapRecv` with `snapLocal_of_saved`.

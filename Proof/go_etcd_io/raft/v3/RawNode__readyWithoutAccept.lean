@@ -634,7 +634,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
-      Hce_cap Hents Hrdhard Hrdz
+      Hce_cap Hents Hrdhard Hrdz Hsloc
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro
@@ -642,7 +642,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       Hrs_unst, Hrs_clb,
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-      HceOk, by trivial, Hrdc, Hprc, Hnsout⟩
+      HceOk, Hrdc, Hprc, Hnsout⟩
   isplitr
   · iexact Hce
   isplitr
