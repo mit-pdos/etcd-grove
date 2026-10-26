@@ -401,7 +401,7 @@ released: every transaction panics on 32-bit platforms; worth reporting before a
 it), [bbolt-large-page-size](bbolt-large-page-size.md) (an option check),
 [bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).
 
-## Kubernetes (the API server's etcd3 store and its test model; not etcd's)
+## Kubernetes (the API server's etcd3 store, its test model, the DaemonSet controller; not etcd's)
 
 For Kubernetes' sig-api-machinery, not etcd's maintainers:
 [k8s-correctness-model-noop-rewrite](k8s-correctness-model-noop-rewrite.md) (2026-10-22). The
@@ -413,6 +413,15 @@ Go reproduction and a small fix in the Model.
 indexer, with no event in its history; reproduced at the store. Only reached through an index
 function that fails, which Kubernetes' own do only on an object of the wrong type: worth a small
 robustness fix (index before mutating), not urgent.
+
+For sig-apps (the DaemonSet controller):
+[k8s-daemonset-ambiguous-create-duplicate-pod](k8s-daemonset-ambiguous-create-duplicate-pod.md)
+(2026-10-26): after a pod create that committed but returned an error, the next sync creates a
+second pod on the node (the consistency store of KEP-5647 records only successful writes, and the
+expectations are lowered). Transient (the extra pod is deleted once the cache sees it), but it
+breaks the invariant the controller robustness test of kubernetes/kubernetes#139657 checks, and
+that test cannot reach it (its faults never reach the server). Reproduced over the model API
+server; worth reporting to the KEP-5647 authors with the reproduction.
 
 ## How to bring them
 

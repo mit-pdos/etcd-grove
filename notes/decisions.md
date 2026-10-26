@@ -21350,3 +21350,27 @@ proves it from the API server's List/Watch semantics, which are simpler and bett
 **Why not the real API server.** The etcd3 store's proofs cover its unary methods only (`GetList`
 and the watcher do not translate: G2, G1 of `notes/k8s-etcd3-goose.md`), and kube-apiserver's
 handlers, registry, admission and serialization are far larger than the controller.
+
+## D50: the model API server is trusted Go code; the theorem is about a test program over it (2026-10-26 · the user: "focus on writing a high quality model in Go and treat it as part of the TCB. The top-level theorem will be about a test program that operations against this Go model")
+
+**The choice.** D49 left open whether the trusted statement of the API server is a Lean spec
+(with a Go model proved to meet it) or the Go model itself. It is the Go model:
+`examples/k8sdaemonset/apimodel`, a `kubernetes.Interface` over one shared state. The top-level
+theorem is about a Go test program (the robustness test's scenario: one node, one DaemonSet, the
+real controller and informers over the model, a checker) whose execution includes the model's
+code; the proofs step through that code like any other, and no spec of the model is stated or
+proved. What a reader must trust is that the model behaves like kube-apiserver for these calls:
+its package documentation (`doc.go`) says how, operation by operation, with the deviations.
+
+**What follows for the code.** The model is written to be read and to be stepped through: one
+mutex and condition variable, maps, one append-only change log per resource, resource versions
+issued as `primitive.UInt64ToString(n)` (injective; never parsed: issued versions are looked up),
+no reflection, no `fmt`, nondeterminism only through `primitive.RandomUint64` gated by `Config`
+flags. Client-go's typed interfaces are embedded with nil values, so a method the model does not
+implement panics: the no-panic theorem shows none is called (a Goose check pending: an embedded
+interface field).
+
+**The premise as configuration.** `Config.AmbiguousWrites` (a write may commit and still report
+failure) is the realistic behavior; the theorem's program runs with it off, which is the premise
+"a failed write had no effect". It matters: with it on, the real controller puts two pods on a node
+in 4 of 50 runs (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`), with it off 0 of 30.
