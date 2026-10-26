@@ -41,7 +41,13 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
 2. **`waitUntilFreshLocked(rv)`** returns only when the cache's `resourceVersion ≥ rv` (or an error
    on timeout/cancel); `WaitUntilFreshAndGet` with `getCurrentRV` therefore reads a snapshot at
    a revision at least etcd's current one at the call, so the read linearizes in the call's
-   interval (the KV's read update, `kvReadAu`, fired by `getCurrentRV`'s etcd read).
+   interval. (Not through the KV's read update `kvReadAu` fired inside `getCurrentRV`: the GET's
+   spec takes `getCurrentRV`'s behaviour as a persistent premise, `wcGetOk`, whose fact `curRV` is
+   then persistent too. Instead the caller rebuilds `wcGetOk` for each call with `curRV n :=
+   ⌜r0 ≤ n⌝`, `r0` a persistent lower bound of etcd's revision taken at the call's start, from a
+   `getCurrentRV` spec "given the bound `r`, returns `n ≥ r`"; then `r0 ≤ m ≤ st.2`, `Ψ` puts
+   `st.2` at or below etcd's revision at the return, and the read linearizes at the moment the
+   revision is `st.2`, which rises by one per transaction. Found by the spec's review.)
 3. **No reachable panic**: `checkSnapshotResourceVersion`'s panic (`PanicOnCacheInconsistency`)
    is unreachable (the snapshot's revision is the cache's under the lock), and the B-tree
    snapshots' code is the verified k8s fork (`Proof/k8s_io/utils/third_party/forked/golang/btree/`).
@@ -88,12 +94,25 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
   `indexer.updateElem` is `sorry` (its map loops); `btreeStore.Replace`'s proof, `Replace`,
   `NewWatchCacheStorage` and the read-locked methods (they need reader tokens) are left.
 - **The progress requester**'s `Add`/`Remove` proved (`isPR`).
-- **Next**: the watch cache's freshness (`waitUntilFreshLocked`, `getLatestSnapshotLocked`,
-  `checkSnapshotResourceVersion`, `waitAndGetLatestSnapshot`, `WaitUntilFreshAndGet`): its lock
-  resource `∃ st, resourceVersion ↦{q} st.2 ∗ wcsOwn γ q st` (a reader under the read lock holds
-  part of the writer's token, so the snapshot it loads is the cache's state at
-  `w.resourceVersion`, and `checkSnapshotResourceVersion`'s panic is unreachable); the callees'
-  trust specs: the config's clock (`Now`, `Since`, `After`'s channel), component-base's
-  `HistogramVec.WithContext` chain (the label count, as prometheus's `vecLabels`), the cacher
-  metrics' package fact (`WatchCacheReadWait`'s labels), `tracing.SpanFromContext` (done),
-  `storage.NewTooLargeResourceVersionError`.
+- **The watch cache's reads** (`Proof/k8s_io/apiserver/pkg/storage/cacher/`, `DefsWC.lean`; linked
+  in its `Link.lean`, `etc/gen-link.py --cacher`): `checkSnapshotResourceVersion`,
+  `getLatestSnapshotLocked`, `waitUntilFreshLocked`, `waitAndGetLatestSnapshot` and
+  `WaitUntilFreshAndGet` proved. The lock's resource is `∃ st, resourceVersion ↦{q} st.2 ∗ wcsOwn
+  γ q st`: a reader under the read lock holds part of the writer's token, so the snapshot it loads
+  is the cache's state at `w.resourceVersion`, and `checkSnapshotResourceVersion`'s panic is
+  unreachable. The wait is on the condition variable over the read lock (`sync.Cond.wp_Wait_with`
+  with `rlocker_isLockerWith`), with the timeout goroutine, the read-wait histogram and the
+  progress requester. **The cached GET** (`WaitUntilFreshAndGet`): its version is the
+  versioner's parse of `resourceVersion` or, for `""`, `getCurrentRV`'s with the caller's fact
+  `curRV` (`wcGetOk`); without an error, the value and existence of the key in a state `st` the
+  store published (with `□ Ψ st`), at that version or later, and `rv = st.2`. The callees' trust
+  specs: the config's clock (`clockOk`), component-base's `HistogramVec.WithContext` (axiom), the
+  cacher metrics' package fact (`WatchCacheReadWait`'s labels, axiom),
+  `tracing.SpanFromContext` (axiom), `storage.NewTooLargeResourceVersionError` (proof `sorry`: it
+  needs `apierrors.NewTimeoutError`).
+- **Next**: tie `Ψ` to etcd's state (a published state at revision `r` is etcd's KV state at `r`:
+  the reflector's list and watch over the KV/Watch specs, `processEvent`, blocked on G3) and
+  `curRV` to the read's linearization (per call, `curRV n := ⌜r0 ≤ n⌝` for a lower bound `r0` of
+  etcd's revision at the GET's start, step 2: the cacher's `getCurrentRV`, a quorum `Get` over
+  the client specs, specified as "given the bound `r`, returns `n ≥ r`"); then `Cacher.Get` over
+  `WaitUntilFreshAndGet`, and the KEP's `GuaranteedUpdate` re-read from the cache.

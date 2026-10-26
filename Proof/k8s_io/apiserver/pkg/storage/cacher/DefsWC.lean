@@ -23,8 +23,11 @@ wc.RLocker())`), then load the store's latest snapshot.
   for (`WaitUntilFreshAndGet`): the versioner (an interface, from the cacher's `Config`), whose
   `ParseResourceVersion` returns `parseRV s` (or an error if it is `none`), and `getCurrentRV` (a
   function, from the cacher: the store's current revision, a quorum read of etcd), whose result `n`
-  without an error comes with `curRV n`, the caller's fact (that `n` is a revision etcd had reached
-  when it was called, for a linearizable read).
+  without an error comes with `curRV n`. `curRV` is persistent in effect (it is under the `□`), so
+  it is not an atomic update fired inside the call; a caller re-establishes `wcGetOk` for each GET
+  with a fact of that call: for a linearizable read, `curRV n := ⌜r0 ≤ n⌝` for a lower bound `r0`
+  of etcd's revision taken at the call's start (from a spec of `getCurrentRV` that, given the
+  bound `r`, returns `n ≥ r`; `notes/kep-6404-plan.md`, step 2).
 -/
 module
 
