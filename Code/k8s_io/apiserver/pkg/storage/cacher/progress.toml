@@ -1,7 +1,8 @@
-# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
-translate = ["!*"]
-imports = ["!*"]
+# Types and names only, but the waiting counter's `Add` and `Remove`, which the watch cache's
+# freshness wait calls (`watchCache.waitUntilFreshLocked`; project k8s-apiserver,
+# notes/kep-6404-plan.md): function and method bodies are otherwise axiomatized.
+translate = ["!*", "ConditionalProgressRequester.Add", "ConditionalProgressRequester.Remove"]
+imports = ["*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

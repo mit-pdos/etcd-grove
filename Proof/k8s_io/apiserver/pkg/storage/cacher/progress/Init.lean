@@ -8,6 +8,16 @@ variable).
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.Base
+public import Perennial.Proof.context.Link
+public import Perennial.Proof.sync.Link
+public import Perennial.Proof.time.Link
+public import Proof.google_golang_org.grpc.metadata.Init
+public import Proof.k8s_io.apimachinery.pkg.util.runtime.Init
+public import Proof.k8s_io.apimachinery.pkg.util.wait.Init
+public import Proof.k8s_io.apiserver.pkg.storage.Init
+public import Proof.k8s_io.apiserver.pkg.storage.feature.Init
+public import Proof.k8s_io.klog.v2.Init
+public import Proof.k8s_io.utils.clock.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -32,6 +42,9 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.progress.Assumptions]
+variable [EtcdGrove.RpctypesEtcdErrorMethods]
+variable [_root_.Perennial.context.ErrorStringIsError]
+  [_root_.Perennial.context.DeadlineExceededIsError]
 
 namespace k8s_io.apiserver.pkg.storage.cacher.progress
 
@@ -46,6 +59,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (_root_.Perennial.k8s_io.utils.clock.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (_root_.Perennial.k8s_io.klog.v2.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (_root_.Perennial.k8s_io.apiserver.pkg.storage.feature.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.k8s_io.apiserver.pkg.storage.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.wait.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish
 
