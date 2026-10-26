@@ -203,7 +203,7 @@ theorem raw_to_state (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst :
     · iapply mvcc.evLog_certOk $$ HL
     imodintro; iexists kvStateOf C; iframe HQ
     unfold watchStateRespOk; iright; iright; ileft; ipureintro
-    obtain ⟨hv, hpn, hp0⟩ := Hp
+    obtain ⟨hv, hpn, hp0, -⟩ := Hp
     obtain ⟨hcp, hc', hc0⟩ := Hlt
     obtain ⟨hpl, hnone⟩ := HLp
     have hCl := HLC.length_le
@@ -214,7 +214,7 @@ theorem raw_to_state (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst :
       exact hnone
   · imodintro; iexists kvStateOf C0; iframe HQ0
     unfold watchStateRespOk; iright; iright; ileft; ipureintro
-    obtain ⟨hv, hpn, hp0⟩ := Hp
+    obtain ⟨hv, hpn, hp0, -⟩ := Hp
     exact ⟨hv, hpn, hp0, fun h => absurd h (by omega), fun _ => Hle.2⟩
   · imod watch_fire E γr γ hst hlog L Q $$ Hinvs H0 [HL] [HL] Hau with ⟨%C, #HQ, %HLC⟩
     · iapply mvcc.evLog_sealed $$ HL

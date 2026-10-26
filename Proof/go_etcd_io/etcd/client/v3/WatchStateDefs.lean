@@ -166,7 +166,8 @@ def rawRespOk (γs : mvcc.StoreNames) (o : OpFull) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) : IProp GF :=
   iprop((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
     ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
-    (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z r.hdrRev⌝ ∗
+    (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z r.hdrRev ∧
+        sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
       ((⌜sint.Z c < sint.Z r.hdrRev ∧ c' = r.hdrRev ∧ 0 ≤ sint.Z c⌝ ∗
           ∃ L : mvcc.Log, mvcc.evLog γs L ∗ ⌜sint.Z r.hdrRev < L.length ∧
             rangeLogEvents L o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = []⌝) ∨

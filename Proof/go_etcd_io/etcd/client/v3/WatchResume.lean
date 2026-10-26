@@ -31,8 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- A create without start-read needs nothing. -/
 theorem startOk_false (V : WEnv GF) (rev : w64) : ⊢ startOk V false rev := by
-  unfold startOk
-  ileft; ipureintro; rfl
+  unfold startOk; itrivial
 
 /-- What a promised completeness says of the watch's start revision. -/
 theorem cplCond_rev {sr : Bool} {o : OpFull} {rev : w64} (h : cplCond sr o rev = true) :
@@ -86,7 +85,7 @@ theorem recvCmpl_at (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.
     (r : RespModel) (c2 : w64) :
     recvCmpl V P k v r ∗ (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 k.toNat c2) ⊢
       ∃ h2A : w64, (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 (k.toNat + 1) h2A) ∗
-        (⌜P.γ.cpl = false⌝ ∨ watchRespOk (EM := V.WM) P.o.key c2 h2A v r) := by
+        (⌜P.γ.cpl = false⌝ ∨ rawRespOk V.R.γ.st P.o c2 h2A v r) := by
   unfold recvCmpl
   iintro ⟨#Hc, #Hp⟩
   icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, #Hok⟩)
@@ -119,7 +118,7 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
       (¬ sint.Z rv < sint.Z (r.hdrRev + W64 1) ∧ nr0 = rv))
     (h1 : (r.events = [] ∧ nr' = nr0) ∨ (∃ e, r.events.getLast? = some e ∧ nr' = e.rev + W64 1)) :
     resumeOk V P rv hl c2 ∗ rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hl hiA r ∗
-      (⌜P.γ.cpl = false⌝ ∨ watchRespOk (EM := V.WM) P.o.key c2 h2A v r) ∗ resumeF V P r ⊢
+      (⌜P.γ.cpl = false⌝ ∨ rawRespOk V.R.γ.st P.o c2 h2A v r) ∗ resumeF V P r ⊢
       resumeOk V P nr' hiA h2A := by
   iintro ⟨Hro, Hrw, #Hw, #Hf⟩
   iunfold resumeOk at Hro
@@ -143,8 +142,8 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
     ihave %Hc2 : ⌜P.γ.cpl = true → h2A = nr0 - W64 1⌝ $$ []
     · icases Hw with (%Hcf | Hw)
       · ipureintro; intro h; rw [Hcf] at h; cases h
-      iunfold watchRespOk at Hw
-      icases Hw with (⟨%H, -⟩ | %H | ⟨%H, -, -⟩ | ⟨%H, -⟩)
+      iunfold rawRespOk at Hw
+      icases Hw with (⟨%H, -⟩ | %H | ⟨%H, (⟨%Hm, -⟩ | %Hk)⟩ | ⟨%H, -⟩)
       · exact absurd H.1 hnoerr
       · -- not a progress notification: its revision is 0
         ipureintro; intro hcp
@@ -166,18 +165,46 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
           have : sint.Z (W64 0 + W64 1) = 1 := by word
           omega
         · rw [he, H.2.2.2, hc2]
-      · -- a progress notification: at its revision
+      · -- a progress notification past the cursor: at its revision
         ipureintro; intro hcp
         have hc2 := Hr3 hcp
-        obtain ⟨-, -, Hle, Heq, Hlt⟩ := H
+        obtain ⟨-, -, -, Hlt⟩ := H
+        obtain ⟨Hle, Heq, -⟩ := Hm
         rw [Heq]
         rcases h0 with ⟨-, he⟩ | ⟨hnl, he⟩
         · rw [he]; word
-        · rw [he]
+        · exfalso
           rw [hc2] at Hle
+          have hpos : 1 ≤ sint.Z P.rev := by
+            have hcp' : cplOf P = true := by rw [← hc]; exact hcp
+            have := (cplCond_rev hcp').2
+            have : sint.Z P.rev ≠ 0 := fun h => this (by word)
+            omega
+          have hrv : sint.Z P.rev ≤ sint.Z rv :=
+            Hr1.resolve_left (by intro h; rw [h] at hpos; simp at hpos)
           have : sint.Z (r.hdrRev + W64 1) = sint.Z r.hdrRev + 1 := by word
           have : sint.Z (rv - W64 1) = sint.Z rv - 1 := by word
-          word
+          omega
+      · -- a progress notification at or below the cursor: the cursor kept
+        ipureintro; intro hcp
+        have hc2 := Hr3 hcp
+        obtain ⟨-, -, -, Hlt⟩ := H
+        obtain ⟨Hle, Heq⟩ := Hk
+        rw [Heq, hc2]
+        rcases h0 with ⟨hlt, he⟩ | ⟨-, he⟩
+        · exfalso
+          rw [hc2] at Hle
+          have hpos : 1 ≤ sint.Z P.rev := by
+            have hcp' : cplOf P = true := by rw [← hc]; exact hcp
+            have := (cplCond_rev hcp').2
+            have : sint.Z P.rev ≠ 0 := fun h => this (by word)
+            omega
+          have hrv : sint.Z P.rev ≤ sint.Z rv :=
+            Hr1.resolve_left (by intro h; rw [h] at hpos; simp at hpos)
+          have : sint.Z (r.hdrRev + W64 1) = sint.Z r.hdrRev + 1 := by word
+          have : sint.Z (rv - W64 1) = sint.Z rv - 1 := by word
+          omega
+        · rw [he]
       · exact absurd H.2.1 (by rw [hne]; simp)
     unfold resumeOk
     rw [hnr]
@@ -215,8 +242,8 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
     ihave %Hc2 : ⌜P.γ.cpl = true → h2A = e.rev + W64 1 - W64 1⌝ $$ []
     · icases Hw with (%Hcf | Hw)
       · ipureintro; intro h; rw [Hcf] at h; cases h
-      iunfold watchRespOk at Hw
-      icases Hw with (⟨%H, -⟩ | %H | ⟨%H, -, -⟩ | ⟨%H, -⟩)
+      iunfold rawRespOk at Hw
+      icases Hw with (⟨%H, -⟩ | %H | ⟨%H, -⟩ | ⟨%H, -⟩)
       · exact absurd H.1 hnoerr
       · exact absurd H.2.1 (by intro h; rw [h] at hmem; cases hmem)
       · exfalso

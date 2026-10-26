@@ -485,11 +485,11 @@ def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) : v3rpc.Crea
 
 /-! ## One watch: its request and its substream -/
 
-/-- **A watch's start** (persistent; K2e-7d): for a watch registered with `sr` (a promised
-completeness), etcd had reached the revision before its start. (Until W2 of
-`notes/watch-cut-plan.md`, 2026-10-21, also mvcc's `startRead`, which the server no longer needs.) -/
-def startOk (V : WEnv GF) (sr : Bool) (rev : w64) : IProp GF :=
-  iprop(⌜sr = false⌝ ∨ etcdReached (EM := V.WM) (rev - W64 1))
+/-- **A watch's start** (persistent): no fact (D46, 2026-10-26: the second cursor's contract,
+`rawRespOk`, needs none; until then, for a watch registered with `sr`, etcd had reached the
+revision before its start, which a progress notification at the cursor needed). To be removed with
+its threading. -/
+def startOk (_V : WEnv GF) (_sr : Bool) (_rev : w64) : IProp GF := iprop(True)
 
 instance startOk_persistent (V : WEnv GF) (sr : Bool) (rev : w64) :
     Persistent (startOk V sr rev) := by
@@ -587,7 +587,7 @@ unless the watch promises no completeness (`cpl` false), the contract of the wat
 def recvCmpl (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜P.γ.cpl = false⌝ ∨ ∃ h2B h2A : w64, monoListIdxOwn P.γh2 k.toNat h2B ∗
-    monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗ watchRespOk (EM := V.WM) P.o.key h2B h2A v r)
+    monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗ rawRespOk V.R.γ.st P.o h2B h2A v r)
 
 instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
@@ -628,6 +628,11 @@ def resumeF (V : WEnv GF) (P : WsPrm GF) (r : RespModel) : IProp GF :=
 instance resumeF_persistent (V : WEnv GF) (P : WsPrm GF) (r : RespModel) :
     Persistent (resumeF V P r) := by
   unfold resumeF; infer_instance
+
+/-- Every response's resume fact holds (`startOk` is no fact). -/
+theorem resumeF_holds (V : WEnv GF) (P : WsPrm GF) (r : RespModel) : ⊢ resumeF (GF := GF) V P r := by
+  unfold resumeF startOk
+  iright; itrivial
 
 /-- **A substream's resume revision** (persistent; D25): the request's `rev` field `rv` the
 substream would be re-created from after a reconnect, at the dispatch cursor's position `hl` and

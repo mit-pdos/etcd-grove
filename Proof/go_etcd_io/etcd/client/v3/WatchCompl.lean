@@ -653,7 +653,7 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     unfold rawRespOk
     iright; iright; ileft
     isplitr
-    · ipureintro; exact ⟨hv, hprog, by omega⟩
+    · ipureintro; exact ⟨hv, hprog, by omega, by omega⟩
     iright; ipureintro; exact ⟨by omega, rfl⟩
   -- `q < p`: no event of the range in `(q, p]`
   have hqp' : q < p := by omega
@@ -668,7 +668,7 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
   · unfold rawRespOk
     iright; iright; ileft
     isplitr
-    · ipureintro; exact ⟨hv, hprog, by omega⟩
+    · ipureintro; exact ⟨hv, hprog, by omega, by omega⟩
     ileft
     isplitr
     · ipureintro
