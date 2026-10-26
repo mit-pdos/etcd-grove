@@ -238,6 +238,10 @@ removed, ..., adequacy coverage" below.
     `memSnapTokG` (the application's key `ak` stays with `CreateSnapshot`'s caller, not in the
     shared part), the old triples corollaries (`MemstorageAU.lean`), `examples/kv` on them; J4
     starts from `MemoryStorage.{Compact,CreateSnapshot}.wp_shared` (`notes/decisions.md`, "D22 J3").
+    **J5 done (2026-10-26)**: the applied index's atomic at most its ghost (`srvAppliedBody`),
+    `applied_jump` (the ghost jumps, the atomic stays: Go's lag), the write counter decoupled
+    (`srvWTTaken`, a count the apply functions raise by the entries applied; `applyRes` keeps
+    `ai ≤ w`, J8a's to make conditional). No axiom (`notes/decisions.md`, "D22 J5").
   - **J7 of the S-j plan done (2026-10-26)** (`notes/snapshot-sj-plan.md`; `notes/decisions.md`,
     "D22 J7"): `SnapRecvFacts.lean` (no `sorry`) derives `specSnap`'s `hpre`, `hkI`, `hlease`,
     `halarm`, `hauthb`, `hmemb`, `himg`, `hA'` (`snapRecv_image`, the `SnapImageFacts` record),

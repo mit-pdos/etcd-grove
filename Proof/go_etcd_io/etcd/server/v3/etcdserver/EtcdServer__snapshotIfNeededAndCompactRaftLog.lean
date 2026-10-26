@@ -36,14 +36,15 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs γp hok hcap
+  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs γp w hok hcap haw
   wp_start as ⟨#Hsa, #HWP, #HWA, Hss, #Hfl, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   iunfold isServerApplyAll at Hsa
   icases Hsa with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, ⟨%scu, #Hscu, %Hrbs⟩, #Hinf,
     ⟨%lg, #Hlgf, %Hlgn⟩⟩
   -- (D21 M3) the applied index below the receipts' bound, so at most `SnapshotCatchUpEntries`
-  imod srvWTPool_bound E γp ai $$ HWP HWA with %Hrb
+  imod srvWTPool_bound_n E γp w $$ HWP HWA with %Hrb
   have Hcmp : (if uint.Z scu < uint.Z ai then uint.Z ai - uint.Z scu else 1) ≤ γs.cap := by
+    have : uint.Z ai < receiptBound GF := by omega
     split <;> omega
   iunfold srvSnapState at Hss
   icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, %σ, Htok, %Hσ⟩

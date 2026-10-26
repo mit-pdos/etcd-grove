@@ -78,7 +78,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr⟩ HΦ
   iunfold applyRes at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
-    Hwr, HKV, Hao, #Hlog, Hkr, HRS, #HWA, %Hpure⟩
+    Hwr, HKV, Hao, #Hlog, Hkr, HRS, ⟨%w, #HWA, %Hw⟩, %Hpure⟩
   rw [hw]
   obtain ⟨Hloop, Hai0, HJ, Hstep, Hcap, Hlt⟩ := Hpure
   iunfold schedule.schedRunning at Hrun
@@ -143,7 +143,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   ihave Hbr : iprop(srvBemuReaderAt C.s B.E.γbe) $$ [Hbr]
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
-      C.ms C.γs C.wt dv γnc hms hb1 Hloop hok' Hcap hdv)
+      C.ms C.γs C.wt dv γnc w hms hb1 Hloop hok' Hcap hdv Hw)
     $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv]
   · rw [hun]
     iframe HWc' Hracc' Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
@@ -179,11 +179,16 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   iframe Hsrv'
   iframe
   iframe Hlog'
+  have hlast := srvIdxOk_batch_last C.ai₀ ai A ce hidx Hai0
   isplitr
-  · iexact HWA'
+  · iexists w + (unapplied ai ce).length
+    iframe HWA'
+    ipureintro
+    rw [hun, hai', hlast, List.length_append]
+    push_cast
+    omega
   ipureintro
   rw [hun] at Hx'
-  have hlast := srvIdxOk_batch_last C.ai₀ ai A ce hidx Hai0
   refine ⟨hloop', by rw [hai', hlast], ?_, ?_, Hcap, ?_⟩
   · apply ciJ_step _ _ _ ai ai' HJ (by rw [hai']; omega) hci'
   · exact entriesStep_append' C.c₀ A ce C.x₀ x x' Hstep (entriesStep_congr _ _ ce hcong x x' Hx')
@@ -519,7 +524,10 @@ theorem EtcdServer.run.wp_proof
       ipureintro; exact ⟨Hσ0, by word⟩
     iframe Hlog0
     isplitr
-    · iexact HWA0
+    · iexists uint.nat ai₀
+      rw [← srvWTAt_taken]
+      iframe HWA0
+      ipureintro; have := uint_nat_eq ai₀; omega
     ipureintro
     refine ⟨Hloop0, by simp, Or.inl Hc0.symm, rfl, Hcap0, Or.inl rfl⟩
   -- the loop: the log `A` received, the scheduler's queue ending with the name of `Q`, the last
