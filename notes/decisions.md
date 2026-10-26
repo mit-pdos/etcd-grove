@@ -19038,6 +19038,19 @@ peer"; M5d's raft side: the view's configuration shrinks at each validated `Remo
 (`ccValidOn` of the model's buckets: a function of the log), so `srvCfgOk` takes the voters as a
 function of the log.
 
+**M5e blocked a third time (2026-10-26, branch `membership-m5`; for the user).** Carrying out
+(a) and the positional policy: `AddMember` and `RemoveMember` log through the cluster's `c.lg`
+(their specs take `rcLgAddr c ↦□ lg ∗ ⌜lg ≠ null⌝`), and nothing the server holds describes that
+field: `bootOk` gives the cluster's id (`clusterCid`) but not its logger. Option (recommended):
+`bootOk` also states `rcLgAddr bc.cl' ↦□ lg ∗ ⌜lg ≠ null⌝` (true of Go: `NewClusterFromURLsMap`
+sets `lg` from the configuration's logger, which `bootstrap` requires non-nil), as the approved
+`beHooks` fact, another strengthening of every server example's boot premise. Work in progress,
+uncommitted (in the worktree; a copy `/shared/etcd-fork-m3/tmp/m5e-wip.patch`): the frozen
+transport's stop token (`trFrozenTok`, `Stop_full`, `trLive_freeze`, `Transport.Start`'s post),
+`AddPeer_known_core`/`AddPeer_frozen`/`AddPeer_known` (proved), `ccApplyOkM`, `ccMemberAt` in
+`ccRest`, `InvApRes.lean` (`ccMembRes`, `ccPeersAfter`), `applyConfChange`'s restated spec and its
+proof through the `v3 = false` branch's `AddMember` call.
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
