@@ -22,6 +22,8 @@ public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__Resour
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__addOrUpdateElem
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__deleteElem
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.btreeStore__getByKey
+public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.indexer__add
+public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.indexer__delete
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.indexer__updateElem
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.newBtreeStore
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.store.snapshotter__Add
@@ -111,9 +113,17 @@ theorem btreeStore.wp_deleteElem :
     EtcdGrove.cacher.btreeStore.deleteElem.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cacher.btreeStore.deleteElem.wp_proof btree.BTree.wp_Delete
 
+theorem indexer.wp_add :
+    EtcdGrove.cacher.indexer.add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.indexer.add.wp_proof
+
+theorem indexer.wp_delete :
+    EtcdGrove.cacher.indexer.delete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.indexer.delete.wp_proof
+
 theorem indexer.wp_updateElem :
     EtcdGrove.cacher.indexer.updateElem.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cacher.indexer.updateElem.wp_proof
+  EtcdGrove.cacher.indexer.updateElem.wp_proof indexer.wp_add indexer.wp_delete
 
 theorem snapshotter.wp_Add :
     EtcdGrove.cacher.snapshotter.Add.spec (GF := GF) (hG := hG) :=

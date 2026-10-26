@@ -25,7 +25,9 @@ btreeStore__getByKey: BTree__Get
 btreeStore__GetByKey: btreeStore__getByKey
 btreeStore__addOrUpdateElem: BTree__ReplaceOrInsert
 btreeStore__deleteElem: BTree__Delete
-indexer__updateElem:
+indexer__add:
+indexer__delete:
+indexer__updateElem: indexer__add indexer__delete
 snapshotter__Add: BTree__ReplaceOrInsert
 snapshotter__UpdateResourceVersion:
 WatchCacheStorage__LatestSnapshot:

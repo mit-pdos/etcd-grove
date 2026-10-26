@@ -91,7 +91,9 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
   load, against the published state; `isWCS`'s caller fact `Ψ` of every published state),
   `UpdateStore` and `UpdateResourceVersion` (the publication at the atomic store, the ghost state
   split between the invariant, the lock and the writer, `wcs_update`) proved.
-  `indexer.updateElem` is `sorry` (its map loops); `btreeStore.Replace`'s proof, `Replace`,
+  `indexer.updateElem` proved over `indexer.add`/`delete` (the map range over the index
+  functions, the nested maps through `ownIdx`; its spec keeps only the indexer's ownership: no
+  read through an index is verified); `btreeStore.Replace`'s proof, `Replace`,
   `NewWatchCacheStorage` and the read-locked methods (they need reader tokens) are left.
 - **The progress requester**'s `Add`/`Remove` proved (`isPR`).
 - **The watch cache's reads** (`Proof/k8s_io/apiserver/pkg/storage/cacher/`, `DefsWC.lean`; linked

@@ -81,11 +81,14 @@ def isIndexFn (f : GoFunc) : IProp GF :=
 instance isIndexFn_persistent (f : GoFunc) : Persistent (isIndexFn (GF := GF) f) := by
   unfold isIndexFn; infer_instance
 
+/-- **One index** (an index value's set: key, element), owned at `dq`. -/
+def ownIdx (ix : Loc) (dq : DFrac) : IProp GF :=
+  iprop(∃ m2 : GMap GoString Loc, ownMap ix dq m2 ∗
+    [∗map] _v ↦ l3 ∈ m2, ∃ m3 : GMap GoString Loc, ownMap l3 dq m3)
+
 /-- **The indices** (`indices`: index name, index value, key, element), owned at `dq`. -/
 def ownIndices (m : Loc) (dq : DFrac) : IProp GF :=
-  iprop(∃ m1 : GMap GoString Loc, ownMap m dq m1 ∗
-    [∗map] _n ↦ l2 ∈ m1, ∃ m2 : GMap GoString Loc, ownMap l2 dq m2 ∗
-      [∗map] _v ↦ l3 ∈ m2, ∃ m3 : GMap GoString Loc, ownMap l3 dq m3)
+  iprop(∃ m1 : GMap GoString Loc, ownMap m dq m1 ∗ [∗map] _n ↦ l2 ∈ m1, ownIdx l2 dq)
 
 /-- **The indexer at `l`** (`indexer`), at `dq`: its indices, and its index functions (read-only,
 each `isIndexFn`). -/

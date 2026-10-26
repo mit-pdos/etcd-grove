@@ -294,7 +294,7 @@ T3).
 - `kep-6404-plan.md`: KEP-6404 (GETs served from the watch cache): prove a cached GET is a
   linearizable read and the conflict re-read is fresh enough. **Active** (branch `kep-6404`): the
   watch cache translated, its store's writes and lock-free read proved over the B-tree (a quarter
-  ghost split; `indexer.updateElem` `sorry`), the freshness wait and the cached GET
+  ghost split; the indexer's `updateElem` over its nested maps too), the freshness wait and the cached GET
   (`WaitUntilFreshAndGet`: the key's value in a published state at the requested version or
   later) proved and linked (`cacher/Link.lean`); tying the published states to etcd's next; a bug
   found (`issues/k8s-watchcache-index-error-partial-update.md`).
