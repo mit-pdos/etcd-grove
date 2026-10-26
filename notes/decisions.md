@@ -19343,6 +19343,10 @@ slots) are named premises of `applySnapshot.spec` like the others (the orchestra
   results take the two instances (as the results over the store already do); (b) keep the snapshot
   path's results separate. Recommendation: (a), the instances are the btree's and the error model's,
   already in the trust base of every result over the store.
+  **Decided (2026-10-26, the user, via the orchestrator): (a), ok for now.** `wp_applyAll`, `wp_run`,
+  `wp_start`, `wp_Start` and `applyAll_model`, `server_run`, `server_start`, `server_Start` may take
+  `[go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ErrorStringLeaf]`. Linking `specSnap` into
+  `applyAll` stays S-j1's (`applyAll` reaches the snapshot case only once raft hands one over).
 - **Named premises added to `specSnap`** (pre-approved kinds: S-j1's inputs and boot resources):
   the stores' contracts on whichever backend (`alarmApplyOk`, `authApplyOk`, `lessorApplyOk`,
   `clusterApplyOk`, with `lessorCfg`, `lessorLookupOk` and `rcVersionChangedAddr`: what `NewServer`

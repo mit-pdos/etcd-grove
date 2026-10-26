@@ -219,7 +219,8 @@ removed, ..., adequacy coverage" below.
     and proved from `applySnapshot_walk` (the whole code, proved) and `srvSnapApplied_of_walk` (the
     post's assembly: **`sorry`**, its seven steps listed in `notes/snapshot-s8-plan.md`, "S8d, where
     it stopped"); not linked (linking adds the cache's assumptions to `applyAll_model` and the run
-    results: a question, `notes/decisions.md`, "D22 S8d: the spec stated, the walk proved").
+    results: ok for now, the user's; the linking is S-j1's; `notes/decisions.md`, "D22 S8d: the spec
+    stated, the walk proved").
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.
