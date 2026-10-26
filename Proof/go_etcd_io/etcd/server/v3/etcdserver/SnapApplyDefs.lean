@@ -135,7 +135,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc) (wsk stck : Loc),
     ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ π0.m0 = (sv.Metadata'.Index', sv.Metadata'.Term') ∧
       p'.bucket = E.γ.bucket ∧ p'.kb = some d' ∧ γw.st = E.γ ∧ mvcc.bridgeParams d'.P ∧
-      (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L) ∧
+      (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L) ∧ g ≠ func.nil ∧
       opts'.Logger' = lg ∧
       opts'.KV' = interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType #ws ∧
       opts'.AlarmStore' = al ∧ opts'.AuthStore' = auth.authIface ast ∧

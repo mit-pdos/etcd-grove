@@ -782,7 +782,7 @@ theorem applySnapshot_walk
   iexists γB, d', gx', π0, p', γw, ws, g, up', opts', L, spc, Ll, jf, γcf, w0, RD0, up, sfv.lg, ws, stck
   isplitr
   · ipureintro
-    exact ⟨hγ', hP', hgx', rfl, Hp'.1, Hp'.2, Hγw, hbr', Hcov, Hopts'⟩
+    exact ⟨hγ', hP', hgx', rfl, Hp'.1, Hp'.2, Hγw, hbr', Hcov, Hgnn, Hopts'⟩
   iunfold srvBemuReaderAt
   iframe
   iframe #
