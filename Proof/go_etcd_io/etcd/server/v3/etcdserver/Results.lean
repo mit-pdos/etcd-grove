@@ -72,6 +72,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.Latest
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthApplyLatestTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_uber_org.zap.Int
 
@@ -1292,6 +1294,64 @@ end latest
 #print axioms Perennial.EtcdGrove.auth_put_permitted_latest
 #print axioms Perennial.EtcdGrove.auth_range_permitted_latest
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_latest
+
+section latestApply
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **`IsAdminPermitted` on the apply thread at the latest state** (the auth plan's E2s,
+`auth/LatestAdmin.lean`): exact both ways (`adminVerdictL`), every callee linked. -/
+theorem auth_admin_permitted_latest :
+    auth.authStore.IsAdminPermitted.specL (GF := GF) (hG := hG) :=
+  auth.authStore.IsAdminPermitted.wp_latest auth.authStore.IsAuthEnabled.wp_latest
+    auth.authStore.lockedReadTx.wp_latest auth.wp_hasRootRole
+
+/-- **The real store's checks at the latest state, as the apply package states them** (the auth
+plan's E2s, `apply/AuthLatest.lean`): `isAuthStoreL` of the store's interface, with the reader
+resource `authRd` and the apply thread's `latestRes`. -/
+theorem apply_auth_store_latest (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
+      EtcdGrove.apply.isAuthStoreL (auth.authIface st) (auth.authRd st R M) M (auth.latestRes st M) :=
+  EtcdGrove.apply.isAuthStoreL_of_authInv auth_put_permitted_latest auth_range_permitted_latest
+    auth_delete_range_permitted_latest auth_admin_permitted_latest st R M
+
+/-- **The auth applier's KV methods on the apply thread** (the auth plan's E2s,
+`apply/AuthApplyLatest*.lean`): the outcome decided at the latest state, a rejection with a checked
+permission refused there or the inner chain's outcome with every checked permission granted
+(`authOutL`; for `Put` and `Txn` with the lessor finding no lease). -/
+theorem apply_range_latest :
+    EtcdGrove.apply.authApplierV3.Range.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.authApplierV3.Range.wp_latest
+
+theorem apply_delete_range_latest :
+    EtcdGrove.apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.authApplierV3.DeleteRange.wp_latest
+
+theorem apply_check_put_latest :
+    EtcdGrove.apply.checkPutAuth.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.checkPutAuth.wp_latest EtcdGrove.apply.checkLeasePuts.wp_nil
+
+theorem apply_put_latest :
+    EtcdGrove.apply.authApplierV3.Put.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.authApplierV3.Put.wp_latest apply_check_put_latest
+
+theorem apply_txn_latest :
+    EtcdGrove.apply.authApplierV3.Txn.specL (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.authApplierV3.Txn.wp_latest
+    (EtcdGrove.apply.CheckTxnAuth.wp_latest
+      (EtcdGrove.apply.checkTxnPermission.wp_latest apply_check_put_latest))
+
+end latestApply
+
+#print axioms Perennial.EtcdGrove.auth_admin_permitted_latest
+#print axioms Perennial.EtcdGrove.apply_auth_store_latest
+#print axioms Perennial.EtcdGrove.apply_range_latest
+#print axioms Perennial.EtcdGrove.apply_delete_range_latest
+#print axioms Perennial.EtcdGrove.apply_put_latest
+#print axioms Perennial.EtcdGrove.apply_txn_latest
 
 section tokens
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
