@@ -41,7 +41,7 @@ abbrev call.spec : Prop :=
     (sp : Loc) (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (W : IProp GF)
     [Timeless W] (Φ : KVState → IProp GF) (Q : w64 → w64 → KVState → IProp GF),
   c.S = driverSpec →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') →
   c.pathPrefix ++ storeKeyL x.Key' = mkeyL x.Key' →
   InOk x →

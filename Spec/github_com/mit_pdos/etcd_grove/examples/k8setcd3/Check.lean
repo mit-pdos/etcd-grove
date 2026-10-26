@@ -38,7 +38,8 @@ abbrev Check.spec : Prop :=
     (γ : KNames) (sp : Loc) (c : k8s.StoreCfg GF DObj) (g0 : GSt) (s0 : mstore)
     (clients ops dur : w64),
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → c.ms ≠ [] →
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
+  c.ms ≠ [] →
   receiptBound GF ≤ 2 ^ 63 →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 → g0.items.length < 2 ^ 60 →

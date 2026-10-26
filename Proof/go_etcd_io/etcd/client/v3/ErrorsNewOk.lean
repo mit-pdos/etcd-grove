@@ -241,10 +241,8 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
     iapply HΦ $$ Hpost
     · ipureintro; exact Hcd
     · iexact Hsd
-    · -- (D37) `DeadlineExceeded` is no `*errorString`
-      unfold go_etcd_io.etcd.cache.v3.errCellOk
-      iintro !> %y %hy
-      exact absurd hy (Hnd y)
+    · -- (D37) `DeadlineExceeded` is of no `*errorString` type
+      iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty ed (Hnd ed rfl)
 
 end proofs
 

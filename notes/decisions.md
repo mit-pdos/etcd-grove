@@ -15939,6 +15939,42 @@ theorem's statement changed (fingerprint: the four `_any` results and the defini
 changed, the rest identical); the trust base's axioms are the same 538, two of them stronger
 (`grpc.ClientConn.Invoke` through `grpcInvokerOk`, `context.ErrAny`).
 
+## D37b: the k8s driver's `clientErr_other` proved (2026-10-26 · asked by the user)
+
+**Why.** `k8setcd3_safe` rested on the marked `sorry` `k8setcd3.clientErr_other` (D30n): an error
+of the client the store returns unchanged is `errOut`'s `EOther`. D37 gave the sentinel half for
+the client's own results, but three things were missing: the store's specs dropped D37's fact
+(`clientErr ∗ statusErrOk`, not `kvErr`); `EOther` also needs the error not to be a
+`*storage.StorageError` (`errOut` type-asserts `err.(*storage.StorageError)` first); and an
+`*errorString` error's value must be a pointer (`err == errDeleteRejected` compares pointers),
+which `errCellOk` did not say (it spoke only of values `#x`).
+
+**What changed** (each a true statement about Go):
+- `errCellOk` (`cache/v3/Base.lean`) is stronger: an `*errors.errorString` error *is* a pointer
+  `#x` whose cell holds one of `clientErrMsgs` (`errCellOk_ptr`). Its sources still give it:
+  `io.EOF` and `context.Canceled` are `errors.New` pointers. The lemmas' statements
+  (`errCellOk_nil`, `_of_ty`, `_of_cell`, `_ne`) are unchanged; grpc's `grpcInvokerOk` (a
+  trust-boundary contract that mentions it) is stronger, and still what grpc-go does.
+- `context.ErrAny` (the trust boundary) is stronger: `DeadlineExceeded`'s dynamic type is not
+  `*errorString` (was: it is no `*errorString` at a pointer). Go: `deadlineExceededError{}`.
+- The kubernetes client's `Get`/`OptimisticPut`/`OptimisticDelete` end their error case with
+  `errCellOk err` (their proofs had it from `kvErr` and dropped it); the store's `unkErr` carries
+  it in its client case (`unkErr_client`).
+- The driver's `errVarOk x msg` carries its variable's message cell (`errStrCell`, from
+  `wp_New_errorString_cell` in the generated `Init.lean`, `etc/gen-init.py`).
+- **A new premise, `storageErrTyOk`** (`ObjSpec.lean`): `*storage.StorageError`'s method set has
+  `Unwrap() error` (`errors.go`: `func (e *StorageError) Unwrap() error`). `methodSet` is
+  uninterpreted, so this is a premise of `call`/`Apply`/`Check`/`Main` and of `k8setcd3_safe`, as
+  `objTyOk` and `errors.AsTarget` are. With `clientErr`'s leaf fact (no `Unwrap() error`) it rules
+  out a client error of that type. The alternative, the client proof listing its errors' dynamic
+  types, would change every layer of the client's error specs for a fact this premise states
+  exactly.
+
+`clientErr_other` (`Calls.lean`) is now a theorem; `k8setcd3_safe` rests on three `sorry`s
+(`revRoom`, `client_ctx_field`, `kvIs_ne_null`) and gains the hypothesis `storageErrTyOk`. No axiom
+added or removed (two stronger: `context.ErrAny.wp_proof`, and grpc's invoke through
+`grpcInvokerOk`).
+
 ## D22 the backend over every bucket carried out (2026-10-23)
 
 "D22c decided" (the user, 2026-10-22) carried out on branch `worktree-agent-abc119190b6e832f9`: the

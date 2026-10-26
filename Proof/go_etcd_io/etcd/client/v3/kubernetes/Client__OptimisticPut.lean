@@ -185,8 +185,8 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       iapply HΦ
       iright
       iunfold kvErr at Hke
-      icases Hke with ⟨%Hce, #Hse, -⟩
-      iframe Hse
+      icases Hke with ⟨%Hce, #Hse, #Hcl⟩
+      iframe Hse Hcl
       isplitl []
       · ipureintro; exact Herr
       ipureintro; exact Hce
@@ -304,8 +304,8 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       iapply HΦ
       iright
       iunfold kvErr at Hke
-      icases Hke with ⟨%Hce, #Hse, -⟩
-      iframe Hse
+      icases Hke with ⟨%Hce, #Hse, #Hcl⟩
+      iframe Hse Hcl
       isplitl []
       · ipureintro; exact Herr
       ipureintro; exact Hce

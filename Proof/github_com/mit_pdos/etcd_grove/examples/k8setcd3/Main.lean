@@ -77,7 +77,7 @@ theorem Main.wp_proof
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS EK RT SC ST VA ESL ESE N id bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
-    Hty H0 H31 Hops Hmul
+    hse Hty H0 H31 Hops Hmul
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero (driverSpec_tyOk Hty)
   wp_start as ⟨Haddr, Htok, #Hprem⟩
@@ -280,7 +280,7 @@ theorem Main.wp_proof
       cl := cl, ms := [x], V := V, mt := mt, lt := lt, γh := γh }
   imod (kInv_seed ρ.rd.kv c rfl rfl ⊤) $$ [Hetcd Hhist] with ⟨%γ, #Hinv, Hks⟩
   · iframe
-  wp_apply (wp_Check γ sp c g0s st0 clients ops (W64 0) rfl rfl rfl hAs (by simp [c])
+  wp_apply (wp_Check γ sp c g0s st0 clients ops (W64 0) rfl rfl rfl hAs hse (by simp [c])
       (by omega) H0 H31 Hops Hmul (by rw [g0s_items]; simp)) $$ [Hks] as %r %hr
   · iframe #
     iframe Hks

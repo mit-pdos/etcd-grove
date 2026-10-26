@@ -6,10 +6,12 @@ Lean-first (no Rocq counterpart).
 - `errIs err y`: `errOut(err)` is `y`: a `*StorageError` "not found" or "key exists" (its key and
   resource version), a callback's sentinel (`errDeleteRejected`, `errUpdateRejected`:
   `ERejected`), or any other error (`EOther`: not a `*StorageError` and neither sentinel).
-- `unkErr_errIs`: an error of the store whose outcome is unknown (`unkErr`) is the last kind. For
-  the client's errors that is a marked `sorry` (D30n): the client proof does not yet say its errors
-  are not the driver's sentinels nor `*StorageError`s ("From the etcd client proof", item 5 of
-  `notes/k8s-etcd3-plan.md`); an `InternalError` and the driver codec's (none) are proved.
+- `unkErr_errIs`: an error of the store whose outcome is unknown (`unkErr`) is the last kind: an
+  `InternalError`, the driver codec's (none), or the client's (`clientErr_other`): the client's
+  error is no caller's `errors.New` value (D37's `errCellOk`: the sentinels' cells hold the
+  driver's messages, `errVarOk`), holds a pointer if it is an `*errorString` (`errCellOk_ptr`),
+  and is a leaf error (`clientErr`), which `*StorageError` is not (its `Unwrap`, the method-set
+  premise `storageErrTyOk`; "From the etcd client proof", item 5 of `notes/k8s-etcd3-plan.md`).
 -/
 module
 
@@ -62,22 +64,44 @@ def errIs (err : GoInterface) (y : Output) : IProp GF :=
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8setcd3.errUpdateRejected ↦□ eU ∗
       ⌜ErrOther eD eU err⌝))
 
-/-- **A client's error is not the driver's** (see the file header): a marked `sorry` (D30n) until
-the client proof says what its errors are. -/
-theorem clientErr_other (err eD eU : GoInterface) (_h : clientErr err) :
-    globalAddr github_com.mit_pdos.etcd_grove.examples.k8setcd3.errDeleteRejected ↦□ eD ∗
-      globalAddr github_com.mit_pdos.etcd_grove.examples.k8setcd3.errUpdateRejected ↦□ eU ⊢
-      (⌜ErrOther eD eU err⌝ : IProp GF) := by
-  sorry
+/-- **A client's error is not the driver's** (see the file header): not the sentinels `errors.New`
+made at `lD` and `lU` (their cells hold the driver's messages, none among the client's), not a
+`*StorageError` (a leaf error, `*StorageError` has `Unwrap`: `storageErrTyOk`), and a pointer if
+it is an `*errorString` (`errCellOk_ptr`). -/
+theorem clientErr_other (hse : storageErrTyOk) (err : GoInterface) (lD lU : Loc)
+    (hn : err ≠ GoInterface.nil) (hc : clientErr err) :
+    go_etcd_io.etcd.cache.v3.errCellOk err ⊢
+      EtcdGrove.errStrCell lD go!"k8setcd3: deletion rejected" -∗
+      EtcdGrove.errStrCell lU go!"k8setcd3: update rejected" -∗
+      (⌜ErrOther
+        (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #lD)
+        (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #lU)
+        err⌝ : IProp GF) := by
+  cases err with
+  | nil => exact absurd rfl hn
+  | ok ii =>
+  iintro #Hcl #HD #HU
+  iunfold EtcdGrove.errStrCell at HD HU
+  ihave %HnD := go_etcd_io.etcd.cache.v3.errCellOk_ne _ lD _
+    (by unfold go_etcd_io.etcd.cache.v3.clientErrMsgs; decide) $$ Hcl HD
+  ihave %HnU := go_etcd_io.etcd.cache.v3.errCellOk_ne _ lU _
+    (by unfold go_etcd_io.etcd.cache.v3.clientErrMsgs; decide) $$ Hcl HU
+  ihave %Hp := go_etcd_io.etcd.cache.v3.errCellOk_ptr ii $$ Hcl
+  ipureintro
+  refine ⟨HnD, HnU, ii, rfl, fun ht => ?_, Hp⟩
+  have hl := ((hc.2 ii rfl).1).2.1
+  rw [ht] at hl
+  exact hl hse
 
 /-- **An error of the store whose outcome is unknown is `EOther`** (see the file header). -/
-theorem unkErr_errIs (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (err : GoInterface) :
+theorem unkErr_errIs (hse : storageErrTyOk) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
+    (err : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 ∗
       unkErr c err ⊢ errIs err errOutL := by
   iintro ⟨#Hpkg, #Hu⟩
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8setcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨-, -, -, -, ⟨%lD, #HD, -⟩, ⟨%lU, #HU, -⟩⟩
+  icases Hi with ⟨-, -, -, -, ⟨%lD, #HD, -, #CD⟩, ⟨%lU, #HU, -, #CU⟩⟩
   iunfold errIs
   iright; iright; iright
   isplitr
@@ -85,9 +109,8 @@ theorem unkErr_errIs (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (err : GoInt
   iexists _, _
   iframe HD HU
   iunfold unkErr at Hu
-  icases Hu with ⟨%Hne, (⟨%Hc, -⟩ | %Hie)⟩
-  · iapply clientErr_other err _ _ Hc
-    iframe HD HU
+  icases Hu with ⟨%Hne, (⟨%Hc, -, #Hcl⟩ | %Hie)⟩
+  · iapply clientErr_other hse err lD lU Hne Hc $$ Hcl CD CU
   · ipureintro
     rcases Hie with ⟨ie, rfl⟩ | he
     · have hne : ∀ t : go.GoType,

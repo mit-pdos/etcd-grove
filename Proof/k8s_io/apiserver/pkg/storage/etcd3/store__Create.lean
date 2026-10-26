@@ -189,7 +189,7 @@ theorem store.Create.wp_proof
       (try wp_auto)
       wp_apply wp_RecordEtcdRequest
       (try wp_auto)
-      icases Hput with (⟨%Hpe, %σ, ⟨HΨ, %Hwfσ, -⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse⟩)
+      icases Hput with (⟨%Hpe, %σ, ⟨HΨ, %Hwfσ, -⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse, #Hpcl⟩)
       · -- the transaction ran at σ
         subst Hpe
         obtain ⟨hsucc, hrevσ, hb⟩ := Hσ
@@ -293,7 +293,7 @@ theorem store.Create.wp_proof
           · iexists o, []; iexact Hobj
           ileft
           isplitl []
-          · iapply (unkErr_client c _ (by nofun) Hpce)
+          · iapply (unkErr_client c _ (by nofun) Hpce) $$ Hpcl
             iunfold go_etcd_io.etcd.cache.v3.statusErrOk
             iexact Hpse
           iexists o0, rv0
