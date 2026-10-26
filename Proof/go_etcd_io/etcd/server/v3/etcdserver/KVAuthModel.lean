@@ -73,7 +73,7 @@ def outState (st : auth.AuthState) : auth.Outcome → auth.AuthState
   | .next st' => st'
 
 /-- A step relation's successors of `st`, as states. -/
-def relState (R : auth.StepRel) (st st' : auth.AuthState) : Prop :=
+def authRelState (R : auth.StepRel) (st st' : auth.AuthState) : Prop :=
   ∃ o, R st o ∧ st' = outState st o
 
 open Classical in
@@ -89,21 +89,21 @@ def adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState) : Prop :=
     match apply.dispatchKind rq with
     | .authUserAdd =>
         match rq.authUserAdd with
-        | some m => (¬ m.pwSure ∧ st' = st) ∨ relState (auth.stepOf (auth.userAddF m.name)) st st'
+        | some m => (¬ m.pwSure ∧ st' = st) ∨ authRelState (auth.stepOf (auth.userAddF m.name)) st st'
         | none => st' = st
     | .authRoleAdd =>
         match rq.authRoleAdd with
-        | some n => relState (auth.stepOf (auth.roleAddF n)) st st'
+        | some n => authRelState (auth.stepOf (auth.roleAddF n)) st st'
         | none => st' = st
     | .authUserGrantRole =>
         match rq.authUserGrantRole with
-        | some (u, r) => relState (auth.userGrantRoleR u r) st st'
+        | some (u, r) => authRelState (auth.userGrantRoleR u r) st st'
         | none => st' = st
     | .authRoleGrantPermission =>
         match rq.authRoleGrantPermission with
-        | some (r, w) => relState (auth.roleGrantPermissionR r w) st st'
+        | some (r, w) => authRelState (auth.roleGrantPermissionR r w) st st'
         | none => st' = st
-    | .authEnable => relState (auth.stepOf (auth.authEnableF st.enabled)) st st'
+    | .authEnable => authRelState (auth.stepOf (auth.authEnableF st.enabled)) st st'
     | _ => st' = st
   else st' = st
 

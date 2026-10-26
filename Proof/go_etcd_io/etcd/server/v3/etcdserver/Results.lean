@@ -1569,7 +1569,11 @@ the simple token provider and the auth store of `srv_auth_tp_on` (its proofs, no
 axiom), the apply environment's auth on, the start's chain with the auth layer enabled; every callee
 linked as in `wp_NewServer` (`NewServer.wp_proofM`, whose mode off gives `wp_NewServer`'s
 statement). Its named premises are `srv_auth_tp_on`'s: D22's part (`authSchemaSrv`) and
-`isValidSimpleToken`'s spec for any context (`auth.ValidSpec`). -/
+`isValidSimpleToken`'s spec for any context (`auth.ValidSpec`). Since E2w (2026-10-26) its KV
+invariant is the mode's (`kvInvM true`, `kvInvOn`), allocatable at the bootstrap log
+(`kvInvOn_alloc_boot`), and its post the mode-indexed built part (`srvBuiltG true`): until then it
+took `kvInv`, whose start chain is mode-`off`, so its precondition was unsatisfiable
+(`kvInv_ch0_on_false`, E2p). -/
 theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF]
     [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf]
     (hValid : auth.ValidSpec (GF := GF) (hG := hG))
