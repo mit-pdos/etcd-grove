@@ -581,8 +581,21 @@ proto_SizeMessage:
 RaftCluster__IsIDRemoved:
 EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
 EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
+# (D43 M4, 2026-10-26) the cluster's writer of a removal (`RemoveMember`, with its body; the
+# backend's delete a triple its caller gives); the trust boundary: its metric update
+# (`updateMembershipMetric`, a prometheus gauge).
+RaftCluster__updateMembershipMetric:
+RaftCluster__RemoveMember: RaftCluster__updateMembershipMetric types_ID__String_ptr zap_Logger__Info zap_Logger__Warn zap_String zap_Strings zap_Bool
+# (D43 M4, 2026-10-26) the validation of a conf change (`ValidateConfigurationChange`, with its
+# body; the backend's read a triple its caller gives), raft's getters linked in raft's Link (`@`);
+# the trust boundary (the user's decision): `json.Unmarshal` of a change's context.
+raftpb_ConfChange__GetNodeId: @
+raftpb_ConfChange__GetType: @
+json_Unmarshal:
+RaftCluster__ValidateConfigurationChange: json_Unmarshal raftpb_ConfChange__GetNodeId raftpb_ConfChange__GetType
 # (2026-10-26) the interceptors' membership checks (the trust boundary of unit P3b until then),
-# over the cluster's lock invariant (`rcLockInv`)
+# over the cluster's lock invariant (`rcLockInv`; D43 M4: `IsLocalMemberLearner` at any side
+# condition, `rcLockInvG`, the fork's: no panic for a removed local member)
 RaftCluster__IsLocalMemberLearner:
 RaftCluster__IsMemberExist:
 EtcdServer__IsLearner: RaftCluster__IsLocalMemberLearner

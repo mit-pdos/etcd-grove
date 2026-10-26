@@ -408,6 +408,11 @@ For Kubernetes' sig-api-machinery, not etcd's maintainers:
 storage test model `correctness.Model` rejects the store's intended rewrite of non-canonical or
 stale data on a no-op update. It is a test-only bug that `TestCorrectness` does not reach, with a
 Go reproduction and a small fix in the Model.
+[k8s-watchcache-index-error-partial-update](k8s-watchcache-index-error-partial-update.md)
+(2026-10-26): the watch cache keeps (and soon serves) an object whose update failed in its
+indexer, with no event in its history; reproduced at the store. Only reached through an index
+function that fails, which Kubernetes' own do only on an object of the wrong type: worth a small
+robustness fix (index before mutating), not urgent.
 
 ## How to bring them
 

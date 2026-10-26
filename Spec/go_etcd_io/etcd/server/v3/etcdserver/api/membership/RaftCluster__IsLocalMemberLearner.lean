@@ -1,7 +1,8 @@
 /-
 `membership.RaftCluster.IsLocalMemberLearner` (`cluster.go`: under the lock, the local member's
-`IsLearner`; `c.lg.Panic` if the members map has no entry for `c.localID`). Lean-first (no Rocq
-counterpart); 2026-10-26: the server's `IsLearner`, the interceptors' check.
+`IsLearner`, or `false` if the local member is not in the members map). Lean-first (no Rocq
+counterpart); D43 M4 (2026-10-26): the fork's fix (`goose-lean-learnerfix`,
+`issues/etcd-unary-interceptor-learner-removed.md`): no panic for a removed local member.
 -/
 module
 
@@ -25,13 +26,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `c.IsLocalMemberLearner()` (`c` a cluster whose local member stays in its members map,
-`membership.localKept`) returns some boolean: the map has an entry for `c.localID` (`rcLockInv`'s
-`rcLocalIn`), so its `c.lg.Panic` branch is not taken. -/
+/-- `c.IsLocalMemberLearner()` (`c` a cluster, `isRaftClusterG`, at any side condition: the local
+member need not be in the map) returns some boolean. -/
 abbrev membership.RaftCluster.IsLocalMemberLearner.spec : Prop :=
-  ∀ (c : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.localKept c }}
-    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"IsLocalMemberLearner")) (Val #()))
+  ∀ (c : Loc) (RM : membership.RcSide GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+      membership.isRaftClusterG c RM }}
+    (App (Val (c @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!!
+      go!"IsLocalMemberLearner")) (Val #()))
   {{ (b : Bool), RET #b; True }}
 
 end spec

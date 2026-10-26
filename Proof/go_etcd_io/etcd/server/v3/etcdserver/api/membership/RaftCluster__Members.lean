@@ -100,17 +100,17 @@ theorem membership.RaftCluster.Members.wp_proof
     (hLess : membership.MembersByID.Less.spec (GF := GF) (hG := hG))
     (hSwap : membership.MembersByID.Swap.spec (GF := GF) (hG := hG)) :
     membership.RaftCluster.Members.spec (GF := GF) (hG := hG) := by
-  intro c
+  intro c RM
   wp_start as #Hrc
-  iunfold membership.isRaftCluster at Hrc
+  iunfold membership.isRaftClusterG at Hrc
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
-  iunfold membership.rcLockInv at Hinv
-  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, #Hloc, Hrem⟩
+  iunfold membership.rcLockInvG at Hinv
+  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, Hrem⟩
   wp_auto
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -188,9 +188,9 @@ theorem membership.RaftCluster.Members.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrem]
   · inext
-    iunfold membership.rcLockInv
+    iunfold membership.rcLockInvG
     iexists mp, mm
-    iframe Hmf Hmap Hmems Hloc Hrem
+    iframe Hmf Hmap Hmems Hrem
     ipureintro; exact Hsz
   (try wp_auto)
   iapply HΦ

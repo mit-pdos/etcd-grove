@@ -1,0 +1,14 @@
+# The Kubernetes watch cache's reads (KEP-6404, notes/kep-6404-plan.md): every linked result of
+# Proof/k8s_io/apiserver/pkg/storage/cacher/Link.lean (the store, the progress requester, the
+# freshness wait and the cached GET, WaitUntilFreshAndGet).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/cacher.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/k8s_io/apiserver/pkg/storage/cacher/Link\.lean$
+axiom kmetrics.HistogramVec.WithContext.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom tracing.Span.AddEvent.wp_proof
+axiom tracing.SpanFromContext.wp_proof
+sorry storage.NewTooLargeResourceVersionError.wp_proof

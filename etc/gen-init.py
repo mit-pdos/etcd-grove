@@ -52,7 +52,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # the auth plan's E2b (2026-10-25): the authentication example
          'github_com.mit_pdos.etcd_grove.examples.authkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
-         'github_com.mit_pdos.etcd_grove.examples.k8setcd3']
+         'github_com.mit_pdos.etcd_grove.examples.k8setcd3',
+         # KEP-6404 (2026-10-26): the watch cache and its store
+         'k8s_io.apiserver.pkg.storage.cacher']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -347,6 +349,23 @@ trust-boundary axiom `ErrTransactionConflict_init` states the one the fact reads
             'imodintro', 'iexists _', 'iexact HErrTransactionConflict'],
 )
 
+# KEP-6404 (2026-10-26): the watch cache's metrics; their facts are in
+# `Proof/k8s_io/apiserver/pkg/storage/cacher/Base.lean`.
+SPECIAL['k8s_io.apiserver.pkg.storage.cacher.metrics'] = dict(
+    doc='''Its fact (`cacherMetricsInit`, `storage/cacher/Base.lean`): `WatchCacheReadWait` holds a
+histogram vector of the labels `group` and `resource`. Its initializer runs its variables'
+untranslated initializers (`metrics.go`); the trust-boundary axiom `WatchCacheReadWait_init` states
+the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`),
+`opaqueInitsOk` the others.''',
+    custom={'WatchCacheReadWait': dict(
+        doc='/-- `WatchCacheReadWait = compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`\n(`metrics.go`): a `*HistogramVec` with those labels (`kmetrics.vecLabels`). -/',
+        post='∃ v : Loc, globalAddr WatchCacheReadWait ↦ v ∗ ⌜EtcdGrove.kmetrics.vecLabels v [go!"group", go!"resource"]⌝',
+        pat='⟨%v@, H@, %L@⟩')},
+    finish=['ipersist HWatchCacheReadWait'] + FIN_PRE[:7] + [
+            'imodintro', 'iexists _', 'iframe HWatchCacheReadWait', 'ipureintro',
+            'exact LWatchCacheReadWait'],
+)
+
 SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
     doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a feature
 gate whose `Enabled` answers some `bool` for any feature. Its initializer initializes its import
@@ -553,14 +572,27 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     'ipersist HerrMemberNotFound']
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
-    doc='''Its fact (`etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a fixed pointer
-(a `*prometheus.GaugeVec`, with its label names: D19l (iii)). Its initializer initializes its imports and runs its variables'
-untranslated initializers; the trust-boundary axiom `ClusterVersionMetrics_init` states the one
-the fact reads (`metrics.go`: `prometheus.NewGaugeVec(...)`), `opaqueInitsOk` the others.''',
+    doc='''Its fact (`membershipInit`, `etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a
+fixed pointer (a `*prometheus.GaugeVec`, with its label names: D19l (iii)), and (D43 M4,
+2026-10-26) every error variable its `errors.New` error (`errorsNewVars membershipErrMsgs`). Its
+initializer initializes its imports and runs its variables' untranslated initializers; the
+trust-boundary axiom `ClusterVersionMetrics_init` states the one the fact reads (`metrics.go`:
+`prometheus.NewGaugeVec(...)`), `errorsNewVarsInit` the error variables' (`errors.go`: `errors.New`
+calls), `opaqueInitsOk` the others.''',
+    newvars=dict(ErrIDRemoved="membership: ID removed", ErrIDExists="membership: ID exists",
+        ErrIDNotFound="membership: ID not found", ErrPeerURLexists="membership: peerURL exists",
+        ErrMemberNotLearner="membership: can only promote a learner member",
+        ErrTooManyLearners="membership: too many learner members in cluster"),
     custom={
         'ClusterVersionMetrics': promvec('ClusterVersionMetrics', 'Gauge', ['cluster_version']),
     },
-    finish=['ipersist HClusterVersionMetrics'] + FIN_PRE[:6],
+    finish=['ipersist HClusterVersionMetrics'] +
+        [f'ipersist H{x}' for x in ['ErrIDRemoved', 'ErrIDExists', 'ErrIDNotFound',
+          'ErrPeerURLexists', 'ErrMemberNotLearner', 'ErrTooManyLearners']] + FIN_PRE[:6] +
+        ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
+         'unfold membershipInit membershipErrMsgs',
+         'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
+         'iframe #'],
 )
 
 def hist(x, file='metrics.go'):
