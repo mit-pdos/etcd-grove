@@ -1,0 +1,132 @@
+diff --git a/test/integration/daemonset/robustness_test.go b/test/integration/daemonset/robustness_test.go
+index e0ec8003..9130f5f2 100644
+--- a/test/integration/daemonset/robustness_test.go
++++ b/test/integration/daemonset/robustness_test.go
+@@ -57,6 +57,10 @@ func TestDaemonSetReconcileRobustnessMatrix(t *testing.T) {
+ 		WatchStall: 2 * time.Second,
+ 	})
+ 
++	for _, scenario := range robustness.AmbiguousChildCreateScenarios() {
++		suite.AddScenario(scenario)
++	}
++
+ 	// Check final status once the controller settles rather than on first match.
+ 	suite.CheckWhenSettled(2 * time.Second)
+ 
+diff --git a/test/utils/robustness/scenarios.go b/test/utils/robustness/scenarios.go
+index e4467074..465b77b1 100644
+--- a/test/utils/robustness/scenarios.go
++++ b/test/utils/robustness/scenarios.go
+@@ -230,3 +230,63 @@ func rootWriteConflicts(p ControllerProfile, cond FaultCondition) []FaultRule {
+ 	}
+ 	return rules
+ }
++
++// AmbiguousChildCreateScenarios returns scenarios in which the controller's
++// first child create fails. In the Ambiguous ones the create reaches the API
++// server and is committed, but the client sees the error (CommitThenFail); in
++// the Failed ones (the controls) it never reaches the server. In the
++// StaleChildWatch ones the child watch stalls for WatchStall at its first
++// event, so the first committed child stays out of the controller's cache.
++func AmbiguousChildCreateScenarios() []ChaosScenario {
++	type variant struct {
++		name   string
++		err    HTTPStatusError
++		commit bool
++		stall  bool
++	}
++	timeout := NewHTTPStatusError(http.StatusGatewayTimeout, metav1.StatusReasonTimeout, "Timeout: request did not complete within requested timeout - context deadline exceeded")
++	internal := NewHTTPStatusError(http.StatusInternalServerError, metav1.StatusReasonInternalError, "Internal error occurred: etcdserver: request timed out")
++	variants := []variant{
++		{"AmbiguousChildCreate504StaleChildWatch", timeout, true, true},
++		{"AmbiguousChildCreate500StaleChildWatch", internal, true, true},
++		{"FailedChildCreate504StaleChildWatch", timeout, false, true},
++		{"FailedChildCreate500StaleChildWatch", internal, false, true},
++		{"AmbiguousChildCreate504", timeout, true, false},
++		{"AmbiguousChildCreate500", internal, true, false},
++	}
++	var scenarios []ChaosScenario
++	for _, v := range variants {
++		scenarios = append(scenarios, ChaosScenario{
++			Name: v.name,
++			Faults: func(p ControllerProfile, _ *FaultRegistry) []FaultRule {
++				if !p.HasChildCache() || !p.CreatesChildren() || (v.stall && p.WatchStall == 0) {
++					return nil
++				}
++				action := v.err
++				if v.commit {
++					action = CommitThenFail(action)
++				}
++				rules := []FaultRule{{
++					Name:            "FirstChildCreateFails",
++					Match:           p.ChildCreateMatch(),
++					Condition:       TriggerOnOccurrence(1),
++					Action:          action,
++					ExpectTriggered: true,
++				}}
++				if v.stall {
++					// The first child watch event is the first committed child:
++					// the ambiguous one, or (control) the retried one.
++					rules = append(rules, FaultRule{
++						Name:            "StallChildWatch",
++						Match:           p.ChildWatchMatch(),
++						Condition:       TriggerOnOccurrence(1),
++						Action:          InjectDelay{Duration: p.WatchStall},
++						ExpectTriggered: true,
++					})
++				}
++				return rules
++			},
++		})
++	}
++	return scenarios
++}
+diff --git a/test/utils/robustness/transport.go b/test/utils/robustness/transport.go
+index d341e87e..51996138 100644
+--- a/test/utils/robustness/transport.go
++++ b/test/utils/robustness/transport.go
+@@ -41,6 +41,12 @@ const VerbWatch = "WATCH"
+ type HTTPStatusError struct {
+ 	StatusCode int
+ 	Status     metav1.Status
++
++	// AfterCommit makes the fault ambiguous: the request is forwarded to the
++	// API server (which may commit it) and its response is replaced by this
++	// error, as when a response is lost or the request times out after the
++	// write was applied. A client cannot tell the two cases apart.
++	AfterCommit bool
+ }
+ 
+ func (e HTTPStatusError) Error() string {
+@@ -69,6 +75,13 @@ func NewHTTPStatusError(statusCode int, reason metav1.StatusReason, message stri
+ 	}
+ }
+ 
++// CommitThenFail returns err as an ambiguous fault: the request reaches the
++// API server, and the client sees err instead of the server's response.
++func CommitThenFail(err HTTPStatusError) HTTPStatusError {
++	err.AfterCommit = true
++	return err
++}
++
+ // FaultInjectingTransport wraps http.RoundTripper and triggers faults on matching REST API calls.
+ type FaultInjectingTransport struct {
+ 	realTransport http.RoundTripper
+@@ -115,6 +128,17 @@ func (t *FaultInjectingTransport) RoundTrip(req *http.Request) (*http.Response,
+ 		Namespace:   info.Namespace,
+ 		Name:        info.Name,
+ 	}); httpErr != nil {
++		if httpErr.AfterCommit {
++			// Forward the request; whatever the server did stays done, but
++			// the caller only sees the injected error.
++			resp, err := t.realTransport.RoundTrip(req)
++			if err != nil {
++				return nil, err
++			}
++			_, _ = io.Copy(io.Discard, resp.Body)
++			_ = resp.Body.Close()
++			return synthesizeResponse(*httpErr)
++		}
+ 		if req.Body != nil {
+ 			_ = req.Body.Close()
+ 		}

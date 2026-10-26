@@ -1,0 +1,41 @@
+diff --git a/pkg/controller/daemon/daemon_controller.go b/pkg/controller/daemon/daemon_controller.go
+index 90bc45f1..bb8cdeee 100644
+--- a/pkg/controller/daemon/daemon_controller.go
++++ b/pkg/controller/daemon/daemon_controller.go
+@@ -1035,6 +1035,20 @@ func (dsc *DaemonSetsController) manage(ctx context.Context, ds *apps.DaemonSet,
+ 	return nil
+ }
+ 
++// createMayHaveSucceeded reports whether a failed pod create may nonetheless
++// have been committed by the API server: any error but a 4xx status, which
++// the server sends only for a request it rejected. A 5xx (a 504 from the
++// request timeout, a 500 from an etcd timeout), a client-side timeout or a
++// broken connection leave the outcome unknown.
++func createMayHaveSucceeded(err error) bool {
++	var status apierrors.APIStatus
++	if errors.As(err, &status) {
++		code := status.Status().Code
++		return code < 400 || code >= 500
++	}
++	return true
++}
++
+ // syncNodes deletes given pods and creates new daemon set pods on the given nodes
+ // returns slice with errors if any
+ func (dsc *DaemonSetsController) syncNodes(ctx context.Context, ds *apps.DaemonSet, podsToDelete, nodesNeedingDaemonPods []string, hash string) error {
+@@ -1102,6 +1116,15 @@ func (dsc *DaemonSetsController) syncNodes(ctx context.Context, ds *apps.DaemonS
+ 						return
+ 					}
+ 				}
++				if err != nil && createMayHaveSucceeded(err) {
++					// The pod may exist: keep expecting it, so that no sync
++					// creates another for the node until the informer sees it
++					// or the expectation expires.
++					logger.V(2).Info("Failed creation that may have succeeded, keeping expectations for daemon set", "daemonset", klog.KObj(ds), "err", err)
++					errCh <- err
++					utilruntime.HandleError(err)
++					return
++				}
+ 				if err != nil {
+ 					logger.V(2).Info("Failed creation, decrementing expectations for daemon set", "daemonset", klog.KObj(ds))
+ 					dsc.expectations.CreationObserved(logger, dsKey)

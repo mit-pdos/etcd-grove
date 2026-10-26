@@ -420,8 +420,11 @@ For sig-apps (the DaemonSet controller):
 second pod on the node (the consistency store of KEP-5647 records only successful writes, and the
 expectations are lowered). Transient (the extra pod is deleted once the cache sees it), but it
 breaks the invariant the controller robustness test of kubernetes/kubernetes#139657 checks, and
-that test cannot reach it (its faults never reach the server). Reproduced over the model API
-server; worth reporting to the KEP-5647 authors with the reproduction.
+that test cannot reach it (its faults never reach the server). Reproduced deterministically on the
+real API server with a commit-then-fail fault added to that test (10 of 10), with a tested small
+fix (record the listed pods in the consistency store after an ambiguous error); #86140's review
+(2019) had accepted extra pods on this path for ReplicaSets, never for DaemonSets. Worth reporting
+to sig-apps and the KEP-5647 / #139657 author with the reproduction (draft in `upstream/`).
 
 ## How to bring them
 
