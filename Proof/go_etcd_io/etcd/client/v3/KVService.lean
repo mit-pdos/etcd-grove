@@ -33,6 +33,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLogOk
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnRun
@@ -945,7 +946,9 @@ atomic update may be fired at most once; if `dup` (the client's retry intercepto
 it must be persistent: the specs take a write's atomic update under `□?dup`.
 
 The specs take the caller's update at `γ` and give the reply's fields as functions of the state
-`σ` the update fired at (`putStOk`, `rangeStOk`, `delStOk`, `txnStOk`). Their proofs go through the
+`σ` the update fired at (`putStOk`, `rangeStOk`, `delStOk`, `txnStOk`), and (D47) that `σ` is a
+well-formed small log's (`kvLogOk`: the store's receipts bound its changes, `isKv`'s
+`receiptBound GF ≤ 2 ^ 62`, `idxCert_logOk`). Their proofs go through the
 members' (`KVMembers.lean`: etcd's specs at each member, a reply some member's), at the floor `[]`
 and the committed index `0` (`isKv`'s `srvStart`); what a member's reply says of its
 server (certificates, the revision's token, the applied index's witness) is the members' lemmas',
@@ -1005,7 +1008,8 @@ theorem kvReadAu_names (γk γk' : KVNames) (hst : γk.st = γk'.st) (Q : KVStat
 /-- **The `*kv` `api` of the members `ms` at the KV `γ`** (persistent; see the section header). -/
 def isKvOf (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvAt GF)) : IProp GF :=
   iprop(kvObjAt api (ms.map SrvAt.addr) ∗ kvRegs ms ∗ ([∗list] x ∈ ms, srvStart x) ∗
-    ⌜(∀ x ∈ ms, x.γr.kv.st = γ.st) ∧ (dup = false → ∀ x ∈ ms, noRefusalAt x.addr)⌝)
+    ⌜(∀ x ∈ ms, x.γr.kv.st = γ.st) ∧ (dup = false → ∀ x ∈ ms, noRefusalAt x.addr) ∧
+      receiptBound GF ≤ 2 ^ 62⌝)
 
 instance isKvOf_persistent (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvAt GF)) :
     Persistent (isKvOf api γ dup ms) := by
@@ -1013,7 +1017,7 @@ instance isKvOf_persistent (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (S
 
 /-- **The `*kv` `api` is a client of etcd's KV `γ`** (persistent; see the section header): of some
 members, each at `γ`'s state; unless `dup`, refusal-free (a write is delivered at
-most once). -/
+most once); (D47) the store's receipts at most `2 ^ 62` (a sealed log is small, `idxCert_logOk`). -/
 def isKv (api : Loc) (γ : KVNames) (dup : Bool) : IProp GF :=
   iprop(∃ ms : List (SrvAt GF), isKvOf api γ dup ms)
 
@@ -1024,14 +1028,14 @@ instance isKv_persistent (api : Loc) (γ : KVNames) (dup : Bool) :
 /-- A client of the members `ms` at `γ` is a client of `γ`. -/
 theorem isKv_intro (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (SrvAt GF))
     (hn : ∀ x ∈ ms, x.γr.kv.st = γ.st)
-    (hr : dup = false → ∀ x ∈ ms, noRefusalAt x.addr) :
+    (hr : dup = false → ∀ x ∈ ms, noRefusalAt x.addr) (hrb : receiptBound GF ≤ 2 ^ 62) :
     kvObjAt api (ms.map SrvAt.addr) ∗ kvRegs ms ∗ ([∗list] x ∈ ms, srvStart x) ⊢
       isKv api γ dup := by
   iintro ⟨#Ho, #Hr, #Hs⟩
   unfold isKv isKvOf
   iexists ms
   iframe #
-  ipureintro; exact ⟨hn, hr⟩
+  ipureintro; exact ⟨hn, hr, hrb⟩
 
 /-- **A write's update, by the client's kind** (`rf`: refusal-free): persistent, or (a write sent
 at most once, D29) fired at most once. -/
@@ -1062,7 +1066,7 @@ revision `σ`'s next, its previous key-value the key's record in `σ`'s current 
 def putStOk (o : OpFull) (Q : KVState → IProp GF) (m : PutRespM) : IProp GF :=
   iprop(∃ σ : KVState, Q σ ∗ ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
     m.prev = (if o.base.prevKV then (σ.store.lookup o.key).map (KVRec.toKv o.key) else none) ∧
-    σ.rev + 4 < 2 ^ 63⌝)
+    σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ⌝)
 
 /-- **What a range's reply says**: a state `σ` (the one the read update fired at, `□ Q σ`, if
 linearizable) at whose current revision the reply's header is, of whose store at the revision the
@@ -1074,7 +1078,7 @@ def rangeStOk (o : OpFull) (Q : KVState → IProp GF) (m : RangeRespM) : IProp G
     ⌜sint.Z o.base.rev ≤ (σ.rev : Int) ∧
       txn.srvRangeOk o (σ.at (σ.readRev o.base.rev)).kvs m.kvs m.more ∧
       m.count = txn.srvCount o (σ.at (σ.readRev o.base.rev)).kvs true ∧
-      m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝)
+      m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝)
 
 /-- **What a delete's reply says**: the state `σ` the update fired at (`Q σ`), the reply's count
 the keys of the range, its previous key-values theirs if asked, its revision the state's after
@@ -1082,7 +1086,8 @@ the delete (`kvOpStep`). -/
 def delStOk (o : OpFull) (Q : KVState → IProp GF) (m : DelRespM) : IProp GF :=
   iprop(∃ σ : KVState, Q σ ∗ ⌜m.deleted = W64 ((rangeIn σ.kvs o).length : Int) ∧
     m.prevs = (if o.base.prevKV then rangeIn σ.kvs o else []) ∧
-    m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧ σ.rev + 4 < 2 ^ 63⌝)
+    m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧
+    kvLogOk σ⌝)
 
 /-- **What a transaction's reply says**: the state `σ` the update fired at (`Q σ` if writing;
 `□ Q σ` if read-only and linearizable), the reply's verdict and its branch's responses the run's
@@ -1097,7 +1102,7 @@ def txnStOk (t : TxnModel) (Q : KVState → IProp GF) (m : TxnRespM) : IProp GF 
         (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.2 m.resps ∧
       m.hdr.revision = W64 ((if txn.txnReadonly t then σ.rev else
         (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev : Nat) : Int) ∧
-      σ.rev + 3 < 2 ^ 63⌝)
+      σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝)
 
 /-! ### The specs' atomic updates, in the proofs' terms -/
 
@@ -1291,30 +1296,53 @@ theorem irrNoZeroEnd_txn (t : TxnModel) (hz : txnNoZeroEnd t) : irrNoZeroEnd (ir
   subst h
   exact hz
 
+open Iris.ProofMode in
+/-- **A certified log is a well-formed small log** (D47): the certificate's facts (as
+`idxSealed_pure`'s) and the receipts' bound on its changes (as `idxSealed_small`'s). -/
+theorem idxCert_logOk (γ : mvcc.IdxNames) (log : mvcc.Log) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    mvcc.idxCert (GF := GF) γ log ⊢ ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ txn.LogSmall log⌝ := by
+  unfold mvcc.idxCert
+  iintro ⟨-, %Hp, -, %Hm⟩
+  ipureintro
+  refine ⟨Hp.1, Hp.2.1, ?_⟩
+  unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega
+
+/-- The state of a write's log, the certified log after it extending it, is well formed. -/
+theorem kvLogOk_of_step {rq : apply.IRRModel} {v3 : Bool} {x x' : apply.ApplyKV} {out : apply.ApplyOut}
+    (h : apply.applyStep rq v3 x x' out) (hl : 2 ≤ x.log.length)
+    (hc : mvcc.LogWf' x'.log ∧ x'.log.length < 2 ^ 63 ∧ txn.LogSmall x'.log) :
+    kvLogOk (kvStateOf x.log) :=
+  kvLogOk_of_prefix (applyStep_prefix rq v3 x x' out h) hc.1 hc.2.2 hc.2.1
+    (by intro he; rw [he] at hl; simp at hl)
+
 /-- Some member's put reply says what `putStOk` says. -/
-theorem putAns_st (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVState → IProp GF)
+theorem putAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F : mvcc.Log)
+    (o : OpFull) (Q : KVState → IProp GF)
     (m : PutRespM) : putAns ms F o Q m ⊢ putStOk o Q m := by
   unfold putAns putStOk
   iintro ⟨%x, -, H⟩
   iunfold putReplied at H
-  icases H with ⟨%hm, %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
-  obtain ⟨-, hrev, -, -, hprev, -, hlen, hb⟩ := Hp
+  icases H with ⟨%hm, %y, %y', %l, %skip, %Hp, #Hc, -, -, -, HQ⟩
+  ihave %Hl := idxCert_logOk _ _ hrb $$ Hc
+  obtain ⟨hst, hrev, -, -, hprev, -, hlen, hb⟩ := Hp
   iexists kvStateOf y.log
   iframe HQ
   ipureintro
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, kvLogOk_of_step hst hlen Hl⟩
   · rw [hrev, kvStateOf_rev_succ _ hlen]
   · rw [hprev, ← findKey_kvs, ← kvStateOf_kvs]; rfl
   · rw [kvStateOf_rev]; omega
 
 /-- Some member's range reply says what `rangeStOk` says. -/
-theorem rangeAns_st (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
+theorem rangeAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c : w64)
+    (F : mvcc.Log) (o : OpFull)
     (Q : KVState → IProp GF) (m : RangeRespM) :
     rangeAns ms c F o Q m ⊢ rangeStOk o Q m := by
   unfold rangeAns rangeStOk
   iintro ⟨%x, -, H⟩
   iunfold rangeReplyOk at H
-  icases H with ⟨%l, -, -, %Hl, -, HQ⟩
+  icases H with ⟨%l, #Hc, -, %Hl, -, HQ⟩
+  ihave %Hlk := idxCert_logOk _ _ hrb $$ Hc
   obtain ⟨hlen, hlen', hrev, -, -, hle, hcount, hsel, -⟩ := Hl
   have h2 : sint.Z (W64 ((l.length : Int) - 1)) = (l.length : Int) - 1 := by word
   have hle' : sint.Z o.base.rev ≤ (l.length : Int) - 1 := by rw [hrev, h2] at hle; exact hle
@@ -1338,7 +1366,8 @@ theorem rangeAns_st (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
   iframe HQ
   ipureintro
   rw [hRR, kvStateOf_at_kvs l _ hRle]
-  refine ⟨?_, hsel, hcount, ?_, ?_⟩
+  refine ⟨?_, hsel, hcount, ?_, ?_, kvLogOk_of l Hlk.1 Hlk.2.2 Hlk.2.1
+    (by intro he; rw [he] at hlen; simp at hlen)⟩
   · rw [kvStateOf_rev]; omega
   · rw [hrev, kvStateOf_rev]
     congr 1
@@ -1346,20 +1375,22 @@ theorem rangeAns_st (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
   · rw [kvStateOf_rev]; omega
 
 /-- Some member's delete reply says what `delStOk` says (a range end not `[0]`). -/
-theorem delAns_st (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVState → IProp GF)
+theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F : mvcc.Log)
+    (o : OpFull) (Q : KVState → IProp GF)
     (m : DelRespM) (hz : o.base.rangeEnd ≠ [W8 0]) : delAns ms F o Q m ⊢ delStOk o Q m := by
   unfold delAns delStOk
   iintro ⟨%x, -, H⟩
   iunfold deleteReplied at H
-  icases H with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
-  obtain ⟨-, -, Hz, -, hrev, -, -, hdel, hprevs, -, hlen, hb⟩ := Hp
+  icases H with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, #Hc, -, -, -, HQ⟩
+  ihave %Hl := idxCert_logOk _ _ hrb $$ Hc
+  obtain ⟨-, -, Hz, hst, hrev, -, -, hdel, hprevs, -, hlen, hb⟩ := Hp
   have hop : op' = o := Hz (irrNoZeroEnd_delete o hz)
   subst hop
   have hs := kvStateOf_kvs y.log
   iexists kvStateOf y.log
   iframe HQ
   ipureintro
-  refine ⟨by rw [hs]; exact hdel, by rw [hs]; exact hprevs, ?_, ?_⟩
+  refine ⟨by rw [hs]; exact hdel, by rw [hs]; exact hprevs, ?_, ?_, kvLogOk_of_step hst hlen Hl⟩
   · rw [hrev]
     simp only [kvOpStep]
     rw [hs, kvStateOf_commit_rev _ _ hlen]
@@ -1367,7 +1398,8 @@ theorem delAns_st (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVStat
 
 /-- Some member's transaction reply says what `txnStOk` says (a writing one's range ends not
 `[0]`). -/
-theorem txnAns_st (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (t : TxnModel)
+theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c : w64)
+    (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (m : TxnRespM)
     (hz : txn.txnReadonly t = false → txnNoZeroEnd t) :
     txnAns ms c F t Q m ⊢ txnStOk t Q m := by
@@ -1377,8 +1409,9 @@ theorem txnAns_st (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (t : TxnModel)
   cases hro : txn.txnReadonly t
   · -- writing
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
-    obtain ⟨-, -, Hz, -, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
+    icases H with ⟨%hm, %rq', %t', %y, %y', %l, %skip, %Hp, #Hc, -, -, -, HQ⟩
+    ihave %Hl := idxCert_logOk _ _ hrb $$ Hc
+    obtain ⟨-, -, Hz, hst, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
     have ht : t' = t := Hz (irrNoZeroEnd_txn t (hz hro))
     subst ht hsk
     have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := kvStateOf_rev_succ _ hlen
@@ -1387,12 +1420,13 @@ theorem txnAns_st (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (t : TxnModel)
     iframe HQ
     ipureintro
     rw [hr, hs]
-    refine ⟨hok, hrel, ?_, ?_⟩
+    refine ⟨hok, hrel, ?_, ?_, kvLogOk_of_step hst hlen Hl⟩
     · rw [hrev, ← hs, kvStateOf_commit_rev _ _ hlen]
     · rw [kvStateOf_rev]; omega
   · -- read-only
     simp only [↓reduceIte]
-    icases H with ⟨%log, -, -, %Hp, -, HQ⟩
+    icases H with ⟨%log, #Hc, -, %Hp, -, HQ⟩
+    ihave %Hl := idxCert_logOk _ _ hrb $$ Hc
     obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
     have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
     have hs := kvStateOf_kvs log
@@ -1400,7 +1434,8 @@ theorem txnAns_st (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (t : TxnModel)
     iframe HQ
     ipureintro
     rw [hr, hs]
-    refine ⟨hok, hrel, ?_, ?_⟩
+    refine ⟨hok, hrel, ?_, ?_, kvLogOk_of log Hl.1 Hl.2.2 Hl.2.1
+      (by intro he; rw [he] at hlen; simp at hlen)⟩
     · rw [hrev, kvStateOf_rev]
       congr 1
       omega
@@ -1463,7 +1498,7 @@ theorem putCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (err 
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
         ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
           m.prev = (if o.base.prevKV then (σ.store.lookup o.key).map (KVRec.toKv o.key) else none) ∧
-          σ.rev + 4 < 2 ^ 63⌝) ∨
+          σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold putCallOut putStOk kvErr
   iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
@@ -1486,7 +1521,7 @@ theorem rangeCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (er
         ⌜sint.Z o.base.rev ≤ (σ.rev : Int) ∧
           txn.srvRangeOk o (σ.at (σ.readRev o.base.rev)).kvs m.kvs m.more ∧
           m.count = txn.srvCount o (σ.at (σ.readRev o.base.rev)).kvs true ∧
-          m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝) ∨
+          m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold rangeCallOut rangeStOk kvErr
   iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
@@ -1507,7 +1542,8 @@ theorem deleteCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (e
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : DelRespM) (σ : KVState), delRespMsg resp m ∗ Q σ ∗
         ⌜m.deleted = W64 ((rangeIn σ.kvs o).length : Int) ∧
           m.prevs = (if o.base.prevKV then rangeIn σ.kvs o else []) ∧
-          m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧ σ.rev + 4 < 2 ^ 63⌝) ∨
+          m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧
+          kvLogOk σ⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold deleteCallOut delStOk kvErr
   iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
@@ -1532,7 +1568,7 @@ theorem txnCallOut_st (t : TxnModel) (Q : KVState → IProp GF) (resp : Loc) (er
           opRespsRel false (t.branch m.succeeded) (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.2 m.resps ∧
           m.hdr.revision = W64 ((if txn.txnReadonly t then σ.rev else
             (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev : Nat) : Int) ∧
-          σ.rev + 3 < 2 ^ 63⌝) ∨
+          σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold txnCallOut txnStOk kvErr
   iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)

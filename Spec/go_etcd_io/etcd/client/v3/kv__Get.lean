@@ -30,7 +30,8 @@ state (a read may be answered by any member, and again) or, `Q` trivial, none; t
 `ContextError`: `R` back, and `nil` and the reply's message `m` with a state `σ` (the read
 update's, `□ Q σ`, if linearizable) at whose current revision the reply's header is, the reply's
 key-values and count the selection of `σ`'s store at the revision the range reads (`readRev`: the
-one asked, at most the current, or the current); or a client error (`kvErr`) and no reply. -/
+one asked, at most the current, or the current), `σ` a well-formed small log's state (`kvLogOk`,
+D47); or a client error (`kvErr`) and no reply. -/
 abbrev kv.Get.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
@@ -50,7 +51,7 @@ abbrev kv.Get.spec : Prop :=
           ⌜sint.Z (rangeWireOf (opGetModel key opts)).base.rev ≤ (σ.rev : Int) ∧
             txn.srvRangeOk (rangeWireOf (opGetModel key opts)) (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs m.kvs m.more ∧
             m.count = txn.srvCount (rangeWireOf (opGetModel key opts)) (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs true ∧
-            m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝) ∨
+            m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63 ∧ kvLogOk σ⌝) ∨
         (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
 
 end spec

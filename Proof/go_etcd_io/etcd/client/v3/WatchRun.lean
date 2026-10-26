@@ -876,7 +876,8 @@ theorem cmpl_step (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
   iunfold srvKVFacts at Hkf
   icases Hkf with ⟨%γr, #Hinvs, #H0, %Hkr⟩
   iunfold wsAu at Hau
-  imod (raw_to_state V.R.E γr P.kv (by rw [hkst, Hkr.1]) Hkr.2 P.o c2 c2' v r P.Q) $$ Hinvs H0 Hau
+  imod (raw_to_state V.R.E γr P.kv (by rw [hkst, Hkr.1]) Hkr.2.1 Hkr.2.2 P.o c2 c2' v r P.Q)
+    $$ Hinvs H0 Hau
     [Hok] with ⟨%σ, #HQσ, #Hsσ⟩
   · rw [← hst]; iexact Hok
   imod monoListAuthOwn_update_app (γ := P.γh2) (l := C2) [c2'] $$ Ha with ⟨Ha, #Hlb⟩

@@ -14,7 +14,8 @@ firing of the caller's read update; the client watcher's pipeline (`InvWatch.lea
   that is not a progress notification (position kept), a progress notification at `p` (if `p > c`:
   `p ≤ σ.rev`, no event in `(c, p]`, position `p`; else the position kept), or events: exactly
   `rangeEvents σ o (c + 1) (c' + 1)` for some `c < c' ≤ σ.rev` (`eventsIs`: each event's type,
-  key, revision and key-value);
+  key, revision and key-value); when the position moves, `σ` is a well-formed small log's state
+  through the new one (`kvLogOkTo`, D47);
 * `watchStateElem`: the `i`-th response of a watch, with the update's `□ Q σ`, at the positions
   `i` and `i + 1` of the watch's cursor;
 * `client.rawRespOk`: the same at the server's level (the client watcher's pipeline's, before the
@@ -25,6 +26,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLogOk
 
 @[expose] public section
 
@@ -121,11 +123,12 @@ def watchStateRespOk (o : OpFull) (σ : KVState) (c c' : w64)
     ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
     ⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ 0 ≤ sint.Z r.hdrRev ∧
       (sint.Z c < sint.Z r.hdrRev → c' = r.hdrRev ∧ sint.Z r.hdrRev ≤ (σ.rev : Int) ∧
-        σ.rangeEvents o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = []) ∧
+        σ.rangeEvents o (sint.nat c + 1) (sint.nat r.hdrRev + 1) = [] ∧
+        kvLogOkTo σ (sint.nat r.hdrRev)) ∧
       (sint.Z r.hdrRev ≤ sint.Z c → c' = c)⌝ ∨
     (⌜¬ watchErr v ∧ r.events ≠ [] ∧ 0 ≤ sint.Z c ∧ sint.Z c < sint.Z c' ∧
         sint.Z c' ≤ (σ.rev : Int) ∧
-        (r.events.getLast?.map EvModel.rev) = some c'⌝ ∗
+        (r.events.getLast?.map EvModel.rev) = some c' ∧ kvLogOkTo σ (sint.nat c')⌝ ∗
       eventsIs r.events (σ.rangeEvents o (sint.nat c + 1) (sint.nat c' + 1))))
 
 instance watchStateRespOk_persistent (o : OpFull) (σ : KVState) (c c' : w64)

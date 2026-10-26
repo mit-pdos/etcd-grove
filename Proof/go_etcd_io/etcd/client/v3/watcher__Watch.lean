@@ -55,7 +55,7 @@ theorem watcher.Watch.wp_proof
   icases Hmf0 with ⟨-, -, -, -, #Hkf0⟩
   iunfold srvKVFacts at Hkf0
   icases Hkf0 with ⟨%γr0, #Hinvs0, #H00, %Hkr0⟩
-  imod (watch_fire V.R.E γr0 γ (by rw [Hkr0.1, Hkst]) Hkr0.2 [[], []] Q) $$ Hinvs0 H00 H00 [] Hau
+  imod (watch_fire V.R.E γr0 γ (by rw [Hkr0.1, Hkst]) Hkr0.2.1 [[], []] Q) $$ Hinvs0 H00 H00 [] Hau
     with ⟨%C0, #HQ0, -⟩
   · unfold mvcc.certOk; ileft; ipureintro; simp
   have hcpl : cplCond true (opWatchModel key gs) rev = true := by

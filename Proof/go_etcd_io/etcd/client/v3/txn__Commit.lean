@@ -128,7 +128,7 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   icases Hkv with ⟨%ms, #Hkv⟩
   iunfold isKvOf at Hkv
   icases Hkv with ⟨#Hko, #Hregs, #Hst, %Hm⟩
-  obtain ⟨Hn, Hr⟩ := Hm
+  obtain ⟨Hn, Hr, Hrb⟩ := Hm
   ihave Hobj := txnObjAt_conn tp api addr (ms.map SrvAt.addr) ci cd b $$ [Hobj]
   · iframe Hobj; iframe #
   ihave #HK := srvStart_both ms $$ Hst
@@ -147,7 +147,7 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   iapply HΦ
   iapply txnCallOut_st
   iapply (txnCallOut_mono _ _ resp err
-    (fun m => txnAns_st ms (W64 0) [] (txnWireOf b.model) Q m Hz)) $$ Hout
+    (fun m => txnAns_st Hrb ms (W64 0) [] (txnWireOf b.model) Q m Hz)) $$ Hout
 
 end proof
 

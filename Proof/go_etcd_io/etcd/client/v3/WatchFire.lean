@@ -146,11 +146,24 @@ theorem eventsIs_of_fixed (evs : List mvcc.EvM) (kvs : List Loc) (hkl : kvs.leng
     ipureintro
     exact ⟨by unfold mvcc.evType; rfl, rfl, rfl⟩
 
+/-- **A sealed log is a well-formed small log** (D47): the seal's facts (as `idxSealed_pure`'s)
+and, with the receipts' bound, its changes' (as `idxSealed_small`'s). -/
+theorem sealed_logOk (γ : mvcc.IdxNames) (log : mvcc.Log) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    mvcc.idxSealed (GF := GF) γ log ⊢
+      ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ txn.LogSmall log⌝ := by
+  unfold mvcc.idxSealed
+  iintro ⟨-, %Hp, %Hm⟩
+  ipureintro
+  refine ⟨Hp.1, Hp.2.1, ?_⟩
+  unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega
+
 /-- **A response at the server's level is a read of the state** (see the file header): the caller's
 read update fires (`watch_fire`) at the watched log the response's facts are of (the start log if
-none), at a state `σ` whose events are that log's, so the response's are `σ`'s. -/
+none), at a state `σ` whose events are that log's, so the response's are `σ`'s; with the receipts'
+bound, `σ` is well formed through the position the response moves to (the watched log's state's
+prefix, `kvLogOkTo_of_prefix`). -/
 theorem raw_to_state (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst : γ.st = γr.kv.st)
-    (hlog : γr.kv.log0 = [[], []]) (o : OpFull) (c c' : w64)
+    (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) (o : OpFull) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (Q : KVState → IProp GF) :
     ⊢ srvKVInvs E γr -∗ mvcc.idxSealed E.γ.idx [[], []] -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
@@ -172,17 +185,20 @@ theorem raw_to_state (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst :
   · imod watch_fire E γr γ hst hlog L Q $$ Hinvs H0 [HL] [HL] Hau with ⟨%C, #HQ, %HLC⟩
     · iapply mvcc.evLog_sealed $$ HL
     · iapply mvcc.evLog_certOk $$ HL
+    ihave #HLs := mvcc.evLog_sealed _ _ $$ HL
+    ihave %Hlk := sealed_logOk _ _ hrb $$ HLs
     imodintro; iexists kvStateOf C; iframe HQ
     unfold watchStateRespOk; iright; iright; ileft; ipureintro
     obtain ⟨hv, hpn, hp0, -⟩ := Hp
     obtain ⟨hcp, hc', hc0⟩ := Hlt
     obtain ⟨hpl, hnone⟩ := HLp
     have hCl := HLC.length_le
-    refine ⟨hv, hpn, hp0, fun _ => ⟨hc', ?_, ?_⟩, fun h => absurd h (by omega)⟩
+    refine ⟨hv, hpn, hp0, fun _ => ⟨hc', ?_, ?_, ?_⟩, fun h => absurd h (by omega)⟩
     · rw [kvStateOf_rev]; omega
     · rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
         ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
       exact hnone
+    · exact kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2 Hlk.2.1 (by simp only [hn]; omega)
   · imodintro; iexists kvStateOf C0; iframe HQ0
     unfold watchStateRespOk; iright; iright; ileft; ipureintro
     obtain ⟨hv, hpn, hp0, -⟩ := Hp
@@ -197,11 +213,14 @@ theorem raw_to_state (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst :
         rangeLogEvents L o (sint.nat c + 1) (sint.nat c' + 1) := by
       rw [rangeEvents_kvStateOf C o _ _ (by omega) (by simp only [hn]; omega),
         ← rangeLogEvents_prefix HLC o (by simp only [hn]; omega)]
+    ihave #HLs := mvcc.evLog_sealed _ _ $$ HL
+    ihave %Hlk := sealed_logOk _ _ hrb $$ HLs
     imodintro; iexists kvStateOf C; iframe HQ
     unfold watchStateRespOk; iright; iright; iright
     isplitr
     · ipureintro
-      refine ⟨hv, hne, hc0, hcc, ?_, hlast⟩
+      refine ⟨hv, hne, hc0, hcc, ?_, hlast,
+        kvLogOkTo_of_prefix HLC Hlk.1 Hlk.2.2 Hlk.2.1 (by simp only [hn]; omega)⟩
       rw [kvStateOf_rev]; omega
     rw [hevs, hre]
     iapply eventsIs_of_fixed _ kvs hkl $$ Hkv

@@ -420,7 +420,7 @@ the start log sealed at its store (`NewStore`'s): what firing a watch's read upd
 watched logs needs (`watch_fire`). -/
 def srvKVFacts (V : WEnv GF) : IProp GF :=
   iprop(∃ γr : ReadNames, srvKVInvs V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ∗
-    ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []]⌝)
+    ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []] ∧ receiptBound GF ≤ 2 ^ 62⌝)
 
 instance srvKVFacts_persistent (V : WEnv GF) : Persistent (srvKVFacts V) := by
   unfold srvKVFacts; infer_instance
