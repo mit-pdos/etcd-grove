@@ -125,6 +125,9 @@ structure WEnv (GF : BundledGFunctors) where
   watch server (`addr` and `R` are the current one's: the epoch's, in `run`) -/
   mem : Nat → GoString × v3rpc.WSrv GF
   nm : Nat
+  /-- (D46) the cluster's KV state variable (`KVNames.st`): every member's KV invariants are at
+  it (`srvKVFacts`), and the watches' read updates are of it (`wsIs`) -/
+  kst : GName
 
 /-- **`V` at its member `i`** (W3b): the member's address and watch server. A predicate that reads
 neither `R` nor `addr` is the same at every member, by definition. A `def`, so that `run`'s
@@ -243,15 +246,16 @@ instance srvWL_persistent (R : v3rpc.WSrv GF) (L : mvcc.Log) : Persistent (srvWL
 
 /-- **A client of one server** (the watch contract at the server's model). -/
 abbrev srvWEnv (R : v3rpc.WSrv GF) (addr : GoString) (ics : List GoFunc) (conn wc : Loc)
-    (pfx : GoString) (lg : Loc) : WEnv GF :=
-  ⟨R, addr, ics, conn, wc, pfx, lg, v3rpc.etcdModelOfServer R.E, srvWL R, fun _ => (addr, R), 1⟩
+    (pfx : GoString) (lg : Loc) (kst : GName) : WEnv GF :=
+  ⟨R, addr, ics, conn, wc, pfx, lg, v3rpc.etcdModelOfServer R.E, srvWL R, fun _ => (addr, R), 1,
+    kst⟩
 
 /-- **The watch laws of a client of one server** (`watchLaws` at `etcdModelOfServer`, `srvWL`):
 the server model's facts of a certified log (`etcdReached_of_certOk`, `srvEtcdState`, `srvStep`),
 the conversion the identity. -/
 theorem watchLaws_srv (V : WEnv GF) (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
     (hWL : V.WL = srvWL V.R) (hst : V.R.γ.st = V.R.E.γ) : ⊢ watchLaws V := by
-  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm⟩ := V
+  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
   simp only at hWM hWL hst ⊢
   subst hWM hWL
   iunfold watchLaws
@@ -410,12 +414,23 @@ def clientWatchVars : IProp GF :=
 instance clientWatchVars_persistent : Persistent (clientWatchVars (GF := GF)) := by
   unfold clientWatchVars; infer_instance
 
+/-- **A member's KV facts** (persistent; D46): its server's KV invariants (`srvKVInvs`, at read
+names `γr` whose KV state variable is the cluster's, `V.kst`, from the start log `[[], []]`) and
+the start log sealed at its store (`NewStore`'s): what firing a watch's read update at one of its
+watched logs needs (`watch_fire`). -/
+def srvKVFacts (V : WEnv GF) : IProp GF :=
+  iprop(∃ γr : ReadNames, srvKVInvs V.R.E γr ∗ mvcc.idxSealed V.R.E.γ.idx [[], []] ∗
+    ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []]⌝)
+
+instance srvKVFacts_persistent (V : WEnv GF) : Persistent (srvKVFacts V) := by
+  unfold srvKVFacts; infer_instance
+
 /-- **A member's facts** (persistent; W3b): its watch-token pool, its logs small, no key written
 twice in a revision, its store's names its environment's, and its watched logs as the contract's
 model sees them (`watchLaws`). -/
 def watchMemberFacts (V : WEnv GF) : IProp GF :=
   iprop(mvcc.watchTokPool V.R.γ ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
-    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V)
+    ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V)
 
 instance watchMemberFacts_persistent (V : WEnv GF) : Persistent (watchMemberFacts V) := by
   unfold watchMemberFacts; infer_instance
@@ -446,7 +461,7 @@ theorem watchConnFacts_cur (V : WEnv GF) :
   obtain ⟨hp, -, i, hi, he⟩ := Hp
   ihave #Hmi := Hm $$ %i %hi
   have hV : V.atIdx i = V := by
-    obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm⟩ := V
+    obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
     simp only at he ⊢
     simp [WEnv.atIdx, he]
   irevert Hmi; rw [hV]; iintro #Hmi
@@ -533,6 +548,10 @@ structure WsPrm (GF : BundledGFunctors) where
   of the substream started there (`true`, `lifeStart`) or `run` sent a response there that is not
   a created one (`false`, `notStart`): a goroutine's first response is its create's -/
   γps : GName
+  /-- (D46) the caller's read update: the KV names it reads (`etcdKV kv`) and its predicate, each
+  response one firing of it (`recvCmpl`, `outcElem`) -/
+  kv : KVNames
+  Q : KVState → IProp GF
 
 /-- **The watch promises completeness** (K2e-7d): its start revision was read from the server's
 store (`sr`), a non-zero one, and it is a prefix watch of a non-empty key not all `0xff` (its range
@@ -553,11 +572,19 @@ def wsReqOk (pfx : GoString) (P : WsPrm GF) : Prop :=
     P.key = P.o.key ∧ P.ed = P.o.base.rangeEnd ∧ P.cn = P.o.base.createdNotify ∧
     P.pn = P.o.base.progressNotify
 
+/-- **The caller's channel's element** (D46): a response as one firing of the read update
+`Q`, at the watch's second cursor (`watchStateElem`, at `γ.cur2`: the cursor of a watch that
+promises completeness). -/
+def outcElem (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) :
+    Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF :=
+  watchStateElem { γ with cur := γ.cur2 } o Q
+
 /-- **What a watch's `retc` carries** (the bag's value predicate): the substream's `outc`, the
 contract's SPSC channel, with the consumer's resources (`Watch` returns them). -/
-def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (sr : Bool) (outc : Loc) : IProp GF :=
+def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (sr : Bool) (Q : KVState → IProp GF) (outc : Loc) :
+    IProp GF :=
   iprop(∃ γ : EtcdWatchNames,
-    isSpsc γ.spsc outc (rangeWatchElem (EM := V.WM) γ V.pfx o rev) (fun _ => iprop(True)) ∗
+    isSpsc γ.spsc outc (outcElem γ o Q) (fun _ => iprop(True)) ∗
     spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
     monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
     ⌜γ.cpl = cplCond sr o rev⌝)
@@ -581,13 +608,15 @@ def wrRO (l : Loc) (P : WsPrm GF) : IProp GF :=
 instance wrRO_persistent (l : Loc) (P : WsPrm GF) : Persistent (wrRO l P) := by
   unfold wrRO; infer_instance
 
-/-- **The cache's contract for the `k`th response `run` sends a substream** (persistent; K2e-7):
-unless the watch promises no completeness (`cpl` false), the contract of the watch's prefix
-(`watchRespOk`) from the second dispatch cursor's position `k` to `k + 1` (`γh2`). -/
+/-- **The completeness contract for the `k`th response `run` sends a substream** (persistent;
+K2e-7, D46): unless the watch promises no completeness (`cpl` false), the server-level contract
+(`rawRespOk`) from the second dispatch cursor's position `k` to `k + 1` (`γh2`), and the caller's
+read update fired at it (`□ P.Q σ`, `watchStateRespOk` at the same positions: `cmpl_step`). -/
 def recvCmpl (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜P.γ.cpl = false⌝ ∨ ∃ h2B h2A : w64, monoListIdxOwn P.γh2 k.toNat h2B ∗
-    monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗ rawRespOk V.R.γ.st P.o h2B h2A v r)
+    monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗ rawRespOk V.R.γ.st P.o h2B h2A v r ∗
+    ∃ σ : KVState, □ P.Q σ ∗ watchStateRespOk P.o σ h2B h2A v r)
 
 instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
@@ -711,6 +740,15 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     else iprop(notStart P k.toNat ∗ resumeF V P r))) ∨
     dghostVar P.γx DFrac.discard true)
 
+/-- **A watch's read update** (persistent; D46): the caller's, of the KV state `P.kv` reads, its
+predicate `P.Q`; it fires at every response (`recvCmpl`). -/
+def wsAu (P : WsPrm GF) : IProp GF :=
+  iprop(□ (AU <{ ∃∃ (σ : KVState), etcdKV P.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+    <{ etcdKV P.kv σ, COMM □ P.Q σ }>))
+
+instance wsAu_persistent (P : WsPrm GF) : Persistent (wsAu P) := by
+  unfold wsAu; infer_instance
+
 /-- **A substream** `ws` of the watch `P` (persistent): its request's read-only fields
 (`initReq`), its `recvc` field (read-only after `run` set it), the contract's SPSC channel `outc`,
 `recvc` (a synchronous SPSC, `recvElem`), the request's context and `retc`, the request one of the
@@ -719,12 +757,13 @@ each lifetime of the goroutine has its own `donec`: owned fields, `LifePrm`.) -/
 def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(wrRO (wsF P.ws go!"initReq") P ∗
     wsF P.ws go!"recvc" ↦□ P.recvc ∗
-    isSpsc P.γ.spsc P.outc (rangeWatchElem (EM := V.WM) P.γ V.pfx P.o P.rev)
-      (fun _ => iprop(True)) ∗
+    isSpsc P.γ.spsc P.outc (outcElem P.γ P.o P.Q) (fun _ => iprop(True)) ∗
     isSspsc P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) ∗
     context.isContext P.ctx P.cs ∗
-    isChanBag P.γret P.retc (retcP V P.o P.rev P.sr) ∗
-    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = cplOf P⌝ ∗ startOk V P.sr P.rev)
+    isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q) ∗
+    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = cplOf P⌝ ∗ startOk V P.sr P.rev ∗
+    -- (D46) the caller's read update, of the cluster's KV state; the watch promises completeness
+    wsAu P ∗ ⌜P.kv.st = V.kst ∧ P.γ.cpl = true⌝)
 
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
   unfold wsIs; infer_instance
@@ -868,7 +907,7 @@ def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
     ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty) #wr ∧
       wr ≠ null⌝ ∗
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
-    context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev P.sr) ∗
+    context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q) ∗
     ⌜wsReqOk V.pfx P⌝ ∗ startOk V P.sr P.rev) ∨
     ∃ pr : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.progressRequest.ty) #pr⌝)

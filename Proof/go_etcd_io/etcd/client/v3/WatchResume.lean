@@ -88,7 +88,7 @@ theorem recvCmpl_at (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.
         (⌜P.γ.cpl = false⌝ ∨ rawRespOk V.R.γ.st P.o c2 h2A v r) := by
   unfold recvCmpl
   iintro ⟨#Hc, #Hp⟩
-  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, #Hok⟩)
+  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, #Hok, -⟩)
   · iexists c2
     isplitl
     · ileft; ipureintro; exact H
@@ -350,7 +350,7 @@ theorem wsRun_init (V : WEnv GF) (P : WsPrm GF) (b0 : GoSlice) (t0 : _root_.Pere
   iintro ⟨#HP, Hcons, Hprod, Hauth, #Hhi0, Hc2, #Hh20, Hbuf, Hb, Hrev, Hretc, Hres, Hbwt⟩
   ihave #HP' := HP
   iunfold wsIs at HP'
-  icases HP' with ⟨-, -, -, -, -, -, %HPws, #Hsok⟩
+  icases HP' with ⟨-, -, -, -, -, -, %HPws, #Hsok, -⟩
   ihave #Hrs0 := resumeOk_init V P HPws.2.1 HPws.2.2 $$ Hsok
   unfold wsRun
   iexists [], [P.rev - W64 1], [], b0, P.retc, t0, (P.rev - W64 1), 0

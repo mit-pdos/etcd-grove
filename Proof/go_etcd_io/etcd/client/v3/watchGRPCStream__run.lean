@@ -2227,7 +2227,7 @@ theorem watchGRPCStream.run.wp_proof
         icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, #Hrg, Hprod, Hauth, Hst, Hc2⟩
         ihave #HP' := HP
         iunfold wsIs at HP'
-        icases HP' with ⟨-, -, -, -, -, -, %HPpure, #Hso⟩
+        icases HP' with ⟨-, -, -, -, -, -, %HPpure, #Hso, -⟩
         ihave #HDw : v3rpc.downLbW γs S.Dm $$ []
         · unfold v3rpc.downLbW; iexact HDlb
         ihave #Hevs' : iprop([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs x.1 x.2) $$ []
