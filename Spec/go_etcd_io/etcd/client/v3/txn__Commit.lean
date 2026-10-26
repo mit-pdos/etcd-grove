@@ -21,7 +21,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `t.Commit()` on a builder at `b` made from a `*kv` of etcd's KV `γ` (`txnKvIs`, `isKv`, D43): the
+/-- `t.Commit()` on a builder at `b` made from a `*kv` of etcd's KV `γ` (`txnKvIs`, `isKv`, D44): the
 request `&pb.TxnRequest{Compare: cmps, Success: sus, Failure: fas}` (the transaction
 `txnWireOf b.model` on the wire, of plain operations within the txn package's model) through the
 `*kv`'s retry client's `Txn`, with the client's call options, with the caller's update of `γ`'s
@@ -30,7 +30,7 @@ end `[0]`), an atomic update by the transaction (`kvOpStep`); persistent
 if the client's writes may be delivered more than once (`□?dup`): `nil` and the reply's message
 `m` with the state `σ` the update fired at (`Q σ` if writing, `□ Q σ` if a linearizable read), the
 reply's verdict, responses and revision as the run's at `σ`, `σ` a well-formed small log's state
-(`kvLogOk`, D47), and so the state after a writing transaction's changes; or a client error (`kvErr`, through
+(`kvLogOk`, D48), and so the state after a writing transaction's changes; or a client error (`kvErr`, through
 `ContextError`) and no reply. The builder is spent (its slices are now the
 request's). -/
 abbrev txn.Commit.spec : Prop :=

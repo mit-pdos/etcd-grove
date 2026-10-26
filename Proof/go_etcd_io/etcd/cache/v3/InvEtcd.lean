@@ -800,7 +800,7 @@ instance isEtcdKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
 /-- **The cache's client `KV`**: `isEtcdKV` for the gets the cache makes (exact ones,
 `getExact`, without a sort option, `sortSet = false` (2026-10-20, cachekv: neither of the cache's
 two gets sorts, and a sorted get's client reads `rpctypes.ErrInvalidSortOption`, which no package
-fact gives), linearizable (`serializable = false`, D47: a serializable read fires no update of the
+fact gives), linearizable (`serializable = false`, D48: a serializable read fires no update of the
 KV state, so tells the client's model nothing); K3: etcd's state only for a prefix get,
 `kvGetResultC`), and the `Error()` of a
 non-nil error its `Get` returns returns some string (`errStrOk`: the cache's watch loop prints it

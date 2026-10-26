@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - golang/go#18595 issue closed: the same class through a value conversion (named and unnamed interface, `==` false), fixed by recomputing the itab; a pointer conversion cannot
   - golang/go#26094 issue closed: related, not this bug (the misleading "different packages" wording, now "different scopes", for genuinely different types)

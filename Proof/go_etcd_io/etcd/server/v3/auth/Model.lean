@@ -451,6 +451,69 @@ theorem authHist_append (γa : AuthNames) (hs : List AuthState) (st : AuthState)
   · exact Hk x hx
   · exact hk
 
+/-! ### The history's two halves (the auth plan's S4f, 2026-10-25)
+
+The history's authority is split between the store's admin side (`authHistHalf`, in `authOwn`,
+`Steps.lean`) and the backend's batch lock (`authLockHalf`, what the lock holds with the auth
+buckets, `authLockI`): an append (`authHist_append`) needs both, so it happens only while the lock
+is held, and the lock's half is what ties the buckets' contents to the history. -/
+
+/-- The admin side's half of the history's authority, with the states' valid permission keys. -/
+def authHistHalf (γa : AuthNames) (hs : List AuthState) : IProp GF :=
+  iprop(monoListAuthOwn γa.hist (1 : Qp).half hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝)
+
+/-- The batch lock's half of the history's authority. -/
+def authLockHalf (γa : AuthNames) (hs : List AuthState) : IProp GF :=
+  monoListAuthOwn γa.hist (1 : Qp).half hs
+
+instance authLockHalf_timeless (γa : AuthNames) (hs : List AuthState) :
+    Timeless (authLockHalf (GF := GF) γa hs) := by
+  unfold authLockHalf; infer_instance
+
+/-- The authority is its two halves. -/
+theorem authHist_split (γa : AuthNames) (hs : List AuthState) :
+    authHist (GF := GF) γa hs ⊣⊢ authHistHalf γa hs ∗ authLockHalf γa hs := by
+  unfold authHist authHistHalf authLockHalf
+  have h : monoListAuthOwn (GF := GF) γa.hist 1 hs ⊣⊢
+      monoListAuthOwn γa.hist (1 : Qp).half hs ∗ monoListAuthOwn γa.hist (1 : Qp).half hs := by
+    have h := (monoListAuthOwn_fractional (GF := GF) γa.hist hs).fractional (1 : Qp).half (1 : Qp).half
+    rw [Qp.half_add_half] at h
+    exact h
+  constructor
+  · iintro ⟨H, %Hk⟩
+    icases h.1 $$ H with ⟨H1, H2⟩
+    iframe H1 H2; ipureintro; exact Hk
+  · iintro ⟨⟨H1, %Hk⟩, H2⟩
+    isplitl [H1 H2]
+    · iapply h.2; iframe H1 H2
+    · ipureintro; exact Hk
+
+/-- The two halves agree. -/
+theorem authHistHalf_lock_agree (γa : AuthNames) (hs hs' : List AuthState) :
+    ⊢ authHistHalf (GF := GF) γa hs -∗ authLockHalf γa hs' -∗ ⌜hs = hs'⌝ := by
+  unfold authHistHalf authLockHalf
+  iintro ⟨H1, -⟩ H2
+  ihave %H := monoListAuthOwn_agree γa.hist _ _ hs hs' $$ H1 H2
+  ipureintro; exact H.2
+
+/-- **The history is fixed while the admin side holds its half** (E2b's "the auth history stays
+fixed"): every recorded state, which the readers' verdicts are relative to, is in it. -/
+theorem authHistHalf_lookup (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState) :
+    authHistHalf (GF := GF) γa hs ∗ authStateAt γa i st ⊢ ⌜hs[i]? = some st⌝ := by
+  unfold authHistHalf authStateAt
+  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+  iapply (mono_list_auth_idx_lookup γa.hist _ hs i st) $$ H1 H2
+
+/-- A state of the admin side's half is recorded. -/
+theorem authHistHalf_stateAt (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState)
+    (h : hs[i]? = some st) : authHistHalf (GF := GF) γa hs ⊢ authStateAt γa i st := by
+  unfold authHistHalf authStateAt
+  iintro ⟨H, %Hk⟩
+  isplitl [H]
+  · ihave Hlb := monoListLbOwn_get γa.hist _ hs $$ H
+    iapply (monoListIdxOwn_get i st h) $$ Hlb
+  · ipureintro; exact Hk st (List.mem_of_getElem? h)
+
 /-- The view's four states are recorded (persistent). -/
 def recordedV (γa : AuthNames) (v : AuthView) : IProp GF :=
   iprop((∃ i : Nat, authStateAt γa i v.flag) ∗ (∃ i : Nat, authStateAt γa i v.rev) ∗

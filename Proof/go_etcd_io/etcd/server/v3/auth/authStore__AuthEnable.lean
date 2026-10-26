@@ -119,7 +119,7 @@ theorem auth.authStore.AuthEnable.wp_proof
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
   iintro ⟨%st0, HL, Hown, %Hl0⟩
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok false st0 Hl0)
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
@@ -235,14 +235,14 @@ theorem auth.authStore.AuthEnable.wp_proof
   -- the new state appended (the revision unchanged), and recorded
   have hoff : M = .off → ({ st0 with enabled := true } : AuthState).enabled = false := by
     intro h; subst h; cases HisOn
-  imod (authOwn_append_same st R M hs st0 { st0 with enabled := true } Hl0 rfl
+  imod (authOwnF_append_same st R M hs st0 { st0 with enabled := true } Hl0 rfl
     (fun h1 h2 => permKeysOk_enabled _ _ (Hpk st0 Hl0 h1 h2)) hoff) $$ Hinv Hown with Hown
   have Hl1 : histLast M (hs ++ [{ st0 with enabled := true }]) { st0 with enabled := true } := by
     cases M with
     | on γa => simp [histLast]
     | off => cases HisOn
     | any => trivial
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   ihave #Hev2 := enabledVerdict_of_snap M _ $$ Hsnap
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))

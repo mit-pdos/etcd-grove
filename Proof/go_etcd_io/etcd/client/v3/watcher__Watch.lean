@@ -44,7 +44,7 @@ theorem watcher.Watch.wp_proof
   have Hrev : 0 ≤ sint.Z rev := by omega
   iunfold isKvWatcher at Hkw
   icases Hkw with ⟨%V, #Hw, %Hkst⟩
-  -- (D46) a first firing of the read update (at the start log), for the responses that report nothing
+  -- (D47) a first firing of the read update (at the start log), for the responses that report nothing
   ihave #Hw0 := Hw
   iunfold isClientWatcher at Hw0
   icases Hw0 with ⟨%callSl0, %vs0, -, -, -, -, -, -, -, #Hf0, -⟩

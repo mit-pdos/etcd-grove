@@ -14,6 +14,7 @@ public import Perennial.Code.strings
 public import Perennial.Code.bytes
 public import Perennial.Code.sort
 public import Perennial.Code.sync.atomic
+public import Code.golang_org.x.crypto.bcrypt
 public import Code.google_golang_org.grpc.metadata
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
@@ -153,9 +154,11 @@ axiom defaultSimpleTokenLength [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def rootRole [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"root")
 
-axiom tokenTypeSimple [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def tokenTypeSimple [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"simple")
 
-axiom tokenTypeJWT [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def tokenTypeJWT [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"jwt")
 
 noncomputable def currentAuthRevision [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.currentAuthRevision"
@@ -167,8 +170,6 @@ noncomputable def reportCurrentAuthRevMu [FfiSyntax] [GoGlobalContext] : GoStrin
 
 noncomputable def reportCurrentAuthRev [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.reportCurrentAuthRev"
-
-axiom reportCurrentAuthRev.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def knownOptions [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.knownOptions"
@@ -244,8 +245,6 @@ noncomputable def ErrInvalidAuthToken [FfiSyntax] [GoGlobalContext] : GoString :
 
 noncomputable def ErrInvalidAuthOpts [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrInvalidAuthOpts"
-
-axiom ErrInvalidAuthOpts.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidAuthMgmt [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrInvalidAuthMgmt"
@@ -375,6 +374,13 @@ noncomputable def tokenNop.assign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (Val doReturn)
   (Pair (Val #(go!"")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrAuthFailed))) (Val #()))))))))))))))
+
+/-- go: nop.go:35:6 -/
+noncomputable def newTokenProviderNop.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoAlloc tokenNop.ty))) (App (Val (GoInstruction (CompositeLiteral tokenNop.ty))) (LiteralValue []))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
 
 /-- go: range_perm_cache.go:24:6 -/
 noncomputable def getMergedPerms.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -3076,6 +3082,107 @@ noncomputable def authStore.IsAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"enabledMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))))
 
+/-- NewAuthStore creates a new AuthStore.
+
+    go: store.go:958:6 -/
+noncomputable def NewAuthStore.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "be"
+  (Lam "tp"
+  (Lam "bcryptCost"
+  (App (Val exceptionDo)
+  (Let "bcryptCost" (App (Val (GoInstruction (GoAlloc go.int))) (Var "bcryptCost"))
+  (Let "tp" (App (Val (GoInstruction (GoAlloc TokenProvider.ty))) (Var "tp"))
+  (Let "be" (App (Val (GoInstruction (GoAlloc AuthBackend.ty))) (Var "be"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve AuthBackend.ty go!"BatchTx"))) (App (Val (GoInstruction (GoLoad AuthBackend.ty))) (Var "be"))) (Val #()))
+  (Let "tx" (App (Val (GoInstruction (GoAlloc AuthBatchTx.ty))) (App (Val (GoInstruction (GoZeroVal AuthBatchTx.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve AuthBatchTx.ty go!"UnsafeReadAuthEnabled"))) (App (Val (GoInstruction (GoLoad AuthBatchTx.ty))) (Var "tx"))) (Val #()))
+  (Let "enabled" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc authStore.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve AuthBatchTx.ty go!"UnsafeReadAuthRevision"))) (App (Val (GoInstruction (GoLoad AuthBatchTx.ty))) (Var "tx"))) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad AuthBackend.ty))) (Var "be"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.bool))) (Var "enabled"))
+  (Let "$v4" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.PointerType unifiedRangePermissions.ty))]))) (Val #())) (Val #()))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad TokenProvider.ty))) (Var "tp"))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad go.int))) (Var "bcryptCost"))
+  (App (Val (GoInstruction (CompositeLiteral authStore.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"revision")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"be")) (ElementExpression AuthBackend.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"enabled")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"rangePermCache")) (ElementExpression (go.GoType.MapType go.string (go.GoType.PointerType unifiedRangePermissions.ty)) (Var "$v4"))), (KeyedElement (some (KeyField go!"tokenProvider")) (ElementExpression TokenProvider.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"bcryptCost")) (ElementExpression go.int (Var "$v6")))]))))))))))
+  (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType authStore.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType authStore.ty) AuthStore.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve AuthBackend.ty go!"ForceCommit"))) (App (Val (GoInstruction (GoLoad AuthBackend.ty))) (Var "be"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve AuthBatchTx.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad AuthBatchTx.ty))) (Var "tx"))) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert AuthBatchTx.ty UnsafeAuthReader.ty))) (App (Val (GoInstruction (GoLoad AuthBatchTx.ty))) (Var "tx")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"refreshRangePermCache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"setupMetricsReporter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #())) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert AuthBatchTx.ty UnsafeAuthWriter.ty))) (App (Val (GoInstruction (GoLoad AuthBatchTx.ty))) (Var "tx")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"commitRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "enabled"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve TokenProvider.ty go!"enable"))) (App (Val (GoInstruction (GoLoad TokenProvider.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"tokenProvider"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Val #())))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType authStore.ty)))) (Pair (Var "as") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "enabled") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve AuthBatchTx.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad AuthBatchTx.ty))) (Var "tx"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore AuthBatchTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve AuthBackend.ty go!"CreateAuthBuckets"))) (App (Val (GoInstruction (GoLoad AuthBackend.ty))) (Var "be"))) (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "bcryptCost")) (Val _root_.Perennial.golang_org.x.crypto.bcrypt.MinCost))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "bcryptCost")) (Val _root_.Perennial.golang_org.x.crypto.bcrypt.MaxCost)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val _root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "bcryptCost") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"use default bcrypt cost instead of the invalid given cost"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"min-cost"))
+  (Let "$a1" (Val _root_.Perennial.golang_org.x.crypto.bcrypt.MinCost)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"max-cost"))
+  (Let "$a1" (Val _root_.Perennial.golang_org.x.crypto.bcrypt.MaxCost)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"default-cost"))
+  (Let "$a1" (Val _root_.Perennial.golang_org.x.crypto.bcrypt.DefaultCost)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl3" (Let "$a0" (Val #(go!"given-cost"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "bcryptCost"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl3")))]))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))))))))
+
 /-- go: store.go:1008:6 -/
 noncomputable def hasRootRole.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "u"
@@ -3246,6 +3353,190 @@ noncomputable def authStore.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #())))))))))
 
+/-- go: store.go:1108:6 -/
+noncomputable def decomposeOpts.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "optstr"
+  (App (Val exceptionDo)
+  (Let "optstr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "optstr"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "optstr"))
+  (Let "$a1" (Val #(go!","))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Split []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "opts")) (Val #(W64 0)))))
+  (Let "tokenType" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string go.string)]))) (Val #())) (Val #()))
+  (Let "typeSpecificOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tokenType")) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "typeSpecificOpts"))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val #(W64 1))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "opts"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "opts")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$a1" (Val #(go!"="))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Split []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "pair" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "pair")) (Val #(W64 1)))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "typeSpecificOpts"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "pair")) (Val #(W64 0)))))) (Var "$r0"))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "typeSpecificOpts"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "pair")) (Val #(W64 0))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Pair (Val #(go!"")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.string)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthOpts))) (Val #())))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"invalid token option"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"option"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "optstr"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"duplicate-parameter"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "pair")) (Val #(W64 0)))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Error"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "pair"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 2))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Pair (Val #(go!"")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.string)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthOpts))) (Val #())))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"invalid token option"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"option"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "optstr"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Error"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "pair") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "typeSpecificOpts") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tokenType") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "opts") (Var "$r0"))))))))))))
+
+/-- NewTokenProvider creates a new token provider.
+
+    go: store.go:1141:6 -/
+noncomputable def NewTokenProvider.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "tokenOpts"
+  (Lam "indexWaiter"
+  (Lam "TokenTTL"
+  (App (Val exceptionDo)
+  (Let "TokenTTL" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "TokenTTL"))
+  (Let "indexWaiter" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))))) (Var "indexWaiter"))
+  (Let "tokenOpts" (App (Val (GoInstruction (GoAlloc go.string))) (Var "tokenOpts"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "tokenOpts"))
+  (App (App (App (Val (GoInstruction (FuncResolve decomposeOpts []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "typeSpecificOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.string)))) (Val #())))
+  (Let "tokenType" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.string))) (Var "tokenType"))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val tokenTypeSimple))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType tokenSimple.ty) TokenProvider.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))))) (Var "indexWaiter"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "TokenTTL"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve newTokenProviderSimple []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"simple token is not cryptographically signed"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val tokenTypeJWT))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "typeSpecificOpts"))
+  (App (App (App (Val (GoInstruction (FuncResolve newTokenProviderJWT []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType tokenJWT.ty) TokenProvider.ty))) (Var "$ret0")) (Var "$ret1"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!""))))
+  (Let "__p" (App (App (Val (GoInstruction (FuncResolve newTokenProviderNop []))) (Val #())) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType tokenNop.ty) TokenProvider.ty))) (Var "$ret0")) (Var "$ret1"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil TokenProvider.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthOpts))) (Val #())))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"unknown token type"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"type"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "tokenType"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthOpts))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil TokenProvider.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthOpts))) (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "typeSpecificOpts") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tokenType") (Var "$r0"))))))))))))))))))))))))
+
 /-- go: store.go:1217:22 -/
 noncomputable def authStore.HasRole.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
@@ -3309,8 +3600,30 @@ noncomputable def authStore.HasRole.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore AuthBatchTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))))))))
 
+/-- go: store.go:1244:22 -/
+noncomputable def authStore.setupMetricsReporter.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "as"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (Var "as"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.uint64 go.float64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #()))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (GlobalVarAddr reportCurrentAuthRevMu))) (Val #()))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr reportCurrentAuthRev))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GlobalVarAddr reportCurrentAuthRevMu))) (Val #()))) (Val #())))))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.auth where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.strconv, pkg_id.strings, pkg_id.bytes, pkg_id.sort, pkg_id.sync.atomic, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.strconv, pkg_id.strings, pkg_id.bytes, pkg_id.sort, pkg_id.sync.atomic, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -3354,6 +3667,14 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3415,6 +3736,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Val #(go!"auth: invalid auth token"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"auth: invalid auth options"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"auth: invalid auth management"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
@@ -3436,7 +3759,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthMgmt))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ErrInvalidAuthOpts.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthOpts))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrInvalidAuthToken))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -3486,7 +3809,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val currentAuthRevision.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val reportCurrentAuthRev.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr reportCurrentAuthRev))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3514,11 +3837,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.atomic.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.golang_org.x.crypto.bcrypt.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportCurrentAuthRevMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc reportCurrentAuthRev (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc simpleTokenTTLDefault _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -3557,6 +3886,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc ErrAuthOldRevision go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrInvalidAuthToken go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrInvalidAuthOpts go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrInvalidAuthMgmt go.error)) (Val #()))))))))
 
@@ -4069,6 +4400,7 @@ class authStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   ptr_lockedReadTx_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"lockedReadTx" authStore.lockedReadTx.impl
   ptr_refreshRangePermCache_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"refreshRangePermCache" authStore.refreshRangePermCache.impl
   ptr_setRevision_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"setRevision" authStore.setRevision.impl
+  ptr_setupMetricsReporter_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"setupMetricsReporter" authStore.setupMetricsReporter.impl
 
 attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.underlying
@@ -4124,6 +4456,7 @@ attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.ptr_lockedReadTx_unfold
   authStore.TypeAssumptions.ptr_refreshRangePermCache_unfold
   authStore.TypeAssumptions.ptr_setRevision_unfold
+  authStore.TypeAssumptions.ptr_setupMetricsReporter_unfold
 
 abbrev permSlice [FfiSyntax] : Type := GoSlice
 
@@ -4170,13 +4503,17 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnsafeAuthWriter_instance : UnsafeAuthWriter.TypeAssumptions
   authStore_instance : authStore.TypeAssumptions
   permSlice_instance : permSlice.TypeAssumptions
+  newTokenProviderNop_unfold : FuncUnfold newTokenProviderNop [] newTokenProviderNop.impl
   getMergedPerms_unfold : FuncUnfold getMergedPerms [] getMergedPerms.impl
   checkKeyInterval_unfold : FuncUnfold checkKeyInterval [] checkKeyInterval.impl
   checkKeyPoint_unfold : FuncUnfold checkKeyPoint [] checkKeyPoint.impl
   isOpenEnded_unfold : FuncUnfold isOpenEnded [] isOpenEnded.impl
   isValidPermissionRange_unfold : FuncUnfold isValidPermissionRange [] isValidPermissionRange.impl
   newTokenProviderSimple_unfold : FuncUnfold newTokenProviderSimple [] newTokenProviderSimple.impl
+  NewAuthStore_unfold : FuncUnfold NewAuthStore [] NewAuthStore.impl
   hasRootRole_unfold : FuncUnfold hasRootRole [] hasRootRole.impl
+  decomposeOpts_unfold : FuncUnfold decomposeOpts [] decomposeOpts.impl
+  NewTokenProvider_unfold : FuncUnfold NewTokenProvider [] NewTokenProvider.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
@@ -4190,6 +4527,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
+  import_bcrypt_Assumption : _root_.Perennial.golang_org.x.crypto.bcrypt.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
@@ -4213,13 +4551,17 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.UnsafeAuthWriter_instance
   Assumptions.authStore_instance
   Assumptions.permSlice_instance
+  Assumptions.newTokenProviderNop_unfold
   Assumptions.getMergedPerms_unfold
   Assumptions.checkKeyInterval_unfold
   Assumptions.checkKeyPoint_unfold
   Assumptions.isOpenEnded_unfold
   Assumptions.isValidPermissionRange_unfold
   Assumptions.newTokenProviderSimple_unfold
+  Assumptions.NewAuthStore_unfold
   Assumptions.hasRootRole_unfold
+  Assumptions.decomposeOpts_unfold
+  Assumptions.NewTokenProvider_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_time_Assumption
@@ -4233,6 +4575,7 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.import_bytes_Assumption
   Assumptions.import_sort_Assumption
   Assumptions.import_atomic_Assumption
+  Assumptions.import_bcrypt_Assumption
   Assumptions.import_metadata_Assumption
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_rpctypes_Assumption

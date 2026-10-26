@@ -1,5 +1,5 @@
 /-
-**A watch's read update, fired** (D46, 2026-10-26). Lean-first (no Rocq counterpart).
+**A watch's read update, fired** (D47, 2026-10-26). Lean-first (no Rocq counterpart).
 
 * `watch_fire`: with a server's KV invariants and the start log sealed, the caller's persistent
   read update of the KV state fires at the committed state, whose log extends a certified, sealed
@@ -146,7 +146,7 @@ theorem eventsIs_of_fixed (evs : List mvcc.EvM) (kvs : List Loc) (hkl : kvs.leng
     ipureintro
     exact ⟨by unfold mvcc.evType; rfl, rfl, rfl⟩
 
-/-- **A sealed log is a well-formed small log** (D47): the seal's facts (as `idxSealed_pure`'s)
+/-- **A sealed log is a well-formed small log** (D48): the seal's facts (as `idxSealed_pure`'s)
 and, with the receipts' bound, its changes' (as `idxSealed_small`'s). -/
 theorem sealed_logOk (γ : mvcc.IdxNames) (log : mvcc.Log) (hrb : receiptBound GF ≤ 2 ^ 62) :
     mvcc.idxSealed (GF := GF) γ log ⊢

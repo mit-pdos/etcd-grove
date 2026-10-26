@@ -1,5 +1,5 @@
 /-
-**The cache's client, from the client's specs** (D47, 2026-10-26). Lean-first, no Rocq
+**The cache's client, from the client's specs** (D48, 2026-10-26). Lean-first, no Rocq
 counterpart.
 
 `isEtcdClient_of_km`: a `*clientv3.Client` whose `KV` field is a `*kv` of etcd's KV `γ.kv`
@@ -77,9 +77,9 @@ theorem isEtcdClient_of_km (cl w api : Loc) (γ : KMNames) (dup : Bool) (pfx : G
   iapply isEtcdProgressNotifier_of_km w γ.kv
   iframe #
 
-/-- **A `*kv` of the members at one server's names is a client of its KV** (`isKv`, D43): its
+/-- **A `*kv` of the members at one server's names is a client of its KV** (`isKv`, D44): its
 connection's object and the members' registrations, each at the KV's state name, with the
-receipts' bound (D47); `dup` (no claim that the members never refuse a request: a reader's). -/
+receipts' bound (D48); `dup` (no claim that the members never refuse a request: a reader's). -/
 theorem isKv_of_regs [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64)
     (γk : KVNames) (hst : γr.kv.st = γk.st) (hrb : receiptBound GF ≤ 2 ^ 62) :

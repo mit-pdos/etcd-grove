@@ -120,7 +120,7 @@ theorem auth.authStore.UserChangePassword.wp_proof
   icases typedPointsto_split _ _ _ $$ Hup with Hup
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hup
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok st0 Hl0)
   (try wp_auto)
   wp_join (Q := fun v => iprop(⌜v = #(decide (uo = null ∨ ur.noPassword = false))⌝ ∗ user_ptr ↦ u ∗
@@ -212,7 +212,7 @@ theorem auth.authStore.UserChangePassword.wp_proof
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => Hpk st0 Hl0 h1 h2, ?_⟩
         intro hM; subst hM; exact Hl0
       have Hl1 := histLast_after M hs st0 rev (fun h => by subst h; exact Hl0) Hrev
-      imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+      imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       (try wp_auto)
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
@@ -318,7 +318,7 @@ theorem auth.authStore.UserChangePassword.wp_proof
       refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => Hpk st0 Hl0 h1 h2, ?_⟩
       intro hM; subst hM; exact Hl0
     have Hl1 := histLast_after M hs st0 rev (fun h => by subst h; exact Hl0) Hrev
-    imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+    imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
     (try wp_auto)
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))

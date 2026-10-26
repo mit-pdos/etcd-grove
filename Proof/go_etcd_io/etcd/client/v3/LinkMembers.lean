@@ -1,5 +1,5 @@
 /-
-**The members' lemmas of the `*kv`'s calls, linked** (D43, 2026-10-25): `kv.Do.wp_members`,
+**The members' lemmas of the `*kv`'s calls, linked** (D44, 2026-10-25): `kv.Do.wp_members`,
 `kv.Put.wp_members`, ... (`KVMembers.lean`'s statements, proved in the functions' `Proof` files)
 instantiated with their callees' results (`Link.lean`'s), as `etc/gen-link.py` does for the
 functions' specs. What the results about the server's own model use (`ServerKV*.lean`,

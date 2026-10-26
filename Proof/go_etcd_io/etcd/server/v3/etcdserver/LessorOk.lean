@@ -4,7 +4,7 @@ lessor (2026-10-13, unit 9 of the backend). Lean-first (no Rocq counterpart); se
 `Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 
 `lessorOk_of_lessorInv`: the lessor at `lp` (`lease.lessorInv`, its configuration and its
-`expiredC` at the grant guard `False`, `lease.lessorExpiredC`, D19n, D44) meets `lessorOk`,
+`expiredC` at the grant guard `False`, `lease.lessorExpiredC`, D19n, D45) meets `lessorOk`,
 from the specs of `Promote` and
 `Demote` (trust-boundary axioms: float arithmetic, a float-to-integer conversion and `sort.Sort`;
 the close of `demotec`) and the proof of `ExpiredLeasesC`.
@@ -34,7 +34,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **The server's lessor contract, of the real lessor** at `lp`, (its grant guard `False`, D44). -/
+/-- **The server's lessor contract, of the real lessor** at `lp`, (its grant guard `False`, D45). -/
 theorem lessorOk_of_lessorInv
     (hPromote : lease.lessor.Promote.spec (GF := GF) (hG := hG))
     (hDemote : lease.lessor.Demote.spec (GF := GF) (hG := hG))

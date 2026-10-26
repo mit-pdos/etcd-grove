@@ -390,9 +390,6 @@ theorem evsOf_append_change (ilog : Log) (pend : List Change) (c : Change) :
     evsOf (ilog ++ [pend ++ [c]]) = evsOf (ilog ++ [pend]) ++ [evOfChange ilog.length pend.length c] := by
   rw [evsOf_append, evsOf_append, evsOfRev_append_singleton, List.append_assoc]
 
-theorem evOfChange_put (m i : Nat) (k v : GoString) (l : w64) :
-    evOfChange m i (.put k v l) = { rev := ⟨W64 m, W64 i⟩, change := .put k v l } := rfl
-
 theorem evOfChange_del (m i : Nat) (k : GoString) :
     evOfChange m i (.del k) = { rev := ⟨W64 m, W64 i⟩, change := .del k } := rfl
 
@@ -588,19 +585,6 @@ theorem KiHead.fold (k : GoString) : ∀ (es : List Ev) (ki : KeyIndex), KiHead 
 
 theorem KiHead.kiOfKey (evs : List Ev) (k : GoString) : KiHead (kiOfKey evs k) :=
   KiHead.fold k evs kiEmpty (Or.inl rfl)
-
-/-- A key index whose first generation has a revision is not `isEmpty`, and has a generation. -/
-theorem kiIsEmpty_false_of_head {ki : KeyIndex} (h : (ki.gens.headD Gen.empty).revs ≠ []) :
-    kiIsEmpty ki = false ∧ ki.gens ≠ [] := by
-  unfold kiIsEmpty
-  cases hg : ki.gens with
-  | nil => rw [hg] at h; exact absurd rfl h
-  | cons g t =>
-    rw [hg] at h
-    simp only [List.headD_cons] at h
-    cases t with
-    | nil => simp [h]
-    | cons g' t => simp
 
 /-- A delete the log allows (`LogWf'`: the key is present) finds a key index whose last
 generation is not empty. -/

@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked: 2026-10-23
-links: []
+upstream: none
+checked: 2026-10-26
+links:
+  - etcd-io/etcd#19156 pr merged: related, not this bug: renamed `experimental-corrupt-check-time` to `corrupt-check-time`, no validation added
+  - etcd-io/etcd#21873 pr closed: related, not this bug: `monitorKVHash`'s backend read; does not touch the interval
 ---
 
 # A negative `--corrupt-check-time` panics the member at startup

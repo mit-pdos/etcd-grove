@@ -138,9 +138,10 @@ theorem raft.tickElection.wp_proof
     iapply HΦ $$ %s'
     iframe Hphys Hghost
     ipureintro
+    have Htm' := Htm (by msg_ne)
     obtain ⟨Ht1, Ht2, -, Hi, -, Hpc'⟩ := Htm (by msg_ne)
     exact ⟨Hwf', Hcm, Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1, Ht2 rfl, Hi (by msg_ne),
-      fun h => (Hpc' h).1⟩
+      fun h => (Hpc' h).1, fun _ hg => PreGuardF.step Htm' hg⟩
   · exfalso; revert Hc''; msg_ne
 
 end proof

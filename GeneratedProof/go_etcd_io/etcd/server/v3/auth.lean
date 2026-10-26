@@ -11,6 +11,7 @@ public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.adt
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.golang_org.x.crypto.bcrypt
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.strconv

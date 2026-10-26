@@ -21,7 +21,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **What `kv.Do` needs of its `Op`** `o` on a `*kv` of etcd's KV `γ` (D43): a range (any sort
+/-- **What `kv.Do` needs of its `Op`** `o` on a `*kv` of etcd's KV `γ` (D44): a range (any sort
 option, checked against `etcdserverpb`'s enumerations, `sortNamesOk` if there
 is one) with the caller's persistent atomic read of `γ`'s state or, `Q` trivial, none; a put with
 no lease or a delete whose range end is not `[0]` (what etcd's specs cover), with the caller's atomic update of `γ`'s state by it (`kvOpStep`), persistent if the
@@ -40,7 +40,7 @@ def doRunOk (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → IProp GF) 
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ (kvOpStep (.deleteRange (deleteWireOf o)) σ), COMM Q σ }>)))
 
-/-- `kv.Do(ctx, op)` on a `*kv` of etcd's KV `γ` (`isKv`, D43), for an `Op` `op` modelled by `op_m`
+/-- `kv.Do(ctx, op)` on a `*kv` of etcd's KV `γ` (`isKv`, D44), for an `Op` `op` modelled by `op_m`
 that is a range, a put or a delete (`doRunOk`): the request `op.toRangeRequest()`,
 `&pb.PutRequest{...}` or `&pb.DeleteRangeRequest{...}` through the retry client's `Range`, `Put`
 or `DeleteRange`, with the client's call options; `doOut` with the reply's fields as functions of

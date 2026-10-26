@@ -309,7 +309,7 @@ theorem auth.authStore.UserGrantRole.wp_proof
       inext
       iintro ⟨HL, Huu⟩
       (try wp_auto)
-      ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+      ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
       have Hstep := Hok st0 Hl0
       ihave HL : Lk (putUser st0 user xs') Post $$ [HL]
       · iExactEq HL; rw [Hurn]
@@ -321,7 +321,7 @@ theorem auth.authStore.UserGrantRole.wp_proof
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
         intro hM; subst hM; exact Hl0
       have Hl1 := histLast_after M hs (putUser st0 user xs') rev (fun h => by subst h; exact Hl0) Hrev
-      imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+      imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       (try wp_auto)
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))

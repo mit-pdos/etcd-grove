@@ -302,18 +302,6 @@ theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
   iunfold ownStepGhost
   iframe Hg Hr
 
-/-- The commit invariant, from the ghost state in either mode (2026-10-14, stage R). -/
-theorem ownStepGhost_psub (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
-    ownStepGhost (GF := GF) γ md c id s ⊢ ⌜PSubOk (toPState s)⌝ ∗ ownStepGhost γ md c id s := by
-  iintro H
-  iunfold ownStepGhost at H
-  icases H with ⟨Hg, Hr⟩
-  icases ghostRest_psub γ md c id s $$ Hr with ⟨%Hps, Hr⟩
-  isplitr
-  · ipureintro; exact Hps
-  iunfold ownStepGhost
-  iframe Hg Hr
-
 theorem ownStepGhost_inv (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ownStepGhost (GF := GF) γ md c id s ⊢ raftCommitInv γ := by
   unfold ownStepGhost
@@ -325,21 +313,6 @@ that are only definitionally the ones a lemma wants (`(toPState s).term`, `(absM
 theorem ackIn_cast (γ : RaftNames) {t t' i i' : w64} (ht : t = t') (hi : i = i') :
     ackIn (GF := GF) γ t i ⊢ ackIn γ t' i' := by
   subst ht hi; exact .rfl
-
-/-- At a leader, an `ackIn` of its term is at most its last index (2026-10-16, stage R8a, D11):
-`ownRaftGhost_ackIn_le` through the mode's ghost state. -/
-theorem ownStepGhost_ackIn_le (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
-    (i : w64) (Hl : s.role = .leader) :
-    ⊢ ownStepGhost (GF := GF) γ md c id s -∗ ackIn γ s.term i -∗
-      ⌜uint.Z i ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ ∗
-      ownStepGhost γ md c id s := by
-  unfold ownStepGhost
-  iintro ⟨Hg, Hrest⟩ Hai
-  ihave Hai' := ackIn_cast γ (show s.term = (toPState s).term from rfl) rfl $$ Hai
-  icases ownRaftGhost_ackIn_le γ id (toPState s) i
-      (by rw [toPState_role, proleRole_leader]; exact Hl) $$ Hg Hai' with ⟨%H, Hg⟩
-  iframe Hg Hrest
-  ipureintro; exact H
 
 /-- (2026-10-19, D21 M3) In the no-snapshot mode a leader's last index is at least `2`
 (`ownRaftGhost_leader_last`, the mode only with a bootstrap log, `NsLink`): what

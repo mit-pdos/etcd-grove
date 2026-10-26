@@ -96,7 +96,7 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
       ipureintro
       exact ⟨(Herr'.2 (by simp)).1, (Herr'.2 (by simp)).2, rfl⟩
 
-/-- `t.Commit()` over a `*kv` of the members (D43): `txn.Commit.wp_generic` at the members' spec,
+/-- `t.Commit()` over a `*kv` of the members (D44): `txn.Commit.wp_generic` at the members' spec,
 registered by their registrations (`kvRegs_rpcTxn`) and met by the caller's side (`txnSpec_of`). -/
 theorem txn.Commit.wp_members (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
@@ -113,7 +113,7 @@ theorem txn.Commit.wp_members (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
     (txnSpec_of ms c F (txnWireOf b.model) Q (txnWireOf_plain _ Hp.1) Hp.2))
   iframe Hk Hu
 
-/-- `t.Commit()` on a builder over a `*kv` of etcd's KV `γ` (D43): `txn.Commit.wp_members` at its
+/-- `t.Commit()` on a builder over a `*kv` of etcd's KV `γ` (D44): `txn.Commit.wp_members` at its
 hidden members (the builder's connection the `*kv`'s, `txnObjAt_conn`), from the floor `[]` and
 the committed index `0` (`isKv`'s `srvStart`) and the caller's update at each member's names
 (`txnUpd_of`); the reply's fields as the state's (`txnAns_st`). -/

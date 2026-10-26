@@ -461,7 +461,7 @@ theorem auth.authStore.RoleDelete.wp_proof
     simp only [delRole, Hken, Hkrev, Hkroles, hu]
   subst hsk
   (try wp_auto)
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have hstep : roleDeleteF en role st0 = .next (bump (delRole st0 role)) := by
     simp [roleDeleteF, hnr, Hrr.1]
   obtain ⟨Hrevfit, Hfit⟩ := Hok en st0 Hl0
@@ -472,7 +472,7 @@ theorem auth.authStore.RoleDelete.wp_proof
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_delRole _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
     intro hM; subst hM; exact Hl0
   have Hl1 := histLast_after M hs (delRole st0 role) rev (fun h => by subst h; exact Hl0) Hrev
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))

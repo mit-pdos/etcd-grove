@@ -1220,7 +1220,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
 /-- **The clients' updates and the operations with a lease** (persistent; 2026-10-15, unit T2: it
 replaces the merge M1's non-plain credit): any operation's update (`kvAnyAu`, which a client that
 does not track etcd's abstract state has, `kvAnyAu_of_inv`; unit W-M3: with the floor of a
-certified log, at the server's read names: since D43 one set, a started server's request path's
+certified log, at the server's read names: since D44 one set, a started server's request path's
 and read loop's being the same, `ρ.rd = γr`) and, until unit
 T3, the
 clients' triples of a put and of a writing transaction with a lease (`kvLeasedPutTodo`,

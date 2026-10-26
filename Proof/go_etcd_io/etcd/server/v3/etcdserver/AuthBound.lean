@@ -63,42 +63,45 @@ def srvTLSId (s : Loc) : IProp GF := iprop(srvCfgFieldAddr s go!"ClientCertAuthE
 instance srvTLSId_persistent (s : Loc) : Persistent (srvTLSId (GF := GF) s) := by
   unfold srvTLSId; infer_instance
 
-/-- **The server's auth info `a` is bound** in the mode `M` (persistent): bound to the request's
-token (`auth.ctxBound`, which includes `nil`), or the server's TLS fallback is on. -/
-def ctxBoundOrTLS (s : Loc) (M : auth.AuthMode) (a : Loc) : IProp GF :=
-  iprop(auth.ctxBound M a ∨ srvTLSId s)
+/-- **The server's auth info `a` for the request context `ctx` is bound** in the mode `M`
+(persistent): bound to the context's own token (`auth.ctxBound`, which includes `nil`; the auth
+plan's E2c), or the server's TLS fallback is on. -/
+def ctxBoundOrTLS (s : Loc) (M : auth.AuthMode) (ctx : GoInterface) (a : Loc) : IProp GF :=
+  iprop(auth.ctxBound M ctx a ∨ srvTLSId s)
 
-instance ctxBoundOrTLS_persistent (s : Loc) (M : auth.AuthMode) (a : Loc) :
-    Persistent (ctxBoundOrTLS (GF := GF) s M a) := by
+instance ctxBoundOrTLS_persistent (s : Loc) (M : auth.AuthMode) (ctx : GoInterface) (a : Loc) :
+    Persistent (ctxBoundOrTLS (GF := GF) s M ctx a) := by
   unfold ctxBoundOrTLS; infer_instance
 
-/-- **A checked principal is bound** in the mode `M` (persistent): `nil`, or a user to whom some
-token was issued (`auth.tokOk`: in `on γa`, `tokIssued`), or the server's TLS fallback is on. -/
-def principalBound (s : Loc) (M : auth.AuthMode)
+/-- **A checked principal of the request context `ctx` is bound** in the mode `M` (persistent):
+`nil`, or the user to whom the context's own token was issued (`auth.ctxTokenOf ctx`, the auth
+plan's E2c; `auth.tokOk`: in `on γa`, `tokIssued`), or the server's TLS fallback is on. -/
+def principalBound (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
     (ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
   match ai with
   | none => iprop(True)
-  | some info => iprop((∃ token : GoString, auth.tokOk M token info.Username') ∨ srvTLSId s)
+  | some info => iprop((∃ token : GoString, ⌜auth.ctxTokenOf ctx = some token⌝ ∗
+      auth.tokOk M token info.Username') ∨ srvTLSId s)
 
-instance principalBound_persistent (s : Loc) (M : auth.AuthMode)
+instance principalBound_persistent (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
     (ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    Persistent (principalBound (GF := GF) s M ai) := by
+    Persistent (principalBound (GF := GF) s M ctx ai) := by
   unfold principalBound; cases ai <;> infer_instance
 
 /-- **An admin check's outcome with the binding**: `adminOut`, whose auth info is moreover
 bound (`principalBound`). -/
-def adminOutB (s : Loc) (M : auth.AuthMode) (err : GoInterface) : IProp GF :=
+def adminOutB (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) : IProp GF :=
   iprop(applyErrIs err ∗
     (∀ _ : err = GoInterface.nil, ∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo,
-      adminRes M ai ∗ principalBound s M ai))
+      adminRes M ai ∗ principalBound s M ctx ai))
 
-instance adminOutB_persistent (s : Loc) (M : auth.AuthMode) (err : GoInterface) :
-    Persistent (adminOutB (GF := GF) s M err) := by
+instance adminOutB_persistent (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) :
+    Persistent (adminOutB (GF := GF) s M ctx err) := by
   unfold adminOutB; infer_instance
 
 /-- `adminOutB` gives `adminOut` (the binding dropped). -/
-theorem adminOut_of_adminOutB (s : Loc) (M : auth.AuthMode) (err : GoInterface) :
-    adminOutB (GF := GF) s M err ⊢ adminOut M err := by
+theorem adminOut_of_adminOutB (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) :
+    adminOutB (GF := GF) s M ctx err ⊢ adminOut M err := by
   iunfold adminOutB
   iunfold adminOut
   iintro ⟨#He, #Hn⟩
@@ -114,19 +117,19 @@ instance authInfoIs_persistent' (a : Loc) (user : GoString) (rev : w64) :
 
 /-- **An authenticated-user check's outcome with the binding**: `authedOut`, whose auth info is
 moreover bound (`principalBound`). -/
-def authedOutB (s : Loc) (M : auth.AuthMode) (err : GoInterface) : IProp GF :=
+def authedOutB (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) : IProp GF :=
   iprop(applyErrIs err ∗ ⌜M.isOn = false → err = GoInterface.nil⌝ ∗
     (∀ _ : err = GoInterface.nil, ∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo,
-      authedRes M ai ∗ principalBound s M ai) ∗
+      authedRes M ai ∗ principalBound s M ctx ai) ∗
     (∀ _ : err ≠ GoInterface.nil, auth.enabledVerdict M true))
 
-instance authedOutB_persistent (s : Loc) (M : auth.AuthMode) (err : GoInterface) :
-    Persistent (authedOutB (GF := GF) s M err) := by
+instance authedOutB_persistent (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) :
+    Persistent (authedOutB (GF := GF) s M ctx err) := by
   unfold authedOutB; infer_instance
 
 /-- `authedOutB` gives `authedOut` (the binding dropped). -/
-theorem authedOut_of_authedOutB (s : Loc) (M : auth.AuthMode) (err : GoInterface) :
-    authedOutB (GF := GF) s M err ⊢ authedOut M err := by
+theorem authedOut_of_authedOutB (s : Loc) (M : auth.AuthMode) (ctx err : GoInterface) :
+    authedOutB (GF := GF) s M ctx err ⊢ authedOut M err := by
   iunfold authedOutB
   iunfold authedOut
   iintro ⟨#He, #Hoff, #Hn, #Hne⟩
@@ -138,17 +141,17 @@ theorem authedOut_of_authedOutB (s : Loc) (M : auth.AuthMode) (err : GoInterface
 
 /-- **A bound auth info's user** is bound: from `ctxBoundOrTLS` and the auth info's fields
 (`authInfoIs`), the user's token (or the TLS fallback). -/
-theorem principalBound_of_ctxBoundOrTLS (s : Loc) (M : auth.AuthMode) (a : Loc)
+theorem principalBound_of_ctxBoundOrTLS (s : Loc) (M : auth.AuthMode) (ctx : GoInterface) (a : Loc)
     (user : GoString) (rev : w64) :
-    ctxBoundOrTLS (GF := GF) s M a ∗ authInfoIs a user rev ⊢
-      principalBound s M (some ({ Username' := user, Revision' := rev } :
+    ctxBoundOrTLS (GF := GF) s M ctx a ∗ authInfoIs a user rev ⊢
+      principalBound s M ctx (some ({ Username' := user, Revision' := rev } :
         go_etcd_io.etcd.server.v3.auth.AuthInfo)) := by
   iunfold ctxBoundOrTLS
   iunfold principalBound
   iintro ⟨#Hb, #Hai⟩
   icases Hb with (#Hb | #Ht)
   · iunfold auth.ctxBound at Hb
-    icases Hb with (%Hn | ⟨%token, #Hib⟩)
+    icases Hb with (%Hn | ⟨%token, %Htk, #Hib⟩)
     · iunfold authInfoIs at Hai
       icases Hai with ⟨%Hnn, -, -⟩
       exact absurd Hn Hnn
@@ -159,6 +162,8 @@ theorem principalBound_of_ctxBoundOrTLS (s : Loc) (M : auth.AuthMode) (a : Loc)
       icombine Hu Hu' gives %Heq
       ileft
       iexists token
+      isplitr
+      · ipureintro; exact Htk
       rw [Heq]
       iexact Htok
   · iright; iexact Ht
@@ -185,7 +190,7 @@ abbrev EtcdServer.AuthInfoFromCtx.boundSpec : Prop :=
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗ applyErrIs err ∗
-      ctxBoundOrTLS s M a }}
+      ctxBoundOrTLS s M (GoInterface.ok ctx) a }}
 
 theorem EtcdServer.AuthInfoFromCtx_bound
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -245,7 +250,7 @@ abbrev EtcdServer.checkMembershipOperationPermission.boundSpec : Prop :=
       srvAuthAt s E ∗ srvAuthBound s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"checkMembershipOperationPermission")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutB s E.authMode err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutB s E.authMode (GoInterface.ok ctx) err }}
 
 theorem EtcdServer.checkMembershipOperationPermission_bound
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -302,7 +307,7 @@ theorem EtcdServer.checkMembershipOperationPermission_bound
       · iapply (adminRes_of_adminVerdict _ _) $$ Hv
       iunfold principalBound; itrivial
     · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-      ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode a user rev $$ [$Hb $Hau]
+      ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hb $Hau]
       iunfold authInfoIs at Hau
       icases Hau with ⟨%Hann, -, -⟩
       (try wp_auto)
@@ -328,7 +333,7 @@ abbrev EtcdServer.requireAuthInfo.boundSpec : Prop :=
       srvAuthAt s E ∗ srvAuthBound s E ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"requireAuthInfo"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err }}
 
 theorem EtcdServer.requireAuthInfo_bound
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -404,7 +409,7 @@ theorem EtcdServer.requireAuthInfo_bound
         isplitr
         · iintro %h; cases h
         · iintro %_; iexact Hb
-      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode a user rev $$ [$Hbnd $Hau]
+      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hbnd $Hau]
         iunfold authInfoIs at Hau
         icases Hau with ⟨%Hann, -, -⟩
         (try wp_auto)
@@ -424,6 +429,26 @@ theorem EtcdServer.requireAuthInfo_bound
           · iapply authedRes_some
           iexact Hpb
         · iintro %h; exact absurd rfl h
+
+/-- **`srvAuthBound` of the real store** (the auth plan's E2e, 2026-10-25): a server whose
+`authStore` field holds a store with the store's invariant in the server's mode, its reader
+resource the store's (`auth.authRd`), has the bound request side. `auth.newAuthStore_boot`
+(`auth/Boot.lean`) gives the invariant in the mode `on γa`; the server's own statement still
+takes `NewAuthStore`'s axiom (mode `off`), so this is what the server derives `srvAuthBound` with
+once its boot takes the store from `newAuthStore_boot`. -/
+theorem srvAuthBound_of_authInv
+    (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (s stp : Loc) (R : IProp GF) (E : apply.AEnv GF)
+    (hRD : E.RD = auth.authRd stp R E.authMode) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ auth.authIface stp ∗
+      auth.authInv stp R E.authMode ⊢ srvAuthBound s E := by
+  iintro ⟨#Hpkg, #Hf, #Hinv⟩
+  iunfold srvAuthBound
+  iexists auth.authIface stp
+  iframe Hf
+  rw [hRD]
+  iapply (isReqAuthBound_of_authInv hCtx stp R E.authMode) $$ [$Hpkg $Hinv]
 
 end proof
 

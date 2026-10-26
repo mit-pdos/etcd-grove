@@ -37,7 +37,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 /-- `OpenSnapshotBackend(cfg, ss, snapshot, hooks)`: the snapshot's database file renamed onto the
-backend's path and opened, or an error with nothing moved. (D22 receiver epochs, S8a, 2026-10-24:
+backend's path and opened, or an error with nothing moved, the environment having failed the
+snapshot directory's read or the rename (D22 receiver epochs, S8d, 2026-10-24). (D22 receiver epochs, S8a, 2026-10-24:
 the creator's `K` for the fresh backend's payment rights, `OpenBackend`'s.) -/
 abbrev storage.OpenSnapshotBackend.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss sn mp hk : Loc) (dq dq' : DFrac)
@@ -55,7 +56,9 @@ abbrev storage.OpenSnapshotBackend.spec : Prop :=
           ⌜be = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b⌝ ∗
           newPostK γ P W Pk K b D ∗ (⌜mvcc.noCmpData D⌝ -∗ mvcc.bkNoCmp γ) ∗
           pathOwn (snap.snapDBPath ss md.Index')) ∨
-       (⌜err ≠ GoInterface.nil ∧ be = GoInterface.nil⌝ ∗
+       (⌜err ≠ GoInterface.nil ∧ be = GoInterface.nil ∧
+          ¬ (snap.dirReadOk ss ∧
+            renameOk (snap.snapDBPath ss md.Index') (config.backendPathOf cfg.DataDir'))⌝ ∗
           fileHolds (snap.snapDBPath ss md.Index') D ∗ pathOwn (config.backendPathOf cfg.DataDir'))) }}
 
 end spec

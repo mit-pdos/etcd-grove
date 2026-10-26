@@ -57,7 +57,7 @@ theorem RawNode.ReportUnreachable.wp_proof
     msg_nulls
   ihave Hm := msgOwn_to_msgIn _ _ (by simp [MsgApp]) $$ Hm
   imod rdCred_zero_upd (GF := GF) γ with Hcr
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 10, From' := to } : MessageM) [] [] none []
     (by simp [StepMsg, stepMsgTypes, MsgUnreachable]) 
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)

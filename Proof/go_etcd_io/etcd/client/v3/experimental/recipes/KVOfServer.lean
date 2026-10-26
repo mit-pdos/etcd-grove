@@ -1,5 +1,5 @@
 /-
-**The recipes' client contracts, from the client's specs** (D47, 2026-10-26; until then at the
+**The recipes' client contracts, from the client's specs** (D48, 2026-10-26; until then at the
 server's model, the vertical slice's unit V2b). Lean-first, no Rocq counterpart.
 
 `isRecipesKV_of_km`: a `*kv` of etcd's KV `γ.kv` that sends a write at most once (`isKv api γ.kv

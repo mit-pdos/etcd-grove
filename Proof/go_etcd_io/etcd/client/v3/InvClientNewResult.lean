@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.go_etcd_io.etcd.client.v3.InvLessor
+public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 
 @[expose] public section
 
@@ -48,7 +49,7 @@ def watchAddrFacts [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Ass
     eofOk ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ ∗
     -- (W3) the watch contract's model, from the watcher's logs
     watchLaws V ∗
-    -- (D46) the members run the KV at `V.kst`
+    -- (D47) the members run the KV at `V.kst`
     srvKVFacts V)
 
 instance watchAddrFacts_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
@@ -138,7 +139,8 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
 server at `ep`; its `KV` and `Watcher` over the connection (the watcher's environment `V` at the
 connection, its interceptor and some stub and logger), the watcher without the server's facts
 (`isClientWatcherCore`; `isNewClient_watcher` adds them); and (item 1, the client lease) its `Lease`,
-a `*lessor` over the connection (`lessorAt`). -/
+a `*lessor` over the connection (`lessorAt`); and (the auth plan's E2h) its `Auth`, a
+`*authClient` over the connection (`authObjAt`). -/
 def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) : IProp GF :=
   iprop(clientKVAt cl eps ∗ retryClientOk cl ∗
@@ -151,7 +153,12 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
     -- (item 1, the client lease, 2026-10-18) its `Lease`, a `*lessor` over the connection
     (∃ lp : Loc, clientF cl go!"Lease" ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #lp : GoInterface) ∗
-      lessorAt lp eps))
+      lessorAt lp eps) ∗
+    -- (the auth plan's E2h, 2026-10-26) its `Auth`, a `*authClient` over the connection
+    (∃ ap : Loc, clientF cl go!"Auth" ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #ap :
+          GoInterface) ∗
+      authObjAt ap eps))
 
 instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) : Persistent (isNewClient cl eps V) := by

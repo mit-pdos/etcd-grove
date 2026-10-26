@@ -125,7 +125,7 @@ structure WEnv (GF : BundledGFunctors) where
   watch server (`addr` and `R` are the current one's: the epoch's, in `run`) -/
   mem : Nat → GoString × v3rpc.WSrv GF
   nm : Nat
-  /-- (D46) the cluster's KV state variable (`KVNames.st`): every member's KV invariants are at
+  /-- (D47) the cluster's KV state variable (`KVNames.st`): every member's KV invariants are at
   it (`srvKVFacts`), and the watches' read updates are of it (`wsIs`) -/
   kst : GName
 
@@ -414,7 +414,7 @@ def clientWatchVars : IProp GF :=
 instance clientWatchVars_persistent : Persistent (clientWatchVars (GF := GF)) := by
   unfold clientWatchVars; infer_instance
 
-/-- **A member's KV facts** (persistent; D46): its server's KV invariants (`srvKVInvs`, at read
+/-- **A member's KV facts** (persistent; D47): its server's KV invariants (`srvKVInvs`, at read
 names `γr` whose KV state variable is the cluster's, `V.kst`, from the start log `[[], []]`) and
 the start log sealed at its store (`NewStore`'s): what firing a watch's read update at one of its
 watched logs needs (`watch_fire`). -/
@@ -500,7 +500,7 @@ def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) : v3rpc.Crea
 
 /-! ## One watch: its request and its substream -/
 
-/-- **A watch's start** (persistent): no fact (D46, 2026-10-26: the second cursor's contract,
+/-- **A watch's start** (persistent): no fact (D47, 2026-10-26: the second cursor's contract,
 `rawRespOk`, needs none; until then, for a watch registered with `sr`, etcd had reached the
 revision before its start, which a progress notification at the cursor needed). To be removed with
 its threading. -/
@@ -548,7 +548,7 @@ structure WsPrm (GF : BundledGFunctors) where
   of the substream started there (`true`, `lifeStart`) or `run` sent a response there that is not
   a created one (`false`, `notStart`): a goroutine's first response is its create's -/
   γps : GName
-  /-- (D46) the caller's read update: the KV names it reads (`etcdKV kv`) and its predicate, each
+  /-- (D47) the caller's read update: the KV names it reads (`etcdKV kv`) and its predicate, each
   response one firing of it (`recvCmpl`, `outcElem`) -/
   kv : KVNames
   Q : KVState → IProp GF
@@ -571,7 +571,7 @@ def wsReqOk (_pfx : GoString) (P : WsPrm GF) : Prop :=
     P.key = P.o.key ∧ P.ed = P.o.base.rangeEnd ∧ P.cn = P.o.base.createdNotify ∧
     P.pn = P.o.base.progressNotify
 
-/-- **The caller's channel's element** (D46): a response as one firing of the read update
+/-- **The caller's channel's element** (D47): a response as one firing of the read update
 `Q`, at the watch's second cursor (`watchStateElem`, at `γ.cur2`: the cursor of a watch that
 promises completeness). -/
 def outcElem (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) :
@@ -608,7 +608,7 @@ instance wrRO_persistent (l : Loc) (P : WsPrm GF) : Persistent (wrRO l P) := by
   unfold wrRO; infer_instance
 
 /-- **The completeness contract for the `k`th response `run` sends a substream** (persistent;
-K2e-7, D46): unless the watch promises no completeness (`cpl` false), the server-level contract
+K2e-7, D47): unless the watch promises no completeness (`cpl` false), the server-level contract
 (`rawRespOk`, at the dispatching member's store: some store, so that the facts read no member) from
 the second dispatch cursor's position `k` to `k + 1` (`γh2`), and the caller's
 read update fired at it (`□ P.Q σ`, `watchStateRespOk` at the same positions: `cmpl_step`). -/
@@ -716,7 +716,7 @@ theorem regB0_ok (pfx : GoString) (P : WsPrm GF) (hok : wsReqOk pfx P) (hc : P.�
     show 1 ≤ sint.Z P.rev
     omega
 
-/-- **A dispatched response's cursor facts** (D46; until then the weak per-event contract,
+/-- **A dispatched response's cursor facts** (D47; until then the weak per-event contract,
 `rangeWatchRespOk`): its events sorted by revision, each above the dispatch cursor's position `c`,
 at or above the watch's start `rev` and below `2 ^ 63 - 1`, and the position after it the last
 event's revision (`c` if none). -/
@@ -751,7 +751,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     else iprop(notStart P k.toNat ∗ resumeF V P r))) ∨
     dghostVar P.γx DFrac.discard true)
 
-/-- **A watch's read update** (persistent; D46): the caller's, of the KV state `P.kv` reads, its
+/-- **A watch's read update** (persistent; D47): the caller's, of the KV state `P.kv` reads, its
 predicate `P.Q`; it fires at every response (`recvCmpl`). -/
 def wsAu (P : WsPrm GF) : IProp GF :=
   iprop(□ (AU <{ ∃∃ (σ : KVState), etcdKV P.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
@@ -773,7 +773,7 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
     context.isContext P.ctx P.cs ∗
     isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q) ∗
     ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = cplOf P⌝ ∗ startOk V P.sr P.rev ∗
-    -- (D46) the caller's read update, of the cluster's KV state; the watch promises completeness
+    -- (D47) the caller's read update, of the cluster's KV state; the watch promises completeness
     wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ P.γ.cpl = true⌝)
 
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
@@ -920,7 +920,7 @@ def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
     context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q) ∗
     ⌜wsReqOk V.pfx P⌝ ∗ startOk V P.sr P.rev ∗
-    -- (D46) the caller's read update, a first firing, the KV state the members', completeness
+    -- (D47) the caller's read update, a first firing, the KV state the members', completeness
     wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ cplOf P = true⌝) ∨
     ∃ pr : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.progressRequest.ty) #pr⌝)
@@ -1031,7 +1031,7 @@ def isClientWatcher (V : WEnv GF) (w : Loc) : IProp GF :=
 instance isClientWatcher_persistent (V : WEnv GF) (w : Loc) : Persistent (isClientWatcher V w) := by
   unfold isClientWatcher; infer_instance
 
-/-- **A client watcher of etcd's KV `γ`** (persistent; D46): the watcher `w` over an environment
+/-- **A client watcher of etcd's KV `γ`** (persistent; D47): the watcher `w` over an environment
 whose members run the KV at `γ`'s state variable (`V.kst`, each member's KV facts at it,
 `srvKVFacts`): what `watcher.Watch.spec` takes. -/
 def isKvWatcher (w : Loc) (γ : KVNames) : IProp GF :=

@@ -47,10 +47,10 @@ theorem backend.backend.Close.wp_proof
   iintro ⟨-, -⟩
   wp_auto
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmug] as ⟨Hwl, Hdbp⟩
-  wp_apply (hClose db) $$ [$Hisdb] as %err -
+  wp_apply (hClose db) $$ [$Hisdb] as %err %Herr
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl $Hdbp]
   iapply HΦ
-  itrivial
+  ipureintro; exact Herr
 
 end proof
 

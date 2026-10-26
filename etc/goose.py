@@ -166,12 +166,16 @@ PROJECTS = [
         # `goose-lean-getproph2` (on 188113160; `goose-lean-getproph`'s 942601555 made on
         # 2aed163b1, cherry-picked): `kubernetes.Client.Get` resolves a prophecy with its
         # response's revision and the key's mod revision (bc9c3868c; verification only, a no-op
-        # in Go).
+        # in Go). Then (D43 M3, 2026-10-25) branch `goose-lean-leaderwait` (on bc9c3868c): the
+        # leader's raft loop waits for its apply loop before `Advance` when a `Ready` commits a
+        # conf change, as a follower's does (4d9282b0f,
+        # issues/etcd-leader-advance-before-applyconfchange.md; raft's dynamic mode needs a
+        # `Ready`'s conf changes applied before `Advance`).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="bc9c3868ced67e518fb2fecba44ce0fa70b7303b",
+        rev="4d9282b0fb0922133a0a9b92d05268aef7efa44a",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -180,7 +184,8 @@ PROJECTS = [
                     "net=", "hash=", "path=", "internal/bytealg=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
-                    "golang.org/x/time=", "github.com/xiang90/probing=", "crypto/tls=",
+                    "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
+                    "crypto/tls=",
                     "github.com/grpc-ecosystem="],
         packages=[
             # with bodies (cache/v3.toml)
@@ -248,6 +253,8 @@ PROJECTS = [
             # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
             "go.etcd.io/etcd/server/v3/lease/leasepb",
             "go.etcd.io/etcd/server/v3/auth",
+            # names only but for the cost bounds `auth.NewAuthStore` reads (the auth plan's E2a)
+            "golang.org/x/crypto/bcrypt",
             "go.etcd.io/etcd/pkg/v3/contention",
             "go.etcd.io/etcd/pkg/v3/idutil",
             "go.etcd.io/etcd/pkg/v3/notify",
@@ -378,6 +385,7 @@ PROJECTS = [
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
+               os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
                os.path.join("github_com", "grpc_ecosystem")],
         # etcd itself: not its tests, tools or root module
@@ -497,6 +505,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "watchkv")],
+    ),
+    Project(
+        name="authkv",
+        # The authentication example (notes/auth-plan.md, D-AU5): one member started in-process
+        # with the simple token provider, auth set up and enabled through a client, four
+        # principals (two users, no token, an invalid token) running a workload inside and outside
+        # the one granted range, and checks that the server refused what the auth state does not
+        # permit. A package of the examples' Go module (examples/go.mod); its imports are the
+        # etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "authkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "authkv")],
     ),
     Project(
         name="cachekv",

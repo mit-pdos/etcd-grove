@@ -37,13 +37,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **A checked principal, the anonymous one allowed** (persistent): the empty user (the check's
 `&auth.AuthInfo{}` when the request carried none), or a bound one (`principalBound`). The empty user is the zero string (`zeroValDef`). -/
-def principalBoundI (s : Loc) (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    IProp GF :=
-  iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨ principalBound s M (some info))
+def principalBoundI (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
+  iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨ principalBound s M ctx (some info))
 
-instance principalBoundI_persistent (s : Loc) (M : auth.AuthMode)
+instance principalBoundI_persistent (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    Persistent (principalBoundI (GF := GF) s M info) := by
+    Persistent (principalBoundI (GF := GF) s M ctx info) := by
   unfold principalBoundI; infer_instance
 
 /-- **`isWatchPermitted` with the binding**: its spec, over a server whose store has the bound
@@ -63,7 +63,7 @@ abbrev v3rpc.serverWatchStream.isWatchPermitted.boundSpec : Prop :=
       applyErrIs err ∗
       (∀ _ : err = GoInterface.nil, ∃ info,
         apply.classRes r.srv.E.authMode info [(k, e, auth.PermType.read)] ∗
-        principalBoundI r.srv.s r.srv.E.authMode info) }}
+        principalBoundI r.srv.s r.srv.E.authMode (GoInterface.ok r.ci) info) }}
 
 theorem v3rpc.serverWatchStream.isWatchPermitted_bound
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -127,7 +127,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted_bound
     iunfold principalBoundI
     ileft; ipureintro; rfl
   · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-    ihave #Hpb := principalBound_of_ctxBoundOrTLS r.srv.s r.srv.E.authMode a user rev $$ [$Hb $Hau]
+    ihave #Hpb := principalBound_of_ctxBoundOrTLS r.srv.s r.srv.E.authMode (GoInterface.ok r.ci) a user rev $$ [$Hb $Hau]
     iunfold authInfoIs at Hau
     icases Hau with ⟨%Hann, -, -⟩
     (try wp_auto)

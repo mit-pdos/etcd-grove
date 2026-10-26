@@ -1,5 +1,5 @@
 /-
-**The `*kv`'s calls at the members** (D43, 2026-10-25): the statements of the members' lemmas of
+**The `*kv`'s calls at the members** (D44, 2026-10-25): the statements of the members' lemmas of
 `kv.Do`, `kv.Put`, `kv.Get`, `kv.Delete` and `txn.Commit` (`*.specM`; proved in the functions'
 `Proof` files as `*.wp_members`, linked in `LinkMembers.lean`): over a `*kv` of the members `ms`
 (`isKV`: each member's etcd KV specs registered at its address), the caller's side at each
@@ -28,7 +28,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **What `kv.Do` needs of its `Op`** `o` on a `*kv` of the members `ms` (D43): a range (any
+/-- **What `kv.Do` needs of its `Op`** `o` on a `*kv` of the members `ms` (D44): a range (any
 sort option, checked against `etcdserverpb`'s enumerations, `sortNamesOk` if there is one: the
 vertical slice's unit V2) by a reader that knows the members' committed indices at least `c` and
 the floor `F` (`knownAt`), with its read update at the members (`rangeUpd`, persistent); a put
@@ -46,7 +46,7 @@ def doRunM (api : Loc) (ms : List (SrvAt GF)) (o : OpFull) (c : w64) (F : mvcc.L
     (⌜o.t = W64 3 ∧ (deleteWireOf o).base.rangeEnd ≠ [W8 0]⌝ ∗ floorsAt ms F ∗
       kvReqPre api (ms.map SrvAt.addr) (delUpd ms (deleteWireOf o) Q)))
 
-/-- `kv.Do(ctx, op)` on a `*kv` of the members `ms` (`isKV`, D43), for an `Op` `op` modelled by
+/-- `kv.Do(ctx, op)` on a `*kv` of the members `ms` (`isKV`, D44), for an `Op` `op` modelled by
 `o` that is a range, a put or a delete (`doRunM`): the request `op.toRangeRequest()`,
 `&pb.PutRequest{...}` or `&pb.DeleteRangeRequest{...}` through the retry client's `Range`, `Put`
 or `DeleteRange`, with the client's call options; `doOut` with some member's reply (`rangeAns`,
@@ -63,7 +63,7 @@ abbrev kv.Do.specM : Prop :=
       doOut o (putAns ms F (putWireOf o) Q) (rangeAns ms c F (rangeWireOf o) Q)
         (delAns ms F (deleteWireOf o) Q) r err }}
 
-/-- `kv.Put(ctx, key, val, opts...)` on a `*kv` of the members `ms` (`isKV`, D43): `kv.Do` of
+/-- `kv.Put(ctx, key, val, opts...)` on a `*kv` of the members `ms` (`isKV`, D44): `kv.Do` of
 `OpPut(key, val, opts...)` (options with transformers `gs` that do not make `OpPut` panic nor
 change the operation's type), a put with no lease (etcd's `Put` spec covers no other), with the
 floor `F` and the caller's update at the members (`putUpd`; persistent, or ordinary over
@@ -84,7 +84,7 @@ abbrev kv.Put.specM : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       putCallOut (putAns ms F (putWireOf (opPutModel key val gs)) Q) resp err }}
 
-/-- `kv.Get(ctx, key, opts...)` on a `*kv` of the members `ms` (`isKV`, D43): `OpGet(key,
+/-- `kv.Get(ctx, key, opts...)` on a `*kv` of the members `ms` (`isKV`, D44): `OpGet(key,
 opts...)` (options that do not panic, keep the range type, and may need a resource `R`, given
 back: `optsAtRes`; any sort option, checked against `etcdserverpb`'s enumerations,
 `sortNamesOk`: the vertical slice's unit V2), then `kv.Do`, by a reader that knows the members'
@@ -106,7 +106,7 @@ abbrev kv.Get.specM : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       R ∗ rangeCallOut (rangeAns ms c F (rangeWireOf (opGetModel key gs)) Q) resp err }}
 
-/-- `kv.Delete(ctx, key, opts...)` on a `*kv` of the members `ms` (`isKV`, D43): `kv.Do` of
+/-- `kv.Delete(ctx, key, opts...)` on a `*kv` of the members `ms` (`isKV`, D44): `kv.Do` of
 `OpDelete(key, opts...)` (options with transformers `gs` that do not make `OpDelete` panic nor
 change the operation's type), a delete whose range end is not `[0]` (etcd's `DeleteRange` spec
 covers no other: `WithFromKey`'s), with the floor `F` and the caller's update at the members
@@ -129,7 +129,7 @@ abbrev kv.Delete.specM : Prop :=
       deleteCallOut (delAns ms F (deleteWireOf (opDeleteModel key gs)) Q) resp err }}
 
 /-- `t.Commit()` on a builder at `b` over a `*kv` of the members `ms` (its registrations
-`kvRegs`, D43): the request `&pb.TxnRequest{Compare: cmps, Success: sus, Failure: fas}` (the
+`kvRegs`, D44): the request `&pb.TxnRequest{Compare: cmps, Success: sus, Failure: fas}` (the
 transaction `txnWireOf b.model` on the wire, of plain operations within the txn package's model)
 through the `*kv`'s retry client's `Txn`, with the client's call options, by a caller that knows
 the members' committed indices at least `c` and the floor `F` (`knownAt`), with its update at

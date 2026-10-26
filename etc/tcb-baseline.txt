@@ -1,4 +1,5 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
+axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -17,7 +18,6 @@ axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
 axiom EtcdServer.snapshot.wp_proof
-axiom NewAuth.wp_proof
 axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
@@ -139,6 +139,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatc
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatchStreamDuration_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.alarms_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.initFuncsOk
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.applySnapshotInProgress_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.hasLeader_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.heartbeatSendFailures_init
@@ -207,6 +208,7 @@ axiom Perennial.go_opentelemetry_io.otel.trace.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
 axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
+axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -280,9 +282,9 @@ axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom auth.NewAuthStore.wp_proof
-axiom auth.NewTokenProvider.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.authStore.selectPassword.wp_proof
+axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledInsideUnittest.wp_proof
@@ -428,6 +430,7 @@ axiom grpc.Server.Serve.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
+axiom grpc.WithPerRPCCredentials.wp_proof
 axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
@@ -513,10 +516,14 @@ axiom labels.Everything.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
+axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom math.Ceil.wp_proof
+axiom membership.RaftCluster.Recover.wp_proof
+axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
+axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.FromOutgoingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
@@ -630,6 +637,7 @@ axiom status.FromError.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
+axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strconv.ParseBool.wp_proof
@@ -711,7 +719,9 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
+sorry authkv.Main.wp_proof
 sorry k8setcd3.clientErr_other
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
+sorry rafthttp.Transport.RemoveAllPeers.wp_proof

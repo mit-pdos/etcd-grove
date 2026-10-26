@@ -49,6 +49,12 @@ opaque snapshotterRO (ss : Loc) : IProp GF
 /-- **`ss` is a snapshotter** (persistent; see the file header). -/
 def isSnapshotter (ss : Loc) : IProp GF := iprop(□ snapshotterRO ss)
 
+/-- **The snapshotter `ss`'s directory reads** (opaque, a named premise about the program's
+environment; D22 receiver epochs, S8d, 2026-10-24): listing `ss`'s directory does not fail
+(`DBFilePath`'s `fileutil.ReadDir`), and a `.snap.db` file the program holds there is found. The
+premise excluding the failure is `storage.snapOpensOk`. -/
+opaque dirReadOk (ss : Loc) : Prop
+
 instance isSnapshotter_persistent (ss : Loc) : Persistent (isSnapshotter (GF := GF) ss) := by
   unfold isSnapshotter; infer_instance
 

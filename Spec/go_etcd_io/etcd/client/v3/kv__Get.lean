@@ -21,7 +21,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Get(ctx, key, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D43): `OpGet(key, opts...)`
+/-- `kv.Get(ctx, key, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D44): `OpGet(key, opts...)`
 (`opts`: the models of the Go options `opts...` (`WithPrevKV()`, ...), one transformer of the operation each, `optsAt`
 ties the slice `opts_sl` of their closures to them; `[]` for none) (options that do not panic, keep the range type, and may need a resource `R`, given back:
 `optsAtRes`; any sort option, checked against `etcdserverpb`'s
@@ -31,7 +31,7 @@ state (a read may be answered by any member, and again) or, `Q` trivial, none; t
 update's, `□ Q σ`, if linearizable) at whose current revision the reply's header is, the reply's
 key-values and count the selection of `σ`'s store at the revision the range reads (`readRev`: the
 one asked, at most the current, or the current), `σ` a well-formed small log's state (`kvLogOk`,
-D47); or a client error (`kvErr`) and no reply. -/
+D48); or a client error (`kvErr`) and no reply. -/
 abbrev kv.Get.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)

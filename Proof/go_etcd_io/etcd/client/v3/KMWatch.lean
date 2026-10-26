@@ -1,5 +1,5 @@
 /-
-**A client watcher of etcd's KV meets the cache's watcher contracts** (D47, 2026-10-26).
+**A client watcher of etcd's KV meets the cache's watcher contracts** (D48, 2026-10-26).
 Lean-first, no Rocq counterpart.
 
 `isEtcdWatcher_of_km`: a `*watcher` of etcd's KV `γ.kv` (`isKvWatcher`), with the adapter's

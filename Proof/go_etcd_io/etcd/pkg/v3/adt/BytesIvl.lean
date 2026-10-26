@@ -72,11 +72,6 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 open Iris.ProofMode
 
-/-- A points-to made read-only. -/
-theorem tp_persist' {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (dq : DFrac) :
-    (l ↦{dq} v : IProp GF) ⊢ |==> l ↦□ v :=
-  (typedPointsto_dfractional (GF := GF) l v).dfractional_persist dq
-
 omit package_sem in
 /-- The Go value `v` (a slice) holds the key `k` at `d`: a byte slice with those contents. -/
 def bytesKeyAt (d : DFrac) (v : val) (k : GoString) : IProp GF :=

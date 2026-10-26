@@ -1,6 +1,6 @@
 /-
 `(*clientv3.watcher).Watch(ctx, key, opts...)` (`client/v3/watch.go`; the watch slice's unit W-C;
-D46, 2026-10-26: as repeated reads of etcd's KV state). Lean-first (no Rocq counterpart).
+D47, 2026-10-26: as repeated reads of etcd's KV state). Lean-first (no Rocq counterpart).
 
 **The triple:** a prefix watch (`opts` the models of the Go options, `optsAt` tying the slice
 `opts_sl` of their closures to them; a non-empty key not all `0xff`) from a revision `rev ≥ 1`, on

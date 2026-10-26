@@ -136,7 +136,7 @@ theorem isEtcdLeaseClient_of_new
     isEtcdLeaseClient cl := by
   iintro ⟨#Hp, #Hnc, #HG, #HR, #Hstr, #Heof, #Hall, #Htg⟩
   iunfold isNewClient at Hnc
-  icases Hnc with ⟨-, -, -, -, %lp, #Hlf, #Hlp⟩
+  icases Hnc with ⟨-, -, -, -, ⟨%lp, #Hlf, #Hlp⟩, -⟩
   unfold isEtcdLeaseClient
   iexists lessorIfaceOf lp
   iframe Hlf

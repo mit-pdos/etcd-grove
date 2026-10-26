@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - etcd-io/raft#441 pr merged: related, not this bug: EnsureSnapshot/EnsureSnapshotMetadata no longer reassign non-nil fields, after a race found in etcd-io/etcd#21778 (ApplySnapshot writing its argument); EnsureConfState still writes AutoLeave
 candidate: issues/upstream/raft-memorystorage-initialstate-unlocked/

@@ -15,6 +15,7 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/putget/Results\.lean$
+axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -33,7 +34,6 @@ axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
 axiom EtcdServer.snapshot.wp_proof
-axiom NewAuth.wp_proof
 axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
@@ -152,6 +152,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatc
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatchStreamDuration_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.alarms_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.initFuncsOk
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.applySnapshotInProgress_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.hasLeader_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.heartbeatSendFailures_init
@@ -220,6 +221,7 @@ axiom Perennial.go_opentelemetry_io.otel.trace.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
 axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
+axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -254,7 +256,7 @@ axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom auth.NewAuthStore.wp_proof
-axiom auth.NewTokenProvider.wp_proof
+axiom auth.newTokenProviderJWT.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
@@ -349,6 +351,7 @@ axiom grpc.Server.Serve.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
+axiom grpc.WithPerRPCCredentials.wp_proof
 axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof

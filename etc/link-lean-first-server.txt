@@ -458,6 +458,8 @@ auth_authStore__isRangeOpPermitted: zap_String zap_Logger__Error auth_checkKeyIn
 # axioms, adt/BytesIvl.lean, not hypotheses), `refreshRangePermCache` the map from its users.
 auth_getMergedPerms: NewIntervalTree NewBytesAffineInterval NewBytesAffinePoint
 auth_authStore__refreshRangePermCache: zap_Logger__Debug zap_String zap_Logger__Error auth_getMergedPerms
+# (the auth plan's E2a) the metrics reporter NewAuthStore installs, under the package's lock
+auth_authStore__setupMetricsReporter:
 auth_isValidPermissionRange: auth_isOpenEnded BytesAffineComparable__Compare
 # The admin side (the auth plan's S4, 2026-10-24): each a step of the model's state appended to the
 # history (`auth/Steps.lean`), over the write side's contracts (`InvAuth.lean`, `authWR`). The trust
@@ -512,7 +514,8 @@ bootstrappedRaft__newRaftNode: StartNode newRaftNode
 # `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, mvcc's
 # `store.HashStorage`, `math.Ceil`; schema's auth and alarm backends' constructors proved from
 # their bodies since unit N4, 2026-10-17); and the constructors' contracts, axioms true of
-# the Go code (unit N1: `auth.NewTokenProvider`; unit N4, D14d/D14e: `lease.NewLessor`,
+# the Go code (unit N1: `auth.NewTokenProvider`, proved since the auth plan's E2g, 2026-10-25, over
+# the JWT provider's constructor's axiom; unit N4, D14d/D14e: `lease.NewLessor`,
 # `auth.NewAuthStore`, `v3compactor.New`, `v3alarm.NewAlarmStore`, `rafthttp.Transport`'s
 # `Start`/`AddRemote`/`AddPeer`; their specs' docstrings say why). `bootstrap`'s contract is a premise of
 # `NewServer.spec` (D13b). raft's node methods (for the wrapper's composition, `NodeStart.lean`),
@@ -530,13 +533,29 @@ addFeatureGateMetrics:
 newCorruptionChecker:
 schema_NewAuthBackend:
 schema_NewAlarmBackend:
+# (D22 receiver epochs, S8c) proved from its body, for `applySnapshot`'s `cluster.SetBackend`.
+schema_NewMembershipBackend:
 mvcc_store__HashStorage:
 math_Ceil:
 lease_NewLessor:
-auth_NewTokenProvider:
+# (the auth plan's E2g, 2026-10-25) the token provider's constructor proved: the options'
+# decomposition, the simple and no-op providers' constructors; the JWT provider's an axiom (`crypto`,
+# `golang-jwt`: its spec's docstring)
+auth_decomposeOpts: zap_Logger__Error zap_String
+auth_newTokenProviderSimple: zap_NewNop
+auth_newTokenProviderJWT:
+auth_newTokenProviderNop:
+auth_NewTokenProvider: auth_decomposeOpts auth_newTokenProviderSimple auth_newTokenProviderJWT auth_newTokenProviderNop zap_Logger__Warn zap_String zap_Error
 auth_NewAuthStore:
 v3compactor_New:
 v3alarm_NewAlarmStore:
+# (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s lessor `Recover` and the cluster's
+# `SetBackend`, axioms true of the Go code (their specs' docstrings).
+lease_lessor__Recover:
+membership_RaftCluster__SetBackend:
+# (D22 receiver epochs, S8d, W6, 2026-10-25) `applySnapshot`'s cluster `Recover`, an axiom true of
+# the Go code over an image good for the cluster (its spec's docstring).
+membership_RaftCluster__Recover:
 apply_NewUberApplier: @
 # (D21 M2, 2026-10-19) the inbound path from the transport (`rafthttp.Raft`, NetBridge.lean):
 # `Process` and the reports with their bodies, raft's node methods linked in raft's Link (`@`),
@@ -581,6 +600,9 @@ snap_Snapshotter__DBFilePath:
 os_Rename:
 config_ServerConfig__BackendPath:
 storage_OpenBackend:
+# (D22 receiver epochs, S8d, 2026-10-24) `applySnapshot`'s release of the WAL and older snapshot
+# files, an axiom true of the Go code (its spec's docstring).
+storage_storage__Release:
 storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
 # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
 # SnapSendBundle.lean, SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`
@@ -613,6 +635,9 @@ EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__St
 rafthttp_NewRoundTripper:
 rafthttp_Transport__ActiveSince:
 rafthttp_Transport__AddPeer: types_NewURLs v2stats_LeaderStats__Follower rafthttp_startPeer rafthttp_addPeerToProber types_ID__String types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
+# (D22 receiver epochs, S8d, 2026-10-25) `applySnapshot`'s transport reset over `trLive`; its proof
+# is the membership track's M5's (`sorry` on purpose, the user's decision).
+rafthttp_Transport__RemoveAllPeers:
 rafthttp_Transport__AddRemote: types_NewURLs rafthttp_startRemote types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
 rafthttp_Transport__CutPeer: rafthttp_peer__Pause
 rafthttp_Transport__Get:

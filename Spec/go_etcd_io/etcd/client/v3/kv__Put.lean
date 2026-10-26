@@ -21,7 +21,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Put(ctx, key, val, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D43: its members hidden):
+/-- `kv.Put(ctx, key, val, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D44: its members hidden):
 `kv.Do` of `OpPut(key, val, opts...)` (`opts`: the models of the Go options `opts...` (`WithPrevKV()`, ...), one transformer of the operation each, `optsAt`
 ties the slice `opts_sl` of their closures to them; `[]` for none), options that do not make `OpPut` panic nor change
 the operation's type, a put with no lease (etcd's `Put` spec covers no other),
@@ -30,7 +30,7 @@ reads (`putWireOf`; `kvOpStep`), persistent if the client's writes may be delive
 (`□?dup`); the error through `ContextError`:
 `nil` and the reply's message `m` with `Q σ` for the state `σ` the update fired at, the reply's
 revision `σ`'s next and its previous key-value the key's record in `σ`'s current store if asked,
-`σ` and the state after the put well-formed small logs' states (`kvLogOk`, D47); or a client error (`kvErr`) and no reply. -/
+`σ` and the state after the put well-formed small logs' states (`kvLogOk`, D48); or a client error (`kvErr`) and no reply. -/
 abbrev kv.Put.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key val : GoString) (opts_sl : GoSlice)

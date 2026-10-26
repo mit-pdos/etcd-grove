@@ -922,8 +922,6 @@ axiom StatusResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom DowngradeInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom AuthEnableRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom AuthDisableRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthStatusRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -1107,7 +1105,8 @@ axiom Maintenance_MoveLeader_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
 axiom Maintenance_Downgrade_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
-axiom Auth_AuthEnable_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Auth_AuthEnable_FullMethodName [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"/etcdserverpb.Auth/AuthEnable")
 
 axiom Auth_AuthDisable_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
@@ -1115,7 +1114,8 @@ axiom Auth_AuthStatus_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
 axiom Auth_Authenticate_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
-axiom Auth_UserAdd_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Auth_UserAdd_FullMethodName [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"/etcdserverpb.Auth/UserAdd")
 
 axiom Auth_UserGet_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
@@ -1125,11 +1125,13 @@ axiom Auth_UserDelete_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
 axiom Auth_UserChangePassword_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
-axiom Auth_UserGrantRole_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Auth_UserGrantRole_FullMethodName [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"/etcdserverpb.Auth/UserGrantRole")
 
 axiom Auth_UserRevokeRole_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
-axiom Auth_RoleAdd_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Auth_RoleAdd_FullMethodName [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"/etcdserverpb.Auth/RoleAdd")
 
 axiom Auth_RoleGet_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
@@ -1137,7 +1139,8 @@ axiom Auth_RoleList_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
 axiom Auth_RoleDelete_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
-axiom Auth_RoleGrantPermission_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Auth_RoleGrantPermission_FullMethodName [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"/etcdserverpb.Auth/RoleGrantPermission")
 
 axiom Auth_RoleRevokePermission_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
@@ -3100,6 +3103,230 @@ noncomputable def RegisterMaintenanceServer.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0")))))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:1459:6 -/
+noncomputable def NewAuthClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "cc"
+  (App (Val exceptionDo)
+  (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType authClient.ty) AuthClient.ty))) (App (Val (GoInstruction (GoAlloc authClient.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (Var "cc"))
+  (App (Val (GoInstruction (CompositeLiteral authClient.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty (Var "$v0")))])))))))))
+
+/-- go: rpc_grpc.pb.go:1463:22 -/
+noncomputable def authClient.AuthEnable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "c"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthEnableRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.StaticMethod []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "cOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc AuthEnableResponse.ty))) (App (Val (GoInstruction (GoZeroVal AuthEnableResponse.ty))) (Val #())))
+  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthEnableResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType AuthEnableResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Auth_AuthEnable_FullMethodName))
+  (Let "$a2" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthEnableRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthEnableRequest.ty)))) (Var "in")))
+  (Let "$a3" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthEnableResponse.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthEnableResponse.ty)))) (Var "out")))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "cOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty go!"Invoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"cc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthEnableResponse.ty)))) (Var "out")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType AuthEnableResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType AuthEnableResponse.ty)))) (Pair (Var "out") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:1503:22 -/
+noncomputable def authClient.UserAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "c"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthUserAddRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.StaticMethod []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "cOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc AuthUserAddResponse.ty))) (App (Val (GoInstruction (GoZeroVal AuthUserAddResponse.ty))) (Val #())))
+  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthUserAddResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType AuthUserAddResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Auth_UserAdd_FullMethodName))
+  (Let "$a2" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthUserAddRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthUserAddRequest.ty)))) (Var "in")))
+  (Let "$a3" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthUserAddResponse.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthUserAddResponse.ty)))) (Var "out")))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "cOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty go!"Invoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"cc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthUserAddResponse.ty)))) (Var "out")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType AuthUserAddResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType AuthUserAddResponse.ty)))) (Pair (Var "out") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:1553:22 -/
+noncomputable def authClient.UserGrantRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "c"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthUserGrantRoleRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.StaticMethod []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "cOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc AuthUserGrantRoleResponse.ty))) (App (Val (GoInstruction (GoZeroVal AuthUserGrantRoleResponse.ty))) (Val #())))
+  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthUserGrantRoleResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType AuthUserGrantRoleResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Auth_UserGrantRole_FullMethodName))
+  (Let "$a2" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthUserGrantRoleRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthUserGrantRoleRequest.ty)))) (Var "in")))
+  (Let "$a3" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthUserGrantRoleResponse.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthUserGrantRoleResponse.ty)))) (Var "out")))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "cOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty go!"Invoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"cc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthUserGrantRoleResponse.ty)))) (Var "out")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType AuthUserGrantRoleResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType AuthUserGrantRoleResponse.ty)))) (Pair (Var "out") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:1573:22 -/
+noncomputable def authClient.RoleAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "c"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthRoleAddRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.StaticMethod []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "cOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc AuthRoleAddResponse.ty))) (App (Val (GoInstruction (GoZeroVal AuthRoleAddResponse.ty))) (Val #())))
+  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthRoleAddResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType AuthRoleAddResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Auth_RoleAdd_FullMethodName))
+  (Let "$a2" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthRoleAddRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthRoleAddRequest.ty)))) (Var "in")))
+  (Let "$a3" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthRoleAddResponse.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthRoleAddResponse.ty)))) (Var "out")))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "cOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty go!"Invoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"cc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthRoleAddResponse.ty)))) (Var "out")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType AuthRoleAddResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType AuthRoleAddResponse.ty)))) (Pair (Var "out") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:1613:22 -/
+noncomputable def authClient.RoleGrantPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "c"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthRoleGrantPermissionRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.StaticMethod []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.CallOption.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "cOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc AuthRoleGrantPermissionResponse.ty))) (App (Val (GoInstruction (GoZeroVal AuthRoleGrantPermissionResponse.ty))) (Val #())))
+  (Let "out" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Auth_RoleGrantPermission_FullMethodName))
+  (Let "$a2" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthRoleGrantPermissionRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthRoleGrantPermissionRequest.ty)))) (Var "in")))
+  (Let "$a3" (App (Val (GoInstruction (Convert (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty)))) (Var "out")))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "cOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty go!"Invoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"cc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty)))) (Var "out")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty)))) (Pair (Var "out") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))))
 
 /-- go: rpc_grpc.pb.go:1742:6 -/
 noncomputable def RegisterAuthServer.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -5145,9 +5372,29 @@ axiom DowngradeInfo : Type
 axiom DowngradeInfo.zero_val : ZeroVal DowngradeInfo
 attribute [instance] DowngradeInfo.zero_val
 
-axiom AuthEnableRequest : Type
-axiom AuthEnableRequest.zero_val : ZeroVal AuthEnableRequest
-attribute [instance] AuthEnableRequest.zero_val
+structure AuthEnableRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance AuthEnableRequest.zero_val [FfiSyntax] : ZeroVal AuthEnableRequest :=
+  ⟨AuthEnableRequest.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def AuthEnableRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def AuthEnableRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  AuthEnableRequest.fieldsUnsealed
+
+noncomputable instance equals_unfold_AuthEnableRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold AuthEnableRequest.fields AuthEnableRequest.fieldsUnsealed :=
+  ⟨by unfold AuthEnableRequest.fields; rfl⟩
+
+@[reducible] noncomputable def AuthEnableRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType AuthEnableRequest.fields)
 
 axiom AuthDisableRequest : Type
 axiom AuthDisableRequest.zero_val : ZeroVal AuthDisableRequest

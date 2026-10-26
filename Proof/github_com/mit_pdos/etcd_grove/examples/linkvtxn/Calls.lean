@@ -48,10 +48,6 @@ open client (srvStart srvStart_both kvRegs_range kvRegs_txn)
 section pure
 variable [ext : FfiSyntax]
 
-/-- A list as `cli.Get(ctx, listFrom, WithRange(listTo))` sends it. -/
-theorem rangeWireOf_list :
-    rangeWireOf (opGetModel listFrom [withRangeM listTo]) = linkv.listOp listFrom listTo := rfl
-
 /-- **A list selects the state's key-values of its range** (pure): no `More`. -/
 theorem srvRangeOk_list (s kvs : List EtcdKv) (more : Bool)
     (h : txn.srvRangeOk (linkv.listOp listFrom listTo) s kvs more) :

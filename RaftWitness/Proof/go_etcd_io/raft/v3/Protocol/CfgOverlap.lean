@@ -356,50 +356,6 @@ def confPosFrom (k : Nat) : List EntryM → List Nat
 /-- The positions (0-based) of the conf-change entries of `l`, in order. -/
 def confPos (l : List EntryM) : List Nat := confPosFrom 0 l
 
-theorem mem_confPosFrom (k : Nat) (l : List EntryM) (i : Nat) :
-    i ∈ confPosFrom k l ↔ k ≤ i ∧ ∃ e, l[i - k]? = some e ∧ IsConfEnt e := by
-  induction l generalizing k with
-  | nil => simp [confPosFrom]
-  | cons e l ih =>
-    simp only [confPosFrom, List.mem_append, ih]
-    constructor
-    · rintro (h | ⟨hk, e', he', hc⟩)
-      · by_cases hc : IsConfEnt e
-        · rw [ite_eq_left hc, List.mem_singleton] at h
-          subst h
-          exact ⟨Nat.le_refl _, e, by simp, hc⟩
-        · rw [ite_eq_right hc] at h; cases h
-      · refine ⟨by omega, e', ?_, hc⟩
-        rw [show i - k = (i - (k + 1)) + 1 by omega, List.getElem?_cons_succ]
-        exact he'
-    · rintro ⟨hk, e', he', hc⟩
-      by_cases hik : i = k
-      · subst hik
-        simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq] at he'
-        subst he'
-        left; rw [ite_eq_left hc]; exact List.mem_singleton_self _
-      · right
-        refine ⟨by omega, e', ?_, hc⟩
-        rw [show i - k = (i - (k + 1)) + 1 by omega, List.getElem?_cons_succ] at he'
-        exact he'
-
-theorem mem_confPos (l : List EntryM) (i : Nat) :
-    i ∈ confPos l ↔ ∃ e, l[i]? = some e ∧ IsConfEnt e := by
-  unfold confPos
-  rw [mem_confPosFrom]
-  simp
-
-theorem length_confPosFrom (k : Nat) (l : List EntryM) :
-    (confPosFrom k l).length = confCount l := by
-  induction l generalizing k with
-  | nil => rfl
-  | cons e l ih =>
-    rw [confPosFrom, List.length_append, ih, confCount_cons]
-    by_cases h : IsConfEnt e <;> simp [h, Nat.add_comm]
-
-theorem length_confPos (l : List EntryM) : (confPos l).length = confCount l :=
-  length_confPosFrom 0 l
-
 theorem cfgFoldFrom_append (dec : CCDec) (pre : List EntryM) (s : CCState)
     (l1 l2 : List EntryM) :
     cfgFoldFrom dec pre s (l1 ++ l2)
@@ -480,10 +436,6 @@ theorem cfgFoldFrom_zero (dec : CCDec) (pre : List EntryM) (s : CCState)
     simp only [cfgFoldFrom, entStep_not_conf dec pre s e hn, Option.bind_some]
     exact ih _ (by omega)
 
-theorem cfgFold_zero (dec : CCDec) (s : CCState) (l : List EntryM)
-    (h : confCount l = 0) : cfgFold dec s l = some s :=
-  cfgFoldFrom_zero dec [] s l h
-
 /-- Entries with at most one conf change keep quorums overlapping. -/
 theorem cfgFoldFrom_le_one_overlap {dec : CCDec} {pre : List EntryM} {s s' : CCState}
     {l : List EntryM} (hc : confCount l ≤ 1) (h : cfgFoldFrom dec pre s l = some s')
@@ -504,11 +456,6 @@ theorem cfgFoldFrom_le_one_overlap {dec : CCDec} {pre : List EntryM} {s s' : CCS
     · rw [ite_eq_right he] at hc
       rw [entStep_not_conf dec pre s e he, Option.bind_some] at h
       exact ih (by omega) h hs
-
-theorem cfgFold_le_one_overlap {dec : CCDec} {s s' : CCState}
-    {l : List EntryM} (hc : confCount l ≤ 1) (h : cfgFold dec s l = some s')
-    (hs : CfgOk s) : QOverlap s.cfg s'.cfg :=
-  cfgFoldFrom_le_one_overlap hc h hs
 
 /-- Two prefixes of one log whose conf counts differ by at most one have overlapping
 configurations. -/
@@ -574,16 +521,6 @@ theorem fold_shape (dec : CCDec) (P1 P2 : List EntryM) (s0 s1 s2 : CCState)
   rw [confCount_append] at hc
   exact cfgFoldFrom_le_one_shape (by omega) h2 (cfgFold_ok h1 h0)
 
-/-- The symmetric form: the conf counts of the two prefixes, in either order. -/
-theorem fold_adjacent' (dec : CCDec) (l : List EntryM) (i j : Nat)
-    (s0 si sj : CCState) (hc1 : confCount (l.take j) ≤ confCount (l.take i) + 1)
-    (hc2 : confCount (l.take i) ≤ confCount (l.take j) + 1)
-    (h0 : CfgOk s0) (hi : cfgFold dec s0 (l.take i) = some si)
-    (hj : cfgFold dec s0 (l.take j) = some sj) : QOverlap si.cfg sj.cfg := by
-  rcases Nat.le_total i j with hij | hji
-  · exact fold_adjacent dec l i j s0 si sj hij hc1 h0 hi hj
-  · exact (fold_adjacent dec l j i s0 sj si hji hc2 h0 hj hi).symm
-
 /-! ### The decoder from the entries' bytes (2026-10-14, reconfiguration stage B3)
 
 A conf-change entry's `Data'` is its bytes (D6, stage R4; until then a slice whose bytes the
@@ -604,20 +541,6 @@ def ccMsgOfBytes (ty : w32) (bs : List w8) : Option CCMsg :=
 /-- The decoder of entries by their bytes: by the entry alone. -/
 def decOfData : CCDec :=
   CCDec.ofEnt fun e => (ccMsgOfBytes e.Type' e.Data').map ccV2Of
-
-/-- A conf-change entry whose bytes decode (`CCDecodes`, which `stepLeader` checks when it
-is proposed) has a change. -/
-theorem decOfData_some (pre : List EntryM) (e : EntryM)
-    (hc : IsConfEnt e) (hd : CCDecodes e.Type' e.Data') :
-    ∃ op, decOfData pre e = some op := by
-  simp only [decOfData, CCDec.ofEnt, ccMsgOfBytes]
-  rcases hc with h1 | h2
-  · obtain ⟨m, hm⟩ := hd.1 h1
-    rw [ite_eq_left h1, hm]; exact ⟨_, rfl⟩
-  · have h1 : ¬ e.Type' = W32 1 := by
-      rw [h2]; word
-    obtain ⟨m, hm⟩ := hd.2 h2
-    rw [ite_eq_right h1, ite_eq_left h2, hm]; exact ⟨_, rfl⟩
 
 /-! ### Removing a voter, as one step (2026-10-15, stage N: the register's membership change) -/
 

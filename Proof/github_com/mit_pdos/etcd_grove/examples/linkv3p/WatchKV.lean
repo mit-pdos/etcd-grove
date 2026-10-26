@@ -1,6 +1,6 @@
 /-
 **What a watch of the cluster's prefix delivers, and what a writer's put leaves, over etcd's KV
-state** (2026-10-26, D44/D46/D47; until then `WatchHist.lean`, over the cluster's committed
+state** (2026-10-26, D45/D47/D48; until then `WatchHist.lean`, over the cluster's committed
 history at watchkv's server workload). Lean-first (no Rocq counterpart).
 
 The example keeps its facts about the KV state in the clients' adapter (`client.kmInv γ`,

@@ -1,0 +1,8 @@
+# Names only, but for the cost bounds `auth.NewAuthStore` checks its `bcryptCost` against
+# (`MinCost`, `MaxCost`, `DefaultCost`; the auth plan's E2a, 2026-10-25: names-only constants are
+# values of unknown shape, which a comparison cannot evaluate). Hashing stays the trust boundary.
+translate = ["!*", "MinCost", "MaxCost", "DefaultCost"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

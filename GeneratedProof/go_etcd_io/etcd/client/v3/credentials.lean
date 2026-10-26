@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.google_golang_org.grpc.credentials
+public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.v3.credentials
 
@@ -66,12 +67,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
 noncomputable instance perRPCCredential_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.credentials.perRPCCredential :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.credentials.perRPCCredential where
+  typedPointstoDef l v dq := iprop(
+    "authToken" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' dq ∗
+    "authTokenMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance perRPCCredential_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.credentials.perRPCCredential go_etcd_io.etcd.client.v3.credentials.perRPCCredential.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.credentials.perRPCCredential go_etcd_io.etcd.client.v3.credentials.perRPCCredential.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance perRPCCredential_access_load_authToken (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance perRPCCredential_access_store_authToken (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (authToken' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) authToken' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authToken' := authToken' } : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance perRPCCredential_access_load_authTokenMu (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance perRPCCredential_access_store_authTokenMu (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (authTokenMu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) authTokenMu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authTokenMu' := authTokenMu' } : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end perRPCCredential

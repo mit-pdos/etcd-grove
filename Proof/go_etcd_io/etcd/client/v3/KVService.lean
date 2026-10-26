@@ -1,6 +1,6 @@
 /-
 **etcd's KV service: the one spec of each method, as the server proves it and the client relies on
-it** (D43, 2026-10-25; until then in `client/v3/Results.lean`). Lean-first (no Rocq counterpart).
+it** (D44, 2026-10-25; until then in `client/v3/Results.lean`). Lean-first (no Rocq counterpart).
 
 **etcd's specs of the KV methods** (`etcdPutSpec`, `etcdRangeSpec`, `etcdDeleteSpec`,
 `etcdTxnSpec`: predicate transformers over the messages' models, `GrpcSpec`, at a member's apply
@@ -550,7 +550,7 @@ def kvRegsAt (x : SrvAt GF) : IProp GF :=
 instance kvRegsAt_persistent (x : SrvAt GF) : Persistent (kvRegsAt x) := by
   unfold kvRegsAt; infer_instance
 
-/-! ## A `*kv` of the members: the client's side of etcd's KV service (D43, 2026-10-25)
+/-! ## A `*kv` of the members: the client's side of etcd's KV service (D44, 2026-10-25)
 
 **`isKV api ms`** (persistent) is what the client's KV calls take: its `*kv` over a connection to
 the members' endpoints (`kvObjAt`) and, at each member, etcd's four KV specs registered at its
@@ -933,7 +933,7 @@ theorem txnReqPre_wand (tp : Loc) (addr : List GoString) (C P P' : IProp GF) [Pe
 
 end members
 
-/-! ## A write's log after it (D47)
+/-! ## A write's log after it (D48)
 
 The apply thread's log after a member applied a put, a delete or a writing transaction: the
 log it met with the write's changes committed (as `ServerKVPut.lean`'s `put_applied_exact`,
@@ -1064,7 +1064,7 @@ theorem kvLogOk_commit {l C : mvcc.Log} (cs : List mvcc.Change) (hp : mvcc.commi
 
 end applied
 
-/-! ## The client's view: one KV, its members hidden (D43, 2026-10-25)
+/-! ## The client's view: one KV, its members hidden (D44, 2026-10-25)
 
 **`isKv api γ dup`** (persistent) is what the specs of the `*kv`'s calls take (`kv.Put`, `kv.Get`,
 `kv.Delete`, `kv.Do`, and `txn.Commit` with the builder's `txnKvIs`): the `*kv` `api` is a client
@@ -1077,7 +1077,7 @@ atomic update may be fired at most once; if `dup` (the client's retry intercepto
 it must be persistent: the specs take a write's atomic update under `□?dup`.
 
 The specs take the caller's update at `γ` and give the reply's fields as functions of the state
-`σ` the update fired at (`putStOk`, `rangeStOk`, `delStOk`, `txnStOk`), and (D47) that `σ` is a
+`σ` the update fired at (`putStOk`, `rangeStOk`, `delStOk`, `txnStOk`), and (D48) that `σ` is a
 well-formed small log's (`kvLogOk`: the store's receipts bound its changes, `isKv`'s
 `receiptBound GF ≤ 2 ^ 62`, `idxCert_logOk`). Their proofs go through the
 members' (`KVMembers.lean`: etcd's specs at each member, a reply some member's), at the floor `[]`
@@ -1148,7 +1148,7 @@ instance isKvOf_persistent (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (S
 
 /-- **The `*kv` `api` is a client of etcd's KV `γ`** (persistent; see the section header): of some
 members, each at `γ`'s state; unless `dup`, refusal-free (a write is delivered at
-most once); (D47) the store's receipts at most `2 ^ 62` (a sealed log is small, `idxCert_logOk`). -/
+most once); (D48) the store's receipts at most `2 ^ 62` (a sealed log is small, `idxCert_logOk`). -/
 def isKv (api : Loc) (γ : KVNames) (dup : Bool) : IProp GF :=
   iprop(∃ ms : List (SrvAt GF), isKvOf api γ dup ms)
 
@@ -1194,7 +1194,7 @@ def txnUpdK (γ : KVNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF 
 
 /-- **What a put's reply says** (`m`): the state `σ` the update fired at (`Q σ`), the reply's
 revision `σ`'s next, its previous key-value the key's record in `σ`'s current store if asked;
-(D47) `σ` and the state after the put well-formed small logs' (`kvLogOk`). -/
+(D48) `σ` and the state after the put well-formed small logs' (`kvLogOk`). -/
 def putStOk (o : OpFull) (Q : KVState → IProp GF) (m : PutRespM) : IProp GF :=
   iprop(∃ σ : KVState, Q σ ∗ ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
     m.prev = (if o.base.prevKV then (σ.store.lookup o.key).map (KVRec.toKv o.key) else none) ∧
@@ -1214,7 +1214,7 @@ def rangeStOk (o : OpFull) (Q : KVState → IProp GF) (m : RangeRespM) : IProp G
 
 /-- **What a delete's reply says**: the state `σ` the update fired at (`Q σ`), the reply's count
 the keys of the range, its previous key-values theirs if asked, its revision the state's after
-the delete (`kvOpStep`); (D47) `σ` and the state after the delete well-formed small logs'
+the delete (`kvOpStep`); (D48) `σ` and the state after the delete well-formed small logs'
 (`kvLogOk`). -/
 def delStOk (o : OpFull) (Q : KVState → IProp GF) (m : DelRespM) : IProp GF :=
   iprop(∃ σ : KVState, Q σ ∗ ⌜m.deleted = W64 ((rangeIn σ.kvs o).length : Int) ∧
@@ -1225,7 +1225,7 @@ def delStOk (o : OpFull) (Q : KVState → IProp GF) (m : DelRespM) : IProp GF :=
 /-- **What a transaction's reply says**: the state `σ` the update fired at (`Q σ` if writing;
 `□ Q σ` if read-only and linearizable), the reply's verdict and its branch's responses the run's
 at `σ` (`srvRunTxn`, `opRespsRel`), its revision `σ`'s (read-only) or the state's after the
-transaction's changes (writing); (D47) `σ` a well-formed small log's (`kvLogOk`), and so the
+transaction's changes (writing); (D48) `σ` a well-formed small log's (`kvLogOk`), and so the
 state after a writing transaction's changes. -/
 def txnStOk (t : TxnModel) (Q : KVState → IProp GF) (m : TxnRespM) : IProp GF :=
   iprop(∃ σ : KVState,
@@ -1432,7 +1432,7 @@ theorem irrNoZeroEnd_txn (t : TxnModel) (hz : txnNoZeroEnd t) : irrNoZeroEnd (ir
   exact hz
 
 open Iris.ProofMode in
-/-- **A certified log is a well-formed small log** (D47): the certificate's facts (as
+/-- **A certified log is a well-formed small log** (D48): the certificate's facts (as
 `idxSealed_pure`'s) and the receipts' bound on its changes (as `idxSealed_small`'s). -/
 theorem idxCert_logOk (γ : mvcc.IdxNames) (log : mvcc.Log) (hrb : receiptBound GF ≤ 2 ^ 62) :
     mvcc.idxCert (GF := GF) γ log ⊢ ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ txn.LogSmall log⌝ := by
@@ -1468,7 +1468,7 @@ theorem putAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
   · rw [hrev, kvStateOf_rev_succ _ hlen]
   · rw [hprev, ← findKey_kvs, ← kvStateOf_kvs]; rfl
   · rw [kvStateOf_rev]; omega
-  · -- (D47) the state after the put: the log after it
+  · -- (D48) the state after the put: the log after it
     have hlog := kvs_put_applied_log o hm y y' l skip hst
     simp only [kvOpStep]
     split
@@ -1543,7 +1543,7 @@ theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
     simp only [kvOpStep]
     rw [hs, kvStateOf_commit_rev _ _ hlen]
   · rw [kvStateOf_rev]; omega
-  · -- (D47) the state after the delete: the log after it
+  · -- (D48) the state after the delete: the log after it
     simp only [kvOpStep]
     rw [hs]
     refine kvLogOk_commit _ ?_ hne Hl
@@ -1578,7 +1578,7 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
     refine ⟨hok, hrel, ?_, ?_, kvLogOk_of_step hst hlen Hl, fun _ => ?_⟩
     · rw [hrev, ← hs, kvStateOf_commit_rev _ _ hlen]
     · rw [kvStateOf_rev]; omega
-    · -- (D47) the state after the transaction: the log after it
+    · -- (D48) the state after the transaction: the log after it
       refine kvLogOk_commit _ ?_ hne Hl
       rw [hlog]; try exact List.prefix_refl _
   · -- read-only

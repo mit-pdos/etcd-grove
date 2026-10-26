@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-20
+checked: 2026-10-26
 links:
   - etcd-io/etcd#21869 pr closed: same bug and fix (delete k, not key, in EvictRange); closed unmerged by serathius citing the AI-contribution policy
   - etcd-io/etcd#21589 pr closed: same bug and fix, bundled with a lease-freshness fix for #19091; closed unmerged by its author

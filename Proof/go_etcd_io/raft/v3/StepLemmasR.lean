@@ -534,9 +534,24 @@ theorem rOf_frame (s s' : NState) (g : RGh) (hf : RFrame s s') :
   · have : ¬ (toPState s').role = .leader := fun h' => h (hr.1 h')
     simp [h, this, ha, hs]
 
-/-- The dynamic model's premises of a step of `raft.Step` (see the file header). -/
+/-- (2026-10-25, T-M M2b) **A pre-candidate's campaign guard**, over the full prefix `fp`: no
+snapshot pending, and no conf entry at the full log's positions `[applied, committed)`
+(`StepR.campaign`'s, on `rOf s g` when `fp = g.fp`). `hup` checks it before a pre-campaign, and
+it holds until the campaign a won pre-vote runs (4.1 of `notes/reconfiguration-safety.md`). -/
+def PreGuard (fp : List EntryM) (s : NState) : Prop :=
+  s.role = .preCandidate → s.logst.snap = none ∧
+    NoConfIn (fp ++ (s.logst.sents ++ s.logst.uents)) (uint.nat s.logst.applied)
+      (uint.nat s.logst.committed)
+
+/-- `PreGuard` at a full prefix of the log boundary's length (`FullOk`'s first conjunct): what the
+`RawNode` predicate keeps, without the ghost part's `FullOk` at hand. -/
+def PreGuardF (fp : List EntryM) (s : NState) : Prop :=
+  (fp.length : Int) = uint.Z s.logst.prev.index' → PreGuard fp s
+
+/-- The dynamic model's premises of a step of `raft.Step` (see the file header). (Until
+2026-10-25, T-M M2b, no pre-candidate: now one with its campaign guard, `PreGuard`.) -/
 def DynHyp (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
-  m.Type' ≠ MsgSnap ∧ s.role ≠ .preCandidate ∧ FullOk (toPState s).base g.fp ∧
+  m.Type' ≠ MsgSnap ∧ PreGuard g.fp s ∧ FullOk (toPState s).base g.fp ∧
   (m.Type' = MsgStorageApplyResp →
     s.logst.snap = none ∧ NoConfIn (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
   -- a proposal the leader drops still moves `pendingConfIndex` (`StepR.propDrop`), whose
@@ -568,15 +583,12 @@ theorem StepCD.frame {c : CfgM} {id : w64} {m : MessageM} {s : NState}
   rw [show ({ g with cidx := g.cidx } : RGh) = g from rfl, rOf_frame s s' g hf]
   exact h.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 
-/-- A `StepCD` step that the dynamic model's premises exclude (a `MsgSnap`, a pre-candidate's):
-only the `StepC` witness is needed. -/
+/-- A `StepCD` step that the dynamic model's premises exclude (a `MsgSnap`; until 2026-10-25, T-M
+M2b, also a pre-candidate's): only the `StepC` witness is needed. -/
 theorem StepCD.of_excluded {c : CfgM} {id : w64} {m : MessageM} {s : NState}
     {recv : List Msg} {s' : NState} (h : StepC c id B (toPState s) recv (toPState s'))
-    (hx : m.Type' = MsgSnap ∨ s.role = .preCandidate) : StepCD c id B m s recv s' :=
-  ⟨h, fun _ _ _ _ hd => by
-    rcases hx with hx | hx
-    · exact absurd hx hd.1
-    · exact absurd hx hd.2.1⟩
+    (hx : m.Type' = MsgSnap) : StepCD c id B m s recv s' :=
+  ⟨h, fun _ _ _ _ hd => absurd hx hd.1⟩
 
 /-- A frame step, then a `StepCD` one (2026-10-14, stage B7). -/
 theorem StepCD.trans_frame {c : CfgM} {id : w64} {m : MessageM} {s s1 s' : NState}

@@ -347,10 +347,13 @@ theorem NewServer.wp_proof
   imod (srvSendKey_alloc (GF := GF)) with ⟨%γk, Hk⟩
   ihave #Htkok' : rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk)) $$ []
   · iapply rnTickerOk_srvEr_S $$ Htkok
-  wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk)) γ bud bs.raft' bs.ss' bw.w' bc.cl'
+  -- (D43 M3) raft's static mode: the servers' (`bootInit`'s static case is the ghost state)
+  ihave Hghost : bootInit γ .static id (GMap.listToSet ps) bootLog $$ [Hghost]
+  · unfold bootInit; iexact Hghost
+  wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk)) γ .static bud bs.raft' bs.ss' bw.w' bc.cl'
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
-    Hrbok (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
+    Hrbok (fun _ _ _ _ h => by cases h) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
     (by simpa [srvEr] using Hpol) (fun _ => by rw [Hnosnap.2]; exact Int.le_refl _))
     $$ [Hbv Hc Hstor Hpeers Hghost Htok]
     as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, #Hrli, Hinst, Hbv, Hpeers, Htok⟩
@@ -473,18 +476,17 @@ theorem NewServer.wp_proof
   · iPkgInit
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  ihave ⟨#HB, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts⟩ := bootBackend_of_newPost d.γB d.P
+  ihave ⟨#HB, #HSC, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts⟩ := bootBackend_of_newPost d.γB d.P
     (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN $$ Hnew
-  icases Hopen with ⟨%qo, Hopen⟩
   rw [show N + 7 = (N + 6) + 1 by omega]
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
   -- `lease.NewLessor`
   rw [Hbe0]
-  -- the grant guard `False` (`srvGrantGuard`, D19n, D44): the lessor's `expiredC` never delivers
+  -- the grant guard `False` (`srvGrantGuard`, D19n, D45): the lessor's `expiredC` never delivers
   -- (D22, 2026-10-23) the rest buckets: the tracked buckets' half, at the fresh file's
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
-  wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo
+  wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard) (backend.rbData d.P D))
     $$ [Hopen Hwl Hrbo]
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, #Hlck, HleOn, #Hlbe, #Hllk⟩
@@ -497,7 +499,7 @@ theorem NewServer.wp_proof
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
   wp_func_lits
-  wp_apply h25 as %tp %terr %Htp
+  wp_apply h25 as %tp %terr ⟨%Htp, -⟩
   · ipureintro; exact Hlgnn
   (try wp_auto)
   cases terr with
@@ -538,7 +540,7 @@ theorem NewServer.wp_proof
       (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok .off Hcbl Hrb)
     $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok]
     as %ws ⟨%kst, %γw, %Hγw, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
-      Hwrds, Hwcl, #Htag⟩
+      Hwrds, Hwcl, Hret0, #Htag⟩
   · iframe Hisl HB Hsz
     iframe Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok
   -- (D19g (b)) the store's reader slots for request goroutines
@@ -565,8 +567,9 @@ theorem NewServer.wp_proof
   icases Hkvw with ⟨Hkvw0, Hkvw1, Hfrag0⟩
   iunfold mvcc.writerFrag at Hfrag0
   icases Hfrag0 with ⟨%ow, Hpinw⟩
-  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc1 Hs Hpinw HwrSV with ⟨HrtSV, -, Hpinw⟩
-  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc2 Hs Hpinw HwrA with ⟨HrtA, HtrA, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow 0 $$ Hlc1 Hs Hpinw HwrSV Hret0
+    with ⟨HrtSV, Hret1, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow 1 $$ Hlc2 Hs Hpinw HwrA Hret1 with ⟨HrtA, HtrA, Hpinw⟩
   ihave Hkvw : txn.kvWriter kst γw.st [[], []] $$ [Hkvw0 Hkvw1 Hpinw]
   · iunfold txn.kvWriter; iframe Hkvw0 Hkvw1; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
   -- (D22 receiver epochs, S7b) the current backend's ghost variable, at the real backend: half
@@ -598,7 +601,7 @@ theorem NewServer.wp_proof
   (try wp_auto)
   rw [show (4 : Nat) = 2 + 2 from rfl]
   icases (ownToks_add 2 2 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwa⟩
-  wp_apply (h30 cfg.Logger' ab tp _ abl d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo
+  wp_apply (h30 cfg.Logger' ab tp _ abl d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       ((backend.rbData d.P D).insert go!"lease" ∅))
     $$ [Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth⟩
@@ -621,7 +624,7 @@ theorem NewServer.wp_proof
   -- `srv.restoreAlarms()`
   rw [show (2 : Nat) = 1 + 1 from rfl]
   icases (ownToks_add 1 1 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwal⟩
-  wp_apply (h32 s cfg.Logger' d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo _
+  wp_apply (h32 s cfg.Logger' d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half _
       (DFrac.own 1) (((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"auth" authBoot).insert
         go!"authUsers" ∅).insert go!"authRoles" ∅))
     $$ [Hopen Hwal alarmStore be Hrbo] as %aerr ⟨Hopen, Hrbo, be, Hares⟩
@@ -690,7 +693,7 @@ theorem NewServer.wp_proof
   wp_apply (h34 s γA cil (metaTM d.γB d.P)) as %hook ⟨%Hhknn, #Hhks⟩
   · iframe HsCI
   (try wp_auto)
-  wp_apply (h35 d.γB d.P (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be qo func.nil hook)
+  wp_apply (h35 d.γB d.P (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be (1 : Qp).half func.nil hook)
     $$ [Hopen Hhook Hwb] as ⟨Hopen, Hhook⟩
   · iframe HB
     unfold backend.wbTok
@@ -712,7 +715,8 @@ theorem NewServer.wp_proof
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn2, Hrn3, Hrn4, Hrn5, Hrn5n, Hrn6, Hrn7, Hrn8, Hrn9, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ :=
+  obtain ⟨Hrn1, Hrn2, Hrn3, Hrn4, Hrn4d, Hrn5, Hrn5n, Hrn6, Hrn7, Hrn8, Hrn9, Hrn10, Hrn11, Hrn12, Hrn13,
+    Hrn14⟩ :=
     Hrnames
   -- (D21 M2) what the transport's calls into the server read (`srvProcOk`): the wrapper's
   -- fixed fields split off its struct (the node's among them), the member id, the stats
@@ -1020,7 +1024,8 @@ theorem NewServer.wp_proof
   · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud γrn
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
-      Hrn4 (by rw [Hrn3, Hrn7]) Hrn2
+      ⟨fun _ => by rw [Hrn1]; exact Hrn4d.1 rfl, fun _ => Hrn4⟩ (fun dec c0 h0 h1 h => by rw [Hrn4] at h; cases h)
+      (by rw [Hrn3, Hrn7]) Hrn2
       (by first | (rw [← hργ]; exact Hnosnap.1) | (rw [hργ]; exact Hnosnap.1) | exact Hnosnap.1)
       (by rw [Hrn8, Hnosnap.2]; exact Int.le_refl _) id (srvTrKey γn γk)
       (by rw [Hrn5n, Hrid]))
@@ -1288,7 +1293,7 @@ theorem NewServer.wp_proof
     ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
   isplitr
   · ipureintro
-    refine ⟨?_, rfl⟩
+    refine ⟨?_, rfl, fun _ => Int.le_refl _⟩
     unfold srvEr
     simp only
     exact (srvC_agree ρ _ E₀ (W64 0) (W64 0) bootKV hγs).symm

@@ -1,5 +1,5 @@
 /-
-**A client of etcd's KV meets the recipes' put and delete contracts** (D47, 2026-10-26).
+**A client of etcd's KV meets the recipes' put and delete contracts** (D48, 2026-10-26).
 Lean-first, no Rocq counterpart.
 
 As `KMGet.lean` for gets: the call is `kv.Put.spec`'s (`kv.Delete.spec`'s), with the adapter's

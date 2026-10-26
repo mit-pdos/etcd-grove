@@ -1,7 +1,7 @@
 /-
 **watchkv's workload** (D23, 2026-10-20). Lean-first (no Rocq counterpart).
 
-Until D44 (2026-10-25) the server's workload parameter restricted the log to the plan's puts;
+Until D45 (2026-10-25) the server's workload parameter restricted the log to the plan's puts;
 now the plan is watchkv's own fact, kept with the KV state's changes in the adapter's invariant
 (`client.kmInv` at `γ.W = wkW P`): every change is a writer's put of the plan `P` (`wkW_put`). Its
 pure part: a watchkv log (`WkLog`: revisions `0` and `1` empty, every later one exactly one put of

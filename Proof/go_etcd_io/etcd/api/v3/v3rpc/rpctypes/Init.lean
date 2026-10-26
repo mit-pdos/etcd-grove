@@ -188,15 +188,15 @@ axiom ErrNoLeader_init :
     {{ (True : IProp GF) }} (App (Val ErrNoLeader.init) (Val #()))
     {{ RET #(); ∃ x : EtcdError, globalAddr ErrNoLeader ↦ interface.mkOk EtcdError.ty #x }}
 
-/-- `TokenFieldNameGRPC = "token"` (`metadatafields.go`): a string. -/
+/-- `TokenFieldNameGRPC = "token"` (`metadatafields.go`): that string. -/
 axiom TokenFieldNameGRPC_init :
     {{ (True : IProp GF) }} (App (Val TokenFieldNameGRPC.init) (Val #()))
-    {{ RET #(); ∃ s : GoString, globalAddr TokenFieldNameGRPC ↦ s }}
+    {{ RET #(); globalAddr TokenFieldNameGRPC ↦ go!"token" }}
 
-/-- `TokenFieldNameSwagger = "authorization"` (`metadatafields.go`): a string. -/
+/-- `TokenFieldNameSwagger = "authorization"` (`metadatafields.go`): that string. -/
 axiom TokenFieldNameSwagger_init :
     {{ (True : IProp GF) }} (App (Val TokenFieldNameSwagger.init) (Val #()))
-    {{ RET #(); ∃ s : GoString, globalAddr TokenFieldNameSwagger ↦ s }}
+    {{ RET #(); globalAddr TokenFieldNameSwagger ↦ go!"authorization" }}
 
 /-- `ErrGRPCEmptyKey = status.Error(...)` (`error.go`): a non-nil error. -/
 axiom ErrGRPCEmptyKey_init :
@@ -455,8 +455,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply MetadataRequireLeaderKey_init as ⟨%kMetadataRequireLeaderKey, HMetadataRequireLeaderKey⟩
   wp_apply MetadataHasLeader_init as ⟨%kMetadataHasLeader, HMetadataHasLeader⟩
   wp_apply MetadataClientAPIVersionKey_init as ⟨%kMetadataClientAPIVersionKey, HMetadataClientAPIVersionKey⟩
-  wp_apply TokenFieldNameGRPC_init as ⟨%sTokenFieldNameGRPC, HTokenFieldNameGRPC⟩
-  wp_apply TokenFieldNameSwagger_init as ⟨%sTokenFieldNameSwagger, HTokenFieldNameSwagger⟩
+  wp_apply TokenFieldNameGRPC_init as HTokenFieldNameGRPC
+  wp_apply TokenFieldNameSwagger_init as HTokenFieldNameSwagger
   ipersist HErrGRPCEmptyKey
   ipersist HErrGRPCInvalidSortOption
   ipersist HErrGRPCValueProvided

@@ -1757,7 +1757,7 @@ end proofs
 method registered at every endpoint with one spec (`isGrpcRpcs`). Each member registers etcd's specs
 at its own apply environment, read names and ids (`SrvAt`, `kvRegsAt`: `etcd_kv_started`'s), so a
 call through the client passes the conjunction of the members' specs (`anySpec`), and the reply is
-that member's. Since D43 (2026-10-25) this is the specs of the `*kv`'s calls themselves (`kv.Put`,
+that member's. Since D44 (2026-10-25) this is the specs of the `*kv`'s calls themselves (`kv.Put`,
 `kv.Get`, `kv.Delete`, `txn.Commit`, over `isKV`: `KVService.lean`); the results
 `client_put_any`, `client_range_any`, `client_delete_any` and `client_txn_any` are those specs with
 no options, the error a client error (`kvErr`), and the caller's side spelled out.
@@ -1767,6 +1767,16 @@ the attempt reaches fires its own), is persistent (`□`: fired at each committe
 client), or fired at most once on a client that sends a write at most once (`writeOnce`, D29: a
 client of refusal-free members, whose retry interceptor never sends a write again,
 `noRefusalAt`). A read's update is persistent.
+
+**Members that refuse** (2026-10-25, the auth plan's E2d; `notes/decisions.md`, "E2d of the auth
+plan"): the persistent case needs no `noRefusalAt`, so it is the write path of a client of members
+that may refuse, an auth-enabled member's (`"etcdserver: invalid auth token"`, `"user name is
+empty"`, `"revision of auth store is old"`): the retry interceptor's contract for any number of
+attempts (`etcdInterceptorOk`, proved over the token refresh, `refreshToken`/`getToken`) sends the
+write again after each refusal, and the update fires at each committed occurrence, none for a
+refused attempt. A refusal, a permission error and any other error alike end in an error result
+(`kvErr`) with nothing about the write; that nothing was applied for a refused principal is the
+server's (its permission check at apply), not the client's.
 
 **One server over its endpoints** (`srvsAt addr E γr cid mid`: every address of `addr` a member at
 one environment, read names and ids) is the `client_*_end_to_end` results' case: they are the
@@ -2268,7 +2278,7 @@ read-only one takes no update, `Q` trivial; unit W-M3: in `txnReplied`, the stat
 transaction met); or an error and no reply. A writing transaction's update is `txnAuOk`:
 persistent; a linearizable read-only one may take a read update (`kvReadAu`), whose `□ Q` at the
 state of the log read `txnReplied` carries. `client_txn_any` at one server's members
-(`srvsAt addr E γr cid mid`; one set of read names since D43, a started server's request
+(`srvsAt addr E γr cid mid`; one set of read names since D44, a started server's request
 path's and read loop's being the same, `ρ.rd = γr`), its update persistent. -/
 theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)

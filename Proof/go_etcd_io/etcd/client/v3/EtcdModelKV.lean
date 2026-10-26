@@ -1,19 +1,19 @@
 /-
-**The clients' model of etcd, over etcd's KV state** (D47, 2026-10-26). Lean-first (no Rocq
+**The clients' model of etcd, over etcd's KV state** (D48, 2026-10-26). Lean-first (no Rocq
 counterpart).
 
 The clients (the cache, the recipes, `client/v3/concurrency`, `client/v3/leasing`) state their
-results over `EtcdModel GF` (`cache/v3/EtcdModel.lean`). Until D47 the server instantiated it with
+results over `EtcdModel GF` (`cache/v3/EtcdModel.lean`). Until D48 the server instantiated it with
 its own facts (`v3rpc.etcdModelOfServer`: sealed logs of the store); the clients' contracts were
 proved at the server's members. Here it is instead an adapter on top of the client's specs of the
 KV and watch methods (`kv.Get.spec`, ..., `watcher.Watch.spec`), whose atomic updates are over
-etcd's KV state `etcdKV γ σ` (D43, D46): a client keeps the state's half in an invariant
+etcd's KV state `etcdKV γ σ` (D44, D47): a client keeps the state's half in an invariant
 (`kmInv`), with the list of its changes, an append-only list (`monoListAuthOwn γ.ch`: every change
 of the KV is an update of a client, which fires in the invariant), and the revisions' tokens
 (`ghostMapAuth γ.tok`, one per revision a write of the client made).
 
 * `kmLog γ W`: `W` is a prefix of the log of a state the client saw (a lower bound of the
-  changes, `monoListLbOwn γ.ch`), well formed and small (`kvLogOk`, D47, what the specs give of
+  changes, `monoListLbOwn γ.ch`), well formed and small (`kvLogOk`, D48, what the specs give of
   the state a reply reads). Two such logs are in prefix order (`kmLog_two`), which is all the laws
   need, as `v3rpc.srvLog`'s were.
 * `etcdState rev pfx s` (`kmEtcdState`), `EtcdStep r0 r1 pfx evs` (`kmStep`): as the server's
@@ -115,7 +115,7 @@ variable [sem : go.Semantics]
 /-- The adapter's ghost names: the KV's (its state variable), the list of its changes, the
 revisions' tokens; and an application's property of the changes that the invariant keeps (`W`:
 every change of the KV is some client's update firing in the invariant, so a client's own fact
-about them, D44, e.g. that each revision is one of a plan's writes; `fun _ => True` for none). -/
+about them, D45, e.g. that each revision is one of a plan's writes; `fun _ => True` for none). -/
 structure KMNames where
   kv : KVNames
   ch : GName

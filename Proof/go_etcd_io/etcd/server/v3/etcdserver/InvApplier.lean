@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCfgView
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Perennial.Proof.errors
@@ -427,7 +428,7 @@ predicate is (Perennial's channel specs are), and the apply package's. -/
 ids the server gives its lessor (`lease.NewLessor`'s `GA`): only a lease that meets it can be
 granted, and the lessor's `expiredC` carries only such leases. `False`: no request the server's
 verified proposers send grants a lease (`plainReq` admits no `LeaseGrant`), so `run`'s receive
-from `expiredC` is dead (D44: until then the workload's `grant`). -/
+from `expiredC` is dead (D45: until then the workload's `grant`). -/
 def srvGrantGuard : w64 → IProp GF := fun _ => iprop(False)
 
 /-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and

@@ -59,17 +59,20 @@ theorem auth.authStore.commitRevision.wp_proof
     simp only [bump]
     rw [← Hsrev] at this
     word
-  imod (authOwn_revCur_append M hs (bump sta) r (r + W64 1) Hk (fun h => by
+  imod (authOwnF_revCur_append M hs (bump sta) r (r + W64 1) Hk (fun h => by
       subst h; exact Hoff rfl) hr') $$ Hown Hc with ⟨Hown, Hc, #Hv⟩
   imod Hmask with -
   imod Hclose $$ [Hr Hc] with -
   · inext; iunfold revInv; iexists (r + W64 1); iframe Hr Hc; iexact Hv
   imodintro
   wp_auto
+  icases (authOwnF_split M (hs ++ [bump sta])).1 $$ Hown with ⟨Hown, Hsh⟩
   ihave Hown' : authOwnOpt M (some (hs ++ [bump sta])) $$ [Hown]
   · rw [authOwnOpt_some]; iexact Hown
   wp_apply (h_Revision st R M (some (hs ++ [bump sta]))) $$ [$Hinv $Hown'] as %x ⟨Hown', -, %Hx⟩
   simp only [authOwnOpt_some]
+  ihave Hown' := (authOwnF_split M (hs ++ [bump sta])).2 $$ [Hown' Hsh]
+  · iframe Hown' Hsh
   wp_bind (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #x))
   iapply HSaveRev $$ %sta %X %x HLk
   inext

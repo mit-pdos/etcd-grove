@@ -41,7 +41,7 @@ instance bufLogOk_persistent' (ws bl : Loc) : Persistent (bufLogOk (GF := GF) ws
 
 /-- **Publishing a response** at the producer's position `i` (the first cursor's positions `C`,
 one more than the responses published, ending at `hiB`): the first cursor extended by `hiA`, and
-the caller's channel's element (`outcElem`, D46: the read update's firing at the second cursor's
+the caller's channel's element (`outcElem`, D47: the read update's firing at the second cursor's
 positions; the response's header read-only). -/
 theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hiB hiA : w64)
@@ -91,7 +91,7 @@ theorem watchStateRespOk_created (o : OpFull) (σ : KVState) (c c' : w64)
   · exfalso; simp [RespModel.isProgressNotify, hc] at H
   · exact absurd he H.2.1
 
-/-- **Publishing a received response, the second cursor** (K2e-7, D46): the `kk`th received
+/-- **Publishing a received response, the second cursor** (K2e-7, D47): the `kk`th received
 response's read update firing at the second dispatch cursor's positions becomes the published
 one's at `γ.cur2`'s. -/
 theorem publish_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : kk.toNat = k)

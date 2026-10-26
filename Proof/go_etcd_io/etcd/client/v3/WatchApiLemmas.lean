@@ -77,7 +77,7 @@ theorem ownBroadcastChan_dup_unknown (ch : GoChan) (γ : ChanNames) (Q : IProp G
 
 omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] in
 /-- **A canceled response with no events** (a fresh zero header, a close error grpc's `status`
-accepts) is any position's element of a watch's channel (`outcElem`, D46: an error, at a firing
+accepts) is any position's element of a watch's channel (`outcElem`, D47: an error, at a firing
 `σ0` of the read update, the second cursor standing still). -/
 theorem outcElem_canceled (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF)
     (σ0 : KVState) (i : Nat) (c : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
@@ -163,7 +163,7 @@ theorem watch_spsc_alloc (o : OpFull) (Q : KVState → IProp GF) (rev : w64)
   ipureintro; exact ⟨rfl, rfl⟩
 
 omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] in
-/-- **`Watch`'s result** (D46): a watch's channel of `outcElem` at the names `γ`, the consumer's
+/-- **`Watch`'s result** (D47): a watch's channel of `outcElem` at the names `γ`, the consumer's
 side and the second cursor at the start, is the triple's (`watchStateElem`) at `γ` with its second
 cursor as the cursor. -/
 theorem watch_post (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (ch : Loc) (rev : w64) :

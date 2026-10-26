@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-21
+checked: 2026-10-26
 links:
   - etcd-io/etcd#22395 pr open: same root cause and fix (checkIntervals reads a from-key delete as empty); does not mention the panic, says not a security fix
   - etcd-io/etcd#22445 issue closed: same root cause, closed as a duplicate of #22395

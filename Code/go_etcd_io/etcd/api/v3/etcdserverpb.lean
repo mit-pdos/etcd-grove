@@ -202,6 +202,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   _Lease_LeaseKeepAlive_Handler_unfold : FuncUnfold _Lease_LeaseKeepAlive_Handler [] _Lease_LeaseKeepAlive_Handler.impl
   RegisterClusterServer_unfold : FuncUnfold RegisterClusterServer [] RegisterClusterServer.impl
   RegisterMaintenanceServer_unfold : FuncUnfold RegisterMaintenanceServer [] RegisterMaintenanceServer.impl
+  NewAuthClient_unfold : FuncUnfold NewAuthClient [] NewAuthClient.impl
   RegisterAuthServer_unfold : FuncUnfold RegisterAuthServer [] RegisterAuthServer.impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
   import_membershippb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
@@ -392,6 +393,7 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions._Lease_LeaseKeepAlive_Handler_unfold
   Assumptions.RegisterClusterServer_unfold
   Assumptions.RegisterMaintenanceServer_unfold
+  Assumptions.NewAuthClient_unfold
   Assumptions.RegisterAuthServer_unfold
   Assumptions.import_protoimpl_Assumption
   Assumptions.import_membershippb_Assumption

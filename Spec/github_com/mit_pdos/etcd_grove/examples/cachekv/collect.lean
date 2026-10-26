@@ -8,7 +8,7 @@ change of the KV is a put of the plan, whose keys are under the prefix and in th
 event at `upTo` or above; with `true` the events read are the puts at revisions `2, 3, ...`, each
 of a key and value of the plan (`P`) and the put at its revision of a state the client saw
 (`common.kmRevAt γk`), at least up to `upTo` (watchkv's `collect`, through the cache). (Until
-2026-10-26, D47, at the server's model, of a server of watchkv's workload.)
+2026-10-26, D48, at the server's model, of a server of watchkv's workload.)
 -/
 module
 

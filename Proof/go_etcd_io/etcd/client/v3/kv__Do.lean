@@ -254,7 +254,7 @@ theorem kv.Do.wp_generic
         ipureintro
         exact ⟨(Herr'.2 (by simp)).1, (Herr'.2 (by simp)).2, rfl⟩
 
-/-- `kv.Do` on a `*kv` of the members (D43): `kv.Do.wp_generic` at the members' specs, registered
+/-- `kv.Do` on a `*kv` of the members (D44): `kv.Do.wp_generic` at the members' specs, registered
 by `isKV`'s registrations (`kvRegs_rpcRange`, ...) and met by the caller's side (`rangeSpec_of`,
 ...). -/
 theorem kv.Do.wp_members
@@ -324,7 +324,7 @@ theorem doRunOk_kind (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → I
     · ipureintro; exact Or.inr (Or.inr H)
     iright; iright; iframe Hu; ipureintro; exact H
 
-/-- `kv.Do` on a `*kv` of etcd's KV `γ` (D43): `kv.Do.wp_members` at its hidden members, from the
+/-- `kv.Do` on a `*kv` of etcd's KV `γ` (D44): `kv.Do.wp_members` at its hidden members, from the
 floor `[]` and the committed index `0` (`isKv`'s `srvStart`) and the caller's update at each member's
 names (`rangeUpd_of`, `putUpd_of`, `delUpd_of`); the reply's fields as the state's
 (`rangeAns_st`, `putAns_st`, `delAns_st`). -/

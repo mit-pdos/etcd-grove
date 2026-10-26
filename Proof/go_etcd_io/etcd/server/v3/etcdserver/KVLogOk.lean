@@ -1,5 +1,5 @@
 /-
-**A KV state is a well-formed log's** (D47, 2026-10-26). Lean-first (no Rocq counterpart).
+**A KV state is a well-formed log's** (D48, 2026-10-26). Lean-first (no Rocq counterpart).
 
 The client's specs give, with the state `σ` a reply or a watch response reads (the one the
 caller's update fired at), that `σ` is the state of a log the store could have made:

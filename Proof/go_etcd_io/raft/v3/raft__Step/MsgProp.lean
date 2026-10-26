@@ -159,6 +159,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- what `RawNode` keeps track of is untouched (2026-10-09)
         "%Hframe" ∷ ⌜LocalFrame s s' ∧ s'.logst.applying = s.logst.applying⌝ ∗
+        -- (2026-10-25, T-M M2b) a pre-candidate keeps its log and commit index (`PreKeep`)
+        "%Hpk" ∷ ⌜s.role = .preCandidate → PreKeep s s'⌝ ∗
         -- Either one step from `s` consuming at most the proposal (forwarded or
         -- dropped), or -- appended at the leader -- the `StepC.propose` state's premises
         -- and one step from that state on (the broadcast), so that `Step` can take
@@ -224,6 +226,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
         isplitr
+        · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
+        isplitr
         · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
         iright; iexact Herrn
     · -- forwarded: `StepC.propForward`
@@ -243,6 +247,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · ipureintro; exact nstateWf_sendMsgs _ _ Hwf
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+      isplitr
+      · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
       isplitr
       · ipureintro
         refine ⟨[absMsg .propose m ents ctx], by simp, by simp, StepCD.frame ?_ (by rframe)⟩
@@ -290,6 +296,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · ipureintro; exact Hwf
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+      isplitr
+      · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
       isplitr
       · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
       iright; iexact Herrn
@@ -347,6 +355,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · ipureintro; exact nstateWf_prvals _ _ (nstateWf_sendMsgs _ _ Hwf)
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+      isplitr
+      · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
       isplitr
       · ipureintro
         have Hrl : (toPState s).role = .leader := by rw [toPState_role, Hrole]; rfl
@@ -443,6 +453,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
         isplitr
+        · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
+        isplitr
         · ipureintro
           exact ⟨[], by simp, by simp, by
             first
@@ -485,6 +497,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · ipureintro; exact Hwf
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+      isplitr
+      · ipureintro; first | exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩ | exact fun h => by cases h | exact fun h => absurd (h.symm.trans Hrole) (by decide)
       isplitr
       · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
       iright; iexact Herrn

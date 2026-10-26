@@ -5,6 +5,7 @@ public import Perennial.Code.context
 public import Perennial.Code.fmt
 public import Perennial.Code.strings
 public import Code.google_golang_org.grpc
+public import Code.go_etcd_io.etcd.api.v3.authpb
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Perennial.Code.sync
 public import Perennial.Code.time
@@ -576,20 +577,17 @@ noncomputable def valCtx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] valCtx.ty
 
-axiom PermissionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Permission.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom UserAddOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 @[reducible] noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty
 
-axiom PermRead [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PermRead [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
-axiom PermWrite [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PermWrite [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
-axiom PermReadWrite [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PermReadWrite [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
 
 axiom CompareVersion [FfiSyntax] [GoGlobalContext] : val
 
@@ -1080,6 +1078,203 @@ noncomputable def NewWatchFromWatchClient [FfiSyntax] [GoGlobalContext] : GoStri
 
 noncomputable def streamKeyFromCtx [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.streamKeyFromCtx"
+
+/-- go: auth.go:120:6 -/
+noncomputable def NewAuth.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc authClient.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (App (Val (GoInstruction (FuncResolve RetryAuthClient []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral authClient.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"remote")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty (Var "$v0")))]))))
+  (Let "api" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType authClient.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType authClient.ty) Auth.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "api"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Client.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Client.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef authClient.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "api"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType authClient.ty)))) (Pair (Var "api") (Var "$r0"))))))))))
+
+/-- go: auth.go:141:25 -/
+noncomputable def authClient.AuthEnable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "auth"
+  (Lam "ctx"
+  (App (Val exceptionDo)
+  (Let "auth" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "auth"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty))) (LiteralValue [])))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"AuthEnable"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"remote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty) (go.GoType.PointerType AuthEnableResponse.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty)))) (Var "resp"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve ContextError []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
+
+/-- go: auth.go:156:25 -/
+noncomputable def authClient.UserAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "auth"
+  (Lam "ctx"
+  (Lam "name"
+  (Lam "password"
+  (App (Val exceptionDo)
+  (Let "auth" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "auth"))
+  (Let "password" (App (Val (GoInstruction (GoAlloc go.string))) (Var "password"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "password"))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions.ty))) (Let "$v0" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"NoPassword")) (ElementExpression go.bool (Var "$v0")))]))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Password")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Options")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions.ty) (Var "$v2")))]))))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"UserAdd"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"remote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty) (go.GoType.PointerType AuthUserAddResponse.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty)))) (Var "resp"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve ContextError []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))))
+
+/-- go: auth.go:176:25 -/
+noncomputable def authClient.UserGrantRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "auth"
+  (Lam "ctx"
+  (Lam "user"
+  (Lam "role"
+  (App (Val exceptionDo)
+  (Let "auth" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "auth"))
+  (Let "role" (App (Val (GoInstruction (GoAlloc go.string))) (Var "role"))
+  (Let "user" (App (Val (GoInstruction (GoAlloc go.string))) (Var "user"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "user"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "role"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"User")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Role")) (ElementExpression go.string (Var "$v1")))])))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"UserGrantRole"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"remote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty) (go.GoType.PointerType AuthUserGrantRoleResponse.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty)))) (Var "resp"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve ContextError []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))))
+
+/-- go: auth.go:196:25 -/
+noncomputable def authClient.RoleAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "auth"
+  (Lam "ctx"
+  (Lam "name"
+  (App (Val exceptionDo)
+  (Let "auth" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "auth"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0")))]))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"RoleAdd"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"remote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty) (go.GoType.PointerType AuthRoleAddResponse.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty)))) (Var "resp"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve ContextError []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
+
+/-- go: auth.go:201:25 -/
+noncomputable def authClient.RoleGrantPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "auth"
+  (Lam "ctx"
+  (Lam "name"
+  (Lam "key"
+  (Lam "rangeEnd"
+  (Lam "permType"
+  (App (Val exceptionDo)
+  (Let "auth" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authClient.ty)))) (Var "auth"))
+  (Let "permType" (App (Val (GoInstruction (GoAlloc PermissionType.ty))) (Var "permType"))
+  (Let "rangeEnd" (App (Val (GoInstruction (GoAlloc go.string))) (Var "rangeEnd"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "key")))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "rangeEnd")))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad PermissionType.ty))) (Var "permType"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v0"))), (KeyedElement (some (KeyField go!"RangeEnd")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"PermType")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty (Var "$v2")))]))))))
+  (Let "perm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Var "perm"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Perm")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty) (Var "$v1")))])))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef authClient.ty go!"remote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authClient.ty)))) (Var "auth"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty) (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Var "resp"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve ContextError []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Pair (Var "perm") (Var "$r0"))))))))))))))))))))
 
 /-- go: block_logger.go:34:6 -/
 noncomputable def newBlockLogger.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -5531,6 +5726,128 @@ noncomputable def retryLeaseClient.LeaseKeepAlive.impl [FfiSyntax] [GoGlobalCont
   (App (Val doReturn)
   (Pair (Var "$ret0") (Var "$ret1")))))))))))))))
 
+/-- RetryAuthClient implements a AuthClient.
+
+    go: retry.go:241:6 -/
+noncomputable def RetryAuthClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType retryAuthClient.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (GoAlloc retryAuthClient.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty) _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.NewAuthClient []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral retryAuthClient.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ac")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty (Var "$v0")))])))))))))
+
+/-- go: retry.go:263:29 -/
+noncomputable def retryAuthClient.AuthEnable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "rac"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty)))) (Val #())))
+  (Let "rac" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)))) (Var "in"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"AuthEnable"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef retryAuthClient.ty go!"ac"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1")))))))))))))))))
+
+/-- go: retry.go:275:29 -/
+noncomputable def retryAuthClient.UserAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "rac"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty)))) (Val #())))
+  (Let "rac" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)))) (Var "in"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"UserAdd"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef retryAuthClient.ty go!"ac"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1")))))))))))))))))
+
+/-- go: retry.go:287:29 -/
+noncomputable def retryAuthClient.UserGrantRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "rac"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty)))) (Val #())))
+  (Let "rac" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)))) (Var "in"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"UserGrantRole"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef retryAuthClient.ty go!"ac"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1")))))))))))))))))
+
+/-- go: retry.go:295:29 -/
+noncomputable def retryAuthClient.RoleAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "rac"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty)))) (Val #())))
+  (Let "rac" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)))) (Var "in"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"RoleAdd"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef retryAuthClient.ty go!"ac"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1")))))))))))))))))
+
+/-- go: retry.go:303:29 -/
+noncomputable def retryAuthClient.RoleGrantPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "rac"
+  (Lam "ctx"
+  (Lam "in"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Val #())))
+  (Let "rac" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "in"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "in"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty go!"RoleGrantPermission"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.ty))) (App (Val (GoInstruction (StructFieldRef retryAuthClient.ty go!"ac"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType retryAuthClient.ty)))) (Var "rac"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1")))))))))))))))))
+
 /-- unaryClientInterceptor returns a new retrying unary client interceptor.
 
     The default configuration of the interceptor is to not retry *at all*. This behaviour can be
@@ -8554,7 +8871,7 @@ noncomputable def progressRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3 where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.strings, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.credentials.insecure, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.crypto.tls, pkg_id.google_golang_org.grpc.metadata, pkg_id.io, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.strings, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.credentials.insecure, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.crypto.tls, pkg_id.google_golang_org.grpc.metadata, pkg_id.io, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -8562,6 +8879,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8660,6 +8978,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -8883,44 +9203,35 @@ class AuthRoleListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
 
 attribute [instance] AuthRoleListResponse.TypeAssumptions.underlying
 
-axiom PermissionType : Type
-axiom PermissionType.zero_val : ZeroVal PermissionType
-attribute [instance] PermissionType.zero_val
+abbrev PermissionType [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type
+
+@[reducible] noncomputable def PermissionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty
 
 class PermissionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying PermissionType.underlying PermissionType
   underlying : go.UnderlyingDirectedEq PermissionType.ty PermissionType.underlying
-  isUnderlying : go.IsUnderlying PermissionType.underlying PermissionType.underlying
 
-attribute [instance] PermissionType.TypeAssumptions.type_repr
-  PermissionType.TypeAssumptions.underlying
-  PermissionType.TypeAssumptions.isUnderlying
+attribute [instance] PermissionType.TypeAssumptions.underlying
 
-axiom Permission : Type
-axiom Permission.zero_val : ZeroVal Permission
-attribute [instance] Permission.zero_val
+abbrev Permission [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission
+
+@[reducible] noncomputable def Permission.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty
 
 class Permission.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Permission.underlying Permission
   underlying : go.UnderlyingDirectedEq Permission.ty Permission.underlying
-  isUnderlying : go.IsUnderlying Permission.underlying Permission.underlying
 
-attribute [instance] Permission.TypeAssumptions.type_repr
-  Permission.TypeAssumptions.underlying
-  Permission.TypeAssumptions.isUnderlying
+attribute [instance] Permission.TypeAssumptions.underlying
 
-axiom UserAddOptions : Type
-axiom UserAddOptions.zero_val : ZeroVal UserAddOptions
-attribute [instance] UserAddOptions.zero_val
+abbrev UserAddOptions [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions
+
+@[reducible] noncomputable def UserAddOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.UserAddOptions.ty
 
 class UserAddOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying UserAddOptions.underlying UserAddOptions
   underlying : go.UnderlyingDirectedEq UserAddOptions.ty UserAddOptions.underlying
-  isUnderlying : go.IsUnderlying UserAddOptions.underlying UserAddOptions.underlying
 
-attribute [instance] UserAddOptions.TypeAssumptions.type_repr
-  UserAddOptions.TypeAssumptions.underlying
-  UserAddOptions.TypeAssumptions.isUnderlying
+attribute [instance] UserAddOptions.TypeAssumptions.underlying
 
 abbrev Auth [FfiSyntax] : Type := GoInterface
 
@@ -8961,6 +9272,11 @@ class authClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_remote : ∀ (x : authClient) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient), go.IsGoStepPureDetTagged under (StructFieldSet authClient.underlying go!"remote") (PairV #x #y) (Val #(({ x with remote' := y } : authClient)))
   get_callOpts : ∀ (x : authClient), go.IsGoStepPureDetTagged under (StructFieldGet authClient.underlying go!"callOpts") #x (Val #(x.callOpts'))
   set_callOpts : ∀ (x : authClient) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet authClient.underlying go!"callOpts") (PairV #x #y) (Val #(({ x with callOpts' := y } : authClient)))
+  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"AuthEnable" authClient.AuthEnable.impl
+  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"RoleAdd" authClient.RoleAdd.impl
+  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"RoleGrantPermission" authClient.RoleGrantPermission.impl
+  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"UserAdd" authClient.UserAdd.impl
+  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"UserGrantRole" authClient.UserGrantRole.impl
 
 attribute [instance] authClient.TypeAssumptions.type_repr
   authClient.TypeAssumptions.underlying
@@ -8968,6 +9284,11 @@ attribute [instance] authClient.TypeAssumptions.type_repr
   authClient.TypeAssumptions.set_remote
   authClient.TypeAssumptions.get_callOpts
   authClient.TypeAssumptions.set_callOpts
+  authClient.TypeAssumptions.ptr_AuthEnable_unfold
+  authClient.TypeAssumptions.ptr_RoleAdd_unfold
+  authClient.TypeAssumptions.ptr_RoleGrantPermission_unfold
+  authClient.TypeAssumptions.ptr_UserAdd_unfold
+  authClient.TypeAssumptions.ptr_UserGrantRole_unfold
 
 structure blockLogger [FfiSyntax] where
   mk ::
@@ -11312,11 +11633,21 @@ class retryAuthClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq retryAuthClient.ty retryAuthClient.underlying
   get_ac : ∀ (x : retryAuthClient), go.IsGoStepPureDetTagged under (StructFieldGet retryAuthClient.underlying go!"ac") #x (Val #(x.ac'))
   set_ac : ∀ (x : retryAuthClient) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient), go.IsGoStepPureDetTagged under (StructFieldSet retryAuthClient.underlying go!"ac") (PairV #x #y) (Val #(({ x with ac' := y } : retryAuthClient)))
+  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType retryAuthClient.ty) go!"AuthEnable" retryAuthClient.AuthEnable.impl
+  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType retryAuthClient.ty) go!"RoleAdd" retryAuthClient.RoleAdd.impl
+  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType retryAuthClient.ty) go!"RoleGrantPermission" retryAuthClient.RoleGrantPermission.impl
+  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType retryAuthClient.ty) go!"UserAdd" retryAuthClient.UserAdd.impl
+  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType retryAuthClient.ty) go!"UserGrantRole" retryAuthClient.UserGrantRole.impl
 
 attribute [instance] retryAuthClient.TypeAssumptions.type_repr
   retryAuthClient.TypeAssumptions.underlying
   retryAuthClient.TypeAssumptions.get_ac
   retryAuthClient.TypeAssumptions.set_ac
+  retryAuthClient.TypeAssumptions.ptr_AuthEnable_unfold
+  retryAuthClient.TypeAssumptions.ptr_RoleAdd_unfold
+  retryAuthClient.TypeAssumptions.ptr_RoleGrantPermission_unfold
+  retryAuthClient.TypeAssumptions.ptr_UserAdd_unfold
+  retryAuthClient.TypeAssumptions.ptr_UserGrantRole_unfold
 
 structure serverStreamingRetryingStream [FfiSyntax] where
   mk ::
@@ -12326,6 +12657,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   progressRequest_instance : progressRequest.TypeAssumptions
   watcherStream_instance : watcherStream.TypeAssumptions
   valCtx_instance : valCtx.TypeAssumptions
+  NewAuth_unfold : FuncUnfold NewAuth [] NewAuth.impl
   newBlockLogger_unfold : FuncUnfold newBlockLogger [] newBlockLogger.impl
   New_unfold : FuncUnfold New [] New.impl
   authority_unfold : FuncUnfold authority [] authority.impl
@@ -12383,6 +12715,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   isSafeRetryMutableRPC_unfold : FuncUnfold isSafeRetryMutableRPC [] isSafeRetryMutableRPC.impl
   RetryKVClient_unfold : FuncUnfold RetryKVClient [] RetryKVClient.impl
   RetryLeaseClient_unfold : FuncUnfold RetryLeaseClient [] RetryLeaseClient.impl
+  RetryAuthClient_unfold : FuncUnfold RetryAuthClient [] RetryAuthClient.impl
   isSafeRetry_unfold : FuncUnfold isSafeRetry [] isSafeRetry.impl
   isContextError_unfold : FuncUnfold isContextError [] isContextError.impl
   withRepeatablePolicy_unfold : FuncUnfold withRepeatablePolicy [] withRepeatablePolicy.impl
@@ -12397,6 +12730,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
@@ -12526,6 +12860,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.progressRequest_instance
   Assumptions.watcherStream_instance
   Assumptions.valCtx_instance
+  Assumptions.NewAuth_unfold
   Assumptions.newBlockLogger_unfold
   Assumptions.New_unfold
   Assumptions.authority_unfold
@@ -12583,6 +12918,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.isSafeRetryMutableRPC_unfold
   Assumptions.RetryKVClient_unfold
   Assumptions.RetryLeaseClient_unfold
+  Assumptions.RetryAuthClient_unfold
   Assumptions.isSafeRetry_unfold
   Assumptions.isContextError_unfold
   Assumptions.withRepeatablePolicy_unfold
@@ -12597,6 +12933,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.import_fmt_Assumption
   Assumptions.import_strings_Assumption
   Assumptions.import_grpc_Assumption
+  Assumptions.import_authpb_Assumption
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption

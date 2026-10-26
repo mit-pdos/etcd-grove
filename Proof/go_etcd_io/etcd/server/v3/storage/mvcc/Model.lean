@@ -70,17 +70,6 @@ theorem Rev.gt_iff (a b : Rev) : Rev.gt a b = true ↔ Rev.lt b a := by
     · exact Or.inl h
     · exact Or.inr ⟨h1.symm, h2⟩
 
-theorem Rev.lt_irrefl (a : Rev) : ¬ Rev.lt a a := by
-  unfold Rev.lt; omega
-
-theorem Rev.lt_trans {a b c : Rev} (h1 : Rev.lt a b) (h2 : Rev.lt b c) : Rev.lt a c := by
-  unfold Rev.lt at *
-  rcases h1 with h1 | ⟨h1, h1'⟩ <;> rcases h2 with h2 | ⟨h2, h2'⟩
-  · exact Or.inl (by omega)
-  · exact Or.inl (by rw [← h2]; exact h1)
-  · exact Or.inl (by rw [h1]; exact h2)
-  · exact Or.inr ⟨h1.trans h2, by omega⟩
-
 theorem Rev.gt_true_of_main_lt {a b : Rev} (h : sint.Z b.main < sint.Z a.main) :
     Rev.gt a b = true := by
   unfold Rev.gt; simp [h]

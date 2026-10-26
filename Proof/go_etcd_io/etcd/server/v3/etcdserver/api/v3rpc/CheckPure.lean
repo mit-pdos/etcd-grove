@@ -78,9 +78,6 @@ theorem opsCheck_toTxnOps : ∀ (n : Int) (us : List ReqOp), opsCheck n us = non
     rfl
 end
 
-/-- **An empty operation is rejected** (`ErrGRPCKeyNotFound`). -/
-theorem opCheck_empty (n : Int) : opCheck n .empty = some .keyNotFound := rfl
-
 /-- **`checkTxnRequest`, purely** (see the file header). -/
 theorem txnCheck_ok_iff (n : Int) (cs : List CmpModel) (ts es : List ReqOp) :
     txnReqOk n cs ts es ↔

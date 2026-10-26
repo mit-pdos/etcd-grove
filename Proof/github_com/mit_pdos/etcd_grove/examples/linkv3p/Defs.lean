@@ -256,7 +256,7 @@ def memAt3 (R₁ R₂ R₃ : v3rpc.WSrv GF) : Nat → GoString × v3rpc.WSrv GF
 /-- **The clients' watch environment** (W4): the three members at their bridges, the watch
 contract at the cluster's committed history (`etcdModelOfHistory`, at the first member's names,
 which the others' agree with), under the prefix `pfx`, at the KV state variable of those names
-(D46: the watches' read updates are of it). `clientv3.New` takes it as its caller's
+(D47: the watches' read updates are of it). `clientv3.New` takes it as its caller's
 choice (`isNewClient`); a client that never watches needs none of its facts. -/
 def watchEnv (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
     EtcdGrove.client.WEnv GF :=

@@ -164,22 +164,6 @@ theorem restModel_append [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : Lis
 
 /-! ## The model's steps -/
 
-/-- A request whose `dispatch` kind is not the cluster version's has none. -/
-theorem cvs_none_of_kind (rq : apply.IRRModel)
-    (h : apply.dispatchKind rq ≠ .clusterVersionSet) : rq.clusterVersionSet = none := by
-  cases hc : rq.clusterVersionSet with
-  | none => rfl
-  | some v => exact absurd (by unfold apply.dispatchKind; simp [hc]) h
-
-/-- A request whose `dispatch` kind is neither cluster request's has no member attributes. -/
-theorem cma_none_of_kind (rq : apply.IRRModel)
-    (h1 : apply.dispatchKind rq ≠ .clusterVersionSet)
-    (h2 : apply.dispatchKind rq ≠ .clusterMemberAttrSet) : rq.clusterMemberAttrSet = none := by
-  have h0 := cvs_none_of_kind rq h1
-  cases hc : rq.clusterMemberAttrSet with
-  | none => rfl
-  | some v => exact absurd (by unfold apply.dispatchKind; simp [h0, hc]) h2
-
 /-- **`apply.Apply`'s effect on a covered request** (`plainCover`): it is neither skipped nor
 rejected (a covered request has no side-effect-free and no admin field), so the effect is
 `dispatch`'s. -/
@@ -323,6 +307,21 @@ def clusterBeOn (c be : Loc) : IProp GF :=
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
         #be : GoInterface) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" mbl ↦□ lg)
+
+/-- **The membership buckets of an image good for the cluster `c`** (opaque, a premise about the
+images a member applies; D22 receiver epochs, S8d, W6, 2026-10-25): the `members`,
+`members_removed` and `cluster` buckets (`mem`, `rem`, `cl`) decode (`MustReadMembersFromBackend`'s
+keys and JSON values, the cluster version, the downgrade record), the members include `c`'s local
+member and are the static cluster's (those of `bootOk`'s `Members()` contract, with the directory's
+peer URLs), none removed, and the cluster version is one `MustDetectDowngrade` accepts for this
+server (no downgrade). -/
+opaque membership.memBucketsOk (c : Loc) (mem rem cl : Option backend.BktData) : Prop
+
+/-- **The tracked buckets `r` hold an image good for the cluster `c`** (`memBucketsOk` of its three
+membership buckets; what `RaftCluster.Recover`'s axiom takes). -/
+def membership.clusterImageOk (c : Loc) (r : GMap GoString backend.BktData) : Prop :=
+  membership.memBucketsOk c (r.lookup go!"members") (r.lookup go!"members_removed")
+    (r.lookup go!"cluster")
 
 /-- **The server's objects on the backend at `be`** (D22 receiver epochs, S7c, S7e): the alarm
 store `al`'s, the auth store `st`'s and the lessor `lp`'s user halves of their backend fields and

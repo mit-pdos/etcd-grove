@@ -1,5 +1,5 @@
 /-
-**The watch's responses, as reads of etcd's KV state: the definitions** (D46, 2026-10-26).
+**The watch's responses, as reads of etcd's KV state: the definitions** (D47, 2026-10-26).
 Lean-first (no Rocq counterpart). `WatchState.lean` has the triple (`watcher.Watch.specσ`) and the
 firing of the caller's read update; the client watcher's pipeline (`InvWatch.lean`, ...) reads these.
 
@@ -16,7 +16,7 @@ firing of the caller's read update; the client watcher's pipeline (`InvWatch.lea
   `(c, p]`), or events: exactly
   `rangeEvents σ o (c + 1) (c' + 1)` for some `c < c' ≤ σ.rev` (`eventsIs`: each event's type,
   key, revision and key-value); when the position moves, `σ` is a well-formed small log's state
-  through the new one (`kvLogOkTo`, D47);
+  through the new one (`kvLogOkTo`, D48);
 * `watchStateElem`: the `i`-th response of a watch, with the update's `□ Q σ`, at the positions
   `i` and `i + 1` of the watch's cursor;
 * `client.rawRespOk`: the same at the server's level (the client watcher's pipeline's, before the
@@ -163,7 +163,7 @@ def watchStateElem (γw : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF
     monoListIdxOwn γw.cur i.toNat c ∗ monoListIdxOwn γw.cur (i.toNat + 1) c' ∗
     watchStateRespOk o σ c c' v r)
 
-/-- **A position of a watch of `o` with the read update's `Q`** (persistent; D47): the watch's start
+/-- **A position of a watch of `o` with the read update's `Q`** (persistent; D48): the watch's start
 (`c + 1` its revision), or a revision of a state the update fired at, well formed through it. -/
 def posQ (o : OpFull) (Q : KVState → IProp GF) (c : w64) : IProp GF :=
   iprop(⌜sint.Z c + 1 = sint.Z o.base.rev⌝ ∨

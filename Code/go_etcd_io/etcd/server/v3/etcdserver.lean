@@ -951,10 +951,22 @@ noncomputable def raftNode.start.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (chan.send (go.GoType.StructType []))) (Var "$chan")) (Var "$v"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (Pair (Var "msgs") (Var "$r0")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "confChanged"))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "notifyc"))
+  (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (Let "$ch1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"stopped"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "r"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase (go.GoType.StructType []) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #()))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #()))))])))))
+  (App (Val doExecute)
+  (Val #())))))
   (App (Val doExecute)
   (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "notifyc"))
   (Let "$v" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
-  (App (App (Val (chan.send (go.GoType.StructType []))) (Var "$chan")) (Var "$v")))))))))
+  (App (App (Val (chan.send (go.GoType.StructType []))) (Var "$chan")) (Var "$v"))))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"CommittedEntries"))) (Var "rd")))
   (Let "ent" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Val #())))
   (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Var "$range"))
@@ -1182,7 +1194,7 @@ noncomputable def raftNode.start.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "internalTimeout") (Var "$r0")))))))))))))
 
-/-- go: raft.go:350:6 -/
+/-- go: raft.go:361:6 -/
 noncomputable def updateCommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ap"
   (Lam "rh"
@@ -1216,7 +1228,7 @@ noncomputable def updateCommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: raft.go:363:20 -/
+/-- go: raft.go:374:20 -/
 noncomputable def raftNode.processMessages.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ms"
@@ -1327,7 +1339,7 @@ noncomputable def raftNode.processMessages.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "sentAppResp") (Var "$r0"))))))))))))
 
-/-- go: raft.go:410:20 -/
+/-- go: raft.go:421:20 -/
 noncomputable def raftNode.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -1336,7 +1348,7 @@ noncomputable def raftNode.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv toApply.ty)))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"applyc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "r")))))))))
 
-/-- go: raft.go:414:20 -/
+/-- go: raft.go:425:20 -/
 noncomputable def raftNode.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -1357,7 +1369,7 @@ noncomputable def raftNode.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))])))))))))))
 
-/-- go: raft.go:426:20 -/
+/-- go: raft.go:437:20 -/
 noncomputable def raftNode.onStop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -1399,7 +1411,7 @@ noncomputable def raftNode.onStop.impl [FfiSyntax] [GoGlobalContext] : val :=
     ticks in multi data-center deployments, thus
     speeding up election process.
 
-    go: raft.go:451:20 -/
+    go: raft.go:462:20 -/
 noncomputable def raftNode.advanceTicks.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ticks"
@@ -1422,7 +1434,7 @@ noncomputable def raftNode.advanceTicks.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))
 
-/-- go: raft.go:457:20 -/
+/-- go: raft.go:468:20 -/
 noncomputable def raftNode.ReadState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon

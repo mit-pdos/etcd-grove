@@ -458,7 +458,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     with ⟨%Hb1, Hghost⟩
   icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
   have HnP : m.Type' ≠ MsgProp := by not_net
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
   -- (D22 S-d3b) the log and what the storage will hold, before the step (`ackInv`'s carry)
   icases ownRaftPhysC_persistRel cf rnv.raft' id s $$ Hphys with ⟨%Hpr, Hphys⟩
   icases ownRaftPhysC_gh cf rnv.raft' id s $$ Hphys with ⟨%Hgh0, Hphys⟩
@@ -766,7 +766,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     iexact Hed
   icases propData_ccEnts γ ents $$ Hed with ⟨%cs, #Hcc⟩
   imod rdCred_zero_upd (GF := GF) γ with Hcr
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp
     (by simp only [StepMsg, stepMsgTypes]; rw [Hty]; simp [MsgProp])
     (by msg_ne') (by msg_ne')
@@ -811,7 +811,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     · imodintro
       iintro %Hc
       simp [MsgProp, MsgSnap] at Hc
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %_, %_, -, -, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %Htm, %_, -, -, Herr⟩
   ihave #Hstep : stepErr err $$ [Herr]
   · unfold stepErr
     icases Herr with (%Hnil | ⟨-, #Hpd⟩)
@@ -839,7 +839,8 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (stepsOk_mono s s' _ Hfr'.1 ⟨Hfr'.2.2.2.2.1, Hfr'.2.2.2.2.2.1⟩ Hc Hap'
       (tc_le_of_gh Hfr'.2.2.2.2.2.2.2.2.1) Hstok)
     (by rw [Hfr'.1]; exact Htrm) (by rw [Hfr'.2.2.2.2.2.2.1]; exact Hstor)
-    (Hpvoff.keep rfl rfl Hfr'.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.1 Hfr'.2.2.2.2.2.2.2.2.2.1)
+    (Hpvoff.keep rfl rfl Hfr'.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.1 Hfr'.2.2.2.2.2.2.2.2.2.1
+      (PreGuardF.step (Htm (by msg_ne'))))
     (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
     (Int.le_trans Hrs_clb Hc)
     (RNFl.keep Hrnfl Hfr'.2.2.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.2.2.2 Hap')
@@ -865,7 +866,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 over `c'`, a non-leader takes no step, a leader that stays a voter takes `reMatch`, `commit` by a
 joint quorum of `c'` and `sendApps` (an `MsgApp` carrying its commit index, `ReplSends`), and a
 removed or demoted leader takes `reMatch` and steps down (`StepR.stepDown`, with
-`StepDownOnRemoval`). `applyCCOkC_step`'s `StepR` version: `StepR` has the step-down. -/
+`StepDownOnRemoval`) or (2026-10-25, T-M M2c) without it takes `reMatch` only and stays leader.
+`applyCCOkC_step`'s `StepR` version: `StepR` has the step-down. -/
 theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {B : Int} (c' : CfgM)
     (id : w64) (s s' : NState) (g : RGh) (H : ApplyCCOkC c' id s s') (hc : g.cfg.cfg = c') :
     StepR Adm dec id B (rOf s g) [] (rOf s' g) := by
@@ -933,8 +935,22 @@ theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} 
         refine ⟨?_, ?_, fun _ => ⟨Hl, ?_⟩⟩ <;> (rw [← Hs2, ← Hs1]; try rfl)
       rw [rOf_frame _ _ g Hfr]
       exact HR
-    · -- removed or demoted: `reMatch`, then the step-down
+    · -- removed or demoted: `reMatch`, then the step-down with `StepDownOnRemoval`; (2026-10-25,
+      -- T-M M2c) without it, `reMatch` only: the node stays leader
       rw [ite_eq_right Hv] at Hsw
+      by_cases Hsd : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState).sdr = true
+      rotate_left
+      · rw [if_neg Hsd] at Hsw
+        subst Hsw
+        generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+          NState) = s1 at H1 ⊢
+        have HR1 := H1.toR (Adm := Adm) (dec := dec) (B := B) (rOf s g) rfl hc Hz
+        have Hfr1 : RFrame s s1 := by
+          refine ⟨?_, ?_, fun _ => ⟨Hl, ?_⟩⟩ <;> (rw [← Hs1]; try rfl)
+        rw [← rOf_frame _ _ g Hfr1] at HR1
+        exact HR1
+      rw [if_pos Hsd] at Hsw
       obtain ⟨pvs', rfl⟩ := Hsw
       generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState) = s1 at H1 ⊢
@@ -975,13 +991,15 @@ theorem applyCCOkC_frame {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC 
       uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
       -- (2026-10-17) no pre-candidate made (`RNPv`)
       (s'.role = .preCandidate → s.role = .preCandidate) := by
-  rcases applyCCOkC_step (B := 0) c' id s s' H with ⟨-, Hr, Hsf, Htk, Ht, Hpv, Hg, Hl, Hc⟩ | ⟨Hl, Hv, -⟩
+  rcases applyCCOkC_step (B := 0) c' id s s' H with ⟨-, Hr, Hsf, Htk, Ht, Hpv, Hg, Hl, Hc⟩ | ⟨Hl, Hv, Hsd, -⟩
   · exact ⟨⟨by rw [Hsf, Hr]; exact Hwf.1, by rw [Htk]; exact Hwf.2⟩, Ht, Hpv, Hg, Hl, Hc,
       fun h => by rw [← Hr]; exact h⟩
   · obtain ⟨prs, pvs, -, -, Hsw⟩ := H
     unfold SwitchOkC at Hsw
     rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
-        NState).role = .leader from Hl), ite_eq_right Hv] at Hsw
+        NState).role = .leader from Hl), ite_eq_right Hv,
+      if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState).sdr = true from Hsd)] at Hsw
     obtain ⟨pvs', rfl⟩ := Hsw
     refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
       simp [becomeFollower, resetTo0, resetTo, stepFuncOf]
@@ -1021,7 +1039,7 @@ theorem wp_applyConf_dyn
     (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
-    (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
+    (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -1040,7 +1058,7 @@ theorem wp_applyConf_dyn
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
-  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, Hdec, Hstep, Hal'⟩ := Hpre
+  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep, Hal'⟩ := Hpre
   iintro %Φ ⟨#Hpkg, Hrn, Hphys, Hghost, #Hsdrf, #Hsoft, #Hhard, Hsteps, Hcap, Hpend, #Hdeliv,
     #Hstrecs, #Hloanc, Hch, Hlc⟩ HΦ
   let g : RGh := ⟨rs.capplied, rs.cfg, fp⟩
@@ -1058,13 +1076,7 @@ theorem wp_applyConf_dyn
   icases Hgr with ⟨Hg, %HI, #Hfr, #Hcamp⟩
   icases (entails_wand (persistent_entails_left (wand_entails
     (ownRaftGhost_logRecs (GF := GF) γ id (rOf s g).p true)))) $$ Hg with ⟨Hg, %-, #Hlr⟩
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
-  icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd, Hphys⟩
-  ihave #Hsdrf' := Hsdrf
-  iunfold sdrOk at Hsdrf'
-  icases Hsdrf' with ⟨%b, #Hb, %Hbt⟩
-  icombine Hb Hsd gives %Hbs
-  have Hsdr : s.sdr = true := by rw [← Hbs]; exact Hbt (by rw [hm]; rfl)
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
   -- the entry, in the node's full log
   have Hfull_k : (rOf s g).full[k]? = some e := by
     obtain ⟨t, ht⟩ := Hdp
@@ -1087,14 +1099,22 @@ theorem wp_applyConf_dyn
     obtain ⟨-, Hn⟩ := HI.cand hc'
     have Hac := HI.applied_cidx
     exact Hn k e (Nat.le_trans Hac Hk1) Hkc Hfull_k Hconf
+  -- (2026-10-25, T-M M2b) no pre-candidate either: its campaign guard has no conf entry past
+  -- `applied` (`PreGuardF`; until then pre-vote was off in the dynamic mode)
+  have Hnpc : s.role ≠ .preCandidate := by
+    intro hp
+    have Hg : PreGuardF fp s := by have := Hpf.1; rw [hm] at this; exact this
+    obtain ⟨-, Hn⟩ := Hg HI.full.1 hp
+    have Hac := HI.applied_cidx
+    exact Hn k e (Nat.le_trans Hac Hk1) Hkc Hfull_k Hconf
   imod rdCred_zero_upd (GF := GF) γ with Hcr0
   iapply wp_fupd
   wp_apply +noauto wp_raft_applyConfChange cf rnv.raft' id s cc ccm dq cs'
-      (by rw [Hcfg]; exact Happ) (by have := Hsz; omega) (fun _ _ => Hsdr)
+      (by rw [Hcfg]; exact Happ) (by have := Hsz; omega)
       (fun h => by
         rcases h with h | h
         · exact absurd h Hnc
-        · exact absurd h (Hpf.1 (by rw [hm]; rfl))) Hli2
+        · exact absurd h Hnpc) Hli2
     $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
   -- the ghost step
   let g' : RGh := ⟨k + 1, cs', fp⟩
@@ -1107,12 +1127,12 @@ theorem wp_applyConf_dyn
       rw [List.take_add_one, Hfull_k]; rfl, cfgFold_snoc, H0, Option.bind_some]
     unfold entStep
     rw [ite_eq_left Hconf, Htake, Hdec, Option.bind_some]
-    exact Hstep
+    exact Hstep'
   have HR1 : StepR (AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1))) dec id 0 (rOf s g) []
       (rOf s g') :=
-    StepR.applyConf (rOf s g) k e (ccm.transition, ccm.changes) cs'
+    StepR.applyConf (rOf s g) k e op' cs'
       (by simp [rOf, Hsnap (.inr (by rw [hm]; rfl))]) Hk1 Hkc Hfull_k Hconf
-      Hnoc' (by rw [Htake]; exact Hdec) Hstep Hadm
+      Hnoc' (by rw [Htake]; exact Hdec) Hstep' Hadm
   have HR2 := applyCCOkC_stepR (B := 0) (Adm := AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1)))
     (dec := dec) cs'.cfg id s s' g' Hok rfl
   have HR := StepR.trans _ _ _ _ _ HR1 HR2
@@ -1165,7 +1185,7 @@ theorem wp_applyConf_dyn
       (by rw [Hls']; exact Hdlen) (by rw [Hls']; exact Hunp) (by rw [Hls']; exact Hsnap)
       (stepsOk_mono s s' _ Ht' ⟨by rw [Hls'], by rw [Hls']⟩ Hc' (by rw [Hls']) (tc_le_of_gh Hgh') Hstok)
       (by rw [Ht']; exact Htrm) (by rw [Hls']; exact Hstor)
-      ⟨fun h => by rw [Hpv']; exact Hpvoff.1 h, by rw [Hgh']; exact Hpvoff.2.1,
+      ⟨fun _ _ hp => absurd (Hrl' hp) Hnpc, by rw [Hgh']; exact Hpvoff.2.1,
         by rw [Hgh', Ht']; exact Hpvoff.2.2.1, fun h => by rw [Hgh', Ht']; exact Hpvoff.2.2.2 (Hrl' h)⟩
       (by rw [Hgh']; exact Hrs_out) (by rw [Hgh']; exact Hrs_unst) (Int.le_trans Hrs_clb Hc')
       (by unfold RNFl; rw [Hls']; exact Hrnfl)
@@ -1179,17 +1199,15 @@ theorem wp_applyConf_dyn
 progress map tracks the voters and some of the old learners. -/
 theorem trackedOk_shrink {γ : RaftNames} {id : w64} {s s' : NState} {lrn' : GSet w64}
     (H : TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id)
-    (Hlp : ∀ k, k ∈ lrn' → k ∈ domSet s.progress) (Hd : domSet s'.progress ⊆ γ.reCfg ∪ lrn') :
+    (Hlp : ∀ k, k ∈ lrn' → k ∈ domSet s.progress) (Hd : lrn' = domSet s'.progress \ γ.reCfg) :
     TrackedOk γ (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id := by
   refine TrackedOk.simple_mono (fun k hk => ?_) H
-  have hk' := ((GMap.elem_of_difference _ _ _).1 hk).1
-  rcases (GMap.elem_of_union _ _ _).1 ((GMap.elem_of_subseteq _ _).1 Hd k hk') with h | h
-  · exact Or.inl h
-  · by_cases hc : k ∈ γ.reCfg
-    · exact Or.inl hc
-    · exact Or.inr ((GMap.elem_of_difference _ _ _).2 ⟨Hlp k h, hc⟩)
+  rw [← Hd] at hk
+  by_cases hc : k ∈ γ.reCfg
+  · exact Or.inl hc
+  · exact Or.inr ((GMap.elem_of_difference _ _ _).2 ⟨Hlp k hk, hc⟩)
 
-/-- After `applyConfChange`: the ghost step its result is (`applyCCOk_step`,
+/-- After `applyConfChange`: the ghost step its result is (`applyCCOkC_step`,
 `ownRaftGhost_step_0`), and `ownRawNode` re-sealed at the same client-facing state. -/
 theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s s' : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
@@ -1199,10 +1217,10 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Hunp : rs.unpersisted = s.logst.unpersisted)
     (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps) (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
-    (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
+    {fp : List EntryM} (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s)
-    (Hok : ApplyCCOk γ.reCfg id s s')
+    (Hok : ApplyCCOkC (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id s s')
     -- (D19p, 2026-10-18) the new tracker within the tracked bound
     (Htrk' : TrackedOk γ (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id)
     (Hnl : NsLink γ s) :
@@ -1218,7 +1236,8 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       certLink γ s.logst.storage -∗ £ 1 ={⊤}=∗
       ownRawNode γ rn id rs := by
   obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ :=
-    applyCCOk_step (B := 0) _ γ.reCfg_ne _ _ _ Hok
+    (applyCCOkC_step (B := 0) _ _ _ _ Hok).resolve_right
+      (fun ⟨_, Hv, _⟩ => Hv (by rw [CfgM.voters_simple]; exact Hin))
   have Hprev : s'.logst.prev = s.logst.prev := by rw [Hls]
   have Hstored : s'.logst.stored = s.logst.stored := by rw [Hls]
   have Happ : s'.logst.applying = s.logst.applying := by rw [Hls]
@@ -1241,7 +1260,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   iapply ownRawNode_intro_static γ rn id rs s' (toPState s') rnv sv hprev steps Hm ⟨rfl, Hwf'⟩ Hin Hasync
     (by rw [Happ]; exact Hdlen) (by rw [Hunp']; exact Hunp) (by rw [Hsnap']; exact Hsnap)
     (stepsOk_mono_le s s' _ (by rw [Htm]; exact Int.le_refl _) ⟨Hprev, Hstored⟩ Hc Happ (tc_le_of_gh Hgh) Hstok)
-    (by rw [Htm]; exact Htrm) (by rw [Hstor']; exact Hstor) (Hpvoff.keep rfl rfl Hpv Hgh Htm Hro)
+    (by rw [Htm]; exact Htrm) (by rw [Hstor']; exact Hstor) (Hpvoff.keepS rfl rfl Hpv Hgh Htm Hro Hm)
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
     (by unfold RNFl; rw [Hls]; exact Hrnfl)
     (Hloan.keep Hgh (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) Hc)
@@ -1280,10 +1299,10 @@ theorem wp_rn_raft_applyConfChange
   obtain ⟨lrn', Hd', Hsz', Hn', Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn Hsub Hsz
   icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
   wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id
-      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hli2
+      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hli2 Hin
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok, %Hdom'⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hok
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan (Hdom' ▸ Hok)
     (trackedOk_shrink Htrk Hlp Hdom') Hnl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hlc with Hrn
   try wp_auto
@@ -1893,7 +1912,7 @@ theorem dynCCPreOp_transfer {dec : CCDec} {D D' : List EntryM} {ca ca' : Nat}
     {cfg : CCState} {op : CCOp} {k : Nat} {e : EntryM} {cs' : CCState}
     (Hp : DynCCPreOp dec D ca cfg op k e cs') (Hpre : D <+: D') (Hca : ca ≤ ca')
     (Hnc : NoConfIn D' ca ca') : DynCCPreOp dec D' ca' cfg op k e cs' := by
-  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, Hdec, Hstep, Hal⟩ := Hp
+  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep, Hal⟩ := Hp
   have Hke' : D'[k]? = some e := prefix_getElem? Hpre Hke
   have Hlen : D.length ≤ D'.length := Hpre.length_le
   have Hk1' : ca' ≤ k := by
@@ -1908,7 +1927,7 @@ theorem dynCCPreOp_transfer {dec : CCDec} {D D' : List EntryM} {ca ca' : Nat}
     exact Hnoc j x (by omega) hj2 hx'
   · obtain ⟨t, rfl⟩ := Hpre
     rw [List.take_append_of_le_length (by omega)]
-    exact Hdec
+    exact ⟨op', Hdec, Hstep'⟩
 
 omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
 /-- `NoConfIn` over two adjacent ranges. -/

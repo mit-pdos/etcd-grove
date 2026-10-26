@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-21
+checked: 2026-10-26
 links:
   - etcd-io/etcd#21966 issue open: same root cause (IsLocalMemberLearner panics after concurrent removal), different caller (Maintenance/Status)
   - etcd-io/etcd#22188 pr open: same bug; returns false instead of panicking in IsLocalMemberLearner, names the unary/stream interceptors' non-atomic check; awaiting ok-to-test, no review

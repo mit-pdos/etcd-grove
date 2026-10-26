@@ -1,5 +1,5 @@
 /-
-**etcd's KV store at one revision, as a map** (D45, 2026-10-25): each key's record (`KVRec`: its
+**etcd's KV store at one revision, as a map** (D46, 2026-10-25): each key's record (`KVRec`: its
 value, create and mod revisions, version and lease; `mvccpb.KeyValue` without the key), a finite
 map from keys (`KVStore`). The client-visible state (`KVState`, `KVModelDefs.lean`) is one per
 revision; the server's model of a revision is the sorted list `mvcc.stateAt` (`List EtcdKv`, keys

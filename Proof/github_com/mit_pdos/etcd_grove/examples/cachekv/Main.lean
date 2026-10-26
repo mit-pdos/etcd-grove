@@ -4,7 +4,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/cachekv/Main.lean` (2026-
 
 watchkv's `Main` (`Proof/.../watchkv/Main.lean`) with the watch through etcd's cache: `genAll`
 picks the writers' Puts `trs` first; the server's start is watchkv's, the examples' shared one
-(`common.alloc1`; D47: the adapter's invariant over the KV state's half, `client.kmInv_alloc` at
+(`common.alloc1`; D48: the adapter's invariant over the KV state's half, `client.kmInv_alloc` at
 the plan's fact `watchkv.wkW (trs.map pairOf)`; `common.StartServer`, `common.Serve` with one
 watch run slot, `etcd_noRefusal` and `watchkv.wk_served` as the ghost step, D33). Then
 `common.NewClient` (etcd's default configuration; the member refusal-free, so `clientWriteOnce`,
@@ -196,7 +196,7 @@ theorem Main.wp_proof
   imod (common.alloc1 id bootLog Hbf.idLow Hbf.boot (ckDir id) (dirOne_member id _)
       (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog⟩ := Hal
-  -- (D47) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
+  -- (D48) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
   -- changes no KV state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
   have hσ0 : (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))).changes = [[]] := by
     unfold kvModel
@@ -271,7 +271,7 @@ theorem Main.wp_proof
       ipureintro
       rw [sync.rwmutex.actualMaxReaders_unseal]
       omega
-    -- the watch server's facts: the members' KV facts (`srvKVFacts`, D46), `io.EOF`
+    -- the watch server's facts: the members' KV facts (`srvKVFacts`, D47), `io.EOF`
     ihave #Hinvs := client.srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave #H00 := watchkv.cert0_of_server pw R $$ Hws
     ihave #Hkf : client.srvKVFacts
@@ -332,7 +332,7 @@ theorem Main.wp_proof
   · iunfold client.clientWriteOnce; ipureintro
     intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
     subst ha; exact Hnr
-  -- the cache's client (`isEtcdClient`) at the adapter's model (D47): `clientv3.New`'s `KV`, a
+  -- the cache's client (`isEtcdClient`) at the adapter's model (D48): `clientv3.New`'s `KV`, a
   -- client of the KV from the member's registrations (`isKv_of_regs`), and its `Watcher`, a watcher
   -- of the KV (`isNewClient_watcher`, with the watch server's facts)
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWa, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl

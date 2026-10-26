@@ -4,8 +4,8 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/MainWatch.lean` (
 
 `genAll` picks the writers' puts `trs` first. The cluster is `startCluster`'s with the watch
 prefix `wk/`. The client's half of etcd's KV state goes into the clients' adapter (`kmInv γ`,
-D47), whose application property is the plan's (`γ.W = wkW P`: every revision from `2` one put of
-the puts picked; D44, 2026-10-26: until then watchkv's server workload). Each member's watch facts
+D48), whose application property is the plan's (`γ.W = wkW P`: every revision from `2` one put of
+the puts picked; D45, 2026-10-26: until then watchkv's server workload). Each member's watch facts
 (`memberWatch`) and its `Watch` stream at its bridge (`isGrpcStream_forwards`) give the watcher's
 facts at the first client's connection (`watchEnv_conn`, `isNewClient_watcher_of`), a watcher of
 the cluster's KV (`isKvWatcher`), so etcd's watch contract at the adapter's model

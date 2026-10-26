@@ -21,7 +21,7 @@ says exactly where the relation departs from it.
   monitors' `ClusterMemberAttrSet`/`ClusterVersionSet` (no range, no auth or other request whose
   answer's error the apply package leaves open), none with an auth field set. D19q (2026-10-18):
   that set is now `plainCover`, what the generic proofs cover; `plainReq` is it at the kinds the
-  verified proposers send (`putgetKind`; D44, 2026-10-25: no workload parameter, D19q's
+  verified proposers send (`putgetKind`; D45, 2026-10-25: no workload parameter, D19q's
   `SrvWorkload`, any more).
 - **The deterministic step** (`chainLog`, `dispatchLog`, `kvEntry`) and the fold `kvRaftOf c₀ ch log₀
   A` over raft entries: an empty entry, a conf change and an entry at or below the consistent
@@ -97,7 +97,7 @@ def reqKVOp (rq : apply.IRRModel) : Option KVOp :=
   | _ => none
 
 /-- **The kinds the server's verified proposers send**: the KV writes and the monitors' requests
-(D44, 2026-10-25: a fact of the proposers, not a parameter; until then D19q's workload record,
+(D45, 2026-10-25: a fact of the proposers, not a parameter; until then D19q's workload record,
 `SrvWorkload`, whose one instance admitted exactly these). -/
 def putgetKind (k : apply.ReqKind) : Prop :=
   k = .put ∨ k = .deleteRange ∨ k = .txn ∨ k = .clusterMemberAttrSet ∨ k = .clusterVersionSet
@@ -442,7 +442,7 @@ theorem kvEntry_base (c₀ : w64) (log : mvcc.Log) (e : EntryModel) (rq : apply.
   rw [decide_eq_true hidx]
   exact dispatchLog_base rq log
 
-/-! ## etcd's KV state, at every revision it keeps (D46, 2026-10-25; D45 kept a store per revision)
+/-! ## etcd's KV state, at every revision it keeps (D47, 2026-10-25; D46 kept a store per revision)
 
 The abstract state of etcd's KV as its clients see it (`KVState`), as etcd's mvcc keeps it: the
 store at the compaction revision (`base`, a finite map from keys to their records, `KVStore`,

@@ -2,7 +2,7 @@
 
 `Writer(cli, w, tried, lo, hi)` (`examples/common/watch.go`; watchkv's `writer` until 2026-10-22,
 D33, which cachekv's repeated): the Puts `tried[lo:hi]` through `New`'s client that sends a write at
-most once (`clientWriteOnce`), each with the adapter's write update (`client.km_write_au`, D47: the
+most once (`clientWriteOnce`), each with the adapter's write update (`client.km_write_au`, D48: the
 clients' model of etcd over its KV state, whose invariant `kmInv γ` holds the KV state's half; the
 caller's fact `γ.W` about the state's changes kept by every put tried), each in a context with the examples'
 request timeout (`context.WithTimeout(context.Background(), RequestTimeout)`, cancelled after the

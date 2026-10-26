@@ -3,7 +3,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/watchkv/Main.lean` (D23, 
 Lean-first (no Rocq counterpart).
 
 `genAll` picks the writers' Puts `trs` first. The server's start is the examples' shared one
-(since 2026-10-22, D33): `common.alloc1`, then (D47) the adapter's invariant over the KV state's
+(since 2026-10-22, D33): `common.alloc1`, then (D48) the adapter's invariant over the KV state's
 half (`client.kmInv_alloc` at the plan's fact `wkW (trs.map pairOf)`: the bootstrap log changes no
 KV state, `linkv.kvRaftOf_boot`), `common.StartServer`, `common.Serve` (whose
 `grpcCfgOk_of_started_w` gives the watchable store's readers) with the ghost step: one watch run
@@ -160,7 +160,7 @@ theorem Main.wp_proof
   imod (common.alloc1 id bootLog Hbf.idLow Hbf.boot (wkDir id) (dirOne_member id _)
       (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog⟩ := Hal
-  -- (D47) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
+  -- (D48) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
   -- changes no KV state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
   have hσ0 : (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))).changes = [[]] := by
     unfold kvModel
@@ -235,7 +235,7 @@ theorem Main.wp_proof
       ipureintro
       rw [sync.rwmutex.actualMaxReaders_unseal]
       omega
-    -- the watch server's facts: the members' KV facts (`srvKVFacts`, D46), `io.EOF`
+    -- the watch server's facts: the members' KV facts (`srvKVFacts`, D47), `io.EOF`
     ihave #Hinvs := client.srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
     ihave #H00 := cert0_of_server pw R $$ Hws
     ihave #Hkf : client.srvKVFacts

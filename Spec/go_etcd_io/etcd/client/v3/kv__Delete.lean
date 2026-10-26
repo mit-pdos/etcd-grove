@@ -21,7 +21,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Delete(ctx, key, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D43): `kv.Do` of
+/-- `kv.Delete(ctx, key, opts...)` on a `*kv` of etcd's KV `γ` (`isKv`, D44): `kv.Do` of
 `OpDelete(key, opts...)` (`opts`: the models of the Go options `opts...` (`WithPrevKV()`, ...), one transformer of the operation each, `optsAt`
 ties the slice `opts_sl` of their closures to them; `[]` for none), options that do not make `OpDelete` panic nor change the
 operation's type, a delete whose range end is not `[0]` (etcd's `DeleteRange` spec
@@ -29,7 +29,7 @@ covers no other: `WithFromKey`'s), with the caller's atomic update of
 `γ`'s state by the delete the server reads (`deleteWireOf`; `kvOpStep`), persistent if the client's
 writes may be delivered more than once (`□?dup`); the error through `ContextError`: `nil` and the reply's message `m` with
 `Q σ` for the state `σ` the update fired at, the reply's count, previous key-values and revision as
-`σ`'s, `σ` and the state after the delete well-formed small logs' states (`kvLogOk`, D47); or a client error (`kvErr`) and no
+`σ`'s, `σ` and the state after the delete well-formed small logs' states (`kvLogOk`, D48); or a client error (`kvErr`) and no
 reply. -/
 abbrev kv.Delete.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)

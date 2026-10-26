@@ -1,5 +1,5 @@
 /-
-**A client of etcd's KV meets the clients' get contracts** (D47, 2026-10-26). Lean-first, no
+**A client of etcd's KV meets the clients' get contracts** (D48, 2026-10-26). Lean-first, no
 Rocq counterpart.
 
 `kv_get_km`: a `*kv` of etcd's KV `γ.kv` (`isKv`, any `dup`), with the adapter's invariant

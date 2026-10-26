@@ -30,16 +30,20 @@ store's mode (its states recorded: a premise on the restored backend) and the wr
 the hook: replaces the store's backend under `beMu` (both halves: the lock's and the admin
 side's), reads the new backend's state `sta` (its flag, its revision, its users for the cache)
 under its read transaction (the read resource `R`), appends it to the history and sets the flag
-and the revision to it; the new state's permissions fit the cache (a premise, as `stepOk`'s). -/
+and the revision to it; the new state's permissions fit the cache (a premise, as `stepOk`'s).
+`Recover` takes no batch lock, so it appends with the whole authority (`authOwnF`, the auth plan's
+S4f): the backend swap (D22's restore, `Recover`'s caller) hands it the old backend's lock share
+and installs the share of the history with `sta` appended under the new backend's lock, whose
+write side is given as the backend states it (`authWBackendOkR`). -/
 abbrev auth.authStore.Recover.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
     (hs : List AuthState) (be : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authOwn M hs ∗ authWR st M P f T ∗ tpAdmin st M ∗ R ∗ ⌜be ≠ GoInterface.nil⌝ ∗
-      authBackendOk be R M ∗ authWBackendOk be M P f T ∗
+      authOwnF M hs ∗ authWR st M P f T ∗ tpAdmin st M ∗ R ∗ ⌜be ≠ GoInterface.nil⌝ ∗
+      authBackendOk be R M ∗ authWBackendOkR be M P f T ∗
       □ (∀ s : AuthState, authSnap M s -∗ ⌜permsFit s⌝) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Recover")) (Val #be))
-  {{ RET #(); tpAdmin st M ∗ authWR st M P f T ∗ R ∗ ∃ sta : AuthState, authSnap M sta ∗ authOwn M (hs ++ [sta]) }}
+  {{ RET #(); tpAdmin st M ∗ authWR st M P f T ∗ R ∗ ∃ sta : AuthState, authSnap M sta ∗ authOwnF M (hs ++ [sta]) }}
 
 end spec
 

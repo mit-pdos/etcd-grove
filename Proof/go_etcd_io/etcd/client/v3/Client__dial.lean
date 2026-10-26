@@ -9,6 +9,8 @@ public import Spec.go_etcd_io.etcd.client.v3.Client__dialSetupOpts
 public import Spec.go_etcd_io.etcd.client.v3.authority
 public import Spec.google_golang_org.grpc.NewClient
 public import Spec.fmt.SprintfClientPtr
+public import Spec.google_golang_org.grpc.WithPerRPCCredentials
+public import Spec.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle__PerRPCCredentials
 
 @[expose] public section
 
@@ -49,10 +51,13 @@ theorem Client.dial.wp_proof
     (wp_dialSetupOpts : Client.dialSetupOpts.spec (GF := GF) (hG := hG))
     (wp_authority : authority.spec (GF := GF) (hG := hG))
     (wp_NewClient : grpc.NewClient.spec (GF := GF) (hG := hG))
-    (wp_Sprintf : fmt.SprintfClientPtr.spec (GF := GF) (hG := hG)) :
+    (wp_Sprintf : fmt.SprintfClientPtr.spec (GF := GF) (hG := hG))
+    (wp_PerRPCCredentials :
+      credentials.perRPCCredentialBundle.PerRPCCredentials.spec (GF := GF) (hG := hG))
+    (wp_WithPerRPCCredentials : grpc.WithPerRPCCredentials.spec (GF := GF) (hG := hG)) :
     Client.dial.spec (GF := GF) (hG := hG) := by
-  intro c cfg cr sl rb esl eps
-  wp_start as ⟨#Hc, #Hcfg, #Hdo, #Hatb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
+  intro c cfg cr sl rb esl eps atb
+  wp_start as ⟨#Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
   obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
     cases eps with
     | nil => exact absurd rfl Hplain.1
@@ -68,9 +73,47 @@ theorem Client.dial.wp_proof
   iunfold dialOptsAt at Ho1
   icases Ho1 with ⟨%os1, #Hos1, %Hos1⟩
   iStructNamed Hcfg
-  wp_auto
-  wp_apply wp_slice_append_dfrac (V := GoInterface) o1 os1 DFrac.discard cfg.DialOptions' []
-    DFrac.discard $$ [$Hos1 $Ho1c $Hdo] as %o2 ⟨#Ho2, Ho2c, -⟩
+  -- (2026-10-25, the auth plan's E2d) the token bundle, if any, as per-RPC credentials
+  wp_join iprop(∃ (o1' : GoSlice) (ex : List GrpcDialOpt) (os1' : List GoInterface),
+      c_ptr ↦ c ∗ opts_ptr ↦ o1' ∗ o1' ↦*□ os1' ∗ ownSliceCap GoInterface o1' (DFrac.own 1) ∗
+      ⌜(ex = [] ∨ ex = [GrpcDialOpt.perRPCCreds]) ∧ List.Forall₂ grpcDialOptIs os1'
+        (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+          [GrpcDialOpt.transportCreds, GrpcDialOpt.streamInterceptor si,
+            GrpcDialOpt.unaryInterceptor ic] ++ ex)⌝)
+    at next with [c opts Ho1c] as ⟨%o1', %ex, %os1', c, opts, #Hos1', Ho1c', %Hex⟩
+  · iunfold tokenBundleOk at Htb
+    icases Htb with (%Hnil | #Hb)
+    · subst Hnil
+      wp_auto
+      wp_join_done
+      iexists o1, [], os1
+      iframe c opts Hos1 Ho1c
+      ipureintro
+      refine ⟨Or.inl rfl, ?_⟩
+      rw [List.append_nil]; exact Hos1
+    iunfold tokenBundleAt at Hb
+    icases Hb with ⟨%b, %rc, %Hbeq, #Hrc⟩
+    subst Hbeq
+    wp_auto
+    wp_apply wp_PerRPCCredentials b rc $$ [$Hrc] as %pc -
+    wp_apply wp_WithPerRPCCredentials pc $$ [$Hgrpc] as %o %Ho
+    wp_apply wp_slice_literal (V := GoInterface) [o]
+    isplitr
+    · ipureintro; rfl
+    iintro %ol ⟨Hol, -⟩
+    (try wp_auto)
+    wp_apply wp_slice_append_dfrac (V := GoInterface) o1 os1 DFrac.discard _ [o] (DFrac.own 1)
+      $$ [$Hos1 $Ho1c $Hol] as %o1' ⟨#Ho1', Ho1c', -⟩
+    · ipureintro; exact DFrac.valid_discard
+    (try wp_auto)
+    wp_join_done
+    iexists o1', [GrpcDialOpt.perRPCCreds], os1 ++ [o]
+    iframe c opts Ho1' Ho1c'
+    ipureintro
+    refine ⟨Or.inr rfl, ?_⟩
+    exact List.Forall₂.append Hos1 (.cons Ho .nil)
+  wp_apply wp_slice_append_dfrac (V := GoInterface) o1' os1' DFrac.discard cfg.DialOptions' []
+    DFrac.discard $$ [$Hos1' $Ho1c' $Hdo] as %o2 ⟨#Ho2, Ho2c, -⟩
   · ipureintro; exact DFrac.valid_discard
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   rw [ite_eq_left (by simp at Hlen; word)]
@@ -90,7 +133,7 @@ theorem Client.dial.wp_proof
   wp_apply wp_Sprintf _ _ _ (DFrac.own 1) $$ [$Hal] as %tgt ⟨-, %Hout⟩
   · ipureintro
     intro x hx
-    simp only [List.mem_cons, List.mem_nil_iff, or_false] at hx
+    simp only [List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
     rcases hx with rfl | rfl | rfl
     · left
       exact _root_.Perennial.fmt.ArgsWf.cons_string go!"etcd-endpoints" []
@@ -110,16 +153,22 @@ theorem Client.dial.wp_proof
       simp at h
       exact h
   -- (2026-10-21, D28) the keepalive option, if any, first
-  have Hdok : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+  have Hdok1 : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
       [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) rb := by
     rw [List.append_assoc]; exact dialOk_kaOpts cfg _ rb Hdok0
+  -- (E2d) the per-RPC credentials, if any, last
+  have Hdok : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+      [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ ex) rb := by
+    rcases Hex.1 with rfl | rfl
+    · rw [List.append_nil]; exact Hdok1
+    · exact dialOk_perRPCCreds _ rb Hdok1
   wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) Hdok $$ [$Hgrpc $Hrb] as %conn %err Hres
   · isplitr
     · iunfold dialOptsAt
       iexists _
       iframe Ho2
       ipureintro
-      rw [List.append_nil]; exact Hos1
+      rw [List.append_nil]; exact Hex.2
     · ipureintro; exact Hpre
   iapply HΦ
   icases Hres with (⟨%Herr, #Hconn⟩ | %Herr)
@@ -127,8 +176,10 @@ theorem Client.dial.wp_proof
     isplitr
     · ipureintro; exact Herr
     have Hics : unaryIcsOf (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
-        [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) = [ic] := by
-      rw [List.append_assoc, unaryIcsOf_kaOpts]; rfl
+        [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ ex) = [ic] := by
+      rcases Hex.1 with rfl | rfl
+      · rw [List.append_nil, List.append_assoc, unaryIcsOf_kaOpts]; rfl
+      · rw [unaryIcsOf_perRPCCreds, List.append_assoc, unaryIcsOf_kaOpts]; rfl
     iunfold isEtcdConn
     iexists ic
     iframe Hic HicW

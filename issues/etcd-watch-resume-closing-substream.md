@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-21
+checked: 2026-10-26
 links:
   - etcd-io/etcd#21969 issue closed: same root cause (Canceled response closes recvc but leaves the substream registered), different symptom (progress broadcast, not resume after reconnect); closed as stale
   - etcd-io/etcd#22191 pr open: same root cause; its fix (delete from substreams after close(recvc)) also keeps newWatchClient from resuming the closed substream, though it does not mention the resume path

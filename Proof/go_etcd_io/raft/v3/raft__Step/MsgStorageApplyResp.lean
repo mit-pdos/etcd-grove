@@ -93,6 +93,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         "%Hframe" ∷ ⌜LocalFrame s s' ∧
                      ((∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
                       s'.logst.applying = s.logst.applying)⌝ ∗
+        -- (2026-10-25, T-M M2b) a pre-candidate keeps its log and commit index (`PreKeep`)
+        "%Hpk" ∷ ⌜s.role = .preCandidate → PreKeep s s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         -- (2026-10-14, stage B7) `applied` moves at most to the last entry's index
         "%Happ" ∷ ⌜s'.logst.applied = s.logst.applied ∨
@@ -130,7 +132,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iframe Hphys
     ipureintro
     exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, fun _ => rfl⟩,
-      StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl⟩
+      fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩, StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
@@ -176,8 +178,11 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩, fun Hle => ?_⟩, ?_,
-      .inr ⟨e, by simp, rfl⟩, ?_, rfl⟩
+    refine ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩, fun Hle => ?_⟩,
+      fun _ => ⟨rfl, rfl, rfl, fun h => h, by
+        show uint.Z s.logst.applied ≤ uint.Z (w64Max e.Index' s.logst.applied)
+        unfold w64Max
+        split <;> word⟩, ?_, .inr ⟨e, by simp, rfl⟩, ?_, rfl⟩
     · show uint.Z s.logst.applied ≤ uint.Z (w64Max e.Index' s.logst.applied)
       unfold w64Max
       split <;> word

@@ -6,7 +6,7 @@
 at the cluster's history, the KV state variable `γr`'s. A member's watch facts (`memberWatch`: its
 read view, its watch server, its names the history's and its KV state variable the cluster's;
 until 2026-10-26 also no key written twice in a revision of its logs, from watchkv's server
-workload, which D46's watch spec no longer needs) give its `watchMemberFacts` (`memberWatch_facts`:
+workload, which D47's watch spec no longer needs) give its `watchMemberFacts` (`memberWatch_facts`:
 the laws by `watchLaws_hist`, the KV facts `srvKVFacts` from the read view and the store's start
 log, `cert0_of_server`), and the three with their
 `Watch` streams at the bridges give the watcher's facts at every connection to the bridges

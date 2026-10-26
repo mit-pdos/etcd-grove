@@ -1,11 +1,11 @@
 /-
-**The writers' vocabulary** (D23, 2026-10-20; over the KV state, D47, 2026-10-26). Lean-first (no
+**The writers' vocabulary** (D23, 2026-10-20; over the KV state, D48, 2026-10-26). Lean-first (no
 Rocq counterpart).
 
 * The KV state's half is in the adapter's invariant (`client.kmInv γ`, `client/v3/EtcdModelKV.lean`)
   at the plan's fact `γ.W = wkW P` (`Workload.lean`): every change of the KV is a writer's put of
   the plan, the adapter's write update (`client.km_write_au`) at a put of the plan keeping it
-  (`wk_put_W`). (Until D44 the server's workload restricted the log to the plan's puts, and the
+  (`wk_put_W`). (Until D45 the server's workload restricted the log to the plan's puts, and the
   client's half was in an invariant of watchkv's own, `wkKV`.)
 * What the program knows of a successful Put it logged, and the log's lock invariant: the shared
   start's (`common/WritesKM.lean`: `okFactKM`, `wsInvKM`, at the adapter's names).

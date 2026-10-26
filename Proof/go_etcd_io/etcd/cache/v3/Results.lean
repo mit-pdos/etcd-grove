@@ -136,7 +136,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [es_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **etcd's cache over etcd's client, end to end** (K3; D47 over the client's specs):
+/-- **etcd's cache over etcd's client, end to end** (K3; D48 over the client's specs):
 `New(cl, pfx, opts...)` for a client `cl` whose `KV` field is a `*kv` of etcd's KV `γ.kv` (`isKv`,
 `kv.Get.spec`'s) and whose `Watcher` field is a client watcher of it (`isKvWatcher`,
 `watcher.Watch.spec`'s), for a non-empty prefix not all `0xff`, returns what `New` returns
@@ -167,7 +167,7 @@ theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bo
   iframe
   ipureintro; exact ⟨Hcfg, Hb⟩
 
-/-- **etcd's cache over `clientv3.New`'s client, end to end** (K3; D47): `cache_end_to_end_client`
+/-- **etcd's cache over `clientv3.New`'s client, end to end** (K3; D48): `cache_end_to_end_client`
 for the client `clientv3.New(cfg)` returns (`isNewClient cl [ep] V`, `client_New`'s postcondition):
 its `KV` a client of the KV `γ.kv` from the members' registrations at `ep` (`client.isKv_of_regs`),
 its `Watcher` etcd's client watcher, a client watcher of `γ.kv` (`isNewClient_watcher`, given the

@@ -169,8 +169,9 @@ theorem raft.tickHeartbeat.wp_proof
         have Hi := Hi (by msg_ne)
         have Hf := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
         have Heq : s0.term = s.term := by word
-        intro s' ⟨Hf', Hl', Hu', Hi', Hp'⟩
-        exact ⟨Hf.trans Hf', by omega, by omega, by omega, fun h => (Hp' h).trans Heq⟩
+        intro s' ⟨Hf', Hl', Hu', Hi', Hp', Hg'⟩
+        exact ⟨Hf.trans Hf', by omega, by omega, by omega, fun h => (Hp' h).trans Heq,
+          fun fp hg => Hg' fp (PreGuardF.step (Htm (by msg_ne)) hg)⟩
       icases Herr with (%Herr | ⟨%Hc', -⟩)
       rotate_left
       · exfalso; revert Hc'; msg_ne
@@ -278,7 +279,8 @@ theorem raft.tickHeartbeat.wp_proof
         (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
         (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
         (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf1
-        (GMode.Pre.of_other (by msg_ne) (fun _ => by rw [Hrole]; decide) (by msg_ne) (by msg_ne))
+        (GMode.Pre.of_other (by msg_ne) (GMode.Guard.of_nonpre (fun _ => by rw [Hrole]; decide))
+          (by msg_ne) (by msg_ne))
         (fun h => absurd h (by msg_ne))
       $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg]
     · simp only [hP, ↓reduceIte, named]
@@ -313,7 +315,7 @@ theorem raft.tickHeartbeat.wp_proof
       exact ⟨Hwf', Int.le_trans Hcm1 Hcm, Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1,
         by have h0 : 0 ≤ uint.Z s1.term := by word
            rw [Int.max_eq_left h0] at Ht3; omega,
-        Hi (by msg_ne), fun h => (Hpc' h).1⟩⟩
+        Hi (by msg_ne), fun h => (Hpc' h).1, fun _ hg => PreGuardF.step (Htm (by msg_ne)) hg⟩⟩
     · exfalso; revert Hc'; msg_ne
   · rw [decide_eq_false Hhb]
     wp_auto

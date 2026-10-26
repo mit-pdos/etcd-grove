@@ -1,10 +1,10 @@
 /-
-**The watch workload's logs, pure** (2026-10-26, D44/D46/D47: linkv3p's own facts about etcd's KV
+**The watch workload's logs, pure** (2026-10-26, D45/D47/D48: linkv3p's own facts about etcd's KV
 state, kept in the adapter's invariant as its application property `γ.W`, instead of watchkv's
 server workload). Lean-first (no Rocq counterpart).
 
 watchkv's `Workload.lean` (`wkRev`, `WkLog`) and `WatchModel.lean` (`revEvs_low`, `revEvs_hi`,
-`step_wk`, `prog_wk`), copied: watchkv's server workload is gone (D44) and watchkv's proof is redone
+`step_wk`, `prog_wk`), copied: watchkv's server workload is gone (D45) and watchkv's proof is redone
 separately, so linkv3p does not rest on its files.
 
 * `WkLog P L`: revisions `0` and `1` of `L` have no change, every later one is one put of the plan

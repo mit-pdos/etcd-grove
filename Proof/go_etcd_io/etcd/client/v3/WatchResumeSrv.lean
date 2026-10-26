@@ -53,13 +53,13 @@ theorem mvccOk_revLb (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : v3rp
   iframe HL'
   ipureintro; rw [Hm.2.1]; exact HL'
 
-/-- **The resume fact of an event-less response** (no fact since D46: `resumeF_holds`). -/
+/-- **The resume fact of an event-less response** (no fact since D47: `resumeF_holds`). -/
 theorem resumeF_evless (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (L : mvcc.Log) :
     mvcc.notifiedLb V.R.γ L ⊢ resumeF V P r := by
   iintro -
   iapply resumeF_holds
 
-/-- **The resume fact of a response with events, delivered** (no fact since D46: `resumeF_holds`). -/
+/-- **The resume fact of a response with events, delivered** (no fact since D47: `resumeF_holds`). -/
 theorem resumeF_delivered (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (L : mvcc.Log) :
     mvcc.evLog V.R.γ.st L ⊢ resumeF V P r := by
   iintro -

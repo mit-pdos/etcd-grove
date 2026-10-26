@@ -55,7 +55,7 @@ instance etcdKVAt_persistent (addr : GoString) (E : apply.AEnv GF) (ρ : ReqName
   unfold etcdKVAt; infer_instance
 
 /-- **etcd's KV registrations at the address are the member's** (`client.kvRegsAt`, what the
-client's calls take, D43) when the request path's and the read loop's read names are one (a
+client's calls take, D44) when the request path's and the read loop's read names are one (a
 started server's, `ρ.rd = γr`). -/
 theorem etcdKVAt_regs (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid : w64) (hρ : ρ.rd = γr) :

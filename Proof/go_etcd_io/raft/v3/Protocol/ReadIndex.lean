@@ -248,13 +248,13 @@ theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List EntryM)
 /-- The arrival's choice of the doom fact's witnesses (2026-10-14, stage B5): the union `U` of the
 quorums of those of a term above `T` (every member of which acknowledged above `T`). -/
 theorem doom_choice (γ : RaftNames) (G : List EntryM) (T tD : w64) : ∀ (m : Nat),
-    ⊢ (∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < m),
+    ⊢ (∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < m), ∀ (_ : γ.reBoot.length ≤ k),
         ∃ (tw nw : w64) (Gw : List EntryM) (aw : w64) (cw : CfgM) (qw : GSet w64),
           ∃ (_ : WitOk G k tw nw Gw aw (uint.Z tD + 1)), cqAt (GF := GF) γ tw nw Gw aw cw qw) -∗
       ∃ U : GSet w64,
         (∀ (u : w64), ∀ (_ : u ∈ U), ∃ (t'' i'' : w64),
           ⌜uint.Z T < uint.Z t'' ∧ 0 < uint.Z i''⌝ ∗ isAcked γ u t'' i'') ∗
-        (∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < m),
+        (∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < m), ∀ (_ : γ.reBoot.length ≤ k),
           ∃ (tw nw : w64) (Gw : List EntryM) (aw : w64) (cw : CfgM) (qw : GSet w64),
             ⌜WitOk G k tw nw Gw aw (uint.Z tD + 1) ∧
               (uint.Z T < uint.Z tw → ∀ x, x ∈ qw → x ∈ U)⌝ ∗ cqAt γ tw nw Gw aw cw qw) := by
@@ -268,15 +268,15 @@ theorem doom_choice (γ : RaftNames) (G : List EntryM) (T tD : w64) : ∀ (m : N
       exfalso
       rw [GMap.elem_of_gset, GMap.lookup_empty] at hu
       cases hu
-    · iintro %k %hk
+    · iintro %k %hk %_
       exfalso; have := hk.2; omega
   | succ m ih =>
     iintro #H
     icases ih $$ [] with ⟨%U0, #HU0, #HW0⟩
-    · iintro %k %Hk
-      iapply H $$ %k %(⟨Hk.1, by omega⟩ : IsConfPos G k ∧ k < m + 1)
-    by_cases hp : IsConfPos G m
-    · ihave Hwm := H $$ %m %(⟨hp, by omega⟩ : IsConfPos G m ∧ m < m + 1)
+    · iintro %k %Hk %Hb
+      iapply H $$ %k %(⟨Hk.1, by omega⟩ : IsConfPos G k ∧ k < m + 1) %Hb
+    by_cases hp : IsConfPos G m ∧ γ.reBoot.length ≤ m
+    · ihave Hwm := H $$ %m %(⟨hp.1, by omega⟩ : IsConfPos G m ∧ m < m + 1) %hp.2
       icases Hwm with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
       icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨-, -, -, #Hackw, -⟩
       iexists (if uint.Z T < uint.Z tw then U0 ∪ qw else U0)
@@ -294,7 +294,7 @@ theorem doom_choice (γ : RaftNames) (G : List EntryM) (T tD : w64) : ∀ (m : N
             ipureintro; exact ⟨hT, by have := Hwo.2.1; omega⟩
         · rw [ite_eq_right hT] at hu
           iapply HU0 $$ %u %hu
-      · iintro %k %Hk
+      · iintro %k %Hk %Hb
         by_cases hkm : k = m
         · subst hkm
           iexists tw, nw, Gw, aw, cw, qw
@@ -302,7 +302,7 @@ theorem doom_choice (γ : RaftNames) (G : List EntryM) (T tD : w64) : ∀ (m : N
           ipureintro
           refine ⟨Hwo, fun hT x hx => ?_⟩
           rw [ite_eq_left hT]; exact GMap.elem_of_union_r _ hx
-        · ihave Hw := HW0 $$ %k %(⟨Hk.1, by omega⟩ : IsConfPos G k ∧ k < m)
+        · ihave Hw := HW0 $$ %k %(⟨Hk.1, by omega⟩ : IsConfPos G k ∧ k < m) %Hb
           icases Hw with ⟨%tw', %nw', %Gw', %aw', %cw', %qw', %Hwo', #Hc'⟩
           iexists tw', nw', Gw', aw', cw', qw'
           iframe Hc'
@@ -314,13 +314,13 @@ theorem doom_choice (γ : RaftNames) (G : List EntryM) (T tD : w64) : ∀ (m : N
           · exact hx'
     · iexists U0
       iframe HU0
-      iintro %k %Hk
+      iintro %k %Hk %Hb
       have hkm : k < m := by
         rcases Nat.lt_or_ge k m with h | h
         · exact h
         · exfalso; have : k = m := by have := Hk.2; omega
-          subst this; exact hp Hk.1
-      iapply HW0 $$ %k %(⟨Hk.1, hkm⟩ : IsConfPos G k ∧ k < m)
+          subst this; exact hp ⟨Hk.1, Hb⟩
+      iapply HW0 $$ %k %(⟨Hk.1, hkm⟩ : IsConfPos G k ∧ k < m) %Hb
 
 /-- A commit fact of a term above `T`, at a nonzero index, dooms a record (the arrival's case
 split): its quorum and, in the dynamic mode, its witnesses' of terms above `T`. -/
@@ -368,8 +368,8 @@ theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List EntryM) (a : w64) 
       · iapply Hq $$ %u %h
     · unfold dynOn
       iright
-      iintro %k %Hk
-      ihave Hw := HW0 $$ %k %Hk
+      iintro %k %Hk %Hb
+      ihave Hw := HW0 $$ %k %Hk %Hb
       icases Hw with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcw⟩
       iexists tw, nw, Gw, aw, cw, qw
       iframe Hcw
@@ -567,7 +567,14 @@ theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : L
       exists_confPos FL (uint.Z aL).toNat (confCount (GD.take (uint.Z aD).toNat) + 1) (by omega)
     ihave #HwL := commitIn_w γ FL cL T Hdyn $$ HcmL
     iunfold witsB at HwL
-    ihave Hw2 := HwL $$ %p %(⟨hpc, by omega⟩ : IsConfPos FL p ∧ p < (uint.Z cL).toNat)
+    -- (2026-10-25, T-M M2a) an entry of the boot log: in the doom fact's log too
+    rcases Nat.lt_or_ge p γ.reBoot.length with Hb | Hb
+    · icases leadFull_boot γ T FL $$ HflL with %HbFL
+      icases cq_boot γ tD nD GD $$ HcqD' with %HbGD
+      ipureintro
+      exact far_older HI1D (by rw [take_of_prefix HbGD.1 (by omega), take_of_prefix HbFL.1 (by omega)])
+        hpc hpcc
+    ihave Hw2 := HwL $$ %p %(⟨hpc, by omega⟩ : IsConfPos FL p ∧ p < (uint.Z cL).toNat) %Hb
     icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
     ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
     icases cq_full γ tw nw Gw $$ Hcqw' with ⟨%HwGw, #HrGw⟩
@@ -585,7 +592,14 @@ theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : L
   · -- the reader is older: the doom fact's witness
     obtain ⟨p, hp, hpc, hpcc⟩ :=
       exists_confPos GD (uint.Z aD).toNat (confCount (FL.take (uint.Z aL).toNat) + 1) (by omega)
-    ihave Hw2 := HdW' $$ %p %(⟨hpc, hp⟩ : IsConfPos GD p ∧ p < (uint.Z aD).toNat)
+    -- (2026-10-25, T-M M2a) an entry of the boot log: in the reader's log too
+    rcases Nat.lt_or_ge p γ.reBoot.length with Hb | Hb
+    · icases leadFull_boot γ T FL $$ HflL with %HbFL
+      icases cq_boot γ tD nD GD $$ HcqD' with %HbGD
+      ipureintro
+      exact far_older (ConfI1_of_drop HI3)
+        (by rw [take_of_prefix HbFL.1 (by omega), take_of_prefix HbGD.1 (by omega)]) hpc hpcc
+    ihave Hw2 := HdW' $$ %p %(⟨hpc, hp⟩ : IsConfPos GD p ∧ p < (uint.Z aD).toNat) %Hb
     icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
     obtain ⟨Hwo1, HwU⟩ := Hwo
     icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, #HflW, #HcGw, -, -⟩

@@ -168,20 +168,6 @@ theorem stepC_record_then_win (id : w64) (s : PState) (m : Msg) (mt : GMap w64 w
     (StepC.win _ mt ms Hrole Hq Hnw Hmt Hms Hsn)
 
 omit [GoGlobalContext] [GoSemanticsFunctions] in
-/-- Recording a vote response and then losing, at `c`. -/
-theorem stepC_record_then_lose (id : w64) (s : PState) (m : Msg)
-    (Hty : m.ty = .voteResp) (Hto : m.dst = id) (Hterm : m.term = s.term)
-    (Hrole : s.role = .candidate)
-    (Hq : JLost c (recordVote s.votes m.src (!m.reject))) :
-    StepC c id B s ([m] ++ [])
-      (pbecomeFollower { s with votes := recordVote s.votes m.src (!m.reject) } s.term (W64 0)) :=
-  .trans _ _ _ _ _ (StepC.recordVote m s Hty Hto Hterm Hrole) (StepC.lose _ Hrole Hq)
-
-omit [GoGlobalContext] [GoSemanticsFunctions] in
-/-- Dropping a message, at `c`. -/
-theorem stepC_drop (id : w64) (s : PState) : StepC c id B s [] s := .refl s
-
-omit [GoGlobalContext] [GoSemanticsFunctions] in
 /-- Stepping down and then answering a vote request, at `c`. -/
 theorem stepC_stepdown_then_vote (id : w64) (s : PState) (m : Msg)
     (Hty : m.ty = .vote) (Hto : m.dst = id) (Hfrom : m.src ≠ W64 0)

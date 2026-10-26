@@ -1,6 +1,6 @@
 /-
 **The writers' puts through the cluster's clients** (W4d of `notes/watch-cut-plan.md`,
-2026-10-22; over etcd's KV state since 2026-10-26, D44/D47). Lean-first (no Rocq counterpart).
+2026-10-22; over etcd's KV state since 2026-10-26, D45/D48). Lean-first (no Rocq counterpart).
 
 * `memberPut γk x`: a member as a writer's put sees it: etcd's KV registered at its bridge
   (`kvRegsAt`), its store's empty log certified (`idxCert_nil`), its KV state variable the

@@ -1,5 +1,5 @@
 /-
-**The queue, end to end** (the vertical slice's unit V2b, 2026-10-14; D47, 2026-10-26: over the
+**The queue, end to end** (the vertical slice's unit V2b, 2026-10-14; D48, 2026-10-26: over the
 client's specs). Lean-first, no Rocq counterpart.
 
 `queue_vertical`: `NewQueue(client, kp)` on a `*Client` whose `KV` is a `*kv` of etcd's KV `γ.kv`

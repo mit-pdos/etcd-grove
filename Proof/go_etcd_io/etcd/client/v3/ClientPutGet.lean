@@ -26,7 +26,7 @@ the lemmas of this file.
   - `client_Txn_st`: `cli.Txn(ctx)`, the builder made from the client's `*kv`, with
     `txnWriteOnce` for its `Commit`.
 - What a call starts from at each member: `srvStart` (free, `srvStart_alloc`); the members'
-  registrations, `kvRegsAt` (the `*kv`'s calls take them all, D43).
+  registrations, `kvRegsAt` (the `*kv`'s calls take them all, D44).
 -/
 module
 
@@ -322,6 +322,45 @@ theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
     iright
     iframe #
     iexact Hau
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | ⟨%Herr, #Hke⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact Herr
+    iexists m
+    iframe Hm Hr
+  · iright
+    isplitl
+    · ipureintro; exact Herr.1
+    · iexact Hke
+
+/-- `cli.Put(ctx, key, val)` by `New`'s client of the members `ms` with a persistent update, one
+per member (the auth plan's E2h): the put may be delivered several times, so neither the client's
+write-once premise nor refusal-free members are needed (the persistent case of
+`client_put_any`, E2d); `nil`, the reply's message and some member's `putReplied`; or an
+error. -/
+theorem client_Put_any (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
+    (Q : KVState → IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        isNewClient cl (ms.map SrvAt.addr) V ∗
+        ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        □ ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.put (putKeyOp key val)) Q) }}
+      (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗ ∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗
+            putReplied x.E x.γr [] (putKeyOp key val) Q x.cid x.mid m) ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
+  iintro %Φ ⟨#Pc, #Hcl, #Hrr, #HF, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
+  iunfold isNewClient at Hcl
+  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  wp_apply (client_put_any api ms ci cd key val sl Q []) $$ [] as %resp %err Hout
+  · iframe #
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | ⟨%Herr, #Hke⟩)
   · ileft

@@ -136,7 +136,7 @@ instance cursorOk_persistent (V : WEnv GF) (P : WsPrm GF) (B : RegB) (Dm : List 
     (rg : mvcc.WatchRange) (lo : Nat) (hi : w64) : Persistent (cursorOk V P B Dm w rg lo hi) := by
   unfold cursorOk; infer_instance
 
-/-- **The second cursor's positions** (D47): `γh2`'s list, each a position of the stream
+/-- **The second cursor's positions** (D48): `γh2`'s list, each a position of the stream
 (`posQ`: the watch's start or a revision of a state the read update fired at), unless the watch promises no
 completeness or the substream stopped. -/
 def cur2Places (P : WsPrm GF) (C2 : List w64) : IProp GF :=
@@ -971,7 +971,7 @@ theorem cmpl_step (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
     ileft; iexact Hx
   imod (hstep hcpl c2) $$ [Hcur HQ] with ⟨%c2', #Hok, #Hcur'⟩
   · iframe Hcur HQ
-  -- (D46) the caller's read update, fired at the response's watched log
+  -- (D47) the caller's read update, fired at the response's watched log
   iunfold srvKVFacts at Hkf
   icases Hkf with ⟨%γr, #Hinvs, #H0, %Hkr⟩
   iunfold wsAu at Hau

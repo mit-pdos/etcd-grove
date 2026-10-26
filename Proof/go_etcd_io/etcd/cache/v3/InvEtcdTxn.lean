@@ -872,7 +872,7 @@ recipes' addition: every call the recipes make through `client.KV` passes `conte
 options' closures may need a resource `R` (`optsAtRes`: the client calls them one at a time, in
 the caller's goroutine), which the call gives back (`WithFirstKey()`'s sort option writes a
 variable it captured; `optsAt_res` for the others). (The vertical slice's unit V2 restricted it
-to `getExact` gets and `kvGetResultR`, what a real `*kv` meets: `client/v3/ServerKVGet.lean`; D47
+to `getExact` gets and `kvGetResultR`, what a real `*kv` meets: `client/v3/ServerKVGet.lean`; D48
 to linearizable ones, `serializable = false`, which fire an update of the KV state:
 `client/v3/KMGet.lean`.) -/
 def isEtcdKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=

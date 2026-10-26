@@ -34,9 +34,9 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     (wp_StartNode : StartNode.spec (GF := GF) (hG := hG))
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E γ bud b ss wal cl dq bv cv lok γs reg pre pv ps ctxs bootLog
+  intro E γ md bud b ss wal cl dq bv cv lok γs reg pre pv ps ctxs bootLog
     Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
-    Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk
+    Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk _
   wp_start as Hpre
   iNamed Hpre
   rw [method_unfold (t := go.GoType.PointerType bootstrappedRaft.ty) (m := go!"newRaftNode")]
@@ -65,8 +65,8 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     rfl
   rw [Hlen0]
   (try wp_auto)
-  -- `raft.StartNode(b.config, b.peers)`
-  wp_apply (wp_StartNode γ bud bv.config' cv lok ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
+  -- `raft.StartNode(b.config, b.peers)`, in the mode `md` (2026-10-25, T-M M2a: `bootInit`; D43 M3)
+  wp_apply (wp_StartNode γ md bud bv.config' cv lok ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
     memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
     (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs bootLog false Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl
@@ -85,7 +85,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     iapply Hinit $$ Hs Htok
     iintro %hp %cs %al Hs Ht Hhs Hcs
     iapply HK $$ Hs Ht Hhs Hcs
-  icases Hpost with ⟨%γn, %n, %Hnd, #Hnode, Hdrv, Hncfg, Hpeers⟩
+  icases Hpost with ⟨%γn, %n, %Hnd, %Hmd, #Hnode, Hdrv, Hncfg, Hpeers⟩
   obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, -, Hndeq⟩ := Hnd
   subst Hndeq
   (try wp_auto)
@@ -122,7 +122,8 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   isplitr
   · ipureintro
     obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hγw
-    exact ⟨Hγraft, Hγbud, Hγstor, Hγmode, h1, h2, h3, h4, h5, h6, h7⟩
+    exact ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hmd, h1, h2, h3, h4, h5,
+      h6, h7⟩
   iframe Hnode Hdrv Hncfg Hst Hbuilt Hb Hpeers Htok
   -- the closure meets `isRNIDRemoved`
   iunfold isRNIDRemoved
@@ -131,7 +132,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   iunfold rnClusterOk at Hcl
   wp_apply Hcl $$ %id' [] as %bb -
   iapply HΦ'
-  itrivial
+  first | itrivial | (ipureintro; trivial)
 
 end proof
 

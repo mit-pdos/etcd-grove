@@ -1,5 +1,5 @@
 /-
-**A client of etcd's KV meets the recipes' transaction contract** (D47, 2026-10-26). Lean-first,
+**A client of etcd's KV meets the recipes' transaction contract** (D48, 2026-10-26). Lean-first,
 no Rocq counterpart.
 
 `isEtcdTxnKVTodo_of_km`: `kv.Txn(context.TODO())` on a `*kv` of etcd's KV `γ.kv` (`isKv`, writes

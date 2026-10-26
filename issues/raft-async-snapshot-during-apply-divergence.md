@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - etcd-io/raft#8 pr merged: added AsyncStorageWrites; its review (and etcd-io/etcd#14627's, where it started) does not discuss a snapshot handed out while committed entries are being applied
 candidate: issues/upstream/raft-async-snapshot-during-apply-divergence/

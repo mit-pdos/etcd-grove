@@ -40,8 +40,6 @@ variable [ext : FfiSyntax]
 /-- The program's structs (`kv`, `event`, `putRec`), by short names. -/
 abbrev ckv := common.wkv
 abbrev cev := common.wev
-abbrev crec := common.wrec
-
 /-- `Main`'s peer URL, `http://127.0.0.1:23883`. -/
 def peerURL : _root_.Perennial.net.url.URL :=
   { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23883" }

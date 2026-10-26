@@ -56,15 +56,14 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
       mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbRegRight (some d') ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Restore")) (Val #b'))
-  {{ RET #GoInterface.nil; ∃ (p' : mvcc.PhysNames) (k : Nat),
-      ⌜p'.bucket = γb' ∧ p'.kb = some d' ∧ k + 1 ≤ mvcc.nReaders⌝ ∗
+  {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
+      ⌜p'.bucket = γb' ∧ p'.kb = some d'⌝ ∗
       mvcc.storeCloser st (γ.st.withPhys p') ∗
       mvcc.writerFrag (γ.st.withPhys p') ∗ mvcc.writerOwn (γ.st.withPhys p') ∗
       mvcc.hookP (γ.st.withPhys p') P' ∗
       mvcc.watchWriter γ ([[], []] ++ R) ∗
-      ([∗list] _x ∈ List.replicate (k + 1) (), mvcc.storeRT γ.st) ∗
-      ([∗list] _x ∈ List.replicate (mvcc.nReaders - (k + 1)) (),
-        mvcc.storeRT (γ.st.withPhys p')) }}
+      ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (), mvcc.storeRT γ.st) ∗
+      mvcc.storeRT (γ.st.withPhys p') }}
 
 end spec
 

@@ -81,6 +81,25 @@ def readyNstate (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz : w64)
            gh := { s.gh with outlb := 0, unst := false, slent := L.isSome, snp := loanTrip L },
            rd := { s.rd with states := [] } }
 
+/-- (2026-10-25, T-M M2b) A `Ready` keeps what a pre-candidate's campaign guard reads: the log's
+boundary, entries, commit index, `applied`, pending snapshot and the role (`PreGuardF`). -/
+theorem readyNstate_guard {fp : List EntryM} {s : NState} {L : Option SnapLoan} {ce : List EntryM}
+    {sz : w64} (h : PreGuardF fp s) : PreGuardF fp (readyNstate s L ce sz) := by
+  have e : (readyNstate s L ce sz).logst.prev = s.logst.prev ∧
+      (readyNstate s L ce sz).logst.sents = s.logst.sents ∧
+      (readyNstate s L ce sz).logst.uents = s.logst.uents ∧
+      (readyNstate s L ce sz).logst.committed = s.logst.committed ∧
+      (readyNstate s L ce sz).logst.applied = s.logst.applied ∧
+      (readyNstate s L ce sz).logst.snap = s.logst.snap := by
+    unfold readyNstate logAcceptApplying logAcceptUnstable rdyLs
+    split <;> split <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := e
+  intro hl hp
+  rw [h1] at hl
+  obtain ⟨hs, hn⟩ := h hl hp
+  refine ⟨by rw [h6]; exact hs, ?_⟩
+  rw [h2, h3, h4, h5]; exact hn
+
 /-- The local messages `acceptReady` queues for `Advance`: the self-addressed responses
 from `msgsAfterAppend` (`selfs`, each `selfPending`), an acknowledgement of the log up to
 its last entry if there were unstable entries, and an acknowledgement of the committed
@@ -964,7 +983,8 @@ theorem RawNode.acceptReady.wp_proof
       · exact (Hrdp.1 h).2
       · exact Hsnap (.inr h))
     Hstok' Htrm
-    (by rw [Hlogst, Haf3, Hf_st]; exact Hstor) Hpvoff rfl rfl
+    (by rw [Hlogst, Haf3, Hf_st]; exact Hstor)
+    ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
     $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc
 

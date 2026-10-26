@@ -1,5 +1,5 @@
 /-
-**The writers' log, at the clients' model of etcd over its KV state** (D47, 2026-10-26).
+**The writers' log, at the clients' model of etcd over its KV state** (D48, 2026-10-26).
 Lean-first (no Rocq counterpart).
 
 `Writes.lean`'s vocabulary with the facts about the KV state the client saw (the adapter of
