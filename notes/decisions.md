@@ -20903,6 +20903,55 @@ lose their workload parameter, with the same meaning: `plainEntryOn m`, `plainLo
 became a record of compaction, base and changes). After the merge: 718 axioms, 6 sorries (lean's 721
 less the three server axioms `origin/lean` proved).
 
+## E2x of the auth plan: `encoding/base64` names-only here with a package fact; `EtcdServer.UserAdd` proposes a `pwSure` request (2026-10-26 · `notes/auth-plan.md`, the user's option (1))
+
+The handler `EtcdServer.UserAdd` (`v3_server.go`) hashes the password
+(`bcrypt.GenerateFromPassword(pw, s.authStore.BcryptCost())`), puts the hash in the request
+`base64.StdEncoding.EncodeToString`-encoded and clears the password, unless the request asks for
+no password. E2t/E2u left "the proposed request's password choice cannot fail" (`pwSure`) a
+proposer's obligation, because Perennial has no `encoding/base64`. The user chose (2026-10-26)
+the minimal fix here over a Perennial model.
+
+- **Names-only `encoding/base64` here.** It already was, for the k8s-apiserver project
+  (`Code/encoding/base64.toml`); the etcd project now maps `encoding/base64=` to it
+  (`etc/goose.py`) and `etcdserver.toml` translates `EtcdServer.UserAdd` and
+  `EtcdServer.UserChangePassword` (importing `golang.org/x/crypto/bcrypt` and `encoding/base64`).
+  No Perennial change.
+- **base64's package fact** (`Proof/encoding/base64/Base.lean`, `base64Init`): `StdEncoding` holds
+  a fixed `*Encoding` `e` (`↦□`: Go never writes the variable after initialization) on which
+  `EncodeToString(src)` returns `stdEnc` of `src`'s bytes, reading and keeping the slice; stated as
+  the method call's own WP, since `Encoding` is axiomatized (its methods are not named), as the
+  k8s store's `featureInit`. `stdEnc` is opaque: what any proof needs of it is only
+  `selectPassword`'s boundary (a standard encoding decodes without an error, E2u). The instance
+  moved out of `k8s_io/apiserver/pkg/storage/etcd3/Base.lean`, whose import closure includes the
+  server (the server now imports base64); `auth.stdB64Enc` became `abbrev … := stdEnc`
+  (`auth/Requests.lean`), so `selectPassword`'s spec is unchanged in text.
+- **Two trust-boundary axioms** (+2):
+  - `encoding.base64.StdEncoding_init` (`Proof/encoding/base64/Init.lean`, generated:
+    `etc/gen-init.py`'s `SPECIAL['encoding.base64']`), the variable's initializer giving the fact;
+    `opaqueInitsOk` keeps the other three variables. Faithful: `StdEncoding =
+    NewEncoding(encodeStd)`, a fresh `*Encoding`; `EncodeToString` allocates
+    `enc.EncodedLen(len(src))` bytes, `Encode`s into them (indexes within the computed length) and
+    returns them as a string; no panic, no write to `src`.
+  - `bcrypt.GenerateFromPassword.wp_proof` (`Spec/golang_org/x/crypto/bcrypt/`): a fresh slice and
+    no error, or some error; the password read and kept. Faithful to x/crypto v0.57.0: an error
+    for a password over 72 bytes, a cost over `MaxCost` or a failed salt read; the key is copied
+    before use (`append(key[:len(key):len(key)], 0)`); no panic. Nothing about the hash's bytes
+    (D-AU6).
+- **`EtcdServer.UserAdd.spec`** (`Spec/…/etcdserver/EtcdServer__UserAdd.lean`): the request's
+  name read-only, its passwords owned (the handler writes them), its options read-only
+  (`auth.userOptsAt`), the server's `authStore` field read-only with `BcryptCost()` returning
+  (`bcryptCostOk`, a definition so that `wp_start` does not unfold the interface's method), and
+  `authRaftOk` for any request model with the same name and options that is `pwSure`; the outcome
+  is the hashing's error before any proposal (`nil`, the error and `P` back) or `authEntryOut`.
+  Proved for the three cases (no options, options with `NoPassword` false, true); the proposal as
+  in `EtcdServer.UserGrantRole`. Linked (`etc/link-lean-first-server.txt`), restated as
+  `server_user_add_sure` (`etcdserver/Results.lean`).
+- **Left.** `UserChangePassword` is translated, not proved (its request model has no password
+  fields yet). `BcryptCost()`'s contract is a premise: `authStore.BcryptCost` is untranslated
+  (it returns the read-only field `bcryptCost`). The full `encoding/base64` model in Perennial
+  stays proposed (`notes/perennial-changes.md`), also for the k8s store's continue tokens.
+
 ## E2w of the auth plan: the server's construction over the mode's KV invariant (2026-10-26 · `notes/auth-plan.md`, E2p's item 5)
 
 **Done.** `NewServer.specM on` takes the mode's KV invariant `kvInvM on ρ.rd.raft ρ.rd.kv srvAuthSt0`

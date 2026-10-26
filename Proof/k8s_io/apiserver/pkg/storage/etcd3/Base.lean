@@ -7,7 +7,7 @@ that have none yet (in import order): `isPkgInit` of a package includes `isPkgIn
 every one needs an instance. The k8s, otel, grpc and klog packages are translated with bodies
 (`storage/etcd3`, `storage`) or names- or types-only (`Code/k8s_io/**.toml`, project
 `k8s-apiserver` of `etc/goose.py`); the standard-library `encoding/base64`, `encoding/json`,
-`iter` and `path` are not translated by Perennial (`notes/perennial-changes.md`). Every fact is
+`iter` and `path` are not translated by Perennial (`notes/perennial-changes.md`; `encoding/base64`'s instance is in its own `Base.lean`). Every fact is
 `True` but the store's metrics package's (`metricsInit`: `ErrTransactionConflict`, which
 `txnError` returns for a failed comparison, holds some error) and `util/feature`'s
 (`featureInit`: `DefaultFeatureGate` holds a gate whose `Enabled` answers some `bool`; the gate is
@@ -28,6 +28,7 @@ public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Base
 public import Perennial.Proof.strings.Base
 public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.encoding.base64.Base
 
 @[expose] public section
 
@@ -180,12 +181,8 @@ instance k8s_io_apimachinery_pkg_util_validation_field_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.validation.field :=
   build_get_is_pkg_init_wf
 
-instance encoding_base64_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.encoding.base64 :=
-  define_is_pkg_init iprop(True)
-instance encoding_base64_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.encoding.base64 :=
-  build_get_is_pkg_init_wf
+-- `encoding/base64`: its instance is in `Proof/encoding/base64/Base.lean` (the auth plan's E2x,
+-- 2026-10-26: the server reads its `StdEncoding`)
 
 -- `encoding/json`'s instance: `etcdserver/apply/Base.lean` (D43 M4, 2026-10-26: membership's).
 

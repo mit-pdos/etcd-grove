@@ -19,6 +19,7 @@ axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom Perennial.crypto.tls.opaqueInitsOk
+axiom Perennial.encoding.base64.StdEncoding_init
 axiom Perennial.encoding.base64.opaqueInitsOk
 axiom Perennial.encoding.hex.opaqueInitsOk
 axiom Perennial.encoding.json.initFuncsOk
@@ -359,6 +360,7 @@ axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
+axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
