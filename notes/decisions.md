@@ -21969,6 +21969,56 @@ what blocks it, in order:
    receipt at an apply-thread step); the result to the waiter (`resultΨOn`: `authTie` from the
    outcome, `entryWitOn`); replays (`v3 = false`). Then `applyAll`, `run`, `start`.
 
+## E3h of the auth plan: the store's in-memory fields fresh; publication; the checks' lower-bound specs (2026-10-27 · `notes/auth-plan.md`, E3g's "Not done")
+
+E3g's design, carried out (`auth/InvAuth.lean`, `auth/Fresh.lean`, `auth/FreshCheck.lean`).
+
+**Done.**
+1. *The freshness invariant inside `revInv`* (`revFresh`; `authInv` keeps its text): in `on γa`,
+   the published index `p`'s authority (`authPubAuth`), `p` an index of the history, the atomic
+   `revision` the revision of a state at an index `≥ p`, a quarter of the field `enabled`'s ghost
+   variable (`AuthNames.fen`, `enG`) at the flag of such a state, and a quarter of the cache's ghost
+   variable (`AuthNames.fca`, `caG`) at `(mp, j)`, the state at `j` having the permissions
+   (`permView`) of a state at an index `≥ p`. The guards hold halves (`enabledP`: `enG`; `cacheP`:
+   `caGM`, the map the cache of the state at `j`), the admin side a quarter (`flagAt`, `cacheAt`,
+   both now taking the mode: `caA` with the state at `j` of `sc`'s permissions).
+   - *Why `(mp, j)` and `permView`, not the cache's state.* `RoleAdd` keeps the map though the
+     state changes (`cacheAt_congr`): what is invariant is the map and its users' permissions. And
+     `cacheOf` is not timeless (the interval trees), so the invariant states the permissions'
+     equality purely (`permView`) and the map's model stays in the guard.
+2. *The writers* update the ghost variables with all three shares: `AuthEnable`, `AuthDisable`,
+   `Recover` (`enG_update`, over the admin side's authority: the new state is at the last index,
+   `≥ p`); `refreshRangePermCache` (`caG_update`) -- its spec now takes the whole authority at
+   `hs` whose latest state is the one refreshed from, and its eleven callers pass it;
+   `commitRevision`, `setRevision` (`authOwnF_revFresh`); the constructor allocates them
+   (`authStoreInit`: the half of the latest state's ghost variable, `authPubAuth γa 0`, the two
+   ghost variables; `authHist_alloc` allocates them, `authBoot_alloc` passes them).
+3. *Not done: the tie strengthened* to "the cache's permissions are the latest state's always"
+   (across E2s's `specT`s). Publication takes it as a hypothesis (`hc`) instead: true of Go (every
+   step changing a user's permissions refreshes the cache; `AuthDisable` changes none; `RoleAdd`
+   keeps them, `cacheAt_congr`); to add it to `latestTie`, `tieStep_set`/`_keep`/`_keep'` gain a
+   permissions premise, and `tieRes_of_disabled` (the boot) needs the cache's state, which
+   `newAuthStore_on`'s post would have to expose (the refreshed latest).
+4. *Publication* (`authPublish`, `Fresh.lean`): the apply thread with the admin side's authority,
+   its flag and cache halves with the latest state's flag and permissions, raises the published
+   index to the latest one and gets `authPubLbM M (hs.length - 1)`. Its call site (after an admin
+   step's batch `Unlock`, the waiter's reply carrying the bound) is the apply loop's.
+5. *The checks' lower-bound specs*, beside today's: `Revision.specLb`, `IsAuthEnabled.specLb`
+   (`Fresh.lean`), `isRangeOpPermitted.specLb` (`cacheFresh`), `isOpPermitted.specLb`, the verdict
+   `permVerdictFrom` (S3's, each recorded state at an index `≥ n`; `permVerdictFrom_verdict` gives
+   S3's) with its lemmas (`FreshCheck.lean`); restated in `etcdserver/Results.lean`
+   (`auth_revision_lb`, `auth_enabled_lb`, `auth_range_op_permitted_lb`, `auth_op_permitted_lb`).
+   Not done: the read wrappers (`IsRangePermitted` & co.) and the auth applier's read checks at
+   the lower bound (each a wrapper over `isOpPermitted.specLb`).
+
+**Exported statements changed.** `AuthNames` (fields `fen`, `fca`), `AuthMode.enc`/`dec`;
+`authHist_alloc`'s post; `authStoreInit` (new) in `newAuthStore_on`'s precondition and
+`authBoot_alloc`'s post, `AuthSrv.authStoreKit_on`, `Results.auth_store_new_on`; the definitions
+`revInv`, `enabledP`, `cacheP`, `flagAt`, `cacheAt` (each with the mode), `enabledHalf`, `cacheHalf`;
+`refreshRangePermCache.spec` (the authority); `cacheAt_congr` (the mode). No closed theorem changed.
+
+**Trust base.** Unchanged: no axiom or `sorry` added.
+
 ## E3g of the auth plan: the reads' freshness, a lower bound of the published index (2026-10-27 · the user's decision; `notes/auth-plan.md`, E3d's "Not done" (2))
 
 **The decision (the user's, 2026-10-27, as recommended).** With auth on, a read's check gives its
@@ -22102,6 +22152,60 @@ text and say what they said of a heap-determined model (now with each put's `Pre
 **Left.** `noZeroEnds` stays the workload's premise (a range end `"\x00"` is where a check can see
 another range than the model's). The read path and the handlers (E3d's (2), (3)).
 
+## E3i of the auth plan: an auth rejection told apart from `ErrNoSpace`; the apply thread's state with auth on (2026-10-27 · `notes/auth-plan.md`, E3f's blockers 2 and 3)
+
+**Blocker 2: done for a covered (KV or monitor) entry.** `applyEntryNormal` raises the NOSPACE alarm
+when `errors.Is(ar.Err, ErrNoSpace)`. With auth on, a refused entry's error was only `err ≠ nil ∗
+applyErrIs err` (`rejErrIs .auth`), which does not rule `ErrNoSpace` out.
+- *The auth package's error variables with their message cells.* `auth.authErrMsgs` (the 19
+  translated `errors.New` variables of `store.go` with their messages) and `authErrTexts`;
+  `authInit` gains `errVarCells authErrMsgs` as its last conjunct (gen-init's auth recipe now uses
+  `wp_New_errorString_cell`); `errVarApart_cells` (`errors/NewVarCell.lean`): one variable apart
+  from each of a list's whose messages differ.
+- *The apply package's fact.* `applyErrVars` gains `authErrsApart` (last conjunct): `ErrNoSpace`
+  apart from each auth error variable, from the cells (gen-init's apply recipe).
+- *The rejection's error.* `authErrVarIs err` (`nil`, or a leaf error some variable of
+  `authErrMsgs` holds) and `authApplyErrIs err := applyErrIs err ∗ authErrVarIs err`
+  (`apply/Base.lean`); `rejErrIs .auth err := ⌜err ≠ nil⌝ ∗ authApplyErrIs err`. The permission
+  checks' contracts state `authApplyErrIs` instead of `applyErrIs` (`permCheck2`/`permCheck3`,
+  `permCheck2L`/`permCheck3L`, and the specs of `checkPutAuth`, `checkLeasePuts`,
+  `checkLeasePutsKeys`, `checkTxnPermission`, `checkTxnReqsPermission`, `CheckTxnAuth` and their
+  latest-state forms); the real store meets them (`authErrIs_authApplyErrIs`, `AuthDerive.lean`:
+  the store's five request-side errors are among `authErrMsgs`, with `authInit`'s leafness).
+  `IsAdminPermitted`'s and the admin requests' clauses keep `applyErrIs`.
+- *The branch dead* (`NoSpaceDeadOn.lean`): `dispatchStep_on_off` (a dispatch at the auth-on start
+  chain is the auth layer's refusal or the auth-off chain's), `authErrVarIs_notNoSpace`,
+  `dispatchAnswer_notNoSpaceOn`, `applyResultIs_notNoSpaceOn` (restated
+  `server_apply_not_nospace_on`).
+- *Not covered:* an admin entry's result error (`apply.Apply.adminSpecL`'s), which the admin case
+  of `applyEntryNormal` with auth on will need: the admin requests' errors are the auth store's
+  (`authErrMsgs`'s variables) or the backend's, so the same device applies once the admin
+  clauses state `authApplyErrIs`.
+
+**Blocker 3: the definitions and the deposit; their construction left** (`AppliedOn.lean`; each
+today's at `false` by `rfl`): `kvLogAtM`, `kvLogsOkM` (`kvLogsOkM_insert`), `srvAppliedBodyM`/`srvAppliedInvM` (D22
+J5's body, the atomic lagging the ghost index; the applied logs the mode's model, `kvModelM`), `applied_predepositM` (restated
+`server_applied_predeposit_on`), `appliedLogAt_kvLogAtM`; `srvAtomicsM` (with `srvKVInvsM`),
+`srvFieldsAtM` (with `waitInvM`), `isServerM`; and `srvApplyKVOn s E γw x st ci L W Own`
+(`srvApplyKV`'s with `srvAuthApplyResAt s E st` in place of `srvAuthApplyRes`, and the server
+applier's `apply.uberKVL ua E ci L` and `apply.uberAuthStepsL ua E W Own L`). Left:
+- `isServerBuiltOn` still carries the mode-off `srvAppliedInv` (E2z's row): the boot must allocate
+  `srvAppliedInvM true` (its log map `{ai₀ ↦ log0}` is `kvModelOn`'s at `[]`, as `kvModel`'s), and
+  `isServerBuilt_of_gapM` give `isServerM true`;
+- the construction handing over `uberKVL`/`uberAuthStepsL` for the store's families (`latestRes`,
+  the admin steps' `W`, which is blocker 1's decision, and `Own`);
+- with D22's integration (2026-10-26): `srvApplyKVOn` holds `srvAuthApplyResAt` where `srvApplyKV`
+  holds `srvAuthApplyRes`; a mode-on `applySnapshot` would hand it on as D22's notes say for
+  `srvAuthApplyRes` (not now: `specSnap` stays at `hoff`).
+
+**Exported statements changed.** Definitions: `apply.rejErrIs` (its `.auth` case),
+`apply.permCheck2`, `apply.permCheck3`, `apply.permCheck2L`, `apply.permCheck3L`, `apply.txnPermT`,
+`applyErrVars` (a last conjunct), `auth.authInit` (a last conjunct). Specs (their posts state
+`authApplyErrIs`): `apply.checkPutAuth.spec`, `apply.checkLeasePuts.spec`,
+`apply.checkLeasePutsKeys.spec`, `apply.checkTxnPermission.spec`, `apply.checkTxnReqsPermission.spec`,
+`apply.CheckTxnAuth.spec`, and the latest-state forms in `AuthApplyLatestPut.lean`/`AuthApplyLatestTxn.lean`;
+the theorem `apply.checkTxnReqs_of`. No closed theorem's statement changed; trust base unchanged.
+
 ## D22 J5: the applied index lags its ghost; the write counter decoupled (2026-10-26 · decided by the orchestrator while the user was away (J5/J4))
 
 J0's item 4, carried out (`notes/snapshot-sj-plan.md`, J5). No axiom, no `sorry`; no closed theorem
@@ -22142,3 +22246,59 @@ changes.
   `applyAll`'s snapshot case (where `ai` jumps past `w`), makes it conditional on the mode (or
   replaces the compaction's bound by `γs.cap ≥ 2^61`, L3) and drops `applyAll.spec`'s premise
   `uint.Z ai ≤ w` there.
+
+## E3j of the auth plan: the cache's permissions in the tie, the read wrappers at the lower bound, the admin path's errors (2026-10-27 · `notes/auth-plan.md`)
+
+E3h's "Left" (the stronger tie, the read wrappers) and E3i's first "Left" item (an admin entry's
+error), in `auth/` and `apply/`; no exported statement of a closed theorem changed, the trust base
+unchanged (724 axioms, 6 sorries).
+
+**(1) The tie carries the cache's permissions always.** `auth.latestTie` (`Latest.lean`) gains a
+third conjunct, `permView sc = permView stl`: whatever the flag, the cache's state has the latest
+state's permissions. True of Go: every admin operation but `RoleAdd` (a role without permissions,
+`permView_putRole_empty`) and `AuthDisable` (no user or role changes) calls
+`refreshRangePermCache(tx)` unconditionally (`store.go`: `AuthEnable`, `Recover`, `UserAdd`,
+`UserDelete`, `UserChangePassword`, `UserGrantRole`, `UserRevokeRole`, `RoleRevokePermission`,
+`RoleDelete`, `RoleGrantPermission`, `NewAuthStore`). The tie lemmas (`LatestTie.lean`):
+`tieStep_refresh` unchanged in statement; `tieStep_set` gains `hp : permView sc = permView s'`;
+`tieStep_keep`, `tieStep_keep'` gain `hp : permView s' = permView st0` (the step keeps the
+permissions); new `tieStep_setKeep` (the flag set, the cache kept: `AuthDisable`), `permView_bump`,
+`permView_putRole_empty`. `tieRes_of_disabled` (`TieRes.lean`) gains
+`hpv : ∀ s ∈ hs, ∀ s' ∈ hs, permView s = permView s'` (the cache's state is a recorded one, in `hs`
+by `authHistHalf_lookup`); its one caller (`etcdserver/AuthSrv.lean`, the boot's
+`[bootState, bump bootState]`) proves it by `rfl`. `authPublishT` (`FreshWrap.lean`): E3h's
+`authPublish` with its hypotheses `hb`, `hc` from the tie.
+
+**(2) The read wrappers at the lower bound** (`auth/FreshWrap.lean`): `IsPutPermitted`,
+`IsRangePermitted`, `IsDeleteRangePermitted` `.specLb`, thin wrappers over E3h's
+`isOpPermitted.specLb` (verdict `permVerdictFrom M n info k e op err`), restated linked as
+`auth_put_permitted_lb`, `auth_range_permitted_lb`, `auth_delete_range_permitted_lb`.
+`IsRangePermitted` is what the read path checks for `Range` (`doSerialize`'s `chk`). Not done: a
+lower-bound `CheckTxnAuth` (the read-only `Txn`'s check), which would repeat E2s's latest-state
+proof of `checkTxnPermission`/`checkTxnReqsPermission` (Löb induction over the requests) at
+`permVerdictFrom`.
+
+**(3) The admin path's errors are the auth package's.** `isAuthStoreL`'s `IsAdminPermitted`
+clause (`apply/AuthLatest.lean`) states `authApplyErrIs err` (was `applyErrIs`), from
+`authErrIs_authApplyErrIs`. The auth applier's rejection on the latest-state path is
+`apply.rejectResultIsA` (`rejectResultIs` with `authApplyErrIs`) in `authApplierV3.Apply.specL`
+and `applierAdmL` (`apply/ApplyAdminL.lean`); `uberApplier.Apply.adminSpecL` and
+`apply.Apply.adminSpecL` (`ApplyFnAdminL.lean`) gain a last conjunct `apply.adminRejErr ar out`
+(for a rejection, the result's error read-only and `authApplyErrIs`). New `authErrVar_authApplyErrIs`
+and `authErrOf_authApplyErrIs` (`apply/AuthDerive.lean`: each `AuthErr`'s variable, by its package
+fact `authErrVar`). New `etcdserver/NoSpaceDeadAdminOn.lean`: `adminOutX_authApplyErrIs`,
+`adminReqResult_authApplyErrIs`, and `applyResultIs_notNoSpaceAdmin` (restated as
+`server_apply_admin_not_nospace_on`): with `apply.Apply.adminSpecL`'s post, an admin entry's result
+is `nil` or its error not `ErrNoSpace`'s, so `applyEntryNormal`'s NOSPACE branch is dead for admin
+entries too.
+
+**Exported statements changed.** Definitions: `auth.latestTie`, `apply.isAuthStoreL` (its admin
+clause), `apply.applierAdmL`. Specs: `apply.authApplierV3.Apply.specL`,
+`apply.uberApplier.Apply.adminSpecL`, `apply.Apply.adminSpecL` (posts). Lemmas: `tieStep_set`,
+`tieStep_keep`, `tieStep_keep'`, `tieRes_of_disabled` (a premise each), `latestTie_flag`
+(unchanged statement). New: `tieStep_setKeep`, `permView_bump`, `permView_putRole_empty`,
+`authPublishT`, the three `*.specLb`/`wp_lb`, `rejectResultIsA`, `adminRejErr`, the lemmas above.
+
+**Left.** A lower-bound `CheckTxnAuth` (the read-only `Txn`); `authPublishT`'s call site in the
+apply loop (with the waiter's reply carrying the lower bound); the apply loop itself
+(`applyEntryNormal.specOn`, E3a's blocker 4).

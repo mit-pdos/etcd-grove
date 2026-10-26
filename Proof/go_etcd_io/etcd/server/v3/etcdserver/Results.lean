@@ -73,6 +73,8 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.Latest
 public import Proof.go_etcd_io.etcd.server.v3.auth.ReadLb
+public import Proof.go_etcd_io.etcd.server.v3.auth.FreshCheck
+public import Proof.go_etcd_io.etcd.server.v3.auth.FreshWrap
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
@@ -88,6 +90,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyTieOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyEntryOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadAdminOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 
 @[expose] public section
 
@@ -1317,9 +1322,47 @@ theorem auth_locked_read_tx_lb :
     auth.authStore.lockedReadTx.specLb (GF := GF) (hG := hG) :=
   auth.authStore.lockedReadTx.wp_lb
 
+/-- **The store's fields read no older than a published index** (the auth plan's E3h,
+`auth/Fresh.lean`, `auth/FreshCheck.lean`): with a reader's lower bound `n`, the revision and the
+flag are a state's no older than `n` (the store's freshness, `revFresh`), and the permission checks'
+verdicts are at states no older than `n` (`permVerdictFrom`). -/
+theorem auth_revision_lb : auth.authStore.Revision.specLb (GF := GF) :=
+  auth.authStore.Revision.wp_lb
+
+theorem auth_enabled_lb : auth.authStore.IsAuthEnabled.specLb (GF := GF) :=
+  auth.authStore.IsAuthEnabled.wp_lb
+
+theorem auth_range_op_permitted_lb : auth.authStore.isRangeOpPermitted.specLb (GF := GF) :=
+  auth.authStore.isRangeOpPermitted.wp_lb zap.wp_String zap.Logger.wp_Error
+    auth.wp_checkKeyInterval auth.wp_checkKeyPoint
+
+theorem auth_op_permitted_lb : auth.authStore.isOpPermitted.specLb (GF := GF) :=
+  auth.authStore.isOpPermitted.wp_lb auth_enabled_lb auth_revision_lb zap.wp_Uint64
+    zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn zap.wp_String zap.Logger.wp_Error
+    auth.wp_hasRootRole auth.authStore.lockedReadTx.wp_lb auth_range_op_permitted_lb
+
+/-- **The read wrappers no older than a reader's lower bound** (the auth plan's E3j,
+`auth/FreshWrap.lean`): `IsRangePermitted` (the read path's check), `IsPutPermitted`,
+`IsDeleteRangePermitted` over `isOpPermitted.specLb`, every callee linked. -/
+theorem auth_range_permitted_lb : auth.authStore.IsRangePermitted.specLb (GF := GF) :=
+  auth.authStore.IsRangePermitted.wp_lb auth_op_permitted_lb
+
+theorem auth_put_permitted_lb : auth.authStore.IsPutPermitted.specLb (GF := GF) :=
+  auth.authStore.IsPutPermitted.wp_lb auth_op_permitted_lb
+
+theorem auth_delete_range_permitted_lb : auth.authStore.IsDeleteRangePermitted.specLb (GF := GF) :=
+  auth.authStore.IsDeleteRangePermitted.wp_lb auth_op_permitted_lb
+
 end readLb
 
 #print axioms Perennial.EtcdGrove.auth_locked_read_tx_lb
+#print axioms Perennial.EtcdGrove.auth_revision_lb
+#print axioms Perennial.EtcdGrove.auth_enabled_lb
+#print axioms Perennial.EtcdGrove.auth_range_op_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_op_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_range_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_put_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_delete_range_permitted_lb
 
 section latestApply
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -1739,7 +1782,7 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
         T ∗ mvcc.csContract P f Pre Q Post ∗ auth.tokenProviderOkA tp (.on γa) A ∗ A ∗
-        auth.authOwn (.on γa) hs ∗ auth.authCurHalf γa stl }}
+        auth.authOwn (.on γa) hs ∗ auth.authStoreInit γa stl }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List auth.AuthState),
@@ -2136,6 +2179,60 @@ theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (x x' : EtcdGrove.a
 
 end applyEntryOn
 
+section applyStateOn
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The applied index's deposit in the auth mode** (the auth plan's E3i, `AppliedOn.lean`): the
+apply thread deposits the log after the next entry, the mode's model of the committed raft log. -/
+theorem server_applied_predeposit_on (on : Bool) (s : Loc) (E : EtcdGrove.apply.AEnv GF)
+    (γr : ReadNames) (v v' : w64) (L₀ L : mvcc.Log) (hv : uint.Z v' = uint.Z v + 1)
+    (hp : L₀ <+: L) :
+    ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ srvAppliedOwn γr v -∗ appliedLogAt γr v L₀ -∗
+      kvLogAtM on γr v' L ={⊤}=∗ srvAppliedPre γr v v' L :=
+  applied_predepositM on s E γr v v' L₀ L hv hp
+
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+variable [errors_sem : _root_.Perennial.errors.Assumptions]
+
+/-- **`apply.Apply`'s result with auth on is not `ErrNoSpace`'s** (the auth plan's E3i,
+`NoSpaceDeadOn.lean`): `applyEntryNormal`'s NOSPACE branch is dead for a covered entry at the
+start's chain with auth on, the auth layer's refusal included. -/
+theorem server_apply_not_nospace_on (rq : EtcdGrove.apply.IRRModel) (x x' : EtcdGrove.apply.ApplyKV)
+    (ar : Loc) (out : EtcdGrove.apply.ApplyOut) (hp : plainCover rq)
+    (hch : x.chain = EtcdGrove.apply.alarmChain true false false)
+    (hs : EtcdGrove.apply.applyStep rq true x x' out) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      EtcdGrove.apply.applyResultIs rq true x.log ar out -∗
+      EtcdGrove.apply.applyResultIs rq true x.log ar out ∗
+      (⌜ar = null⌝ ∨ ∃ err : GoInterface,
+        structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
+        notNoSpaceErr err) :=
+  applyResultIs_notNoSpaceOn rq x x' ar out hp hch hs
+
+/-- **`apply.Apply`'s result on an admitted admin entry with auth on is not `ErrNoSpace`'s** (the
+auth plan's E3j, `NoSpaceDeadAdminOn.lean`): with `apply.Apply.adminSpecL`'s postcondition (the
+admin outcome and the rejection's error), the result is `nil` or its error one of the auth
+package's, so `applyEntryNormal`'s NOSPACE branch is dead for admin entries too. -/
+theorem server_apply_admin_not_nospace_on
+    (Own : auth.AuthNames → List auth.AuthState → IProp GF) (γa : auth.AuthNames)
+    (M : auth.AuthMode) (hs : List auth.AuthState) (rq : EtcdGrove.apply.IRRModel)
+    (log : mvcc.Log) (ar : Loc) (out : EtcdGrove.apply.ApplyOut) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars ⊢
+      EtcdGrove.apply.applyResultIs rq true log ar out -∗
+      EtcdGrove.apply.adminOut Own γa M hs rq true ar out -∗ EtcdGrove.apply.adminRejErr ar out -∗
+      EtcdGrove.apply.applyResultIs rq true log ar out ∗
+      EtcdGrove.apply.adminOut Own γa M hs rq true ar out ∗
+      (⌜ar = null⌝ ∨ ∃ err : GoInterface,
+        structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
+        notNoSpaceErr err) :=
+  applyResultIs_notNoSpaceAdmin Own γa M hs rq log ar out
+
+end applyStateOn
+
 end EtcdGrove
 end Perennial
 #print axioms Perennial.EtcdGrove.server_run
@@ -2151,3 +2248,6 @@ end Perennial
 
 #print axioms Perennial.EtcdGrove.apply_kv_entry_pre_on
 #print axioms Perennial.EtcdGrove.apply_kv_after_on
+
+#print axioms Perennial.EtcdGrove.server_applied_predeposit_on
+#print axioms Perennial.EtcdGrove.server_apply_not_nospace_on

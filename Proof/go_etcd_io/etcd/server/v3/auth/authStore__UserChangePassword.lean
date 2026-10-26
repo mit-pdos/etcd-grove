@@ -223,8 +223,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
       (try wp_auto)
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
-      iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState))
-        $$ [HL Hca]
+      iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState) (hs ++ [bump st0]))
+        $$ [HL Hca Hown]
       · iframe Hpkg Hinv
         isplitl [Hca]
         · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
@@ -234,9 +234,9 @@ theorem auth.authStore.UserChangePassword.wp_tie
         · iExactEq HL
           all_goals rfl
         iframe Hsnap
-        ipureintro; exact permsFit_rev _ rev Hfit'
+        iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
       inext
-      iintro ⟨HL, Hca⟩
+      iintro ⟨HL, Hca, Hown⟩
       (try wp_auto)
       wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
       iapply HInval $$ %name [HA] [-]
@@ -334,8 +334,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
     (try wp_auto)
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
-    iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState))
-      $$ [HL Hca]
+    iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState) (hs ++ [bump st0]))
+      $$ [HL Hca Hown]
     · iframe Hpkg Hinv
       isplitl [Hca]
       · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
@@ -345,9 +345,9 @@ theorem auth.authStore.UserChangePassword.wp_tie
       · iExactEq HL
         all_goals rfl
       iframe Hsnap
-      ipureintro; exact permsFit_rev _ rev Hfit'
+      iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
     inext
-    iintro ⟨HL, Hca⟩
+    iintro ⟨HL, Hca, Hown⟩
     (try wp_auto)
     wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
     iapply HInval $$ %name [HA] [-]

@@ -199,11 +199,11 @@ theorem authStoreKit_on
     (hD22 : ⊢ authSchemaSrv (GF := GF))
     (tp : GoInterface) (γa : auth.AuthNames) (A : IProp GF) :
     auth.tokenProviderOkA tp (.on γa) A ∗ A ∗ auth.authOwn (.on γa) [auth.bootState] ∗
-      auth.authCurHalf γa auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ⊢
+      auth.authStoreInit γa auth.bootState ∗ auth.authLockI (.on γa) auth.bootState ⊢
       authStoreKit (GF := GF) (.on γa) tp := by
   iintro ⟨#HtpA, HA, Hown, Hcur, HI⟩
   iunfold authStoreKit
-  iexists iprop(A ∗ auth.authOwn (.on γa) [auth.bootState] ∗ auth.authCurHalf γa auth.bootState ∗
+  iexists iprop(A ∗ auth.authOwn (.on γa) [auth.bootState] ∗ auth.authStoreInit γa auth.bootState ∗
     auth.authLockI (.on γa) auth.bootState)
   iframe HA Hown Hcur HI
   iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI⟩, #Hpkg, %Hlg, %Htp,
@@ -242,7 +242,9 @@ theorem authStoreKit_on
   -- (E2v) the halves tied to the start's history, whose states are disabled
   ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
     (by intro s hs; simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
-        rcases hs with rfl | rfl <;> rfl) $$ [Hown' Hen Hca]
+        rcases hs with rfl | rfl <;> rfl)
+    (by intro s hs s' hs'; simp only [List.mem_cons, List.not_mem_nil, or_false] at hs hs'
+        rcases hs with rfl | rfl <;> rcases hs' with rfl | rfl <;> rfl) $$ [Hown' Hen Hca]
   · iframe Hown' Hen Hca
   ihave HAR : authApplyResAt (.on γa) stp (auth.bump auth.bootState) $$ [Hown' Hfu HT' HX HtpAd]
   · unfold authApplyResAt
