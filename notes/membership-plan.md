@@ -214,7 +214,8 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     batch transaction, or a contract, decided in M4c).
   - *M4d.* `ValidateConfigurationChange` translated (its `RemoveNode` case proved, the others over
     `json.Unmarshal`'s opaque model as `ccContextOf`).
-- **M5. `applyConfChange` proved** for `AddNode` of a known member and `RemoveNode`: raft's
+- **M5. `applyConfChange` proved** (**done 2026-10-26**, sub-stages M5a-M5e below; `removed` is
+  `false`: the local member's removal is M6's) for `AddNode` of a known member and `RemoveNode`: raft's
   `ApplyConfChange` in the dynamic mode, the cluster writers (M4), `transport.RemovePeer`, and
   `removed = (id = local)`. (2026-10-25, D22 S8d: `rafthttp.Transport.RemoveAllPeers.spec` exists
   over `trLive` (`Spec/.../rafthttp/Transport__RemoveAllPeers.lean`, ids `(rs.1, [])` after; its proof
@@ -252,6 +253,8 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     dynamic handler left for M8).
   - *M5d.* The server's cluster in the dynamic mode: `isRaftClusterG c (rcDyn γ)`, `rcRemovedOwn`
     the apply thread's; `srvCCPolicy`'s dynamic case admits a `RemoveNode` of another member.
+    **Done (2026-10-26)**: D43 "M5d carried out" (the policy mode-aware, the log-aware decoder
+    `srvDec c0 boot`, the view's voters shrinking at a validated `RemoveNode`).
   - *M5e.* `applyConfChange` proved (the axiom goes). **Blocked (2026-10-26)**: D43 "M5e blocked" (the
     `AddNode`'s member from `json.Unmarshal`, the static mode's `AddPeer` on a freely stoppable
     transport, the dynamic mode's `AddPeer`); M5d waits with it. Decided the same day; started (`Unmarshal`

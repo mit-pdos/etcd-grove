@@ -310,7 +310,8 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
     -- (D43 M3, 2026-10-25) the node's mode: static exactly when raft's names are (until then
     -- static only), and in the dynamic mode at the server's decoder
     ⌜(γ.node.mode = RNMode.static ↔ γ.node.raft.reDyn = none) ∧
-      (∀ dec c0 h0 h1, γ.node.mode = .dyn dec c0 h0 h1 → dec = srvDec) ∧
+      (∀ dec c0 h0 h1, γ.node.mode = .dyn dec c0 h0 h1 →
+        dec = srvDec E.γr.kv.c0 E.γr.raft.raft.reBoot) ∧
       γ.node.stor = memStorIface γ.ms ∧ γ.node.raft.reNoSnap = true⌝ ∗
     -- (2026-10-19, D21 M3) the storage's cap at least `1` (`compactRaftLog`'s compaction at `1`)
     ⌜1 ≤ γ.γs.cap⌝ ∗

@@ -89,6 +89,12 @@ def membership.ccValidOn [FfiSyntax] (bk : GMap GoString backend.BktData) (m : C
 def membership.ccMemberAt [FfiSyntax] (m : CCV1M) : apply.MemberM :=
   { membership.ccMemberOf m.context with id := m.nodeId }
 
+/-- **The change `applyConfChange` hands raft for `m`** (with `v3`; D43 M5d, 2026-10-26): the change
+itself when it validates against the tracked buckets `bk` (`ccValidOn`), else the change with
+`NodeId` `0` (`cc.NodeId = raft.None`), which raft's `confchange` skips. -/
+def membership.ccRaftEff [FfiSyntax] (bk : GMap GoString backend.BktData) (m : CCV1M) : CCV1M :=
+  if membership.ccValidOn bk m = true then m else { m with nodeId := W64 0 }
+
 /-- The value `MustDeleteMemberFromBackend` puts under a removed member's key in
 `members_removed` (`[]byte("removed")`). -/
 def membership.removedVal [FfiSyntax] : GoString := go!"removed"

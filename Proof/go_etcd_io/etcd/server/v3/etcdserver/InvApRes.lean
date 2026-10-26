@@ -231,17 +231,16 @@ def ccMembRes (γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : IP
       membership.rcRemovedOwn γc rm)
 
 /-- **The dynamic mode's positional policy** (persistent; D43 M5d, the user's decision: an
-assumption of the dynamic mode, M8's dynamic `NewServer` establishes it): every conf entry of the
-committed log decodes to an `AddNode` at one of the boot entries' indices (the boot entries,
-re-applied) or a `RemoveNode` after them, never of the local member `lid` (the stopping server is
-M6's). True in raft's static mode. -/
+assumption of the dynamic mode, M8's dynamic `NewServer` establishes it): the local member `lid`
+is a member of raft's configuration, and every conf entry of the committed log (`srvDynPol`, by
+its position in raft's log) decodes to an `AddNode` among the boot entries (re-applied) or a
+`RemoveNode` after them, never of the local member (the stopping server is M6's). True in raft's
+static mode. -/
 def srvDynLog (γs : ServerRaftNames) (lid : w64) : IProp GF :=
   match γs.raft.reDyn with
   | none => iprop(True)
-  | some _ => iprop(□ ∀ L : List EntryModel, srvRLogLb γs L -∗
-      ⌜∀ m ∈ L, m.typ ≠ W32 0 → ∀ cc, ccDecodeV1 m.data = some cc →
-        (cc.type = W32 0 → uint.Z m.index ≤ γs.raft.reBoot.length) ∧
-        (cc.type = W32 1 → γs.raft.reBoot.length < uint.Z m.index ∧ cc.nodeId ≠ lid)⌝)
+  | some _ => iprop(⌜lid ∈ γs.raft.reCfg⌝ ∗ □ ∀ L : List EntryModel, srvRLogLb γs L -∗
+      ⌜srvDynPol γs.raft.reBoot.length lid (srvLogOf γs L)⌝)
 
 instance srvDynLog_persistent (γs : ServerRaftNames) (lid : w64) :
     Persistent (srvDynLog (GF := GF) γs lid) := by
@@ -402,7 +401,10 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
         ⌜(cm.type = W32 0 → cm.nodeId ≠ lid → cm.nodeId ∈ prs) ∧
           (cm.type = W32 1 → cm.nodeId ≠ lid) ∧
           (cm.type = W32 0 → GMap.size (GMap.insert cm.nodeId (membership.ccMemberAt cm)
-            (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A)).mem) ≤ 2 ^ 62)⌝ ∗
+            (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A)).mem) ≤ 2 ^ 62) ∧
+          (γr.raft.raft.reDyn.isSome = true →
+            srvDynPol γr.raft.raft.reBoot.length lid (srvLogOf γr.raft (A ++ [m])) ∧
+            lid ∈ γr.raft.raft.reCfg)⌝ ∗
         (∀ v3 : Bool, ccMembRes γs cl tl lid (ccPeersAfter v3 cm
             (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A)).bk prs) -∗
           srvApRes s γr (A ++ [m])) := by
@@ -412,17 +414,32 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   icases H with ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6,
     %H7, #H8, Hmr, %Hp, #Hd⟩
   -- the positional policy, in the dynamic mode
-  ihave %Hpos : ⌜γr.raft.raft.reDyn ≠ none → (cm.type = W32 0 →
-      uint.Z m.index ≤ γr.raft.raft.reBoot.length) ∧
-      (cm.type = W32 1 → γr.raft.raft.reBoot.length < uint.Z m.index ∧ cm.nodeId ≠ lid)⌝ $$ []
+  ihave %Hdyn : ⌜γr.raft.raft.reDyn.isSome = true →
+      srvDynPol γr.raft.raft.reBoot.length lid (srvLogOf γr.raft (A ++ [m])) ∧
+      lid ∈ γr.raft.raft.reCfg⌝ $$ []
   · cases hrd : γr.raft.raft.reDyn with
-    | none => ipureintro; intro h; exact absurd rfl h
+    | none => ipureintro; intro h; cases h
     | some f =>
       unfold srvDynLog
       rw [hrd]
+      icases Hd with ⟨%Hl, #Hd⟩
       ihave %Hd' := Hd $$ %(A ++ [m]) Hlb
       ipureintro; intro _
-      exact Hd' m (by simp) hty cm hdec
+      exact ⟨Hd', Hl⟩
+  have Hpos : γr.raft.raft.reDyn ≠ none → (cm.type = W32 0 →
+      uint.Z m.index ≤ γr.raft.raft.reBoot.length) ∧
+      (cm.type = W32 1 → γr.raft.raft.reBoot.length < uint.Z m.index ∧ cm.nodeId ≠ lid) := by
+    intro hn
+    have hs : γr.raft.raft.reDyn.isSome = true := by
+      cases h : γr.raft.raft.reDyn with
+      | none => exact absurd h hn
+      | some _ => rfl
+    have hp : (srvLogOf γr.raft (A ++ [m]))[(γr.raft.pre ++ A).length]? = some m.toM := by
+      unfold srvLogOf; simp
+    have := (Hdyn hs).1 _ m.toM cm hp hty hdec
+    refine ⟨fun h => ?_, fun h => ?_⟩
+    · have := this.1 h; omega
+    · have := this.2 h; exact ⟨by omega, this.2⟩
   have hin : cm.nodeId ∈ γr.raft.raft.reCfg := by
     rcases hok with ⟨-, h, -⟩ | ⟨-, -, h⟩ <;> exact h
   have hstat1 : cm.type = W32 1 → γr.raft.raft.reDyn ≠ none := by
@@ -436,7 +453,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   · ipureintro; exact H7
   isplitr
   · ipureintro
-    refine ⟨?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, Hdyn⟩
     · intro h0 hne
       apply Hp.1 _ _ hin hne
       by_cases hrd : γr.raft.raft.reDyn = none

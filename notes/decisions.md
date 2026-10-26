@@ -19087,6 +19087,32 @@ policy, `beHooks` and the cluster's logger in `bootOk`, `ccMemberAt` in `ccRest`
   the boot cluster's logger (approved), stronger premises of every server example's closed
   theorem whose statement text is unchanged; `netTransport_noStop` (any `TS`, `False`).
 
+**M5d carried out (2026-10-26, branch `membership-m5`; the user's decisions: the positional
+dynamic policy an assumption of the dynamic mode, the log-aware decoder).** The trust base
+unchanged (723 axioms, 5 `sorry`s); no example's statement text changed.
+- The policy mode-aware: `ccApplyOkR γ m` (`ccApplyOk`, or in raft's dynamic mode a `RemoveNode`
+  of a member of the configuration), `ccPolOk γ d` its decoded form; `srvCCPolicy`, `ccLogOk`,
+  `kvWork`/`kvWorkOn`, `srvNoopEntry` and `entryWaitOk` take raft's names in place of its
+  configuration (`ccPolOk_of_boot`: the static examples' `ccBootOk` gives it). `ccApplyOkM` is
+  `ccApplyOkR` at the server's raft.
+- The decoder log-aware: `srvDec c0 boot pre e` is the change `applyConfChange` hands raft for
+  the entry after the log `pre`, `ccRaftEff` (the change if it validates against the member
+  buckets `restModel c0 boot pre` leaves, else with `NodeId` `0`). The node's mode names it with
+  the start's consistent index and the boot log (`rnEnvOk`, `newRaftNode`'s premise,
+  `rnEnvOk_of_cluster`, `dvOk`, which now also takes `kc0` and states raft's names dynamic).
+  `applyConfChange`'s dynamic premise is one `DynCCPreOp`, of `ccRaftEff rs.bk m` (until then
+  both forms had to leave the configuration, false of a validated `RemoveNode`).
+- The view `srvCfgOk V D ca cfg`: `cfg` the simple configuration of voters `W ⊆ V`, each voter of
+  `V` out of `W` removed by a `RemoveNode` of `D` (`RemovedIn`); `srvCfgOk_cc` steps it through an
+  `AddNode` (among the boot entries: no removal before it, so `W = V` and a no-op) or a
+  `RemoveNode` (`W` loses the node if it validates and is a voter), under the positional policy
+  `srvDynPol` (by position in raft's log, the local member never removed, so `W` never empties:
+  raft's `confchange` would panic removing the last voter). `srvDynLog` restated over
+  `srvDynPol`, with the local member in raft's configuration; `srvApRes_cc` hands both to
+  `apply`, whose conf branch now takes the resource before the view (`dvView_cc`).
+- Not done: the dynamic `NewServer` (M8) that establishes the positional policy and a dynamic
+  mode at `srvDec`; the stopping server (M6, a `RemoveNode` of the local member).
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL

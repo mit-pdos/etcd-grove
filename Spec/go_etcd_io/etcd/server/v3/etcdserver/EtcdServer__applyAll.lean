@@ -57,7 +57,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
   -- (2026-10-19, D21 M3) the storage's cap at least `1` (`snapshotIfNeededAndCompactRaftLog`'s)
   1 ≤ γs.cap →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
-  dvOk ρ.raft dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
+  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗

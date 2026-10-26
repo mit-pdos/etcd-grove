@@ -892,7 +892,9 @@ theorem EtcdServer.applyConfChange.wp_proof
         · rw [hs] at h1; cases h1
       have hdynS : ∀ γn, dv = some γn → ∀ dec c0 h0 h1, γn.mode = .dyn dec c0 h0 h1 →
           DynCCPreOp dec ds ca cfg (ccV2Of (.v1 m)) k e cs' :=
-        fun γn h dec c0 h0 h1 hm => ((Hdyn γn h).2 dec c0 h0 h1 hm).1
+        fun γn h dec c0 h0 h1 hm => by
+          have := (Hdyn γn h).2 dec c0 h0 h1 hm
+          unfold membership.ccRaftEff at this; rw [if_pos hv] at this; exact this
       raft_cc m with hraftS hdynS then succ_tail
     · cases err with
       | nil => exact absurd (Herr'.1 rfl) hv
@@ -925,7 +927,9 @@ theorem EtcdServer.applyConfChange.wp_proof
           · rw [hs] at h1; cases h1
         have hdyn0 : ∀ γn, dv = some γn → ∀ dec c0 h0 h1, γn.mode = .dyn dec c0 h0 h1 →
             DynCCPreOp dec ds ca cfg (ccV2Of (.v1 { m with nodeId := W64 0 })) k e cs' :=
-          fun γn h dec c0 h0 h1 hm => ((Hdyn γn h).2 dec c0 h0 h1 hm).2
+          fun γn h dec c0 h0 h1 hm => by
+            have := (Hdyn γn h).2 dec c0 h0 h1 hm
+            unfold membership.ccRaftEff at this; rw [if_neg hv] at this; exact this
         raft_cc ({ m with nodeId := W64 0 }) with hraft0 hdyn0 then fail_tail
 
 end proof

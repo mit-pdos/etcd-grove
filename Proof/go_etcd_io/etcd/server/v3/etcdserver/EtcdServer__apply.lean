@@ -497,10 +497,10 @@ theorem EtcdServer.apply.wp_proof
         wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%cm, Hcc, %Hdec⟩, -⟩
         · iframe cc Hds
         ihave #Hccw : iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
-            ⌜ccBootOk ρ.raft.raft.reCfg m.data⌝) $$ []
+            ⌜ccPolOk ρ.raft.raft m.data⌝) $$ []
         · have he : entryWaitOk ρ E m =
               iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
-                ⌜ccBootOk ρ.raft.raft.reCfg m.data⌝) := by
+                ⌜ccPolOk ρ.raft.raft m.data⌝) := by
             unfold entryWaitOk; rw [ite_eq_right (by rw [h1]; decide)]
           rw [he]
           iexact Hewo
@@ -525,22 +525,25 @@ theorem EtcdServer.apply.wp_proof
         ihave #Hdvr' : iprop(dvRes s ρ.raft dv (A ++ ms.take (sint.nat j) ++
             m :: ms.drop (sint.nat j + 1))) $$ []
         · rw [← hrest]; iexact Hdvr
-        icases dvView_cc s ρ.raft dv (A ++ ms.take (sint.nat j)) (ms.drop (sint.nat j + 1)) m cm
-          h1 Hdec (Hcb cm Hdec) (fun γn h => (hdv.2 γn h).2.1) $$ [Hdv] with
-          ⟨%ca, %cfg, Hdvp, %Hdvf, Hdvc⟩
-        · iframe Hdv Hdvr'
         -- (D43 M5e) the apply thread's membership resource around the conf change
         have hidxA : uint.Z m.index = (γr.raft.pre ++ (A ++ ms.take (sint.nat j))).length + 1 := by
           rw [hiA, Hai0.1]; simp
         have hρr : ρ.raft = γr.raft := by rw [← Hrd]
         icases srvApRes_cc s γr (A ++ ms.take (sint.nat j)) m cm ρ.raft hρr (by rw [h1]; decide) Hdec
-          (by rw [← hρr]; exact .inl (Hcb cm Hdec)) hidxA $$ [HAR HlbJ] with
+          (by rw [← hρr]; exact Hcb cm Hdec) hidxA $$ [HAR HlbJ] with
           ⟨%bh, %ix, %lgh, %tl, %lid, %cl', %lgc, %cid, %prs, #Hbh, #Hbhi, #Htr, #Hmid, #Hcl', #Hclg,
             %Hlgcnn, #Hcid, Hmr, %Hprem, HARk⟩
         · iframe HAR HlbJ
         ihave %Hcleq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcl' Hcl
         subst Hcleq
-        obtain ⟨Hpeer, Hloc, Hsz⟩ := Hprem
+        obtain ⟨Hpeer, Hloc, Hsz, Hdynp⟩ := Hprem
+        icases dvView_cc s ρ.raft dv γr.kv.c0 lid (A ++ ms.take (sint.nat j)) (ms.drop (sint.nat j + 1))
+          m cm h1 Hdec (fun γn h => (hdv.2 γn h).2.1) (fun γn h => by
+            have hs := (hdv.2 γn h).2.2.1
+            rw [hρr] at hs ⊢
+            exact ⟨by rw [← hρr]; exact Hcb cm Hdec, Hdynp hs⟩) $$ [Hdv] with
+          ⟨%ca, %cfg, %cs'', Hdvp, %Hdvf, Hdvc⟩
+        · iframe Hdv Hdvr'
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
@@ -556,15 +559,17 @@ theorem EtcdServer.apply.wp_proof
             ciApplying ci m.index m.term ∗ applyBackend γ ci b)
           m.index m.term γB sv.cluster _ dB alB stB lpB dv
           (srvLogOf ρ.raft (A ++ ms.take (sint.nat j) ++ m :: ms.drop (sint.nat j + 1))) ca
-          (srvLogOf ρ.raft (A ++ ms.take (sint.nat j))).length cfg cfg m.toM
+          (srvLogOf ρ.raft (A ++ ms.take (sint.nat j))).length cfg cs'' m.toM
           sv.lg bh ix lgh tl lid prs lgc cid
-          (.inl (Hcb cm Hdec)) HROeq hkbB hgbB
+          (Hcb cm Hdec) HROeq hkbB hgbB
           (fun h => (hdv.1 h).resolve_right (fun hn => hn m hmem h1))
           (fun γn h => ⟨rfl, fun dec c0 hh0 hh1 hmd => by
-            obtain ⟨-, -, c0', hh0', hh1', hmd'⟩ := hdv.2 γn h
+            obtain ⟨-, -, -, c0', hh0', hh1', hmd'⟩ := hdv.2 γn h
             rw [hmd'] at hmd
             cases hmd
-            exact Hdvf γn h⟩) Hpeer Hloc Hsz hmm.1 hmm.2)
+            have := Hdvf γn h
+            simp only [hρr] at this ⊢
+            exact this⟩) Hpeer Hloc Hsz hmm.1 hmm.2)
           $$ [Hcc Hcs Hst Happ Hbe HRS Hua Hdvp Hlr Hmr Hrt Hwt]
           as %removed %err ⟨%Hrem, Hlr, Hua, ⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, HRS, Hpost, Hdvq, Hmr,
             Hrt⟩
@@ -759,10 +764,10 @@ theorem EtcdServer.apply.wp_proof
         wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%cm, Hcc, %Hdec⟩, -⟩
         · iframe cc Hds
         ihave #Hccw : iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
-            ⌜ccBootOk ρ.raft.raft.reCfg m.data⌝) $$ []
+            ⌜ccPolOk ρ.raft.raft m.data⌝) $$ []
         · have he : entryWaitOk ρ E m =
               iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
-                ⌜ccBootOk ρ.raft.raft.reCfg m.data⌝) := by
+                ⌜ccPolOk ρ.raft.raft m.data⌝) := by
             unfold entryWaitOk; rw [ite_eq_right (by rw [h1]; decide)]
           rw [he]
           iexact Hewo
@@ -780,18 +785,18 @@ theorem EtcdServer.apply.wp_proof
           rw [hiA, Hai0.1]; simp
         have hρr : ρ.raft = γr.raft := by rw [← Hrd]
         icases srvApRes_cc s γr (A ++ ms.take (sint.nat j)) m cm ρ.raft hρr (by rw [h1]; decide) Hdec
-          (by rw [← hρr]; exact .inl (Hcb cm Hdec)) hidxA $$ [HAR HlbJ] with
+          (by rw [← hρr]; exact Hcb cm Hdec) hidxA $$ [HAR HlbJ] with
           ⟨%bh, %ix, %lgh, %tl, %lid, %cl', %lgc, %cid, %prs, #Hbh, #Hbhi, #Htr, #Hmid, #Hcl', #Hclg,
             %Hlgcnn, #Hcid, Hmr, %Hprem, HARk⟩
         · iframe HAR HlbJ
         ihave %Hcleq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcl' Hcl
         subst Hcleq
-        obtain ⟨Hpeer, Hloc, Hsz⟩ := Hprem
+        obtain ⟨Hpeer, Hloc, Hsz, -⟩ := Hprem
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl false ci ua E ρ.raft
           iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term γB sv.cluster _ dB alB stB lpB
           none [] 0 0 (cfgState ∅ ∅) (cfgState ∅ ∅) m.toM sv.lg bh ix lgh tl lid prs lgc cid
-          (.inl (Hcb cm Hdec))
+          (Hcb cm Hdec)
           HROeq hkbB hgbB (fun h => (hdv.1 h).resolve_right (fun hn => hn m hmem h1))
           (fun γn h => by cases h) Hpeer Hloc Hsz hmm.1 hmm.2)
           $$ [Hcc Hcs HRS Hua Hlr Hmr Hrt]

@@ -61,7 +61,8 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     -- mode or no conf entry; with one, a fresh start (`c₀ ≤ ai₀`) at the server's decoder
     (hdvn : dv = none → C.ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
     (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ γn.raft = C.ρ.raft.raft ∧
-      ∃ c0 h0 h1, γn.mode = .dyn srvDec c0 h0 h1) :
+      C.ρ.raft.raft.reDyn.isSome = true ∧
+      ∃ c0 h0 h1, γn.mode = .dyn (srvDec C.γr.kv.c0 C.ρ.raft.raft.reBoot) c0 h0 h1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
@@ -97,7 +98,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     have : (0 : Int) ≤ ce.length := by omega
     omega
   -- (D43 M3) the view's premise: a fresh start's consistent index is at most the applied one
-  have hdv : dvOk C.ρ.raft dv (ciEff B.γ st.k) (ai + 1) (unapplied ai ce) := by
+  have hdv : dvOk C.ρ.raft C.γr.kv.c0 dv (ciEff B.γ st.k) (ai + 1) (unapplied ai ce) := by
     rw [hun]
     refine ⟨hdvn, fun γn h => ⟨?_, (hdvs γn h).2⟩⟩
     have hc0 := (hdvs γn h).1
@@ -601,7 +602,8 @@ theorem EtcdServer.run.wp_proof
         have := List.any_eq_false.1 hh m hm
         simp [hty] at this
     have hdvs : ∀ γn', rnDv γn ce = some γn' → uint.Z c₀ ≤ uint.Z ai₀ ∧
-        γn'.raft = ρ.raft.raft ∧ ∃ c0 h0 h1, γn'.mode = .dyn srvDec c0 h0 h1 := by
+        γn'.raft = ρ.raft.raft ∧ ρ.raft.raft.reDyn.isSome = true ∧
+        ∃ c0 h0 h1, γn'.mode = .dyn (srvDec γr.kv.c0 ρ.raft.raft.reBoot) c0 h0 h1 := by
       intro γn' h
       unfold rnDv at h
       by_cases hh : rnHands γn ce
@@ -609,13 +611,20 @@ theorem EtcdServer.run.wp_proof
         cases h
         have hd : γn.node.mode.isDyn = true := by
           unfold rnHands at hh; simp only [Bool.and_eq_true] at hh; exact hh.1
-        refine ⟨Hc0a hd, by rw [hρ, Hnm.1], ?_⟩
+        have hdyn : ρ.raft.raft.reDyn.isSome = true := by
+          cases hr : ρ.raft.raft.reDyn with
+          | none =>
+            have hst := Hmd.1.2 (by rw [← Hnm.1, ← hρ]; exact hr)
+            rw [hst] at hd; simp [RNMode.isDyn] at hd
+          | some _ => rfl
+        refine ⟨Hc0a hd, by rw [hρ, Hnm.1], hdyn, ?_⟩
         cases hm : γn.node.mode with
         | static => rw [hm] at hd; simp [RNMode.isDyn] at hd
         | dyn dec c0 h0 h1 =>
           have := Hmd.2.1 dec c0 h0 h1 hm
           subst this
-          exact ⟨c0, h0, h1, rfl⟩
+          refine ⟨c0, h0, h1, ?_⟩
+          rw [hρ, HEγr]
       · rw [ite_eq_right hh] at h; cases h
     ihave #HC' : iprop(srvC ρ E ai₀ c₀ x₀ (A ++ ce)) $$ []
     · rw [← HEC]; iexact HC

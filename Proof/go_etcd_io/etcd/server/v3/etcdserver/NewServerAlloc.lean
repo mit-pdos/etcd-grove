@@ -183,7 +183,7 @@ theorem srvBootClient (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → 
       rw [Hγ.2.2.1] at h
       have := hpol ty d h
       refine ⟨this.1, this.2.1, this.2.2.1, ?_⟩
-      simp only [γs]; rw [Hγ.1]; exact this.2.2.2) $$ Hsn
+      exact ccPolOk_of_boot _ _ (by simp only [γs]; rw [Hγ.1]; exact this.2.2.2)) $$ Hsn
   imodintro
   isplitl []
   · iexact Hnoop

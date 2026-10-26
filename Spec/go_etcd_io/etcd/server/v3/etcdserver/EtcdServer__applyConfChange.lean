@@ -52,8 +52,9 @@ transport's peers to `ccPeersAfter v3 m rs.bk prs`; the cluster's removed map in
 with them (`ccMembRes`).
 
 **Raft's dynamic mode** (D43 M3): `dv` is the driver's view, `none` in raft's static mode, or
-`some γn`; then it is `ApplyBoth`, the node meets the dynamic contract, and both changes Go may
-hand raft meet raft's premise (`DynCCPreOp`, the view `(ca, cfg)` to `(k + 1, cs')`). -/
+`some γn`; then it is `ApplyBoth`, the node meets the dynamic contract, and the change Go hands
+raft (D43 M5d: `ccRaftEff`, the change if it validates, else with `NodeId` `0`; until then both
+had to) meets raft's premise (`DynCCPreOp`, the view `(ca, cfg)` to `(k + 1, cs')`). -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : CCV1M) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
@@ -65,8 +66,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
   E.γ.kb = some d → d.γB = γB →
   (dv = none → γs.raft.reDyn = none) →
   (∀ γn, dv = some γn → v3 = true ∧ ∀ dec c0 h0 h1, γn.mode = .dyn dec c0 h0 h1 →
-    DynCCPreOp dec ds ca cfg (ccV2Of (.v1 m)) k e cs' ∧
-    DynCCPreOp dec ds ca cfg (ccV2Of (.v1 { m with nodeId := W64 0 })) k e cs') →
+    DynCCPreOp dec ds ca cfg (ccV2Of (.v1 (membership.ccRaftEff rs.bk m))) k e cs') →
   (m.type = W32 0 → m.nodeId ≠ lid → m.nodeId ∈ prs) →
   (m.type = W32 1 → m.nodeId ≠ lid) →
   (m.type = W32 0 →
