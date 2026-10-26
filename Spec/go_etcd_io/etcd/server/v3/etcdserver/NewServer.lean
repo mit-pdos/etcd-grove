@@ -100,6 +100,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 
 @[expose] public section
 
@@ -250,7 +251,12 @@ as `NewServer.spec` (its mode off, `NewServer.spec_of_specM`), the start's chain
 layer enabled when `on` (`(bootKVOf on)Of`), with auth on the configuration's token provider the simple
 one with a positive TTL, and the apply environment's auth `on`. With auth on, the server's proof
 (`NewServer.wp_proofM`) takes the auth store's construction as the contract `authSrvTP true`
-(`AuthSrv.lean`: D22's named premise `authSchemaSrv`). -/
+(`AuthSrv.lean`: D22's named premise `authSchemaSrv`). (The auth plan's E2w, 2026-10-26) The KV
+invariant is the mode's (`kvInvM on`: `kvInvOn` from the store's start state `srvAuthSt0` at
+`on = true`), as are the raft environment (`srvErM on`: the committed logs' shapes the mode's) and
+the built part (`srvBuiltG on`), `ServerOn.lean`; at `on = false` each is today's by definition.
+Until E2w the spec took `kvInv`, whose start chain has auth off, so at `on = true` its precondition
+was unsatisfiable (`KVChainOff.lean`). -/
 abbrev NewServer.specM (on : Bool) : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : RaftNames)
     (bud : BudgetNames)
@@ -321,7 +327,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
       -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
       -- whose standing update `noopAu` it gives, `srvRaftBoot_alloc`)
-      "#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv ∗
+      "#Hkvinv" ∷ kvInvM on ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
       -- (D21 M2, 2026-10-19) the raft network, whose payload is the server's (`srvNet`) and
       -- directory `bootstrap`'s (until then the named premise `transportEffectsOk`); (2026-10-24,
       -- rafthttp stage 6d) its HTTP side ready (until then the member's slot, `netSlot γn id`)
@@ -337,7 +343,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id iprop(True)) ∗
+      "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       "#Hstop" ∷ rnStopOkStarted ∗
       -- the packages' init facts `start` needs
@@ -354,7 +360,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
           -- `applySnapshot`'s `OpenSnapshotBackend`
           backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
-          srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk))
+          srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk))
             γrn b (W64 0)
             (W64 0) (bootKVOf on) N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token

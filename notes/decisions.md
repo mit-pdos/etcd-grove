@@ -20951,3 +20951,145 @@ the minimal fix here over a Perennial model.
   fields yet). `BcryptCost()`'s contract is a premise: `authStore.BcryptCost` is untranslated
   (it returns the read-only field `bcryptCost`). The full `encoding/base64` model in Perennial
   stays proposed (`notes/perennial-changes.md`), also for the k8s store's continue tokens.
+
+## E2w of the auth plan: the server's construction over the mode's KV invariant (2026-10-26 · `notes/auth-plan.md`, E2p's item 5)
+
+**Done.** `NewServer.specM on` takes the mode's KV invariant `kvInvM on ρ.rd.raft ρ.rd.kv srvAuthSt0`
+(`kvInvOn` at `on = true`, E2q) instead of `kvInv`, so `server_new_auth_on`'s precondition is no
+longer unsatisfiable (E2p's finding): `kvInvOn`'s start chain agrees with the spec's
+(`kvInvOn_ch0`), and it is allocated at the bootstrap log as `kvInv` is (`kvInvOn_alloc_boot`,
+`ServerOn.lean`). `NewServer`'s proof hands its KV invariant to four rows; each now has a
+mode-indexed counterpart (`ServerOn.lean`), today's at `on = false` by definition:
+
+- the raft environment's committed-log clause: `srvCM on` (`srvC` with `logShapeM on`: `logShapeOn`
+  admits the admitted admin requests), `srvErM on`, the workload clause `clusterWorkloadOkM on` and
+  its derivation from `kvInvM on` (`clusterWorkloadOkM_of`; mode on: `clusterWorkloadOkOn_of`, over
+  `batchWaitOk_of_claims`, which needs only the conf changes' ids), the raft wrapper's discharge
+  (`rnEnvOk_of_clusterM`), the ticker (`rnTickerOk_srvErM_S`), `srvCM_agree`;
+- the certificates' invariant `kvCertInvM on` (`kvCertInvOn`, E2t) and its allocation;
+- the request path's row `srvReqBuiltM on` and the apply thread's `srvKVInvsM on` (at `on = true`
+  `srvKVInvsOn … srvAuthSt0`, `srvKVInvsM_true`);
+- the built part `srvBuiltG on` (`srvBuilt` with the three above).
+
+The proof of `NewServer.wp_proofM` changed only in names (`srvErM on`, `kvCertInvM_alloc on`,
+`rnEnvOk_of_clusterM on`, `clusterWorkloadOkM_of on`, `unfold srvBuiltG/srvReqBuiltM/srvKVInvsM`,
+`srvCM_agree on`); `NewServer.wp_proof` rewrites the mode-off instances (`kvInvM_false`,
+`srvErM_false`, `srvBuiltG_false`).
+
+**The start's auth state.** The mode-`on` KV model starts from `srvAuthSt0 := bump bootState`, the
+store's latest at the server's start (`newAuthStore_boot`'s history `[bootState, bump bootState]`).
+Fixed in the definitions rather than a parameter of the spec: the apply thread's later proof must tie
+the model's auth state to the store's, which holds only at that state.
+
+**The proposal's update in the mode `on`** (`ProposeOn.lean`, `kv_prop_au_on`; the design decided
+2026-10-26): over `kvInvOn`, a proposal (`reqPropOkOn`: `reqPropOk`'s no-write case and its
+at-most-once write case, with every permission of the cache's shape, `kvShapeAll`, so the entry is
+determinate at any state, `commitOkOn_plain`) gives raft's `srvPropAu1`. A write's client update
+fires at the commit only if the model's auth state after the committed log grants it (`grantedAt`);
+otherwise the client's update is put back unfired, the KV state kept (`kvModelOn_snoc_refused`) and
+the result says so (`grantedRes`: granted with `kvRes`, or `⌜¬ grantedAt⌝`). A write-free request
+keeps the state either way (`kvEntryOn_nonwrite`).
+
+**Also.** `KVAuthModel.lean`'s `relState` is renamed `authRelState`: it clashed with raft's
+`relState` (`releasePendingReadIndexMessages.lean`) in any module importing both, as `ServerOn.lean`
+and `NewServer.lean` do.
+
+**Exported statements changed.** `NewServer.specM` (its precondition's KV invariant and ticker
+environment, its post's built part and raft environment); `KVAuthModel`'s `relState` renamed. No
+closed theorem changed; `NewServer.spec` keeps its text. New: `ServerOn.lean`'s and
+`ProposeOn.lean`'s definitions and theorems.
+
+**Trust base.** Unchanged (718 axioms, 6 sorries).
+
+**Not done** (the mode-`on` server's run; each consumes `srvBuiltG true`):
+1. `start`/`run` and the apply thread over `srvKVInvsOn`: `isServerBuilt_of_gap`'s mode-`on`
+   counterpart, the apply loop's step `kv_applied_step_on` with E2s's outcome (`outcomeOn`, E2v).
+2. The proposers (`EtcdServer.Put`/`Txn`/`DeleteRange`, `InvProposer`'s `isServerReq`) over
+   `srvReqBuiltM true` and `kv_prop_au_on`; the gRPC handlers turning `grantedRes`'s refusal and the
+   apply thread's refusal into the client's error; the read path (`kvReadAu`, `kv_read_compose`)
+   over `kvInvOn`.
+3. The admin proposers (`setupAuthOk`): `reqPropOkOn` has no admin case yet; an admin entry keeps
+   the KV state (`kvModelOn_snoc_admin`) but needs its determinacy (`authDet`) at the commit's
+   state.
+4. `NewServerAlloc`'s mode-`on` allocation path (the callers': `kvInvOn_alloc_boot` is its KV part).
+
+## E2v of the auth plan: the empty request granted; the admin chain carrying the tie; the auth applier's outcome as the model's (2026-10-26 · `notes/auth-plan.md`)
+
+Three items from E2s/E2t/E2u's "left".
+
+**(1) The model's gap (E2s's finding) fixed.** `kvGranted st rq` is now per permission: every
+permission of `reqPerms rq` passes (`st.enabled = false`, or the principal's revision not `0` and not
+below the store's, and its user existing, root or covering it). Before, it asked the revision and
+the user once for the whole request, so a request needing no permission (a transaction without
+comparisons or operations), which the code applies unchecked, was refused by the model whenever the
+principal was invalid. Equal to the old definition for a request needing at least one permission;
+`kvGranted_of_disabled`, `kvGranted_of_nil`; `KVAuthBridge.lean`'s lemmas are now the definition
+(`kvGranted_of_granted1`, `kvGranted_of_passedL` lose their `reqPerms rq ≠ []` premise). The mode-off
+model does not mention `kvGranted`.
+
+**(2) The admin chain carrying the tie.** E2s's `X.specT` keep the admin side's halves of the flag
+and the cache tied to the latest state, with their values in the write resource (`authWRx`); the
+apply layer's admin chain (E2l–E2o) carries the write resource as a constant `W`, and a step's
+result as the authority after it (`adminOut`, `adminOutFu`). The tie depends on the history the step
+makes, so it moves to the authority's side:
+- `auth/TieRes.lean`: `tieRes st M hs` (the halves at values tied to `hs`'s latest state, with their
+  verdict and snapshot), `authOwnT`, `authWB` (the write resource but the halves: what stays
+  constant), the result for an authority family `Own` (`adminOutX`; `adminOut` and `adminOutFu` are its
+  instances, `adminOut_eq_X`, `adminOutFu_eq_X`), `adminOutP_tieRes` (a tie-keeping step's result is
+  `adminOutX` for `authOwnT`), `adminOutX_fu`, `tieRes_of_disabled` (the tie at a history of disabled
+  states: the store's start).
+- `apply/AuthStepsX.lean`: `isAuthStepsX st P f M X W` (`SetUp`'s five admin operations with a
+  resource `X` of the history beside the authority), the real store's with `X = tieRes st M` and
+  `W = authWB ∗ tpAdmin` (`isAuthStepsX_of_authInvT`, from the five `X.specT`), the backend's
+  `stepSpecX`/`fuelSpecX` and their proofs (copies of `AuthSteps.lean`'s and `AuthFuel.lean`'s with `X`).
+- The chain layers are generic in the authority family `Own : AuthNames → List AuthState → IProp`
+  (`AdminReq.result`, `adminTriples`, `applierAdmin`, the four lifts, `dispatch.adminSpec`,
+  `adminDone`, `uberApplier.Apply.adminSpec`, `adminOut`, `apply.Apply.adminSpec`, `uberAuthSteps`):
+  E2l's `auth.authOwnFu` (`applierAdmin_backend`, `_base`, `_uber`, `_cur`, `uberAuthSteps_of_steps`)
+  or the tie's `fun γa h => authOwnFu γa h ∗ X h` (`applierAdmin_backendX`, `_baseX`, `_uberX`,
+  `uberAuthSteps_of_stepsX`), through the generic `applierAdmin_baseG`, `_uberG`, `_curG`.
+  `uberApplier.Apply.adminSpec` and `uberAuthSteps` now take the base applier's admin triples (what
+  `applierAdmin_uber`/`_uberX` give) in place of the store's `isAuthSteps`, so `Apply.wp_admin` no
+  longer takes the fuel triples.
+- `authApplyRes` (the apply thread's auth resource) holds `tieRes stl (.on γa) hs` in place of
+  `enabledHalf ∗ cacheHalf`; `authStoreKit_on` builds it at the start's history
+  (`tieRes_of_disabled`). So the latest-state checks' resource (`latestRes`, `latestRes_of_T`) and
+  the admin steps' resource are the same, and survive an admin entry.
+
+**Not done in (2): `UserAdd` through `specSure`.** E2u's `UserAdd.specSure` (no `ErrNoPasswordUser`
+at a sure password choice) and E2s's `UserAdd.specT` (the tie) are separate specs of one function,
+and their posts do not combine; the apply layer's `UserAdd` stays `specT`'s (with the
+`noPasswordUser` refusal). It needs a `UserAdd.specTSure` (its proof is `wp_tie`'s with `wp_sure`'s
+`selectPassword` case).
+
+**(3) The auth applier's outcome as the model's, in part.** `KVOutcomeOn.lean`'s
+`outcomeOn_of_authOutL`: for a plain KV request of an entry above `c₀`, applied at the start chain
+with auth on and no alarm, whose checked permissions are its own (`reqPerms`), at a history whose
+latest state is the model's, E2s's verdict (`authOutL`: refused at the latest state, or the inner
+chain's write with every permission granted there) gives E2t's `outcomeOn` (the model's refusal
+or write, `chainStep_plain`, `dispatchLog_kv`). Not done (the Iris lift to `kv_applied_out_on`'s
+hypothesis):
+- `dispatch`'s KV cases in the mode `on` through the auth applier's latest-state triples (a
+  `dispatch` triple beside `dispatch.spec`, as `dispatch.wp_admin` is for the admin kinds), then
+  `uberApplier.Apply`'s and `apply.Apply`'s, with `latestRes` from the apply thread's `authApplyRes`
+  (`latestRes_of_T`);
+- the principal: `authApplierV3.Apply` sets `authInfo` from the request's header, so the checked
+  principal is `principalOf rq` (a fact of `Apply`'s auth-layer proof, not yet stated);
+- the checked permissions are the request's own only up to the range end the check saw
+  (`authEndOf`: equal unless a non-`nil` empty `RangeEnd`, which no wire request has: a premise of the
+  workload) and, for a transaction, the order and the early exit (`txnChecked`, `txnMay`: the
+  refusal is of some permission of `reqPerms`, the pass of all);
+- `lessorNil` for the server's lessor (E2s's `Put`/`Txn` premise; `examples/authkv` grants no lease).
+
+**Exported statements changed.** Definitions: `kvGranted` (per permission), `apply.AdminReq.result`,
+`apply.adminTriples`, `apply.applierAdmin`, `apply.adminDone`, `apply.adminOut`, `apply.uberAuthSteps`
+(each gains `Own`; `uberAuthSteps` holds the base applier's admin triples), `authApplyRes` (the tie);
+specs: `apply.uberApplier.dispatch.adminSpec`, `apply.uberApplier.Apply.adminSpec` (the base
+applier's admin triples in place of `isAuthSteps`), `apply.Apply.adminSpec` (each gains `Own`);
+theorems: `kvGranted_of_granted1`, `kvGranted_of_passedL` (no `≠ []` premise),
+`apply.uberApplier.Apply.wp_admin` (no fuel triples), `apply_admin_backend` (at `auth.authOwnFu`).
+No closed theorem changed. New: `auth/TieRes.lean`, `apply/AuthStepsX.lean`, `KVOutcomeOn.lean`'s
+theorems, and in `etcdserver/Results.lean` `apply_auth_steps_tie`, `apply_X_fuelX`,
+`apply_admin_backendX`.
+
+**Trust base.** Unchanged by E2v (721 axioms, 6 sorries after merging `lean` at b8877b9fc6).
