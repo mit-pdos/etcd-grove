@@ -68,6 +68,12 @@ def envAgree (E E' : apply.AEnv GF) : Prop :=
 base chain with auth disabled and no alarm. -/
 def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false⟩
 
+/-- **The start with auth on or off** (the auth plan's E2i, 2026-10-26): the base chain's auth
+layer enabled when `on` (`NewServer.specM`); `bootKV` is its mode off (`bootKVOf_false`). -/
+def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false⟩
+
+theorem bootKVOf_false : bootKVOf false = bootKV := rfl
+
 /-- The bootstrap log as the server's entries. -/
 def bootEntries (bootLog : List EntryM) : List EntryModel := bootLog.map EntryModel.ofM
 
