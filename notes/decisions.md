@@ -21218,3 +21218,64 @@ corrupt wrappers' KV triples at the latest state.
 `dispatch.kvSpecL`, `uberApplier.Apply.kvSpecL`, `apply.Apply.kvSpecL`, `UserAdd.specTSure`).
 
 **Trust base.** Unchanged.
+
+## E3b of the auth plan: the proposer path in the auth mode `on` (2026-10-26 · `notes/auth-plan.md`, E2z's "Not done" (2), the request side of E3)
+
+**Done** (`etcdserver/ReqOn.lean`, new; every row today's at `on = false` by definition):
+1. *The mode-indexed request rows* (E2z's recommendation: counterparts beside today's, not a change
+   to `kvModel`): `kvModelM`, `resultΨM` (`resultΨ` off, `resultΨOn` on), `reqWaitRM`, `waitInvM`,
+   `srvReqFieldsAtM`, `isServerReqM` (`_false` lemmas by `rfl`).
+2. *The mode-`on` result carries the auth layer's verdict* (`resultΨOn`): `resultIsWOn` is
+   `resultIsW` with `authTie st rq out` (a KV request dispatched to `o` was rejected by the auth layer
+   exactly when the auth state `st` the entry met does not grant it, `kvGranted`), and `entryWitOn`
+   ties `(st, lb)` to the mode-`on` model of the raft prefix before the entry (`kvRaftOfOn`). **This
+   is the interface the apply thread in the mode `on` (E3a) must meet** when it hands a result to
+   its waiter: E2t's `outcomeOn` at the apply layer (E2y's `outcomeOn_of_kvOutL`) gives `authTie`.
+   Without it a proposer could not tell a success from a refusal the model made.
+3. *The proposal at the wire* (E2z's first finding): `reqPropOkM` (off `reqPropOk` at a constant
+   result; on `∀ hm, reqPropOkOn γk srvAuthSt0 (withHeader rq hm) (Qh hm)`: the result a function of
+   the header the server stamps, one resource, the client's update spent once at the header actually
+   stamped); the wire lemmas (`reqPerms_withHeader`, `kvShapeAll_withHeader`, `reqKVOp_withHeader`,
+   `principalOf_withHeader`, `irrWireOf_eq`: the stamped request is the decoded one when no range end
+   is `[0]`); `kv_prop_au_M` (`kv_prop_au` off through `reqPropOk_wire`, `kv_prop_au_on` on).
+4. *The proposers in either mode*: `processInternalRaftRequestOnce.specM on`/`wp_proofM` (its
+   success post at the committed prefix `L` before the entry: `resPostM` with `modelOutM`, in the
+   mode `on` the auth state the entry met and `authTie`), `parseProposeCtxErr.specM`/`wp_proofM` (it
+   reads none of the mode's rows), `raftRequest.specM`/`wp_proofM` (`appliedOkM`); the three
+   mode-off proofs (`wp_proof`) derived, their statements unchanged
+   (`processInternalRaftRequestOnce.specM_false_of_spec` for `raftRequest.wp_proof`'s hypothesis).
+5. *Put and DeleteRange in the mode `on`* (`Put.specOn`/`wp_proofOn`, `DeleteRange.specOn`/
+   `wp_proofOn`, beside today's): the same posts as today's, at `putPermitOn`/`deletePermitOn`
+   (today's permission and the key/range of the cache's shape, `kvShapeAll`); a success (an applied
+   outcome, no error) is a write the auth state its entry met granted (`authTie`, then `grantedRes`:
+   `grantedRes_applied`), so the client's update fired and its result holds at the log the entry
+   met; a refusal is an error (`appliedErr`, the auth layer's rejection). Restated linked:
+   `server_process_irr_on`, `server_raft_request_on`, `server_put_on`, `server_delete_range_on`
+   (`etcdserver/Results.lean`; no `sorry`).
+
+**Exported statements changed.** None of today's: `processInternalRaftRequestOnce.spec`,
+`parseProposeCtxErr.spec`, `raftRequest.spec`, `Put.spec`, `DeleteRange.spec` keep their text
+(their `wp_proof`s are now derived from the generic proofs). New: the `specM`/`specOn` statements
+and everything in `ReqOn.lean`.
+
+**Trust base.** Unchanged (no axiom, no `sorry`).
+
+**Not done** (in order):
+1. *The model fix for a transaction's put with `PrevKv`* (E2y's finding). `TxnOp.put` is the
+   client's shared transaction model (`cache/v3/InvEtcdTxn.lean`, about 140 files name it: the
+   cache, leasing, recipes, the client), so adding `PrevKv` to it is out of proportion to the gap.
+   Proposed instead: a server-side wire tree of the transaction's operations (`TxnOpW`: an `OpFull`
+   per put, `toTxnOp` to today's), kept by the request model next to `IRRModel.txn` and related to
+   the wire by the decoder (`requestOpIs`'s `OpFull`, which the decode axiom already names), with
+   `opPerms` over it; then `txnVerdictOwn` (E2y) is proved rather than premised. Until then
+   `txnVerdictOwn` stays the transaction's premise.
+2. *Txn in the mode `on`* (`Txn.specOn`: the same pattern as Put's, with a read-only transaction's
+   no-write case, `reqPropOkM_true_nowrite`), and the read path over `kvInvOn` (`Range`, the read
+   loop's `readQs`/`kvLogAt` over the mode-`on` model).
+3. *The gRPC handlers* (v3rpc's `Put`/`DeleteRange`/`Txn`) over the mode-`on` server (`isServerReqM
+   true`): the refusal is already an error (`applyErrIs`), so the handler's error path carries over;
+   what changes is the server's view they take.
+4. *The admin proposers for `setupAuthOk`*: `reqPropOkOn`'s admin case over a shape invariant of the
+   model's states (E2l's `authSmall`, nodup roles, along `kvRaftOfOn`), with `server_user_add_sure`
+   (E2x) for `pwSure`.
+5. *The apply thread's side* (E3a): handing `resultΨOn` (with `authTie`) to the waiter.
