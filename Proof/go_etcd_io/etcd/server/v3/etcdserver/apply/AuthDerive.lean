@@ -123,6 +123,47 @@ theorem authErrIs_applyErrIs (err : GoInterface) :
   iapply errVar_applyErrIs g err $$ Hv
   iexists e; iframe Hge; ipureintro; exact He
 
+/-- **An auth-store error as the permission checks' contracts state it** (`authApplyErrIs`; the
+auth plan's E3i): one `errors.Is` can take, and `nil` or one of the auth package's error variables,
+a leaf error. -/
+theorem authErrIs_authApplyErrIs (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      auth.authErrIs err ⊢ authApplyErrIs err := by
+  iintro ⟨#Hpkg, #Herr⟩
+  ihave #Happ := authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+  iunfold authApplyErrIs
+  iframe Happ
+  ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨#HUE, #HUNF, #HPD, #HOR, #HIT, -, -⟩
+  iunfold auth.authErrIs at Herr
+  iunfold authErrVarIs
+  icases Herr with (%Hnil | ⟨%g, %e, %Hg, #Hge, %He⟩)
+  · ileft; ipureintro; exact Hnil
+  ihave #Hv : errVarLeaf (GF := GF) g $$ []
+  · rcases Hg with rfl | rfl | rfl | rfl | rfl
+    · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HUE
+      iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HUE
+    · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HUNF
+      iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HUNF
+    · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HPD
+      iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HPD
+    · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HOR
+      iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HOR
+    · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HIT
+      iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HIT
+  iunfold errVarLeaf at Hv
+  icases Hv with ⟨%e', #He', %hl, -⟩
+  icombine Hge He' gives %Heq
+  cases Heq
+  iright
+  iexists g, e
+  iframe Hge
+  ipureintro
+  refine ⟨⟨?_, hl⟩, He⟩
+  rcases Hg with rfl | rfl | rfl | rfl | rfl <;>
+    simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]
+
 /-- **`isAuthStore`'s `Revision` clause, of the real store** (as the contract states it). -/
 theorem authRevision_of_authInv
     (hRev : auth.authStore.Revision.spec (GF := GF) (hG := hG))
@@ -197,7 +238,7 @@ theorem isAuthStore_of_authInv
     iapply HΦ
     iframe
     isplitl []
-    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · iapply permVerdict_isOn M info k [] .write err $$ Hv
     · iexact Hv
@@ -210,7 +251,7 @@ theorem isAuthStore_of_authInv
     iapply HΦ
     iframe
     isplitl []
-    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · iapply permVerdict_isOn M info k e .read err $$ Hv
     · iexact Hv
@@ -223,7 +264,7 @@ theorem isAuthStore_of_authInv
     iapply HΦ
     iframe
     isplitl []
-    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · iapply permVerdict_isOn M info k e .write err $$ Hv
     · iexact Hv

@@ -42,7 +42,7 @@ theorem apply.checkLeasePuts.wp_proof
   · subst Hl
     wp_auto
     iapply HΦ; iframe Hai Hrd; isplitl []
-    · iapply applyErrIs_nil
+    · iapply authApplyErrIs_nil
     · ipureintro; intro _; rfl
   · ihave #Hl' := Hl
     iunfold apply.leaseIs at Hl'

@@ -88,6 +88,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyTieOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyEntryOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 
 @[expose] public section
 
@@ -2131,6 +2133,41 @@ theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (x x' : EtcdGrove.a
 
 end applyEntryOn
 
+section applyStateOn
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The applied index's deposit in the auth mode** (the auth plan's E3i, `AppliedOn.lean`): the
+apply thread deposits the log after the next entry, the mode's model of the committed raft log. -/
+theorem server_applied_predeposit_on (on : Bool) (s : Loc) (E : EtcdGrove.apply.AEnv GF)
+    (γr : ReadNames) (v v' : w64) (L₀ L : mvcc.Log) (hv : uint.Z v' = uint.Z v + 1)
+    (hp : L₀ <+: L) :
+    ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ srvAppliedOwn γr v -∗ appliedLogAt γr v L₀ -∗
+      kvLogAtM on γr v' L ={⊤}=∗ srvAppliedPre γr v v' L :=
+  applied_predepositM on s E γr v v' L₀ L hv hp
+
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+variable [errors_sem : _root_.Perennial.errors.Assumptions]
+
+/-- **`apply.Apply`'s result with auth on is not `ErrNoSpace`'s** (the auth plan's E3i,
+`NoSpaceDeadOn.lean`): `applyEntryNormal`'s NOSPACE branch is dead for a covered entry at the
+start's chain with auth on, the auth layer's refusal included. -/
+theorem server_apply_not_nospace_on (rq : EtcdGrove.apply.IRRModel) (x x' : EtcdGrove.apply.ApplyKV)
+    (ar : Loc) (out : EtcdGrove.apply.ApplyOut) (hp : plainCover rq)
+    (hch : x.chain = EtcdGrove.apply.alarmChain true false false)
+    (hs : EtcdGrove.apply.applyStep rq true x x' out) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      EtcdGrove.apply.applyResultIs rq true x.log ar out -∗
+      EtcdGrove.apply.applyResultIs rq true x.log ar out ∗
+      (⌜ar = null⌝ ∨ ∃ err : GoInterface,
+        structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
+        notNoSpaceErr err) :=
+  applyResultIs_notNoSpaceOn rq x x' ar out hp hch hs
+
+end applyStateOn
+
 end EtcdGrove
 end Perennial
 #print axioms Perennial.EtcdGrove.server_run
@@ -2146,3 +2183,6 @@ end Perennial
 
 #print axioms Perennial.EtcdGrove.apply_kv_entry_pre_on
 #print axioms Perennial.EtcdGrove.apply_kv_after_on
+
+#print axioms Perennial.EtcdGrove.server_applied_predeposit_on
+#print axioms Perennial.EtcdGrove.server_apply_not_nospace_on

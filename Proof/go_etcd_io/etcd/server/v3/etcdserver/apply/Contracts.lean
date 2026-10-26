@@ -159,7 +159,8 @@ def authReqContractN (ai : GoInterfaceOk) (m : GoString) (T : Type) (γ : mvcc.S
 
 /-- A permission check `m(authInfo, key)` of the auth store (`IsPutPermitted`: a write of the
 point `key`), with the caller's reader resource `RD` (held and given back) and the key shorter
-than `2 ^ 63 - 1`: an error the gRPC layer can take, with its verdict in the mode `M`
+than `2 ^ 63 - 1`: an error the gRPC layer can take and one of the auth package's
+(`authApplyErrIs`; the auth plan's E3i, 2026-10-27), with its verdict in the mode `M`
 (`auth.permVerdict`: in the mode `off` the check passes; `notes/auth-plan.md`, A0); the caller's
 `AuthInfo` and keys kept. -/
 def permCheck2 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.AuthMode) :
@@ -168,7 +169,7 @@ def permCheck2 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.Aut
       (dk : DFrac),
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ applyErrIs err ∗
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ authApplyErrIs err ∗
         ⌜M.isOn = false → err = GoInterface.nil⌝ ∗ auth.permVerdict M info k [] .write err }}))
 
 /-- A permission check `m(authInfo, key, rangeEnd)` of the auth store (as `permCheck2`;
@@ -180,7 +181,7 @@ def permCheck3 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.Aut
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
     {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
-        applyErrIs err ∗ ⌜M.isOn = false → err = GoInterface.nil⌝ ∗
+        authApplyErrIs err ∗ ⌜M.isOn = false → err = GoInterface.nil⌝ ∗
         auth.permVerdict M info k e op err }}))
 
 /-- **The `auth.AuthStore` `st`** as the apply package uses it, whose writes run under the batch

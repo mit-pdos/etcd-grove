@@ -117,6 +117,17 @@ theorem errVarApart_of (g h m m' : GoString) (hm : m ≠ m') :
   injection he with _ hv
   exact go.intoVal_inj (V := Loc) hv
 
+/-- **An `errors.New` variable apart from each of a list's** (the auth plan's E3i): its message
+differs from all of theirs. -/
+theorem errVarApart_cells (g m : GoString) (l : List (GoString × GoString))
+    (hne : ∀ p ∈ l, p.2 ≠ m) :
+    errVarCell (GF := GF) g m ⊢ errVarCells l -∗
+      □ ∀ X : GoString, ⌜X ∈ l.map Prod.fst⌝ -∗ errVarApart g X := by
+  iintro #Hg #Hl !> %X %hX
+  obtain ⟨⟨X', m'⟩, hmem, rfl⟩ := List.mem_map.1 hX
+  ihave #HX := errVarCells_mem (GF := GF) hmem $$ Hl
+  iapply errVarApart_of g X' m m' (fun h => hne _ hmem h.symm) $$ Hg HX
+
 end defs
 
 section wp
