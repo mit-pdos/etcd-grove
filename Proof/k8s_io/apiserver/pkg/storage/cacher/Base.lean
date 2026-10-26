@@ -6,8 +6,9 @@ KEP-6404, `notes/kep-6404-plan.md`), its store (`cacher/store`, with bodies) and
 import that have none yet (in import order): `isPkgInit` of a package includes `isPkgInit` of
 everything it imports, so every one needs an instance. All but the store are names- or types-only
 (`Code/k8s_io/**.toml`, project `k8s-apiserver` of `etc/goose.py`); the cacher's translated
-functions are `watch_cache.go`'s. Every fact is `True` (none of the translated code reads a
-package variable whose value a proof needs). These are assumptions about package initialization
+functions are `watch_cache.go`'s. Every fact is `True` but the cacher's metrics package's
+(`cacherMetricsInit`: `WatchCacheReadWait`, which the freshness wait observes, holds a histogram
+vector of the labels `group` and `resource`, `kmetrics.vecLabels`). These are assumptions about package initialization
 only once an `Init.lean` proves a package's `wp_initialize'` from them (`etc/gen-init.py`).
 -/
 module
@@ -15,6 +16,7 @@ module
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.cacher
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.k8s_io.component_base.metrics.Defs
 
 @[expose] public section
 
@@ -34,6 +36,11 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-- The cacher's metrics package's fact (see the file header). -/
+abbrev cacherMetricsInit : IProp GF :=
+  iprop(∃ v : Loc, globalAddr k8s_io.apiserver.pkg.storage.cacher.metrics.WatchCacheReadWait ↦□ v ∗
+    ⌜EtcdGrove.kmetrics.vecLabels v [go!"group", go!"resource"]⌝)
+
 instance k8s_io_component_base_metrics_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.component_base.metrics :=
   define_is_pkg_init iprop(True)
@@ -43,7 +50,7 @@ instance k8s_io_component_base_metrics_get_is_pkg_init_wf_inst :
 
 instance k8s_io_apiserver_pkg_storage_cacher_metrics_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.metrics :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init cacherMetricsInit
 instance k8s_io_apiserver_pkg_storage_cacher_metrics_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.metrics :=
   build_get_is_pkg_init_wf

@@ -349,6 +349,23 @@ trust-boundary axiom `ErrTransactionConflict_init` states the one the fact reads
             'imodintro', 'iexists _', 'iexact HErrTransactionConflict'],
 )
 
+# KEP-6404 (2026-10-26): the watch cache's metrics; their facts are in
+# `Proof/k8s_io/apiserver/pkg/storage/cacher/Base.lean`.
+SPECIAL['k8s_io.apiserver.pkg.storage.cacher.metrics'] = dict(
+    doc='''Its fact (`cacherMetricsInit`, `storage/cacher/Base.lean`): `WatchCacheReadWait` holds a
+histogram vector of the labels `group` and `resource`. Its initializer runs its variables'
+untranslated initializers (`metrics.go`); the trust-boundary axiom `WatchCacheReadWait_init` states
+the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`),
+`opaqueInitsOk` the others.''',
+    custom={'WatchCacheReadWait': dict(
+        doc='/-- `WatchCacheReadWait = compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`\n(`metrics.go`): a `*HistogramVec` with those labels (`kmetrics.vecLabels`). -/',
+        post='∃ v : Loc, globalAddr WatchCacheReadWait ↦ v ∗ ⌜EtcdGrove.kmetrics.vecLabels v [go!"group", go!"resource"]⌝',
+        pat='⟨%v@, H@, %L@⟩')},
+    finish=['ipersist HWatchCacheReadWait'] + FIN_PRE[:7] + [
+            'imodintro', 'iexists _', 'iframe HWatchCacheReadWait', 'ipureintro',
+            'exact LWatchCacheReadWait'],
+)
+
 SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
     doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a feature
 gate whose `Enabled` answers some `bool` for any feature. Its initializer initializes its import

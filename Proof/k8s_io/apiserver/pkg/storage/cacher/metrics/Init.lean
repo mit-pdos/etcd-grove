@@ -2,9 +2,11 @@
 Package initialization of `k8s_io.apiserver.pkg.storage.cacher.metrics`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact (`cacherMetricsInit`, `storage/cacher/Base.lean`): `WatchCacheReadWait` holds a
+histogram vector of the labels `group` and `resource`. Its initializer runs its variables'
+untranslated initializers (`metrics.go`); the trust-boundary axiom `WatchCacheReadWait_init` states
+the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`),
+`opaqueInitsOk` the others.
 -/
 module
 
@@ -55,13 +57,18 @@ axiom opaqueInitsOk :
         WatchCacheInitializations.init,
         WatchCacheInitializationErrors.init,
         WatchCacheInitializationDuration.init,
-        WatchCacheReadWait.init,
         ConsistentReadTotal.init,
         StorageConsistencyCheckTotal.init,
         WatchShardsTotal.init,
         WatchFilteredEventsTotal.init,
         DispatchStageDuration.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+/-- `WatchCacheReadWait = compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`
+(`metrics.go`): a `*HistogramVec` with those labels (`kmetrics.vecLabels`). -/
+axiom WatchCacheReadWait_init :
+    {{ (True : IProp GF) }} (App (Val WatchCacheReadWait.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr WatchCacheReadWait ↦ v ∗ ⌜EtcdGrove.kmetrics.vecLabels v [go!"group", go!"resource"]⌝ }}
 
 end k8s_io.apiserver.pkg.storage.cacher.metrics
 end opaqueInits
@@ -86,6 +93,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply (_root_.Perennial.k8s_io.component_base.metrics.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk dispatchStages.init (by mem_tac))
   wp_apply (opaqueInitsOk listCacheCount.init (by mem_tac))
@@ -102,14 +110,25 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk WatchCacheInitializations.init (by mem_tac))
   wp_apply (opaqueInitsOk WatchCacheInitializationErrors.init (by mem_tac))
   wp_apply (opaqueInitsOk WatchCacheInitializationDuration.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchCacheReadWait.init (by mem_tac))
+  wp_apply WatchCacheReadWait_init as ⟨%vWatchCacheReadWait, HWatchCacheReadWait, %LWatchCacheReadWait⟩
   wp_apply (opaqueInitsOk ConsistentReadTotal.init (by mem_tac))
   wp_apply (opaqueInitsOk StorageConsistencyCheckTotal.init (by mem_tac))
   wp_apply (opaqueInitsOk WatchShardsTotal.init (by mem_tac))
   wp_apply (opaqueInitsOk WatchFilteredEventsTotal.init (by mem_tac))
   wp_apply (opaqueInitsOk DispatchStageDuration.init (by mem_tac))
+  ipersist HWatchCacheReadWait
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try (isplitl []; · (imodintro; itrivial))
+  imodintro
+  iexists _
+  iframe HWatchCacheReadWait
+  ipureintro
+  exact LWatchCacheReadWait
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

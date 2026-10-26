@@ -273,9 +273,11 @@ axiom refreshPerSecond [FfiSyntax] [GoGlobalContext] : val
 
 axiom maxBudget [FfiSyntax] [GoGlobalContext] : val
 
-axiom blockTimeout [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def blockTimeout [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 3000000000)
 
-axiom resourceVersionTooHighRetrySeconds [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def resourceVersionTooHighRetrySeconds [FfiSyntax] [GoGlobalContext] : val :=
+  #(1 : Int)
 
 axiom defaultLowerBoundCapacity [FfiSyntax] [GoGlobalContext] : val
 

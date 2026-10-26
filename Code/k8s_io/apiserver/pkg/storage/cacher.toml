@@ -7,7 +7,9 @@ translate = ["!*",
   "watchCache.UpdateResourceVersion", "watchCache.waitUntilFreshLocked",
   "watchCache.waitAndGetLatestSnapshot", "watchCache.getLatestSnapshotLocked",
   "watchCache.checkSnapshotResourceVersion", "watchCache.notFresh",
-  "watchCache.WaitUntilFreshAndGet"]
+  "watchCache.WaitUntilFreshAndGet",
+  # the freshness wait's constants (a names-only constant is a value of unknown shape)
+  "blockTimeout", "resourceVersionTooHighRetrySeconds"]
 # (`runtime/debug`, which the cacher's own files import, is not translated.) Not the cacher's
 # `metrics`: its variables are of component-base's `metrics` types (`CounterVec`, ...), which the
 # cacher does not import, and Goose names a type of a package the file does not import through an
