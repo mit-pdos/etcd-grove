@@ -16,6 +16,29 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+class AuthUserDeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying AuthUserDeleteResponse.underlying AuthUserDeleteResponse
+  underlying : go.UnderlyingDirectedEq AuthUserDeleteResponse.ty AuthUserDeleteResponse.underlying
+  get_state : ∀ (x : AuthUserDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteResponse.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthUserDeleteResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserDeleteResponse)))
+  get_Header : ∀ (x : AuthUserDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set_Header : ∀ (x : AuthUserDeleteResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthUserDeleteResponse)))
+  get_unknownFields : ∀ (x : AuthUserDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthUserDeleteResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserDeleteResponse)))
+  get_sizeCache : ∀ (x : AuthUserDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthUserDeleteResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserDeleteResponse)))
+
+attribute [instance] AuthUserDeleteResponse.TypeAssumptions.type_repr
+  AuthUserDeleteResponse.TypeAssumptions.underlying
+  AuthUserDeleteResponse.TypeAssumptions.get_state
+  AuthUserDeleteResponse.TypeAssumptions.set_state
+  AuthUserDeleteResponse.TypeAssumptions.get_Header
+  AuthUserDeleteResponse.TypeAssumptions.set_Header
+  AuthUserDeleteResponse.TypeAssumptions.get_unknownFields
+  AuthUserDeleteResponse.TypeAssumptions.set_unknownFields
+  AuthUserDeleteResponse.TypeAssumptions.get_sizeCache
+  AuthUserDeleteResponse.TypeAssumptions.set_sizeCache
+
 class AuthUserChangePasswordResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserChangePasswordResponse.underlying AuthUserChangePasswordResponse
   underlying : go.UnderlyingDirectedEq AuthUserChangePasswordResponse.ty AuthUserChangePasswordResponse.underlying
@@ -472,11 +495,21 @@ class authClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq authClient.ty authClient.underlying
   get_cc : ∀ (x : authClient), go.IsGoStepPureDetTagged under (StructFieldGet authClient.underlying go!"cc") #x (Val #(x.cc'))
   set_cc : ∀ (x : authClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet authClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : authClient)))
+  ptr_AuthEnable_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"AuthEnable" authClient.AuthEnable.impl
+  ptr_RoleAdd_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"RoleAdd" authClient.RoleAdd.impl
+  ptr_RoleGrantPermission_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"RoleGrantPermission" authClient.RoleGrantPermission.impl
+  ptr_UserAdd_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"UserAdd" authClient.UserAdd.impl
+  ptr_UserGrantRole_unfold : MethodUnfold (go.GoType.PointerType authClient.ty) go!"UserGrantRole" authClient.UserGrantRole.impl
 
 attribute [instance] authClient.TypeAssumptions.type_repr
   authClient.TypeAssumptions.underlying
   authClient.TypeAssumptions.get_cc
   authClient.TypeAssumptions.set_cc
+  authClient.TypeAssumptions.ptr_AuthEnable_unfold
+  authClient.TypeAssumptions.ptr_RoleAdd_unfold
+  authClient.TypeAssumptions.ptr_RoleGrantPermission_unfold
+  authClient.TypeAssumptions.ptr_UserAdd_unfold
+  authClient.TypeAssumptions.ptr_UserGrantRole_unfold
 
 class AuthServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthServer.ty AuthServer.underlying

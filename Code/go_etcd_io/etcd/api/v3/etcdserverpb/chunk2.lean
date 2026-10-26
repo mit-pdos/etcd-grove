@@ -684,11 +684,21 @@ attribute [instance] DowngradeInfo.TypeAssumptions.type_repr
 class AuthEnableRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthEnableRequest.underlying AuthEnableRequest
   underlying : go.UnderlyingDirectedEq AuthEnableRequest.ty AuthEnableRequest.underlying
-  isUnderlying : go.IsUnderlying AuthEnableRequest.underlying AuthEnableRequest.underlying
+  get_state : ∀ (x : AuthEnableRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthEnableRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : AuthEnableRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthEnableRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthEnableRequest)))
+  get_unknownFields : ∀ (x : AuthEnableRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthEnableRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : AuthEnableRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthEnableRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthEnableRequest)))
+  get_sizeCache : ∀ (x : AuthEnableRequest), go.IsGoStepPureDetTagged under (StructFieldGet AuthEnableRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : AuthEnableRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthEnableRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthEnableRequest)))
 
 attribute [instance] AuthEnableRequest.TypeAssumptions.type_repr
   AuthEnableRequest.TypeAssumptions.underlying
-  AuthEnableRequest.TypeAssumptions.isUnderlying
+  AuthEnableRequest.TypeAssumptions.get_state
+  AuthEnableRequest.TypeAssumptions.set_state
+  AuthEnableRequest.TypeAssumptions.get_unknownFields
+  AuthEnableRequest.TypeAssumptions.set_unknownFields
+  AuthEnableRequest.TypeAssumptions.get_sizeCache
+  AuthEnableRequest.TypeAssumptions.set_sizeCache
 
 class AuthDisableRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthDisableRequest.underlying AuthDisableRequest
@@ -1199,29 +1209,6 @@ attribute [instance] AuthUserGetResponse.TypeAssumptions.type_repr
   AuthUserGetResponse.TypeAssumptions.set_unknownFields
   AuthUserGetResponse.TypeAssumptions.get_sizeCache
   AuthUserGetResponse.TypeAssumptions.set_sizeCache
-
-class AuthUserDeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AuthUserDeleteResponse.underlying AuthUserDeleteResponse
-  underlying : go.UnderlyingDirectedEq AuthUserDeleteResponse.ty AuthUserDeleteResponse.underlying
-  get_state : ∀ (x : AuthUserDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : AuthUserDeleteResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : AuthUserDeleteResponse)))
-  get_Header : ∀ (x : AuthUserDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : AuthUserDeleteResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : AuthUserDeleteResponse)))
-  get_unknownFields : ∀ (x : AuthUserDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : AuthUserDeleteResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : AuthUserDeleteResponse)))
-  get_sizeCache : ∀ (x : AuthUserDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : AuthUserDeleteResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet AuthUserDeleteResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : AuthUserDeleteResponse)))
-
-attribute [instance] AuthUserDeleteResponse.TypeAssumptions.type_repr
-  AuthUserDeleteResponse.TypeAssumptions.underlying
-  AuthUserDeleteResponse.TypeAssumptions.get_state
-  AuthUserDeleteResponse.TypeAssumptions.set_state
-  AuthUserDeleteResponse.TypeAssumptions.get_Header
-  AuthUserDeleteResponse.TypeAssumptions.set_Header
-  AuthUserDeleteResponse.TypeAssumptions.get_unknownFields
-  AuthUserDeleteResponse.TypeAssumptions.set_unknownFields
-  AuthUserDeleteResponse.TypeAssumptions.get_sizeCache
-  AuthUserDeleteResponse.TypeAssumptions.set_sizeCache
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 

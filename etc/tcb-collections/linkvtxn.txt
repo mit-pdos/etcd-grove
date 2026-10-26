@@ -32,7 +32,6 @@ axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
 axiom EtcdServer.snapshot.wp_proof
-axiom NewAuth.wp_proof
 axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
@@ -255,7 +254,7 @@ axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom auth.NewAuthStore.wp_proof
-axiom auth.NewTokenProvider.wp_proof
+axiom auth.newTokenProviderJWT.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof

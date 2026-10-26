@@ -19492,3 +19492,98 @@ that do not fit, one of them too strong:
   new backend's lease bucket, empty in the image), the ghost's other half in `lessorInv` updated by
   the axiom; (b) a premise `L = []` of `applySnapshot.spec`, from the workload (`noGrant`), which
   S-j1 would have to carry as an invariant. Recommendation: (a).
+
+## E2g of the auth plan: the token provider's constructor proved; the server in the mode `on` not reached (2026-10-26 · `notes/auth-plan.md`)
+
+The brief: (1) `NewServer.spec` generic in the auth mode, the store from `newAuthStore_boot` in the
+mode `on`; (2) the server's environment admitting auth requests, `authOwn` threaded to the apply
+thread; (3) `NewTokenProvider` with `"simple"` proved. Only (3) is done.
+
+**(3) `NewTokenProvider` proved** (`Proof/go_etcd_io/etcd/server/v3/auth/NewTokenProvider.lean`;
+until now the axiom of unit N1). Translated with bodies (`auth.toml`): `NewTokenProvider`,
+`decomposeOpts`, `newTokenProviderNop`, the constants `tokenTypeSimple`/`tokenTypeJWT` and the error
+`ErrInvalidAuthOpts` (which joins `authInit`, appended, through `etc/gen-init.py`'s auth errors;
+its initializer leaves `opaqueInitsOk`'s list). Proved: `decomposeOpts` (Perennial's
+`strings.wp_Split`, the loop over the `key=value` fields into the map; its error only with more
+than one field, so that `"simple"` cannot fail), `newTokenProviderNop`, and
+`newTokenProviderSimple` under a spec of its own with no premise (`Spec/.../newTokenProviderSimple.lean`:
+the index waiter's field read-only, and the provider's facts for a positive TTL only; S5e's
+`tokenSimple_new`, with its TTL and waiter premises, is now derived from it). The JWT provider's
+constructor is names-only: its axiom `auth.newTokenProviderJWT.wp_proof` (it returns; its spec's
+docstring says why, including `edKey`'s unchecked type assertions, which golang-jwt's PEM parsers
+make safe) replaces `NewTokenProvider`'s.
+
+**Exported statement changed:** `auth.NewTokenProvider.spec`'s post keeps `err = nil → tp ≠ nil`
+and adds: unless the options are not `"simple"` or the TTL is not positive, `err = nil`, the
+provider is `*tokenSimple` `p` with its index waiter's field `iw` (read-only), and, under fresh
+names, `simpleOk`, `simpleAdmin` and the rights' authority -- what `tokenSimple_okA` turns into
+the token provider's contract (E2e's `tokenProviderBoot`). `NewServer`'s proof takes the first
+conjunct only (`⟨%Htp, -⟩`); no other statement changed.
+
+**(1), (2): why not.** The server's apply environment in the mode `on γa` needs the apply layer's
+contract `apply.isAuthStore … (.on γa) E.RW` of the store, at the server's write right `E.RW`
+(the tracked buckets' half lent with the auth backend's, `authApplyOk`'s `rwLens`, shared with the
+alarm store, the lessor and the cluster): its permission checks, `IsAuthEnabled` and `Revision`
+are the real store's (`isAuthStore_of_authInv`), but its admin clauses (`AuthEnable` ...,
+`HasRole`, `Authenticate`, the eleven requests and the four reads) are stated over the batch
+lock's `csContract` and `RW` with no authority: in the mode `on` they need the admin side's
+authority `authOwn` (S4f: an append needs both halves of the history), which `RW` would have to
+lend, and they need `HasRole`, `Authenticate` with `CheckPassword` (bcrypt), `UserGet`, `RoleGet`,
+`UserList` and `RoleList` proved (`isAuthStoreAdmin`'s premise, E2a). So (1) and (2) are one step:
+restate `isAuthStore`'s admin clauses in the mode `on` as `apply/AuthSteps.lean`'s step specs (the
+authority in the apply thread's resources, as `kvOwn`'s `E.RD`), derive them of the real store from
+S4's proofs, prove (or bound at the trust boundary) the admin reads and `CheckPassword`, then
+generalize `NewServer`'s ten `.off` instantiations and its post `E.authOn = false` (every closed
+theorem keeps `env₀`'s `.off`, its form derived), the store from `newAuthStore_boot` in the mode
+`on` with `authSchemaBoot` (D22's) and `tokenProviderBoot` (from this stage's post and
+`tokenSimple_okA_run`, over `ValidSpec`: the simple provider's `isValidSimpleToken` is proved on
+contexts only, `tokenSimple_okCtx`) as premises. Not attempted in this stage. The server's
+Auth-service gRPC contracts (`isGrpcRpc`) wait on the same.
+
+**Trust base.** Count unchanged: `auth.NewTokenProvider.wp_proof` replaced by
+`auth.newTokenProviderJWT.wp_proof` (baseline and the eight collections listing it updated).
+
+## E2h of the auth plan: clientv3's Auth API, and `SetUp` over the Auth service as a premise (2026-10-26 · `notes/auth-plan.md`)
+
+What `examples/authkv`'s `SetUp` needs on the client's side (E2f's "Not done": the client's `Auth`
+field, `NewAuth`, `RetryAuthClient`, the `authClient` methods untranslated, and no contract for
+the server's Auth service).
+
+**Translated and proved** (`Code/go_etcd_io/etcd/client/v3.toml`, `api/v3/etcdserverpb.toml`):
+the generated Auth stub's `NewAuthClient` and `authClient.{UserAdd, UserGrantRole, RoleAdd,
+RoleGrantPermission, AuthEnable}` (`Invoke` with `StaticMethod`, the KV stub's shape), the retry
+client's `RetryAuthClient` and its five (no retry option: an admin call has the default
+`nonRepeatable` policy), the client's `NewAuth` and `authClient`'s five (the request built, the
+error through `ContextError`; `RoleGrantPermission` builds the permission from `[]byte(key)`,
+`[]byte(rangeEnd)`); client/v3 now imports `authpb` (the init chains regenerated). `NewAuth`'s
+trust-boundary axiom (item 5) is now a theorem: **-1 axiom**. `isNewClient` gains its last part,
+the `Auth` field holding a `*authClient` over the connection (`authObjAt`); `LeaseClient`'s
+pattern adapted, the other users' patterns end in `-`.
+
+**The vocabulary** (`client/v3/InvAuthConn.lean`): the messages as `ProtoMsg`s whose decoded copy
+is the auth store's own request predicate (`auth.userAddReqIs` with the password,
+`auth.userGrantRoleReqIs`, `auth.roleAddReqIs`, `auth.roleGrantPermissionReqIs` with the
+permission's `auth.ownPermW`), so that the server's handlers can hand the request on as it is; the
+responses carry nothing the client reads (`Unit`); `authCallOut Q resp err`, a call's answer
+(`nil` and `Q ()`, or a client error), `putCallOut`'s shape. Every call is specified for any spec
+`Spec` the server registered for the method and a **persistent** precondition `□ ▷ Spec m Q`:
+the retry interceptor may deliver an admin request several times (a call that failed before it was
+sent, a refreshed token), and D29's write-once mode is for the KV methods only (`kvMethod`).
+
+**`SetUp`, over the Auth service as a premise** (`Spec/.../authkv/SetUp.lean`): `setupAuthOk ep
+Su Sg Sr Sp Se Q`, the five methods' specs at the endpoint (`isGrpcRpc`) and each of the eight
+calls' `□ ▷ Spec m (fun _ => Q i)`; `SetUp` returns `ok`, and if `ok` every `Q i`. Its puts go
+through `client_Put_any` (new in `ClientPutGet.lean`: `New`'s client with a persistent update, the
+first case of `client_put_any`, no write-once premise), since authkv's server refuses and so is
+not refusal-free (E2d). How the server's side discharges `setupAuthOk` (E2i's Auth-service
+contracts): its `Su`, ... are the handlers' over the apply layer's admin steps
+(`apply.isAuthSteps`); with a persistent precondition, a `Q i` is a persistent witness of the
+step's effect (the history's lower bound holding the step), which the set-up's sole admin client
+then knows for each call.
+
+**Not done.** `Main` (still a `sorry`): it needs the server in the mode `on` (E2i), the
+Auth service's contracts discharging `setupAuthOk`, and `Work` (E2b's, E2f's lists).
+
+**Trust base.** 721 → 720 axioms (-1, `NewAuth.wp_proof` gone), sorries unchanged (6); the nine
+collections that listed it updated, and `authkv` gains the client's existing gRPC trust-boundary axioms
+(`StaticMethod`, `grpcConn`, `status.FromError`, ...) that `SetUp` reaches.
