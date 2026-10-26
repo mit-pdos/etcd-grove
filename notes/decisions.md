@@ -21158,3 +21158,63 @@ No closed theorem changed.
    `kvInvOn`.
 3. The admin proposers (`setupAuthOk`): `reqPropOkOn`'s admin case over the model's shape
    invariant (above), with `server_user_add_sure` (E2x) discharging `UserAdd`'s `pwSure`.
+
+## E2y of the auth plan: the KV path at the latest state through `dispatch` and both `Apply`s; the outcome as the model's; `UserAdd.specTSure` (2026-10-26 · `notes/auth-plan.md`)
+
+E2v's "left" (2) and (3): the auth applier's KV outcome at the latest state (E2s) lifted to an
+applied entry, and from there to E2t's `outcomeOn` (`kv_applied_out_on`'s hypothesis).
+
+**(1) The KV triples at the latest state, through the chain** (new files, beside the spec
+triples, none of which changes):
+- `apply/DispatchKVL.lean`: `applierKVL E c ci a L` (an applier's persistent KV triples with the
+  latest-state resource family `L`, the verdict `authOutL` of the auth applier's inner chain `ci`;
+  `applierTriples`' four KV clauses with `L hs` and the checked permissions' shape), of the auth
+  applier from its methods' `specL` (`applierKVL_auth`, over `authIsL` and the premise
+  `lessorNil`); `kvOutL` (the outcome per request kind, as the methods' `specL` give it) and
+  `kvShapedL` (the shape the methods' exact verdicts take); `dispatch.kvSpecL`/`wp_kvL`: a second
+  triple of `dispatch` for a KV request (`isKVKind`), `dispatch.spec`'s with `applierKVL` of the
+  current applier and `L hs`, giving `L hs` back and, when applied, `kvOutL`. Its proof is
+  `dispatch.wp_proof`'s walk with the four KV branches through `applierKVL` and every other kind
+  ruled out at its branch (`isKVKind`); `dispatch.spec` is unchanged.
+- `apply/ApplyKVL.lean`: `uberApplier.Apply.kvSpecL`/`wp_kvL`, with no alarm set (the current
+  chain the base one; `applierKVL_cur`: then the current applier is the base one, `uberShape`,
+  `alarmChain_eq_base`); the auth applier hands `dispatch` the request's principal
+  (`principalOf rq`, from its header: `authApplierV3.Apply.spec`'s `applyFunc` contract), so the
+  verdict is at the request's own principal (the principal tie: already a fact of `Apply`'s
+  contract, nothing new needed).
+- `apply/ApplyFnKVL.lean`: `apply.Apply.kvSpecL`/`wp_kvL` (the entry's decode, ID, waiter and
+  wrapper as `Apply.wp_proof`'s), over `uberKVL` (the uber-applier with its base applier's
+  `applierKVL`): a dispatched and applied entry's outcome is `kvOutL` at `principalOf rq`.
+
+**(3) The outcome as the model's** (`KVOutcomeOn.lean`): `authOutL_of_kvOutL` (the dispatched
+verdict on the request's own permissions, `reqPerms`) and `outcomeOn_of_kvOutL` (with E2v's
+`outcomeOn_of_authOutL`: `outcomeOn`, E2t's `kv_applied_out_on` hypothesis). Two premises of the
+request, named:
+- `noZeroEnds rq`: no model range end is `"\x00"` — the one end at which the check sees another
+  range than the model's (`authEndOf`: a non-`nil` empty `RangeEnd` on the wire reads as `"\x00"`).
+- `txnVerdictOwn M hs rq`, for transactions: a refusal is of a permission the model asks, a pass
+  covers every one it asks. **Found (a gap in E2q's model, not in Go):** inside a transaction,
+  `checkTxnReqsPermission` checks a put with `checkPutAuth`, which with `PrevKv` also checks the
+  key's read; the model's operation `TxnOp.put` records no `PrevKv`, so `opPerms` asks only the
+  write. A transaction whose put has `PrevKv`, by a user with write but not read on the key, is
+  refused by the code and granted by the model. Until `TxnOp.put` carries `PrevKv` (a change to
+  the transaction model, `txn/`, and its decoders), `txnVerdictOwn` is the transaction's premise.
+
+**(4) `UserAdd.specTSure`** (`auth/authStore__UserAdd_tieSure.lean`): E2s's `specT` and E2u's
+`specSure` in one triple (`wp_tieSure`: `wp_tie`'s proof with `wp_sure`'s `selectPassword` case);
+restated linked as `auth_user_add_tie_sure`. **Not done:** the apply layer's `UserAdd` through it
+(`isAuthStepsX`'s `UserAdd` clause, `stepSpecX`/`fuelSpecX`, `AdminReq.result` would take the
+request's `pwSure` and drop the `noPasswordUser` extra).
+
+**Left.** The apply thread's use of `apply.Apply.wp_kvL` (`applyEntryNormal` in the mode `on`,
+E2z's), `L hs` (`latestRes`, `latestRes_of_T`) from the apply thread's `authApplyRes`, the
+`uberKVL` of the server's uber-applier (`applierKVL_auth` at its base auth applier, with
+`lessorNil` of the server's lessor: `examples/authkv` grants no lease), the premises `noZeroEnds`,
+`kvShapedL` (E2q's `kvDet`) and `txnVerdictOwn` from the workload; with alarms, the capped and
+corrupt wrappers' KV triples at the latest state.
+
+**Exported statements changed.** None: every triple and definition is new (`apply.kvOutL`,
+`apply.kvShapedL`, `apply.applierKVL`, `apply.uberKVL`, `noZeroEnds`, `txnVerdictOwn`,
+`dispatch.kvSpecL`, `uberApplier.Apply.kvSpecL`, `apply.Apply.kvSpecL`, `UserAdd.specTSure`).
+
+**Trust base.** Unchanged.
