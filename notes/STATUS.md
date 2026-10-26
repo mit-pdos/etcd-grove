@@ -1157,7 +1157,7 @@ decided" and "D22 receiver epochs, S8c carried out"): W3, the transport's peers 
 W1's decided `Rm` is not establishable at `Release` (a variant proposed); new axioms
 `lessor.Recover`, `authStore.Recover`, `RaftCluster.SetBackend`, the gauge's initializer;
 `NewMembershipBackend` proved; S8d's lemmas `kv_cert_jump` (W4) and `srv_be_swap`. Axioms 615 ->
-620. Issue filed: `issues/etcd-rafthttp-leaderstats-followers-race.md`. Then W1 and W5
+620. Issue filed: `issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md`. Then W1 and W5
 (`notes/decisions.md`, "D22 S8d's premises"): `snapTakenLb`, `storage.Release`'s axiom (620 -> 621),
 the opaque `snap.dirReadOk`, `backend.renameOk`, `storage.releaseOk`, `storageSnap` and the bundle
 `storage.snapOpensOk`; `os.Rename`, `DBFilePath` (now over the held file) and `OpenSnapshotBackend`

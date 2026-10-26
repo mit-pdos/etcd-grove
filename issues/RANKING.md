@@ -263,11 +263,6 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
-- **[etcd-rafthttp-leaderstats-followers-race](etcd-rafthttp-leaderstats-followers-race.md)**
-  (2026-10-24, rescoped 2026-10-26): only release-3.5 with the deprecated `--enable-v2` serves
-  `/v2/stats/leader`, whose `JSON` marshals the stats map after unlocking while a peer is added or
-  removed; on `main`, 3.6 and the pin `JSON` has no caller and the map's writers share the
-  transport's lock, so nothing races. Not reproduced; a 3.5-only fix at most.
 - **[etcd-auth-readtx-getallroles-panics](etcd-auth-readtx-getallroles-panics.md)** (2026-10-23):
   `(*authReadTx).UnsafeGetAllRoles` panics whenever called (a no-limit range of a non-safe
   bucket on a read transaction); nothing in etcd calls it, so a dead interface method. A one-line
@@ -339,7 +334,9 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   remote), a raft regression with no realistic trigger
   ([raft-confstate-unknown-fields-panic](nonissues/raft-confstate-unknown-fields-panic.md)),
   raft behavior the review accepted ([raft-prevote-stale-grant](nonissues/raft-prevote-stale-grant.md),
-  discussed upstream in 2017) and the documentation-only findings listed there.
+  discussed upstream in 2017), a race only release-3.5 with `--enable-v2` has
+  ([etcd-rafthttp-leaderstats-followers-race](nonissues/etcd-rafthttp-leaderstats-followers-race.md),
+  moved 2026-10-26) and the documentation-only findings listed there.
 - **Client-triggered, with clients trusted**:
   [etcd-auth-useradd-long-name-fatal](etcd-auth-useradd-long-name-fatal.md) (a `UserAdd` or
   `RoleAdd` name over 32 KiB is fatal on every member and again on replay; root-only with auth

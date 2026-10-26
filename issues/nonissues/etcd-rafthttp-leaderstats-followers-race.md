@@ -7,6 +7,8 @@ links:
   - etcd-io/etcd@692b3c4cd: "server: Remove most of V2 API": removed `JSON`'s only caller (`/v2/stats/leader`) from main; release-3.6 has none either, release-3.5 still serves it under `--enable-v2`
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-26 (the user's decision, for now): not an issue on etcd's `main`, release-3.6 or the pin, where `LeaderStats.JSON` has no caller and both writers of the map hold the transport's lock; only release-3.5 with the deprecated `--enable-v2` races. Move it back if a 3.5 fix is wanted.
+
 # release-3.5: the v2 leader stats endpoint races rafthttp's peer changes on `LeaderStats.Followers`
 
 **Status**: a data race only on etcd's release-3.5 with the deprecated `--enable-v2` (code

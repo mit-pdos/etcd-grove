@@ -17292,7 +17292,7 @@ four questions as decided above. Each commit a full build.
   (+ `TS`), `rnParts`, `isRaftNode`; intermediate specs `raftNode.stop`, `raftNode.onStop`,
   `NewServer` (`srvEr … (netPeers γn id)`); the examples' `memberBuilt` (the same). No closed
   theorem's text changed.
-- Found on the way: `issues/etcd-rafthttp-leaderstats-followers-race.md` (`removePeer` writes the
+- Found on the way: `issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md` (`removePeer` writes the
   leader stats' map without its lock, `JSON` marshals it unlocked).
 
 **W2, the auth store across `Recover`: no restatement of `NewAuthStore` needed.** The server's auth
@@ -18789,7 +18789,7 @@ invariant over the context-premised contract (with `NewAuthStore`).
   `store.Restore` are proved (their statements differ from the axioms S8c and S6 wrote: S8d uses the
   proved ones). S8c's W3 commit is reverted before the merge (`72a1cb065b`): the peers right
   (`netPeers`, `netTrIs`, `transportAddRight`, `RNEnv.TS`) is to be re-expressed over the proved
-  transport, with W8. The issue it filed (`issues/etcd-rafthttp-leaderstats-followers-race.md`) is
+  transport, with W8. The issue it filed (`issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md`) is
   kept.
 - **W5** (the user): `storage.snapOpensOk` stays its own environment premise (not folded into
   `dbOpensOk`); it may become a premise of closed theorems at S-l.
