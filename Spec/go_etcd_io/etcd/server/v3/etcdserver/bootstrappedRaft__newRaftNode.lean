@@ -60,7 +60,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 composition instantiates it with the `MemoryStorage`'s, `memStorageModel` under `MemStorReg
 ⟨reg⟩`.) -/
 abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RaftNames) (bud : BudgetNames) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (E : RNEnv GF) (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames) (reg : GName)
     (pre : List EntryModel)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM),
@@ -88,6 +88,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
   BootLogOk γ.reCCOk ps bootLog →
+  -- (D43 M3, 2026-10-25) raft's mode `md`: in the dynamic mode at the server's decoder, from the
+  -- peers' configuration
+  (∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 → dec = srvDec ∧ c0 = cfgState (GMap.listToSet ps) ∅) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- the fresh `MemoryStorage` `b.storage` as raft's `Storage` (`memOwnStorage_empty`,
@@ -118,7 +121,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
       "#Hmarshal" ∷ bootMarshal ps ctxs bootLog ∗
       -- this node's ghost state at the bootstrap state, and the committed boot log
-      "Hghost" ∷ ownRaftGhost γ cv.ID' (bootPState bootLog) ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
+      -- (D43 M3) in the mode `md` (`bootInit`, `StartNode`'s)
+      "Hghost" ∷ bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
       -- the cluster's term budget, at least at the bootstrap term `1` (`StartNode.spec`'s)
       "#Hbud" ∷ inv budgetN (budgetInv bud) ∗ "#HtermLB" ∷ termLB bud (W64 1) ∗
       -- the contracts (`InvNodeStart.lean`)
@@ -130,7 +134,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   {{ (r : Loc), RET #r;
       ∃ (γn : NodeNames) (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = memStorIface bv.storage' ∧
-          γn.mode = RNMode.static ∧ γn.raft.reDyn = none ∧
+          γn.mode = md ∧ (md = .static ↔ γ.reDyn = none) ∧
           γw.node = γn ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs ∧ γw.reg = reg⌝ ∗
         -- raft's node

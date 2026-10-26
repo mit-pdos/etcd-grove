@@ -347,10 +347,13 @@ theorem NewServer.wp_proof
   imod (srvSendKey_alloc (GF := GF)) with ⟨%γk, Hk⟩
   ihave #Htkok' : rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk)) $$ []
   · iapply rnTickerOk_srvEr_S $$ Htkok
-  wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk)) γ bud bs.raft' bs.ss' bw.w' bc.cl'
+  -- (D43 M3) raft's static mode: the servers' (`bootInit`'s static case is the ghost state)
+  ihave Hghost : bootInit γ .static id (GMap.listToSet ps) bootLog $$ [Hghost]
+  · unfold bootInit; iexact Hghost
+  wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk)) γ .static bud bs.raft' bs.ss' bw.w' bc.cl'
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
-    Hrbok (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
+    Hrbok (fun _ _ _ _ h => by cases h) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
     (by simpa [srvEr] using Hpol) (fun _ => by rw [Hnosnap.2]; exact Int.le_refl _))
     $$ [Hbv Hc Hstor Hpeers Hghost Htok]
     as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, #Hrli, Hinst, Hbv, Hpeers, Htok⟩
@@ -1022,7 +1025,7 @@ theorem NewServer.wp_proof
   · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud γrn
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
-      ⟨fun _ => Hrn4d, fun _ => Hrn4⟩ (fun dec c0 h0 h1 h => by rw [Hrn4] at h; cases h)
+      ⟨fun _ => by rw [Hrn1]; exact Hrn4d.1 rfl, fun _ => Hrn4⟩ (fun dec c0 h0 h1 h => by rw [Hrn4] at h; cases h)
       (by rw [Hrn3, Hrn7]) Hrn2
       (by first | (rw [← hργ]; exact Hnosnap.1) | (rw [hργ]; exact Hnosnap.1) | exact Hnosnap.1)
       (by rw [Hrn8, Hnosnap.2]; exact Int.le_refl _) id (srvTrKey γn γk)

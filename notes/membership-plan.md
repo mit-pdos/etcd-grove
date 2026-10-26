@@ -140,6 +140,11 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   `ApplyConfChange`'s `DynCCPreOp`: its decoder, an existing member's `AddNode` a no-op or zeroed); `srvCCPolicy`/`ccApplyOk` widened to the
   kinds in scope (v1, `RemoveNode`); the static examples restated over it or kept on a static
   instance (to decide in M3: whether the static mode at the server goes, as STATUS suggests).
+  **M3 done (2026-10-25, branch `membership-m3`)**: M3a-M3e as below; see `notes/decisions.md`,
+  D43, "M3 carried out". The server is parametric in raft's mode; the static examples' statements
+  are unchanged; the dynamic instance of the server's start is `NodeStartSpec` at `md := .dyn`
+  (the server's `NewServer` passes `.static`: a dynamic `NewServer` needs a dynamic bootstrap
+  contract, the example's, M8).
   *Scoped 2026-10-25* (the user's decisions, D43 "M3"): (i) the leader's `Advance` before its apply
   loop applies a conf change (`issues/etcd-leader-advance-before-applyconfchange.md`) violates raft's
   A1 in the dynamic mode (`node.Advance.spec`: `NoConfIn ds ca`), so the fork gets the drafted fix

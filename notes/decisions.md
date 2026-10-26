@@ -18710,6 +18710,39 @@ Three decisions, each the recommended option:
   static case unchanged, dynamic case as raft's `node.ApplyConfChange` has it, for `ApplyBoth`
   only (without `v3` Go does not call raft).
 
+**M3 carried out (2026-10-25, branch `membership-m3`).** The server's proofs are parametric in
+raft's mode; the static examples' statements are unchanged (trust base 718 axioms, 5 sorries).
+- *M3a* (the fork): `raftNode.start`'s leader branch does the second `notifyc` send on a conf
+  batch (`goose-lean-leaderwait`, `4d9282b0f`); its proof mirrors the follower's.
+- *The view.* `rnCfgAt γ L` (`InvRaftNode.lean`) is the driver's `nodeCfg`, in the dynamic mode with
+  every conf entry of `pre ++ L` applied and the voters' simple configuration (`srvCfgView`,
+  `srvCfgOk`, `InvCfgView.lean`); `rnDrv`/`rnBusy` hold it, `Advance` takes it after the batch, which
+  gives A1 (`rnCfgAt_open`). A batch with a `ConfChange` in the dynamic mode (`rnHands`) sends it to
+  the apply thread in the `toApply` (`rnApGive`, with the committed log handed out, `dlvLb`); the
+  apply thread's `<-apply.notifyc` deposits the view after the batch (`rnApR`) and the raft loop's
+  second send claims it (`NotifyC.lean`: the receive and the second send on a fresh capacity-1
+  channel, over the raw channel state). Without a conf entry the loop keeps the view
+  (`rnCfgAt_back_false`: the server's committed entries are normal or `ConfChange`, `srvIdxOkW`);
+  the conf-change scan's result is `ccIn ce`.
+- *The apply side* has no `RNNames`: `apply`, `applyEntries`, `applyAll`, `run_job_body` take an
+  optional view `dv : Option NodeNames` (`dvView`, `dvRes`, `dvOk`; `run` picks `rnDv`), threaded
+  through the scheduler's job resource. A server conf entry (`ccApplyOk`, the policy's) meets
+  `DynCCPreOp` at the server's decoder `srvDec` for both changes Go may hand raft
+  (`srvCfgOk_cc`); raft's `DynCCPreOp` was generalized for that: the change applied need only have
+  the decoded change's effect (`ccStepB`), as a failed validation's `NodeId 0` has.
+- *Contracts.* `isRaftNodeIfc` carries raft's dynamic `ApplyConfChange` (`raftApplyCCDyn`) in the
+  dynamic mode; `raftPropose`'s static clause is guarded by `reDyn = none`; `rnEnvOk` says the mode
+  is static exactly when raft's names are (raft's `StartNode` now states it, `ownRawNode_mode`) and
+  the dynamic mode's decoder is `srvDec`. The axiom `applyConfChange` restated (`dvCCPre`,
+  `dvCCPost`).
+- *A fresh start.* The dynamic mode excludes a replay (an entry at or below the consistent index:
+  Go hands a replayed conf change to no one, so raft's configuration index would stall):
+  `isServerRun`'s `HEr` (and `srvBuilt`'s, `InvStart`'s) says `c₀ ≤ ai₀` in the dynamic mode;
+  `NewServer` starts at `0, 0`.
+- *M3e.* `bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec` take `md` (the ghost state
+  `bootInit γ md`, in the dynamic mode at `srvDec` and the peers' configuration); `NewServer`
+  passes `.static`.
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
