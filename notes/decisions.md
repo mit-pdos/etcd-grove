@@ -19460,3 +19460,53 @@ header lists these.
 
 **Trust base.** 721 axioms (+1, `metadata.AppendToOutgoingContext.wp_proof`), 6 sorries;
 collection `authkv` gains it and `context.ErrAny.wp_proof` (`reqCtx`'s).
+
+## E2g of the auth plan: the token provider's constructor proved; the server in the mode `on` not reached (2026-10-26 · `notes/auth-plan.md`)
+
+The brief: (1) `NewServer.spec` generic in the auth mode, the store from `newAuthStore_boot` in the
+mode `on`; (2) the server's environment admitting auth requests, `authOwn` threaded to the apply
+thread; (3) `NewTokenProvider` with `"simple"` proved. Only (3) is done.
+
+**(3) `NewTokenProvider` proved** (`Proof/go_etcd_io/etcd/server/v3/auth/NewTokenProvider.lean`;
+until now the axiom of unit N1). Translated with bodies (`auth.toml`): `NewTokenProvider`,
+`decomposeOpts`, `newTokenProviderNop`, the constants `tokenTypeSimple`/`tokenTypeJWT` and the error
+`ErrInvalidAuthOpts` (which joins `authInit`, appended, through `etc/gen-init.py`'s auth errors;
+its initializer leaves `opaqueInitsOk`'s list). Proved: `decomposeOpts` (Perennial's
+`strings.wp_Split`, the loop over the `key=value` fields into the map; its error only with more
+than one field, so that `"simple"` cannot fail), `newTokenProviderNop`, and
+`newTokenProviderSimple` under a spec of its own with no premise (`Spec/.../newTokenProviderSimple.lean`:
+the index waiter's field read-only, and the provider's facts for a positive TTL only; S5e's
+`tokenSimple_new`, with its TTL and waiter premises, is now derived from it). The JWT provider's
+constructor is names-only: its axiom `auth.newTokenProviderJWT.wp_proof` (it returns; its spec's
+docstring says why, including `edKey`'s unchecked type assertions, which golang-jwt's PEM parsers
+make safe) replaces `NewTokenProvider`'s.
+
+**Exported statement changed:** `auth.NewTokenProvider.spec`'s post keeps `err = nil → tp ≠ nil`
+and adds: unless the options are not `"simple"` or the TTL is not positive, `err = nil`, the
+provider is `*tokenSimple` `p` with its index waiter's field `iw` (read-only), and, under fresh
+names, `simpleOk`, `simpleAdmin` and the rights' authority -- what `tokenSimple_okA` turns into
+the token provider's contract (E2e's `tokenProviderBoot`). `NewServer`'s proof takes the first
+conjunct only (`⟨%Htp, -⟩`); no other statement changed.
+
+**(1), (2): why not.** The server's apply environment in the mode `on γa` needs the apply layer's
+contract `apply.isAuthStore … (.on γa) E.RW` of the store, at the server's write right `E.RW`
+(the tracked buckets' half lent with the auth backend's, `authApplyOk`'s `rwLens`, shared with the
+alarm store, the lessor and the cluster): its permission checks, `IsAuthEnabled` and `Revision`
+are the real store's (`isAuthStore_of_authInv`), but its admin clauses (`AuthEnable` ...,
+`HasRole`, `Authenticate`, the eleven requests and the four reads) are stated over the batch
+lock's `csContract` and `RW` with no authority: in the mode `on` they need the admin side's
+authority `authOwn` (S4f: an append needs both halves of the history), which `RW` would have to
+lend, and they need `HasRole`, `Authenticate` with `CheckPassword` (bcrypt), `UserGet`, `RoleGet`,
+`UserList` and `RoleList` proved (`isAuthStoreAdmin`'s premise, E2a). So (1) and (2) are one step:
+restate `isAuthStore`'s admin clauses in the mode `on` as `apply/AuthSteps.lean`'s step specs (the
+authority in the apply thread's resources, as `kvOwn`'s `E.RD`), derive them of the real store from
+S4's proofs, prove (or bound at the trust boundary) the admin reads and `CheckPassword`, then
+generalize `NewServer`'s ten `.off` instantiations and its post `E.authOn = false` (every closed
+theorem keeps `env₀`'s `.off`, its form derived), the store from `newAuthStore_boot` in the mode
+`on` with `authSchemaBoot` (D22's) and `tokenProviderBoot` (from this stage's post and
+`tokenSimple_okA_run`, over `ValidSpec`: the simple provider's `isValidSimpleToken` is proved on
+contexts only, `tokenSimple_okCtx`) as premises. Not attempted in this stage. The server's
+Auth-service gRPC contracts (`isGrpcRpc`) wait on the same.
+
+**Trust base.** Count unchanged: `auth.NewTokenProvider.wp_proof` replaced by
+`auth.newTokenProviderJWT.wp_proof` (baseline and the eight collections listing it updated).
