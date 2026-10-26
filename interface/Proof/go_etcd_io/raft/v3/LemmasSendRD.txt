@@ -4,28 +4,27 @@
 
 theorem wp_SnapshotMetadata_GetTerm_field [package_sem : Assumptions] (pm pt : Loc) (v : w64) (dq :
     DFrac) (Hnn : pm ≠ null) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ typedPointsto
-    (structFieldRef raftpb.SnapshotMetadata [84#8, 101#8, 114#8, 109#8] pm) pt dq ∗ cellRO pt v -∗ ▷
-    (typedPointsto (structFieldRef raftpb.SnapshotMetadata [84#8, 101#8, 114#8, 109#8] pm) pt dq -∗
-    Φ (intoVal v)) -∗ WP ((intoVal (methods raftpb.SnapshotMetadata.ty.PointerType [71#8, 101#8,
-    116#8, 84#8, 101#8, 114#8, 109#8] (intoVal pm))) (intoVal ())) {{ Φ }}
+    (structFieldRef raftpb.SnapshotMetadata go!"Term" pm) pt dq ∗ cellRO pt v -∗ ▷ (typedPointsto
+    (structFieldRef raftpb.SnapshotMetadata go!"Term" pm) pt dq -∗ Φ (intoVal v)) -∗ WP ((intoVal
+    (methods raftpb.SnapshotMetadata.ty.PointerType go!"GetTerm" (intoVal pm))) (intoVal ())) {{ Φ
+    }}
 
 theorem ownSnapE_open [package_sem : Assumptions] (sp : Loc) (dq : DFrac) (sv : SnapshotM) :
     ownSnapE sp dq sv ⊢ ∃ pm pc, snapRest sp pm pc dq sv ∗ csOptA pc dq sv.Metadata'.ConfState'
 
 theorem wp_SnapshotMetadata_GetConfState_field [package_sem : Assumptions] (pm pc : Loc) (dq :
     DFrac) (Hnn : pm ≠ null) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ typedPointsto
-    (structFieldRef raftpb.SnapshotMetadata [67#8, 111#8, 110#8, 102#8, 83#8, 116#8, 97#8, 116#8,
-    101#8] pm) pc dq -∗ ▷ (typedPointsto (structFieldRef raftpb.SnapshotMetadata [67#8, 111#8,
-    110#8, 102#8, 83#8, 116#8, 97#8, 116#8, 101#8] pm) pc dq -∗ Φ (intoVal pc)) -∗ WP ((intoVal
-    (methods raftpb.SnapshotMetadata.ty.PointerType [71#8, 101#8, 116#8, 67#8, 111#8, 110#8, 102#8,
-    83#8, 116#8, 97#8, 116#8, 101#8] (intoVal pm))) (intoVal ())) {{ Φ }}
+    (structFieldRef raftpb.SnapshotMetadata go!"ConfState" pm) pc dq -∗ ▷ (typedPointsto
+    (structFieldRef raftpb.SnapshotMetadata go!"ConfState" pm) pc dq -∗ Φ (intoVal pc)) -∗ WP
+    ((intoVal (methods raftpb.SnapshotMetadata.ty.PointerType go!"GetConfState" (intoVal pm)))
+    (intoVal ())) {{ Φ }}
 
 theorem wp_SnapshotMetadata_GetIndex_field [package_sem : Assumptions] (pm pi : Loc) (v : w64) (dq :
     DFrac) (Hnn : pm ≠ null) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ typedPointsto
-    (structFieldRef raftpb.SnapshotMetadata [73#8, 110#8, 100#8, 101#8, 120#8] pm) pi dq ∗ cellRO pi
-    v -∗ ▷ (typedPointsto (structFieldRef raftpb.SnapshotMetadata [73#8, 110#8, 100#8, 101#8, 120#8]
-    pm) pi dq -∗ Φ (intoVal v)) -∗ WP ((intoVal (methods raftpb.SnapshotMetadata.ty.PointerType
-    [71#8, 101#8, 116#8, 73#8, 110#8, 100#8, 101#8, 120#8] (intoVal pm))) (intoVal ())) {{ Φ }}
+    (structFieldRef raftpb.SnapshotMetadata go!"Index" pm) pi dq ∗ cellRO pi v -∗ ▷ (typedPointsto
+    (structFieldRef raftpb.SnapshotMetadata go!"Index" pm) pi dq -∗ Φ (intoVal v)) -∗ WP ((intoVal
+    (methods raftpb.SnapshotMetadata.ty.PointerType go!"GetIndex" (intoVal pm))) (intoVal ())) {{ Φ
+    }}
 
 theorem ownSnapE_close [package_sem : Assumptions] (sp pm pc : Loc) (dq : DFrac) (sv : SnapshotM) :
     snapRest sp pm pc dq sv ∗ csOptA pc dq sv.Metadata'.ConfState' ⊢ ownSnapE sp dq sv
@@ -35,29 +34,27 @@ theorem ownSnapM_of_rest [package_sem : Assumptions] (sp pm pc : Loc) (dq : DFra
 
 theorem wp_Snapshot_GetMetadata_field [package_sem : Assumptions] (sp pm : Loc) (dq : DFrac) (Hnn :
     sp ≠ null) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ typedPointsto (structFieldRef
-    raftpb.Snapshot [77#8, 101#8, 116#8, 97#8, 100#8, 97#8, 116#8, 97#8] sp) pm dq -∗ ▷
-    (typedPointsto (structFieldRef raftpb.Snapshot [77#8, 101#8, 116#8, 97#8, 100#8, 97#8, 116#8,
-    97#8] sp) pm dq -∗ Φ (intoVal pm)) -∗ WP ((intoVal (methods raftpb.Snapshot.ty.PointerType
-    [71#8, 101#8, 116#8, 77#8, 101#8, 116#8, 97#8, 100#8, 97#8, 116#8, 97#8] (intoVal sp))) (intoVal
-    ())) {{ Φ }}
+    raftpb.Snapshot go!"Metadata" sp) pm dq -∗ ▷ (typedPointsto (structFieldRef raftpb.Snapshot
+    go!"Metadata" sp) pm dq -∗ Φ (intoVal pm)) -∗ WP ((intoVal (methods
+    raftpb.Snapshot.ty.PointerType go!"GetMetadata" (intoVal sp))) (intoVal ())) {{ Φ }}
 
 def snapRest (sp pm pc : Loc) (dq : DFrac) (sv : SnapshotM) : IProp GF :=
   iprop(∃ ds pi pt uf ufm,
       "%Hnn" ∷ ⌜sp ≠ null ∧ pm ≠ null⌝ ∗
-        "HD" ∷ typedPointsto (structFieldRef raftpb.Snapshot [68#8, 97#8, 116#8, 97#8] sp) ds dq ∗
+        "HD" ∷ typedPointsto (structFieldRef raftpb.Snapshot go!"Data" sp) ds dq ∗
           "Hd" ∷ ownSlice ds sv.Data' dq ∗
             "HM" ∷
-                typedPointsto (structFieldRef raftpb.Snapshot [77#8, 101#8, 116#8, 97#8, 100#8, 97#8, 116#8, 97#8] sp) pm
+                typedPointsto (structFieldRef raftpb.Snapshot go!"Metadata" sp) pm
                   dq ∗
               "HC" ∷
                   typedPointsto
-                    (structFieldRef raftpb.SnapshotMetadata [67#8, 111#8, 110#8, 102#8, 83#8, 116#8, 97#8, 116#8, 101#8]
+                    (structFieldRef raftpb.SnapshotMetadata go!"ConfState"
                       pm)
                     pc dq ∗
                 "HI" ∷
-                    typedPointsto (structFieldRef raftpb.SnapshotMetadata [73#8, 110#8, 100#8, 101#8, 120#8] pm) pi dq ∗
+                    typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Index" pm) pi dq ∗
                   "#cI" ∷ cellRO pi sv.Metadata'.Index' ∗
-                    "HT" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata [84#8, 101#8, 114#8, 109#8] pm) pt dq ∗
+                    "HT" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Term" pm) pt dq ∗
                       "#cT" ∷ cellRO pt sv.Metadata'.Term' ∗
                         "#Hpb" ∷ pbMsg raftpb.Snapshot sp uf ∗ "#Hpbm" ∷ pbMsg raftpb.SnapshotMetadata pm ufm)
 

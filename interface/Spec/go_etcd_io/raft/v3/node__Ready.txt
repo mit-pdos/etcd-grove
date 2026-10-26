@@ -8,5 +8,5 @@ def node.Ready.spec : Prop :=
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n -∗
           (▷ ∀ ch, isReadyChan γ ch -∗ Φ (intoVal ch)) -∗
-            WP ((intoVal (methods node.ty.PointerType [82#8, 101#8, 97#8, 100#8, 121#8] (intoVal n))) (intoVal ()))
+            WP ((intoVal (methods node.ty.PointerType go!"Ready" (intoVal n))) (intoVal ()))
               {{ Φ }}

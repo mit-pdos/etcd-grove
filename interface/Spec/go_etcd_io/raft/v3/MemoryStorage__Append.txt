@@ -10,6 +10,6 @@ def MemoryStorage.Append.spec : Prop :=
           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Htok" ∷ (⌜p = []⌝ ∨ memAppendTok ms γs σ p) ∗ "Hs" ∷ entsPts s dq p -∗
             ▷ ((⌜p = []⌝ ∨ memAppendedTok ms γs σ p) ∗ entsPts s dq p -∗ Φ (intoVal GoInterface.nil)) -∗
               WP
-                ((intoVal (methods MemoryStorage.ty.PointerType [65#8, 112#8, 112#8, 101#8, 110#8, 100#8] (intoVal ms)))
+                ((intoVal (methods MemoryStorage.ty.PointerType go!"Append" (intoVal ms)))
                   (intoVal s))
                 {{ Φ }}

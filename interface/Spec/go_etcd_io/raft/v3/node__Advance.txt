@@ -12,6 +12,6 @@ def node.Advance.spec : Prop :=
               nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor es L ∗ nodeCfg γ ca cfg -∗
             ▷ (nodeDriver γ id n ds p ∗ nodeCfg γ ca cfg ∗ reqWit γ (reqOf L ds) -∗ Φ (intoVal ())) -∗
               WP
-                ((intoVal (methods node.ty.PointerType [65#8, 100#8, 118#8, 97#8, 110#8, 99#8, 101#8] (intoVal n)))
+                ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))
                   (intoVal ()))
                 {{ Φ }}

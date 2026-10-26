@@ -21059,3 +21059,17 @@ Lean has no sharing constraints. The class prototype (`Sig.lean`, `SigImpl.lean`
 as debt to remove, the proof internals clients reach (`FrameH`, `ProjSimps`, `LemmasMiscR`,
 `raft__Step.Dispatch`, and through public imports `StepLemmas*`, `LemmasSendRD`, `SpecResults`,
 `Protocol.LeaderCompleteness`, `RefinementDyn`, `StepRInv`).
+
+**Amendment (2026-10-26, the user's): the functions' statements in the interface.** The user asked
+for the stub idea (specs gone, the interface showing each function's statement from its proof
+file), then judged the generated interface enough if it covers the per-function proof files. It
+does now: `etc/gen-interface.py` also writes the interface of every `Proof/<pkg>/<F>.lean` that has
+a spec (raft: 311 of them), where `<F>.wp_proof` -- or the `axiom` in its place -- is printed with
+`<F>.spec` unfolded (`etc/interface.lean`, `deltaExpand` of the conclusion's `….spec`), so the Hoare
+triple and the callees' specs it takes are read off the interface. The `Spec/` files and
+`Link.lean` stay: removing them (each proof stating its theorem and using its callees' theorems
+directly) would also rework `etc/proof_roots.py`, `etc/tcb-report.py`, `etc/verified-code.py` and
+`etc/gen-link.py` (their roots are `Link.lean`'s theorems), and 238 modules import raft's spec
+files besides their own proofs and the linking files (helper definitions in spec files that the
+invariants use would have to move first). Go strings, which Lean prints as byte lists, are printed
+back as `go!"..."`.

@@ -13,7 +13,7 @@ def MemoryStorage.LastIndex.spec : Prop :=
                   Φ (intoVal li, intoVal GoInterface.nil)) -∗
             WP
               ((intoVal
-                  (methods MemoryStorage.ty.PointerType [76#8, 97#8, 115#8, 116#8, 73#8, 110#8, 100#8, 101#8, 120#8]
+                  (methods MemoryStorage.ty.PointerType go!"LastIndex"
                     (intoVal ms)))
                 (intoVal ()))
               {{ Φ }}

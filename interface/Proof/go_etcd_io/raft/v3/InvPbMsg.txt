@@ -7,8 +7,8 @@ theorem msgOwn_persist [package_sem : Assumptions] (l : Loc) (dq : DFrac) (ms : 
 
 theorem msgPtsC_store_To [package_sem : Assumptions] (l : Loc) (dqe : DFrac) (cap : Bool) (ms :
     MsgSt) : msgPtsC l (DFrac.own 1) dqe cap ms ⊢ ∃ p, typedPointsto (structFieldRef raftpb.Message
-    [84#8, 111#8] l) p (DFrac.own 1) ∗ ∀ p' v, typedPointsto (structFieldRef raftpb.Message [84#8,
-    111#8] l) p' (DFrac.own 1) -∗ cellRO p' v -∗ msgPtsC l (DFrac.own 1) dqe cap { msg :=
+    go!"To" l) p (DFrac.own 1) ∗ ∀ p' v, typedPointsto (structFieldRef raftpb.Message go!"To" l) p'
+    (DFrac.own 1) -∗ cellRO p' v -∗ msgPtsC l (DFrac.own 1) dqe cap { msg :=
                     have __src := ms.msg;
                     { Type' := __src.Type', To' := v, From' := __src.From', Term' := __src.Term',
                       LogTerm' := __src.LogTerm', Index' := __src.Index', Commit' := __src.Commit',
@@ -17,9 +17,8 @@ theorem msgPtsC_store_To [package_sem : Assumptions] (l : Loc) (dqe : DFrac) (ca
 
 theorem msgPtsC_store_From [package_sem : Assumptions] (l : Loc) (dqe : DFrac) (cap : Bool) (ms :
     MsgSt) : msgPtsC l (DFrac.own 1) dqe cap ms ⊢ ∃ p, typedPointsto (structFieldRef raftpb.Message
-    [70#8, 114#8, 111#8, 109#8] l) p (DFrac.own 1) ∗ ∀ p' v, typedPointsto (structFieldRef
-    raftpb.Message [70#8, 114#8, 111#8, 109#8] l) p' (DFrac.own 1) -∗ cellRO p' v -∗ msgPtsC l
-    (DFrac.own 1) dqe cap { msg :=
+    go!"From" l) p (DFrac.own 1) ∗ ∀ p' v, typedPointsto (structFieldRef raftpb.Message go!"From" l)
+    p' (DFrac.own 1) -∗ cellRO p' v -∗ msgPtsC l (DFrac.own 1) dqe cap { msg :=
                     have __src := ms.msg;
                     { Type' := __src.Type', To' := __src.To', From' := v, Term' := __src.Term',
                       LogTerm' := __src.LogTerm', Index' := __src.Index', Commit' := __src.Commit',
@@ -66,22 +65,19 @@ theorem msgPtsC_drop_cap [package_sem : Assumptions] (l : Loc) (dq dqe : DFrac) 
     MsgSt) : msgPtsC l dq dqe cap ms ⊢ msgPts l dq dqe ms
 
 theorem msgPtsC_fields_acc [package_sem : Assumptions] (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms :
-    MsgSt) : msgPtsC l dq dqe cap ms ⊢ ∃ es cs, typedPointsto (structFieldRef raftpb.Message [69#8,
-    110#8, 116#8, 114#8, 105#8, 101#8, 115#8] l) es dq ∗ typedPointsto (structFieldRef
-    raftpb.Message [67#8, 111#8, 110#8, 116#8, 101#8, 120#8, 116#8] l) cs dq ∗ ⌜(es = slice.nil →
-    ms.ents = []) ∧ (cs = slice.nil → ms.ctx = [])⌝ ∗ (typedPointsto (structFieldRef raftpb.Message
-    [69#8, 110#8, 116#8, 114#8, 105#8, 101#8, 115#8] l) es dq -∗ typedPointsto (structFieldRef
-    raftpb.Message [67#8, 111#8, 110#8, 116#8, 101#8, 120#8, 116#8] l) cs dq -∗ msgPtsC l dq dqe cap
-    ms)
+    MsgSt) : msgPtsC l dq dqe cap ms ⊢ ∃ es cs, typedPointsto (structFieldRef raftpb.Message
+    go!"Entries" l) es dq ∗ typedPointsto (structFieldRef raftpb.Message go!"Context" l) cs dq ∗
+    ⌜(es = slice.nil → ms.ents = []) ∧ (cs = slice.nil → ms.ctx = [])⌝ ∗ (typedPointsto
+    (structFieldRef raftpb.Message go!"Entries" l) es dq -∗ typedPointsto (structFieldRef
+    raftpb.Message go!"Context" l) cs dq -∗ msgPtsC l dq dqe cap ms)
 
 theorem msgIn_to_msgOwn [package_sem : Assumptions] {cap : Bool} (l : Loc) (dqe : DFrac) (ms :
     MsgSt) : msgPtsC l (DFrac.own 1) dqe cap ms ⊢ |==> msgOwn l (DFrac.own 1) ms
 
 theorem msgPtsC_store_Term [package_sem : Assumptions] (l : Loc) (dqe : DFrac) (cap : Bool) (ms :
     MsgSt) : msgPtsC l (DFrac.own 1) dqe cap ms ⊢ ∃ p, typedPointsto (structFieldRef raftpb.Message
-    [84#8, 101#8, 114#8, 109#8] l) p (DFrac.own 1) ∗ ∀ p' v, typedPointsto (structFieldRef
-    raftpb.Message [84#8, 101#8, 114#8, 109#8] l) p' (DFrac.own 1) -∗ cellRO p' v -∗ msgPtsC l
-    (DFrac.own 1) dqe cap { msg :=
+    go!"Term" l) p (DFrac.own 1) ∗ ∀ p' v, typedPointsto (structFieldRef raftpb.Message go!"Term" l)
+    p' (DFrac.own 1) -∗ cellRO p' v -∗ msgPtsC l (DFrac.own 1) dqe cap { msg :=
                     have __src := ms.msg;
                     { Type' := __src.Type', To' := __src.To', From' := __src.From', Term' := v,
                       LogTerm' := __src.LogTerm', Index' := __src.Index', Commit' := __src.Commit',

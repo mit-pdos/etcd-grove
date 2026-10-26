@@ -28,7 +28,7 @@ def MemoryStorage.Entries.spec : Prop :=
                   Φ (intoVal s, intoVal err)) -∗
             WP
               ((((intoVal
-                      (methods MemoryStorage.ty.PointerType [69#8, 110#8, 116#8, 114#8, 105#8, 101#8, 115#8]
+                      (methods MemoryStorage.ty.PointerType go!"Entries"
                         (intoVal ms)))
                     (intoVal lo))
                   (intoVal hi))

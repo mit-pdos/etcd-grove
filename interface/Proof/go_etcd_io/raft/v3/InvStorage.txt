@@ -94,7 +94,7 @@ def isStorageWith (P : StorState → IProp GF) (AT DT : StorState → List Entry
                           ⌜uint.Z li = uint.Z σ.prev.index' + ↑σ.ents.length⌝ ∗ P σ -∗
                             Φ (intoVal li, intoVal GoInterface.nil)) -∗
                       WP
-                        ((intoVal (methods i.ty [76#8, 97#8, 115#8, 116#8, 73#8, 110#8, 100#8, 101#8, 120#8] i.v))
+                        ((intoVal (methods i.ty go!"LastIndex" i.v))
                           (intoVal ()))
                         {{ Φ }}) ∗
           ("#HFirstIndex" ∷
@@ -110,7 +110,7 @@ def isStorageWith (P : StorState → IProp GF) (AT DT : StorState → List Entry
                               Φ (intoVal fi, intoVal GoInterface.nil)) -∗
                         WP
                           ((intoVal
-                              (methods i.ty [70#8, 105#8, 114#8, 115#8, 116#8, 73#8, 110#8, 100#8, 101#8, 120#8] i.v))
+                              (methods i.ty go!"FirstIndex" i.v))
                             (intoVal ()))
                           {{ Φ }}) ∗
             ("#HTerm" ∷
@@ -126,7 +126,7 @@ def isStorageWith (P : StorState → IProp GF) (AT DT : StorState → List Entry
                                     ⌜err = ec ∧ uint.Z i0 < uint.Z σ.fl⌝ ∗ CT (uint.Z i0 + 1)) ∗
                                   P σ -∗
                                 Φ (intoVal t, intoVal err)) -∗
-                          WP ((intoVal (methods i.ty [84#8, 101#8, 114#8, 109#8] i.v)) (intoVal i0)) {{ Φ }}) ∗
+                          WP ((intoVal (methods i.ty go!"Term" i.v)) (intoVal i0)) {{ Φ }}) ∗
               ("#HEntries" ∷
                   ∀ σ lo hi maxSize ec,
                     □
@@ -152,7 +152,7 @@ def isStorageWith (P : StorState → IProp GF) (AT DT : StorState → List Entry
                                           P σ -∗
                                   Φ (intoVal s, intoVal err)) -∗
                             WP
-                              ((((intoVal (methods i.ty [69#8, 110#8, 116#8, 114#8, 105#8, 101#8, 115#8] i.v))
+                              ((((intoVal (methods i.ty go!"Entries" i.v))
                                     (intoVal lo))
                                   (intoVal hi))
                                 (intoVal maxSize))
@@ -185,7 +185,7 @@ def isStorageWith (P : StorState → IProp GF) (AT DT : StorState → List Entry
                                                     SC (snapTrip sv sv.Metadata'.ConfState'.lists))) -∗
                                       Φ (intoVal snap, intoVal err)) -∗
                                 WP
-                                  ((intoVal (methods i.ty [83#8, 110#8, 97#8, 112#8, 115#8, 104#8, 111#8, 116#8] i.v))
+                                  ((intoVal (methods i.ty go!"Snapshot" i.v))
                                     (intoVal ()))
                                   {{ Φ }}) ∗
                     ("#Hhandout" ∷

@@ -53,7 +53,7 @@ structure MemStorNames : Type where
 
 def memAppendTok (ms : Loc) (γs : MemStorNames) (σ : StorState) (p : List EntryM) : IProp GF :=
   iprop("#Hinit" ∷ isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-      "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage [77#8, 117#8, 116#8, 101#8, 120#8] ms) (memstorageInv ms γs) ∗
+      "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage go!"Mutex" ms) (memstorageInv ms γs) ∗
         ∃ H D,
           "Hdone" ∷ monoListAuthOwn γs.done (Qp.half 1) D ∗
             "Hhist" ∷
@@ -102,7 +102,7 @@ theorem DataEq.symm {a b : StorState} (h : DataEq a b) : DataEq b a
 
 def memFloorTok (ms : Loc) (γs : MemStorNames) (x : w64) : IProp GF :=
   iprop("#Hinit" ∷ isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-      "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage [77#8, 117#8, 116#8, 101#8, 120#8] ms) (memstorageInv ms γs) ∗
+      "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage go!"Mutex" ms) (memstorageInv ms γs) ∗
         ∃ D L,
           "#Hdlb" ∷ monoListLbOwn γs.done D ∗
             "#Hhlb" ∷ monoListLbOwn γs.hist L ∗
@@ -182,7 +182,7 @@ theorem memView_agree [package_sem : Assumptions] (γs : MemStorNames) (σ σp :
 def memSnapOwn (ms : Loc) (σ : StorState) : IProp GF :=
   iprop(∃ sp sv,
       "Hsnapshot" ∷
-          typedPointsto (structFieldRef MemoryStorage [115#8, 110#8, 97#8, 112#8, 115#8, 104#8, 111#8, 116#8] ms) sp
+          typedPointsto (structFieldRef MemoryStorage go!"snapshot" ms) sp
             (DFrac.own 1) ∗
         "Hsnap" ∷ ownSnapM sp (DFrac.own 1) sv ∗
           "%Hsnap_id" ∷
@@ -220,16 +220,16 @@ theorem termAt_storApp_below (σ : StorState) (p : List EntryM) (i : w64) (Hpo :
 def memStorMeta (ms : Loc) (γs : MemStorNames) (hs : HardStateM) : IProp GF :=
   iprop(∃ n hp,
       "#Hinit" ∷ isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-        "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage [77#8, 117#8, 116#8, 101#8, 120#8] ms) (memstorageInv ms γs) ∗
+        "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage go!"Mutex" ms) (memstorageInv ms γs) ∗
           "HhardState" ∷
-              typedPointsto (structFieldRef MemoryStorage [104#8, 97#8, 114#8, 100#8, 83#8, 116#8, 97#8, 116#8, 101#8] ms)
+              typedPointsto (structFieldRef MemoryStorage go!"hardState" ms)
                 hp (DFrac.own (Qp.half 1)) ∗
             "#Hhs" ∷ hsOpt hp hs ∗
               "Hcs_initialState" ∷
                 typedPointsto
                   (structFieldRef inMemStorageCallStats
-                    [105#8, 110#8, 105#8, 116#8, 105#8, 97#8, 108#8, 83#8, 116#8, 97#8, 116#8, 101#8]
-                    (structFieldRef MemoryStorage [99#8, 97#8, 108#8, 108#8, 83#8, 116#8, 97#8, 116#8, 115#8] ms))
+                    go!"initialState"
+                    (structFieldRef MemoryStorage go!"callStats" ms))
                   n (DFrac.own 1))
 
 theorem memSnapCreated.proj_Metadata' (σ : StorState) (i t : w64) (oc : Option ConfStateM) (bs :
@@ -253,7 +253,7 @@ theorem memStorCert_persistent (γs : MemStorNames) (k : SnapTrip) : Persistent 
 
 def ownMemoryStorage (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF :=
   iprop("#Hinit" ∷ isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-      "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage [77#8, 117#8, 116#8, 101#8, 120#8] ms) (memstorageInv ms γs) ∗
+      "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage go!"Mutex" ms) (memstorageInv ms γs) ∗
         "Hview" ∷ memView γs σ ∗
           "Hsn" ∷ memSnapShare ms γs ∗ "%Hbounded" ∷ ⌜uint.Z σ.prev.index' + ↑σ.ents.length < 2 ^ 61⌝)
 
@@ -351,39 +351,39 @@ theorem memView_set [package_sem : Assumptions] (γs : MemStorNames) (σ σp σ'
 def memstorageFields (ms : Loc) (σ : StorState) : IProp GF :=
   iprop(∃ hp es dummy nfi nli nen nte nsn,
       "HhardState" ∷
-          typedPointsto (structFieldRef MemoryStorage [104#8, 97#8, 114#8, 100#8, 83#8, 116#8, 97#8, 116#8, 101#8] ms) hp
+          typedPointsto (structFieldRef MemoryStorage go!"hardState" ms) hp
             (DFrac.own (Qp.half 1)) ∗
-        "Hents_f" ∷ typedPointsto (structFieldRef MemoryStorage [101#8, 110#8, 116#8, 115#8] ms) es (DFrac.own 1) ∗
+        "Hents_f" ∷ typedPointsto (structFieldRef MemoryStorage go!"ents" ms) es (DFrac.own 1) ∗
           "Hents" ∷ entsRO es (dummy :: σ.ents) ∗
             "Hents_cap" ∷ ownSliceCap Loc es (DFrac.own 1) ∗
               "%Hdummy" ∷ ⌜dummy.Index' = σ.prev.index' ∧ dummy.Term' = σ.prev.term'⌝ ∗
                 "Hcs_firstIndex" ∷
                     typedPointsto
                       (structFieldRef inMemStorageCallStats
-                        [102#8, 105#8, 114#8, 115#8, 116#8, 73#8, 110#8, 100#8, 101#8, 120#8]
-                        (structFieldRef MemoryStorage [99#8, 97#8, 108#8, 108#8, 83#8, 116#8, 97#8, 116#8, 115#8] ms))
+                        go!"firstIndex"
+                        (structFieldRef MemoryStorage go!"callStats" ms))
                       nfi (DFrac.own 1) ∗
                   "Hcs_lastIndex" ∷
                       typedPointsto
                         (structFieldRef inMemStorageCallStats
-                          [108#8, 97#8, 115#8, 116#8, 73#8, 110#8, 100#8, 101#8, 120#8]
-                          (structFieldRef MemoryStorage [99#8, 97#8, 108#8, 108#8, 83#8, 116#8, 97#8, 116#8, 115#8] ms))
+                          go!"lastIndex"
+                          (structFieldRef MemoryStorage go!"callStats" ms))
                         nli (DFrac.own 1) ∗
                     "Hcs_entries" ∷
                         typedPointsto
-                          (structFieldRef inMemStorageCallStats [101#8, 110#8, 116#8, 114#8, 105#8, 101#8, 115#8]
-                            (structFieldRef MemoryStorage [99#8, 97#8, 108#8, 108#8, 83#8, 116#8, 97#8, 116#8, 115#8] ms))
+                          (structFieldRef inMemStorageCallStats go!"entries"
+                            (structFieldRef MemoryStorage go!"callStats" ms))
                           nen (DFrac.own 1) ∗
                       "Hcs_term" ∷
                           typedPointsto
-                            (structFieldRef inMemStorageCallStats [116#8, 101#8, 114#8, 109#8]
-                              (structFieldRef MemoryStorage [99#8, 97#8, 108#8, 108#8, 83#8, 116#8, 97#8, 116#8, 115#8]
+                            (structFieldRef inMemStorageCallStats go!"term"
+                              (structFieldRef MemoryStorage go!"callStats"
                                 ms))
                             nte (DFrac.own 1) ∗
                         "Hcs_snapshot" ∷
                           typedPointsto
-                            (structFieldRef inMemStorageCallStats [115#8, 110#8, 97#8, 112#8, 115#8, 104#8, 111#8, 116#8]
-                              (structFieldRef MemoryStorage [99#8, 97#8, 108#8, 108#8, 83#8, 116#8, 97#8, 116#8, 115#8]
+                            (structFieldRef inMemStorageCallStats go!"snapshot"
+                              (structFieldRef MemoryStorage go!"callStats"
                                 ms))
                             nsn (DFrac.own 1))
 
@@ -434,7 +434,7 @@ theorem memKey_excl [package_sem : Assumptions] (γ : GName) : ⊢ memKey γ -�
 
 def memSnapTok (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF :=
   iprop("#Hinit" ∷ isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-      "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage [77#8, 117#8, 116#8, 101#8, 120#8] ms) (memstorageInv ms γs) ∗
+      "#Hmu" ∷ sync.isMutex (structFieldRef MemoryStorage go!"Mutex" ms) (memstorageInv ms γs) ∗
         "#Hsinv" ∷ inv memSnapN (memSnapInv ms γs) ∗
           "Hak" ∷ memKey γs.ak ∗ "Hsv" ∷ ghostVar γs.sn memQ (snapPart σ) ∗ "Hcbt" ∷ ghostVar γs.cb (Qp.half 1) σ.prev)
 

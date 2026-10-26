@@ -10,7 +10,7 @@ def raftpb.Message.GetVote.spec : Prop :=
             ▷ (msgPtsC l dq dqe cap ms -∗ Φ (intoVal ms.msg.Vote')) -∗
               WP
                 ((intoVal
-                    (methods raftpb.Message.ty.PointerType [71#8, 101#8, 116#8, 86#8, 111#8, 116#8, 101#8] (intoVal l)))
+                    (methods raftpb.Message.ty.PointerType go!"GetVote" (intoVal l)))
                   (intoVal ()))
                 {{ Φ }}) ∧
     (⊢
@@ -19,6 +19,6 @@ def raftpb.Message.GetVote.spec : Prop :=
           ▷ (True -∗ Φ (intoVal (W64 0))) -∗
             WP
               ((intoVal
-                  (methods raftpb.Message.ty.PointerType [71#8, 101#8, 116#8, 86#8, 111#8, 116#8, 101#8] (intoVal null)))
+                  (methods raftpb.Message.ty.PointerType go!"GetVote" (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

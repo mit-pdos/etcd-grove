@@ -120,8 +120,8 @@ theorem ownRaftLog_setCommitted [package_sem : Assumptions] (l : Loc) (ls : LogS
     ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted, stored := ls.stored,
     apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip
     := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt } -∗ Φ
-    (intoVal ())) -∗ WP (intoVal (structFieldRef raftLog [99#8, 111#8, 109#8, 109#8, 105#8, 116#8,
-    116#8, 101#8, 100#8] l) <-[go.uint64] intoVal n) {{ Φ }}
+    (intoVal ())) -∗ WP (intoVal (structFieldRef raftLog go!"committed" l) <-[go.uint64] intoVal n)
+    {{ Φ }}
 
 theorem ownRaftLog_quiet [package_sem : Assumptions] (l : Loc) (ls : LogState) : ⊢ ownRaftLog l ls
     -∗ ⌜ls.sapp = false ∧ ls.aps = false⌝ ∗ ownRaftLog l ls
@@ -146,13 +146,12 @@ theorem lentStor_close {b : Bool} (h : b = false) (st : Storage) (σ : StorState
     lentStor b st σ
 
 theorem raftLog_split_unstable [package_sem : Assumptions] (l : Loc) (lv : raftLog) : ⊢
-    typedPointsto l lv (DFrac.own 1) -∗ typedPointsto (structFieldRef raftLog [117#8, 110#8, 115#8,
-    116#8, 97#8, 98#8, 108#8, 101#8] l) lv.unstable' (DFrac.own 1) ∗ ∀ uv, typedPointsto
-    (structFieldRef raftLog [117#8, 110#8, 115#8, 116#8, 97#8, 98#8, 108#8, 101#8] l) uv (DFrac.own
-    1) -∗ typedPointsto l { storage' := lv.storage', unstable' := uv, committed' := lv.committed',
-    applying' := lv.applying', applied' := lv.applied', logger' := lv.logger', maxApplyingEntsSize'
-    := lv.maxApplyingEntsSize', applyingEntsSize' := lv.applyingEntsSize', applyingEntsPaused' :=
-    lv.applyingEntsPaused' } (DFrac.own 1)
+    typedPointsto l lv (DFrac.own 1) -∗ typedPointsto (structFieldRef raftLog go!"unstable" l)
+    lv.unstable' (DFrac.own 1) ∗ ∀ uv, typedPointsto (structFieldRef raftLog go!"unstable" l) uv
+    (DFrac.own 1) -∗ typedPointsto l { storage' := lv.storage', unstable' := uv, committed' :=
+    lv.committed', applying' := lv.applying', applied' := lv.applied', logger' := lv.logger',
+    maxApplyingEntsSize' := lv.maxApplyingEntsSize', applyingEntsSize' := lv.applyingEntsSize',
+    applyingEntsPaused' := lv.applyingEntsPaused' } (DFrac.own 1)
 
 def ownRaftLogW (l : Loc) (ls : LogState) : IProp GF :=
   iprop(∃ lv σ,
@@ -338,12 +337,11 @@ theorem storExt_of_inv {σ : StorState} {ls : LogState} {off : w64} (Hstore : Lo
     σ.pend).length
 
 theorem ownUnstable_return [package_sem : Assumptions] (l : Loc) (lv : raftLog) (ls : LogState) : ⊢
-    (∀ uv, typedPointsto (structFieldRef raftLog [117#8, 110#8, 115#8, 116#8, 97#8, 98#8, 108#8,
-    101#8] l) uv (DFrac.own 1) -∗ typedPointsto l { storage' := lv.storage', unstable' := uv,
-    committed' := lv.committed', applying' := lv.applying', applied' := lv.applied', logger' :=
-    lv.logger', maxApplyingEntsSize' := lv.maxApplyingEntsSize', applyingEntsSize' :=
-    lv.applyingEntsSize', applyingEntsPaused' := lv.applyingEntsPaused' } (DFrac.own 1)) -∗
-    ownUnstable (structFieldRef raftLog [117#8, 110#8, 115#8, 116#8, 97#8, 98#8, 108#8, 101#8] l)
+    (∀ uv, typedPointsto (structFieldRef raftLog go!"unstable" l) uv (DFrac.own 1) -∗ typedPointsto
+    l { storage' := lv.storage', unstable' := uv, committed' := lv.committed', applying' :=
+    lv.applying', applied' := lv.applied', logger' := lv.logger', maxApplyingEntsSize' :=
+    lv.maxApplyingEntsSize', applyingEntsSize' := lv.applyingEntsSize', applyingEntsPaused' :=
+    lv.applyingEntsPaused' } (DFrac.own 1)) -∗ ownUnstable (structFieldRef raftLog go!"unstable" l)
     (unstableOf lv ls) -∗ ∃ uv, typedPointsto l { storage' := lv.storage', unstable' := uv,
     committed' := lv.committed', applying' := lv.applying', applied' := lv.applied', logger' :=
     lv.logger', maxApplyingEntsSize' := lv.maxApplyingEntsSize', applyingEntsSize' :=
@@ -637,13 +635,12 @@ def StorExtOk (σ : StorState) (ls : LogState) : Prop :=
       uint.Z ls.sxt ≤ uint.Z σ.prev.index' + ↑(storApp σ σ.pend).length ∧ uint.Z ls.applying ≤ uint.Z ls.sxt
 
 theorem ownUnstable_reopen [package_sem : Assumptions] (l : Loc) (lv : raftLog) (us : UnstableSt) :
-    ⊢ (∀ uv, typedPointsto (structFieldRef raftLog [117#8, 110#8, 115#8, 116#8, 97#8, 98#8, 108#8,
-    101#8] l) uv (DFrac.own 1) -∗ typedPointsto l { storage' := lv.storage', unstable' := uv,
-    committed' := lv.committed', applying' := lv.applying', applied' := lv.applied', logger' :=
-    lv.logger', maxApplyingEntsSize' := lv.maxApplyingEntsSize', applyingEntsSize' :=
-    lv.applyingEntsSize', applyingEntsPaused' := lv.applyingEntsPaused' } (DFrac.own 1)) -∗
-    ownUnstable (structFieldRef raftLog [117#8, 110#8, 115#8, 116#8, 97#8, 98#8, 108#8, 101#8] l) us
-    -∗ ∃ uv, typedPointsto l { storage' := lv.storage', unstable' := uv, committed' :=
+    ⊢ (∀ uv, typedPointsto (structFieldRef raftLog go!"unstable" l) uv (DFrac.own 1) -∗
+    typedPointsto l { storage' := lv.storage', unstable' := uv, committed' := lv.committed',
+    applying' := lv.applying', applied' := lv.applied', logger' := lv.logger', maxApplyingEntsSize'
+    := lv.maxApplyingEntsSize', applyingEntsSize' := lv.applyingEntsSize', applyingEntsPaused' :=
+    lv.applyingEntsPaused' } (DFrac.own 1)) -∗ ownUnstable (structFieldRef raftLog go!"unstable" l)
+    us -∗ ∃ uv, typedPointsto l { storage' := lv.storage', unstable' := uv, committed' :=
     lv.committed', applying' := lv.applying', applied' := lv.applied', logger' := lv.logger',
     maxApplyingEntsSize' := lv.maxApplyingEntsSize', applyingEntsSize' := lv.applyingEntsSize',
     applyingEntsPaused' := lv.applyingEntsPaused' } (DFrac.own 1) ∗ ownSliceCap Loc uv.entries'
@@ -676,12 +673,12 @@ theorem raftLog_lend_unstable [package_sem : Assumptions] (l : Loc) (lv : raftLo
     typedPointsto l lv (DFrac.own 1) -∗ ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
     entsRO lv.unstable'.entries' ls.uents -∗ ownSnap lv.unstable'.snapshot' ls.snap -∗ pendKsn
     lv.unstable'.snapshot' ls.snap ls.ksn -∗ isLoggerVal lv.unstable'.logger' -∗ ownUnstable
-    (structFieldRef raftLog [117#8, 110#8, 115#8, 116#8, 97#8, 98#8, 108#8, 101#8] l) (unstableOf lv
-    ls) ∗ ∀ uv, typedPointsto (structFieldRef raftLog [117#8, 110#8, 115#8, 116#8, 97#8, 98#8,
-    108#8, 101#8] l) uv (DFrac.own 1) -∗ typedPointsto l { storage' := lv.storage', unstable' := uv,
-    committed' := lv.committed', applying' := lv.applying', applied' := lv.applied', logger' :=
-    lv.logger', maxApplyingEntsSize' := lv.maxApplyingEntsSize', applyingEntsSize' :=
-    lv.applyingEntsSize', applyingEntsPaused' := lv.applyingEntsPaused' } (DFrac.own 1)
+    (structFieldRef raftLog go!"unstable" l) (unstableOf lv ls) ∗ ∀ uv, typedPointsto
+    (structFieldRef raftLog go!"unstable" l) uv (DFrac.own 1) -∗ typedPointsto l { storage' :=
+    lv.storage', unstable' := uv, committed' := lv.committed', applying' := lv.applying', applied'
+    := lv.applied', logger' := lv.logger', maxApplyingEntsSize' := lv.maxApplyingEntsSize',
+    applyingEntsSize' := lv.applyingEntsSize', applyingEntsPaused' := lv.applyingEntsPaused' }
+    (DFrac.own 1)
 
 theorem plogTermAt_truncateAppend_below (b : entryID) (es ents : List EntryM) (e0 : EntryM) (i t :
     w64) (H0 : ents[0]? = some e0) (Hlt : uint.Z i < uint.Z e0.Index') (Ht : plogTermAt b es i =

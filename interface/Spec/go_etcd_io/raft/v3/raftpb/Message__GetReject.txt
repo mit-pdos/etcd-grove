@@ -10,7 +10,7 @@ def raftpb.Message.GetReject.spec : Prop :=
             ▷ (msgPtsC l dq dqe cap ms -∗ Φ (intoVal ms.msg.Reject')) -∗
               WP
                 ((intoVal
-                    (methods raftpb.Message.ty.PointerType [71#8, 101#8, 116#8, 82#8, 101#8, 106#8, 101#8, 99#8, 116#8]
+                    (methods raftpb.Message.ty.PointerType go!"GetReject"
                       (intoVal l)))
                   (intoVal ()))
                 {{ Φ }}) ∧
@@ -20,7 +20,7 @@ def raftpb.Message.GetReject.spec : Prop :=
           ▷ (True -∗ Φ (intoVal false)) -∗
             WP
               ((intoVal
-                  (methods raftpb.Message.ty.PointerType [71#8, 101#8, 116#8, 82#8, 101#8, 106#8, 101#8, 99#8, 116#8]
+                  (methods raftpb.Message.ty.PointerType go!"GetReject"
                     (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

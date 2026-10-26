@@ -288,8 +288,7 @@ def MsgHup : w32 :=
 theorem resetTo.proj_term (s : NState) (term : w64) : (resetTo s term).term = (resetTo0 s term).term
 
 def campaignPreElection : CampaignType :=
-  [67#8, 97#8, 109#8, 112#8, 97#8, 105#8, 103#8, 110#8, 80#8, 114#8, 101#8, 69#8, 108#8, 101#8, 99#8, 116#8, 105#8, 111#8,
-    110#8]
+  go!"CampaignPreElection"
 
 theorem becomeCandidate.proj_sdr [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) :
     (becomeCandidate id s).sdr = (resetTo s (s.term + W64 1)).sdr
@@ -418,7 +417,7 @@ theorem isMessage_absMsg_ctx [ReceiptGS GF] (γ : RaftNames) (ty : MsgType) (m :
     isMessage γ (absMsg ty m ents ctx) = isMessage γ (absMsg ty m ents)
 
 def campaignTransfer : CampaignType :=
-  [67#8, 97#8, 109#8, 112#8, 97#8, 105#8, 103#8, 110#8, 84#8, 114#8, 97#8, 110#8, 115#8, 102#8, 101#8, 114#8]
+  go!"CampaignTransfer"
 
 def inflightsReset (i : Inflights) : Inflights :=
   { count := 0, size := i.size, bytes := 0, maxBytes := i.maxBytes }
@@ -773,7 +772,7 @@ theorem becomeCandidate.proj_stepfn [GoGlobalContext] [GoSemanticsFunctions] (id
     : (becomeCandidate id s).stepfn = stepFuncOf PRole.candidate
 
 def campaignElection : CampaignType :=
-  [67#8, 97#8, 109#8, 112#8, 97#8, 105#8, 103#8, 110#8, 69#8, 108#8, 101#8, 99#8, 116#8, 105#8, 111#8, 110#8]
+  go!"CampaignElection"
 
 theorem becomePrecandidate.proj_prevote [GoGlobalContext] [GoSemanticsFunctions] (s : NState) :
     (becomePrecandidate s).prevote = s.prevote
@@ -800,10 +799,10 @@ theorem progressSentCommit.proj_matched (p : Progress) (commit : w64) : (progres
 
 def TickFnOk [GoGlobalContext] [GoSemanticsFunctions] (r : Loc) (f : GoFunc) : Prop :=
   f =
-      methods raft.ty.PointerType [116#8, 105#8, 99#8, 107#8, 69#8, 108#8, 101#8, 99#8, 116#8, 105#8, 111#8, 110#8]
+      methods raft.ty.PointerType go!"tickElection"
         (intoVal r) ∨
     f =
-      methods raft.ty.PointerType [116#8, 105#8, 99#8, 107#8, 72#8, 101#8, 97#8, 114#8, 116#8, 98#8, 101#8, 97#8, 116#8]
+      methods raft.ty.PointerType go!"tickHeartbeat"
         (intoVal r)
 
 theorem logAppend.proj_stored (ls : LogState) (ents : List EntryM) : (logAppend ls ents).stored =

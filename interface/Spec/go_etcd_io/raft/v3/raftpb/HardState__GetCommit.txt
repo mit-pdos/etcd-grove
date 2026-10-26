@@ -10,7 +10,7 @@ def raftpb.HardState.GetCommit.spec : Prop :=
             ▷ (True -∗ Φ (intoVal hs.Commit')) -∗
               WP
                 ((intoVal
-                    (methods raftpb.HardState.ty.PointerType [71#8, 101#8, 116#8, 67#8, 111#8, 109#8, 109#8, 105#8, 116#8]
+                    (methods raftpb.HardState.ty.PointerType go!"GetCommit"
                       (intoVal p)))
                   (intoVal ()))
                 {{ Φ }}) ∧
@@ -20,7 +20,7 @@ def raftpb.HardState.GetCommit.spec : Prop :=
           ▷ (True -∗ Φ (intoVal (W64 0))) -∗
             WP
               ((intoVal
-                  (methods raftpb.HardState.ty.PointerType [71#8, 101#8, 116#8, 67#8, 111#8, 109#8, 109#8, 105#8, 116#8]
+                  (methods raftpb.HardState.ty.PointerType go!"GetCommit"
                     (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

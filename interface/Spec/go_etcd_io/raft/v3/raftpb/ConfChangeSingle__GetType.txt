@@ -10,7 +10,7 @@ def raftpb.ConfChangeSingle.GetType.spec : Prop :=
             ▷ (ccsPts p dq c -∗ Φ (intoVal c.Type')) -∗
               WP
                 ((intoVal
-                    (methods raftpb.ConfChangeSingle.ty.PointerType [71#8, 101#8, 116#8, 84#8, 121#8, 112#8, 101#8]
+                    (methods raftpb.ConfChangeSingle.ty.PointerType go!"GetType"
                       (intoVal p)))
                   (intoVal ()))
                 {{ Φ }}) ∧
@@ -20,7 +20,7 @@ def raftpb.ConfChangeSingle.GetType.spec : Prop :=
           ▷ (True -∗ Φ (intoVal (W32 0))) -∗
             WP
               ((intoVal
-                  (methods raftpb.ConfChangeSingle.ty.PointerType [71#8, 101#8, 116#8, 84#8, 121#8, 112#8, 101#8]
+                  (methods raftpb.ConfChangeSingle.ty.PointerType go!"GetType"
                     (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

@@ -42,7 +42,7 @@ def MemoryStorage.CreateSnapshot.spec : Prop :=
               WP
                 ((((intoVal
                         (methods MemoryStorage.ty.PointerType
-                          [67#8, 114#8, 101#8, 97#8, 116#8, 101#8, 83#8, 110#8, 97#8, 112#8, 115#8, 104#8, 111#8, 116#8]
+                          go!"CreateSnapshot"
                           (intoVal ms)))
                       (intoVal i))
                     (intoVal cs))

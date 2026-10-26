@@ -10,7 +10,7 @@ def raftpb.Message.GetFrom.spec : Prop :=
             ▷ (msgPtsC l dq dqe cap ms -∗ Φ (intoVal ms.msg.From')) -∗
               WP
                 ((intoVal
-                    (methods raftpb.Message.ty.PointerType [71#8, 101#8, 116#8, 70#8, 114#8, 111#8, 109#8] (intoVal l)))
+                    (methods raftpb.Message.ty.PointerType go!"GetFrom" (intoVal l)))
                   (intoVal ()))
                 {{ Φ }}) ∧
     (⊢
@@ -19,6 +19,6 @@ def raftpb.Message.GetFrom.spec : Prop :=
           ▷ (True -∗ Φ (intoVal (W64 0))) -∗
             WP
               ((intoVal
-                  (methods raftpb.Message.ty.PointerType [71#8, 101#8, 116#8, 70#8, 114#8, 111#8, 109#8] (intoVal null)))
+                  (methods raftpb.Message.ty.PointerType go!"GetFrom" (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

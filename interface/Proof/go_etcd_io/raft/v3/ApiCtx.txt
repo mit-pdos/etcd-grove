@@ -36,7 +36,7 @@ def doneNilCtx (ctx : GoInterfaceOk) : IProp GF :=
         ∀ Φ,
           True -∗
             ▷ (True -∗ Φ (intoVal chan.nil)) -∗
-              WP ((intoVal (methods ctx.ty [68#8, 111#8, 110#8, 101#8] ctx.v)) (intoVal ())) {{ Φ }})
+              WP ((intoVal (methods ctx.ty go!"Done" ctx.v)) (intoVal ())) {{ Φ }})
 
 theorem nodeCtx_persistent (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : Persistent
     (nodeCtx ctx cd)

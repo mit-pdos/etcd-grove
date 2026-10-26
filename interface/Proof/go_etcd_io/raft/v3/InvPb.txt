@@ -3,17 +3,17 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem msgPtsC_From_acc [package_sem : Assumptions] (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms :
-    MsgSt) : msgPtsC l dq dqe cap ms ⊢ ∃ p, typedPointsto (structFieldRef raftpb.Message [70#8,
-    114#8, 111#8, 109#8] l) p dq ∗ cellRO p ms.msg.From' ∗ (typedPointsto (structFieldRef
-    raftpb.Message [70#8, 114#8, 111#8, 109#8] l) p dq -∗ msgPtsC l dq dqe cap ms)
+    MsgSt) : msgPtsC l dq dqe cap ms ⊢ ∃ p, typedPointsto (structFieldRef raftpb.Message go!"From"
+    l) p dq ∗ cellRO p ms.msg.From' ∗ (typedPointsto (structFieldRef raftpb.Message go!"From" l) p
+    dq -∗ msgPtsC l dq dqe cap ms)
 
 def ccsPts (p : Loc) (dq : DFrac) (c : ConfChangeSingleM) : IProp GF :=
   iprop(∃ pt pn uf,
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-        "HT" ∷ typedPointsto (structFieldRef raftpb.ConfChangeSingle [84#8, 121#8, 112#8, 101#8] p) pt dq ∗
+        "HT" ∷ typedPointsto (structFieldRef raftpb.ConfChangeSingle go!"Type" p) pt dq ∗
           "#cT" ∷ cellRO pt c.Type' ∗
             "HN" ∷
-                typedPointsto (structFieldRef raftpb.ConfChangeSingle [78#8, 111#8, 100#8, 101#8, 73#8, 100#8] p) pn dq ∗
+                typedPointsto (structFieldRef raftpb.ConfChangeSingle go!"NodeId" p) pn dq ∗
               "#cN" ∷ cellRO pn c.NodeId' ∗ "#Hpb" ∷ pbMsg raftpb.ConfChangeSingle p uf)
 
 theorem snapOpt_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (o : Option SnapshotM)
@@ -32,13 +32,13 @@ theorem ownCCV1_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.Conf
 def entPts (l : Loc) (dq : DFrac) (e : EntryM) : IProp GF :=
   iprop(∃ pt pi pty ds uf,
       "%Hnn" ∷ ⌜l ≠ null⌝ ∗
-        "HT" ∷ typedPointsto (structFieldRef raftpb.Entry [84#8, 101#8, 114#8, 109#8] l) pt dq ∗
+        "HT" ∷ typedPointsto (structFieldRef raftpb.Entry go!"Term" l) pt dq ∗
           "#cT" ∷ cellRO pt e.Term' ∗
-            "HI" ∷ typedPointsto (structFieldRef raftpb.Entry [73#8, 110#8, 100#8, 101#8, 120#8] l) pi dq ∗
+            "HI" ∷ typedPointsto (structFieldRef raftpb.Entry go!"Index" l) pi dq ∗
               "#cI" ∷ cellRO pi e.Index' ∗
-                "HY" ∷ typedPointsto (structFieldRef raftpb.Entry [84#8, 121#8, 112#8, 101#8] l) pty dq ∗
+                "HY" ∷ typedPointsto (structFieldRef raftpb.Entry go!"Type" l) pty dq ∗
                   "#cY" ∷ cellRO pty e.Type' ∗
-                    "HD" ∷ typedPointsto (structFieldRef raftpb.Entry [68#8, 97#8, 116#8, 97#8] l) ds dq ∗
+                    "HD" ∷ typedPointsto (structFieldRef raftpb.Entry go!"Data" l) ds dq ∗
                       "#Hd" ∷ ownSlice ds e.Data' DFrac.discard ∗ "#Hpb" ∷ pbMsg raftpb.Entry l uf)
 
 theorem ownSnapM_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.Snapshot) (s :
@@ -61,12 +61,12 @@ theorem ownCCV2_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.Conf
 def hsRO (p : Loc) (hs : HardStateM) : IProp GF :=
   iprop(∃ pt pv pc uf,
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-        "HT" ∷ typedPointsto (structFieldRef raftpb.HardState [84#8, 101#8, 114#8, 109#8] p) pt DFrac.discard ∗
+        "HT" ∷ typedPointsto (structFieldRef raftpb.HardState go!"Term" p) pt DFrac.discard ∗
           "#cT" ∷ cellRO pt hs.Term' ∗
-            "HV" ∷ typedPointsto (structFieldRef raftpb.HardState [86#8, 111#8, 116#8, 101#8] p) pv DFrac.discard ∗
+            "HV" ∷ typedPointsto (structFieldRef raftpb.HardState go!"Vote" p) pv DFrac.discard ∗
               "#cV" ∷ cellRO pv hs.Vote' ∗
                 "HC" ∷
-                    typedPointsto (structFieldRef raftpb.HardState [67#8, 111#8, 109#8, 109#8, 105#8, 116#8] p) pc
+                    typedPointsto (structFieldRef raftpb.HardState go!"Commit" p) pc
                       DFrac.discard ∗
                   "#cC" ∷ cellRO pc hs.Commit' ∗ "#Hpb" ∷ pbMsg raftpb.HardState p uf)
 
@@ -95,45 +95,45 @@ theorem cellRO_cases {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) 
 def msgPtsC (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) : IProp GF :=
   iprop(∃ pty pto pfr pte plt pix pco pvo prj prh es els ps cs rs uf,
       "%Hnn" ∷ ⌜l ≠ null⌝ ∗
-        "HTy" ∷ typedPointsto (structFieldRef raftpb.Message [84#8, 121#8, 112#8, 101#8] l) pty dq ∗
+        "HTy" ∷ typedPointsto (structFieldRef raftpb.Message go!"Type" l) pty dq ∗
           "#cTy" ∷ cellRO pty ms.msg.Type' ∗
-            "HTo" ∷ typedPointsto (structFieldRef raftpb.Message [84#8, 111#8] l) pto dq ∗
+            "HTo" ∷ typedPointsto (structFieldRef raftpb.Message go!"To" l) pto dq ∗
               "#cTo" ∷ cellRO pto ms.msg.To' ∗
-                "HFr" ∷ typedPointsto (structFieldRef raftpb.Message [70#8, 114#8, 111#8, 109#8] l) pfr dq ∗
+                "HFr" ∷ typedPointsto (structFieldRef raftpb.Message go!"From" l) pfr dq ∗
                   "#cFr" ∷ cellRO pfr ms.msg.From' ∗
-                    "HTe" ∷ typedPointsto (structFieldRef raftpb.Message [84#8, 101#8, 114#8, 109#8] l) pte dq ∗
+                    "HTe" ∷ typedPointsto (structFieldRef raftpb.Message go!"Term" l) pte dq ∗
                       "#cTe" ∷ cellRO pte ms.msg.Term' ∗
                         "HLt" ∷
                             typedPointsto
-                              (structFieldRef raftpb.Message [76#8, 111#8, 103#8, 84#8, 101#8, 114#8, 109#8] l) plt dq ∗
+                              (structFieldRef raftpb.Message go!"LogTerm" l) plt dq ∗
                           "#cLt" ∷ cellRO plt ms.msg.LogTerm' ∗
                             "HIx" ∷
-                                typedPointsto (structFieldRef raftpb.Message [73#8, 110#8, 100#8, 101#8, 120#8] l) pix
+                                typedPointsto (structFieldRef raftpb.Message go!"Index" l) pix
                                   dq ∗
                               "#cIx" ∷ cellRO pix ms.msg.Index' ∗
                                 "HCo" ∷
                                     typedPointsto
-                                      (structFieldRef raftpb.Message [67#8, 111#8, 109#8, 109#8, 105#8, 116#8] l) pco dq ∗
+                                      (structFieldRef raftpb.Message go!"Commit" l) pco dq ∗
                                   "#cCo" ∷ cellRO pco ms.msg.Commit' ∗
                                     "HVo" ∷
-                                        typedPointsto (structFieldRef raftpb.Message [86#8, 111#8, 116#8, 101#8] l) pvo
+                                        typedPointsto (structFieldRef raftpb.Message go!"Vote" l) pvo
                                           dq ∗
                                       "#cVo" ∷ cellRO pvo ms.msg.Vote' ∗
                                         "HRj" ∷
                                             typedPointsto
-                                              (structFieldRef raftpb.Message [82#8, 101#8, 106#8, 101#8, 99#8, 116#8] l)
+                                              (structFieldRef raftpb.Message go!"Reject" l)
                                               prj dq ∗
                                           "#cRj" ∷ cellRO prj ms.msg.Reject' ∗
                                             "HRh" ∷
                                                 typedPointsto
                                                   (structFieldRef raftpb.Message
-                                                    [82#8, 101#8, 106#8, 101#8, 99#8, 116#8, 72#8, 105#8, 110#8, 116#8] l)
+                                                    go!"RejectHint" l)
                                                   prh dq ∗
                                               "#cRh" ∷ cellRO prh ms.msg.RejectHint' ∗
                                                 "HEs" ∷
                                                     typedPointsto
                                                       (structFieldRef raftpb.Message
-                                                        [69#8, 110#8, 116#8, 114#8, 105#8, 101#8, 115#8] l)
+                                                        go!"Entries" l)
                                                       es dq ∗
                                                   "Hes" ∷ ownSlice es els dqe ∗
                                                     ("#Hents" ∷ [∗list] p;e ∈ els;ms.ents, entRO p e) ∗
@@ -142,13 +142,13 @@ def msgPtsC (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) : IProp GF :=
                                                         "HSn" ∷
                                                             typedPointsto
                                                               (structFieldRef raftpb.Message
-                                                                [83#8, 110#8, 97#8, 112#8, 115#8, 104#8, 111#8, 116#8] l)
+                                                                go!"Snapshot" l)
                                                               ps dq ∗
                                                           "Hsn" ∷ snapOpt ps dq ms.snap ∗
                                                             "HCx" ∷
                                                                 typedPointsto
                                                                   (structFieldRef raftpb.Message
-                                                                    [67#8, 111#8, 110#8, 116#8, 101#8, 120#8, 116#8] l)
+                                                                    go!"Context" l)
                                                                   cs dq ∗
                                                               "#Hcs" ∷ ownSlice cs ms.ctx DFrac.discard ∗
                                                                 "HRs" ∷
@@ -187,12 +187,12 @@ def msgOwn (l : Loc) (dq : DFrac) (ms : MsgSt) : IProp GF :=
 def pbMsg (T : Type) (l : Loc) (uf : List w8) : IProp GF :=
   inv pbN
     iprop(∃ st sc us,
-        typedPointsto (structFieldRef T [115#8, 116#8, 97#8, 116#8, 101#8] l) st (DFrac.own 1) ∗
-          typedPointsto (structFieldRef T [115#8, 105#8, 122#8, 101#8, 67#8, 97#8, 99#8, 104#8, 101#8] l) sc
+        typedPointsto (structFieldRef T go!"state" l) st (DFrac.own 1) ∗
+          typedPointsto (structFieldRef T go!"sizeCache" l) sc
               (DFrac.own 1) ∗
             typedPointsto
                 (structFieldRef T
-                  [117#8, 110#8, 107#8, 110#8, 111#8, 119#8, 110#8, 70#8, 105#8, 101#8, 108#8, 100#8, 115#8] l)
+                  go!"unknownFields" l)
                 us (DFrac.own 1) ∗
               ownSlice us uf (DFrac.own 1))
 
@@ -234,29 +234,29 @@ theorem csPts_of_struct_ro [package_sem : Assumptions] (p : Loc) (v : raftpb.Con
 def csPts (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) : IProp GF :=
   iprop(∃ sv sl so sn pa,
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-        "HV" ∷ typedPointsto (structFieldRef raftpb.ConfState [86#8, 111#8, 116#8, 101#8, 114#8, 115#8] p) sv dq ∗
+        "HV" ∷ typedPointsto (structFieldRef raftpb.ConfState go!"Voters" p) sv dq ∗
           "Hv" ∷ ownSlice sv c.Voters' dq ∗
             "HL" ∷
-                typedPointsto (structFieldRef raftpb.ConfState [76#8, 101#8, 97#8, 114#8, 110#8, 101#8, 114#8, 115#8] p)
+                typedPointsto (structFieldRef raftpb.ConfState go!"Learners" p)
                   sl dq ∗
               "Hl" ∷ ownSlice sl c.Learners' dq ∗
                 "HO" ∷
                     typedPointsto
                       (structFieldRef raftpb.ConfState
-                        [86#8, 111#8, 116#8, 101#8, 114#8, 115#8, 79#8, 117#8, 116#8, 103#8, 111#8, 105#8, 110#8, 103#8]
+                        go!"VotersOutgoing"
                         p)
                       so dq ∗
                   "Ho" ∷ ownSlice so c.VotersOutgoing' dq ∗
                     "HN" ∷
                         typedPointsto
                           (structFieldRef raftpb.ConfState
-                            [76#8, 101#8, 97#8, 114#8, 110#8, 101#8, 114#8, 115#8, 78#8, 101#8, 120#8, 116#8] p)
+                            go!"LearnersNext" p)
                           sn dq ∗
                       "Hn" ∷ ownSlice sn c.LearnersNext' dq ∗
                         "HA" ∷
                             typedPointsto
                               (structFieldRef raftpb.ConfState
-                                [65#8, 117#8, 116#8, 111#8, 76#8, 101#8, 97#8, 118#8, 101#8] p)
+                                go!"AutoLeave" p)
                               pa dq ∗
                           "#cA" ∷ cellRO pa c.AutoLeave' ∗
                             "%Hal" ∷ ⌜al = true → pa ≠ null⌝ ∗ "#Hpb" ∷ pbMsg raftpb.ConfState p [])
@@ -273,15 +273,15 @@ theorem csPts_nn [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfSta
 def ownCCV1 (p : Loc) (dq : DFrac) (m : CCV1M) : IProp GF :=
   iprop(∃ pt pn pi cs uf,
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-        "HT" ∷ typedPointsto (structFieldRef raftpb.ConfChange [84#8, 121#8, 112#8, 101#8] p) pt dq ∗
+        "HT" ∷ typedPointsto (structFieldRef raftpb.ConfChange go!"Type" p) pt dq ∗
           "#cT" ∷ cellRO pt m.type ∗
-            "HN" ∷ typedPointsto (structFieldRef raftpb.ConfChange [78#8, 111#8, 100#8, 101#8, 73#8, 100#8] p) pn dq ∗
+            "HN" ∷ typedPointsto (structFieldRef raftpb.ConfChange go!"NodeId" p) pn dq ∗
               "#cN" ∷ cellRO pn m.nodeId ∗
-                "HI" ∷ typedPointsto (structFieldRef raftpb.ConfChange [73#8, 100#8] p) pi dq ∗
+                "HI" ∷ typedPointsto (structFieldRef raftpb.ConfChange go!"Id" p) pi dq ∗
                   "#cI" ∷ cellRO pi m.id ∗
                     "HC" ∷
                         typedPointsto
-                          (structFieldRef raftpb.ConfChange [67#8, 111#8, 110#8, 116#8, 101#8, 120#8, 116#8] p) cs dq ∗
+                          (structFieldRef raftpb.ConfChange go!"Context" p) cs dq ∗
                       "#Hcs" ∷ ownSlice cs m.context DFrac.discard ∗ "#Hpb" ∷ pbMsg raftpb.ConfChange p uf)
 
 theorem sortedW64_iff_pairwise (xs : List w64) : SortedW64 xs ↔ List.Pairwise (fun a b => uint.Z a ≤
@@ -315,11 +315,9 @@ theorem hsRO_persistent (p : Loc) (hs : HardStateM) : Persistent (hsRO p hs)
 
 theorem pbMsg_alloc [package_sem : Assumptions] (T : Type) (l : Loc) (st :
     google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice) (uf : List w8)
-    (E : CoPset) : typedPointsto (structFieldRef T [115#8, 116#8, 97#8, 116#8, 101#8] l) st
-    (DFrac.own 1) ∗ typedPointsto (structFieldRef T [115#8, 105#8, 122#8, 101#8, 67#8, 97#8, 99#8,
-    104#8, 101#8] l) sc (DFrac.own 1) ∗ typedPointsto (structFieldRef T [117#8, 110#8, 107#8, 110#8,
-    111#8, 119#8, 110#8, 70#8, 105#8, 101#8, 108#8, 100#8, 115#8] l) us (DFrac.own 1) ∗ ownSlice us
-    uf (DFrac.own 1) ⊢ |={E}=> pbMsg T l uf
+    (E : CoPset) : typedPointsto (structFieldRef T go!"state" l) st (DFrac.own 1) ∗ typedPointsto
+    (structFieldRef T go!"sizeCache" l) sc (DFrac.own 1) ∗ typedPointsto (structFieldRef T
+    go!"unknownFields" l) us (DFrac.own 1) ∗ ownSlice us uf (DFrac.own 1) ⊢ |={E}=> pbMsg T l uf
 
 def SortedW64 (xs : List w64) : Prop :=
   ∀ (i j : Nat) (xi xj : w64), xs[i]? = some xi → xs[j]? = some xj → i < j → uint.Z xi ≤ uint.Z xj
@@ -364,17 +362,17 @@ def ownCCV2 (p : Loc) (dq : DFrac) (m : CCV2M) : IProp GF :=
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
         "HT" ∷
             typedPointsto
-              (structFieldRef raftpb.ConfChangeV2 [84#8, 114#8, 97#8, 110#8, 115#8, 105#8, 116#8, 105#8, 111#8, 110#8] p)
+              (structFieldRef raftpb.ConfChangeV2 go!"Transition" p)
               pt dq ∗
           "#cT" ∷ cellRO pt m.transition ∗
             "HCh" ∷
-                typedPointsto (structFieldRef raftpb.ConfChangeV2 [67#8, 104#8, 97#8, 110#8, 103#8, 101#8, 115#8] p) chs
+                typedPointsto (structFieldRef raftpb.ConfChangeV2 go!"Changes" p) chs
                   dq ∗
               "Hch" ∷ ownSlice chs ls dq ∗
                 ("#Hccs" ∷ [∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗
                   "HC" ∷
                       typedPointsto
-                        (structFieldRef raftpb.ConfChangeV2 [67#8, 111#8, 110#8, 116#8, 101#8, 120#8, 116#8] p) cs dq ∗
+                        (structFieldRef raftpb.ConfChangeV2 go!"Context" p) cs dq ∗
                     "#Hcs" ∷ ownSlice cs m.context DFrac.discard ∗ "#Hpb" ∷ pbMsg raftpb.ConfChangeV2 p uf)
 
 theorem msgOwn_split [package_sem : Assumptions] (l : Loc) (dq1 dq2 : DFrac) (ms : MsgSt) : msgOwn l
@@ -401,10 +399,10 @@ def ConfStateM.lists (c : ConfStateM) : CSLists :=
 def ownSnapM (p : Loc) (dq : DFrac) (s : SnapshotM) : IProp GF :=
   iprop(∃ ds pm uf,
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-        "HD" ∷ typedPointsto (structFieldRef raftpb.Snapshot [68#8, 97#8, 116#8, 97#8] p) ds dq ∗
+        "HD" ∷ typedPointsto (structFieldRef raftpb.Snapshot go!"Data" p) ds dq ∗
           "Hd" ∷ ownSlice ds s.Data' dq ∗
             "HM" ∷
-                typedPointsto (structFieldRef raftpb.Snapshot [77#8, 101#8, 116#8, 97#8, 100#8, 97#8, 116#8, 97#8] p) pm
+                typedPointsto (structFieldRef raftpb.Snapshot go!"Metadata" p) pm
                   dq ∗
               "Hm" ∷ smOpt pm dq s.Metadata' ∗ "#Hpb" ∷ pbMsg raftpb.Snapshot p uf)
 
@@ -416,10 +414,10 @@ def smPts (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
         "HC" ∷
             typedPointsto
-              (structFieldRef raftpb.SnapshotMetadata [67#8, 111#8, 110#8, 102#8, 83#8, 116#8, 97#8, 116#8, 101#8] p) pc
+              (structFieldRef raftpb.SnapshotMetadata go!"ConfState" p) pc
               dq ∗
           "Hc" ∷ csOptA pc dq md.ConfState' ∗
-            "HI" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata [73#8, 110#8, 100#8, 101#8, 120#8] p) pi dq ∗
+            "HI" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Index" p) pi dq ∗
               "#cI" ∷ cellRO pi md.Index' ∗
-                "HT" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata [84#8, 101#8, 114#8, 109#8] p) pt dq ∗
+                "HT" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Term" p) pt dq ∗
                   "#cT" ∷ cellRO pt md.Term' ∗ "#Hpb" ∷ pbMsg raftpb.SnapshotMetadata p uf)

@@ -11,6 +11,6 @@ def raftpb.ConfChangeV2.LeaveJoint.spec : Prop :=
             WP
               ((intoVal
                   (methods raftpb.ConfChangeV2.ty.PointerType
-                    [76#8, 101#8, 97#8, 118#8, 101#8, 74#8, 111#8, 105#8, 110#8, 116#8] (intoVal c)))
+                    go!"LeaveJoint" (intoVal c)))
                 (intoVal ()))
               {{ Φ }}

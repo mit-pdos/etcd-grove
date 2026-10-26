@@ -8,5 +8,5 @@ def raftpb.ConfChange.AsV1.spec : Prop :=
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb -∗
           ▷ (True -∗ Φ (intoVal c, intoVal true)) -∗
-            WP ((intoVal (methods raftpb.ConfChange.ty.PointerType [65#8, 115#8, 86#8, 49#8] (intoVal c))) (intoVal ()))
+            WP ((intoVal (methods raftpb.ConfChange.ty.PointerType go!"AsV1" (intoVal c))) (intoVal ()))
               {{ Φ }}

@@ -182,8 +182,8 @@ theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F) (hhi : 
 def softStateRO (p : Loc) : IProp GF :=
   iprop(⌜p = null⌝ ∨
       ∃ lead rs,
-        typedPointsto (structFieldRef SoftState [76#8, 101#8, 97#8, 100#8] p) lead DFrac.discard ∗
-          typedPointsto (structFieldRef SoftState [82#8, 97#8, 102#8, 116#8, 83#8, 116#8, 97#8, 116#8, 101#8] p) rs
+        typedPointsto (structFieldRef SoftState go!"Lead" p) lead DFrac.discard ∗
+          typedPointsto (structFieldRef SoftState go!"RaftState" p) rs
             DFrac.discard)
 
 theorem isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) : Persistent (isRaftMsg γ id st)

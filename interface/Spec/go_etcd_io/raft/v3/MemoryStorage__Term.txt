@@ -16,5 +16,5 @@ def MemoryStorage.Term.spec : Prop :=
                       ⌜err = ec ∧ uint.Z i0 < uint.Z σ.fl⌝ ∗ memStorCut γs (uint.Z i0 + 1)) ∗
                     ownMemoryStorage ms γs σ -∗
                   Φ (intoVal t, intoVal err)) -∗
-            WP ((intoVal (methods MemoryStorage.ty.PointerType [84#8, 101#8, 114#8, 109#8] (intoVal ms))) (intoVal i0))
+            WP ((intoVal (methods MemoryStorage.ty.PointerType go!"Term" (intoVal ms))) (intoVal i0))
               {{ Φ }}

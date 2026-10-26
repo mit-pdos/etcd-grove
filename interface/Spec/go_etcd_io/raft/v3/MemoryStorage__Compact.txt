@@ -21,6 +21,6 @@ def MemoryStorage.Compact.spec : Prop :=
                     Φ (intoVal err)) -∗
               WP
                 ((intoVal
-                    (methods MemoryStorage.ty.PointerType [67#8, 111#8, 109#8, 112#8, 97#8, 99#8, 116#8] (intoVal ms)))
+                    (methods MemoryStorage.ty.PointerType go!"Compact" (intoVal ms)))
                   (intoVal ci))
                 {{ Φ }}

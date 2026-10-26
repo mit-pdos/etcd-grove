@@ -9,7 +9,7 @@ def raftpb.Entry.GetData.spec : Prop :=
           isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ entPts l dq e -∗
             (▷ ∀ ds, ownSlice ds e.Data' DFrac.discard ∗ entPts l dq e -∗ Φ (intoVal ds)) -∗
               WP
-                ((intoVal (methods raftpb.Entry.ty.PointerType [71#8, 101#8, 116#8, 68#8, 97#8, 116#8, 97#8] (intoVal l)))
+                ((intoVal (methods raftpb.Entry.ty.PointerType go!"GetData" (intoVal l)))
                   (intoVal ()))
                 {{ Φ }}) ∧
     (⊢
@@ -18,6 +18,6 @@ def raftpb.Entry.GetData.spec : Prop :=
           ▷ (True -∗ Φ (intoVal slice.nil)) -∗
             WP
               ((intoVal
-                  (methods raftpb.Entry.ty.PointerType [71#8, 101#8, 116#8, 68#8, 97#8, 116#8, 97#8] (intoVal null)))
+                  (methods raftpb.Entry.ty.PointerType go!"GetData" (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

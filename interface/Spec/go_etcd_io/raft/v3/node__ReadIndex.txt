@@ -15,7 +15,7 @@ def node.ReadIndex.spec : Prop :=
           (▷ ∀ err, (∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗ isRead γ.raft c Qr) ∗ nodeErr cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal
-                    (methods node.ty.PointerType [82#8, 101#8, 97#8, 100#8, 73#8, 110#8, 100#8, 101#8, 120#8]
+                    (methods node.ty.PointerType go!"ReadIndex"
                       (intoVal n)))
                   (intoVal (GoInterface.ok ctx)))
                 (intoVal rctx))

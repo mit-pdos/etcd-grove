@@ -69,7 +69,7 @@ def Perennial.go_etcd_io.raft.v3.isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go
     isPkgInitDef := isInitialized }
 
 def Perennial.go_etcd_io.raft.v3.isLockedRand (lr : Loc) : IProp GF :=
-  iprop("#Hmu" ∷ sync.isMutex (structFieldRef lockedRand [109#8, 117#8] lr) iprop(True))
+  iprop("#Hmu" ∷ sync.isMutex (structFieldRef lockedRand go!"mu" lr) iprop(True))
 
 def Perennial.go_etcd_io.raft.v3.IsNewError (e : GoInterface) : Prop :=
   ∃ t p, e = interface.mkOk t.PointerType (intoVal p)
@@ -204,31 +204,29 @@ def Perennial.go_etcd_io.raft.v3.isInitialized : IProp GF :=
                                           typedPointsto (globalAddr emptyState) es DFrac.discard ∗
                                             ⌜es ≠ null⌝ ∗
                                               typedPointsto
-                                                  (structFieldRef raftpb.HardState [84#8, 101#8, 114#8, 109#8] es) null
+                                                  (structFieldRef raftpb.HardState go!"Term" es) null
                                                   DFrac.discard ∗
                                                 typedPointsto
-                                                    (structFieldRef raftpb.HardState [86#8, 111#8, 116#8, 101#8] es) null
+                                                    (structFieldRef raftpb.HardState go!"Vote" es) null
                                                     DFrac.discard ∗
                                                   typedPointsto
                                                       (structFieldRef raftpb.HardState
-                                                        [67#8, 111#8, 109#8, 109#8, 105#8, 116#8] es)
+                                                        go!"Commit" es)
                                                       null DFrac.discard ∗
                                                     inv (nroot.@"protobuf")
                                                       iprop(∃ st sc us,
                                                           typedPointsto
                                                               (structFieldRef raftpb.HardState
-                                                                [115#8, 116#8, 97#8, 116#8, 101#8] es)
+                                                                go!"state" es)
                                                               st (DFrac.own 1) ∗
                                                             typedPointsto
                                                                 (structFieldRef raftpb.HardState
-                                                                  [115#8, 105#8, 122#8, 101#8, 67#8, 97#8, 99#8, 104#8,
-                                                                    101#8]
+                                                                  go!"sizeCache"
                                                                   es)
                                                                 sc (DFrac.own 1) ∗
                                                               typedPointsto
                                                                   (structFieldRef raftpb.HardState
-                                                                    [117#8, 110#8, 107#8, 110#8, 111#8, 119#8, 110#8,
-                                                                      70#8, 105#8, 101#8, 108#8, 100#8, 115#8]
+                                                                    go!"unknownFields"
                                                                     es)
                                                                   us (DFrac.own 1) ∗
                                                                 ownSlice us [] (DFrac.own 1))) ∗
@@ -245,13 +243,10 @@ def Perennial.go_etcd_io.raft.v3.isInitialized : IProp GF :=
                                                       ⌜eb ≠ GoInterface.nil ∧ IsNewError eb⌝) ∗
                                                 "#ErrStoppedNew" ∷
                                                     errorsNewVar ErrStopped
-                                                      [114#8, 97#8, 102#8, 116#8, 58#8, 32#8, 115#8, 116#8, 111#8, 112#8,
-                                                        112#8, 101#8, 100#8] ∗
+                                                      go!"raft: stopped" ∗
                                                   "#ErrPropDroppedNew" ∷
                                                       errorsNewVar ErrProposalDropped
-                                                        [114#8, 97#8, 102#8, 116#8, 32#8, 112#8, 114#8, 111#8, 112#8,
-                                                          111#8, 115#8, 97#8, 108#8, 32#8, 100#8, 114#8, 111#8, 112#8,
-                                                          112#8, 101#8, 100#8] ∗
+                                                        go!"raft proposal dropped" ∗
                                                     "#ErrCompactedNew" ∷
                                                         errorsNewVar ErrCompacted
                                                           [114#8, 101#8, 113#8, 117#8, 101#8, 115#8, 116#8, 101#8, 100#8,

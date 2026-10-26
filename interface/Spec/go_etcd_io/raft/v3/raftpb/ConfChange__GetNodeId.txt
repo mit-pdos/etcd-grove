@@ -10,7 +10,7 @@ def raftpb.ConfChange.GetNodeId.spec : Prop :=
             ▷ (ownCCV1 p dq m -∗ Φ (intoVal m.nodeId)) -∗
               WP
                 ((intoVal
-                    (methods raftpb.ConfChange.ty.PointerType [71#8, 101#8, 116#8, 78#8, 111#8, 100#8, 101#8, 73#8, 100#8]
+                    (methods raftpb.ConfChange.ty.PointerType go!"GetNodeId"
                       (intoVal p)))
                   (intoVal ()))
                 {{ Φ }}) ∧
@@ -20,7 +20,7 @@ def raftpb.ConfChange.GetNodeId.spec : Prop :=
           ▷ (True -∗ Φ (intoVal (W64 0))) -∗
             WP
               ((intoVal
-                  (methods raftpb.ConfChange.ty.PointerType [71#8, 101#8, 116#8, 78#8, 111#8, 100#8, 101#8, 73#8, 100#8]
+                  (methods raftpb.ConfChange.ty.PointerType go!"GetNodeId"
                     (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

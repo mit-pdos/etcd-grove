@@ -15,6 +15,6 @@ def MemoryStorage.FirstIndex.spec : Prop :=
             WP
               ((intoVal
                   (methods MemoryStorage.ty.PointerType
-                    [70#8, 105#8, 114#8, 115#8, 116#8, 73#8, 110#8, 100#8, 101#8, 120#8] (intoVal ms)))
+                    go!"FirstIndex" (intoVal ms)))
                 (intoVal ()))
               {{ Φ }}

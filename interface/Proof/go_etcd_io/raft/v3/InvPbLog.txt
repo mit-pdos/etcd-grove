@@ -25,10 +25,10 @@ theorem entsBig_take [package_sem : Assumptions] (n : Nat) (ls : List Loc) (es :
 def ownSnapE (p : Loc) (dq : DFrac) (s : SnapshotM) : IProp GF :=
   iprop(∃ ds pm uf,
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-        "HD" ∷ typedPointsto (structFieldRef raftpb.Snapshot [68#8, 97#8, 116#8, 97#8] p) ds dq ∗
+        "HD" ∷ typedPointsto (structFieldRef raftpb.Snapshot go!"Data" p) ds dq ∗
           "Hd" ∷ ownSlice ds s.Data' dq ∗
             "HM" ∷
-                typedPointsto (structFieldRef raftpb.Snapshot [77#8, 101#8, 116#8, 97#8, 100#8, 97#8, 116#8, 97#8] p) pm
+                typedPointsto (structFieldRef raftpb.Snapshot go!"Metadata" p) pm
                   dq ∗
               "Hm" ∷ smPts pm dq s.Metadata' ∗ "#Hpb" ∷ pbMsg raftpb.Snapshot p uf)
 
@@ -36,22 +36,21 @@ theorem csOptA_persistent (p : Loc) (c : ConfStateM) : Persistent (csOptA p DFra
 
 theorem ownSnapW_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (s : SnapshotM) :
     ownSnapW p dq s ⊢ |==> ∃ pm pc, ⌜pm ≠ null ∧ pc ≠ null⌝ ∗ ownSnapM p DFrac.discard s ∗
-    typedPointsto (structFieldRef raftpb.Snapshot [77#8, 101#8, 116#8, 97#8, 100#8, 97#8, 116#8,
-    97#8] p) pm DFrac.discard ∗ typedPointsto (structFieldRef raftpb.SnapshotMetadata [67#8, 111#8,
-    110#8, 102#8, 83#8, 116#8, 97#8, 116#8, 101#8] pm) pc DFrac.discard ∗ csOptA pc DFrac.discard
-    s.Metadata'.ConfState'
+    typedPointsto (structFieldRef raftpb.Snapshot go!"Metadata" p) pm DFrac.discard ∗ typedPointsto
+    (structFieldRef raftpb.SnapshotMetadata go!"ConfState" pm) pc DFrac.discard ∗ csOptA pc
+    DFrac.discard s.Metadata'.ConfState'
 
 def smPtsW (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
   iprop(∃ pc pi pt uf,
       "%Hnn" ∷ ⌜p ≠ null ∧ pc ≠ null⌝ ∗
         "HC" ∷
             typedPointsto
-              (structFieldRef raftpb.SnapshotMetadata [67#8, 111#8, 110#8, 102#8, 83#8, 116#8, 97#8, 116#8, 101#8] p) pc
+              (structFieldRef raftpb.SnapshotMetadata go!"ConfState" p) pc
               dq ∗
           "Hc" ∷ csOptA pc dq md.ConfState' ∗
-            "HI" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata [73#8, 110#8, 100#8, 101#8, 120#8] p) pi dq ∗
+            "HI" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Index" p) pi dq ∗
               "#cI" ∷ cellRO pi md.Index' ∗
-                "HT" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata [84#8, 101#8, 114#8, 109#8] p) pt dq ∗
+                "HT" ∷ typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Term" p) pt dq ∗
                   "#cT" ∷ cellRO pt md.Term' ∗ "#Hpb" ∷ pbMsg raftpb.SnapshotMetadata p uf)
 
 theorem smPts_persistent (p : Loc) (md : SnapshotMetadataM) : Persistent (smPts p DFrac.discard md)
@@ -106,10 +105,10 @@ theorem csOptA_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : C
 def ownSnapW (p : Loc) (dq : DFrac) (s : SnapshotM) : IProp GF :=
   iprop(∃ ds pm uf,
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-        "HD" ∷ typedPointsto (structFieldRef raftpb.Snapshot [68#8, 97#8, 116#8, 97#8] p) ds dq ∗
+        "HD" ∷ typedPointsto (structFieldRef raftpb.Snapshot go!"Data" p) ds dq ∗
           "Hd" ∷ ownSlice ds s.Data' dq ∗
             "HM" ∷
-                typedPointsto (structFieldRef raftpb.Snapshot [77#8, 101#8, 116#8, 97#8, 100#8, 97#8, 116#8, 97#8] p) pm
+                typedPointsto (structFieldRef raftpb.Snapshot go!"Metadata" p) pm
                   dq ∗
               "Hm" ∷ smPtsW pm dq s.Metadata' ∗ "#Hpb" ∷ pbMsg raftpb.Snapshot p uf)
 

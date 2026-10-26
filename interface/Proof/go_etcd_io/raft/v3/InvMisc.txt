@@ -16,9 +16,8 @@ def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
                   "Hreqs" ∷ [∗list] p;q ∈ ptrs;r.pending, ownReadreq p q)
 
 theorem ownReadOnly_option [package_sem : Assumptions] (ro : Loc) (r : ReadOnly) : ⊢ ownReadOnly ro
-    r -∗ ∃ o, ⌜o = W64 0⌝ ∗ typedPointsto (structFieldRef readOnly [111#8, 112#8, 116#8, 105#8,
-    111#8, 110#8] ro) o (DFrac.own 1) ∗ (typedPointsto (structFieldRef readOnly [111#8, 112#8,
-    116#8, 105#8, 111#8, 110#8] ro) o (DFrac.own 1) -∗ ownReadOnly ro r)
+    r -∗ ∃ o, ⌜o = W64 0⌝ ∗ typedPointsto (structFieldRef readOnly go!"option" ro) o (DFrac.own 1) ∗
+    (typedPointsto (structFieldRef readOnly go!"option" ro) o (DFrac.own 1) -∗ ownReadOnly ro r)
 
 theorem readonlyAdd.proj_pending (r : ReadOnly) (q : ReadReq) : (readonlyAdd r q).pending =
     r.pending ++ [q]

@@ -116,7 +116,17 @@ def dumpModule (pub priv : Environment) (outDir : System.FilePath) (mod : Name) 
         if ci.type.isConstOf ``Lean.ParserDescr || ci.type.isConstOf ``Lean.TrailingParserDescr then
           return s!"syntax {c}"
         let k := if kind == "def" || kind == "opaque" then "def (sealed)" else kind
-        return s!"{k} {← ppSig c}"
+        -- a function's proof (`<F>.wp_proof … : <F>.spec`, or the axiom in its place): its
+        -- statement with the spec unfolded, so that the interface shows the Hoare triple itself
+        let unfolded ← forallTelescope ci.type fun _ b => do
+          match b.getAppFn.constName? with
+          | some h@(.str _ s) =>
+            if s.startsWith "spec" && (pub.find? h |>.any (·.hasValue)) then
+              let e ← deltaExpand b (· == h)
+              return some s!"\n  -- `{h}`, unfolded:\n  {(← ppE e).replace "\n" "\n  "}"
+            else return none
+          | _ => return none
+        return s!"{k} {← ppSig c}{unfolded.getD ""}"
       | none => return s!"-- {c}: not visible"
     out := out ++ "\n" ++ line ++ "\n"
   let file := outDir / (System.mkFilePath (mod.components.map toString) |>.addExtension "txt")

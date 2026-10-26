@@ -4,4 +4,4 @@
 
 def raftpb.ConfChangeType.String.spec : Prop :=
   ∀ (t : w32),
-    ⊢ fmt.stringMethodSpec (interface.mk raftpb.ConfChangeType.ty (intoVal t)) [83#8, 116#8, 114#8, 105#8, 110#8, 103#8]
+    ⊢ fmt.stringMethodSpec (interface.mk raftpb.ConfChangeType.ty (intoVal t)) go!"String"

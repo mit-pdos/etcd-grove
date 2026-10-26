@@ -10,7 +10,7 @@ def raftpb.HardState.GetVote.spec : Prop :=
             ▷ (True -∗ Φ (intoVal hs.Vote')) -∗
               WP
                 ((intoVal
-                    (methods raftpb.HardState.ty.PointerType [71#8, 101#8, 116#8, 86#8, 111#8, 116#8, 101#8] (intoVal p)))
+                    (methods raftpb.HardState.ty.PointerType go!"GetVote" (intoVal p)))
                   (intoVal ()))
                 {{ Φ }}) ∧
     (⊢
@@ -19,7 +19,7 @@ def raftpb.HardState.GetVote.spec : Prop :=
           ▷ (True -∗ Φ (intoVal (W64 0))) -∗
             WP
               ((intoVal
-                  (methods raftpb.HardState.ty.PointerType [71#8, 101#8, 116#8, 86#8, 111#8, 116#8, 101#8]
+                  (methods raftpb.HardState.ty.PointerType go!"GetVote"
                     (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

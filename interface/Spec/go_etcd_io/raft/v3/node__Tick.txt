@@ -8,4 +8,4 @@ def node.Tick.spec : Prop :=
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ tickCred γ.bud 1 -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
-            WP ((intoVal (methods node.ty.PointerType [84#8, 105#8, 99#8, 107#8] (intoVal n))) (intoVal ())) {{ Φ }}
+            WP ((intoVal (methods node.ty.PointerType go!"Tick" (intoVal n))) (intoVal ())) {{ Φ }}

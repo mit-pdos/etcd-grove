@@ -8,4 +8,4 @@ def raftpb.EntryType.Enum.spec : Prop :=
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb -∗
           (▷ ∀ p, typedPointsto p x (DFrac.own 1) -∗ Φ (intoVal p)) -∗
-            WP ((intoVal (methods raftpb.EntryType.ty [69#8, 110#8, 117#8, 109#8] (intoVal x))) (intoVal ())) {{ Φ }}
+            WP ((intoVal (methods raftpb.EntryType.ty go!"Enum" (intoVal x))) (intoVal ())) {{ Φ }}

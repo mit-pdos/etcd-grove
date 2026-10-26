@@ -22,8 +22,7 @@ def node.ApplyConfChange.spec : Prop :=
                 WP
                   ((intoVal
                       (methods node.ty.PointerType
-                        [65#8, 112#8, 112#8, 108#8, 121#8, 67#8, 111#8, 110#8, 102#8, 67#8, 104#8, 97#8, 110#8, 103#8,
-                          101#8]
+                        go!"ApplyConfChange"
                         (intoVal n)))
                     (intoVal c))
                   {{ Φ }}

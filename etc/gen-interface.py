@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""Generate a package's interface: what a client sees of each of its importable modules.
+"""Generate a package's interface: what a client sees of each of its importable modules and of
+each of its functions' proofs.
 
-For each module the package lists as importable (`etc/api/<pkg>.txt`, `etc/api-check.py`), writes
+For each module the package lists as importable (`etc/api/<pkg>.txt`, `etc/api-check.py`), and
+for each function's proof file (`Proof/<pkg>/<F>.lean` of a spec file `Spec/<pkg>/<F>.lean`: its
+`<F>.wp_proof`, or the axiom in its place, is shown with `<F>.spec` unfolded), writes
 `interface/<module path>.txt`: every declaration a client of the module sees, as Lean's module
 system exports it (`etc/interface.lean`: an ordinary `import`, `importModules (level :=
 .exported)`): its kind and signature, and the body of a definition only when it is exported
@@ -76,8 +79,20 @@ def dump(mode, mods, outdir):
         sys.exit("gen-interface: etc/interface.lean failed\n" + (r.stdout + r.stderr)[-4000:])
 
 
+GOSTR = re.compile(r"\[(\d+#8(?:,\s*\d+#8)*)\]")
+
+
+def gostr(m):
+    """A printable byte list (a `go!"..."` string, which Lean prints as its bytes) back as a string."""
+    bs = [int(x.split("#")[0]) for x in m.group(1).split(",")]
+    if all(32 <= b < 127 and b != 34 for b in bs):
+        return 'go!"' + bytes(bs).decode() + '"'
+    return m.group(0)
+
+
 def tidy(text):
     """Drop the ambient binders and the namespace prefix of the declared names; rewrap."""
+    text = GOSTR.sub(gostr, text)
     blocks = text.split("\n\n")
     head, out = blocks[0], []
     for b in blocks[1:]:
@@ -91,6 +106,10 @@ def tidy(text):
             out.append("\n".join(textwrap.wrap(f"{kind} {rest}", WIDTH, subsequent_indent="    ")
                                   + ([fields] if fields else [])))
             continue
+        unfolded = ""
+        if "\n  -- `" in b:
+            b, _mark, rest = b.partition("\n  -- `")
+            unfolded = "\n  -- `" + rest.rstrip()
         sig, sep, body = b.partition(" :=\n")
         sig = " ".join(AMBIENT_RE.sub("", sig).split())
         kind, _, rest = sig.partition(" ")
@@ -111,7 +130,7 @@ def tidy(text):
                               subsequent_indent="    ")
         if sep:
             lines.append(body.rstrip())
-        out.append("\n".join(lines))
+        out.append("\n".join(lines) + unfolded)
     note = ("-- Every declaration also takes the ambient section variables (left out below): "
             "the Go semantics\n-- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), "
             "`GF`, `hG`, `StorageModel GF`, `AllG GF`.")
@@ -184,9 +203,13 @@ def main():
     ap.add_argument("--layout", action="store_true")
     ap.add_argument("--update", action="store_true")
     a = ap.parse_args()
-    mods = importable(a.config)
-    allmods = package_modules(a.config) if a.layout else []
-    ensure_built(sorted(set(mods) | set(allmods)))
+    allmods = package_modules(a.config)
+    specs = {m for m in allmods if m.startswith("Spec.")}
+    # the importable modules, and every function's proof file (`Proof/<pkg>/<F>.lean` of a spec
+    # `Spec/<pkg>/<F>.lean`): its theorem, the spec unfolded
+    mods = sorted(set(importable(a.config)) |
+                  {m for m in allmods if m.startswith("Proof.") and "Spec." + m.split(".", 1)[1] in specs})
+    ensure_built(sorted(set(mods) | (set(allmods) if a.layout else set())))
     status = 0
 
     new = generate(mods)

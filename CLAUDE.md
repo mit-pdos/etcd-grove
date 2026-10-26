@@ -131,7 +131,9 @@ importable list and a generated interface"):
 - **The generated interface**, `interface/<module path>.txt` (`etc/gen-interface.py
   etc/api/<pkg>.txt`; `--check` in place of regenerating): what a client sees of each listed
   module, as Lean's module system exports it -- every declaration's kind and signature, the body
-  only of a definition whose body is exported. Committed: a change to a package's API is a diff
+  only of a definition whose body is exported -- and of every function's proof file (its
+  `<F>.wp_proof`, or the axiom in its place, with `<F>.spec` unfolded: the Hoare triple, and the
+  callees' specs it takes). Committed: a change to a package's API or to a function's spec is a diff
   to review (no bogus definitions, no lemma exposing internals). `--layout` checks the layout on
   every module of the package (a spec file exposes only its `<F>.spec`, its proof file only
   `<F>.wp_proof`), against the known violations in `etc/api/<pkg>-layout.txt`. CI regenerates the

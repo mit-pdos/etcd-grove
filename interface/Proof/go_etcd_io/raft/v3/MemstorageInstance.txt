@@ -10,8 +10,7 @@ theorem memStorage_Append [package_sem : Assumptions] [MemStorReg GF] (ms : Loc)
     e0.Index' + ↑p.length ≤ 2 ^ 61) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ memStorReg ms γs
     ∗ appendRight (memStorIface ms) p ∗ entsPts s dq p -∗ ▷ (appendReceipt (memStorIface ms) p ∗
     entsPts s dq p -∗ Φ (intoVal GoInterface.nil)) -∗ WP ((intoVal (methods
-    MemoryStorage.ty.PointerType [65#8, 112#8, 112#8, 101#8, 110#8, 100#8] (intoVal ms))) (intoVal
-    s)) {{ Φ }}
+    MemoryStorage.ty.PointerType go!"Append" (intoVal ms))) (intoVal s)) {{ Φ }}
 
 def memStorAppendTok [MemStorReg GF] (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF :=
   iprop(∃ ms γs, ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗ memAppendTok ms γs σ p)

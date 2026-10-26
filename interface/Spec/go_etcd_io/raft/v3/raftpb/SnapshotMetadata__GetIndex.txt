@@ -10,7 +10,7 @@ def raftpb.SnapshotMetadata.GetIndex.spec : Prop :=
           ▷ (smOpt p dq md -∗ Φ (intoVal md.Index')) -∗
             WP
               ((intoVal
-                  (methods raftpb.SnapshotMetadata.ty.PointerType [71#8, 101#8, 116#8, 73#8, 110#8, 100#8, 101#8, 120#8]
+                  (methods raftpb.SnapshotMetadata.ty.PointerType go!"GetIndex"
                     (intoVal p)))
                 (intoVal ()))
               {{ Φ }}

@@ -11,7 +11,7 @@ def raftpb.Message.GetLogTerm.spec : Prop :=
               WP
                 ((intoVal
                     (methods raftpb.Message.ty.PointerType
-                      [71#8, 101#8, 116#8, 76#8, 111#8, 103#8, 84#8, 101#8, 114#8, 109#8] (intoVal l)))
+                      go!"GetLogTerm" (intoVal l)))
                   (intoVal ()))
                 {{ Φ }}) ∧
     (⊢
@@ -21,6 +21,6 @@ def raftpb.Message.GetLogTerm.spec : Prop :=
             WP
               ((intoVal
                   (methods raftpb.Message.ty.PointerType
-                    [71#8, 101#8, 116#8, 76#8, 111#8, 103#8, 84#8, 101#8, 114#8, 109#8] (intoVal null)))
+                    go!"GetLogTerm" (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

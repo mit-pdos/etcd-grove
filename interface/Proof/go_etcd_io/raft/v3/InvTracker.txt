@@ -270,7 +270,7 @@ def isAckedIndexer (l : GoInterface) (P : IProp GF) (acked : w64 → Option w64)
                   P -∗
                     ▷ (P -∗ Φ (intoVal ((acked id).getD (W64 0)), intoVal (acked id).isSome)) -∗
                       WP
-                        ((intoVal (methods i.ty [65#8, 99#8, 107#8, 101#8, 100#8, 73#8, 110#8, 100#8, 101#8, 120#8] i.v))
+                        ((intoVal (methods i.ty go!"AckedIndex" i.v))
                           (intoVal id))
                         {{ Φ }})
 

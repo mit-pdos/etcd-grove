@@ -11,7 +11,7 @@ def node.Propose.spec : Prop :=
             isNode γ id n ∗ nodeCtx ctx cd ∗ ownSlice data_sl data DFrac.discard ∗ ⌜data ≠ []⌝ ∗ propArg γ.raft data Q -∗
           (▷ ∀ err, propErr cd err -∗ Φ (intoVal err)) -∗
             WP
-              (((intoVal (methods node.ty.PointerType [80#8, 114#8, 111#8, 112#8, 111#8, 115#8, 101#8] (intoVal n)))
+              (((intoVal (methods node.ty.PointerType go!"Propose" (intoVal n)))
                   (intoVal (GoInterface.ok ctx)))
                 (intoVal data_sl))
               {{ Φ }}

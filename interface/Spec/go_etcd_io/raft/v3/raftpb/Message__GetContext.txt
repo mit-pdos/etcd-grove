@@ -11,7 +11,7 @@ def raftpb.Message.GetContext.spec : Prop :=
               WP
                 ((intoVal
                     (methods raftpb.Message.ty.PointerType
-                      [71#8, 101#8, 116#8, 67#8, 111#8, 110#8, 116#8, 101#8, 120#8, 116#8] (intoVal l)))
+                      go!"GetContext" (intoVal l)))
                   (intoVal ()))
                 {{ Φ }}) ∧
     (⊢
@@ -21,6 +21,6 @@ def raftpb.Message.GetContext.spec : Prop :=
             WP
               ((intoVal
                   (methods raftpb.Message.ty.PointerType
-                    [71#8, 101#8, 116#8, 67#8, 111#8, 110#8, 116#8, 101#8, 120#8, 116#8] (intoVal null)))
+                    go!"GetContext" (intoVal null)))
                 (intoVal ()))
               {{ Φ }})

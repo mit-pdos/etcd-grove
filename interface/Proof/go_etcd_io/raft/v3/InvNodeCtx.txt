@@ -5,8 +5,7 @@
 theorem isContext_Err_done [package_sem : Assumptions] (hED : context.ErrDone.spec) (ctx :
     GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : ⊢ ∀ Φ, isPkgInit pkg_id.context ∗
     context.isContext ctx cd ∗ □ cd.PDone ∗ context.ContextClosed cd.Done_gn -∗ (▷ ∀ err, ctxErr cd
-    err -∗ Φ (intoVal err)) -∗ WP ((intoVal (methods ctx.ty [69#8, 114#8, 114#8] ctx.v)) (intoVal
-    ())) {{ Φ }}
+    err -∗ Φ (intoVal err)) -∗ WP ((intoVal (methods ctx.ty go!"Err" ctx.v)) (intoVal ())) {{ Φ }}
 
 theorem nodeDone_recv_clause [package_sem : Assumptions] (ctx : GoInterfaceOk) (cd :
     context.ContextDesc (IProp GF)) (ch : GoChan) (body : Expr) (Φ : val → IProp GF) : ⊢ nodeDone
@@ -39,7 +38,7 @@ theorem propErr_of_nodeErr [package_sem : Assumptions] (cd : context.ContextDesc
 
 theorem nodeCtx_Done [package_sem : Assumptions] (ctx : GoInterfaceOk) (cd : context.ContextDesc
     (IProp GF)) : ⊢ ∀ Φ, nodeCtx ctx cd -∗ (▷ ∀ ch, nodeDone ctx cd ch -∗ Φ (intoVal ch)) -∗ WP
-    ((intoVal (methods ctx.ty [68#8, 111#8, 110#8, 101#8] ctx.v)) (intoVal ())) {{ Φ }}
+    ((intoVal (methods ctx.ty go!"Done" ctx.v)) (intoVal ())) {{ Φ }}
 
 theorem nodeErr_nil [package_sem : Assumptions] (cd : context.ContextDesc (IProp GF)) : ⊢ nodeErr cd
     GoInterface.nil

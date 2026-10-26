@@ -3,8 +3,8 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def logMethods : List GoString :=
-  [[73#8, 110#8, 102#8, 111#8, 102#8], [68#8, 101#8, 98#8, 117#8, 103#8, 102#8],
-    [87#8, 97#8, 114#8, 110#8, 105#8, 110#8, 103#8, 102#8], [69#8, 114#8, 114#8, 111#8, 114#8, 102#8]]
+  [go!"Infof", go!"Debugf",
+    go!"Warningf", go!"Errorf"]
 
 theorem Logger.wp_logf (l : GoInterfaceOk) (meth format : GoString) (args : GoSlice) (Hmeth : meth ∈
     logMethods) : ⊢ ∀ Φ, isLogger l -∗ ▷ (True -∗ Φ (intoVal ())) -∗ WP (((intoVal (methods l.ty

@@ -9,7 +9,7 @@ def node.Step.spec : Prop :=
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd ∗ stepP γ id ml -∗
           (▷ ∀ err, nodeErr cd err -∗ Φ (intoVal err)) -∗
             WP
-              (((intoVal (methods node.ty.PointerType [83#8, 116#8, 101#8, 112#8] (intoVal n)))
+              (((intoVal (methods node.ty.PointerType go!"Step" (intoVal n)))
                   (intoVal (GoInterface.ok ctx)))
                 (intoVal ml))
               {{ Φ }}
