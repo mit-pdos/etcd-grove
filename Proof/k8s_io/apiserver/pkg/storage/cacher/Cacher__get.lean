@@ -4,6 +4,10 @@ counterpart).
 
 `WaitUntilFreshAndGet`'s read; the snapshot's element of the key (`ownStore_lookup`: a published
 snapshot's elements are `isElem`), so the type assertion holds and the object is its element's.
+
+Not linked (`etc/link-lean-first-cacher.txt`): the spec's points-to of `Cacher`'s `watchCache`
+field rests on `Cacher`'s generated instances, `sorry -- axiomatized type` (Goose axiomatizes the
+type: some of its fields' types are not translated), which no linked result may reach.
 -/
 module
 

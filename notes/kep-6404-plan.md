@@ -119,7 +119,9 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
 - **The cacher's read** (`Cacher.get`, `cacher.go`, translated with its body): proved over
   `WaitUntilFreshAndGet`: without an error, the key's object in a published state `st` (its
   element's `Object`, through `ownStore_lookup`: the type assertion to `*store.Element` holds) or
-  `exists` false, and `st`'s version. (`Cacher.Get` itself refuses a consistent read at this pin:
+  `exists` false, and `st`'s version. Not linked: its spec names `Cacher`'s `watchCache` field, and
+  `Cacher`'s type is axiomatized (its generated instances are `sorry`; translating it needs its
+  fields' types). (`Cacher.Get` itself refuses a consistent read at this pin:
   `resourceVersion == ""` is an internal error, the KEP not being implemented upstream yet.)
 - **The current revision** (step 2): `store.GetCurrentResourceVersion` (the etcd3 store's, the
   cacher's `getCurrentRV`) proved, linked in the etcd3 store's Link: a linearizable read through
