@@ -73,6 +73,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.Latest
 public import Proof.go_etcd_io.etcd.server.v3.auth.ReadLb
+public import Proof.go_etcd_io.etcd.server.v3.auth.FreshCheck
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
@@ -1316,9 +1317,32 @@ theorem auth_locked_read_tx_lb :
     auth.authStore.lockedReadTx.specLb (GF := GF) (hG := hG) :=
   auth.authStore.lockedReadTx.wp_lb
 
+/-- **The store's fields read no older than a published index** (the auth plan's E3h,
+`auth/Fresh.lean`, `auth/FreshCheck.lean`): with a reader's lower bound `n`, the revision and the
+flag are a state's no older than `n` (the store's freshness, `revFresh`), and the permission checks'
+verdicts are at states no older than `n` (`permVerdictFrom`). -/
+theorem auth_revision_lb : auth.authStore.Revision.specLb (GF := GF) :=
+  auth.authStore.Revision.wp_lb
+
+theorem auth_enabled_lb : auth.authStore.IsAuthEnabled.specLb (GF := GF) :=
+  auth.authStore.IsAuthEnabled.wp_lb
+
+theorem auth_range_op_permitted_lb : auth.authStore.isRangeOpPermitted.specLb (GF := GF) :=
+  auth.authStore.isRangeOpPermitted.wp_lb zap.wp_String zap.Logger.wp_Error
+    auth.wp_checkKeyInterval auth.wp_checkKeyPoint
+
+theorem auth_op_permitted_lb : auth.authStore.isOpPermitted.specLb (GF := GF) :=
+  auth.authStore.isOpPermitted.wp_lb auth_enabled_lb auth_revision_lb zap.wp_Uint64
+    zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn zap.wp_String zap.Logger.wp_Error
+    auth.wp_hasRootRole auth.authStore.lockedReadTx.wp_lb auth_range_op_permitted_lb
+
 end readLb
 
 #print axioms Perennial.EtcdGrove.auth_locked_read_tx_lb
+#print axioms Perennial.EtcdGrove.auth_revision_lb
+#print axioms Perennial.EtcdGrove.auth_enabled_lb
+#print axioms Perennial.EtcdGrove.auth_range_op_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_op_permitted_lb
 
 section latestApply
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
