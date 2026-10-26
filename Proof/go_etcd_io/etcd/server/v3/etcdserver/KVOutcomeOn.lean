@@ -98,23 +98,168 @@ theorem authEndOf_eq (m e : GoString) (h : apply.authEndOf m e) (hm : m ≠ [W8 
 
 /-- **A transaction's verdict is on its own permissions** (`kvOutL`'s transaction case, E2s's
 `txnMay`/`txnChecked`, against the model's `reqPerms`): a refusal is of a permission the model
-asks, a pass covers every one it asks. A premise for transactions: the checks see a put's
-`PrevKv` read (`checkPutAuth`), which the model's operation (`TxnOp.put`, no `PrevKv`) does not
-record (`notes/decisions.md`, "E2y of the auth plan"). -/
+asks, a pass covers every one it asks. Of the wire transaction (`txnW`, E3e): a put's `PrevKv`
+read is in both. A theorem since E3e (`txnVerdictOwn_of`); a premise until then. -/
 def txnVerdictOwn (M : auth.AuthMode) (hs : List auth.AuthState) (rq : apply.IRRModel) : Prop :=
-  ∀ t, rq.txn = some t →
+  apply.dispatchKind rq = .txn → ∀ t, rq.txnW = some t →
     (apply.refusedMay M hs (auth.authInfoM (apply.principalOf rq)) (apply.txnMay t) →
       apply.refusedL M hs (auth.authInfoM (apply.principalOf rq)) (reqPerms rq)) ∧
     (∀ L, apply.txnChecked t L → apply.passedL M hs (auth.authInfoM (apply.principalOf rq)) L →
       apply.passedL M hs (auth.authInfoM (apply.principalOf rq)) (reqPerms rq))
 
+/-- No permission's range end is `"\x00"`. -/
+def endsOk (L : List apply.Perm3) : Prop := ∀ x ∈ L, x.2.1 ≠ [W8 0]
+
+theorem endsOk_append (L L' : List apply.Perm3) (h : endsOk (L ++ L')) :
+    endsOk L ∧ endsOk L' :=
+  ⟨fun x hx => h x (List.mem_append_left _ hx), fun x hx => h x (List.mem_append_right _ hx)⟩
+
+/-- The comparisons' reads as the model has them. -/
+abbrev cmpPerms (cs : List CmpModel) : List apply.Perm3 :=
+  cs.map (fun cm => (cm.key, cm.rangeEnd, .read))
+
+theorem cmps_may_mem (cs : List CmpModel) (x : apply.Perm3) (hz : endsOk (cmpPerms cs))
+    (h : apply.cmpsMay cs x) : x ∈ cmpPerms cs := by
+  obtain ⟨cm, hcm, e, he, rfl⟩ := h
+  have hm : (cm.key, cm.rangeEnd, auth.PermType.read) ∈ cmpPerms cs :=
+    List.mem_map_of_mem (f := fun cm : CmpModel => (cm.key, cm.rangeEnd, auth.PermType.read)) hcm
+  rw [authEndOf_eq _ _ he (hz _ hm)]
+  exact hm
+
+theorem cmps_checked_sub : ∀ (cs : List CmpModel) (L : List apply.Perm3),
+    endsOk (cmpPerms cs) → apply.cmpsChecked cs L → ∀ y ∈ cmpPerms cs, y ∈ L
+  | [], _, _, _, y, hy => by simp at hy
+  | cm :: cs, L, hz, h, y, hy => by
+    obtain ⟨e, L', he, hL', rfl⟩ := h
+    have hz' := endsOk_append [(cm.key, cm.rangeEnd, auth.PermType.read)] (cmpPerms cs) hz
+    simp only [cmpPerms, List.map_cons, List.mem_cons] at hy
+    rcases hy with rfl | hy
+    · have := authEndOf_eq _ _ he (hz'.1 _ List.mem_cons_self)
+      rw [this]; exact List.mem_cons_self
+    · exact List.mem_cons_of_mem _ (cmps_checked_sub cs L' hz'.2 hL' y hy)
+
+mutual
+theorem op_may_mem : ∀ (op : txn.TxnOpW) (x : apply.Perm3), endsOk (opPerms op) →
+    apply.opMay op x → x ∈ opPerms op
+  | .get o, x, hz, h => by
+    obtain ⟨e, he, rfl⟩ := h
+    have hm : (o.key, o.base.rangeEnd, auth.PermType.read) ∈ opPerms (.get o) := by
+      simp [opPerms]
+    rw [authEndOf_eq _ _ he (hz _ hm)]
+    exact hm
+  | .put o, x, _, h => h
+  | .delete o, x, hz, h => by
+    obtain ⟨e, he, h⟩ := h
+    have hm : (o.key, o.base.rangeEnd, auth.PermType.write) ∈ opPerms (.delete o) := by
+      simp [opPerms]
+    rw [authEndOf_eq _ _ he (hz _ hm)] at h
+    rcases h with rfl | ⟨hp, rfl⟩
+    · exact hm
+    · simp [opPerms, hp]
+  | .txn cs ts es, x, hz, h => by
+    have hz' := endsOk_append _ _ hz
+    have hz'' := endsOk_append _ _ hz'.1
+    show x ∈ cmpPerms cs ++ opsPerms ts ++ opsPerms es
+    rcases h with h | h | h
+    · exact List.mem_append_left _ (List.mem_append_left _ (cmps_may_mem cs x hz''.1 h))
+    · exact List.mem_append_left _ (List.mem_append_right _ (ops_may_mem ts x hz''.2 h))
+    · exact List.mem_append_right _ (ops_may_mem es x hz'.2 h)
+
+theorem ops_may_mem : ∀ (ops : List txn.TxnOpW) (x : apply.Perm3), endsOk (opsPerms ops) →
+    apply.opsMay ops x → x ∈ opsPerms ops
+  | [], _, _, h => h.elim
+  | op :: ops, x, hz, h => by
+    have hz' := endsOk_append _ _ hz
+    show x ∈ opPerms op ++ opsPerms ops
+    rcases h with h | h
+    · exact List.mem_append_left _ (op_may_mem op x hz'.1 h)
+    · exact List.mem_append_right _ (ops_may_mem ops x hz'.2 h)
+end
+
+mutual
+theorem op_checked_sub : ∀ (op : txn.TxnOpW) (L : List apply.Perm3), endsOk (opPerms op) →
+    apply.opChecked op L → ∀ y ∈ opPerms op, y ∈ L
+  | .get o, L, hz, h, y, hy => by
+    obtain ⟨e, he, rfl⟩ := h
+    have hm : (o.key, o.base.rangeEnd, auth.PermType.read) ∈ opPerms (.get o) := by
+      simp [opPerms]
+    rw [authEndOf_eq _ _ he (hz _ hm)]
+    simpa [opPerms] using hy
+  | .put o, L, _, h, y, hy => by
+    have h' : L = apply.putPerms o := h
+    rw [h']; exact hy
+  | .delete o, L, hz, h, y, hy => by
+    obtain ⟨e, he, rfl⟩ := h
+    have hm : (o.key, o.base.rangeEnd, auth.PermType.write) ∈ opPerms (.delete o) := by
+      simp [opPerms]
+    rw [authEndOf_eq _ _ he (hz _ hm)]
+    simp only [opPerms] at hy
+    cases hp : o.base.prevKV <;> simp only [hp, Bool.false_eq_true, ↓reduceIte] at hy ⊢
+    · simp_all
+    · simp only [List.mem_cons, List.mem_append, List.not_mem_nil, _root_.or_false] at hy ⊢
+      exact hy.symm
+  | .txn cs ts es, L, hz, h, y, hy => by
+    obtain ⟨L1, L2, L3, h1, h2, h3, rfl⟩ := h
+    have hz' := endsOk_append _ _ hz
+    have hz'' := endsOk_append _ _ hz'.1
+    have hy' : y ∈ cmpPerms cs ++ opsPerms ts ++ opsPerms es := hy
+    simp only [List.mem_append] at hy' ⊢
+    rcases hy' with (hy | hy) | hy
+    · exact Or.inl (cmps_checked_sub cs L1 hz''.1 h1 y hy)
+    · exact Or.inr (Or.inl (ops_checked_sub ts L2 hz''.2 h2 y hy))
+    · exact Or.inr (Or.inr (ops_checked_sub es L3 hz'.2 h3 y hy))
+
+theorem ops_checked_sub : ∀ (ops : List txn.TxnOpW) (L : List apply.Perm3), endsOk (opsPerms ops) →
+    apply.opsChecked ops L → ∀ y ∈ opsPerms ops, y ∈ L
+  | [], _, _, _, y, hy => by simp [opsPerms] at hy
+  | op :: ops, L, hz, h, y, hy => by
+    obtain ⟨L1, L2, h1, h2, rfl⟩ := h
+    have hz' := endsOk_append _ _ hz
+    have hy' : y ∈ opPerms op ++ opsPerms ops := hy
+    rcases List.mem_append.1 hy' with hy | hy
+    · exact List.mem_append_left _ (op_checked_sub op L1 hz'.1 h1 y hy)
+    · exact List.mem_append_right _ (ops_checked_sub ops L2 hz'.2 h2 y hy)
+end
+
+/-- **A transaction's verdict is on its own permissions** (E3e): for a request without `"\x00"`
+range ends, the checks' permissions are the model's (`reqPerms` of the wire transaction). -/
+theorem txnVerdictOwn_of (M : auth.AuthMode) (hs : List auth.AuthState) (rq : apply.IRRModel)
+    (hz : noZeroEnds rq) : txnVerdictOwn M hs rq := by
+  intro hk t ht
+  have hp : reqPerms rq = cmpPerms t.cmps ++ opsPerms t.thenOps ++ opsPerms t.elseOps := by
+    simp only [reqPerms, hk, ht]
+  have hz0 : endsOk (reqPerms rq) := hz
+  rw [hp] at hz0
+  have hz1 := endsOk_append _ _ hz0
+  have hz2 := endsOk_append _ _ hz1.1
+  constructor
+  · intro hr
+    unfold apply.refusedMay at hr
+    unfold apply.refusedL
+    refine apply.latestOk_mono _ _ _ _ (fun stl ⟨x, hx, hn⟩ => ⟨x, ?_, hn⟩) hr
+    rw [hp]
+    simp only [List.mem_append]
+    rcases hx with hx | hx | hx
+    · exact Or.inl (Or.inl (cmps_may_mem _ x hz2.1 hx))
+    · exact Or.inl (Or.inr (ops_may_mem _ x hz2.2 hx))
+    · exact Or.inr (ops_may_mem _ x hz1.2 hx)
+  · intro L hL hpass
+    obtain ⟨L1, L2, L3, h1, h2, h3, rfl⟩ := hL
+    unfold apply.passedL at hpass ⊢
+    refine apply.latestOk_mono _ _ _ _ (fun stl h y hy => h y ?_) hpass
+    rw [hp] at hy
+    simp only [List.mem_append] at hy ⊢
+    rcases hy with (hy | hy) | hy
+    · exact Or.inl (cmps_checked_sub _ L1 hz2.1 h1 y hy)
+    · exact Or.inr (Or.inl (ops_checked_sub _ L2 hz2.2 h2 y hy))
+    · exact Or.inr (Or.inr (ops_checked_sub _ L3 hz1.2 h3 y hy))
+
 /-- **The dispatched outcome decided at the latest state, on the request's own permissions**:
 `kvOutL` (the dispatch's KV triple at the latest state, at the request's principal) is E2s's
-`authOutL` at the model's `reqPerms`, for a request without `"\x00"` range ends and, for a
-transaction, `txnVerdictOwn`. -/
+`authOutL` at the model's `reqPerms`, for a request without `"\x00"` range ends (a transaction's
+through `txnVerdictOwn_of`, E3e). -/
 theorem authOutL_of_kvOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ci : apply.Chain)
     (rq : apply.IRRModel) (log : mvcc.Log) (oc : apply.Outcome) (hz : noZeroEnds rq)
-    (ht : txnVerdictOwn M hs rq)
     (h : apply.kvOutL M hs (auth.authInfoM (apply.principalOf rq)) ci rq log oc) :
     apply.authOutL M hs (auth.authInfoM (apply.principalOf rq)) ci rq log (reqPerms rq) oc := by
   unfold apply.kvOutL at h
@@ -138,7 +283,7 @@ theorem authOutL_of_kvOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ci : 
     simpa [reqPerms, hk, ho] using h
   · rename_i hk
     obtain ⟨t, htx, h⟩ := h
-    obtain ⟨hr, hp⟩ := ht t htx
+    obtain ⟨hr, hp⟩ := txnVerdictOwn_of M hs rq hz hk t htx
     rcases h with ⟨rfl, h⟩ | ⟨hc, L, hL, h⟩
     · exact Or.inl ⟨rfl, hr h⟩
     · exact Or.inr ⟨hc, hp L hL h⟩
@@ -147,7 +292,7 @@ theorem authOutL_of_kvOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ci : 
 /-- **The apply thread's KV outcome is the mode-`on` model's** (the auth plan's E2y): the
 dispatched outcome decided at the latest state (`kvOutL`, `apply.uberApplier.Apply.wp_kvL`), for a
 plain KV request of the entry `m` above `c₀` at the start chain with auth on and no alarm, without
-`"\x00"` range ends and with `txnVerdictOwn`, at the history `hs` whose latest state is the
+`"\x00"` range ends, at the history `hs` whose latest state is the
 model's `s.1`, is `outcomeOn`'s (E2t's `kv_applied_out_on` hypothesis). -/
 theorem outcomeOn_of_kvOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
@@ -155,12 +300,12 @@ theorem outcomeOn_of_kvOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m : E
     (hna : apply.needAdminPermission rq = false)
     (hk : apply.isKVKind (apply.dispatchKind rq) = true) (hp : plainCover rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
-    (hz : noZeroEnds rq) (htx : txnVerdictOwn (.on γa) hs rq)
+    (hz : noZeroEnds rq)
     (oc : apply.Outcome)
     (h : apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq s.2 oc) :
     outcomeOn c₀ (apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) :=
   outcomeOn_of_authOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl oc
-    (authOutL_of_kvOutL _ hs _ rq s.2 oc hz htx h)
+    (authOutL_of_kvOutL _ hs _ rq s.2 oc hz h)
 
 end pure
 

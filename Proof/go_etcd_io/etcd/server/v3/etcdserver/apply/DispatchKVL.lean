@@ -53,7 +53,7 @@ def kvOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM) 
   | .deleteRange => ∃ o, rq.deleteRange = some o ∧ ∃ e, authEndOf o.base.rangeEnd e ∧
       authOutL M hs ai ci rq log
         ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc
-  | .txn => ∃ t, rq.txn = some t ∧
+  | .txn => ∃ t, rq.txnW = some t ∧
       ((oc = .rejected .auth ∧ refusedMay M hs ai (txnMay t)) ∨
         (chainStep backendStep ci rq log oc ∧ ∃ L, txnChecked t L ∧ passedL M hs ai L))
   | _ => False
@@ -65,7 +65,7 @@ def kvShapedL (M : auth.AuthMode) (hs : List auth.AuthState) (rq : IRRModel) : P
   | .range => ∀ o, rq.range = some o → shapedL M hs (rangePermsM o)
   | .put => ∀ o, rq.put = some o → shapedL M hs (putPerms o)
   | .deleteRange => ∀ o, rq.deleteRange = some o → shapedL M hs (deletePermsM o)
-  | .txn => ∀ t, rq.txn = some t → shapedMay M hs (txnMay t)
+  | .txn => ∀ t, rq.txnW = some t → shapedMay M hs (txnMay t)
   | _ => True
 
 end pure
@@ -111,18 +111,19 @@ def applierKVL (E : AEnv GF) (c ci : Chain) (a : GoInterface)
             (fun oc => ∃ e, authEndOf o.base.rangeEnd e ∧
               authOutL E.authMode hs (auth.authInfoM info) ci rq log [(o.key, e, .read)] oc) ∗
           L hs ∗ traceRes trace }}) ∗
-    □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log F : mvcc.Log)
-        (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (tw : txn.TxnModelW)
+        (log F : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
         (hs : List auth.AuthState),
-      {{ txnPre E c (.ok ai) info r rq t log Pre Q Post ∗ mvcc.idxCert E.γ.idx F ∗ L hs ∗
-          ⌜shapedMay E.authMode hs (txnMay t)⌝ }}
+      {{ txnPre E c (.ok ai) info r rq t log Pre Q Post ∗ txn.txnRequestIsW r tw ∗
+          ⌜rq.txnW = some tw⌝ ∗ mvcc.idxCert E.γ.idx F ∗ L hs ∗
+          ⌜shapedMay E.authMode hs (txnMay tw)⌝ }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
           kvPostFL E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post
             (fun oc => (oc = .rejected .auth ∧
-                refusedMay E.authMode hs (auth.authInfoM info) (txnMay t)) ∨
+                refusedMay E.authMode hs (auth.authInfoM info) (txnMay tw)) ∨
               (chainStep backendStep ci rq log oc ∧
-                ∃ L, txnChecked t L ∧ passedL E.authMode hs (auth.authInfoM info) L)) ∗
+                ∃ L, txnChecked tw L ∧ passedL E.authMode hs (auth.authInfoM info) L)) ∗
           L hs ∗ traceRes trace }}))
 
 instance applierKVL_persistent (E : AEnv GF) (c ci : Chain) (a : GoInterface)
@@ -230,13 +231,13 @@ theorem apply.applierKVL_auth
     ipureintro; exact Hsh
   · -- Txn
     imodintro
-    iintro %r %skip %rq %t %log %F %Pre %Q %Post %info %hs
+    iintro %r %skip %rq %t %tw %log %F %Pre %Q %Post %info %hs
     imodintro
-    iintro %Φ' ⟨Hpre, #HF, HL, %Hsh⟩ HΦ'
-    iapply (hTxn E ci inner p r skip rq t log F Pre Q Post info L hs) $$ [Hpre HL] HΦ'
+    iintro %Φ' ⟨Hpre, #HRW, %Htw, #HF, HL, %Hsh⟩ HΦ'
+    iapply (hTxn E ci inner p r skip rq t tw log F Pre Q Post info L hs) $$ [Hpre HL] HΦ'
     iframe Hpre HL
     iframe #
-    ipureintro; exact Hsh
+    ipureintro; exact ⟨Htw, Hsh⟩
 
 set_option hygiene false in
 /-- Persist the result struct `ar` (all stores done) and split it into its fields (read-only
@@ -432,6 +433,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
   ihave %nRa := apply.optReqIs_null _ _ _ (apply.rangeIs_nn lRa) $$ HRa
   ihave %nPu := apply.optReqIs_null _ _ _ (apply.putIs_nn lPu) $$ HPu
   ihave %nDe := apply.optReqIs_null _ _ _ (apply.deleteIs_nn lDe) $$ HDe
+  ihave #HTxW := HTx
   ihave #HTx := apply.optReqIs_txnW lTx rq $$ HTx
   ihave %nTx := apply.optReqIs_null _ _ _ (apply.txnIs_nn lTx) $$ HTx
   ihave %nCo := apply.optReqIs_null _ _ _ (apply.compactionIs_nn lCo) $$ HCo
@@ -672,10 +674,16 @@ theorem apply.uberApplier.dispatch.wp_kvL
     have hk : dispatchKind rq = .txn := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    have hsh : apply.shapedMay E.authMode hh (apply.txnMay x) := by
-      have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h x hs
-    wp_apply HTxnL $$ %lTx %skip %rq %x %log %F %Pre %Q %Post %info %hh [Hkv Hwt Hres Hc HL] as %resp %trace %err ⟨Hpost, HL, Htrc⟩
-    · iframe HF HL
+    obtain ⟨tw, htw⟩ : ∃ tw, rq.txnW = some tw := by
+      have h := hs; rw [← apply.IRRModel.txnW_map] at h
+      cases h' : rq.txnW with
+      | none => rw [h'] at h; cases h
+      | some tw => exact ⟨tw, rfl⟩
+    ihave #HRW := apply.optReqIs_some _ _ _ _ htw $$ HTxW
+    have hsh : apply.shapedMay E.authMode hh (apply.txnMay tw) := by
+      have h := Hsh; simp only [apply.kvShapedL, hk] at h; exact h tw htw
+    wp_apply HTxnL $$ %lTx %skip %rq %x %tw %log %F %Pre %Q %Post %info %hh [Hkv Hwt Hres Hc HL] as %resp %trace %err ⟨Hpost, HL, Htrc⟩
+    · iframe HF HL HRW
       isplitl [Hkv Hwt Hres Hc]
       · iunfold apply.txnPre
         isplitr
@@ -683,12 +691,12 @@ theorem apply.uberApplier.dispatch.wp_kvL
         iframe HR Hcp
         iunfold apply.mPre
         iframe
-      ipureintro; exact hsh
+      ipureintro; exact ⟨htw, hsh⟩
     iunfold apply.kvPostFL at Hpost
     icases Hpost with ⟨%oc, %Hst0, Hans, Hkv, Hres, HPP, #Hcls⟩
     have Hst := And.intro Hst0.1 Hst0.2.1
     have HXo : apply.kvOutL E.authMode hh (auth.authInfoM info) ci rq log oc := by
-      simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2.2⟩
+      simp only [apply.kvOutL, hk]; exact ⟨tw, htw, Hst0.2.2⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnAnswerIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kvL

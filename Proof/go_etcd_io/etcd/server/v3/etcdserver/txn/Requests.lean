@@ -158,6 +158,14 @@ end
 def TxnModelW.toModel (t : TxnModelW) : TxnModel :=
   { cmps := t.cmps, thenOps := TxnOpW.toOps t.thenOps, elseOps := TxnOpW.toOps t.elseOps }
 
+theorem TxnOpW.toOps_eq_map : ∀ l : List TxnOpW, TxnOpW.toOps l = l.map TxnOpW.toOp
+  | [] => rfl
+  | op :: ops => by simp only [TxnOpW.toOps, List.map_cons, TxnOpW.toOps_eq_map ops]
+
+theorem TxnOpW.toOps_append (l l' : List TxnOpW) :
+    TxnOpW.toOps (l ++ l') = TxnOpW.toOps l ++ TxnOpW.toOps l' := by
+  simp only [TxnOpW.toOps_eq_map, List.map_append]
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -635,6 +643,56 @@ theorem requestOpIs_cases (p : Loc) (op : TxnOp) :
     · iright; iright; ileft; iexists w, r, o; iframe #; ipureintro; exact hop
 
 /-! ## The wire transaction and the model's (E3e) -/
+
+theorem requestOpsIsW_length :
+    ∀ (ps : List Loc) (ops : List TxnOpW), requestOpsIsW (GF := GF) ps ops ⊢ ⌜ps.length = ops.length⌝
+  | [], [] => by iintro -; ipureintro; rfl
+  | _ :: ps, _ :: ops => by
+    simp only [requestOpsIsW]
+    iintro ⟨-, H⟩
+    ihave %h := requestOpsIsW_length ps ops $$ H
+    ipureintro; simp [h]
+  | [], _ :: _ => by unfold requestOpsIsW; iintro H; iexfalso; iexact H
+  | _ :: _, [] => by unfold requestOpsIsW; iintro H; iexfalso; iexact H
+
+/-- The `i`-th wire operation of the list. -/
+theorem requestOpsIsW_elem :
+    ∀ (ps : List Loc) (ops : List TxnOpW) (i : Nat) (p : Loc), ps[i]? = some p →
+      requestOpsIsW (GF := GF) ps ops ⊢ ∃ op, ⌜ops[i]? = some op⌝ ∗ requestOpIsW p op
+  | [], _, _, _, h => by simp at h
+  | _ :: _, [], _, _, _ => by unfold requestOpsIsW; iintro H; iexfalso; iexact H
+  | q :: ps, op :: ops, 0, p, h => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h
+    simp only [requestOpsIsW]
+    iintro ⟨H, -⟩
+    iexists op
+    iframe H
+    ipureintro; rfl
+  | q :: ps, op :: ops, i + 1, p, h => by
+    simp only [List.getElem?_cons_succ] at h ⊢
+    simp only [requestOpsIsW]
+    iintro ⟨-, H⟩
+    iapply requestOpsIsW_elem ps ops i p h $$ H
+
+/-- A nested transaction's wire operation: its `TxnRequest`'s `txnRequestIsW`. -/
+theorem requestOpIsW_txn (p : Loc) (cs : List CmpModel) (ts es : List TxnOpW) :
+    requestOpIsW (GF := GF) p (.txn cs ts es) ⊢ ⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗
+      txnRequestIsW r { cmps := cs, thenOps := ts, elseOps := es } := by
+  unfold requestOpIsW
+  iintro #⟨%Hp, %w, %r, #Hu, #Hw, %Hr, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs,
+    #Hss, #Hsm, #Hf, #Hfs, #Hfm⟩
+  isplitl []; · ipureintro; exact Hp
+  iexists w, r
+  iframe Hu Hw
+  unfold txnRequestIsW
+  isplitl []; · ipureintro; exact Hr
+  iexists csl, ssl, fsl, cps, sps, fps
+  iframe Hc Hcs Hcm Hs Hss Hsm Hf Hfs Hfm
 
 theorem putTxnOp_ne_txn (o : OpFull) (cs : List CmpModel) (ts es : List TxnOp) :
     putTxnOp o ≠ .txn cs ts es := by

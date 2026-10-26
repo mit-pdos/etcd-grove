@@ -1546,18 +1546,19 @@ end kvLatest
 /-- **The apply thread's KV outcome is the mode-`on` model's** (the auth plan's E2v/E2y,
 `KVOutcomeOn.lean`): the dispatched verdict at the latest state (`kvOutL`, `apply_apply_kv_latest`)
 gives E2t's `outcomeOn`, for a plain KV request at the start chain with auth on and no alarm,
-without `"\x00"` range ends and, for a transaction, `txnVerdictOwn`. -/
+without `"\x00"` range ends (a transaction's verdict on its own permissions a theorem since E3e,
+`txnVerdictOwn_of`). -/
 theorem kv_outcome_on_latest [ext : FfiSyntax] (c₀ : w64) (s : auth.AuthState × mvcc.Log)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : EtcdGrove.apply.needAdminPermission rq = false)
     (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true) (hp : plainCover rq)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some s.1)
-    (hz : noZeroEnds rq) (htx : txnVerdictOwn (.on γa) hs rq) (oc : EtcdGrove.apply.Outcome)
+    (hz : noZeroEnds rq) (oc : EtcdGrove.apply.Outcome)
     (h : EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
       (.quota .backend) rq s.2 oc) :
     outcomeOn c₀ (EtcdGrove.apply.alarmChain true false false) s m (s.1, oc.logAfter s.2) :=
-  outcomeOn_of_kvOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz htx oc h
+  outcomeOn_of_kvOutL c₀ s m rq ht hd hdec hv hna hk hp γa hs hl hz oc h
 
 #print axioms Perennial.EtcdGrove.auth_user_add_tie_sure
 #print axioms Perennial.EtcdGrove.apply_applier_kv_latest
