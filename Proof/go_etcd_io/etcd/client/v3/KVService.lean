@@ -1535,7 +1535,7 @@ theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
   have hop : op' = o := Hz (irrNoZeroEnd_delete o hz)
   subst hop
   have hne : y.log ≠ [] := by intro he; rw [he] at hlen; simp at hlen
-  have hs := kvStateOf_kvs y.log
+  have hs := kvStateOf_kvs y.log (lt := [])
   iexists kvStateOf y.log
   iframe HQ
   ipureintro
@@ -1572,7 +1572,7 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
     subst ht hsk
     have hne : y.log ≠ [] := by intro he; rw [he] at hlen; simp at hlen
     have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := kvStateOf_rev_succ _ hlen
-    have hs := kvStateOf_kvs y.log
+    have hs := kvStateOf_kvs y.log (lt := [])
     iexists kvStateOf y.log
     iframe HQ
     ipureintro
@@ -1589,7 +1589,7 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
     ihave %Hl := idxCert_logOk _ _ hrb $$ Hc
     obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
     have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
-    have hs := kvStateOf_kvs log
+    have hs := kvStateOf_kvs log (lt := [])
     iexists kvStateOf log
     iframe HQ
     ipureintro

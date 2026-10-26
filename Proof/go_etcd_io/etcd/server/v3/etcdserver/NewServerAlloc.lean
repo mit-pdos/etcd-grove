@@ -72,7 +72,7 @@ theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
       γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn) :
     kvInv (GF := GF) γs γk = kvInv γs γk' := by
   obtain ⟨h1, h2, h3, h4, h6, h7⟩ := h
-  unfold kvInv kvWork entryClaim idClaim kvModel idRegd idWaitIs
+  unfold kvInv kvWork entryClaim idClaim kvModelSt kvLeases kvModel idRegd idWaitIs
   rw [h1, h2, h3, h4, h6, h7]
 
 /-- The client's `etcdKV` reads only the state's variable. -/
@@ -149,7 +149,7 @@ def srvBootOut (ids : IdNames) (bootLog : List EntryM) (γ : RaftNames) :
   iprop(∃ γk : KVNames,
     ⌜γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
       γk.ids = ids⌝ ∗
-    kvInv ⟨γ, [], W64 0⟩ γk ∗ etcdKV γk (kvStateOf (kvModel γk (bootEntries bootLog))) ∗
+    kvInv ⟨γ, [], W64 0⟩ γk ∗ etcdKV γk (kvModelSt γk (bootEntries bootLog)) ∗
     ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) ∗
     ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit))
 
@@ -165,9 +165,9 @@ theorem srvBootClient (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → 
   unfold allocClientBoot
   iintro %γ %Hγ #Hc HL Hf Hrf
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain false false false, [[], []], 0, 0, ids⟩
-  imod ghostVar_alloc (GF := GF) (kvStateOf (kvModel γk0 (bootEntries bootLog))) with ⟨%γst, Hst⟩
+  imod ghostVar_alloc (GF := GF) (kvModelSt γk0 (bootEntries bootLog)) with ⟨%γst, Hst⟩
   let γk : KVNames := { γk0 with st := γst }
-  have hm : kvModel γk (bootEntries bootLog) = kvModel γk0 (bootEntries bootLog) := rfl
+  have hm : kvModelSt γk (bootEntries bootLog) = kvModelSt γk0 (bootEntries bootLog) := rfl
   let γs : ServerRaftNames := ⟨γ, [], W64 0⟩
   imod (kvInv_alloc_boot (GF := GF) γs γk ccOk ps bootLog E rfl rfl hboot
       (fun ty d h => ⟨(hpol ty d h).2.2.1, by rw [Hγ.1]; exact (hpol ty d h).2.2.2⟩)
@@ -256,7 +256,7 @@ theorem srvClusterBoot_alloc (cfg nodes : GSet w64) (ccOk : w32 → List w8 → 
           γk.ids.issued = issued⌝ ∗
         raftCommitInv (GF := GF) γ ∗ isCommitted γ bootLog ∗ rdCredInv γ ∗
         ([∗map] id ↦ _u ∈ toMap nodes, ownRaftGhost γ id (bootPState bootLog)) ∗
-        kvInv ⟨γ, [], W64 0⟩ γk ∗ etcdKV γk (kvStateOf (kvModel γk (bootEntries bootLog))) ∗
+        kvInv ⟨γ, [], W64 0⟩ γk ∗ etcdKV γk (kvModelSt γk (bootEntries bootLog)) ∗
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗

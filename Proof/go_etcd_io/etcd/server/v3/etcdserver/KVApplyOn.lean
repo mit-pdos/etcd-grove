@@ -47,9 +47,9 @@ theorem kvEntryOn_grow (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mv
       · left; rfl
       · split
         · left; rfl
-        · exact kvEntry_grow c₀ ch s.2 m
+        · exact kvEntry_grow c₀ ch [] s.2 m
     · left; rfl
-  · exact kvEntry_grow c₀ ch s.2 m
+  · exact kvEntry_grow c₀ ch [] s.2 m
 
 open Classical in
 /-- **What the apply thread may make of entry `m` at the state `s`, in the mode `on`** (the
@@ -65,9 +65,9 @@ def outcomeOn (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log) (
       if uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true then
         adminStateR rq s.1 o.1 ∧ o.2 = s.2
       else if apply.isKVKind (apply.dispatchKind rq) = true ∧ ¬ kvGranted s.1 rq then o = s
-      else o = (s.1, kvEntry c₀ ch s.2 m)
+      else o = (s.1, kvEntry c₀ ch [] s.2 m)
     | none => o = s
-  else o = (s.1, kvEntry c₀ ch s.2 m)
+  else o = (s.1, kvEntry c₀ ch [] s.2 m)
 
 /-- **At a determinate entry, every outcome the apply thread may reach is the model's**
 (`kvEntryOn`): an admin entry's successor is the unique one (`adminNext_of_det`). -/
@@ -148,11 +148,11 @@ theorem logOn_snoc (c₀ : w64) (ch : apply.Chain)
 
 /-- The auth layer does not change an entry's write (`chainLog`): the start's chain with auth on
 writes as the one with auth off. -/
-theorem kvEntry_alarmChain_on (c₀ : w64) (log : mvcc.Log) (e : EntryModel) :
-    kvEntry c₀ (apply.alarmChain true false false) log e =
-      kvEntry c₀ (apply.alarmChain false false false) log e := by
-  have hc : ∀ rq, chainLog (apply.alarmChain true false false) rq log =
-      chainLog (apply.alarmChain false false false) rq log := by
+theorem kvEntry_alarmChain_on (c₀ : w64) (lt : LeaseTable) (log : mvcc.Log) (e : EntryModel) :
+    kvEntry c₀ (apply.alarmChain true false false) lt log e =
+      kvEntry c₀ (apply.alarmChain false false false) lt log e := by
+  have hc : ∀ rq, chainLog (apply.alarmChain true false false) rq lt log =
+      chainLog (apply.alarmChain false false false) rq lt log := by
     intro rq
     simp only [apply.alarmChain, apply.baseChain, Bool.false_eq_true, ↓reduceIte, chainLog]
   unfold kvEntry dispatchLog
@@ -200,13 +200,13 @@ theorem kvModelOn_snoc_granted (γk : KVNames) (st₀ : auth.AuthState) (L : Lis
     (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
     (hna : apply.needAdminPermission rq = false)
     (hg : kvGranted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 rq)
-    (hlf : reqLeaseFree rq) :
+    (hpc : plainCover rq) :
     kvStateOf (kvModelOn γk st₀ (L ++ [e])) = kvReqStep rq (kvStateOf (kvModelOn γk st₀ L)) := by
   rw [kvModelOn_snoc, kvEntryOn_of_granted _ _ _ e rq hdec hna hg]
   have hm : (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).2 = kvModelOn γk st₀ L := rfl
   simp only
-  rw [hm, hch, kvEntry_alarmChain_on, kvEntry_base γk.c0 _ e rq ht hd hdec hidx]
-  refine kvStateOf_backendLog _ _ ?_ hlf
+  rw [hm, hch, kvEntry_alarmChain_on, kvEntry_base γk.c0 _ _ e rq ht hd hdec hidx]
+  rw [← kvStateOf_backendLog [] rq _ ?_, backendTable_plain rq [] hpc]
   intro he
   apply h0
   have hp := kvRaftOfOn_extends γk.c0 γk.ch0 (st₀, γk.log0) L

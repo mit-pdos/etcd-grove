@@ -81,8 +81,8 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain false false false)
     (hlog : γk.log0 ≠ []) :
     ⊢ rLog (GF := GF) γs.raft bootLog -∗
-      ghostVar γk.st 1 (kvStateOf (kvModel γk (bootEntries bootLog))) ={E}=∗
-      kvInv γs γk ∗ etcdKV γk (kvStateOf (kvModel γk (bootEntries bootLog))) := by
+      ghostVar γk.st 1 (kvModelSt γk (bootEntries bootLog)) ={E}=∗
+      kvInv γs γk ∗ etcdKV γk (kvModelSt γk (bootEntries bootLog)) := by
   iintro HL Hv
   icases buildGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
   have hsl : srvLogOf γs (bootEntries bootLog) = bootLog := by
@@ -149,7 +149,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
     rw [ht]; decide)
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
-      srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
+      srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
       ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
         γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft.reCfg γk L))
     $$ [HL Hv1] with #Hinv

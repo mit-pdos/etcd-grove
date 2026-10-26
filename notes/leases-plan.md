@@ -220,6 +220,24 @@ is widening `plainCover`):
   that table). `kvStateOf_backendLog` holds of every request (no `reqLeaseFree`). The model's grant
   also refuses id `0` and a TTL above `MaxLeaseTTL` (`lessor.Grant`'s two other errors). `plainCover`
   is unchanged (nothing new admitted yet), so the table stays empty on every server.
+  *Done (2026-10-26).* `backendLog lt`, `chainLog c rq lt`, `dispatchLog c rq v3 lt`,
+  `kvEntry c₀ ch lt` and their table steps `backendTable`/`chainTable`/`dispatchTable`/`kvTable`
+  (a grant is dispatched to the chain though not a store kind, so `dispatchTable` does not gate on
+  `storeKind`); `kvRaftSt` folds the pair, `kvRaftOf` is its log (from `[]`), `kvTableOf` the table
+  (`kvRaftSt_snd`), `kvRaftOf_snoc` steps at the prefix's table. `writeKind` includes the two lease
+  kinds; `reqKVOp` maps them; `kvStateOf l lt` (table default `[]`); `kvStateOf_backendLog` for
+  every request at every table; `kvOpStep`'s grant checks `leaseGrantOk` (id `0`, `MaxLeaseTTL`,
+  live). `kvInv` holds `kvModelSt γk L` (`kvLeases γk L`); `kvModel_snoc_state` lost its
+  `reqLeaseFree` (gone). The apply side is unchanged: a `plainCover` request names no lease, so its
+  step is the same at every table (`backendStep_plain lt`, ..., `batchStep_plain c₀ lt`), and the
+  apply thread's ghost state steps at `kvLeases γ A`. The auth mode `on` folds at `[]`
+  (`kvModelOn_snoc_granted` takes `plainCover`). *The results stay at the empty table:*
+  `reqPropOk`'s and `kvDep`'s `Q` are at `kvStateOf (kvModel γk L)` (and so the server's put,
+  delete and txn specs at `kvStateOf x.log`), equal to the invariant's state while the committed
+  log is plain (`kvModelSt_plain`, `kvTableOf_plain`; the boot's, `kvModelSt_boot`). Finding for
+  L3b/L3c: a reply's state must come from the committed log `Lq`, not the applied log (two logs with
+  the same mvcc log can differ in their tables, a grant making no revision), so those results move
+  to `kvModelSt γk Lq` when grants are admitted. Trust base unchanged (727 axioms, 7 sorries).
 - *L3b. Leased puts and transactions.* `plainCover` admits a put with any lease and any transaction
   without `IgnoreLease` (the txn's lease checks are `checkLease`/`checkLeasePuts`, proved). The apply
   layer's state carries the table (`ApplyKV.leases`), `backendStep` is exact on a leased write

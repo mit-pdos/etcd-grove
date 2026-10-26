@@ -167,7 +167,7 @@ theorem kvInvOn_commit_granted (γk : KVNames) (st₀ : auth.AuthState) (L : Lis
     (h0 : γk.log0 ≠ []) (ht : e.typ = W32 0) (hd : e.data ≠ [])
     (hdec : apply.irrDecode e.data = some rq) (hidx : uint.Z γk.c0 < uint.Z e.index)
     (hna : apply.needAdminPermission rq = false)
-    (hg : kvGranted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 rq) (hlf : reqLeaseFree rq) :
+    (hg : kvGranted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 rq) (hpc : plainCover rq) :
     ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) -∗ etcdKV γk σ ==∗
       ⌜σ = kvStateOf (kvModelOn γk st₀ L)⌝ ∗
       ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ (L ++ [e]))) ∗
@@ -175,7 +175,7 @@ theorem kvInvOn_commit_granted (γk : KVNames) (st₀ : auth.AuthState) (L : Lis
   iintro Hσ Hc
   iunfold etcdKV at Hc
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
-  have hst := kvModelOn_snoc_granted γk st₀ L e rq hch h0 ht hd hdec hidx hna hg hlf
+  have hst := kvModelOn_snoc_granted γk st₀ L e rq hch h0 ht hd hdec hidx hna hg hpc
   imod ghostVar_update_halves (kvReqStep rq σ) γk.st _ _ $$ Hσ Hc with ⟨Hσ, Hc⟩
   imodintro
   isplitr

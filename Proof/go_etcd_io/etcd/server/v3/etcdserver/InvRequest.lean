@@ -953,7 +953,7 @@ end ghost
 abstract state of etcd's KV is one exclusive predicate `etcdKV γk σ` (`σ : KVState`, the store at
 its latest revision: every key-value and the current revision), half of a ghost variable whose
 other half is in the KV invariant (`kvInv`) with the server's half of raft's committed log `L`,
-`σ` being the state of the KV model of `L` (`kvStateOf (kvModel γk L)`). A client keeps `etcdKV`
+`σ` being the state of the KV model of `L` (`kvModelSt γk L`). A client keeps `etcdKV`
 in its own invariant (a per-key view, if it wants one, is its ghost map beside it). The invariant
 also keeps `L` plain at the workload (`plainLog`, D19q): the only updates raft can fire
 over `L` are the ones built from it (`kv_prop_au`, `kv_noop_au`), which check. -/
@@ -1004,6 +1004,14 @@ instance etcdKV_timeless (γk : KVNames) (σ : KVState) : Timeless (etcdKV (GF :
 
 /-- **The KV model of the committed log `L`** (the fold of `kvEntry` from the start state). -/
 def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := kvRaftOf γk.c0 γk.ch0 γk.log0 L
+
+/-- **The lease table of the committed log `L`** (unit T3, L3a: the fold of `kvTable` from the
+empty table). -/
+def kvLeases (γk : KVNames) (L : List EntryModel) : LeaseTable := kvTableOf γk.c0 γk.ch0 [] L
+
+/-- **The KV state of the committed log `L`** (unit T3, L3a): its model's log's state, with its
+lease table. -/
+def kvModelSt (γk : KVNames) (L : List EntryModel) : KVState := kvStateOf (kvModel γk L) (kvLeases γk L)
 
 /-- **`id` was registered** (persistent; linkv-txn stage B1, 2026-10-20) in the wait registry of
 the member of its prefix (the cluster's registries' map, `idWaitIs`), with the consumer token `t`:
@@ -1062,7 +1070,7 @@ with auth disabled and no alarm, the start log not empty; and (D19c, 2026-10-18)
 facts of `L` (`kvWork`), which every update the server hands raft checks of its entry. -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
-    srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
+    srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
     ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γ.raft.reCfg γk L)
 
