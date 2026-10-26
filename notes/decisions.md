@@ -19660,3 +19660,81 @@ are read-only once read.
 generic in the mode `M`; only `NewAuthStore`'s server statement is off-mode).
 
 **Trust base.** +1 axiom: `bcrypt.CompareHashAndPassword.wp_proof`.
+
+## E2i of the auth plan: the store's apply contract in the mode `on`, the server's auth store in either mode; `NewServer` generic not reached (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2g's "what's left", steps 1, 3, 4): (1) `apply.isAuthStore`'s admin clauses in the mode
+`on` as the step specs of `apply/AuthSteps.lean`, the authority in the apply thread's resources; (2)
+`NewServer.spec` generic in the auth mode, the store from `newAuthStore_boot`; (3) if reachable, the
+server's Auth-service gRPC contracts in the mode `on`. Done: a first form of (1) and the auth half of
+(2); (2) itself and (3) not.
+
+**(1) The admin clauses gated by an admission premise** (`apply.adminAdmitted M := M.isOn = false`,
+`apply/Contracts.lean`). The real admin clauses in the mode `on` need, besides the authority
+`auth.authOwn` (which the server's write right could lend), the step premises `auth.stepOk` (the
+revision below `2 ^ 64` after the bump, a next state's permissions within the cache trees'
+`2 ^ 63`), which no resource of the apply thread implies at an arbitrary history: they are a budget
+the workload has to hand each admin request (a ticket per request, the authority's invariant
+`revision + tickets outstanding` bounded, and per-entity counts bounded by the revision; or a pure
+bound the request's admission carries), and the request's caller has to get the authority back to
+observe the step (the E2 theorem needs the history after `SetUp`). Neither exists yet: the server's
+workload admits no auth request (`rqOk`). So this stage states what is true now and shapes the place
+the admission goes: every admin clause of `isAuthStore` (`HasRole`, `AuthEnable`, `AuthDisable`,
+`Authenticate`, the eleven user and role requests and the four reads; `authReqContract`,
+`authReqContractN` take the mode) takes `⌜adminAdmitted M⌝`, true in the mode `off`, false in `on`
+and `any`; the request facts `reqFacts` of the auth methods and `applierTriples`' `AuthEnable` /
+`AuthDisable` clause carry `⌜adminAdmitted E.authMode⌝`, and the sixteen `applierV3backend` admin
+specs and `authApplierV3`'s `UserGet`/`RoleGet` take it (`Spec/.../apply/applierV3backend__*.lean`;
+the layers pass it on unchanged; `dispatch` discharges every auth request by `rqOk`). In the mode
+`on` the clauses are vacuous, so the real store meets `isAuthStore (.on γa)` from its invariant
+(`apply.isAuthStoreAdmin_on`, `authApplyOkM_on`, `AuthApplyOn.lean`). The admission premise is
+where (1) proper goes: replace `⌜adminAdmitted M⌝` in the mode `on` by the request's admission
+(the authority with the step's premises at its history, given back after the step), and the
+`applierV3backend` specs' posts by `AuthSteps.lean`'s step results.
+
+**(2), its auth half: the server's auth store in either mode** (`AuthSrv.lean`). `NewServer` calls
+`NewTokenProvider`, then `mvcc.New` (whose owner tag names the auth mode, so the mode, and with auth
+on the auth names, must exist before it), then `NewAuthStore`. `authSrvTP on` states the two auth
+calls as one contract: `NewTokenProvider`, with no error, gives a mode `M` with `M.isOn = on` and
+`authStoreKit M tp`, `NewAuthStore`'s axiom's triple with the apply contract in the mode `M`
+(`authApplyOkM`, `InvBoot.lean`; `authApplyOk` is its mode `off`) at a resource the kit holds.
+`authSrvTP_off` (of `NewTokenProvider`'s proof and `NewAuthStore`'s axiom) is what `NewServer`'s
+proof uses today; `authSrvTP_on` (restated `srv_auth_tp_on`, `etcdserver/Results.lean`): the simple
+provider (options `"simple"`, a positive TTL), the auth names allocated over the boot state with the
+provider's token names (`auth.authBoot_alloc`), the provider's contract (`tokenSimple_okA_run`, over
+`auth.ValidSpec`, a premise: `isValidSimpleToken` is proved on contexts only), and the store from
+`auth.newAuthStore_on`, not the axiom, with its request side and apply contract of its invariant.
+What only D22 can prove is the named premise `authSchemaSrv`: given the batch lock's half of the
+history at the boot state, schema's auth backend over the server's backend meets the store's
+backend contracts, taking the backend resources the axiom takes and giving back what it gives back
+(E2e's `auth.authSchemaBoot` at the server's backend). `auth.newAuthStore_on`'s post names the
+backend the store's field holds (`auth.authWRAt`, forgotten to `authWR` by `authWRAt_authWR`), so
+that the server's `authBeOn` can name it.
+
+**(2) itself, not reached.** `NewServer.wp_proof` generic in `on` (its `h25`, `h30` replaced by
+`authSrvTP on`, the start's chain `alarmChain on false false` for `bootKV`, the environment's mode
+`M`, the post `E.authOn = on`) was written (the edit is mechanical: ten literals, the two calls, the
+`mvcc.New` tag, the post; `word` must not see `M.isOn = on` in the Lean context, it substitutes `on`
+and breaks later goals: keep it in the Iris context), but its compile exceeded 17 GB and was
+stopped (the module compiles in a few GB at the mode `off`); not committed. Next: find which step
+the abstract mode makes blow up (bisect with `sorry`s; suspects the `envAgree`/`srvFloorFact`
+equations and `iExactEq Huo; rfl` over the literal environment), or state the generic proof over an
+environment variable `E` with `E.authMode = M` instead of the literal.
+
+**E2j's reads** (landed while this ran: `UserGet`, `RoleGet`, `UserList`, `RoleList`,
+`CheckPassword` proved over `authBackendReads`) fit `authReqContract`'s `Post ∨ Pre` and are what
+(1) proper uses for the reads' clauses in the mode `on` (with their admission); in the mode `off`
+the clauses stay `NewAuthStore`'s axiom's.
+
+**(3) not attempted.** The server's Auth-service gRPC contracts in the mode `on` (to discharge E2h's
+`setupAuthOk`) need (1) proper: the admin requests admitted.
+
+**Exported statements changed** (each with a premise more, or a post more): the sixteen
+`apply.applierV3backend.{AuthEnable, AuthDisable, Authenticate, UserAdd, UserDelete,
+UserChangePassword, UserGrantRole, UserGet, UserRevokeRole, RoleAdd, RoleGrantPermission, RoleGet,
+RoleRevokePermission, RoleDelete, UserList, RoleList}.spec` and `apply.authApplierV3.{UserGet,
+RoleGet}.spec` (`⌜adminAdmitted E.authMode⌝`); `apply.isAuthStore`, `apply.isAuthStoreAdmin` (its
+mode argument), `apply.reqFacts`, `apply.applierTriples` (definitions); `auth_store_new_on`'s post
+(`authWRAt`). New: `srv_auth_tp_on`, `srv_auth_tp_off`.
+
+**Trust base.** Unchanged (no axiom or `sorry` added).
