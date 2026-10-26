@@ -18860,6 +18860,38 @@ lock's hook, as the cluster's other writers are).** The cluster's in-memory memb
   the member into the map (replacing a member of its id: the boot `AddNode`s re-add known members),
   the metric, the log line; `clusterMem` at `mem` with the member's value at its id.
 
+**M5c blocked (2026-10-26, branch `membership-m5`; for the user).** Starting M5c (W3 with the
+decisions of "M5c scoping": peers-only ids, a pool of four `R`s per other member in the lock), two
+statements the server's proofs rest on turn out incompatible with handing `trLive` to the apply
+thread; nothing was changed in Lean.
+- *`Stop` is persistent.* `netTransport` (`Net.lean:221`) and the raft wrapper's
+  `isRNTransport` (`InvRaftNode.lean:738`) promise `□ {{ True }} Stop {{ True }}`, and
+  `raftNode.onStop` uses it on `<-r.stopped`, a unit bag anyone may send to (`isUnitBag`). Go's
+  `AddPeer` panics on a stopped transport (`transport.go:300-301`), so a `Stop` callable at any time
+  and an `AddPeer` the apply thread may call are unsound together: `Stop` cannot be proved from
+  `trState`, and `trFrozen_net`'s proof of it uses the freeze (`trRemotesFrozen` sets the flag).
+  This bites in the static mode too once `applyConfChange` is proved (M5e): a boot `AddNode`'s
+  re-application calls `AddPeer` of a known peer, which still checks `t.peers == nil` first.
+  Options: (A) gate `Stop` by a resource: `netTransport`'s `Stop` clause (and `isRNTransport`'s)
+  takes it, the `stopped` bag carries it (nobody sends on `stopped` in the verified code until M6,
+  whose `raftNode.stop` sends the apply thread's `trLive`, Go's order `server.go:818-825`); a
+  statement change of `netTransport` (D22's) and of `RNEnv`; (B) as (A) but `Stop` moved out of
+  `netTransport` into a separate transport fact; (C) keep the freeze until M6 and do the hand-off
+  there (M5e then cannot prove `applyConfChange`'s `RemovePeer`/`AddPeer`).
+- *`CutPeer`/`MendPeer` need "no remote".* `remote.Pause` closes the pipeline's `stopc`
+  (`nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`: a second `CutPeer`, or `Stop` after
+  one, panics), so their specs take `id ∉ rs.1`, which the server's `srvNetMember` gives by
+  `rs.1 = []` on the frozen transport (a new cluster has no remote). With the handlers' `AddRemote`
+  adding a remote for any non-peer member (a removed one), that fact has no basis once the peers
+  change, and dropping `rs.1` from the owner's record (the decision) leaves nothing to state it
+  over. Options: (i) the static mode keeps the freeze for `CutPeer`'s fact (every member a peer
+  for good, so no remote is ever added: the lock's coverage of the frozen peers), the dynamic mode
+  hands `trLive` to the apply thread, and `EtcdServer.CutPeer`/`MendPeer` stay static-only (the
+  partition example is static); (ii) a fork fix making `remote.Pause`/`Resume` idempotent (a
+  `paused` flag, as `peer` has; the nonissue's suggested hardening), so `CutPeer`/`MendPeer` are
+  proved over `trState` for any id; (iii) `CutPeer`/`MendPeer` over `trState` with a premise "no
+  remote for `id`" that only a frozen transport can give (as (i), stated per call).
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL

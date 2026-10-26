@@ -119,3 +119,15 @@ stopping), not reached by any upstream test or production path. Move to `issues/
 guarded `pipeline.stop` (or a `paused` flag in `remote`) would be a harmless hardening if a test
 that partitions a joined member is ever written. The proof's premise (`id ∉ rs`, a new cluster's
 member) stays as it is.
+
+## Addendum, 2026-10-26: remotes on a new cluster's members after a removal
+
+Scoping T-M's M5c (`notes/decisions.md`, D43 "M5c blocked"): a new cluster's member gets a remote
+too once a member is removed. The pipeline and snapshot handlers call `addRemoteFromRequest` ->
+`AddRemote` on every request (`http.go:117,226`), and after `RemovePeer(x)` the removed member `x`
+keeps sending until it learns, so the receiver starts a remote for `x`. A `CutPeer(x)` twice, or a
+`CutPeer(x)` then `Transport.Stop`, then panics as above (re-confirmed at the fork's
+`goose-lean-learnerfix` `c00a2dc06` with a test of the same shape, `AddRemote` then `CutPeer`
+twice, and `AddRemote`, `CutPeer`, `Stop`). Still a test hook's precondition (no production caller
+of `CutPeer`), so it stays here; what changes is that the proof's premise (no remote, from a new
+cluster's bootstrap) no longer follows once the transport's peers change.

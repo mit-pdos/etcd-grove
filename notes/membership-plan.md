@@ -245,7 +245,9 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     contract axioms over the tracked buckets (replacing the opaque `ccValidOn`), `ccRest` with
     `RemoveNode` (`members_removed`); `BackendHooks.SetConfState` translated and proved.
   - *M5c.* W3: the apply thread holds `trLive` (`NewServer` stops freezing it; the readers over
-    `trState` and their tokens).
+    `trState` and their tokens). **Blocked (2026-10-26)**: `netTransport`'s persistent `Stop` and
+    `CutPeer`/`MendPeer`'s "no remote" premise (D43 "M5c blocked", options there); awaiting the
+    user's decision.
   - *M5d.* The server's cluster in the dynamic mode: `isRaftClusterG c (rcDyn γ)`, `rcRemovedOwn`
     the apply thread's; `srvCCPolicy`'s dynamic case admits a `RemoveNode` of another member.
   - *M5e.* `applyConfChange` proved (the axiom goes).
