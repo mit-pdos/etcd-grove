@@ -19936,6 +19936,6 @@ what the mode `off` needs, `adminAdmitted` in the mode `on` (E2i).
 **Exported statements changed.** `NewServer.specM`'s post loses `srvAuthApplyRes srv E` (now inside
 `srvBuilt`); the definitions `srvApplyKV`, `applyBuilt`, `applyBuiltNA` gain it. `NewServer.spec`
 unchanged. New: `apply.AdminReq`, `apply.adminTriples`, `apply.applierAdmin`, `applierAdmin_backend`,
-`applierAdmin_quota`, `applierAdmin_capped`, `applierAdmin_corrupt`, `applierAdmin_auth`.
+`applierAdmin_quota`, `applierAdmin_capped`, `applierAdmin_corrupt`, `applierAdmin_auth`, and the restatement `apply_admin_backend` (`etcdserver/Results.lean`).
 
 **Trust base.** Unchanged (no axiom or `sorry` added).
