@@ -18601,6 +18601,13 @@ server's definitions over logs the client saw (`kmLog`: a prefix of `[] :: l` fo
 `etcdRevToken` minted by the adapter's write update (`km_write_au`). Every law is the server's
 proof over `kmLog`: two logs a client saw are in prefix order, as two sealed logs were.
 
+**An application's facts in the adapter's invariant** (2026-10-26, for the examples). The
+invariant holds the client's half of `etcdKV`, so it is where a client's own fact about the KV's
+changes must live (D44: watchkv's "each revision from 2 is one of the plan's puts"): `KMNames.W`, a
+property of the changes the invariant keeps. A read keeps it trivially (the read-side contracts
+hold for any `W`); a write's update needs the write to keep it (`km_write_au`'s premise), and the
+libraries' write contracts take `KMWritable γ` (every operation keeps it; `fun _ => True`).
+
 **What the specs had to add (option (a)).** The laws (positive versions, `createRev ≤ modRev ≤ r`)
 are facts about well-formed small logs (`txn.stateAt_client_revs`), which an arbitrary `σ` need
 not be. So every successful KV reply gives `kvLogOk σ` (`KVLogOk.lean`: `σ = kvStateOf σ.log`, its
