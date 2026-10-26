@@ -484,7 +484,10 @@ def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
              uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
            isMessageC γ.raft (absSnap st.msg sv scfg) ∗
            -- (D22 S-r, 2026-10-21) and its data certificate (the sender's `msgDat`)
-           snapDataOk γ.raft sv.Metadata'.Index' sv.Data') ∗
+           snapDataOk γ.raft sv.Metadata'.Index' sv.Data' ∗
+           -- (2026-10-26, D22 J2, R-loc) and its receiver-local fact (`snapLocal`: for a server,
+           -- its index saved in the member's snapshot directory, `snapSaved`)
+           snapLocal γ.raft id sv.Metadata'.Index') ∗
       termLB γ.bud st.msg.Term' ∗
       rdCred γ.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
       tickCred γ.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0))
@@ -641,6 +644,9 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     ⌜γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ γ.mode = .static⌝ ∗
     -- (D22 S-d4 item 4) every pointer field set: what `MemoryStorage.ApplySnapshot` takes
     ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
+    -- (2026-10-26, D22 J2, R-loc) the snapshot local to the node (`snapLocal`: for a server, its
+    -- index saved in the member's snapshot directory, which `snapDirInv` turns into its file)
+    snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
     ⌜l.ptr = rd.Snapshot' ∧ ce = [] ∧ d <+: l.dlv ∧
       -- (D22 S-r, 2026-10-21) past the committed log handed out before
       d.length < l.dlv.length ∧

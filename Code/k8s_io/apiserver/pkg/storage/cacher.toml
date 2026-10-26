@@ -8,6 +8,8 @@ translate = ["!*",
   "watchCache.waitAndGetLatestSnapshot", "watchCache.getLatestSnapshotLocked",
   "watchCache.checkSnapshotResourceVersion", "watchCache.notFresh",
   "watchCache.WaitUntilFreshAndGet",
+  # the cacher's read over it (`cacher.go`; its `Get` is the read's API, KEP-6404)
+  "Cacher.get",
   # its embedded `RWMutex`'s promoted methods (the method-set rules `watchCache.TypeAssumptions.
   # ptr_RLock_unfold`, ...: a method resolution on the field)
   "watchCache.RLock", "watchCache.RUnlock", "watchCache.Lock", "watchCache.Unlock",

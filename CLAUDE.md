@@ -324,3 +324,52 @@ wall and CPU time, parallelism over time, the critical path (with Lake's idle ti
 per step), the unlimited-cores bound, the slowest modules and where the CPU went.
 CI (`.github/workflows/lean.yml`) builds with `etc/timed-build.py` and puts the
 report on the run's summary page.
+
+## Checking a proof while editing it
+
+`etc/lean-check.py FILE...` checks files through a Lean server it keeps running in the
+background (`.lake/lean-check/`, started on the first check, gone after an hour unused), with
+the files open: after an edit, Lean re-elaborates only from the first changed tactic on, as an
+editor does, where `lake build` and `lake env lean` elaborate the whole file every time. It prints
+the errors and warnings like `lake build` (`-q`: errors only) and exits 1 on an error. Use it
+for the edit-check loop of a proof; `lake build` stays the check of record (and writes the
+`.olean`s other files import).
+
+- `--goal LINE[:COL]` prints the proof state there (the Iris context included), instead of
+  inserting a `trace_state` or a deliberate error.
+- A check returns at the first error in what the edit changed (from the first changed line to
+  the end of its declaration), or once that declaration is elaborated without one, without
+  waiting for the declarations after it, and says from which line the file is not yet checked;
+  errors already elsewhere in the file are listed but do not stop it. The loop for a broken
+  proof: fix the first error, check, fix the next. The edited proof re-runs from the fixed
+  tactic: a tactic that fails stops the proof there, so a check costs the tactics up to the
+  next failure (an error inside a term, `exact foo`, is admitted and elaboration goes on).
+  Checking again without an edit, or `-a`, waits for the whole file: do it before relying on
+  the file (an edited statement can break a later proof in it).
+- `--fast` skips the kernel's check and the linters that walk the whole proof: for the loop
+  only (a proof the elaborator accepts can still fail the kernel; `lake build` checks).
+- `--split`, for the longest proofs: each `·` block of at least 20 lines (`--split-min N`) is
+  proved as an auxiliary theorem when it ends (`Proof/AbstractBullets.lean`, option `abstractBullets`; the
+  server's copy gets its import and option, the file does not), so that an edit does not redo
+  the instantiation and checking of the other blocks. With `--fast`, an edit near the end of
+  `watchGRPCStream.run` (3368 lines) took 54s of CPU instead of 100s; on a 760-line proof the
+  gain is small.
+- `--status` shows the open files (and the line being elaborated); `--stop` stops the server.
+
+What an edit costs: the tactics from the edit on, plus the work done once per declaration when
+its proof is complete, which no snapshot saves (instantiating the proof term, sharing, the
+kernel's check, the linters); the latter grows with the length of the proof. Measured
+2026-10-26, after an edit near the end of the proof: `lessor.sendKeepAliveLoop` (250 lines) 59s
+fresh, 14s after the edit (wall time); `watchGRPCStream.serveSubstream` (760 lines) 114s of CPU
+fresh, 53s after the edit (0.4s of it tactics, 18s the kernel), 24s with `--fast`;
+`watchGRPCStream.run` (3368 lines) 230s fresh with `--fast`, 100s after the edit, 54s with
+`--split`. A short proof re-checks in under a second.
+An edit early in a proof re-runs everything after it, so check from the top of what you changed.
+
+When a file an open file imports changes (its content: `touch` does not count), the next check
+reopens the file: the server rebuilds the changed imports with Lake, then elaborates the file in
+full. An edit to a proof in an imported module (its `Inv*` or lemma files) does not make the
+modules importing it stale: Lake rebuilds an importer only when the imported module's public
+`.olean` changes, and a proof's body is not part of it (measured: a proof edited, and lines
+inserted above it, in `InvReadylog`, left its 60 importers up to date). Changing a statement or
+a definition does rebuild the importers.

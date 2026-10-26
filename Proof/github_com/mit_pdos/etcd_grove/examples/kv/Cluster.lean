@@ -108,7 +108,9 @@ def kvPeerOk (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) 
   iprop(∃ (γn : NodeNames) (n : Loc),
     ⌜γn.raft = γ ∧ γn.bud = bud ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n ∧
       -- (D22 S-r) a node that takes snapshots (`NodeNames.snapIn`): the transport delivers them
-      γn.snapIn = true⌝ ∗
+      γn.snapIn = true ∧
+      -- (2026-10-26, D22 J2) with no snapshot directory (`snapLocal` is `True`)
+      γn.raft.reSnapLoc id = none⌝ ∗
     isNode γn id n)
 
 instance kvPeerOk_persistent (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) :
@@ -325,7 +327,9 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     -- (D22 S-r) a snapshot only to a node that takes one
     (Hsi : st.msg.Type' = MsgSnap → γn.snapIn = true)
     -- (2026-10-22, D38a) no responses (`deliver`'s copy has none)
-    (Hr : st.resps = []) :
+    (Hr : st.resps = [])
+    -- (2026-10-26, D22 J2) no snapshot directory: a snapshot is local to every node
+    (Hsl : γn.raft.reSnapLoc id = none) :
     ⊢ □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
           isMessage (GF := GF) γn.raft (absMsg ty st.msg st.ents st.ctx)) -∗
       -- (D22 S-r) a snapshot's facts and certificates (`raftMsg_snap`)
@@ -388,7 +392,14 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
       iintro %ty %Hty %Hne
       iapply Hmsg $$ %ty %Hty %Hne
     isplitr
-    · iexact Hsnf
+    · imodintro
+      iintro %h
+      icases Hsnf $$ %h with ⟨%sv, %scfg, %Hp, #Hc, #Hd'⟩
+      iexists sv, scfg
+      iframe Hc Hd'
+      isplitr
+      · ipureintro; exact Hp
+      iapply snapLocal_none Hsl
     iframe Hlb Hcr Htc
 
 end defs

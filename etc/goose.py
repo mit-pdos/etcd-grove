@@ -192,7 +192,10 @@ PROJECTS = [
                     # (D43 M4, 2026-10-26) membership's `json.Unmarshal` (the k8s-apiserver
                     # project's names-only translation, `Code/encoding/json.lean`)
                     "encoding/json=",
-                    "github.com/grpc-ecosystem="],
+                    "github.com/grpc-ecosystem=",
+                    # the server's UserAdd/UserChangePassword (the auth plan's E2x): base64 names
+                    # only, the k8s-apiserver project's translation (Code/encoding/base64.toml)
+                    "encoding/base64="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",

@@ -1,0 +1,23 @@
+=== RUN   TestSnapshotOverlapApplySnapshotFirst
+--- PASS: TestSnapshotOverlapApplySnapshotFirst (1.63s)
+=== RUN   TestSnapshotOverlapCreateSnapshotFirst
+--- PASS: TestSnapshotOverlapCreateSnapshotFirst (1.28s)
+=== RUN   TestSnapshotOverlapStress
+    snapshot_overlap_test.go:289: disk snapshots triggered: 200, of which out of date (ErrSnapOutOfDate): 5; snapshots applied: 100
+--- PASS: TestSnapshotOverlapStress (19.18s)
+=== RUN   TestSnapshotOverlapApplySnapshotFirst
+--- PASS: TestSnapshotOverlapApplySnapshotFirst (1.34s)
+=== RUN   TestSnapshotOverlapCreateSnapshotFirst
+--- PASS: TestSnapshotOverlapCreateSnapshotFirst (1.27s)
+=== RUN   TestSnapshotOverlapStress
+    snapshot_overlap_test.go:289: disk snapshots triggered: 200, of which out of date (ErrSnapOutOfDate): 13; snapshots applied: 100
+--- PASS: TestSnapshotOverlapStress (25.52s)
+=== RUN   TestSnapshotOverlapApplySnapshotFirst
+--- PASS: TestSnapshotOverlapApplySnapshotFirst (1.78s)
+=== RUN   TestSnapshotOverlapCreateSnapshotFirst
+--- PASS: TestSnapshotOverlapCreateSnapshotFirst (1.07s)
+=== RUN   TestSnapshotOverlapStress
+    snapshot_overlap_test.go:289: disk snapshots triggered: 200, of which out of date (ErrSnapOutOfDate): 10; snapshots applied: 100
+--- PASS: TestSnapshotOverlapStress (21.65s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	76.984s

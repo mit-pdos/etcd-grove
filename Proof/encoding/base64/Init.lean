@@ -2,13 +2,18 @@
 Package initialization of `encoding.base64`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26):
+`StdEncoding` holds a fixed `*Encoding` whose `EncodeToString` returns the standard encoding
+(`stdEnc`) of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
+Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
+axiom `StdEncoding_init` states the one the fact reads (`NewEncoding(encodeStd)`, a fresh
+`*Encoding` with the standard alphabet and padding, whose `EncodeToString` allocates its output
+buffer, `Encode`s into it and returns it as a string: no panic, no write to its argument),
+`opaqueInitsOk` the others.
 -/
 module
 
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.encoding.base64.Base
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -39,11 +44,15 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([StdEncoding.init,
-        URLEncoding.init,
+    ∀ v ∈ ([URLEncoding.init,
         RawStdEncoding.init,
         RawURLEncoding.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+/-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument's bytes, reading and keeping the slice. -/
+axiom StdEncoding_init :
+    {{ (True : IProp GF) }} (App (Val StdEncoding.init) (Val #()))
+    {{ RET #(); _root_.Perennial.encoding.base64.base64Init (GF := GF) }}
 
 end encoding.base64
 end opaqueInits
@@ -68,11 +77,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk StdEncoding.init (by mem_tac))
+  iapply wp_fupd
+  wp_apply StdEncoding_init as #HStdEncoding
   wp_apply (opaqueInitsOk URLEncoding.init (by mem_tac))
   wp_apply (opaqueInitsOk RawStdEncoding.init (by mem_tac))
   wp_apply (opaqueInitsOk RawURLEncoding.init (by mem_tac))
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

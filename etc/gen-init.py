@@ -249,6 +249,21 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
 
+# (2026-10-26) `ValidString` with its body: the tables it reads are translated
+SPECIAL['unicode.utf8'] = dict(
+    doc='''Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
+their values (`firstTable`, `acceptTable`), read-only for good. Its initializer allocates them and
+stores their translated array literals.''',
+    alloc_types={'first': 'GoArray w8 256',
+                 'acceptRanges': 'GoArray _root_.Perennial.unicode.utf8.acceptRange 16'},
+    # `first`'s literal is 256 `let`s
+    pre=['set_option maxRecDepth 20000', ''],
+    heavy=True,
+    finish=['ipersist Hfirst', 'ipersist HacceptRanges'] + FIN_PRE + [
+        'unfold EtcdGrove.utf8.utf8Init', 'isplit',
+        '· iExactEq Hfirst', '  rfl', '· iExactEq HacceptRanges', '  rfl'],
+)
+
 # (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
 # package into the closure) its five error variables, translated `errors.New` calls
 _CC = [('ErrElectionNotLeader', 'N'), ('ErrElectionNoLeader', 'O'), ('ErrLocked', 'L'),
@@ -399,8 +414,25 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     finish=FIN_PRE[:6],
 )
 
+SPECIAL['encoding.base64'] = dict(
+    doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26):
+`StdEncoding` holds a fixed `*Encoding` whose `EncodeToString` returns the standard encoding
+(`stdEnc`) of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
+Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
+axiom `StdEncoding_init` states the one the fact reads (`NewEncoding(encodeStd)`, a fresh
+`*Encoding` with the standard alphabet and padding, whose `EncodeToString` allocates its output
+buffer, `Encode`s into it and returns it as a string: no panic, no write to its argument),
+`opaqueInitsOk` the others.''',
+    custom={'StdEncoding': dict(
+        doc='/-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument\'s bytes, reading and keeping the slice. -/',
+        post='_root_.Perennial.encoding.base64.base64Init (GF := GF)',
+        pat='#H@')},
+    finish=FIN_PRE[:6],
+)
+
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
-    doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` holds a string.
+    doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
+`tooLargeResourceVersionCauseMsg` hold strings.
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
@@ -423,8 +455,8 @@ its imports and runs the translated initializers.''',
         'try wp_auto',
         'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -',
         'try wp_auto']},
-    finish=['ipersist HRequestWatchProgress'] + FIN_PRE[:7] + [
-            'imodintro', 'iexists _', 'iexact HRequestWatchProgress'],
+    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg'] +
+           FIN_PRE[:7] + ['imodintro', 'iexists _, _', 'iframe #'],
 )
 
 # the driver's error variables and the tags of their `errors.New` results

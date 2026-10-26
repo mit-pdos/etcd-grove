@@ -277,7 +277,9 @@ theorem StartCluster.wp_proof
   have HccOk := Hcfg'.2.2.1
   -- (D22 S-r) snapshots on, of the cluster's data (`kvSnapOk`)
   have HnoSnap := Hcfg'.2.2.2.2.1
-  have Hsok := Hcfg'.2.2.2.2.2.2
+  have Hsok := Hcfg'.2.2.2.2.2.2.1
+  -- (2026-10-26, D22 J2) no snapshot directory
+  have HsLoc := Hcfg'.2.2.2.2.2.2.2
   have Hdyn := Hcfg'.2.1
   have Htrk := Hcfg'.2.2.2.2.2.1
   -- the term budget (D19b: backed by time receipts; the ticks' credits are the ticking loops'
@@ -392,7 +394,7 @@ theorem StartCluster.wp_proof
       unfold kvPeerOk
       iexists γn, n
       iframe HisNode
-      ipureintro; exact ⟨Hr, Hb, rfl, Hsn⟩
+      ipureintro; exact ⟨Hr, Hb, rfl, Hsn, by rw [Hr, HsLoc]⟩
     isplitl
     · iapply (BigSepL.bigSepL_append (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
           ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M) !! id = some nd ∧

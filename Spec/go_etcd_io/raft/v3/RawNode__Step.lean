@@ -134,7 +134,11 @@ abbrev RawNode.Step.spec : Prop :=
            -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`, `raft.Step`'s)
            isMessageC γ (absSnap st.msg sv scfg) ∗
            -- (D22 S-r, 2026-10-21) and its data certificate (`raft.Step`'s)
-           snapDataOk γ sv.Metadata'.Index' sv.Data') ∗
+           snapDataOk γ sv.Metadata'.Index' sv.Data' ∗
+           -- (2026-10-26, D22 J2, R-loc) and its receiver-local fact (`snapLocal`: for a node with
+           -- a snapshot directory, its index saved there), which the node keeps while the
+           -- snapshot is pending and a `Ready` that hands it out gives back
+           snapLocal γ id sv.Metadata'.Index') ∗
       -- (2026-10-13) a read-index request's read credit
       "Hcred" ∷ rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Step")) (Val #ml))

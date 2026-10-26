@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.applyEntryNormal(e, v3)`, by the apply thread (protocol state `st`, out of flight).
 With `v3` (`ApplyBoth`: the entry `i = p + 1`, above `ci`, whose index and term are the
-applying index): the entry is applied (through `apply.Apply`, or not at all if it has no data)
+applying index; the state loaded, `stLoaded γ st = st`, as `apply`'s `ConsistentIndex` left it,
+which the applier's `ConsistentIndex` lends, `srvCiC`; S8d, 2026-10-26): the entry is applied (through `apply.Apply`, or not at all if it has no data)
 and, after it, `ci` and the processed-through index are both `i` (the post-lock hook set `ci`
 if the entry had writes; else the deferred update does, outside the lock). Without `v3` (an
 entry at or below `ci`, replayed): nothing is written to the backend and the state is
@@ -64,7 +65,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
-            uint.Z (ciEff γ st.k) < uint.Z m.index⌝)
+            uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
        else iprop(True)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
