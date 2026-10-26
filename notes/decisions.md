@@ -19326,6 +19326,13 @@ done), and nothing proves `authBackendOk` of schema's auth backend over a real b
   against the layout).
 Recommendation: (a): S8d proceeds now, and the premise is exactly what (b) will prove.
 
+**Decided (2026-10-25, the user, via the auth session): (a).** `applySnapshot.spec` takes the auth
+store's `Recover` on the new backend as a named premise in the server's terms; the auth track
+discharges it when it brings the store's invariant to the server (its E stage, the server's boot).
+State the premise against S4f's contracts ("S4f of the auth plan"): `Recover` takes the admin
+side's whole authority (`authOwnF`), and the backend swap hands the batch lock's half of the history
+(`authLockI`) from the old backend to the new one (the new backend's `authWBackendOkR`).
+
 **The named premises S8d takes otherwise** (S-j1's inputs and threading, as the orchestrator
 directed; listed so S-j1 sees them): the snapshot message (non-nil, read-only metadata at index `i`
 and term, `i > ep.appliedi`, `ciEff ≤ i`); the snapshot file `fileHolds (snapDBPath ss i) D` with
@@ -19337,3 +19344,119 @@ authority at most `ai`; `snapOpensOk`, `dbOpensOk`, the feature gate, `pathOwn` 
 the old backend's `isStopChans` and `bOpen ½` (W7, the user's (c)); the transport's `trLive` and
 W8's coverage (the user's), `Members()`' boot contract (`Hmembers`), `8 · |peers|` of `lgMu`'s reader
 slots for the `AddPeer`s; `receiptBound ≤ wbInit` (the new backend's write-backs).
+
+## E2e of the auth plan: the auth store at the server's boot, in the mode `on` (2026-10-25 · `notes/auth-plan.md`)
+
+The parts of bringing the auth store's invariant and the admin authority to the server that need
+no D22. What landed, and what did not:
+
+- **The names at boot** (`auth.authBoot_alloc`, `Proof/go_etcd_io/etcd/server/v3/auth/Boot.lean`):
+  over the boot state `bootState` (disabled, revision `0`, no user, no role: what freshly created
+  buckets hold), with the token provider's names `γt`, `γf` (the simple provider's,
+  `tokenSimple_new`), a fresh `γa` with the admin side's authority `authOwn (.on γa) [bootState]`,
+  the other half of the latest state's ghost variable (the store's revision invariant's) and the
+  batch lock's half of the history at the boot state (`authLockI (.on γa) bootState`, the
+  backend's). The tokens' one-time issue rights: `auth.tokFresh_mint` mints the right of any token
+  not minted before from the rights' authority (`tokenSimple_new`'s `ghostMapAuth γf 1 ∅`).
+- **`NewAuthStore` at boot** (`auth.newAuthStore_boot`; restated as `auth_store_boot_on` in
+  `etcdserver/Results.lean`, linked, no `sorry`, no new axiom): the names allocated, the lock's
+  half handed to the backend, `newAuthStore_on` run; the post is the store's invariant
+  (`authInv`), the admin side's write resource (`authWR`), the provider's share (`tpAdmin`) and the
+  admin side's authority at `[bootState, bump bootState]` (the constructor's `commitRevision` of
+  revision `0`), with `γa`'s token parts the provider's. Two named premises:
+  - `auth.authSchemaBoot ab bi γt γf R P f T` -- **D22's part**: for any names with the provider's
+    token names, the lock's half at the boot state makes schema's auth backend meet the store's
+    backend contracts for those names (`authBackendOk`, `authWBackendOkR`, `CreateAuthBuckets` as
+    one transaction keeping `T`). The real backend discharges it by keeping
+    `∃ st, buckets(st) ∗ authLockI M st` under its batch lock ("S4f of the auth plan"), which needs
+    the backend's lock to take a resource after it is made (at the auth store's construction).
+  - `auth.tokenProviderBoot tp γt γf A`: the provider's contract for any names with its token
+    names; the simple provider's `tokenSimple_okA`.
+- **`srvAuthBound` of the real store** (`srvAuthBound_of_authInv`, `AuthBound.lean`; restated as
+  `srv_auth_bound_of_inv`): a server whose `authStore` field holds a store with `authInv` in the
+  server's mode, its reader resource the store's `authRd`, has the bound request side. So
+  `srvAuthBound` is derivable at any server whose boot takes the store from `newAuthStore_boot`.
+
+**Not done, and why.** `NewAuthStore`'s axiom (`NewAuthStore.spec`, mode `off`) is neither retired
+nor shrunk: the server's statement (`NewServer.spec`) is for auth off (its post fixes
+`E.authOn = false`, its proof instantiates the apply contract at `.off` in ten places, and every
+closed theorem's environment is `env₀`'s `authMode := .off`), so the server cannot take the store
+from `newAuthStore_boot` until it runs in the mode `on γa`; and the axiom's off-mode post needs an
+off-mode proof of `NewAuthStore` (E2a: its own cache premise, `permsFit` of a state the off
+contract leaves open) and the admin clauses `isAuthStoreAdmin` (`HasRole`, `Authenticate` with
+`CheckPassword`, `UserGet`, `RoleGet`, the lists), none of which is this stage's. Threading
+`authOwn` to the apply thread (`apply.isAuthSteps` at the server) waits on the same: the server's
+environment admits no auth request (`AEnv.RW` is `False` for the auth store), so its apply thread
+has nowhere to use the authority. Auth's `Recover` in the server's terms (D22 S8d's premise,
+decided (a)) is left to D22, which states it: its auth side is `authStore.Recover.spec` (the
+store's invariant, `authOwnF`, the new backend's contracts) with the split `authOwnF_lockI_split`
+handing the new backend its lock's half.
+
+**Next for the end-to-end theorem.** The server in the mode `on γa`: `NewServer.spec` generic in the
+auth mode (the store from `newAuthStore_boot` in `on`, from the axiom in `off`), `E.authOn` no
+longer fixed, the apply thread admitting auth requests (`AEnv.RW` the auth buckets' write right,
+the authority `authOwn` in the apply thread's resources, the dispatch through the `stepSpec`s of
+`apply/AuthSteps.lean`, `Authenticate` minting its token's right); the server's token provider
+from `NewTokenProvider` with `"simple"` (names-only today: its spec gives only `tp ≠ nil`).
+
+**Trust base.** Unchanged (720 axioms, 6 sorries).
+
+## E2f of the auth plan: authkv's client side -- the checks proved, the contract over the contexts' metadata (2026-10-26 · `notes/auth-plan.md`)
+
+The parts of `examples/authkv`'s `Main` proof on the client's side that need no D22 and no server
+in the mode `on` (E2e's next step, another fork's).
+
+**The checks, proved and linked** (`Proof/.../authkv/`, `Spec/.../authkv/`): `keyOf`, `refused`,
+`Principals`, `Writer`, `LastIn`, `CheckHistory`, `checkKVs`, `checkTxnReads`, over the pure
+functions of `Checks.lean` (`keyOfK`; `writerK`, the first principal `who` with `x/<who>/` a
+proper prefix of the key; `histOk`, every event above the set-up's revision but the last write's a
+write its key's principal was permitted; `lastIn`). The replies are read as the client's reply
+lemmas give them: `txn.kvsIs` for a range's key-values, `opRespsMsg` for a transaction's
+responses. `checkTxnReads` runs `ResponseOp.GetResponseRange` from its code for every response
+kind (`wp_method_call`; the type assertion of a put's, delete's or nested transaction's wrapper
+fails and the getter returns `nil`): its spec, `ResponseOp__GetResponseRange.lean`, is of a range's
+only, and generalizing it would change its callers' proofs (the client's recipes, leasing,
+kubernetes, the server's `txn`, linkvtxn). `Writer` uses
+`wp_string_len`'s bound (`len(k) < 2^63`) to read `len(k) > len(p)` as the lengths' order.
+
+**The contract over the contexts' metadata** (`ClientAuth.lean`, `grpc/metadata/Outgoing.lean`).
+`metadata.outgoingOf` is the counterpart of E2c's `incomingOf` (opaque, a context being
+immutable), with `mdAdd` (a value appended to a key's) and `mdVals`. E2b's four parts:
+- C1, `userAttemptOk γa u h`: an attempt's handler context `h` of a client with the user name `u`
+  carries no token or one issued to `u` (`auth.ctxTokenOf`, `auth.tokIssued`);
+- C2 and C4, `deliversOutgoing c h`: a no-user client's attempt delivers its caller's outgoing
+  metadata as the handler's incoming metadata;
+- C3, the trust-boundary spec `metadata.AppendToOutgoingContext.spec` (**+1 axiom**: grpc's
+  `metadata` is names-only): from an `isContext`, a context with the same descriptor but its
+  values (as `withVersion`'s: grpc's code is `context.WithValue`, which delegates `Deadline`,
+  `Done`, `Err` and the context package's own key to its parent) whose outgoing metadata is the
+  argument's with the pair appended (a lower-case key; `FromOutgoingContext` and the transport
+  merge `added` after `md`).
+`reqCtx` is proved over C3 and `client.wp_WithTimeout_bg`: a `ctxOk` context whose `Err()`
+returns client errors (`ctxErrClient`, from `ctxErrClientAllW_of` for the appended context), the
+timeout context itself or, for the bad principal, it with `token: badtoken` appended.
+`badCtx_unbound`: a handler context delivering outgoing metadata whose token values are
+`[badtoken]` gives `AuthInfoFromCtx` no auth info in the mode `on γa` (E2c's `tokIssued_badToken`).
+Restated in `authkv/Results.lean` with the checks (`authkv_CheckHistory`, `authkv_checkKVs`,
+`authkv_checkTxnReads`, `authkv_reqCtx`, `authkv_bad_unbound`).
+
+**Not stated: the timeout context has no outgoing token.** True of Go (only grpc stores under its
+metadata key, and `context.WithTimeout(context.Background(), d)` stores nothing), but Perennial's
+context model describes no value at another package's key (`ContextDesc.Values` is unused by
+`isContext`), and `outgoingOf` is opaque. Options: strengthen `context.WithTimeoutBackground.spec`
+(this repository's, proved from Perennial's) with `⌜outgoingOf ctx' = none⌝` as a new premise-free
+fact (an axiom, its users' patterns to adapt: the read loop's `sendReadIndex` among them), or model
+the outgoing metadata by the descriptor's `Values` once Perennial's `Value` spec covers other
+keys. Left with `Main`.
+
+**Not done, and why.** `SetUp` and `Work` (and so `Main`): `SetUp`'s admin calls go through the
+client's `Auth` field, which `isNewClient`'s model does not describe (`NewAuth`, `RetryAuthClient`
+and the `authClient` methods are untranslated), to the server's Auth service, for whose methods no `isGrpcRpc`
+contract is stated (the KV service's are, `client/v3/ServerKV*.lean`); and both need the server in the mode `on` (E2e's next step). `Work`'s calls need,
+besides, each reply at the server's verdict for its principal (an error for a refused request: A1,
+A4, the API layer's checks, at the server's `isGrpcRpc` specs, which today are for auth off), and
+C1, C2/C4 in the client's attempt contract (`grpcInvokerOk` says nothing of metadata). `Main.lean`'s
+header lists these.
+
+**Trust base.** 721 axioms (+1, `metadata.AppendToOutgoingContext.wp_proof`), 6 sorries;
+collection `authkv` gains it and `context.ErrAny.wp_proof` (`reqCtx`'s).
