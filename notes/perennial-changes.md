@@ -17,6 +17,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Tooling: incremental proof checks, and long `·` blocks as auxiliary theorems
+
+- **Missing.** A way to check a proof after an edit without elaborating the whole file
+  (`lake build` and `lake env lean` start over each time; Perennial's tutorial checks a file
+  with `lake build`), and a way to keep the once-per-declaration work of a long Iris proof
+  (instantiation, sharing, the kernel's check of one huge term) from being redone on every edit.
+- **Needed by.** Every proof here and in Perennial; most for the longest
+  (`watchGRPCStream.run`, 3368 lines: an edit near its end costs about its fresh time).
+- **Workaround here.** `etc/lean-check.py` (a kept Lean server; `--fast`, `-e`, `--goal`,
+  `--split`) and `Proof/AbstractBullets.lean` (option `abstractBullets`), both generic: the
+  script names no project, the tactic module nothing of this repository's.
+- **Proposed change.** Move both to Perennial (`etc/lean-check.py`, the tactic in its
+  `PerennialMeta` library), document the loop in `docs/PERENNIAL_PROOF_TUTORIAL.md` beside
+  `lake build`; `lean-check.py` here then imports nothing of its own (`SPLIT_MODULE`).
+- **Status.** Open (2026-10-26, `notes/STATUS.md`, "Checking proofs while editing them").
+
 ### Specs: `(*Time).After`
 
 - **Missing.** The pointer-receiver form of `time.Time.After` (Perennial's `Proof/time/PtrMethods.lean`
