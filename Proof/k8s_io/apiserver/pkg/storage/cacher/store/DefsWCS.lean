@@ -14,7 +14,7 @@ variable `γ.st` holds it, split three ways:
 * a quarter in the invariant around `latestSnapshot` (`isWCS`), with the published snapshot;
 * half in the lock's resource (`wcsLockP`, at `q.half` for a fraction `q`: the guarded `RWMutex`
   splits it), with the store's fields, the indexer and the snapshotter, of that state;
-* a quarter to the writer (`wcsOwn γ st`): the watch cache, which calls the store's writes under
+* a quarter to the writer (`wcsOwn γ 1 st`): the watch cache, which calls the store's writes under
   its own lock. A reader that holds part of the writer's quarter (the watch cache's readers,
   under its read lock) knows the state, and the snapshot it loads (`LatestSnapshot`'s view shift
   at the load, against the invariant's quarter).
@@ -54,14 +54,6 @@ variable [sem : go.Semantics]
 variable [btree_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
 /-! ## Elements and the indexer -/
-
-/-- **An element, read-only for good**, with its key: the watch cache builds it (`processEvent`)
-and hands it to the store, which never writes it. -/
-def isElem (e : Loc) (k : GoString) : IProp GF :=
-  iprop(∃ el : k8s_io.apiserver.pkg.storage.cacher.store.Element, e ↦□ el ∗ ⌜el.Key' = k⌝)
-
-instance isElem_persistent (e : Loc) (k : GoString) : Persistent (isElem (GF := GF) e k) := by
-  unfold isElem; infer_instance
 
 /-- **An index function that never fails** on an element (`cache.IndexFunc`, here
 `ElementIndexFunc` of the caller's): it returns some index values and no error. -/
@@ -135,20 +127,35 @@ def wcsLockP (w : Loc) (γ : WCSNames) (q : Qp) : IProp GF :=
 `LatestSnapshot`'s load sees. -/
 def wcsPub (γ : WCSNames) (st : SnapSt) : IProp GF := ghostVar γ.st (1 : Qp).half.half st
 
-/-- **The writer's token** (see the file header). -/
-def wcsOwn (γ : WCSNames) (st : SnapSt) : IProp GF := ghostVar γ.st (1 : Qp).half.half st
+instance wcsPub_timeless (γ : WCSNames) (st : SnapSt) : Timeless (wcsPub (GF := GF) γ st) := by
+  unfold wcsPub; infer_instance
+
+/-- **The writer's token**, at fraction `q` of its quarter (see the file header): whole (`q = 1`)
+for the writes; a part for each of the watch cache's readers, under its read lock. -/
+def wcsOwn (γ : WCSNames) (q : Qp) (st : SnapSt) : IProp GF := ghostVar γ.st q.half.half st
+
+instance wcsOwn_timeless (γ : WCSNames) (q : Qp) (st : SnapSt) :
+    Timeless (wcsOwn (GF := GF) γ q st) := by
+  unfold wcsOwn; infer_instance
 
 /-- **`w` is a `WatchCacheStorage`** (persistent): the invariant around `latestSnapshot` (the
-published snapshot of the published state) and the guarded lock. -/
-def isWCS (w : Loc) (γ : WCSNames) : IProp GF :=
+published snapshot of the published state, and the caller's persistent fact `Ψ` of every state
+it publishes: e.g. that it is the watched store's at its resource version) and the guarded lock. -/
+def isWCS (w : Loc) (γ : WCSNames) (Ψ : SnapSt → IProp GF) : IProp GF :=
   iprop(inv wcsN iprop(∃ (p : Loc) (st : SnapSt),
       sync.atomic.ownPointer (T' := k8s_io.apiserver.pkg.storage.cacher.store.btreeStore)
         (structFieldRef WatchCacheStorage go!"latestSnapshot" w) (DFrac.own 1) p ∗
-      isSnap p st.1 st.2 ∗ wcsPub γ st) ∗
+      isSnap p st.1 st.2 ∗ □ Ψ st ∗ wcsPub γ st) ∗
     sync.isRWMutexGuard (structFieldRef WatchCacheStorage go!"lock" w) (wcsLockP w γ))
 
-instance isWCS_persistent (w : Loc) (γ : WCSNames) : Persistent (isWCS (GF := GF) w γ) := by
+instance isWCS_persistent (w : Loc) (γ : WCSNames) (Ψ : SnapSt → IProp GF) :
+    Persistent (isWCS (GF := GF) w γ Ψ) := by
   unfold isWCS; infer_instance
+
+/-- The state after an update of the event type `et` with the element `e` of key `k`, at `rv`:
+a delete removes the key's element, an add or a modification puts `e` in its place. -/
+def updSt (et : GoString) (e : Loc) (k : GoString) (st : SnapSt) (rv : w64) : SnapSt :=
+  (if et = go!"DELETED" then btree.delete st.1 k else btree.insert go.GoStringLt st.1 (e, k), rv)
 
 end defs
 

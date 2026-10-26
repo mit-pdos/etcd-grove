@@ -39,8 +39,15 @@ theorem newBtreeStore.wp_proof
   · iframe #
     unfold btree.isLess
     iintro %a %b %ka %kb
-    simp only [elemOrder]
-    wp_start as ⟨#Ha, #Hb⟩
+    simp only [elemOrder, isElem]
+    wp_start as ⟨⟨%ea, #Ha, %Hka⟩, ⟨%eb, #Hb, %Hkb⟩⟩
+    icases typedPointsto_split _ _ _ $$ Ha with Ha
+    try simp only [TypedPointsto.typedPointstoDef]
+    icases Ha with ⟨Hka', -⟩
+    icases typedPointsto_split _ _ _ $$ Hb with Hb
+    try simp only [TypedPointsto.typedPointstoDef]
+    icases Hb with ⟨Hkb', -⟩
+    subst Hka Hkb
     (try wp_auto)
     iapply HΦ
     ipureintro

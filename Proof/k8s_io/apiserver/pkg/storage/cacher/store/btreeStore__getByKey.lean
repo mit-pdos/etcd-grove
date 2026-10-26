@@ -37,13 +37,12 @@ theorem btreeStore.getByKey.wp_proof
   unfold ownStore
   icases Hs with ⟨%t, Htr, Hrv, Ht⟩
   (try wp_auto)
-  icases typedPointsto_split _ _ _ $$ «$r0» with Hke
-  try simp only [TypedPointsto.typedPointstoDef]
-  icases Hke with ⟨Hkey, -, -, -⟩
-  ipersist Hkey
+  ipersist «$r0»
   (try wp_auto)
   wp_apply (wp_Get elemOrder t dq s «$r0_ptr» key) $$ [$Ht] as Ht
-  · simp only [elemOrder]; iframe #
+  · simp only [elemOrder, isElem]
+    iframe #
+    ipureintro; rfl
   (try wp_auto)
   unfold lookupElem
   iapply HΦ

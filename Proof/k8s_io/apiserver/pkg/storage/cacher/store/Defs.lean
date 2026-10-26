@@ -7,9 +7,11 @@
 `Proof/k8s_io/utils/third_party/forked/golang/btree/`), and after every write publishes an
 immutable clone of it (`latestSnapshot`), which readers use without a lock.
 
+* `isElem e k`: the element at `e`, read-only for good (the store never writes an element; the
+  watch cache builds each one before handing it over), its `Key` field `k`.
 * `elemOrder`: the B-tree's order on elements, Go's order on their keys (`GoStringLt`); an element
-  is related to the key its `Key` field holds, read-only (the store never writes an element; the
-  watch cache builds each one before handing it over).
+  is related to its key by `isElem` (so the store's entries, and a snapshot's, are read-only
+  elements, which readers and the indexer's functions read).
 * `ownStore p dq s rv`: the `btreeStore` at `p` (its two fields, `tree` and `resourceVersion`) holds the entries `s` (elements
   with their keys, strictly increasing) at the resource version `rv`, at fraction `dq`.
 * `isSnap p s rv`: the same, read-only for good (`DFrac.discard`, persistent): a published
@@ -54,11 +56,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [btree_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
+/-- **An element, read-only for good**, with its key: the watch cache builds it (`processEvent`)
+and hands it to the store, which never writes it (nor does anyone after). -/
+def isElem (e : Loc) (k : GoString) : IProp GF :=
+  iprop(∃ el : k8s_io.apiserver.pkg.storage.cacher.store.Element, e ↦□ el ∗ ⌜el.Key' = k⌝)
+
+instance isElem_persistent (e : Loc) (k : GoString) : Persistent (isElem (GF := GF) e k) := by
+  unfold isElem; infer_instance
+
 /-- **The store's order on elements** (see the file header). -/
 def elemOrder : btree.ItemOrder GF Loc GoString where
   lt := go.GoStringLt
   order := goStringLt_strictOrder
-  item e k := iprop(structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.Element go!"Key" e ↦□ k)
+  item e k := isElem e k
   item_persistent _ _ := by infer_instance
 
 /-- **A `btreeStore` holding the entries `s` at resource version `rv`** (see the file header). -/
