@@ -72,6 +72,11 @@ theorem authkv_checkTxnReads : authkv.checkTxnReads.spec (GF := GF) (hG := hG) :
 theorem authkv_reqCtx : authkv.reqCtx.spec (GF := GF) (hG := hG) :=
   authkv.wp_reqCtx
 
+/-- **The set-up** (`Link.lean`'s `authkv.wp_SetUp`; E2h): the puts, then the admin calls
+through the client's Auth API over the Auth service's premise `setupAuthOk`. -/
+theorem authkv_SetUp : authkv.SetUp.spec (GF := GF) (hG := hG) :=
+  authkv.wp_SetUp
+
 /-- **The bad principal's request has no principal** (`ClientAuth.lean`'s `badCtx_unbound`;
 E2f). -/
 theorem authkv_bad_unbound (γa : auth.AuthNames) (c h : GoInterface) (a : Loc)
@@ -113,6 +118,7 @@ theorem authkv_token_one_user {GF : BundledGFunctors} [AllG GF] (γa : auth.Auth
 #print axioms authkv_checkKVs
 #print axioms authkv_checkTxnReads
 #print axioms authkv_reqCtx
+#print axioms authkv_SetUp
 #print axioms authkv_bad_unbound
 
 end EtcdGrove

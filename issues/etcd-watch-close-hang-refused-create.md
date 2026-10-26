@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked: 2026-10-20
-links: []
+upstream: none
+checked: 2026-10-26
+links:
+  - etcd-io/etcd#10131 issue closed: related, different (2019): watchers stopped recovering and resuming streams seemed to hang after permission-denied refusals; never diagnosed, not this teardown hang
+  - etcd-io/etcd#14296 pr merged: related, different: the server answers a refused create with `WatchId` -1; `addSubstream`'s refusal path, which this hang follows, comes from it
 ---
 
 # `watcher.Close` can hang after the server refuses a watch's create

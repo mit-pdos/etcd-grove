@@ -65,7 +65,8 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
 5. **[etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md)**, with
    [etcd-watch-resume-closing-substream](etcd-watch-resume-closing-substream.md) (the same cause):
    the client library panics on a send to a closed channel (for Kubernetes, the API server).
-   etcd-io/etcd#22191 has the fix, open with no review; the value is in reviving it, with
+   etcd-io/etcd#22191 has the fix, open with no review and labeled stale 2026-10-24 (the bot
+   closes it within weeks unless someone acts); the value is in reviving it, with
    [etcd-watch-resume-stale-canceled-id](etcd-watch-resume-stale-canceled-id.md), which must go
    with it: the fix keeps the canceled substream's id, so after a reconnect a resumed watch that
    reuses the id is deleted by the old substream's teardown: it silently gets no more events, its
@@ -263,10 +264,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 ## Probably not worth their time now
 
 - **[etcd-rafthttp-leaderstats-followers-race](etcd-rafthttp-leaderstats-followers-race.md)**
-  (2026-10-24): the leader's v2 stats map is written by `removePeer` without its lock and
-  marshalled by `JSON` after unlocking; a `/v2/stats/leader` request during a snapshot's peer
-  reset or a member change races it. Not reproduced; v2 stats are legacy. A small fix
-  (`RemoveFollower` under the lock, marshal under the lock).
+  (2026-10-24, rescoped 2026-10-26): only release-3.5 with the deprecated `--enable-v2` serves
+  `/v2/stats/leader`, whose `JSON` marshals the stats map after unlocking while a peer is added or
+  removed; on `main`, 3.6 and the pin `JSON` has no caller and the map's writers share the
+  transport's lock, so nothing races. Not reproduced; a 3.5-only fix at most.
 - **[etcd-auth-readtx-getallroles-panics](etcd-auth-readtx-getallroles-panics.md)** (2026-10-23):
   `(*authReadTx).UnsafeGetAllRoles` panics whenever called (a no-limit range of a non-safe
   bucket on a read transaction); nothing in etcd calls it, so a dead interface method. A one-line
@@ -294,11 +295,14 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   (2026-10-22): the msgappv2 stream decoder allocates whatever entry count and sizes the stream
   says (a panic at `2^63`, or exhaustion), where the other stream codec caps messages at
   `readBytesLimit`; between etcd members the counts are an encoder's, so only a misbehaving peer or
-  a corrupted stream reaches it. A small fix (the same `ErrExceedSizeLimit` check); low priority.
+  a corrupted stream reaches it. A small fix (the same `ErrExceedSizeLimit` check); low priority;
+  someone else's etcd-io/etcd#21874 (open, stalled) has it, so supporting that PR is the step.
   [etcd-rafthttp-stream-dial-bad-server-version-panic](etcd-rafthttp-stream-dial-bad-server-version-panic.md)
   (2026-10-23): a stream dial's response with a malformed `X-Server-Version` panics the dialing
   member (`semver.MustParse` outside any handler), with a test; between members the header is
-  always valid. A small fix (`semver.NewVersion` and a failed dial); low priority.
+  always valid on `main`, but on 3.5/3.6 a `v`-prefixed custom build's is not (etcd-io/etcd#22261).
+  A small fix (`semver.NewVersion` and a failed dial); low priority; someone else's
+  etcd-io/etcd#21829 (open, unreviewed, needs a rebase) has it.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-token-md-empty](etcd-auth-token-md-empty.md),
@@ -324,7 +328,8 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-corrupt-check-time-negative-panic](etcd-corrupt-check-time-negative-panic.md) and
   [etcd-downgrade-check-time-negative-spin](etcd-downgrade-check-time-negative-spin.md) (the last
   three one validation PR: `Config.Validate` already rejects the comparable
-  `--compact-hash-check-time <= 0`; 2026-10-23).
+  `--compact-hash-check-time <= 0`; 2026-10-23; open etcd-io/etcd#22476 would turn the downgrade
+  spin into the same startup panic, rechecked 2026-10-26).
 - **Not issues**: moved to [nonissues/](nonissues/README.md) on review (2026-10-23), with
   the documentation findings parked there for now: [election-campaign-key-check](nonissues/election-campaign-key-check.md)
   (`not-filing`: `Campaign` returning nil after its own key was deleted is the same as the session
@@ -365,7 +370,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 [etcd-unsafe-range-limit-buffer](etcd-unsafe-range-limit-buffer.md) (2026-10-23): a limited
 `ReadTx.UnsafeRange` is a prefix of the range only with no buffered entry in it; its one pager
-(`store.restore`) meets that, as far as checked. A doc line at most.
+(`store.restore`) meets that, rechecked on `main` 2026-10-26. A doc line at most today, but
+someone else's open etcd-io/etcd#22594 adds a second pager, `syncWatchers`' `rangeEvents` over the
+newest revisions (what the read buffer holds), which would miss watch events: a review comment
+there, if that PR moves, is worth more than a doc PR.
 
 ## bbolt (etcd's storage; none reachable through etcd as configured)
 

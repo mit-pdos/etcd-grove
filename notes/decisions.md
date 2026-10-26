@@ -19100,6 +19100,10 @@ under the batch lock, the user chose (b).
   its token's state's, its `Lock` is `LockInsideApply` under the frozen hook, its `Unlock` one
   write-back, and its lock protects `∃ st, buckets(st) ∗ authLockI (on γa) st` (the buckets'
   tracked contents, in `rbOwn`, at the encoding of `st`, S1's `auth/Buckets.lean`);
+- its reads (`authBackendReads`, appended by E2j, 2026-10-26: "E2j of the auth plan"): `GetUser`,
+  `GetRole` and `GetAllUsers` schema's read transaction answering from the latest state while the
+  admin side holds its half of the history (the auth buckets' only writer is the apply thread,
+  whose batch transactions write back at `Unlock`), `GetAllRoles` the batch transaction;
 - `CreateAuthBuckets` (one transaction, from `rbOwn` with the auth buckets absent or empty);
 - at a backend swap (`applySnapshot`'s restore, `Recover`), the old lock's `authLockI` given out
   and the new one's installed (the share with the restored state appended, `Recover`'s post).
@@ -19542,3 +19546,117 @@ Auth-service gRPC contracts (`isGrpcRpc`) wait on the same.
 
 **Trust base.** Count unchanged: `auth.NewTokenProvider.wp_proof` replaced by
 `auth.newTokenProviderJWT.wp_proof` (baseline and the eight collections listing it updated).
+
+## E2h of the auth plan: clientv3's Auth API, and `SetUp` over the Auth service as a premise (2026-10-26 · `notes/auth-plan.md`)
+
+What `examples/authkv`'s `SetUp` needs on the client's side (E2f's "Not done": the client's `Auth`
+field, `NewAuth`, `RetryAuthClient`, the `authClient` methods untranslated, and no contract for
+the server's Auth service).
+
+**Translated and proved** (`Code/go_etcd_io/etcd/client/v3.toml`, `api/v3/etcdserverpb.toml`):
+the generated Auth stub's `NewAuthClient` and `authClient.{UserAdd, UserGrantRole, RoleAdd,
+RoleGrantPermission, AuthEnable}` (`Invoke` with `StaticMethod`, the KV stub's shape), the retry
+client's `RetryAuthClient` and its five (no retry option: an admin call has the default
+`nonRepeatable` policy), the client's `NewAuth` and `authClient`'s five (the request built, the
+error through `ContextError`; `RoleGrantPermission` builds the permission from `[]byte(key)`,
+`[]byte(rangeEnd)`); client/v3 now imports `authpb` (the init chains regenerated). `NewAuth`'s
+trust-boundary axiom (item 5) is now a theorem: **-1 axiom**. `isNewClient` gains its last part,
+the `Auth` field holding a `*authClient` over the connection (`authObjAt`); `LeaseClient`'s
+pattern adapted, the other users' patterns end in `-`.
+
+**The vocabulary** (`client/v3/InvAuthConn.lean`): the messages as `ProtoMsg`s whose decoded copy
+is the auth store's own request predicate (`auth.userAddReqIs` with the password,
+`auth.userGrantRoleReqIs`, `auth.roleAddReqIs`, `auth.roleGrantPermissionReqIs` with the
+permission's `auth.ownPermW`), so that the server's handlers can hand the request on as it is; the
+responses carry nothing the client reads (`Unit`); `authCallOut Q resp err`, a call's answer
+(`nil` and `Q ()`, or a client error), `putCallOut`'s shape. Every call is specified for any spec
+`Spec` the server registered for the method and a **persistent** precondition `□ ▷ Spec m Q`:
+the retry interceptor may deliver an admin request several times (a call that failed before it was
+sent, a refreshed token), and D29's write-once mode is for the KV methods only (`kvMethod`).
+
+**`SetUp`, over the Auth service as a premise** (`Spec/.../authkv/SetUp.lean`): `setupAuthOk ep
+Su Sg Sr Sp Se Q`, the five methods' specs at the endpoint (`isGrpcRpc`) and each of the eight
+calls' `□ ▷ Spec m (fun _ => Q i)`; `SetUp` returns `ok`, and if `ok` every `Q i`. Its puts go
+through `client_Put_any` (new in `ClientPutGet.lean`: `New`'s client with a persistent update, the
+first case of `client_put_any`, no write-once premise), since authkv's server refuses and so is
+not refusal-free (E2d). How the server's side discharges `setupAuthOk` (E2i's Auth-service
+contracts): its `Su`, ... are the handlers' over the apply layer's admin steps
+(`apply.isAuthSteps`); with a persistent precondition, a `Q i` is a persistent witness of the
+step's effect (the history's lower bound holding the step), which the set-up's sole admin client
+then knows for each call.
+
+**Not done.** `Main` (still a `sorry`): it needs the server in the mode `on` (E2i), the
+Auth service's contracts discharging `setupAuthOk`, and `Work` (E2b's, E2f's lists).
+
+**Trust base.** 721 → 720 axioms (-1, `NewAuth.wp_proof` gone), sorries unchanged (6); the nine
+collections that listed it updated, and `authkv` gains the client's existing gRPC trust-boundary axioms
+(`StaticMethod`, `grpcConn`, `status.FromError`, ...) that `SetUp` reaches.
+
+## E2j of the auth plan: the admin reads and `CheckPassword` proved (2026-10-26 · `notes/auth-plan.md`)
+
+The reads E2a and E2g list as unproved for `isAuthStoreAdmin`'s clauses and `NewAuthStore`'s
+server statement: `HasRole` and `Authenticate` were already proved (S4c, S5); this stage proves
+`UserGet`, `RoleGet`, `UserList`, `RoleList` and `CheckPassword`, linked in the server's
+`Link.lean` (`etc/link-lean-first-server.txt`).
+
+**The backend's reads** (`InvAuth.lean`, `authBackendReads`, a clause group of both
+`authWBackendOk` and the backend's `authWBackendOkR`, copied by `authWBackendOk_of_R`): with the
+write token `T` and the admin side's authority `authOwn M hs`, each answers from the latest state
+(`histLast`) and keeps both: `GetUser(name)` (`userOut`), `GetRole(name)` (`roleOut`),
+`GetAllUsers()` (`usersOut`: one message per user, each once, in no promised order),
+`GetAllRoles()` (`rolesOut`). The first three are schema's read transaction (`ReadTx`, `RLock`,
+the read, `RUnlock`: `schema/auth_users.go`, `auth_roles.go`), so they run no hook and take no
+critical-section contract; `GetAllRoles` is the batch transaction (`Lock` is `LockInsideApply`,
+the hook runs: it takes `mvcc.csContract` and gives `Post`). Its read transaction's twin
+`UnsafeGetAllRoles` panics (`issues/etcd-auth-readtx-getallroles-panics.md`); etcd's
+`GetAllRoles` does not use it, and the contract names only the backend's `GetAllRoles`.
+
+**A bug in this repository's contract, fixed.** S5's `GetUser` clause (appended to
+`authWBackendOk` for `Authenticate`) said schema's `GetUser` was the batch transaction's `Lock`,
+`UnsafeGetUser`, `Unlock`, and gave the hook's post `Post` from the caller's `csContract`. Go's
+`GetUser` is the read transaction: no hook runs, so no real backend could produce `Post` (it
+needs the hook's resource `P`). The clause now takes and gives no `csContract`;
+`Authenticate`'s proof turns its `csContract` into `Pre` first (`csContract_noWrite`), within its
+post's `Post ∨ Pre`, which is unchanged. S4f's docstring of `authWBackendOkR` repeated the
+mistake; corrected.
+
+**The specs** (`Spec/.../auth/authStore__{UserGet,RoleGet,UserList,RoleList,CheckPassword}.lean`;
+the replies in `auth/Reads.lean`):
+- `UserGet(r)` (`userGetReqIs r name`), `RoleGet(r)` (`roleGetReqIs`), `UserList(r)` with
+  `authInv`, `authOwn M hs`, `authWR` (the store's user's half of `be`: these read `as.be`
+  without `beMu`, as `HasRole` does; the apply thread, which runs them, is also `Recover`'s only
+  caller): the latest state's reply (`userGetOut`: `ErrUserNotFound` and no response, or the
+  user's roles copied; `roleGetOut`: `ErrRoleNotFound`, or for a role other than `root` its
+  stored permissions as read-only messages whose known ones are the state's, `root`'s reply the
+  package's `rootPerm`, left open; `userListOut`: the users' names, each once). No hook, no
+  `csContract`: the apply layer's `authReqContract` clauses (`Post ∨ Pre`) follow with
+  `csContract_noWrite`.
+- `RoleList(r)` likewise with `csContract`, giving `Post` (`roleListOut`).
+- `CheckPassword(username, password)` with `enabledRd`, `beRd` and `R` (the request side's
+  resources, as the permission checks'; it is the API layer's, before `Authenticate` is proposed):
+  `passwordChecked`: an error, or no error with auth enabled at a recorded state and the revision
+  of a recorded state that has the user (`authSnap`, the locked read transaction's). Nothing about
+  the password.
+
+**The trust base: bcrypt.** `CheckPassword` is translated now (`auth.toml`); its comparison
+`bcrypt.CompareHashAndPassword` stays names only, and its spec
+(`Spec/golang_org/x/crypto/bcrypt/CompareHashAndPassword.lean`) is a new trust-boundary axiom
+(D-AU6, password hashing out of scope): it returns some error and keeps its two slices. Faithful
+to x/crypto v0.57.0 (etcd's `server/go.mod`): `newFromHash` errors on a short hash or a bad
+version or cost, its slicing after the length check is in range, `bcrypt` errors on a bad salt,
+the comparison is constant-time; no panic, no write to the arguments. Safety does not rest on the
+answer: a wrong one would let a client authenticate as the user it names, which the plan's
+results treat as that user.
+
+**Proofs.** `UserList`/`RoleList` loop over `GetAllUsers`'s messages: their names are made
+read-only first (`ReadsLemmas.lean`, `usersOut_names`/`rolesOut_names`: an update of each
+message's `Name` field to a persistent points-to, the other fields dropped), and the response's
+`make`'d slice holds the names copied so far (`take_replicate_set`). `CheckPassword`'s closure
+(its `defer tx.RUnlock()`) runs over `lockedReadTx`; the user's `Options` and `Password` fields
+are read-only once read.
+
+**Not done.** The apply layer's clauses of `isAuthStore` in the mode `on` (E2g's step: they need
+`authOwn` in the apply thread's resources, E2i's) and the off mode of these reads (the specs are
+generic in the mode `M`; only `NewAuthStore`'s server statement is off-mode).
+
+**Trust base.** +1 axiom: `bcrypt.CompareHashAndPassword.wp_proof`.

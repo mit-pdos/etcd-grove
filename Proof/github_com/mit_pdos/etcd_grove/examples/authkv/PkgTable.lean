@@ -328,7 +328,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h39 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h22, h23, h18, h19, h4, h5, h0, h1, h9, h24, h26, h27, h28, h30, h31, h32, h33, h34, h35, h36, h37, h10, h7, h38, h17, True.intro⟩
+    exact ⟨h6, h22, h23, h18, h16, h19, h4, h5, h0, h1, h9, h24, h26, h27, h28, h30, h31, h32, h33, h34, h35, h36, h37, h10, h7, h38, h17, True.intro⟩
   have h40 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

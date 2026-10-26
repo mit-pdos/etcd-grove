@@ -69,7 +69,10 @@ translate = ["!*", "AuthInfo",
   # decomposition, the no-op provider's constructor, the token types and the error; names only:
   # the JWT provider's constructor (its options and keys: `crypto`, `jwt`, the trust boundary)
   "NewTokenProvider", "decomposeOpts", "newTokenProviderNop", "tokenTypeSimple", "tokenTypeJWT",
-  "ErrInvalidAuthOpts"]
+  "ErrInvalidAuthOpts",
+  # (the auth plan's E2j, 2026-10-26) the password check over the locked read transaction; bcrypt's
+  # `CompareHashAndPassword` stays names only (the trust boundary, D-AU6)
+  "authStore.CheckPassword"]
 imports = ["!*", "bytes", "context", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata", "golang.org/x/crypto/bcrypt",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
