@@ -514,6 +514,7 @@ axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
+axiom kmetrics.HistogramVec.WithContext.wp_proof
 axiom labels.Everything.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
@@ -667,6 +668,7 @@ axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
+axiom tracing.SpanFromContext.wp_proof
 axiom tracing.Start.wp_proof
 axiom transport.IsClosedConnError.wp_proof
 axiom txn.ApplySecObserve.wp_proof
@@ -728,3 +730,4 @@ sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
 sorry rafthttp.Transport.RemoveAllPeers.wp_proof
+sorry storage.NewTooLargeResourceVersionError.wp_proof
