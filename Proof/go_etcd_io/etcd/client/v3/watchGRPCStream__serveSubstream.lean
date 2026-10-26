@@ -49,7 +49,7 @@ theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
     (hf : v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created)
     (hcpl : P.γ.cpl = true) :
     monoListAuthOwn (GF := GF) P.γ.cur 1 C ∗ eventsAt v.Events' r.events ∗
-      watchHdrOwn v.Header' r ∗ rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hiB hiA r ∗
+      watchHdrOwn v.Header' r ∗ ⌜dispOk P.rev hiB hiA r⌝ ∗
       statusErrOk v.closeErr' ∗
       (⌜P.γ.cpl = false⌝ ∨ ∃ (c2 c2' : w64) (σ : KVState), monoListIdxOwn P.γ.cur2 i c2 ∗
         monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ □ P.Q σ ∗ watchStateRespOk P.o σ c2 c2' v r) ⊢
@@ -710,8 +710,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
         ihave %HhB := mono_list_idx_agree P.γhi 0 _ _ $$ HiB Hcur
         subst HhB
         ihave #Hok' := Hok
-        iunfold rangeWatchRespOk at Hok'
-        icases Hok' with ⟨%Hokp, -⟩
+        icases Hok' with %Hokp
         have HhA : hiA = hiB := by rw [Hokp.2.2, Hcr.2]; rfl
         subst HhA
         ihave #Hhdr := (watchHdrOwn_nil _ _ Hcr.2).1 $$ Hhdr
@@ -839,8 +838,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
         obtain ⟨-, rfl⟩ := Hrr
         ihave %HhA0 : ⌜hiA = hiB⌝ $$ []
         · ihave #Hok' := Hok
-          iunfold rangeWatchRespOk at Hok'
-          icases Hok' with ⟨%Hokp, -⟩
+          icases Hok' with %Hokp
           ipureintro; rw [Hokp.2.2, Hcr.2]; rfl
         subst HhA0
         ihave %Hhl0e := mono_list_idx_agree P.γhi _ _ _ $$ Hhl0 HiB

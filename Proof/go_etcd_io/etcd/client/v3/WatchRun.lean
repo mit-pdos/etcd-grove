@@ -683,7 +683,7 @@ theorem recvElem_of (V : WEnv GF) (P : WsPrm GF) (k : Nat) (hk : k ≠ 0) (m : v
     wr ↦□ wrOf m h sl ∗ eventsAt sl es ∗
       watchHdrOwn h ⟨es, W64 0, false, false, m.hdr.revision⟩ ∗
       monoListIdxOwn P.γhi k hiB ∗ monoListIdxOwn P.γhi (k + 1) hiA ∗
-      rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hiB hiA ⟨es, W64 0, false, false, m.hdr.revision⟩ ∗
+      ⌜dispOk P.rev hiB hiA ⟨es, W64 0, false, false, m.hdr.revision⟩⌝ ∗
       recvCmpl V P k (wrOf m h sl) ⟨es, W64 0, false, false, m.hdr.revision⟩ ∗
       notStart P k ∗ resumeF V P ⟨es, W64 0, false, false, m.hdr.revision⟩ ⊢
     recvElem V P k wr := by
@@ -966,7 +966,7 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB 
     (hj : Dm.length = j) (hcplP : P.γ.cpl = cplOf P) (hlive : v3rpc.idLive Dm ρ.id)
     (hX1 : ρ.id ≠ W64 (-1)) (hkst : P.kv.st = V.kst) :
     srvKVFacts V ∗ wsAu P ∗
-    srvEventIdsAssigned V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗ watchLaws V ∗
+    srvEventIdsAssigned V.R ∗ srvLogsSmall V.R ∗ watchLaws V ∗
       startOk V B.srr B.rr ∗ v3rpc.downLbW γs Dm ∗ cur2St V γs Dm P B ρ.id w rg lo sent ∗
       v3rpc.mvccOk γs V.R.γ j m ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
       regFacts V γs Dm P B ρ.id w rg fcs lo ∗ sl ↦*□ ps ∗
@@ -984,7 +984,7 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB 
         ⌜C'.length = sent.length + 2⌝ ∗ (∃ hi : w64, ⌜C'.getLast? = some hi⌝ ∗
           cursorOk V P B (Dm ++ [m]) w rg lo hi) ∗ psAt P (sent.length + 1)) ∗
       cur2Pend V γs (Dm ++ [m]) P B ρ.id w rg lo sent C2 := by
-  iintro ⟨#Hkf, #Hwa, #HS3, #Hsm, #Hnd, #Hlaws, #Hso, #Hdn, Hc2, #Hmv, #Hrecv, #Hrf, #Hsl, #Hevs, #Hea, Hauth, Hst, Hrev⟩
+  iintro ⟨#Hkf, #Hwa, #HS3, #Hsm, #Hlaws, #Hso, #Hdn, Hc2, #Hmv, #Hrecv, #Hrf, #Hsl, #Hevs, #Hea, Hauth, Hst, Hrev⟩
   ihave #Hrf0 := Hrf
   ihave Hhdr : iprop(|==> ((⌜m.evs = []⌝ ∗ hdrAt h m.hdr.revision) ∨
       (⌜m.evs ≠ []⌝ ∗ structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ m.hdr.revision)))
@@ -1343,11 +1343,7 @@ theorem bcast_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (h
     iframe Hwr Hea Hi0 Hi1 Hcm' Hns Hrf
     isplitr
     · simp only [watchHdrOwn, ↓reduceIte]; iexact Hha
-    unfold rangeWatchRespOk
-    isplitr
-    · ipureintro; simp [EvRevSorted]
-    iintro !> %i %e %he
-    simp at he
+    ipureintro; simp [dispOk, EvRevSorted]
   iright
   isplitr
   · ipureintro; simp [Hlen]
@@ -1812,12 +1808,7 @@ theorem recvElem_created (V : WEnv GF) (P : WsPrm GF) (m : v3rpc.WatchRespM) (h 
   isplitr
   · unfold watchHdrOwn; simp only [↓reduceIte]; iexact Hha
   isplitr
-  · unfold rangeWatchRespOk
-    isplitr
-    · ipureintro; simp [EvRevSorted]
-    imodintro
-    iintro %k %e %hk
-    simp at hk
+  · ipureintro; simp [dispOk, EvRevSorted]
   isplitr
   · iexact Hcm
   isplitr

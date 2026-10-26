@@ -594,14 +594,13 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     (hhb : sint.Z hb < sint.Z rr ∨ sint.Z hb < 0)
     (hhi : (evsOf Dm w = [] ∧ hi = hb) ∨
       ∃ e, (evsOf Dm w).getLast? = some e ∧ hi = e.kv.modRev) :
-    srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗ watchLaws V ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
+    srvLogsSmall V.R ∗ watchLaws V ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
       mvcc.watcherIs V.R.γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ∗
       (⌜evsOf Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
         ⌜evsOf Dm w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
       sl ↦*□ ps ∗ ([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs (GF := GF) x.1 x.2) ⊢
     |={⊤}=> ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = ρ.evs.length⌝ ∗
-      rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hi ((es.getLast?.map EvModel.rev).getD hi)
-        ⟨es, W64 0, false, false, hdr⟩ ∗
+      ⌜dispOk P.rev hi ((es.getLast?.map EvModel.rev).getD hi) ⟨es, W64 0, false, false, hdr⟩⌝ ∗
       ⌜(evsOf (Dm ++ [m]) w = [] ∧ (es.getLast?.map EvModel.rev).getD hi = hb) ∨
         ∃ e, (evsOf (Dm ++ [m]) w).getLast? = some e ∧
           (es.getLast?.map EvModel.rev).getD hi = e.kv.modRev⌝ ∗
@@ -610,7 +609,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
       (∃ kvs : List Loc, ⌜es = List.zipWith evModelOf ρ.evs kvs ∧ kvs.length = ρ.evs.length⌝ ∗
         □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜ρ.evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
           mvcc.kvPtrFixed kv ev.kv)) := by
-  iintro ⟨#Hsm, #Hnd, #Hlaws, #Hrecv, #Hwi, #Hfcs, #Hcut, #Hsl, #Hevs⟩
+  iintro ⟨#Hsm, #Hlaws, #Hrecv, #Hwi, #Hfcs, #Hcut, #Hsl, #Hevs⟩
   ihave ⟨%kvs, %Hkvl, #Hea, #Hkv⟩ := evs_eventsAt sl ps ρ.evs hps $$ [Hsl Hevs]
   · iframe #
   have hsnoc : evsOf (Dm ++ [m]) w = evsOf Dm w ++ (if ρ.evs ≠ [] then ρ.evs else []) := by
@@ -633,12 +632,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     rw [hsn]
     simp only [List.getLast?_nil, Option.map_none, Option.getD_none]
     isplitr
-    · unfold rangeWatchRespOk
-      isplitr
-      · ipureintro; simp [EvRevSorted]
-      imodintro
-      iintro %i %e %h
-      simp at h
+    · ipureintro; simp [dispOk, EvRevSorted]
     isplitr
     · ipureintro; exact hhi
     isplitr
@@ -658,10 +652,6 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
   rw [evs_after Dm w rs ρ (hfilt hne)] at hflat
   have hflat' : evsOf Dm w ++ ρ.evs = mvcc.watchEvents L rg lo d := hflat
   ihave %HLw := v3rpc.sealed_pure _ L $$ HL
-  iunfold srvNoDupKeys at Hnd
-  ihave #HLc := mvcc.evLog_certOk _ _ $$ HLe
-  ihave Hnd' := Hnd $$ %L HL HLc
-  imod Hnd' with %HLnd
   -- (W3) the watched log, as the contract's model sees it
   ihave #Hsm' := Hsm
   iunfold srvLogsSmall at Hsm'
@@ -737,25 +727,14 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
   have hsn : evsOf (Dm ++ [m]) w = evsOf Dm w ++ ρ.evs := by
     rw [hsnoc, if_pos hne]
   isplitr
-  · unfold rangeWatchRespOk
-    isplitr
-    · ipureintro; exact ⟨hsorted, hgt, rfl⟩
-    imodintro
-    iintro %i %e %he
-    rw [List.getElem?_zipWith] at he
-    cases hev : ρ.evs[i]? with
-    | none => rw [hev] at he; simp at he
-    | some ev =>
-      cases hkv : kvs[i]? with
-      | none => rw [hev, hkv] at he; simp at he
-      | some kv =>
-        rw [hev, hkv] at he
-        simp at he; subst he
-        ihave #Hk := Hkv $$ %i %ev %kv %hev %hkv
-        have hmem : ev ∈ mvcc.watchEvents L rg a d := by
-          rw [← hevs]; exact List.mem_of_getElem? hev
-        iapply ev_ok V P rr srr L rg X a d ev kv hok hpfx hcr hmem hdd (by omega) hst HLnd
-        iframe #
+  · ipureintro
+    refine ⟨hsorted, fun e he => ⟨hgt e he, ?_⟩, rfl⟩
+    obtain ⟨ev, hev, hre⟩ := mem_zipWith_evModel he
+    obtain ⟨j, hj1, hj2, hj3⟩ := hmemrev ev hev
+    rw [hre, hj3]
+    have hjz : sint.Z (W64 (j : Int)) = j := by word
+    rw [hjz]
+    constructor <;> omega
   isplitr
   · ipureintro
     right

@@ -429,7 +429,7 @@ instance srvKVFacts_persistent (V : WEnv GF) : Persistent (srvKVFacts V) := by
 twice in a revision, its store's names its environment's, and its watched logs as the contract's
 model sees them (`watchLaws`). -/
 def watchMemberFacts (V : WEnv GF) : IProp GF :=
-  iprop(mvcc.watchTokPool V.R.γ ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
+  iprop(mvcc.watchTokPool V.R.γ ∗ srvLogsSmall V.R ∗
     ⌜V.R.γ.st = V.R.E.γ⌝ ∗ watchLaws V ∗ srvKVFacts V)
 
 instance watchMemberFacts_persistent (V : WEnv GF) : Persistent (watchMemberFacts V) := by
@@ -467,7 +467,7 @@ theorem watchConnFacts_cur (V : WEnv GF) :
   irevert Hmi; rw [hV]; iintro #Hmi
   ihave #Hmi' := Hmi
   iunfold watchMemberFacts at Hmi'
-  icases Hmi' with ⟨-, -, -, %Hst, -⟩
+  icases Hmi' with ⟨-, -, %Hst, -⟩
   iframe Hmi
   ipureintro; exact ⟨Hst, hp⟩
 
@@ -717,6 +717,16 @@ theorem regB0_ok (pfx : GoString) (P : WsPrm GF) (hok : wsReqOk pfx P) (hc : P.�
     show 1 ≤ sint.Z P.rev
     omega
 
+/-- **A dispatched response's cursor facts** (D46; until then the weak per-event contract,
+`rangeWatchRespOk`): its events sorted by revision, each above the dispatch cursor's position `c`,
+at or above the watch's start `rev` and below `2 ^ 63 - 1`, and the position after it the last
+event's revision (`c` if none). -/
+def dispOk (rev c c' : w64) (r : RespModel) : Prop :=
+  EvRevSorted r.events ∧
+    (∀ e ∈ r.events, sint.Z c < sint.Z e.rev ∧ sint.Z rev ≤ sint.Z e.rev ∧
+      sint.Z e.rev < 2 ^ 63 - 1) ∧
+    c' = (r.events.getLast?.map EvModel.rev).getD c
+
 /-- **The `k`th response `run` sends a substream** (`recvc`'s element) at `wr` (read-only): a
 `WatchResponse` modelled by `r` (its events read-only, its header non-nil, `watchHdrOwn`: the
 `Revision` owned for a response with events; no close error, no compaction, not canceled),
@@ -735,7 +745,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
       r.canceled = false⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
-    rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
+    ⌜dispOk P.rev hiB hiA r⌝ ∗ recvCmpl V P k v r ∗
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
@@ -1160,7 +1170,7 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
       r.canceled = false⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
-    rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
+    ⌜dispOk P.rev hiB hiA r⌝ ∗ recvCmpl V P k v r ∗
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)

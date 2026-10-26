@@ -117,14 +117,13 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
     (h0 : (sint.Z rv < sint.Z (r.hdrRev + W64 1) ∧ nr0 = r.hdrRev + W64 1) ∨
       (¬ sint.Z rv < sint.Z (r.hdrRev + W64 1) ∧ nr0 = rv))
     (h1 : (r.events = [] ∧ nr' = nr0) ∨ (∃ e, r.events.getLast? = some e ∧ nr' = e.rev + W64 1)) :
-    resumeOk V P rv hl c2 ∗ rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hl hiA r ∗
+    resumeOk V P rv hl c2 ∗ ⌜dispOk P.rev hl hiA r⌝ ∗
       (⌜P.γ.cpl = false⌝ ∨ ∃ γst : mvcc.StoreNames, rawRespOk γst P.o c2 h2A v r) ∗ resumeF V P r ⊢
       resumeOk V P nr' hiA h2A := by
   iintro ⟨Hro, Hrw, #Hw, #Hf⟩
   iunfold resumeOk at Hro
   icases Hro with ⟨%Hro, #Hs⟩
-  iunfold rangeWatchRespOk at Hrw
-  icases Hrw with ⟨%Hrw, #Hevs⟩
+  icases Hrw with %Hrw
   obtain ⟨Hr1, Hr2, Hr3⟩ := Hro
   obtain ⟨-, Hgt, HhiA⟩ := Hrw
   have hrev0 : 0 ≤ sint.Z P.rev := hok.2.2.1
@@ -235,11 +234,7 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
     have hhiA : hiA = e.rev := by rw [HhiA, hlast]; rfl
     subst hhiA
     ihave %He : ⌜sint.Z P.rev ≤ sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1⌝ $$ []
-    · obtain ⟨i, hi⟩ := List.getElem?_of_mem hmem
-      ihave #Hok := Hevs $$ %i %e %hi
-      iunfold rangeWatchEvOk at Hok
-      icases Hok with ⟨%H, -⟩
-      ipureintro; exact ⟨H.2.1, H.2.2.1⟩
+    · ipureintro; exact (Hgt e hmem).2
     ihave %Hc2 : ⌜P.γ.cpl = true → h2A = e.rev + W64 1 - W64 1⌝ $$ []
     · icases Hw with (%Hcf | Hw)
       · ipureintro; intro h; rw [Hcf] at h; cases h

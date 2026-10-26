@@ -207,7 +207,7 @@ theorem watchGRPCStream.run.wp_proof
     ihave ⟨#Hmf, %Hpre⟩ := watchConnFacts_cur V $$ Hconn
     ihave #Hmf' := Hmf
     iunfold watchMemberFacts at Hmf'
-    icases Hmf' with ⟨#Htoks, #Hsmall, #HnoDup, -, #Hlaws, #Hkvf⟩
+    icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf⟩
     ihave #Hconn' := Hconn
     iunfold watchConnFacts at Hconn'
     icases Hconn' with ⟨#Hgc, #Hgs, #Hdesc, -, #Heof, #HerrNew, #Hcea, #Hvars, -⟩
@@ -2255,7 +2255,7 @@ theorem watchGRPCStream.run.wp_proof
         ihave Hpre := client.reg_pre V γs P B HB S.Dm S.Dm.length m ρ rs w rg fcs lo sent C h sl ps kvs
             hsrc hev0 ⟨hcomp0, hca0, hcr0⟩ Hfilt (by rw [← hev0]; exact Hpslen) Hkvl HPpure.2.1 Hpre.2
             Hpre.1 Hhn rfl HPpure.2.2 hlive hid Hkc.1 $$ [Hauth Hst Hhrev Hc2]
-        · iframe; iframe Hevs' HDw Hrg HsoB Hea Hrecv Hmvcc Hps HS3 Hlaws HnoDup Hsmall Hkvf Hwa
+        · iframe; iframe Hevs' HDw Hrg HsoB Hea Hrecv Hmvcc Hps HS3 Hlaws Hsmall Hkvf Hwa
         imod Hpre with ⟨%es, %C', %C2, #Hes, %Hesl, Hhw, Hauth, Hcap, Hst, Hpend⟩
         simp only [WPh.isOrphan]
         icases client.wsLife_cap V G n P $$ Hlife with ⟨%d, Hdc, Hback⟩
@@ -2605,7 +2605,7 @@ theorem watchGRPCStream.run.wp_proof
         ihave #Hspec2 : v3rpc.watchSpec (V.atIdx mi2).R γs' Dn' $$ []
         · simp only [WEnv.atIdx_R]; iexact Hspec2r
         have hV2 : V0.atIdx mi2 = V.atIdx mi2 := by rw [← hV, WEnv.atIdx_atIdx]
-        iclear HG Hsf Hstub Hconn Hmf Htoks Hsmall HnoDup Hlaws Hkvf Hgc Hgs Hdesc Heof HerrNew Hcea
+        iclear HG Hsf Hstub Hconn Hmf Htoks Hsmall Hlaws Hkvf Hgc Hgs Hdesc Heof HerrNew Hcea
           Hvars HS2 HS3 Fremote Flg Hreqb Hclb Hrspsc
         generalize hVn : V.atIdx mi2 = V at *
         ihave #HG := HGn
@@ -2619,7 +2619,7 @@ theorem watchGRPCStream.run.wp_proof
         ihave ⟨#Hmf, %Hpre⟩ := watchConnFacts_cur V $$ Hconn
         ihave #Hmf' := Hmf
         iunfold watchMemberFacts at Hmf'
-        icases Hmf' with ⟨#Htoks, #Hsmall, #HnoDup, -, #Hlaws, #Hkvf⟩
+        icases Hmf' with ⟨#Htoks, #Hsmall, -, #Hlaws, #Hkvf⟩
         ihave #Hconn' := Hconn
         iunfold watchConnFacts at Hconn'
         icases Hconn' with ⟨#Hgc, #Hgs, #Hdesc, -, #Heof, #HerrNew, #Hcea, #Hvars, -⟩
