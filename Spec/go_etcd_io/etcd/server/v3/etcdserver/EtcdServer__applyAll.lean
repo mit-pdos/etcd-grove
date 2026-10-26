@@ -39,7 +39,9 @@ ai'`: the read loop's `ApplyWait` waiters through `ai'` are released once the KV
 (names-only contracts). The apply thread's resources come back at `ai'`, with `loopOk`. **The
 write budget** (the backend's unit 6, merged 2026-10-13): `applyEntries`' one write token of the
 store per entry above `ai`, from the budget `srvWTPool E` (D19b, 2026-10-18; until then
-`txn.storeWTs E.γ (unapplied ai ms).length`, handed in). **The KV model**
+`txn.storeWTs E.γ (unapplied ai ms).length`, handed in); (D22 J5, 2026-10-26) the count of tokens
+taken from `w` to `w` plus the entries applied (`srvWTTaken`; until J5 at the applied index,
+`srvWTAt γp ai`), with `uint.Z ai ≤ w` for the compaction's bound. **The KV model**
 (2026-10-14, unit T1): as `applyEntries` (`kvApplied`, `kvBatch`). (D22 S-h, 2026-10-20, S-0's
 amendment) The applied term: `ep.appliedt` the last applied entry's term, unchanged with none
 (`termAfter`), which the merged snapshot's metadata carries. (D22 S-h) The `msgSnapC` branch stays
@@ -50,13 +52,17 @@ abbrev EtcdServer.applyAll.spec : Prop :=
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option NodeNames) (γnc : NotifyNames),
+    (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option NodeNames) (γnc : NotifyNames)
+    (w : Nat),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShape (unapplied ai ms) →
   -- (2026-10-19, D21 M3) the storage's cap at least `1` (`snapshotIfNeededAndCompactRaftLog`'s)
   1 ≤ γs.cap →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
   dvOk ρ.raft dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
+  -- (D22 J5, 2026-10-26) the applied index at most the write tokens taken (no snapshot installed;
+  -- `snapshotIfNeededAndCompactRaftLog`'s)
+  uint.Z ai ≤ w →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
@@ -69,7 +75,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
       srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
-      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTAt γp ai ∗
+      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
@@ -85,7 +91,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
-        srvWTAt γp ai' ∗
+        srvWTTaken γp (w + (unapplied ai ms).length) ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E' ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
           kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗ srvRest E' γr (A ++ unapplied ai ms)) ∗
