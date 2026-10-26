@@ -79,6 +79,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthApplyLatestTxn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthCheckTxnLb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnKVL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVOutcomeOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_tieSure
@@ -2270,6 +2271,33 @@ theorem server_apply_admin_not_nospace_on
   applyResultIs_notNoSpaceAdmin Own γa M hs rq log ar out
 
 end applyStateOn
+
+section readTxnLb
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The real store's range check no older than a reader's lower bound, as the apply package's
+interface** (the auth plan's E3m, `apply/AuthCheckTxnLb.lean`), every callee linked. -/
+theorem apply_auth_store_range_lb (st : Loc) (R : IProp GF) (M : auth.AuthMode) (n : Nat) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ∗
+      auth.authPubLbM M n ⊢
+      EtcdGrove.apply.isAuthStoreRangeLb (auth.authIface st) (auth.authRd st R M) M n :=
+  EtcdGrove.apply.isAuthStoreRangeLb_of_authInv auth_range_permitted_lb st R M n
+
+/-- **A read-only transaction's `CheckTxnAuth` no older than a reader's lower bound** (the read
+path's check, the auth plan's E3m): each checked read's verdict at states no older than the
+reader's bound. -/
+theorem apply_check_txn_auth_lb :
+    EtcdGrove.apply.CheckTxnAuth.specLb (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.CheckTxnAuth.wp_lb EtcdGrove.apply.checkTxnPermission.wp_lb
+
+end readTxnLb
+
+#print axioms Perennial.EtcdGrove.apply_auth_store_range_lb
+#print axioms Perennial.EtcdGrove.apply_check_txn_auth_lb
 
 end EtcdGrove
 end Perennial
