@@ -335,6 +335,25 @@ theorem rnRtBound_of_rtOk (γ : RNNames) (t ai : w64) (n : Nat) (ht : uint.Z t �
   iframe Hc
   ipureintro; omega
 
+/-- **The sender's KV log is well formed as a store's committed log** (D22 J7b, 2026-10-26;
+`imageAt_of_snap`'s `hwf`): the apply thread's sole writer (`apply.kvOwn`'s `txn.kvWriter`) at its
+log `log` (the applied `kvModel γk A`, `kvApplied`) knows its certificate's sealed facts
+(`idxSealed_pure`: `LogWf'`, fewer than `2 ^ 63` revisions and changes per revision) and, from its
+budget, that the log has at least two and fewer than `2 ^ 48 + 2` revisions
+(`soleWriter_small'`): `IdxWf log []`, with no change pending. -/
+theorem soleWriter_idxWf (γ : mvcc.StoreNames) (log : mvcc.Log) :
+    txn.soleWriter (GF := GF) γ log ⊢ ⌜mvcc.IdxWf log []⌝ := by
+  iintro H
+  ihave ⟨%H2, H⟩ := txn.soleWriter_len' γ log $$ H
+  ihave ⟨H, #Hc⟩ := txn.soleWriter_cert γ log $$ H
+  ihave %Hs := txn.soleWriter_small' γ log $$ H
+  ihave #Hse := mvcc.idxCert_sealed γ.idx log $$ Hc
+  ihave %Hp := mvcc.idxSealed_pure γ.idx log $$ Hse
+  ipureintro
+  obtain ⟨hwf, -, hcs⟩ := Hp
+  have hne : log ≠ [] := by intro h; subst h; simp at H2
+  refine ⟨mvcc.LogWf'.append_nil hwf hne, by omega, by simp, hcs⟩
+
 end proof
 
 end EtcdGrove

@@ -21,7 +21,13 @@
   index is `i` (`encMeta`, the `meta` key the hook saves) and its stored term some term (its
   value is not specified: restore does not read it, S-0 part 2 (2) (d); that it decodes is what
   names the receiver's consistent-index protocol, `metaIs D (i, t)`), and its other buckets
-  `bkRestAt L`, `L` the raft log (`pre ++ A`).
+  `bkRestAt L`, `L` the raft log (`pre ++ A`). (D22 J7b, 2026-10-26) And the KV model is well
+  formed as a store's committed log (`mvcc.IdxWf (kvModel γk A) []`: `LogWf'`, fewer than `2 ^ 63`
+  revisions and changes per revision), which the sender's store knows of its log (its sole
+  writer's certificate, `soleWriter_idxWf`) and restore needs (`restoreLogOk`, with the facts of
+  the model a plain log has: `restoreLogOk_kvRaftOf`). The stored term stays some term: the
+  consistent index's protocol tracks no term (`InvCindex.lean`), and restore reads none; the
+  receiver names its protocol with the image's (`specSnap`'s `tI`, D22 J7b).
 * `dbImage γ γk i D` (persistent): `imageAt` of a committed prefix `A` (`srvRLogLb`) of the
   server's log ending at index `i`.
 * `srvImage γ i D` (persistent; D22 S-i): `dbImage` at the fresh cluster's start for any KV names
@@ -86,7 +92,7 @@ def imageAt [FfiSyntax] (γk : KVNames) (bootLog : List EntryM) (i : w64) (L A :
     (D : Data) : Prop :=
   mvcc.keyImage (kvModel γk A) D ∧ dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
     (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
-    bkRestAt γk.c0 bootLog L D
+    bkRestAt γk.c0 bootLog L D ∧ mvcc.IdxWf (kvModel γk A) []
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -212,7 +218,8 @@ theorem bkRestAt_of_rb {P : BParams} (hRB : ∀ n ∈ restBuckets, P.RB n = true
 /-- The modeled half of an image from a snapshot's observation (`backend.Snapshot.spec`'s `Q`):
 the readers' view `sData P D` the `Key` bucket of `kvModel γk A`, the hook's own keys holding the
 index `i` and some term and (D22, 2026-10-23) the tracked buckets the rest model's at `L`; no
-compaction key given (`bkNoCmp`'s, not modeled). -/
+compaction key given (`bkNoCmp`'s, not modeled). (D22 J7b) The KV model well formed (`hwf`): the
+sender's sole writer's (`soleWriter_idxWf`, at the applied log `kvModel γk A`). -/
 theorem imageAt_of_snap {P : BParams} (hP : mvcc.bridgeParams P) (hK : ciKeys P)
     (hRB : ∀ n ∈ restBuckets, P.RB n = true)
     {γk : KVNames} {bootLog : List EntryM} {i : w64} {L A : List EntryModel} {D : Data}
@@ -221,12 +228,14 @@ theorem imageAt_of_snap {P : BParams} (hP : mvcc.bridgeParams P) (hK : ciKeys P)
     (htm : ∃ t : w64, (hkData P D).lookup (schema.metaName, schema.termKeyBytes) = encMeta t)
     (hcmp : dget D schema.metaName mvcc.schedKeyBytes = none ∧
       dget D schema.metaName mvcc.finKeyBytes = none)
-    (hrb : rbData P D = (restModel γk.c0 bootLog L).bk) : imageAt γk bootLog i L A D := by
+    (hrb : rbData P D = (restModel γk.c0 bootLog L).bk)
+    (hwf : mvcc.IdxWf (kvModel γk A) []) : imageAt γk bootLog i L A D := by
   have hrest := bkRestAt_of_rb hRB hrb
   obtain ⟨t, ht⟩ := htm
   rw [hkData_lookup, ciKeys_hk hK (Or.inl rfl)] at hci
   rw [hkData_lookup, ciKeys_hk hK (Or.inr rfl)] at ht
-  exact ⟨⟨mvcc.dget_of_keyView hP hv, hcmp⟩, by simpa using hci, ⟨t, by simpa using ht⟩, hrest⟩
+  exact ⟨⟨mvcc.dget_of_keyView hP hv, hcmp⟩, by simpa using hci, ⟨t, by simpa using ht⟩, hrest,
+    hwf⟩
 
 end lemmas
 
