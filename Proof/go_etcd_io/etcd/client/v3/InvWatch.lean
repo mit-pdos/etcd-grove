@@ -564,11 +564,10 @@ def cplCond (sr : Bool) (o : OpFull) (rev : w64) : Bool :=
 /-- `cplCond` of a watch's values. -/
 abbrev cplOf (P : WsPrm GF) : Bool := cplCond P.sr P.o P.rev
 
-/-- **The request is one of the contract's** (pure): a range watch under `pfx` from `rev ≥ 0`
+/-- **The request is one of the contract's** (pure): a range watch from `rev ≥ 0`
 (`isRangeWatch`, `OpWatch` not panicking) whose `watchRequest` fields are the model's. -/
-def wsReqOk (pfx : GoString) (P : WsPrm GF) : Prop :=
+def wsReqOk (_pfx : GoString) (P : WsPrm GF) : Prop :=
   P.o.isRangeWatch P.rev = true ∧ ¬ P.o.watchPanics ∧ 0 ≤ sint.Z P.rev ∧
-    KeyRangeUnder pfx P.o.key P.o.base.rangeEnd ∧
     P.key = P.o.key ∧ P.ed = P.o.base.rangeEnd ∧ P.cn = P.o.base.createdNotify ∧
     P.pn = P.o.base.progressNotify
 
@@ -1031,6 +1030,15 @@ def isClientWatcher (V : WEnv GF) (w : Loc) : IProp GF :=
 
 instance isClientWatcher_persistent (V : WEnv GF) (w : Loc) : Persistent (isClientWatcher V w) := by
   unfold isClientWatcher; infer_instance
+
+/-- **A client watcher of etcd's KV `γ`** (persistent; D46): the watcher `w` over an environment
+whose members run the KV at `γ`'s state variable (`V.kst`, each member's KV facts at it,
+`srvKVFacts`): what `watcher.Watch.spec` takes. -/
+def isKvWatcher (w : Loc) (γ : KVNames) : IProp GF :=
+  iprop(∃ V : WEnv GF, isClientWatcher V w ∗ ⌜V.kst = γ.st⌝)
+
+instance isKvWatcher_persistent (w : Loc) (γ : KVNames) : Persistent (isKvWatcher (GF := GF) w γ) := by
+  unfold isKvWatcher; infer_instance
 
 /-! ## The substreams' bookkeeping (what `run`'s helpers take) -/
 

@@ -1,5 +1,17 @@
 /-
-`(*clientv3.watcher).Watch(ctx, key, opts...)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
+`(*clientv3.watcher).Watch(ctx, key, opts...)` (`client/v3/watch.go`; the watch slice's unit W-C;
+D46, 2026-10-26: as repeated reads of etcd's KV state). Lean-first (no Rocq counterpart).
+
+**The triple:** a prefix watch (`opts` the models of the Go options, `optsAt` tying the slice
+`opts_sl` of their closures to them; a non-empty key not all `0xff`) from a revision `rev ≥ 1`, on
+a client watcher of etcd's KV `γ` (`isKvWatcher`), with the caller's persistent read update of
+`γ`'s state (as a linearizable `Get`'s), returns an SPSC channel, with the consumer's side and the
+cursor at `rev - 1`, whose `i`-th response is one firing of the update (`watchStateElem`: `□ Q σ`
+at some state `σ`) and a read of that state from the cursor's position `i` to `i + 1`
+(`watchStateRespOk`): an error, a response without events that is not a progress notification, a
+progress notification at `p` (past the cursor: `p ≤ σ.rev` and no event of the range in `(c, p]`),
+or events, exactly the range's events of `σ` from the cursor to the last one's revision, as etcd
+computes them from its key bucket (`KVState.rangeEvents`: one per change, in order).
 -/
 module
 
@@ -16,7 +28,8 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 client
+open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.server.v3.etcdserver
+  client
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -26,28 +39,27 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`w.Watch(ctx, key, opts...)`**, the contract's watch (`isEtcdRangeWatcher`'s triple at `w`):
-a range watch under the watcher's prefix from `rev ≥ 0` returns an SPSC channel of responses
-satisfying `rangeWatchElem` at the server's model, which may be closed, with the consumer's
-side; (K2e-8) the responses are complete at the second cursor (`γ.cpl`) when `cplCond` holds. -/
+/-- See the file header. -/
 abbrev watcher.Watch.spec : Prop :=
-  ∀ (V : WEnv GF) (w : Loc) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
-    (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64) (sr : Bool),
+  ∀ (w : Loc) (γ : KVNames) (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF))
+    (key : GoString) (opts_sl : GoSlice) (opts : List (OpFull → OpFull)) (rev : w64)
+    (Q : KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗
-      context.isContext ctx cs ∗ optsAt sl gs ∗
-      ⌜(opWatchModel key gs).isRangeWatch rev = true ∧ ¬ opWatchPanics key gs ∧
-        0 ≤ sint.Z rev ∧
-        KeyRangeUnder V.pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd⌝ ∗
-      startOk V sr rev }}
-    (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
-  {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;
-      isSpsc γ.spsc ch (rangeWatchElem (EM := V.WM) γ V.pfx (opWatchModel key gs) rev)
-        (fun _ => iprop(True)) ∗
-      spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-      monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
-      ⌜γ.cpl = cplCond sr (opWatchModel key gs) rev⌝ }}
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isKvWatcher w γ ∗
+      context.isContext ctx ctx_desc ∗ optsAt opts_sl opts ∗
+      ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
+        1 ≤ sint.Z rev ∧ (opWatchModel key opts).key ≠ [] ∧
+        (opWatchModel key opts).base.rangeEnd = prefixRangeEnd (opWatchModel key opts).key ∧
+        prefixRangeEnd (opWatchModel key opts).key ≠ [W8 0]⌝ ∗
+      □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ σ, COMM □ Q σ }>) }}
+    (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!!
+        go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
+  {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
+      isSpsc γw.spsc ch (watchStateElem γw (opWatchModel key opts) Q) (fun _ => iprop(True)) ∗
+      spscConsumer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
+      monoListIdxOwn γw.cur 0 (rev - W64 1) }}
 
 end spec
 

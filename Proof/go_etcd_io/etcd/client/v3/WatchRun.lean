@@ -714,7 +714,7 @@ theorem cpl_facts (V : WEnv GF) (P : WsPrm GF) (B : RegB) (X : w64) (rg : mvcc.W
   unfold cplOf cplCond at hcpl
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcpl
   obtain ⟨-, hk, he, hff, -⟩ := hcpl
-  obtain ⟨-, -, -, -, hkey, hed, -, -⟩ := hok
+  obtain ⟨-, -, -, hkey, hed, -, -⟩ := hok
   refine ⟨hsr, hr1, ?_, hcr.2.1, hcr.2.2.1⟩
   · have := covers_prefix (createOfB P B) X rg hcr (by show P.key ≠ []; rw [hkey]; exact hk)
       (by show P.ed = prefixRangeEnd P.key; rw [hkey, hed]; exact he)

@@ -162,6 +162,23 @@ theorem watch_spsc_alloc (o : OpFull) (Q : KVState → IProp GF) (rev : w64)
   · iapply monoListIdxOwn_get 0 (rev - W64 1) rfl $$ Hlb
   ipureintro; exact ⟨rfl, rfl⟩
 
+omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] in
+/-- **`Watch`'s result** (D46): a watch's channel of `outcElem` at the names `γ`, the consumer's
+side and the second cursor at the start, is the triple's (`watchStateElem`) at `γ` with its second
+cursor as the cursor. -/
+theorem watch_post (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (ch : Loc) (rev : w64) :
+    isSpsc γ.spsc ch (outcElem γ o Q) (fun _ => iprop(True)) ∗
+      spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
+      monoListIdxOwn γ.cur2 0 (rev - W64 1) ⊢
+    isSpsc ({ γ with cur := γ.cur2 } : EtcdWatchNames).spsc ch
+        (watchStateElem { γ with cur := γ.cur2 } o Q) (fun _ => iprop(True)) ∗
+      spscConsumer ({ γ with cur := γ.cur2 } : EtcdWatchNames).spsc
+        ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
+      monoListIdxOwn ({ γ with cur := γ.cur2 } : EtcdWatchNames).cur 0 (rev - W64 1) := by
+  iintro ⟨#Hs, Hc, #Hi⟩
+  iunfold outcElem at Hs
+  iframe Hs Hc Hi
+
 end lemmas
 
 end client
