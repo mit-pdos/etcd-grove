@@ -225,6 +225,15 @@ removed, ..., adequacy coverage" below.
     **`sorry`** in a module of its own (`SnapApply{IsServer,Opts,KV,Rest,Closer}.lean`, independent:
     phase 2 proves them in parallel; briefs in their docstrings and `notes/snapshot-s8-plan.md`, "S8d
     phase 1"); `specSnap` gained the named premise `E.authMode = .off`.
+  - **J7 of the S-j plan done (2026-10-26)** (`notes/snapshot-sj-plan.md`; `notes/decisions.md`,
+    "D22 J7"): `SnapRecvFacts.lean` (no `sorry`) derives `specSnap`'s `hpre`, `hkI`, `hlease`,
+    `halarm`, `hauthb`, `hmemb`, `himg`, `hA'` (`snapRecv_image`, the `SnapImageFacts` record),
+    the restored log `R` and `certOk` with the KV jump (`snapRecv_kv_jump`, `kvApplied_of_jump`),
+    from `srvImage`, the apply thread's state and the KV invariants; +1 axiom
+    `membership.clusterImageOk_restModel.wp_proof` (not pure: it ties the cluster by `clusterMem`).
+    **Not derivable from the image's certificate**, for J8a: `hmeta` at the snapshot's term
+    (`imageAt` says some term) and `hRok` (`restoreLogOk R`, the sender's store's knowledge; also
+    `kv_cert_jump`'s length bound): `imageAt`/`dbImage` must carry them, set by the sender.
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.

@@ -85,7 +85,16 @@ theorem.
   raft's `isCommitted l.dlv` and the workload, specSnap's pure premises (`hmeta`, `hkI`, `hRok`,
   `hpre`, `hlease`, `halarm`, `hauthb`, `hmemb`, `hA'`), `R` with `[[],[]] ++ R = kvModel γk A'`,
   `certOk`, `kvApplied_jump` (chain `alarmChain false false false`). `clusterImageOk`: +1 axiom or a
-  definition proved over schema's codec.
+  definition proved over schema's codec. **Done (2026-10-26)**, `SnapRecvFacts.lean`:
+  `snapRecv_image` (premises: `γr.raft = ⟨γ, [], 0⟩`, `γr.kv`'s start values, `uint.Z ai =
+  ai0 + |A|`, `ai < i`, `|reBoot| ≤ i`, `hRO`; it gives `SnapImageFacts` at
+  `memI := (restModel … (pre ++ A')).mem`, `srvRLogLb γr.raft A'`), `snapRecv_kv_jump` (needs
+  `|kvModel A'| < 2^63`: `kvModel_len_of_rok` from `hRok`), `kvApplied_of_jump`, `srvRLogLb_dlv`
+  (`A'` is the `Ready`'s `l.dlv`). The axiom (`Spec/.../membership/clusterImageOk_restModel.lean`)
+  takes `isRaftCluster`, `clusterMem` at `L`, `srvRLogLb γ L'`: not pure, see `notes/decisions.md`,
+  "D22 J7". Left for J8a (not derivable from `srvImage`): `hmeta` at the snapshot's term and
+  `hRok`; both need `imageAt`/`dbImage` strengthened at the sender (and raft's `Ready` to tie the
+  snapshot's term to its last entry's).
 - **J6a. The raft node's payload with a snapshot** (`InvRaftNode`'s `rnReadyData`/`rnApP`,
   `InvRaftLoop`'s `rnApplyTok_recv`, `updateCommittedIndex`, `newRaftNode`, `InvRun`). After J2.
 - **J6b. `raftNode.start`'s snapshot branch** (its own module): `SaveSnap`, `Save`, `Sync`, the first
