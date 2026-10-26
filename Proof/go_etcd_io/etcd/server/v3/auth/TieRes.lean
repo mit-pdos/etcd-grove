@@ -217,8 +217,43 @@ theorem latestRes_of_T (st : Loc) (M : AuthMode) (hs : List AuthState) :
   unfold authOwnT tieRes latestRes
   iintro ⟨Ho, %b, %sc, Hfl, #Hev, Hca, #Hs, %Ht⟩
   isplitl [Ho Hfl Hca]
-  · iframe Ho; iexists b, sc; iframe Hfl Hca; ipureintro; exact Ht
+  · iframe Ho; iexists b, sc; iframe Hfl Hca Hev Hs; ipureintro; exact Ht
   iexists b, sc; iframe Hev Hs
+
+/-- **`latestRes` is the authority with the tie** (E3f). -/
+theorem authOwnT_of_latestRes (st : Loc) (M : AuthMode) (hs : List AuthState) :
+    latestRes (GF := GF) st M hs ⊢ authOwnT st M hs := by
+  unfold authOwnT tieRes latestRes
+  iintro ⟨Ho, %b, %sc, Hfl, Hca, #Hev, #Hs, %Ht⟩
+  iframe Ho; iexists b, sc; iframe Hfl Hca Hev Hs; ipureintro; exact Ht
+
+/-- **The authority with the tie lends the checks' latest-state resource** (E3f; the lending
+`apply.Apply.adminSpecL`'s `hsplit` asks of the authority family, and the KV checks'). -/
+theorem authOwnT_lend (st : Loc) (M : AuthMode) (hs : List AuthState) :
+    authOwnT (GF := GF) st M hs ⊢ latestRes st M hs ∗ (latestRes st M hs -∗ authOwnT st M hs) := by
+  iintro H
+  ihave ⟨H, -⟩ := latestRes_of_T st M hs $$ H
+  iframe H
+  iintro H
+  iapply authOwnT_of_latestRes st M hs $$ H
+
+/-- **The fueled authority with the tie lends the latest-state resource** (E3f; the apply
+thread's authority family, `authOwnFu` with `tieRes`, the `hsplit` of `apply.Apply.adminSpecL` and
+the lending of the KV checks' `L hs`). -/
+theorem ownFuT_lend (st : Loc) (γa : AuthNames) (hs : List AuthState) :
+    authOwnFu (GF := GF) γa hs ∗ tieRes st (.on γa) hs ⊢
+      latestRes st (.on γa) hs ∗
+        (latestRes st (.on γa) hs -∗ authOwnFu γa hs ∗ tieRes st (.on γa) hs) := by
+  unfold authOwnFu
+  iintro ⟨⟨Ho, Hf⟩, Ht⟩
+  ihave ⟨HL, Hback⟩ := authOwnT_lend st (.on γa) hs $$ [Ho Ht]
+  · unfold authOwnT; iframe Ho Ht
+  iframe HL
+  iintro HL
+  ihave H := Hback $$ HL
+  unfold authOwnT
+  icases H with ⟨Ho, Ht⟩
+  iframe Ho Hf Ht
 
 /-- A pure consequence kept beside its premise. -/
 theorem keep_pure {A : IProp GF} {φ : Prop} (h : A ⊢ ⌜φ⌝) : A ⊢ A ∗ ⌜φ⌝ :=
