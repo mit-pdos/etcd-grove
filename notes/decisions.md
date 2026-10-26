@@ -20210,3 +20210,95 @@ move the vacuity.
 (`KVChainOff.lean`).
 
 **Trust base.** Unchanged (721 axioms, 6 sorries).
+
+## E2q of the auth plan: the KV invariant in the mode `on`, over a model folding the auth state with the KV log (2026-10-26 · `notes/auth-plan.md`)
+
+The brief: E2p's design items 1-2 (the KV invariant parametric in the auth mode, the mode-`on`
+model) and, if time remained, item 4's log premises. Done, additively, in the new file
+`etcdserver/KVAuthModel.lean`; nothing existing changed. Item 3 (the apply thread's latest-state
+verdict) is the parallel fork E2r's.
+
+**(1) The mode as a parameter: `kvInvM on γ γk st₀`**, `kvInv γ γk` at `on = false` *by
+definition* (`kvInvM_false`, `rfl`), the new `kvInvOn γ γk st₀` at `on = true`. A separate
+invariant rather than a mode field in `KVNames` or a branch inside `kvInv`: every proof that opens
+`kvInv` (about 40 sites) and every mode-`off` statement keeps its text, and the mode-`on` one has
+its own pure conjunct, `γk.ch0 = alarmChain true false false` (`kvInvOn_ch0`, the counterpart of
+`kvInv_ch0_off`). It is satisfiable: `kvInvOn_alloc` allocates it at the empty committed log (unlike
+`kvInv` at a mode-`on` chain, `kvInv_ch0_on_false`). `st₀` is the auth store's state at the
+server's start, a parameter fixed with the names, as `log0` is.
+
+**(2) The mode-`on` model** (`kvRaftOfOn`, `kvModelOn γk st₀ L`, the fold of `kvEntryOn` over the
+committed log from `(st₀, log0)`):
+- an admin entry above the consistent index steps the auth state and keeps the log
+  (`kvEntryOn_admin`): with its principal admin-permitted at that state (`auth.adminOk`:
+  `authApplierV3.Apply` checks `IsAdminPermitted` of every `needAdminPermission` request), its
+  kind's S4 step, as a relation on states (`adminStateR`; the steps' flag `en` is the state's own:
+  the apply thread applies at the latest state, E2r's item); otherwise nothing;
+- a KV entry the auth layer refuses keeps both (`kvEntryOn_of_refused`); one it lets through is
+  today's `kvEntry` (`kvEntryOn_of_granted`). "Lets through" is `kvGranted st rq`: auth disabled, or
+  the principal's revision not `0` and not below the store's (`ErrUserEmpty`,
+  `ErrAuthOldRevision`) and its user with the root role or covering each permission the request
+  needs (`reqPerms`: `apply.reqClass`'s keys, purely; the model's range end, see the file header);
+- every other entry is today's `kvEntry`.
+`kvRaftOfOn_disabled`: with the start's auth disabled and no admin entry, the model is
+`kvRaftOf`'s (the mode-`off` model), the sanity check that the two agree where they should.
+
+**The choice: a function of the committed log, with determinacy a premise of the log; not a
+per-entry ghost record.** The KV invariant ties `etcdKV`'s ghost variable to the model of raft's
+*committed* log, and a client's update fires when its entry commits (`kvAu`), before any member
+applies it; so the model must be a function of the committed log. Recording the auth state an
+entry was applied at in ghost state would have the committer (raft's commit, not the apply
+thread) record an outcome the apply thread must later reproduce: sound only if the outcome is a
+function of the prefix, which is the same requirement. In Go it is a function of the prefix
+(every member applies the same entries), but three of the model's steps are relations:
+`userGrantRoleR` (the roles sorted: unique when the roles have no duplicates, which E2l's
+`authSmall` keeps), `roleGrantPermissionR` (the record's order after an unstable sort, and a
+permission of an unknown type, decide between appending and replacing, and the two differ in
+coverage), and `UserAdd`'s `ErrNoPasswordUser` (decided by the request's password fields, which
+`IRRModel.authUserAdd` does not carry). So the model's step is the unique successor where there is
+one (`authDet`, `adminNext`; `adminNext_of_det`: any successor the step allows is the model's), and
+the mode-`on` log premise asks every committed entry to be determinate at the state it is applied
+at (`detLogOn`, `entryDetOn`: an admin entry has one successor, a KV entry's check is decided --
+`kvDet`, every permission of the shape the permission cache decides, `auth.reqShape`, outside of
+which the cache's answer is not stated). Both are the workload's, as `plainLog` is today. Making the
+three relations functions instead would need the record's order in the model (and Go's `pdqsort`)
+for `RoleGrantPermission`.
+
+**What this leaves for `examples/authkv`** (its `SetUp` must commit determinate entries): `UserAdd`
+is never determinate in today's request model (`ErrNoPasswordUser` or the user added: two
+successors); the request model must carry the password choice (`IRRModel.authUserAdd` the
+`userAddReqIs` fields, as E2n did for the grant requests) and `adminStateR` decide the refusal from
+it (`selectPassword`'s condition). `RoleGrantPermission` of a known type into a role with no
+permission on its key is determinate (append); `UserGrantRole` is, at a state whose users' roles
+have no duplicates; `RoleAdd` and `AuthEnable` always are.
+
+**(4), the log premises, additively**: `plainEntryOn`/`plainLogOn` (a plain request of the
+workload, or an admitted admin request, `apply.adminKindOk`), `entryShapeOn`/`logShapeOn`
+(`entryShape`, whose `rqShape` excludes every admin kind, or an admitted admin request with an id),
+`kvWorkOn` (`kvWork` with `logShapeOn`; `kvWorkOn_of_kvWork`). `kvInvOn` keeps these.
+`kv_log_plain_on` (`kv_log_plain`'s counterpart) gives the apply thread a committed prefix's
+`plainLogOn`, `detLogOn` and the chain; `detLogOn_last` the entry it applies determinate at the
+state before it. The proposers establishing them (`EtcdServer.UserAdd`/... and the workload's
+admission) are not done.
+
+**Not done.**
+- The Iris-level counterpart of `kv_applied_step` in the mode `on`: it needs the apply thread's
+  mode-`on` ghost state (`kvApplied`'s log the mode-`on` model's, with the auth state) and the KV
+  certificates' invariant over `kvModelOn` (`kvCertInv`, `kv_cert_read`, which read `kvModel`),
+  and E2r's latest-state verdict to show the apply thread's outcome is the model's
+  (`kvEntryOn_of_granted`/`_of_refused`, `adminNext_of_det` are the pure steps it will use).
+- The committer's side: raft's commit extending `kvInvOn`'s log must show the new entry
+  `plainEntryOn` and determinate at the model's state (the workload's premise on what it proposes).
+- `NewServer.specM on` over `kvInvM on` (`kvInv_ch0_on_false` stops applying there; kept until
+  then).
+
+**Exported statements changed.** None. New (`KVAuthModel.lean`): `outState`, `relState`,
+`adminStateR`, `authDet`, `adminNext`, `adminNext_of_det`, `opPerms`/`opsPerms`, `reqPerms`,
+`kvGranted`, `kvDet`, `kvEntryOn`, `kvRaftOfOn` (`_nil`, `_append`, `_snoc`, `_disabled`),
+`kvEntryOn_admin`, `kvEntryOn_of_granted`, `kvEntryOn_of_refused`, `plainEntryOn`, `plainLogOn`,
+`plainEntryOn_of_plain`, `entryDetOn`, `detLogOn` (`_nil`, `_snoc`, `_prefix`, `_last`),
+`entryShapeOn`, `logShapeOn`, `entryShapeOn_of_entryShape`, `kvModelOn` (`_nil`), `kvWorkOn`
+(`kvWorkOn_of_kvWork`), `kvInvOn`, `kvInvM` (`_false`, `_true`), `kvInvOn_ch0`, `kvInvOn_alloc`,
+`kv_log_plain_on`.
+
+**Trust base.** Unchanged (721 axioms, 6 sorries); the new file has no axiom and no `sorry`.
