@@ -47,7 +47,7 @@ theorem auth.authStore.Recover.wp_proof
   icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
   subst Htpi
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be0, Hbe, -⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be0, Hbe, -⟩, HT, Hen, Hca⟩
   iunfold enabledHalf at Hen
   icases Hen with ⟨%en, Hen, -⟩
   ihave #Hbeok' := Hbeok
@@ -70,7 +70,7 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   wp_apply HRT as %tx Htx
   iunfold authReadTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, #Hreads⟩
+  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, -, #Hreads⟩
   subst Hti
   iunfold authTxReads at Hreads
   icases Hreads with ⟨#Hrd, #HRU⟩
@@ -120,11 +120,12 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
-  iapply (h_refresh st R M ti Hs sta) $$ [Htok]
-  · iframe Hpkg Hinv Hrd Htok Hsnap
+  iapply (h_refresh st R M ti Hs sta) $$ [Htok Hca]
+  · iframe Hpkg Hinv Hca Hrd Htok Hsnap
     ipureintro; exact Hfit'
   inext
-  iintro Htok
+  iintro ⟨Htok, Hca⟩
+  ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
   iapply HRU $$ %sta Htok
@@ -160,8 +161,8 @@ theorem auth.authStore.Recover.wp_proof
 
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   iframe HR
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWR; iframe HT Hca; isplitl [Hbe]
     · iexists (GoInterface.ok bi); iframe Hbe Hwbeok
     · iunfold enabledHalf; iexists enb; iframe Hen Hev
   iexists sta

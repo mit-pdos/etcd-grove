@@ -46,6 +46,8 @@ theorem apply.newQuotaApplierV3.wp_proof
   ipersist q
   wp_auto
   iapply HΦ
+  isplitr
+  · iexists p; iframe applierV3; ipureintro; rfl
   iintro !> %E %c #Hbase
   ihave #Hb := Hbase
   iunfold apply.applierSpec at Hb

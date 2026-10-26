@@ -129,7 +129,7 @@ local macro "fin_kv" : tactic => `(tactic| (
   · simp only [apply.cPost, ↓reduceIte]; iexact HPP
   isplitr
   · ipureintro
-    refine ⟨?_, Or.inl rfl, ?_⟩
+    refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
     · simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
         Bool.false_eq_true, _root_.or_self, ↓reduceIte]
       first | exact Hst.1 | exact Hst
@@ -172,7 +172,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF, HFS, HSp, HRO⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
-  icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs⟩
+  icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
   ihave #Hopts' := Hopts
   iunfold apply.backendOptsOk at Hopts'
   icases Hopts' with ⟨%HlgN, -⟩
@@ -210,13 +210,13 @@ theorem apply.uberApplier.dispatch.wp_proof
   ihave %nUA := apply.optReqIs_null _ _ _ (apply.authUserAddIs_nn lUA) $$ HUA
   ihave %nUD := apply.presentIs_null _ _ $$ HUD
   ihave %nUC := apply.presentIs_null _ _ $$ HUC
-  ihave %nUGR := apply.presentIs_null _ _ $$ HUGR
+  ihave %nUGR := apply.optReqIs_null _ _ _ (apply.authUserGrantRoleIs_nn lUGR) $$ HUGR
   ihave %nURR := apply.presentIs_null _ _ $$ HURR
   ihave %nUL := apply.presentIs_null _ _ $$ HUL
   ihave %nRL := apply.presentIs_null _ _ $$ HRL
   ihave %nRA := apply.optReqIs_null _ _ _ (apply.authRoleAddIs_nn lRA) $$ HRA
   ihave %nRD := apply.presentIs_null _ _ $$ HRD
-  ihave %nRGP := apply.presentIs_null _ _ $$ HRGP
+  ihave %nRGP := apply.optReqIs_null _ _ _ (apply.authRoleGrantPermissionIs_nn lRGP) $$ HRGP
   ihave %nRRP := apply.presentIs_null _ _ $$ HRRP
   ihave %nDT := apply.presentIs_null _ _ $$ HDT
   ihave #Hsp := Hs
@@ -374,7 +374,7 @@ theorem apply.uberApplier.dispatch.wp_proof
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
-            apply.kvFloorOk rq true F log o⌝ ∗
+            apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
           apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
     with [a r ar op «$r0» Hc Hres Ha Hkv Hwt]
@@ -593,14 +593,11 @@ theorem apply.uberApplier.dispatch.wp_proof
   wp_if_destruct
   · -- AuthUserGrantRole (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUGR ≠ null := by simpa using Hif
-    have hs : rq.authUserGrantRole = true := by
-      cases h : rq.authUserGrantRole
-      · exact absurd (nUGR.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUGR.2 h))
     have hk : dispatchKind rq = .authUserGrantRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-  have zAuthUserGrantRole : rq.authUserGrantRole = false := nUGR.1 (by simpa using Hif)
+  have zAuthUserGrantRole : rq.authUserGrantRole = none := nUGR.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserGet (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUG ≠ null := by simpa using Hif
@@ -633,14 +630,11 @@ theorem apply.uberApplier.dispatch.wp_proof
   wp_if_destruct
   · -- AuthRoleGrantPermission (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRGP ≠ null := by simpa using Hif
-    have hs : rq.authRoleGrantPermission = true := by
-      cases h : rq.authRoleGrantPermission
-      · exact absurd (nRGP.2 h) hl
-      · rfl
+    obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRGP.2 h))
     have hk : dispatchKind rq = .authRoleGrantPermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-  have zAuthRoleGrantPermission : rq.authRoleGrantPermission = false := nRGP.1 (by simpa using Hif)
+  have zAuthRoleGrantPermission : rq.authRoleGrantPermission = none := nRGP.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGet (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRG ≠ null := by simpa using Hif

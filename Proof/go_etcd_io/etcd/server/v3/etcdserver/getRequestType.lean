@@ -89,9 +89,8 @@ theorem getRequestType.wp_proof : getRequestType.spec (GF := GF) (hG := hG) := b
   icases H16 with %h16
   have e16 : rq.authUserChangePassword = !decide (l16 = null) := by
     cases hc : rq.authUserChangePassword <;> simp_all
-  iunfold apply.presentIs at H17
-  icases H17 with %h17
-  have e17 : rq.authUserGrantRole = !decide (l17 = null) := by
+  ihave %h17 := apply.optReqIs_nil l17 rq.authUserGrantRole _ apply.authUserGrantRoleIs_nn $$ H17
+  have e17 : rq.authUserGrantRole.isSome = !decide (l17 = null) := by
     cases hc : rq.authUserGrantRole <;> simp_all
   iunfold apply.presentIs at H18
   icases H18 with %h18
@@ -115,9 +114,8 @@ theorem getRequestType.wp_proof : getRequestType.spec (GF := GF) (hG := hG) := b
   ihave %h23 := apply.optReqIs_nil l23 rq.authRoleGet _ apply.authRoleGetIs_nn $$ H23
   have e23 : rq.authRoleGet.isSome = !decide (l23 = null) := by
     cases hc : rq.authRoleGet <;> simp_all
-  iunfold apply.presentIs at H24
-  icases H24 with %h24
-  have e24 : rq.authRoleGrantPermission = !decide (l24 = null) := by
+  ihave %h24 := apply.optReqIs_nil l24 rq.authRoleGrantPermission _ apply.authRoleGrantPermissionIs_nn $$ H24
+  have e24 : rq.authRoleGrantPermission.isSome = !decide (l24 = null) := by
     cases hc : rq.authRoleGrantPermission <;> simp_all
   iunfold apply.presentIs at H25
   icases H25 with %h25
