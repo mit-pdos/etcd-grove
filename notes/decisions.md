@@ -21125,3 +21125,45 @@ right after `Lock`. Decided:
 No axiom, no `sorry`. Statement changes: only the three `.spec`s (the linked
 `MemoryStorage.wp_{ApplySnapshot,CreateSnapshot,Compact}` now prove the AU forms, which imply the
 old triples: more, not less); no closed theorem changes.
+
+## D22 J7: the image facts; `clusterImageOk_restModel` an axiom with a cluster tie; two premises the image does not carry (2026-10-26 · decided by the orchestrator while the user was away (J7))
+
+Stage J7 of `notes/snapshot-sj-plan.md`: `Proof/.../etcdserver/SnapRecvFacts.lean` derives
+`applySnapshot.specSnap`'s pure premises about the image from the image's certificate
+`srvImage γ i D`, the apply thread's `kvApplied`/`srvRest`, the KV invariants and the cluster.
+Decided by the orchestrator while the user was away (J7):
+
+- **The axiom is not pure** (J0 item 9 said "one pure trust-boundary axiom"). `memBucketsOk c` is
+  about the cluster object `c` (its local member, its static members, the server's version), and no
+  pure fact names a `Loc` as the server's cluster: a pure statement over every `c` is false (another
+  cluster's object, or `c0`/boot values that are not the server's: a log shorter than the boot log
+  has members in `mem` that its `members` bucket lacks). So
+  `membership.clusterImageOk_restModel.wp_proof` (`Spec/.../membership/clusterImageOk_restModel.lean`,
+  +1 axiom) ties `c` by `clusterMem c (restModel c0 boot L).mem` (only the apply thread holds it,
+  given back) and `isRaftCluster c` (the local member), and `L'` by `srvRLogLb γ L'` (committed:
+  the version requests are the members' own) with pure premises the server has: `γ.pre = []`,
+  `c0 = 0`, `L <+: L'`, `|reBoot| ≤ |L'|`, `ccLogOk γ.raft.reCfg L'` (from `kvWork`,
+  `kv_log_ccOk`). Its conclusion is pure. The docstring argues it against `schema/membership.go`,
+  `cluster.go` and `downgrade.go` at the pin. Placed as a Spec/Proof pair (not in
+  `RaftCluster__Recover.lean` as J0 wrote) per the layout: one statement per Spec file.
+- **`hmeta` is not derivable** from `srvImage`: `imageAt` states the image's stored term as some
+  term (`∃ t`), and nothing ties it to the snapshot's `Metadata.Term`. True of Go (the sender's
+  merged snapshot takes `ep.appliedt`, the term of the entry at `ep.appliedi`, which the
+  consistent index's hook saved as the term), but the certificate must say it: `imageAt`'s term
+  clause would become "the term of the image's last entry" (the sender: `snapObs_window`'s term
+  from the hook's resource) and raft's `Ready` the snapshot's term as that entry's term. Not done
+  (a change to `imageAt`, `dbImage`, the sender's proof, and raft's payload): J8a's to arrange.
+- **`hRok` (`restoreLogOk R`) is not derivable** from `srvImage` either: the image's KV log's
+  well-formedness (`LogWf'`, revisions non-empty, under `2 ^ 63` revisions and changes) is the
+  sender's store's knowledge of its sealed log (`sealed_pure`), which the certificate does not
+  carry, and the length bound is not a function of the log (`|A'| < 2 ^ 64` only). `kv_cert_jump`'s
+  length bound follows from it (`kvModel_len_of_rok`). The fix is the same kind: `dbImage` gaining
+  the sealed log's facts at the sender (`imageAt_of_snap`'s caller has them).
+- The pure lemmas about the rest model (`restModel_isSome`, `restModel_bk_none`,
+  `restModel_bk_of_bkRestAt`, ...) stay in `SnapRecvFacts.lean`, not `InvRest`/`InvImage`: adding
+  them there would rebuild most of the server while other stages edit nearby; they can move in a
+  clean-up.
+- **The baseline**: `etc/tcb-report.py --check` (and the `snapshot` collection) match unchanged
+  (720 axioms, 6 `sorry`s): the TCB counts what the linked roots reach, and no root reaches
+  `SnapRecvFacts` until J8b links `specSnap`'s proof, so the new axiom enters
+  `etc/tcb-baseline.txt` then (`--check --update` at J8b), not now.

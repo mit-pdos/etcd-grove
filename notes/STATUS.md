@@ -238,6 +238,15 @@ removed, ..., adequacy coverage" below.
     `memSnapTokG` (the application's key `ak` stays with `CreateSnapshot`'s caller, not in the
     shared part), the old triples corollaries (`MemstorageAU.lean`), `examples/kv` on them; J4
     starts from `MemoryStorage.{Compact,CreateSnapshot}.wp_shared` (`notes/decisions.md`, "D22 J3").
+  - **J7 of the S-j plan done (2026-10-26)** (`notes/snapshot-sj-plan.md`; `notes/decisions.md`,
+    "D22 J7"): `SnapRecvFacts.lean` (no `sorry`) derives `specSnap`'s `hpre`, `hkI`, `hlease`,
+    `halarm`, `hauthb`, `hmemb`, `himg`, `hA'` (`snapRecv_image`, the `SnapImageFacts` record),
+    the restored log `R` and `certOk` with the KV jump (`snapRecv_kv_jump`, `kvApplied_of_jump`),
+    from `srvImage`, the apply thread's state and the KV invariants; +1 axiom
+    `membership.clusterImageOk_restModel.wp_proof` (not pure: it ties the cluster by `clusterMem`).
+    **Not derivable from the image's certificate**, for J8a: `hmeta` at the snapshot's term
+    (`imageAt` says some term) and `hRok` (`restoreLogOk R`, the sender's store's knowledge; also
+    `kv_cert_jump`'s length bound): `imageAt`/`dbImage` must carry them, set by the sender.
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.
