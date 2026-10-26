@@ -22101,3 +22101,44 @@ text and say what they said of a heap-determined model (now with each put's `Pre
 
 **Left.** `noZeroEnds` stays the workload's premise (a range end `"\x00"` is where a check can see
 another range than the model's). The read path and the handlers (E3d's (2), (3)).
+
+## D22 J5: the applied index lags its ghost; the write counter decoupled (2026-10-26 · decided by the orchestrator while the user was away (J5/J4))
+
+J0's item 4, carried out (`notes/snapshot-sj-plan.md`, J5). No axiom, no `sorry`; no closed theorem
+changes.
+
+- **`srvAppliedInv`** (`InvRequest.lean`) is now `inv srvN (srvAppliedBody s E γr)`: the atomic
+  `s.appliedIndex` at `v`, the ghost applied index (the authority's half, the applied logs' keys,
+  the current log and its certificate) at `a`, with `uint.Z v ≤ uint.Z a`. Go's `applySnapshot`
+  moves `ep.appliedi` without `setAppliedIndex`
+  (`issues/etcd-applied-index-stale-after-snapshot.md`), so the atomic lags after an install. A
+  reader of the atomic still learns `appliedAtLeast γr v` (`getAppliedIndex`, from the ghost's lower
+  bound, `monoNatLbOwn_le`); `setAppliedIndex(v')` (`v' = a + 1`) sets both. Statements unchanged:
+  `getAppliedIndex.spec`, `setAppliedIndex.spec`, `srvIndices_alloc` (NewServer's allocation, shared
+  with J1a: only its proof changed, through `srvAppliedBody`).
+- **`applied_jump`** (new, `InvRequest.lean`): with `srvAppliedOwn γr a` (no deposit pending), the
+  log `L₀` applied through `a`, `kvLogAt γr i L` with `L₀ <+: L` and mvcc's certificate of `L`, and
+  `a < i`, the ghost index jumps to `i` (`srvAppliedOwn γr i`, `appliedAtLeast γr i`,
+  `appliedLogAt γr i L`), the atomic untouched. `appliedKeysOk` needed no change to allow it: its
+  keys are at most the ghost index, so `i > a` is fresh, and the order (`appliedMonoMap_insert`,
+  generalized from `v' = v + 1` to `v < v'`) holds through `L₀ <+: L`. J8a uses it in
+  `applySnapshot`'s post.
+- **The write counter decoupled** (`InvApplier.lean`): `srvWTTaken γp n` (a natural number, at
+  least `n` tokens taken; `srvWTAt γp v = srvWTTaken γp (uint.nat v)`, `srvWTAt_taken`), with
+  `srvWTPool_take_n` (one token, the count `+1`, no bound needed) and `srvWTPool_bound_n`.
+  `apply.spec` takes `srvWTTaken γp w` and returns `srvWTTaken γp (w + ms.length)` (until J5
+  `srvWTAt γp (f0 - 1)` to `srvWTAt γp appliedi`); `applyEntries.spec` and `applyAll.spec` take
+  `srvWTTaken γp w` and return `w` plus the entries applied (`unapplied ai ms`), and
+  `applyEntries.spec`'s post gains `uint.Z ai' = uint.Z ai + (unapplied ai ms).length`;
+  `snapshotIfNeededAndCompactRaftLog.spec` and `applyAll.spec` take `srvWTTaken γp w` with the pure
+  premise `uint.Z ai ≤ w` (the compaction's bound, D21 M3, through `srvWTPool_bound_n`); `applyRes`
+  (`InvRun.lean`) keeps `∃ w, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝` (until J5 `srvWTAt C.wt ai`),
+  which `run`'s loop keeps (`ai' = ai + |ce|`) and starts from `isServerRun`'s `srvWTAt γp ai₀`
+  (unchanged). A token taken for no entry (the merged snapshot's, J4's `Commit`) need not raise the
+  count's lower bound: `srvWTTaken` is a lower bound.
+- **Deviation from J0's item 4**: J0 had `applyRes` keep `⌜γ.reNoSnap = true → w = ai⌝`. Only
+  `uint.Z ai ≤ w` is read (the compaction's bound), and the condition on the mode has no reader
+  before a snapshot case exists, so J5 keeps `uint.Z ai ≤ w` unconditionally. **J8a**, which adds
+  `applyAll`'s snapshot case (where `ai` jumps past `w`), makes it conditional on the mode (or
+  replaces the compaction's bound by `γs.cap ≥ 2^61`, L3) and drops `applyAll.spec`'s premise
+  `uint.Z ai ≤ w` there.

@@ -73,7 +73,7 @@ theorem EtcdServer.applyEntries.wp_proof
     (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
-  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv Hms Hai1 Hok hEok hdv
+  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok hEok hdv
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
@@ -94,14 +94,14 @@ theorem EtcdServer.applyEntries.wp_proof
     iexists st, ai, at0, a, t, cs
     iframe
     isplitr
-    · iexact HWA
+    · rw [show (unapplied ai []).length = 0 by simp [unapplied], Nat.add_zero]; iexact HWA
     isplitl [Hka HRS]
     · isplitr
       · ipureintro; rfl
       iframe Hlog
       rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iframe Hka HRS
     ipureintro
-    refine ⟨Hok, ?_, Or.inl rfl, Or.inl ⟨by simp [unapplied], rfl⟩⟩
+    refine ⟨Hok, ?_, by simp [unapplied], Or.inl rfl, Or.inl ⟨by simp [unapplied], rfl⟩⟩
     simp only [List.getLast?_nil, Option.map_none, Option.getD_none]
     have : (0 : Int) ≤ uint.Z ai := by word
     omega
@@ -193,7 +193,7 @@ theorem EtcdServer.applyEntries.wp_proof
       iapply Hbc
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
-      (ai + 1) ep cs rac st a t x γr A γp dv hne' hfrom' hok' hEok hdv
+      (ai + 1) ep cs rac st a t x γr A γp dv w hne' hfrom' hok' hEok hdv
       $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka HRS Hdv]
       as %appt %appi %stop ⟨Hfs, Hdv, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao, #HWA',
         ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
@@ -222,13 +222,17 @@ theorem EtcdServer.applyEntries.wp_proof
     iexists st', appi, appt, a', at', csl
     iframe
     isplitr
-    · iexact HWA'
+    · rw [hun]; iexact HWA'
     isplitl [Hka HRS]
     · isplitr
       · ipureintro; rw [hun]; exact Hx'
       iframe Hlog'
       rw [hun]; iframe Hka HRS
-    ipureintro; exact ⟨hok2, hfin, Or.inr hci2, Or.inr (by rw [hun]; exact hlt)⟩
+    ipureintro
+    refine ⟨hok2, hfin, ?_, Or.inr hci2, Or.inr (by rw [hun]; exact hlt)⟩
+    rw [hun, List.length_drop, happi, hmLi]
+    have : uint.Z (ai + 1) = uint.Z ai + 1 := by word
+    omega
   · -- `off ≥ len(entries)`: every entry is already applied
     (try wp_auto)
     obtain ⟨mL, hmL, hmLi⟩ := entriesFrom_last f0 ms Hfrom (by
@@ -245,14 +249,14 @@ theorem EtcdServer.applyEntries.wp_proof
     iexists st, ai, at0, a, t, cs
     iframe
     isplitr
-    · iexact HWA
+    · rw [hun, List.length_nil, Nat.add_zero]; iexact HWA
     isplitl [Hka HRS]
     · isplitr
       · ipureintro; rw [hun]; rfl
       iframe Hlog
       rw [hun, List.append_nil]; iframe Hka HRS
     ipureintro
-    refine ⟨Hok, ?_, Or.inl rfl, Or.inl ⟨hun, rfl⟩⟩
+    refine ⟨Hok, ?_, by rw [hun]; simp, Or.inl rfl, Or.inl ⟨hun, rfl⟩⟩
     rw [hmL]
     simp only [Option.map_some, Option.getD_some]
     have : ¬ uint.Z ai + 1 - uint.Z f0 < ents.length := by rw [← hoff, ← hlenu]; exact Hif
