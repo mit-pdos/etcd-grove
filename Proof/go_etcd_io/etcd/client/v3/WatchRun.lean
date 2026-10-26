@@ -1668,7 +1668,7 @@ theorem bcast_elem (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {
   icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, #Hrg, Hprod, Hauth, Hst, Hc2⟩
   ihave #HP' := HP
   iunfold wsIs at HP'
-  icases HP' with ⟨-, -, -, -, -, -, %HPpure, #Hso, #Hwa, %Hkc⟩
+  icases HP' with ⟨-, -, -, -, -, -, %HPpure, #Hso, #Hwa, -, %Hkc⟩
   iunfold bcastCov at Hbc
   ihave #Hmem := Hbc $$ %P %B %w %rg %fcs %lo %HPws Hrg Hnc
   imod bcast_pre V γs P B HB S.Dm j m ρ X w rg fcs lo sent C h sl hsrc hev hfl hhn hj HPpure.2.1

@@ -416,7 +416,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     Hγt, #Hrc, Hx, Hwg, Hwstok⟩
   ihave #HP' := HP
   iunfold wsIs at HP'
-  icases HP' with ⟨#Hro, #Hfrecvc, #Houtc, #Hrecvc, #Hctx, #Hretcb, %HPws, #Hsok, -, %HPkc⟩
+  icases HP' with ⟨#Hro, #Hfrecvc, #Houtc, #Hrecvc, #Hctx, #Hretcb, %HPws, #Hsok, -, -, %HPkc⟩
   ihave #HG' := HG
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgs, -, #Hsf, %Hlg, #Fowner, #Fremote, #FcallOpts, #Fctx, #FctxKey, #Fcancel,

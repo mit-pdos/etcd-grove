@@ -765,7 +765,7 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
     isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q) ∗
     ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = cplOf P⌝ ∗ startOk V P.sr P.rev ∗
     -- (D46) the caller's read update, of the cluster's KV state; the watch promises completeness
-    wsAu P ∗ ⌜P.kv.st = V.kst ∧ P.γ.cpl = true⌝)
+    wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ P.γ.cpl = true⌝)
 
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
   unfold wsIs; infer_instance

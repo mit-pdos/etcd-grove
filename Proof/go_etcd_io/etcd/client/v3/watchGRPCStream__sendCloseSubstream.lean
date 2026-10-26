@@ -33,7 +33,7 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
   wp_start as ⟨#Hws, Hprod, Houtcf, Hresp, Hhdr, %Hv, #Hse⟩
   ihave #Hws' := Hws
   iunfold wsIs at Hws'
-  icases Hws' with ⟨#Hro, -, #Hspsc, -, #Hctx, -, %Hwsp, -⟩
+  icases Hws' with ⟨#Hro, -, #Hspsc, -, #Hctx, -, %Hwsp, -, -, ⟨%σ0, #HQ0⟩, %Hkc⟩
   iunfold wrRO at Hro
   icases Hro with ⟨#Hctxf, -⟩
   ihave #Hctx1 := Hctx
@@ -44,74 +44,49 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
   ipersist HRevision
   iunfold outcProd at Hprod
   icases Hprod with ⟨%sent, %C, Hprod, Hauth, %HC, Hc2a⟩
-  -- the second cursor (K2e-7) stays too: a canceled response
-  ihave Hc2e : iprop(|==> (⌜P.γ.cpl = false⌝ ∨ ∃ c2 c2' : w64,
-      monoListIdxOwn P.γ.cur2 sent.length c2 ∗ monoListIdxOwn P.γ.cur2 (sent.length + 1) c2' ∗
-      watchRespOk (EM := V.WM) P.o.key c2 c2' v (RespModel.mk [] (W64 0) true false (W64 0))))
-      $$ [Hc2a]
-  · iunfold cur2Auth at Hc2a
-    icases Hc2a with (%Hcf | ⟨%C2, Ha2, %HC2⟩)
-    · imodintro; ileft; ipureintro; exact Hcf
-    obtain ⟨c2, Hc2⟩ : ∃ c, C2[sent.length]? = some c :=
-      ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    imod monoListAuthOwn_update_app (GF := GF) [c2] $$ Ha2 with ⟨-, #Hlb2⟩
-    ihave #Hj1 := monoListIdxOwn_get (GF := GF) sent.length c2
-      (by rw [List.getElem?_append_left (by omega)]; exact Hc2) $$ Hlb2
-    ihave #Hj2 := monoListIdxOwn_get (GF := GF) (sent.length + 1) c2
-      (by rw [List.getElem?_append_right (by omega)]; simp [HC2]) $$ Hlb2
-    imodintro
-    iright
-    iexists c2, c2
-    iframe Hj1 Hj2
-    unfold watchRespOk
+  -- the second cursor (K2e-7) stays: a canceled response
+  iunfold cur2Auth at Hc2a
+  icases Hc2a with (%Hcf | ⟨%C2, Ha2, %HC2⟩)
+  · rw [Hkc.2] at Hcf; cases Hcf
+  obtain ⟨c2, Hc2⟩ : ∃ c, C2[sent.length]? = some c :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  imod monoListAuthOwn_update_app (GF := GF) [c2] $$ Ha2 with ⟨-, #Hlb2⟩
+  ihave #Hj1 := monoListIdxOwn_get (GF := GF) sent.length c2
+    (by rw [List.getElem?_append_left (by omega)]; exact Hc2) $$ Hlb2
+  ihave #Hj2 := monoListIdxOwn_get (GF := GF) (sent.length + 1) c2
+    (by rw [List.getElem?_append_right (by omega)]; simp [HC2]) $$ Hlb2
+  -- (D46) the caller's channel's element: an error, at the watch's first firing's state
+  ihave Hel : outcElem (GF := GF) P.γ P.o P.Q (sent.length : Int) v $$ [HRevision]
+  · unfold outcElem watchStateElem
+    iexists (RespModel.mk [] (W64 0) true false (W64 0)), σ0, c2, c2
+    simp only [Int.toNat_natCast]
+    iframe Hj1 Hj2 HQ0
+    isplitr
+    · unfold respAt
+      isplitr
+      · unfold eventsAt
+        iexists []
+        rw [Hevn]
+        isplitr
+        · iapply ownSlice_nil
+        isplitr
+        · ipureintro; rfl
+        imodintro
+        iintro %i %ev %e %h
+        simp at h
+      isplitr
+      · unfold hdrAt
+        iright
+        isplitr
+        · ipureintro; exact Hhn
+        rw [show (W64 0 : w64) = (zero_val etcdserverpb.ResponseHeader).Revision' from rfl]
+        iexact HRevision
+      ipureintro; exact ⟨Hcr, Hca, Hcrt⟩
+    unfold watchStateRespOk
     ileft
     iframe Hse
     ipureintro
     exact ⟨Or.inr (Or.inr Hca), rfl⟩
-  imod Hc2e with #Hc2e
-  -- the cursor stays where it is: its last position, twice
-  obtain ⟨c, Hc⟩ : ∃ c, C[sent.length]? = some c :=
-    ⟨_, List.getElem?_eq_getElem (by omega)⟩
-  imod monoListAuthOwn_update_app (GF := GF) [c] $$ Hauth with ⟨Hauth, #Hlb⟩
-  ihave #Hi1 := monoListIdxOwn_get (GF := GF) sent.length c
-    (by rw [List.getElem?_append_left (by omega)]; exact Hc) $$ Hlb
-  ihave #Hi2 := monoListIdxOwn_get (GF := GF) (sent.length + 1) c
-    (by rw [List.getElem?_append_right (by omega)]; simp [HC]) $$ Hlb
-  ihave Hel : rangeWatchElem (GF := GF) (EM := V.WM) P.γ V.pfx P.o P.rev (sent.length : Int) v $$ [HRevision]
-  · unfold rangeWatchElem
-    iexists (RespModel.mk [] (W64 0) true false (W64 0)), c, c
-    simp only [Int.toNat_natCast]
-    iframe Hi1 Hi2 Hse
-    isplitr
-    · unfold eventsAt
-      iexists []
-      rw [Hevn]
-      isplitr
-      · iapply ownSlice_nil
-      isplitr
-      · ipureintro; rfl
-      imodintro
-      iintro %i %ev %e %h
-      simp at h
-    isplitr
-    · unfold watchHdrOwn hdrAt
-      simp only [↓reduceIte]
-      iright
-      isplitr
-      · ipureintro; exact Hhn
-      rw [show (W64 0 : w64) = (zero_val etcdserverpb.ResponseHeader).Revision' from rfl]
-      iexact HRevision
-    isplitr
-    · ipureintro; exact ⟨Hcr, Hca, Hcrt⟩
-    isplitr
-    · unfold rangeWatchRespOk
-      isplitr
-      · ipureintro
-        refine ⟨List.Pairwise.nil, fun e he => by simp at he, rfl⟩
-      imodintro
-      iintro %i %e %h
-      simp at h
-    iexact Hc2e
   (try wp_auto)
   wp_apply +noauto HDone as %dch %dγ #Hdone
   (try wp_auto)
