@@ -25,7 +25,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 `passthroughQuota` for a negative `cfg`, else a `BackendQuota` over `be`; it sets a gauge and
 logs once). Its `Available` answers true only under the named workload premise
 `apply.backendUnderQuota` (audit phase B3, D19h, 2026-10-18: until then unconditional, false of
-Go once the backend reaches the quota). -/
+Go once the backend reaches the quota).
+
+`be` is any backend, of any epoch (D22 S-k, decided by the orchestrator while the user was away
+(L1), 2026-10-26): the axiom takes no fact about it and gives no resource of it, so a quota built
+over the backend `s.Backend()` returned stays usable after `applySnapshot` swaps `s.be` and closes
+the old one (the `isQuota` triples have no precondition, nothing holds a `bOpen` share). True of
+Go for a real backend, open or closed: `Available` reads only `be.Size()`, an atomic load of
+`b.size` (`backend.backend.Size.spec` needs only the persistent `isBackend`, whose `metricsInv`
+outlives `Close`), so a closed backend answers with its last size, which `backendUnderQuota`
+covers as it covers the current one's. The callers pass a real backend (`srvBeIface d.be` from
+`EtcdServer.Backend`, `s.be` for the applier's). -/
 abbrev storage.NewBackendQuota.spec : Prop :=
   ∀ (lg : Loc) (cfg : w64) (be : GoInterface) (name : GoString),
   apply.backendUnderQuota →

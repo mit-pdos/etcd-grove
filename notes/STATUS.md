@@ -249,7 +249,10 @@ removed, ..., adequacy coverage" below.
     `kv_cert_jump`'s length bound): `imageAt`/`dbImage` must carry them, set by the sender.
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
-    axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.
+    axioms estimated): waits on the epochs. **S-k** (the quota after the swap, stage L1) **done
+    (2026-10-26)**: already covered by the statements (the axiom over any backend, `isQuota`'s
+    triples without precondition, no quota predicate holding a `bOpen` share or naming a backend;
+    a closed backend's `Size()` is its last value); docstrings only (`notes/decisions.md`, "D22 L1").
     `s.alarmStore` stays read-only, `Recover` to be translated and proved ("D22 fork fixes"
     below).
   - **S-l, lifting the bound** (last): `bootOk` without `"%Hnosnap"`, `NewServer.spec` without
