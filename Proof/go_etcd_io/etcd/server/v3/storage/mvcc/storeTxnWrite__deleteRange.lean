@@ -60,6 +60,7 @@ local macro "del_range_tail" : tactic => `(tactic| (
       rw [h0, hnil, List.map_nil, List.append_nil]
       (try wp_auto)
       iapply HΦ
+      iframe Hown
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
@@ -83,11 +84,13 @@ local macro "del_range_tail" : tactic => `(tactic| (
           "Hri" ∷ i_ptr ↦ (W64 (j : Int) : w64) ∗
           "Hk" ∷ key_ptr ↦ kv0 ∗
           "%Hj" ∷ ⌜j ≤ ks.length⌝ ∗
-          "Htx" ∷ mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ (ks.take j).map .del) crev Z) $$ [i key Htx]
+          "Htx" ∷ mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ (ks.take j).map .del) crev Z ∗
+          "Hown" ∷ lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ (ks.take j).map .del)))
+          $$ [i key Htx Hown]
       · iexists 0, zero_val GoSlice
         simp only [named, List.take_zero, List.map_nil, List.append_nil]
         rw [show (W64 ((0 : Nat) : Int) : w64) = W64 0 from rfl]
-        iframe i key Htx
+        iframe i key Htx Hown
         ipureintro; omega
       wp_for IH
       have hj : sint.Z (W64 (j : Int) : w64) = j := by
@@ -123,8 +126,8 @@ local macro "del_range_tail" : tactic => `(tactic| (
             rw [List.getElem?_eq_getElem (by omega), hget, hkj]
           have := (List.Nodup.getElem?_inj (by omega) hnodup).1 h1
           omega
-        wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj crev Z)
-          $$ [$(frameH `Htx) $(frameH `Hkj)] as Htx
+        wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj L crev Z)
+          $$ [$(frameH `Htx) $(frameH `Hkj) $(frameH `Hown)] as ⟨Htx, Hown⟩
         · ipureintro
           rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
               (pend ++ (ks.take j).map .del) =
@@ -144,7 +147,7 @@ local macro "del_range_tail" : tactic => `(tactic| (
           ← List.append_assoc]
         rw [show (W64 ((j + 1 : Nat) : Int) : w64) = W64 (j : Int) + W64 1 by
           rw [← mvcc.W64_add_one]; simp]
-        iframe Hri Hk Htx
+        iframe Hri Hk Htx Hown
         ipureintro; omega
       · -- the loop is done: every key deleted
         have hge : ¬ sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
@@ -156,15 +159,15 @@ local macro "del_range_tail" : tactic => `(tactic| (
         (try wp_auto)
         rw [hkeyslen]
         iapply HΦ
-        iexact Htx
+        iframe Htx Hown
   ))
 
 theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (hRange : mvcc.treeIndex.Range.spec (GF := GF) (hG := hG))
     (hDel : mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend key endk k e crev Z
-  wp_start as ⟨Htw, #Hkey, #Hend⟩
+  intro trace tw s γ ilog pend key endk k e L crev Z
+  wp_start as ⟨Htw, #Hkey, #Hend, Hown⟩
   generalize hks : mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e = ks at *
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw

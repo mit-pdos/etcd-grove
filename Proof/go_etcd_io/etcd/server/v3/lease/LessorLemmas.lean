@@ -64,6 +64,31 @@ theorem ptsto_halves_combine {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (
   iapply ((typedPointsto_dfractional (GF := GF) l v).dfractional _ _).2
   iframe
 
+/-- Two halves of a map points-to agree and make the whole (unit T3, L2b: the item map and the
+item sets, half the lock's, half the lease owner's). -/
+theorem ownMap_halves_combine {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V]
+    [go.IntoValInj K] [go.IntoValInj V] (m : Loc) (A B : GMap K V) :
+    ownMap (GF := GF) m (DFrac.own (1 : Qp).half) A ∗ ownMap (GF := GF) m (DFrac.own (1 : Qp).half) B ⊢
+      ⌜A = B⌝ ∗ ownMap (GF := GF) m (DFrac.own 1) A := by
+  iintro ⟨H1, H2⟩
+  ihave %Heq := ownMap_agree m _ _ A B $$ [$H1 $H2]
+  subst Heq
+  isplitr
+  · ipureintro; rfl
+  have h := (ownMap_fractional (GF := GF) m A).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  iapply h.2
+  iframe
+
+/-- A map points-to in two halves. -/
+theorem ownMap_halves_split {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V]
+    [go.IntoValInj K] (m : Loc) (A : GMap K V) :
+    ownMap (GF := GF) m (DFrac.own 1) A ⊢
+      ownMap (GF := GF) m (DFrac.own (1 : Qp).half) A ∗ ownMap (GF := GF) m (DFrac.own (1 : Qp).half) A := by
+  have h := (ownMap_fractional (GF := GF) m A).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  exact h.1
+
 /-- A points-to in two halves. -/
 theorem ptsto_halves_split {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
@@ -80,10 +105,11 @@ instance unit_intoValInj : go.IntoValInj Unit where
 instance leaseItems_fractional (l : Loc) : Fractional (leaseItems (GF := GF) l) where
   fractional q1 q2 := by
     unfold leaseItems
+    rw [Qp_half_add]
     constructor
     · iintro ⟨%sm, %S, Hsm, HS⟩
-      icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hsm with ⟨Hs1, Hs2⟩
-      icases ((ownMap_fractional (GF := GF) sm S).fractional q1 q2).1 $$ HS with ⟨HS1, HS2⟩
+      icases (typedPointsto_frac_add _ _ q1.half q2.half).1 $$ Hsm with ⟨Hs1, Hs2⟩
+      icases ((ownMap_fractional (GF := GF) sm S).fractional q1.half q2.half).1 $$ HS with ⟨HS1, HS2⟩
       isplitl [Hs1 HS1]
       · iexists sm, S; iframe
       · iexists sm, S; iframe
@@ -94,8 +120,8 @@ instance leaseItems_fractional (l : Loc) : Fractional (leaseItems (GF := GF) l) 
       subst HS
       iexists sm1, S1
       isplitl [Hsm1 Hsm2]
-      · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
-      · iapply ((ownMap_fractional (GF := GF) sm1 S1).fractional q1 q2).2; iframe
+      · iapply (typedPointsto_frac_add _ _ q1.half q2.half).2; iframe
+      · iapply ((ownMap_fractional (GF := GF) sm1 S1).fractional q1.half q2.half).2; iframe
 
 /-- What a lease's `expiryMu` guards is fractional. -/
 instance leaseExpiry_fractional (l : Loc) : Fractional (leaseExpiry (GF := GF) l) where
@@ -169,16 +195,18 @@ theorem lessorAuth_pin (γl : GName) (q : Qp) (lp lp' : Loc) (L : List w64) (M :
   iframe Ha Hcl Hgr
 
 /-- **A granted lease's closer joins the owner's** (unit T3): the closers' map gains the lease
-(with the lessor's map), the owner its element and the right to close its `revokec`. -/
+(with the lessor's map), the owner its element, the right to close its `revokec` and (L2b) its
+half of the lease's item set, empty (no item of the item map is on a lease not yet live). -/
 theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc) (id : w64)
-    (l : Loc) (c : GoChan) (hM : M.lookup id = none)
+    (l : Loc) (c : GoChan) (I : GMap LeaseItem w64) (sm : Loc) (hM : M.lookup id = none)
     (hL : ∀ x : w64, x ∈ L ↔ (M.lookup x).isSome) :
-    lessorAuth (GF := GF) γl 1 lp L M ∗ leaseClosers γl L ∗ lsF go!"revokec" l ↦□ c ∗
-        revokeCloser c ==∗
-      lessorAuth γl 1 lp L (M.insert id l) ∗ leaseClosers γl (L ++ [id]) := by
-  iintro ⟨Ha, Hcls, #Hrc, Hrcl⟩
+    lessorAuth (GF := GF) γl 1 lp L M ∗ leaseClosers γl L I ∗ lsF go!"revokec" l ↦□ c ∗
+        revokeCloser c ∗ lsF go!"itemSet" l ↦{DFrac.own (1 : Qp).half} sm ∗
+        sm ↦${DFrac.own (1 : Qp).half} (∅ : GMap LeaseItem Unit) ==∗
+      lessorAuth γl 1 lp L (M.insert id l) ∗ leaseClosers γl (L ++ [id]) I := by
+  iintro ⟨Ha, Hcls, #Hrc, Hrcl, Hsm, HS⟩
   iunfold leaseClosers at Hcls
-  icases Hcls with ⟨%lp', %γga, %γcl, %C, #Hp, %HC, Hcs⟩
+  icases Hcls with ⟨%lp', %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, Hcs⟩
   icases lessorAuth_pin γl 1 lp lp' L M γga γcl $$ [$Ha $Hp] with ⟨%Hlp, Hcl, Hback⟩
   subst Hlp
   have hnotL : id ∉ L := by
@@ -191,8 +219,8 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
   ihave Ha := Hback $$ %(M.insert id l) Hcl
   iframe Ha
   iunfold leaseClosers
-  iexists lp, γga, γcl, (C.insert id l)
-  iframe Hp
+  iexists lp, γga, γcl, (C.insert id l), im
+  iframe Hp Him HI
   isplitr
   · ipureintro
     intro x
@@ -206,12 +234,111 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
         · exact h
         · exact absurd h.symm hx
       · intro h; exact Or.inl h
-  iapply (BigSepM.bigSepM_insert (Φ := fun (i : w64) (x : Loc) =>
-    iprop(ghostMapElem (GF := GF) γcl i (DFrac.own 1) x ∗
-      ∃ c : GoChan, lsF go!"revokec" x ↦□ c ∗ revokeCloser c)) hC).2
-  iframe Hcs He
-  iexists c
-  iframe Hrc Hrcl
+  isplitr
+  · ipureintro
+    intro it x h
+    exact List.mem_append_left _ (HIL it x h)
+  iapply (BigSepM.bigSepM_insert (Φ := fun (i : w64) (x : Loc) => closerAt (GF := GF) γcl I i x) hC).2
+  iframe Hcs
+  iunfold closerAt
+  iframe He
+  isplitl [Hrcl]
+  · iexists c
+    iframe Hrc Hrcl
+  iunfold leaseItemsOwn
+  iexists sm, ∅
+  iframe Hsm HS
+  ipureintro
+  intro it
+  simp only [GMap.lookup_empty, reduceCtorEq, false_iff]
+  intro h
+  exact hnotL (HIL it id h)
+
+/-- **The owner's resource of one live lease, taken out** (unit T3, L2b): its closers' map's
+element and its half of the item set, and back with the item map changed from `I` to any `I'`
+that attaches the same items to every other lease. -/
+theorem closers_items (γcl : GName) (C : GMap w64 Loc) (id : w64) (l : Loc)
+    (I : GMap LeaseItem w64) (hC : C.lookup id = some l) :
+    ([∗map] i ↦ x ∈ C, closerAt (GF := GF) γcl I i x) ⊢
+      ghostMapElem γcl id (DFrac.own 1) l ∗ leaseItemsOwn l I id ∗
+      ∀ I' : GMap LeaseItem w64,
+        ⌜∀ id' : w64, id' ≠ id → ∀ it : LeaseItem, I'.lookup it = some id' ↔ I.lookup it = some id'⌝ -∗
+        ghostMapElem γcl id (DFrac.own 1) l -∗ leaseItemsOwn l I' id -∗
+        [∗map] i ↦ x ∈ C, closerAt γcl I' i x := by
+  iintro H
+  icases (BigSepM.bigSepM_delete (Φ := fun i x => closerAt (GF := GF) γcl I i x) hC).1 $$ H
+    with ⟨Hc, Hrest⟩
+  iunfold closerAt at Hc
+  icases Hc with ⟨He, Hcl, Hit⟩
+  iframe He Hit
+  iintro %I' %Hoth He Hit
+  iapply (BigSepM.bigSepM_delete (Φ := fun i x => closerAt (GF := GF) γcl I' i x) hC).2
+  isplitl [He Hcl Hit]
+  · iunfold closerAt; iframe
+  iapply BigSepM.bigSepM_impl $$ Hrest
+  iintro !> %k %v %hk Hc
+  have hne : k ≠ id := fun h => (Iris.Std.LawfulPartialMap.get?_delete_some_iff.1 hk).1 h.symm
+  iunfold closerAt at Hc
+  iunfold closerAt
+  icases Hc with ⟨He, Hcl, Hit⟩
+  iframe He Hcl
+  iunfold leaseItemsOwn at Hit
+  iunfold leaseItemsOwn
+  icases Hit with ⟨%sm, %S, Hsm, HS, %HSI⟩
+  iexists sm, S
+  iframe Hsm HS
+  ipureintro
+  intro it
+  rw [HSI it, Hoth k hne it]
+
+theorem insertAll_snoc {K V : Type} [DecidableEq K] (m : GMap K V) (xs : List K) (x : K) (v : V) :
+    insertAll m (xs ++ [x]) v = (insertAll m xs v).insert x v := by
+  unfold insertAll; rw [List.foldl_append]; rfl
+
+theorem deleteAll_snoc {K V : Type} [DecidableEq K] (m : GMap K V) (xs : List K) (x : K) :
+    deleteAll m (xs ++ [x]) = (deleteAll m xs).delete x := by
+  unfold deleteAll; rw [List.foldl_append]; rfl
+
+/-- `Attach`'s loop keeps the lease's item set the item map's. -/
+theorem itemsFor_attach (I : GMap LeaseItem w64) (id : w64) (S : GMap LeaseItem Unit)
+    (xs : List LeaseItem) (h : itemsFor I id S) :
+    itemsFor (insertAll I xs id) id (insertAll S xs ()) := by
+  intro it
+  rw [insertAll_lookup, insertAll_lookup]
+  by_cases hi : it ∈ xs <;> simp [hi, h it]
+
+/-- `Attach`'s loop changes no other lease's items (no item of `xs` is on another lease). -/
+theorem attach_other (I : GMap LeaseItem w64) (id id' : w64) (xs : List LeaseItem)
+    (hxs : ∀ it ∈ xs, I.lookup it = none ∨ I.lookup it = some id) (hne : id' ≠ id)
+    (it : LeaseItem) : (insertAll I xs id).lookup it = some id' ↔ I.lookup it = some id' := by
+  rw [insertAll_lookup]
+  by_cases hi : it ∈ xs
+  · simp only [hi, ↓reduceIte, Option.some.injEq]
+    constructor
+    · intro h; exact absurd h.symm hne
+    · intro h
+      rcases hxs it hi with h' | h' <;> rw [h'] at h
+      · cases h
+      · cases h; exact absurd rfl hne
+  · simp [hi]
+
+/-- `Detach`'s loop keeps the lease's item set the item map's. -/
+theorem itemsFor_detach (I : GMap LeaseItem w64) (id : w64) (S : GMap LeaseItem Unit)
+    (xs : List LeaseItem) (h : itemsFor I id S) :
+    itemsFor (deleteAll I xs) id (deleteAll S xs) := by
+  intro it
+  rw [deleteAll_lookup, deleteAll_lookup]
+  by_cases hi : it ∈ xs <;> simp [hi, h it]
+
+/-- `Detach`'s loop changes no other lease's items (every item of `xs` is on the lease). -/
+theorem detach_other (I : GMap LeaseItem w64) (id id' : w64) (xs : List LeaseItem)
+    (hxs : ∀ it ∈ xs, I.lookup it = some id) (hne : id' ≠ id)
+    (it : LeaseItem) : (deleteAll I xs).lookup it = some id' ↔ I.lookup it = some id' := by
+  rw [deleteAll_lookup]
+  by_cases hi : it ∈ xs
+  · simp only [hi, ↓reduceIte, reduceCtorEq, false_iff]
+    rw [hxs it hi]; intro h; cases h; exact hne rfl
+  · simp [hi]
 
 /-- Two whole points-to of one `int` field contradict. -/
 theorem w64Field_excl (a : Loc) (v w : w64) :

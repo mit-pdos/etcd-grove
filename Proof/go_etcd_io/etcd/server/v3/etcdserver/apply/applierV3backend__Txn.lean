@@ -67,7 +67,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     · simp only [↓reduceIte]; itrivial
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
       opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false F) $$ [$Hrd $Hsw $HF $Hwt $Hcs $Hu $Hcok]
-    as %resp %trace %err ⟨Hrd, Hu, Hout⟩
+    as %resp %trace %err ⟨Hrd, Hout⟩
   · iframe #
     isplitr
     · iapply mvcc.txnCtx_todo
@@ -79,7 +79,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     · iapply mvcc.neverDone_neverCd
     ipureintro; exact hpre
   iapply HΦ
-  icases Hout with (⟨%Herr, #He, Hsw, HPre, -⟩ | ⟨%Hok, Htrc, -, #Hresp, Hhdr, Hsw, #Hknown', HPP⟩)
+  icases Hout with (⟨%Herr, #He, Hsw, HPre, Hu, -⟩ | ⟨%Hok, Htrc, -, #Hresp, Hhdr, Hsw, #Hknown', Hu, HPP⟩)
   · -- checkTxn's error
     isplitl
     rotate_left

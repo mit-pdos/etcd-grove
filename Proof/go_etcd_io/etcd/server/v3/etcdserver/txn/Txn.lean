@@ -172,9 +172,10 @@ theorem txn.Txn_sole
     · iexists te4; iexact Htrc
     try wp_join_done
   ipersist Hsl
-  ihave Hu : (⌜true = false⌝ ∨ EtcdGrove.lease.lessorUser γ.leases L) $$ [Hu]
+  ihave Hu : (⌜true = false⌝ ∨ EtcdGrove.lease.lessorUser γ.leases L
+      (mvcc.leaseItemsOf (mvcc.stateAfter log))) $$ [Hu]
   · iright; iexact Hu
-  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] L true (fun h => by cases h))
+  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] L _ true (fun h => by cases h))
     $$ [$Htx $Hrt $Hle $Hu] as %n %err ⟨Htx, Hu, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
@@ -196,9 +197,9 @@ theorem txn.Txn_sole
       · simp only [mvcc.txnEndPre]; itrivial
       wp_apply (hEndF trace mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -, %te9, Htrc⟩
       iapply HΦ
-      iframe Hrd Hu
+      iframe Hrd
       ileft
-      iframe Hce HPre
+      iframe Hce HPre Hu
       isplitr
       · ipureintro; exact ⟨rfl, rfl, Hne, Hnp⟩
       isplitl [Hsw Hwl Hfrag]
@@ -261,10 +262,13 @@ theorem txn.Txn_sole
       exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
         (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
     iapply HΦ
-    iframe Hrd Hu
+    iframe Hrd
     iright
     simp only [srvRunTxn]
     rw [hch]
+    rw [stateAfter_commitLog]
+    simp only [mvcc.applyChanges, List.foldl_nil]
+    iframe Hu
     isplitl []
     · ipureintro; simp [Htr, HFl]; exact Hign
     isplitl [Htrc]
@@ -364,8 +368,6 @@ theorem txn.Txn_sole
     · iexfalso; iexact Hf
     iapply HΦ
     iframe Hrd
-    isplitl [Hown Hrdo]
-    · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
     iright
     isplitl []
     · ipureintro; exact ⟨rfl, Htr, HFl, fun h => (by rw [hro] at h; cases h), Hign⟩
@@ -376,6 +378,8 @@ theorem txn.Txn_sole
     rw [stateAfter_commitLog]
     simp only [srvRunTxn]
     iframe Hresp Hsw Hk2 Hhdr
+    isplitl [Hown Hrdo]
+    · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
     simp only [hro, Bool.false_eq_true, ↓reduceIte]
     iexact HPost
 
@@ -446,7 +450,7 @@ theorem txn.Txn_read
   ihave Htx := Hback $$ [Htrc]
   · iexists te2; iexact Htrc
   ipersist Hsl
-  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] [] false (fun _ => hro))
+  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] [] ∅ false (fun _ => hro))
     $$ [$Htx $Hrt $Hle] as %n %err ⟨Htx, -, Hres⟩
   · isplitl []
     · ipureintro; exact Htr

@@ -103,10 +103,59 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 def revokeCloser (c : GoChan) : IProp GF :=
   iprop(∃ γc : ChanNames, isChan c γc Unit ∗ ownChan γc Unit .Idle)
 
-/-- What a lease's lock `l.mu` guards: its item set. -/
+/-- What a lease's lock `l.mu` guards: half of its item set (unit T3, L2b, 2026-10-25: the other
+half is the lease owner's, `leaseItemsOwn`, so that `Keys()` under the read lock returns the set
+the owner knows). -/
 def leaseItems (l : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (sm : Loc) (S : GMap LeaseItem Unit), lsF go!"itemSet" l ↦{DFrac.own q} sm ∗
-    sm ↦${DFrac.own q} S)
+  iprop(∃ (sm : Loc) (S : GMap LeaseItem Unit), lsF go!"itemSet" l ↦{DFrac.own q.half} sm ∗
+    sm ↦${DFrac.own q.half} S)
+
+/-- **The item set `S` of the lease `id` is what the item map `I` attaches to it** (unit T3,
+L2b). -/
+def itemsFor (I : GMap LeaseItem w64) (id : w64) (S : GMap LeaseItem Unit) : Prop :=
+  ∀ it : LeaseItem, S.lookup it = some () ↔ I.lookup it = some id
+
+/-- `m` with every key of `xs` set to `v` (the item map and set after `Attach`'s loop). -/
+def insertAll {K V : Type} [DecidableEq K] (m : GMap K V) (xs : List K) (v : V) : GMap K V :=
+  xs.foldl (fun m k => m.insert k v) m
+
+/-- `m` without the keys of `xs` (the item map and set after `Detach`'s loop). -/
+def deleteAll {K V : Type} [DecidableEq K] (m : GMap K V) (xs : List K) : GMap K V :=
+  xs.foldl (fun m k => m.delete k) m
+
+theorem insertAll_lookup {K V : Type} [DecidableEq K] (m : GMap K V) (xs : List K) (v : V)
+    (k : K) : (insertAll m xs v).lookup k = if k ∈ xs then some v else m.lookup k := by
+  induction xs generalizing m with
+  | nil => simp [insertAll]
+  | cons x xs ih =>
+    have h : insertAll m (x :: xs) v = insertAll (m.insert x v) xs v := rfl
+    rw [h, ih]
+    rw [GMap.lookup_insert_eq_iff]
+    by_cases hk : k ∈ xs
+    · simp [hk]
+    · by_cases hx : x = k
+      · subst hx; simp [hk]
+      · simp [hk, hx, Ne.symm hx]
+
+theorem deleteAll_lookup {K V : Type} [DecidableEq K] (m : GMap K V) (xs : List K) (k : K) :
+    (deleteAll m xs).lookup k = if k ∈ xs then none else m.lookup k := by
+  induction xs generalizing m with
+  | nil => simp [deleteAll]
+  | cons x xs ih =>
+    have h : deleteAll m (x :: xs) = deleteAll (m.delete x) xs := rfl
+    rw [h, ih]
+    rw [GMap.lookup_delete_iff]
+    by_cases hk : k ∈ xs
+    · simp [hk]
+    · by_cases hx : x = k
+      · subst hx; simp [hk]
+      · simp [hk, hx, Ne.symm hx]
+
+/-- **The lease owner's half of the item set of the lease `l`** (of id `id`), which is what the
+item map `I` attaches to `id` (unit T3, L2b). -/
+def leaseItemsOwn (l : Loc) (I : GMap LeaseItem w64) (id : w64) : IProp GF :=
+  iprop(∃ (sm : Loc) (S : GMap LeaseItem Unit), lsF go!"itemSet" l ↦{DFrac.own (1 : Qp).half} sm ∗
+    sm ↦${DFrac.own (1 : Qp).half} S ∗ ⌜itemsFor I id S⌝)
 
 /-- A lease of the map: not nil, its lock guarding its item set (persistent). -/
 def isLeaseObj (l : Loc) : IProp GF :=
@@ -238,7 +287,8 @@ def lessorExtra (lp : Loc) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
     lF go!"b" lp ↦{DFrac.own q.half} b)
 
 /-- **What `le.mu` guards** at fraction `q`: the lease map `M` (whose domain is the live set
-`L`; the lessor's share of it, `q/2`, and of the ghost map's authority), the item map, half of
+`L`; the lessor's share of it, `q/2`, and of the ghost map's authority), half of the item map
+(`q/2`: unit T3, L2b, the other half is the lease owner's, `leaseClosers`), half of
 the range deleter (`q/2`: unit T3, the other half is `rdOwn`'s, since `Revoke` reads `le.rd`
 after releasing the lock); every lease of the map `isLeaseObj`; and (2026-10-13, unit 9) the apply-side fields
 (`lessorExtra`). -/
@@ -246,7 +296,7 @@ def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
   iprop(∃ (lm im : Loc) (M : GMap w64 Loc) (I : GMap LeaseItem w64) (rd : GoFunc)
       (L : List w64),
     lF go!"leaseMap" lp ↦{DFrac.own q} lm ∗ lm ↦${DFrac.own q} M ∗
-    lF go!"itemMap" lp ↦{DFrac.own q} im ∗ im ↦${DFrac.own q} I ∗
+    lF go!"itemMap" lp ↦{DFrac.own q.half} im ∗ im ↦${DFrac.own q.half} I ∗
     lF go!"rd" lp ↦{DFrac.own q.half} rd ∗
     lessorAuth γl q lp L M ∗ leaseFrag γl q.half L ∗
     ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗
@@ -310,19 +360,35 @@ constructors set the store's deleter with it. -/
 def rdOwn (γl : GName) (rd : GoFunc) : IProp GF :=
   iprop(∃ lp : Loc, lessorPin γl lp ∗ lF go!"rd" lp ↦{DFrac.own (1 : Qp).half} rd)
 
-/-- **The lease owner's closers** (unit T3, 2026-10-24): for every lease of the live set `L`,
-the closers' map's element (its `*Lease`, which the lessor's map agrees with) and the right to
-close its `revokec`. Exclusive, so outside `le.mu`'s fractional invariant. -/
-def leaseClosers (γl : GName) (L : List w64) : IProp GF :=
-  iprop(∃ (lp : Loc) (γga γcl : GName) (C : GMap w64 Loc), lessorPinG γl lp γga γcl ∗
+/-- **The owner's resource of the live lease `l`** (of id `id`; unit T3): the closers' map's
+element, the right to close its `revokec`, (L2b) its half of the lease's item set (what the item
+map `I` attaches to `id`). -/
+def closerAt (γcl : GName) (I : GMap LeaseItem w64) (id : w64) (l : Loc) : IProp GF :=
+  iprop(ghostMapElem γcl id (DFrac.own 1) l ∗
+    (∃ c : GoChan, lsF go!"revokec" l ↦□ c ∗ revokeCloser c) ∗ leaseItemsOwn l I id)
+
+/-- **The lease owner's closers and items** (unit T3, 2026-10-24): for every lease of the live
+set `L`, the closers' map's element (its `*Lease`, which the lessor's map agrees with), the right
+to close its `revokec` and (L2b, 2026-10-25) the owner's half of its item set, the items the item
+map `I` attaches to it; the owner's half of the item map `I`, every lease of which is live.
+Exclusive, so outside `le.mu`'s fractional invariant. -/
+def leaseClosers (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
+  iprop(∃ (lp : Loc) (γga γcl : GName) (C : GMap w64 Loc) (im : Loc), lessorPinG γl lp γga γcl ∗
     ⌜∀ id : w64, id ∈ L ↔ (C.lookup id).isSome⌝ ∗
-    [∗map] id ↦ l ∈ C, ghostMapElem γcl id (DFrac.own 1) l ∗
-      ∃ c : GoChan, lsF go!"revokec" l ↦□ c ∗ revokeCloser c)
+    lF go!"itemMap" lp ↦{DFrac.own (1 : Qp).half} im ∗ im ↦${DFrac.own (1 : Qp).half} I ∗
+    ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ ∗
+    [∗map] id ↦ l ∈ C, closerAt γcl I id l)
 
 /-- **The lease owner's half** of the live set: holding it, `L` is the live set (the apply
-thread's); (unit T3) with the live leases' closers. -/
-def leaseOwn (γl : GName) (L : List w64) : IProp GF :=
-  iprop(leaseFrag γl (1 : Qp).half L ∗ leaseClosers γl L)
+thread's); (unit T3) with the live leases' closers and (L2b) the item map `I` (item to lease id)
+and the live leases' item sets, which agree with it. -/
+def leaseOwn (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
+  iprop(leaseFrag γl (1 : Qp).half L ∗ leaseClosers γl L I)
+
+/-- The owner's resource at an equal item map. -/
+theorem leaseOwn_eq {γl : GName} {L : List w64} {I J : GMap LeaseItem w64} (h : I = J) :
+    leaseOwn (GF := GF) γl L I ⊢ leaseOwn γl L J := by
+  subst h; exact .rfl
 
 /-- A reader slot of the lessor of `γl`, wherever it is (`lessorPin`). -/
 def lessorRdOf (γl : GName) : IProp GF :=
@@ -330,8 +396,8 @@ def lessorRdOf (γl : GName) : IProp GF :=
 
 /-- **The lease owner's resource** at the txn layer: its half of the live set and a reader slot
 of the lessor's lock (`Lookup`). -/
-def lessorUser (γl : GName) (L : List w64) : IProp GF :=
-  iprop(leaseOwn γl L ∗ lessorRdOf γl)
+def lessorUser (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
+  iprop(leaseOwn γl L I ∗ lessorRdOf γl)
 
 /-- Two pins of one ghost map agree. -/
 theorem lessorPin_agree (γl : GName) (lp lp' : Loc) :

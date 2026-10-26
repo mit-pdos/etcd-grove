@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := by
-  intro le γl p o L
+  intro le γl p o L I
   wp_start as ⟨#Hle, Hu, #Hp⟩
   ihave Hti : (txn.txnInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

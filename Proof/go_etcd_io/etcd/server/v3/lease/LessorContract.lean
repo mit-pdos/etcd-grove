@@ -52,24 +52,19 @@ theorem isLessor_of_lessorInv
   · ipureintro; rfl
   iframe Hpin
   isplitr
-  · iintro !> %item %Φ !> Hrd HΦ
-    iapply (hGL lp γl item) $$ [Hrd] HΦ
-    iframe Hpkg Hinv Hrd
+  · iintro !> %item %L %I %Φ !> ⟨Hrd, Hown⟩ HΦ
+    iapply (hGL lp γl item L I) $$ [Hrd Hown] HΦ
+    iframe Hpkg Hinv Hrd Hown
   isplitr
-  · iintro !> %id %items %l %dq %L %Φ !> ⟨Hown, %Hin, Hitems⟩ HΦ
-    iunfold leaseOwn at Hown
-    icases Hown with ⟨Hown, Hcls⟩
-    iapply (hAt lp γl id items l dq _ L) $$ [Hown Hitems]
-    · iframe Hpkg Hinv Hown Hitems
-    iintro !> %err ⟨Hown, Hitems, %Herr⟩
-    rw [Herr Hin]
-    iapply HΦ
-    iunfold leaseOwn
-    iframe Hown Hcls Hitems
+  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hin, %Hl, Hitems⟩ HΦ
+    iapply (hAt lp γl id items l dq L I) $$ [Hown Hitems] HΦ
+    iframe Hpkg Hinv Hown Hitems
+    ipureintro; exact ⟨Hin, Hl⟩
   isplitr
-  · iintro !> %id %items %l %dq %Φ !> Hitems HΦ
-    iapply (hDt lp γl id items l dq) $$ [Hitems] HΦ
-    iframe Hpkg Hinv Hitems
+  · iintro !> %id %items %l %dq %L %I %Φ !> ⟨Hown, %Hne, %Hl, Hitems⟩ HΦ
+    iapply (hDt lp γl id items l dq L I) $$ [Hown Hitems] HΦ
+    iframe Hpkg Hinv Hown Hitems
+    ipureintro; exact ⟨Hne, Hl⟩
   · iintro !> %f0 %f %Φ !> Hro HΦ
     iapply (hSRD lp γl f0 f) $$ [Hro] HΦ
     iframe Hpkg Hinv Hro
@@ -95,7 +90,7 @@ theorem isTxnLessor_of_lessorInv
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
   icases Hinv' with ⟨%Hlp, #Hpin, -⟩
-  iintro !> %id %L %Φ !> Hu HΦ
+  iintro !> %id %L %I %Φ !> Hu HΦ
   iunfold lessorUser at Hu
   icases Hu with ⟨Hown, Hrdo⟩
   iunfold lessorRdOf at Hrdo

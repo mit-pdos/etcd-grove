@@ -87,8 +87,8 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %id %ttl %L %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hwt, Hrt, #Hgr, HRW⟩ HΦ
-    iapply (hGrant lp γ.leases id ttl L P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) Pre Q Post)
+  · iintro !> %id %ttl %L %I %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hwt, Hrt, #Hgr, HRW⟩ HΦ
+    iapply (hGrant lp γ.leases id ttl L I P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) Pre Q Post)
       $$ [Hcs Hown Hwt Hrt HRW]
     · iframe; iframe #
     iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, HPre⟩ | ⟨%Hok, Hown, HPost, #HID, ⟨%t, #Ht⟩⟩)⟩

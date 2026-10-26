@@ -63,7 +63,7 @@ theorem apply.applierV3backend.Put.wp_proof
   ihave #Hl := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
   wp_apply (txn.put_soleWriter_floor hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
       E.s E.γ r o log E.P Pre Q Post E.f L none false hlen F) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
-    as %resp %trace %err ⟨Hrd, Hu, %Htr, Htrc, -, Hout⟩
+    as %resp %trace %err ⟨Hrd, %Htr, Htrc, -, Hout⟩
   · iframe #
     isplitr
     · iapply mvcc.txnCtx_todo
@@ -76,8 +76,8 @@ theorem apply.applierV3backend.Put.wp_proof
   · iunfold apply.traceRes; iright; iexact Htrc
   iapply apply.kvPostF_backend
   obtain ⟨hput, hk, -⟩ := Hrq
-  icases Hout with (⟨%Hn, #He, Hsw, HPre⟩ | ⟨%Hn, #He, Hsw, HPost⟩ |
-    ⟨%Herr, #Hresp, Hhdr, Hsw, #Hlok, HPost, -⟩)
+  icases Hout with (⟨%Hn, #He, Hsw, HPre, Hu⟩ | ⟨%Hn, #He, Hsw, HPost, Hu⟩ |
+    ⟨%Herr, #Hresp, Hhdr, Hsw, #Hlok, HPost, Hu, -⟩)
   · -- the lease not found
     iexists (.rejected .backend)
     isplitr

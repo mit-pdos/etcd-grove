@@ -50,6 +50,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LeaseItems
 
 @[expose] public section
 
@@ -1290,35 +1291,40 @@ instance isKeyBackendG_persistent (b : GoInterface) (View : Qp → Bucket → IP
 lessor's live set (`lease.leaseOwn γl L`: `L`), not for good: `Revoke` shrinks `L`, after which
 `Attach` returns `ErrLeaseNotFound` (on which mvcc's `put` panics). So `Attach` takes the
 owner's half and the lease's membership, and `GetLease` a reader slot of the lessor's lock
-(`lease.lessorRd`; the store keeps one, `lessorRdOf` in its writer's resource). -/
+(`lease.lessorRd`; the store keeps one, `lessorRdOf` in its writer's resource). (Unit T3, L2b,
+2026-10-25) The owner's resource also holds the item map `I` (`lease.leaseOwn γl L I`), which
+the three calls read and change: so the store's caller, holding it, knows each key's lease. -/
 
 /-- The lessor `le` (the real `*lessor` at `lp`, ghost map `γl`), as the KV core uses it:
-`GetLease(item)` returns some lease id (`NoLease` if none), with a reader slot; `Attach(id,
-items)` of a live lease (`id ∈ L`, the owner's half held) returns `nil`; `Detach(id, items)`
-returns `nil` or an error (which the code logs). The items are read. `SetRangeDeleter(f)`
+`GetLease(item)` returns the owner's item map's lease of `item` (`NoLease` if none), with a
+reader slot; `Attach(id, items)` of a live lease (`id ∈ L`) of items on no other lease adds them
+to the item map and returns `nil`; `Detach(id, items)` of items the item map puts on `id` removes
+them and returns `nil`. The items are read. `SetRangeDeleter(f)`
 sets the deleter, by its owner (`lease.rdOwn γl`, unit T3): `NewStore` passes the closure
 `func() lease.TxnDelete { return s.Write(traceutil.TODO()) }` (the store's own verified
 `store.Write`), `newWatchableStore` the watchable store's. The lessor's ghost name `γl` is its
 own (it exists before the store). -/
 def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
   iprop(∃ lp : Loc, ⌜le = lease.lessorIface lp⌝ ∗ lease.lessorPin γl lp ∗
-    □ (∀ (item : go_etcd_io.etcd.server.v3.lease.LeaseItem),
-      {{ lease.lessorRd lp γl }}
+    □ (∀ (item : go_etcd_io.etcd.server.v3.lease.LeaseItem) (L : List w64)
+        (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+      {{ lease.lessorRd lp γl ∗ lease.leaseOwn γl L I }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"GetLease" #lp)) (Val #item))
-      {{ (id : w64), RET #id; lease.lessorRd lp γl }}) ∗
+      {{ RET #((I.lookup item).getD (W64 0)); lease.lessorRd lp γl ∗ lease.leaseOwn γl L I }}) ∗
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
-        (dq : DFrac) (L : List w64),
-      {{ lease.leaseOwn γl L ∗ ⌜id ∈ L⌝ ∗ items ↦*{dq} l }}
+        (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+      {{ lease.leaseOwn γl L I ∗ ⌜id ∈ L⌝ ∗
+          ⌜∀ it ∈ l, I.lookup it = none ∨ I.lookup it = some id⌝ ∗ items ↦*{dq} l }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"Attach" #lp)) (Val #id)) (Val #items))
-      {{ RET #(GoInterface.nil); lease.leaseOwn γl L ∗ items ↦*{dq} l }}) ∗
+      {{ RET #(GoInterface.nil); lease.leaseOwn γl L (lease.insertAll I l id) ∗ items ↦*{dq} l }}) ∗
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
-        (dq : DFrac),
-      {{ items ↦*{dq} l }}
+        (dq : DFrac) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+      {{ lease.leaseOwn γl L I ∗ ⌜l ≠ []⌝ ∗ ⌜∀ it ∈ l, I.lookup it = some id⌝ ∗ items ↦*{dq} l }}
         (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
           go!"Detach" #lp)) (Val #id)) (Val #items))
-      {{ (err : GoInterface), RET #err; items ↦*{dq} l }}) ∗
+      {{ RET #(GoInterface.nil); lease.leaseOwn γl L (lease.deleteAll I l) ∗ items ↦*{dq} l }}) ∗
     □ (∀ (f0 f : GoFunc),
       {{ lease.rdOwn γl f0 }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
@@ -4051,6 +4057,28 @@ theorem isTxnWrite_leaseDel (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog :
   iunfold isTxnWrite
   iexists tw, ranges
   iframe
+
+/-- **A write transaction's committed log is certified** (leases T3, L2b, 2026-10-25), keeping
+it. -/
+theorem isTxnWrite_cert (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) (ld : Bool) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ld ⊢
+      isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld ∗ idxCert γ.idx ilog := by
+  iintro H
+  iunfold isTxnWrite at H
+  iNamed H
+  iunfold storeTxnWriteIs at Htw
+  iNamed Htw
+  iframe Hcert
+  iunfold isTxnWrite
+  iexists tw, ranges
+  iframe Hmw Htrc
+  iunfold storeTxnWriteIs
+  iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+  simp only [named]
+  iframe
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
 theorem isTxnWriteCore_seal (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (hne : pend ≠ [])

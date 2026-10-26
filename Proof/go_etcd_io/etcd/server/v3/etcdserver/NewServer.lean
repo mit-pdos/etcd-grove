@@ -1575,7 +1575,11 @@ theorem NewServer.wp_proof
     simp [mvcc.applyChanges] at ha
   iunfold lease.lessorUser
   rw [Hγw.2.1]
-  iframe Hlown Hlrd2
+  iframe Hlrd2
+  -- the initial state has no key: its item map is the lessor's, empty
+  have h0 : (∅ : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) =
+      mvcc.leaseItemsOf (mvcc.stateAfter ([[], []] : mvcc.Log)) := GMap.ext fun _ => rfl
+  iapply (lease.leaseOwn_eq h0) $$ Hlown
 
 end proof
 

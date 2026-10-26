@@ -57,7 +57,8 @@ abbrev txn.Txn.specSole : Prop :=
       mvcc.idxCert γ.idx F ∗
       mvcc.storeWT γ ∗ txn.isTxnLessor le γ.leases ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
-      txn.leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗
+      txn.leasesKnown L (mvcc.stateAfter log) ∗
+      lease.lessorUser γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
       ⌜txn.TxnPre log t⌝ ∗
       (if txn.txnReadonly t then iprop(True) else
         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
@@ -66,11 +67,12 @@ abbrev txn.Txn.specSole : Prop :=
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗
+      mvcc.storeReader s γ ∗
       ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil ∧
             (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
               (t.branch (txn.txnOk (mvcc.stateAfter log) t)))⌝ ∗ txn.checkErrIs err ∗
           txn.kvWriter s γ log ∗ Pre ∗
+          lease.lessorUser γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
           (∃ (t' : Loc) (te' : Bool), traceutil.ownTrace t' te' ∗
             ⌜∀ t0, ot = some t0 → te = false → t' = t0⌝)) ∨
        (⌜err = GoInterface.nil ∧ trace ≠ null ∧ F <+: log ∧
@@ -88,6 +90,8 @@ abbrev txn.Txn.specSole : Prop :=
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
         txn.leasesKnown L (mvcc.stateAfter (mvcc.commitLog log
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1)) ∗
+        lease.lessorUser γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log
+          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1))) ∗
         (if txn.txnReadonly t then Pre else Post))) }}
 
 /-- **`Txn(ctx, lg, rt, sharedBuf, kv, lessor, skip)` at a reader** (2026-10-12, the request

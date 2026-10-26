@@ -88,6 +88,28 @@ derived in `isApplyLessor_of_lessorInv`.
   invariant over the store's state and the lessor's per-lease sets, kept by the put and delete
   paths (`Attach` on a put with a lease, `Detach` of the previous lease). This is the largest piece
   of L2 and touches mvcc's write path proofs.
+  *Done (2026-10-25).* **The design:** the lease owner's resource carries the item map,
+  `lease.leaseOwn γl L I` (`lessorUser γl L I`): the owner holds half of `le.itemMap` (at `I`) and
+  half of each live lease's `itemSet` (`leaseItemsOwn`, in its `closerAt`), the locks the other
+  halves (`lessorMu` at `q/2`, `leaseItems` at `q/2`), with each lease's set what `I` attaches to
+  it (`itemsFor`) and every lease of `I` live. So `GetLease` (with the owner's resource) returns
+  `I`'s entry, `Attach`/`Detach` change `I` (`insertAll`/`deleteAll`; preconditions: the items on
+  no other lease / on the lease detached), and (for `Revoke`, next) `Keys()` under the lease's read
+  lock alone will return the owner's set. **Who keeps `I` the state's:** the store's caller, not
+  the store's invariants (`store.Restore`, D22, rebuilds those): mvcc's `put`/`delete`/
+  `deleteRange` (and `Put`/`DeleteRange`, metrics') take the owner's resource at the pending
+  state's item map (`mvcc.pendItems ilog pend`, `LeaseItems.lean`: `leaseItemsOf s`, each key of
+  `s` with a lease to it) and return it at the new pending state's (`pendItems_put`,
+  `pendItems_del`; the put's `GetLease` is called only for a key the index finds,
+  `pendItems_absent`); the txn package threads it (`txn.put`, `deleteRange`, `executeTxn`,
+  `txn`, `Txn`, `Put`, `DeleteRange`, the sole writer's corollaries: at `stateAfter log`), the
+  apply chain's `leasesLive` holds it at the state's (`lessorUser γ L (leaseItemsOf s)`), and
+  `NewLessor`'s axiom gives `leaseOwn γl [] ∅` (its statement, not its count, changes: the empty
+  item map's other half). `txn.Put` and `txn.DeleteRange` meet their log only at the call
+  (`Pinned`): they take, as for `leaseOk`, that `I` is every pinned log's state's;
+  `writeView.Put`/`DeleteRange` (unused exported results) likewise every certified log's
+  (satisfiable by a store without leases). `Grant`'s and `isApplyLessor`'s `Grant` keep `I` (the new
+  lease's set empty, `closers_grant`).
 - **L2c, `revokec`.** `Revoke` closes `l.revokec` (read-only field today). The close right
   (`ownBroadcastChan`, as the store's `stopCloser`) is exclusive, so it cannot sit in `le.mu`'s
   invariant, which is fractional for the readers (`lessorMu lp γl q`; `NewLessor`'s axiom asserts

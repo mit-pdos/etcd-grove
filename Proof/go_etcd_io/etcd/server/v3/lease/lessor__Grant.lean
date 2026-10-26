@@ -41,7 +41,7 @@ theorem lease.lessor.Grant.wp_proof
     (hReg : lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG))
     (hSched : lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG)) :
     lease.lessor.Grant.spec (GF := GF) (hG := hG) := by
-  intro lp γl id ttl L P f T R Pre Q Post
+  intro lp γl id ttl L I0 P f T R Pre Q Post
   wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hcs, Hwtk, Hrtk, #Hgr⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -113,6 +113,8 @@ theorem lease.lessor.Grant.wp_proof
   rw [hmax, List.replicate_succ]
   icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HexRs with ⟨HexR, -⟩
   icases sync.ownRWMutex_guard _ _ $$ HexR with ⟨-, #HexG⟩
+  icases ptsto_halves_split (lsF go!"itemSet" l) sm $$ HiS with ⟨HiS, HiS'⟩
+  icases ownMap_halves_split sm (∅ : GMap LeaseItem Unit) $$ Hsm with ⟨Hsm, Hsm'⟩
   imod (sync.init_RWMutex (leaseItems l) (E := ⊤) (lsF go!"mu" l)) $$ [HiS Hsm] Hmu0
     with HmuRs
   · inext; iunfold leaseItems; iexists sm, ∅; iframe
@@ -215,7 +217,8 @@ theorem lease.lessor.Grant.wp_proof
       wp_join_done
     (try wp_auto)
     -- the live set grows; the lessor's state with the new lease
-    imod closers_grant γl lp L M id l rc hM HL $$ [$Ha $Hcls $Hrc $Hrcl] with ⟨Ha, Hcls⟩
+    imod closers_grant γl lp L M id l rc I0 sm hM HL $$ [$Ha $Hcls $Hrc $Hrcl $HiS' $Hsm']
+      with ⟨Ha, Hcls⟩
     imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
     ihave Hml : leaseMeta id l 1 $$ [Hrem Hexp]
     · iunfold leaseMeta
