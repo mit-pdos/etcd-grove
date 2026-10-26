@@ -29,7 +29,8 @@ Every Go function of the package has a `Spec`/`Proof` pair and a linked result
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Link
-public import Proof.go_etcd_io.etcd.client.v3.CacheClient
+public import Proof.go_etcd_io.etcd.client.v3.KMClient
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.Results
 
@@ -135,74 +136,82 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [es_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **etcd's cache over etcd's client, end to end** (K3): `New(cl, pfx, opts...)` for a client
-`cl` whose `KV` field is a real `*kv` (`kvObjAt api [addr]`, over a connection to a server where
-etcd's KV methods are registered, `kvRegs`: `etcd_kv_served`) and whose `Watcher` field is etcd's client
-watcher (`isClientWatcher V w`, over the same server, `V.R.E = E`; `NewWatcher`'s result), for
-the watcher's prefix (not all `0xff`; non-empty by `watchConnFacts`), returns what `New` returns
-(`newCacheResult`) at the server's model (`v3rpc.etcdModelOfServer E`): the cache's `Get`s and
-`Watch`es then speak of etcd's server. Premises beyond `New`'s and the watcher's: the KV's
-(`isServerRead`, `sortNamesOk`, the client's read updates `kvAnyAu`). -/
-theorem cache_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w api : Loc) (addr : GoString)
-    (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hE : V.R.E = E)
-    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
-    (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (sl : GoSlice) (gs : List (Config → Config)) :
+/-- **etcd's cache over etcd's client, end to end** (K3; D47 over the client's specs):
+`New(cl, pfx, opts...)` for a client `cl` whose `KV` field is a `*kv` of etcd's KV `γ.kv` (`isKv`,
+`kv.Get.spec`'s) and whose `Watcher` field is a client watcher of it (`isKvWatcher`,
+`watcher.Watch.spec`'s), for a non-empty prefix not all `0xff`, returns what `New` returns
+(`newCacheResult`) at the clients' model of etcd over its KV state (`client.etcdModelOfKV γ`, with
+the adapter's invariant `kmInv γ`, `client.kmInv_alloc` from the KV state's half): the cache's
+`Get`s and `Watch`es then speak of etcd's KV state. -/
+theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bool)
+    (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) (sl : GoSlice)
+    (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-        isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗ kvObjAt api [addr] ∗
+        isPkgInit (PROP := IProp GF) pkg_id.context ∗
         clientKVAddr cl ↦□ GoInterface.ok (client.kvIfaceOf api) ∗
-        clientWatcherAddr cl ↦□ GoInterface.ok (client.watcherIfaceOf w) ∗ client.isClientWatcher V w ∗
-        client.kvRegs (client.srvsAt [addr] E γr cid mid) ∗
-        sortNamesOk ∗ client.kvAnyAu E γr ∗ cfgOptsAt sl gs ∗
+        clientWatcherAddr cl ↦□ GoInterface.ok (client.watcherIfaceOf w) ∗
+        client.isKv api γ.kv dup ∗ client.isKvWatcher w γ.kv ∗ client.kmInv γ ∗ cfgOptsAt sl gs ∗
         ⌜CfgValid (cfgApply gs defaultConfigVal) → CfgBounded (cfgApply gs defaultConfigVal)⌝ ∗
         ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝ }}
-      (App (App (App (Val (@! go_etcd_io.etcd.cache.v3.New)) (Val #cl)) (Val #V.pfx)) (Val #sl))
+      (App (App (App (Val (@! go_etcd_io.etcd.cache.v3.New)) (Val #cl)) (Val #pfx)) (Val #sl))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
-        newCacheResult (EM := v3rpc.etcdModelOfServer E) V.pfx (cfgApply gs defaultConfigVal) c
+        newCacheResult (EM := client.etcdModelOfKV γ) pfx (cfgApply gs defaultConfigVal) c
           err }} := by
-  iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hrpc, #Hsn, #Hany, Hopts,
-    %Hcfg, %Hb⟩ HΦ
-  ihave #Hcl := client.isEtcdClient_of_server client.v3.watcher.wp_Watch
-    client.v3.watcher.wp_RequestProgress cl V w
-    api [addr] s E γr cid mid hE hWM hff $$ []
+  iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #HKV, #HW, #Hkv, #Hw, #Hinv, Hopts, %Hcfg, %Hb⟩ HΦ
+  ihave #Hcl := client.isEtcdClient_of_km cl w api γ dup pfx hp hff $$ []
   · iframe #
-  iapply (cache_New (EM := v3rpc.etcdModelOfServer E) cl V.pfx sl gs) $$ [Hopts] HΦ
+  iapply (cache_New (EM := client.etcdModelOfKV γ) cl pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
   ipureintro; exact ⟨Hcfg, Hb⟩
 
-/-- **etcd's cache over `clientv3.New`'s client, end to end** (K3): `cache_end_to_end_client` for
-the client `clientv3.New(cfg)` returns (`isNewClient cl [ep] V`, `client_New`'s postcondition), its
-`KV` and `Watcher` fields from `New`'s result (`client.isEtcdClient_of_new`), given the watch
-server's facts at `ep` (`watchAddrFacts V`, `V.addr = ep`) and the KV's premises at `ep`. -/
+/-- **etcd's cache over `clientv3.New`'s client, end to end** (K3; D47): `cache_end_to_end_client`
+for the client `clientv3.New(cfg)` returns (`isNewClient cl [ep] V`, `client_New`'s postcondition):
+its `KV` a client of the KV `γ.kv` from the members' registrations at `ep` (`client.isKv_of_regs`),
+its `Watcher` etcd's client watcher, a client watcher of `γ.kv` (`isNewClient_watcher`, given the
+watch server's facts at `ep`, `watchAddrFacts V`, at `γ.kv`'s state, `V.kst`). -/
 theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
-    (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF) (s : Loc)
-    (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hV : V.addr = ep) (hE : V.R.E = E)
-    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
-    (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1)
+    [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF)
+    (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (γ : client.KMNames) (hV : V.addr = ep)
+    (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) (hk : V.kst = γ.kv.st)
+    (hst : γr.kv.st = γ.kv.st) (hrb : receiptBound GF ≤ 2 ^ 62)
     (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (sl : GoSlice) (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         isPkgInit (PROP := IProp GF) pkg_id.context ∗ isNewClient cl [ep] V ∗ watchAddrFacts V ∗
-        isServerRead s E γr ∗
-        client.kvRegs (client.srvsAt [ep] E γr cid mid) ∗
-        sortNamesOk ∗ client.kvAnyAu E γr ∗ cfgOptsAt sl gs ∗
+        client.kvRegs (client.srvsAt [ep] E γr cid mid) ∗ client.kmInv γ ∗ cfgOptsAt sl gs ∗
         ⌜CfgValid (cfgApply gs defaultConfigVal) → CfgBounded (cfgApply gs defaultConfigVal)⌝ ∗
         ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝ }}
       (App (App (App (Val (@! go_etcd_io.etcd.cache.v3.New)) (Val #cl)) (Val #V.pfx)) (Val #sl))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
-        newCacheResult (EM := v3rpc.etcdModelOfServer E) V.pfx (cfgApply gs defaultConfigVal) c
+        newCacheResult (EM := client.etcdModelOfKV γ) V.pfx (cfgApply gs defaultConfigVal) c
           err }} := by
-  iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hsn, #Hany, Hopts, %Hcfg,
-    %Hb⟩ HΦ
-  ihave #Hcl := client.isEtcdClient_of_new context.wp_ErrAny hAs client.v3.watcher.wp_Watch
-    client.v3.watcher.wp_RequestProgress cl ep V s E γr cid mid hV hE hWM hm hn hff $$ []
+  iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #Hnc, #Hf, #Hrpc, #Hinv, Hopts, %Hcfg, %Hb⟩ HΦ
+  ihave ⟨%w, %conn, %wc, %lg, %ics, #HW, #Hw⟩ := isNewClient_watcher context.wp_ErrAny hAs
+    cl [ep] V (by rw [hV]) hm hn $$ [$P1 $P2 $P3 $Hnc $Hf]
+  ihave #Hnc' := Hnc
+  iunfold isNewClient at Hnc'
+  icases Hnc' with ⟨-, -, ⟨%api, #HKV, #Hkv⟩, -⟩
+  imod (client.isKv_of_regs api [ep] E γr cid mid γ.kv hst hrb) $$ [Hkv Hrpc] with #Hisk
   · iframe #
-  iapply (cache_New (EM := v3rpc.etcdModelOfServer E) cl V.pfx sl gs) $$ [Hopts] HΦ
+  ihave #Hkw : client.isKvWatcher w γ.kv $$ []
+  · unfold client.isKvWatcher
+    iexists { V with conn := conn, ics := ics, wc := wc, lg := lg }
+    iframe Hw
+    ipureintro; exact hk
+  ihave %hp : ⌜V.pfx ≠ []⌝ $$ []
+  · iunfold watchAddrFacts at Hf
+    icases Hf with ⟨-, -, -, -, %H, -⟩
+    ipureintro; exact H.2
+  ihave #Hcl := client.isEtcdClient_of_km cl w api γ true V.pfx hp hff $$ []
+  · iframe #
+  iapply (cache_New (EM := client.etcdModelOfKV γ) cl V.pfx sl gs) $$ [Hopts] HΦ
   iframe #
   iframe
   ipureintro; exact ⟨Hcfg, Hb⟩
@@ -245,11 +254,11 @@ theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : 
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
         srvStreamInterceptorOk is iprop(True) ∗
         ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗
-        client.srvNoDupKeys V.R ∗ client.eofOk ⊢
+        client.srvKVFacts V ∗ client.eofOk ⊢
       |={⊤}=> grpcServeTok gs lis ∗
         client.kvRegs (client.srvsAt [addr] E γr cid mid) ∗ watchAddrFacts V := by
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
-    #Hws, #Hims, #His, Hwslots, #Hnd, #Heof⟩
+    #Hws, #Hims, #His, Hwslots, #Hkf, #Heof⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
     hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
   · iframe; iframe #
