@@ -287,10 +287,12 @@ def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
 /-- **The admin requests admitted in the mode `on`** (the auth plan's E2m, continued): their shape
 only, the names within bbolt's key bound (the step specs' premise; the fuel bounds the rest,
 `AuthFuel.lean`). `SetUp`'s five: `UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`
-(whose names the request model records since E2n) and `AuthEnable`; not the other admin kinds. -/
+(whose names the request model records since E2n) and `AuthEnable`; not the other admin kinds.
+A `UserAdd`'s password choice cannot fail (`UserAddModel.pwSure`, the server's own form, which
+`EtcdServer.UserAdd` proposes: E2x), so its outcome is the step's alone (E3a). -/
 def adminKindOk (rq : IRRModel) : Prop :=
   match dispatchKind rq with
-  | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize
+  | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize ∧ m.pwSure
   | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
   | .authUserGrantRole => ∀ u ro, rq.authUserGrantRole = some (u, ro) → u.length ≤ backend.maxKeySize
   | .authRoleGrantPermission =>

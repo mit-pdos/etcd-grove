@@ -5,6 +5,7 @@ done. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
 @[expose] public section
 
@@ -34,6 +35,19 @@ abbrev EtcdServer.parseProposeCtxErr.spec : Prop :=
   context.isTypedErr err →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗
+      (globalAddr context.Canceled ↦□ err ∨ globalAddr context.DeadlineExceeded ↦□ err) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"parseProposeCtxErr"))
+      (Val #err)) (Val #start))
+  {{ (e : GoInterface), RET #e; srvLeadTimeReader s ∗ ⌜e ≠ GoInterface.nil⌝ ∗ applyErrIs e }}
+
+/-- **`spec` in either auth mode** (the auth plan's E3b, 2026-10-26): the server as a proposer sees
+it in the auth mode `on` (`isServerReqM`; the function reads none of the mode's rows). At
+`on = false` it is `spec` (by definition). -/
+abbrev EtcdServer.parseProposeCtxErr.specM (on : Bool) : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (err : GoInterface) (start : time.Time),
+  context.isTypedErr err →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM on s E ρ ∗ srvLeadTimeReader s ∗
       (globalAddr context.Canceled ↦□ err ∨ globalAddr context.DeadlineExceeded ↦□ err) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"parseProposeCtxErr"))
       (Val #err)) (Val #start))

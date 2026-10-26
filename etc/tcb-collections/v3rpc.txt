@@ -100,7 +100,6 @@ axiom trace.WithAttributes.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom txn.RangeSecObserve.wp_proof
-axiom utf8.ValidString.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.isClientCtxErr.wp_proof

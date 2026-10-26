@@ -46,10 +46,13 @@ variable [sem : go.Semantics]
 
 /-- **The apply thread's latest-state resource** of the store `st` at the admin side's history
 `hs` (the auth plan's E2s): the authority, and its halves of the flag and of the cache tied to the
-latest state (`latestTie`); what the checks' `specL`s take and give back. -/
+latest state (`latestTie`); what the checks' `specL`s take and give back. Since E3f also the
+halves' recorded verdicts (`enabledVerdict`, `authSnap`, persistent), so that it is exactly the
+authority with the tie (`authOwnT`, `TieRes.lean`) and the apply thread can lend it and take it
+back (`authOwnT_lend`). -/
 def latestRes (st : Loc) (M : AuthMode) (hs : List AuthState) : IProp GF :=
   iprop(authOwn M hs ∗ ∃ (b : Bool) (sc : AuthState), flagAt st b ∗ cacheAt st sc ∗
-    ⌜latestTie M hs b sc⌝)
+    enabledVerdict M b ∗ authSnap M sc ∗ ⌜latestTie M hs b sc⌝)
 
 /-- **The latest state recorded** (persistent): in `on γa`, the last state of `hs` at its index;
 otherwise nothing. What turns a verdict at the latest state into S3's verdict over recorded states

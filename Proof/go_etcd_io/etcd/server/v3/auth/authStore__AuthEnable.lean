@@ -93,6 +93,8 @@ theorem auth.authStore.AuthEnable.wp_tie
     isplitl [Hbe HT Hen Hca]
     · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists true
+    isplitr
+    · ipureintro; rfl
     iframe Hev
     iunfold adminOutP
     iright
@@ -158,6 +160,8 @@ theorem auth.authStore.AuthEnable.wp_tie
     isplitl [Hbe HT Hen Hca]
     · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists false
+    isplitr
+    · ipureintro; rfl
     iframe Hev
     iunfold adminOutP
     iright
@@ -205,6 +209,8 @@ theorem auth.authStore.AuthEnable.wp_tie
     isplitl [Hbe HT Hen Hca]
     · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists false
+    isplitr
+    · ipureintro; rfl
     iframe Hev
     iunfold adminOutP
     iright
@@ -308,6 +314,8 @@ theorem auth.authStore.AuthEnable.wp_tie
   isplitl [Hbe HT Hen Hca]
   · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev2 Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   iexists false
+  isplitr
+  · ipureintro; rfl
   iframe Hev
   iunfold adminOutP
   iright

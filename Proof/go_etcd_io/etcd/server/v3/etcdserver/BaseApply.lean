@@ -33,6 +33,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
+-- (the auth plan's E2x, 2026-10-26) `UserAdd`'s `base64.StdEncoding`: the server imports it
+public import Proof.encoding.base64.Base
 
 @[expose] public section
 

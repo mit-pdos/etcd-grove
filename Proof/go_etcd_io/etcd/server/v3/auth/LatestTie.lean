@@ -227,7 +227,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- `AuthEnable.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
+/-- `AuthEnable.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed (the
+flag it read the admin side's half, `en = b0`: the auth plan's E3c) and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.AuthEnable.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
@@ -236,7 +237,7 @@ abbrev auth.authStore.AuthEnable.specT : Prop :=
       ⌜∀ en : Bool, stepOk M hs (stepOf (authEnableF en))⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthEnable")) (Val #()))
   {{ (err : GoInterface), RET #err; ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
-      ∃ en : Bool, enabledVerdict M en ∗ adminOutP M hs (stepOf (authEnableF en)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+      ∃ en : Bool, ⌜en = b0⌝ ∗ enabledVerdict M en ∗ adminOutP M hs (stepOf (authEnableF en)) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
 /-- `AuthDisable.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
@@ -382,7 +383,7 @@ theorem auth.authStore.AuthEnable.spec_of_T (h : auth.authStore.AuthEnable.specT
   ihave ⟨%b0, %sc0, HWR⟩ := authWR_to_x st M P f T $$ HWR
   iapply (h st R M P f T hs Pre Q Post b0 sc0) $$ [Hown HWR Htpa Hcs]
   · iframe; iframe #; ipureintro; exact ⟨HisOn, Hok⟩
-  iintro !> %err ⟨%b, %sc, Htpa, HPP, HWR, %en, #Hev, Hout⟩
+  iintro !> %err ⟨%b, %sc, Htpa, HPP, HWR, %en, -, #Hev, Hout⟩
   iapply HΦ
   iframe Htpa HPP
   try iframe Hresp

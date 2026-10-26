@@ -64,7 +64,7 @@ theorem authBoot_alloc (γt γf : GName) :
   iintro
   imod (authHist_alloc (GF := GF) γt γf [bootState] bootState
     (by intro st h; rw [List.mem_singleton] at h; subst h; exact bootState_permKeysOk))
-    with ⟨%γa, %Hγ, Hh, Hc1, Hc2⟩
+    with ⟨%γa, %Hγ, Hh, Hc1, Hc2, -⟩
   imodintro
   iexists γa
   isplitr

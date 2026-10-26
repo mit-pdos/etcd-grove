@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
 @[expose] public section
 
@@ -59,6 +60,33 @@ abbrev EtcdServer.Txn.spec : Prop :=
       else
         iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }}
+
+/-- **`spec` for a writing transaction in the auth mode `on`** (the auth plan's E3d, 2026-10-27;
+`ReqOn.lean`): a transaction `t` that is not read-only, at the server as a proposer sees it in the
+mode `on` (`isServerReqM true`), with `s.Logger()`'s field and reader slot (`EnsureTrace` reads it;
+the read side's `srvRdCall` held it in `spec`) and the auth store's reader resource `E.RD`, and the
+transaction's permission with its checks of the permission cache's shape (`txnPermitOn`); the
+same post as `spec`'s writing case: a success is a transaction the auth state its entry met
+granted (the apply thread's auth verdict is the model's, `authTie`), so its client's update fired
+there and its result `Q` holds at the log the entry met (`txnAppliedOk`); a refusal is an error
+(`txnErrOk`). A read-only transaction in the mode `on` (the read path, `doSerialize`'s check at
+the auth store) is not covered here. -/
+abbrev EtcdServer.Txn.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel) (Q : KVState → IProp GF)
+    (ot : Option Loc) (te : Bool) (F : mvcc.Log) (lg : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
+      srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
+      context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
+      txn.txnRequestIs r t ∗ ⌜txn.txnReadonly t = false⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      txnPermitOn ρ.kv t Q }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      srvLeadTimeReader s ∗ E.RD ∗ srvLgReader s ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }}
 
 end spec
 

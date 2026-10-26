@@ -599,7 +599,9 @@ theorem EtcdServer.Txn.wp_proof
     ipersist ClusterMemberAttrSet
     ipersist DowngradeInfoSet
     ipersist DowngradeVersionTest
-    ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrTxn t) $$ []
+    ihave #⟨%tw, %Htw, #HrtW⟩ := txn.txnRequestIs_W _ t $$ Hrt
+    subst Htw
+    ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrTxn tw) $$ []
     · iunfold irrNoHdrIs
       simp only [irrTxn, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField]
       isplitr
@@ -612,13 +614,13 @@ theorem EtcdServer.Txn.wp_proof
     (try wp_auto)
     -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
-    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L)))
+    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L)))
         F rfl
         $$ [Hlt Hard Hcred Header Hnp] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hnp]
       · (try isimp only [hro, Bool.false_eq_true, ↓reduceIte] at Hnp)
-        iapply txnPermit_reqPropOk ρ.kv t Q γc $$ Hnp
+        iapply txnPermit_reqPropOk ρ.kv tw Q γc $$ Hnp
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -660,14 +662,14 @@ theorem EtcdServer.Txn.wp_proof
       isplitr
       · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
       iunfold txnAppliedOk
-      iexists hm, rq', t', x, x', log', skip
+      iexists tw, hm, rq', t', x, x', log', skip
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       iframe Hhdr Hcert Hpo HMint Hwit Hcok
       isplitr
       rotate_left
       · rw [Hxlb, ← HLlb]; iexact HQ
       ipureintro
-      refine ⟨Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
+      refine ⟨trivial, Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
       have := Hwire.2.2.2 hz
       subst this
       simp [apply.withHeader, irrTxn] at Ht'
@@ -688,6 +690,8 @@ theorem EtcdServer.Txn.wp_proof
         · ipureintro; exact ⟨by first | rfl | trivial, Hne⟩
         iframe HaE
         iunfold txnErrOk
+        iexists tw
+        isplitr; · ipureintro; rfl
         iexact Hfail
       · exact absurd rfl Hne
   · -- read-only: as `Range`, through `doSerialize`
@@ -785,6 +789,282 @@ theorem EtcdServer.Txn.wp_proof
       iright
       iframe HrE
       ipureintro; intro h; cases h
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 8000000 in
+/-- **A writing transaction in the auth mode `on`** (the auth plan's E3d): `wp_proof`'s writing
+branch over `raftRequest.specM true` and `txnPermitOn`. -/
+theorem EtcdServer.Txn.wp_proofOn
+    (hRO : txn.IsTxnReadonly.spec (GF := GF) (hG := hG))
+    (hTS : traceutil.Tracer.Start.spec (GF := GF) (hG := hG))
+    (hWA : trace.WithAttributes.spec (GF := GF) (hG := hG))
+    (hGC : TxnRequest.GetCompare.spec (GF := GF) (hG := hG))
+    (hFCK : firstCompareKey.spec (GF := GF) (hG := hG))
+    (hAS : «attribute».String.spec (GF := GF) (hG := hG))
+    (hGS : TxnRequest.GetSuccess.spec (GF := GF) (hG := hG))
+    (hFOK : firstOpKey.spec (GF := GF) (hG := hG))
+    (hFOT : firstOpType.spec (GF := GF) (hG := hG))
+    (hFOL : firstOpLease.spec (GF := GF) (hG := hG))
+    (hAI64 : «attribute».Int64.spec (GF := GF) (hG := hG))
+    (hAI : «attribute».Int.spec (GF := GF) (hG := hG))
+    (hGF : TxnRequest.GetFailure.spec (GF := GF) (hG := hG))
+    (hAB : «attribute».Bool.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hET : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))
+    (hWV : context.WithValue.spec (GF := GF) (hG := hG))
+    (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
+    EtcdServer.Txn.specOn (GF := GF) (hG := hG) := by
+  intro s E ρ ctx cd r t Q ot te F lg
+  wp_start as ⟨#Hsrv, Hlt, Hard, Hcred, #Hlgf, %Hlgn, Hlr, #Hctx, #Hct, Hto, #Hrt, %Hro, #HF, Hnp⟩
+  wp_apply wp_with_defer as %defer defer
+  ihave Hinit : (srvInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hinit with ⟨-, ⟨-, -, -, ⟨%tr, #Htr⟩, -⟩, -⟩
+  iunfold txnPermitOn at Hnp
+  iunfold txnPermit at Hnp
+  icases Hnp with ⟨⟨%Ht, Hau⟩, %Ha⟩
+  ihave #Hrt' := Hrt
+  iunfold txn.txnRequestIs at Hrt'
+  icases Hrt' with ⟨%Hrn, #Hf⟩
+  iunfold txn.txnFieldsIs at Hf
+  icases Hf with ⟨%csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm, #Hfl, #Hfs, #Hfm⟩
+  (try wp_auto)
+  wp_apply hRO r t $$ []
+  · iframe Hrt
+  (try wp_auto)
+  wp_apply hGC r csl $$ []
+  · iframe Hc; ipureintro; exact Hrn
+  (try wp_auto)
+  wp_apply hFCK csl cps t.cmps $$ [] as %k1 -
+  · iframe Hcm Hcs
+  (try wp_auto)
+  wp_apply hAS as %a1 -
+  (try wp_auto)
+  wp_apply hGS r ssl $$ []
+  · iframe Hs; ipureintro; exact Hrn
+  (try wp_auto)
+  wp_apply hFOK ssl sps t.thenOps $$ [] as %k2 -
+  · iframe Hsm Hss
+  (try wp_auto)
+  wp_apply hAS as %a2 -
+  (try wp_auto)
+  wp_apply hGS r ssl $$ []
+  · iframe Hs; ipureintro; exact Hrn
+  (try wp_auto)
+  wp_apply hFOT ssl sps t.thenOps $$ [] as %k3 -
+  · iframe Hsm Hss
+  (try wp_auto)
+  wp_apply hAS as %a3 -
+  (try wp_auto)
+  wp_apply hGS r ssl $$ []
+  · iframe Hs; ipureintro; exact Hrn
+  (try wp_auto)
+  wp_apply hFOL ssl sps t.thenOps $$ [] as %k4 -
+  · iframe Hsm Hss
+  (try wp_auto)
+  wp_apply hAI64 as %a4 -
+  (try wp_auto)
+  wp_apply hGC r csl $$ []
+  · iframe Hc; ipureintro; exact Hrn
+  (try wp_auto)
+  wp_apply hAI as %a5 -
+  (try wp_auto)
+  wp_apply hGS r ssl $$ []
+  · iframe Hs; ipureintro; exact Hrn
+  (try wp_auto)
+  wp_apply hAI as %a6 -
+  (try wp_auto)
+  wp_apply hGF r fsl $$ []
+  · iframe Hfl; ipureintro; exact Hrn
+  (try wp_auto)
+  wp_apply hAI as %a7 -
+  (try wp_auto)
+  wp_apply hAB as %a8 -
+  (try wp_auto)
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %asl ⟨-, -⟩
+  (try wp_auto)
+  wp_apply hWA as %opt -
+  (try wp_auto)
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %osl ⟨-, -⟩
+  (try wp_auto)
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
+  · iframe Htr; iunfold mvcc.txnCtx; iright; iexact Hctx
+  ihave #Hctx1 := Hctx1w $$ Hctx
+  iunfold trace.isSpan at Hsp
+  icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
+  subst Hsi
+  (try wp_auto)
+  wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
+  · iframe Hlgf; iframe Hlr; ipureintro; exact Hlgn
+  (try wp_auto)
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %fsl' ⟨Hfl, Hflc⟩
+  (try wp_auto)
+  wp_apply hET ctx1 _ ot te lg _ _ $$ [Hto Hfl Hflc]
+    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %vs2, #Hctx2, Hctx2w⟩
+  · iframe Hctx1t
+    isplitr
+    · iapply Hctr1 $$ Hct
+    iframe Hto
+    iunfold traceutil.ownFields
+    iexists _
+    iframe Hfl Hflc
+    ipureintro
+    exact traceutil.fieldsWf_cons_bool _ _ _ traceutil.fieldsWf_nil
+  ihave #Hctx2i := Hctx2w $$ Hctx1
+  (try wp_auto)
+  cases hro : txn.txnReadonly t
+  · -- a write: through raft, as `Put`
+    (try wp_auto)
+    wp_apply time.wp_Now as %now -
+    (try wp_auto)
+    wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, -⟩
+    · ipureintro; right; right; left; rfl
+    ihave ⟨%ctx3, %vs3, %Hc3e, #Hctx3⟩ := Hc3w $$ %_ Hctx2i
+    subst Hc3e
+    (try wp_auto)
+    ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
+    iStructNamed Hirr
+    ipersist ID
+    ipersist Range
+    ipersist Put
+    ipersist DeleteRange
+    ipersist Txn
+    ipersist Compaction
+    ipersist LeaseGrant
+    ipersist LeaseRevoke
+    ipersist Alarm
+    ipersist LeaseCheckpoint
+    ipersist AuthEnable
+    ipersist AuthDisable
+    ipersist AuthStatus
+    ipersist Authenticate
+    ipersist AuthUserAdd
+    ipersist AuthUserDelete
+    ipersist AuthUserGet
+    ipersist AuthUserChangePassword
+    ipersist AuthUserGrantRole
+    ipersist AuthUserRevokeRole
+    ipersist AuthUserList
+    ipersist AuthRoleList
+    ipersist AuthRoleAdd
+    ipersist AuthRoleDelete
+    ipersist AuthRoleGet
+    ipersist AuthRoleGrantPermission
+    ipersist AuthRoleRevokePermission
+    ipersist ClusterVersionSet
+    ipersist ClusterMemberAttrSet
+    ipersist DowngradeInfoSet
+    ipersist DowngradeVersionTest
+    ihave #⟨%tw, %Htw, #HrtW⟩ := txn.txnRequestIs_W _ t $$ Hrt
+    subst Htw
+    ihave #HirrNo : irrNoHdrIs «$a1_ptr» (irrTxn tw) $$ []
+    · iunfold irrNoHdrIs
+      simp only [irrTxn, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField]
+      isplitr
+      · ipureintro; exact Hirrn
+      isplitr
+      · have h0 : (W64 0 : w64) = 0 := by decide
+        rw [h0]; iexact ID
+      repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
+      iexists _; iframe DowngradeVersionTest; try (ipureintro; simp)
+    (try wp_auto)
+    -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
+    imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
+    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn tw) (txnQhOn ρ.kv tw γc Q)
+        F rfl
+        $$ [Hlt Hard Hcred Header Hau] as %resp %err ⟨Hlt, Hard, Hres⟩
+    · iframe # Hlt Hard Hcred
+      isplitl [Hau]
+      · iapply txnPermitOn_reqPropOk ρ.kv tw Q γc
+        iunfold txnPermitOn
+        iunfold txnPermit
+        iframe Hau
+        ipureintro; exact ⟨Ht, Ha⟩
+      iexists _; iexact Header
+    (try wp_auto)
+    icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    · subst Herr
+      have hz : irrNoZeroEnd (apply.withHeader (irrTxn tw) hm) := by
+        refine ⟨?_, ?_, ?_⟩
+        · intro _ h; simp [apply.withHeader, irrTxn, apply.irrEmpty] at h
+        · intro _ h; simp [apply.withHeader, irrTxn, apply.irrEmpty] at h
+        · intro t' h; simp only [apply.withHeader_txn, irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
+      have Hrq : rq' = apply.withHeader (irrTxn tw) hm := Hwire.2.2.2 hz
+      subst Hrq
+      iunfold appliedOkM at Hok
+      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
+      obtain ⟨Hstep, Hfl, Hskip, Hmo⟩ := Hstep0
+      have Hk : apply.dispatchKind (apply.withHeader (irrTxn tw) hm) = .txn := by
+        simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
+      have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
+      iunfold apply.dispatchAnswer at Hans
+      rw [Hk] at *
+      icases Hans with ⟨%t', %pr, %Htp, Hpo⟩
+      obtain ⟨Ht', Hresp⟩ := Htp
+      subst Hresp
+      ihave %Hap := apply.txnAnswerIs_nil _ _ _ _ _ $$ Hpo
+      obtain ⟨log', rfl⟩ := Hap
+      simp only [apply.txnAnswerIs]
+      icases Hpo with ⟨Hpo, Hhdr⟩
+      simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte] at *
+      icases Hpo with ⟨#Hpo, Hns⟩
+      ihave %Hprn : ⌜pr ≠ null⌝ $$ []
+      · ihave #Hr := Hpo
+        iunfold txn.txnResponseIs at Hr
+        icases Hr with ⟨%Hn, -⟩
+        ipureintro; exact Hn
+      wp_auto_lc 1
+      -- the transaction's result, with its token: granted at the state its entry met
+      ihave #HQr := txnQhOn_res ρ.kv tw γc Q hm Lq x.log log' skip Hmo $$ HQq
+      imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
+      (try wp_auto)
+      wp_apply HEnd
+      (try wp_auto)
+      iapply HΦ
+      iframe Hlt
+      iframe Hard Hlr
+      ileft
+      isplitr
+      · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
+      iunfold txnAppliedOk
+      iexists tw, hm, apply.withHeader (irrTxn tw) hm, t', x, x', log', skip
+      simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
+      iframe Hhdr Hcert Hpo HMint Hwit Hcok
+      isplitr
+      rotate_left
+      · iexact HQ
+      ipureintro
+      refine ⟨trivial, Hwire, Ht', fun _ => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
+      simp [apply.withHeader, irrTxn] at Ht'
+      exact Ht'.symm
+    · obtain ⟨rfl, Hne⟩ := Hre
+      (try wp_auto)
+      rcases err with ei | _
+      · (try wp_auto)
+        wp_apply HEnd
+        (try wp_auto)
+        iapply HΦ
+        iframe Hlt
+        iframe Hard Hlr
+        iright
+        isplitr
+        · ipureintro; exact ⟨by first | rfl | trivial, Hne⟩
+        iframe HaE
+        iunfold txnErrOk
+        iexists tw
+        isplitr; · ipureintro; rfl
+        iexact Hfail
+      · exact absurd rfl Hne
+  · exfalso; rw [Hro] at hro; cases hro
 
 end proof
 

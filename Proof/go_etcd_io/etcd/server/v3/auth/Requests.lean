@@ -10,6 +10,7 @@ leaves them; the permission of a `RoleGrantPermission` is a read-only message (`
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
+public import Proof.encoding.base64.Base
 
 @[expose] public section
 
@@ -26,8 +27,11 @@ open Iris Iris.BI go_etcd_io.etcd.api.v3
 /-- **base64's standard encoding** (`encoding/base64`'s `StdEncoding.EncodeToString`), of a byte
 string. Opaque: what the proofs need is only that what it encodes decodes without an error
 (`selectPassword`'s trust boundary, the auth plan's E2u), not the encoding itself. (It moved here
-from the apply package's request model, E2t, so that the auth store's boundary can name it.) -/
-opaque stdB64Enc : List w8 → GoString
+from the apply package's request model, E2t, so that the auth store's boundary can name it.) Since
+E2x (2026-10-26) it is `encoding/base64`'s own `stdEnc`, which its package fact gives
+`StdEncoding.EncodeToString` (`Proof/encoding/base64/Base.lean`), so that `EtcdServer.UserAdd`'s
+request is shown of this form. -/
+abbrev stdB64Enc : List w8 → GoString := _root_.Perennial.encoding.base64.stdEnc
 
 /-- **A password choice that cannot fail**: no password asked for, or an empty `Password` with a
 `HashedPassword` that is the standard base64 encoding of some bytes (the server's own form since

@@ -422,8 +422,12 @@ the mode (`authSnap M st`), under which its reads are the state's (`authTxReads`
 (`authOwn`: outside a batch transaction, so no write is pending), the state is the latest
 (`histLast M hs st`; the auth plan's E2r, 2026-10-26: the apply thread, the store's only writer,
 reads what its last batch committed; a real backend's `Unlock` writes its batch back to the read
-buffer before the next read transaction begins). (The auth plan's S1, 2026-10-23; until then: a
-token holding no state, `UnsafeGetUser` returning any pointer.) -/
+buffer before the next read transaction begins); and, for a reader holding a lower bound `i` of the
+history's published index (`authPubLbM`), a state no older than `i` (`authSnapFrom`; the auth
+plan's E3g, 2026-10-27, the reads' freshness the user chose: a state is published only once its
+batch is committed, so a real backend's read transaction begun afterwards sees it or a later one).
+(The auth plan's S1, 2026-10-23; until then: a token holding no state, `UnsafeGetUser` returning
+any pointer.) -/
 def authReadTxOk (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : AuthState → IProp GF,
     □ ({{ R }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
@@ -431,6 +435,9 @@ def authReadTxOk (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
     □ (∀ hs : List AuthState,
       {{ R ∗ authOwn M hs }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
       {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st ∗ authOwn M hs ∗ ⌜histLast M hs st⌝ }}) ∗
+    □ (∀ i : Nat,
+      {{ R ∗ authPubLbM M i }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+      {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnapFrom M i st }}) ∗
     authTxReads ti R Hs)
 
 instance authReadTxOk_persistent (tx : GoInterface) (R : IProp GF) (M : AuthMode) :

@@ -93,11 +93,13 @@ theorem txnNoZeroEnd_txnOf (cs : List (linkv.MCmp GoString GoString))
   cases c' <;> simp [linkv.cmpOf]
 
 theorem irrNoZeroEnd_txnOf (cs : List (linkv.MCmp GoString GoString))
-    (t e : List (linkv.MOp GoString GoString)) : irrNoZeroEnd (irrTxn (linkv.txnOf cs t e)) := by
+    (t e : List (linkv.MOp GoString GoString)) (tw : txn.TxnModelW)
+    (htw : tw.toModel = linkv.txnOf cs t e) : irrNoZeroEnd (irrTxn tw) := by
   refine ⟨fun o h => by simp [irrTxn, apply.irrEmpty] at h,
     fun o h => by simp [irrTxn, apply.irrEmpty] at h, fun t' h => ?_⟩
-  simp only [irrTxn, Option.some.injEq] at h
+  simp only [irrTxn_txn, Option.some.injEq] at h
   subst h
+  rw [htw]
   exact txnNoZeroEnd_txnOf cs t e
 
 theorem txnReadonly_txnOf (cs : List (linkv.MCmp GoString GoString))
@@ -399,9 +401,9 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       rw [hw]
       unfold client.txnReplied
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
-      icases Hr with ⟨%hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
-      obtain ⟨-, -, Hz, -, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
-      have ht : t' = linkv.txnOf cs t e := Hz (irrNoZeroEnd_txnOf cs t e)
+      icases Hr with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
+      obtain ⟨Htw, -, -, Hz, -, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
+      have ht : t' = linkv.txnOf cs t e := Hz (irrNoZeroEnd_txnOf cs t e tw Htw)
       subst ht hsk
       have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
       have hs : (kvStateOf y.log).kvs = mvcc.stateAfter y.log := kvStateOf_kvs _

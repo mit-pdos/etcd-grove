@@ -2,9 +2,11 @@
 `container/heap`'s contract on its `heap.Interface` argument (2026-10-13, unit 9 of the backend:
 the lessor's expiry notifier). Lean-first (no Rocq counterpart).
 
-`container/heap` is a standard-library package Perennial does not translate (names only here),
-so `heap.Push` and `heap.Fix` are the trust boundary (`Spec/container/heap/`): their specs say
-what the Go functions do with the interface's methods, abstracted over the heap's contents
+`container/heap` is a standard-library package Perennial does not translate; this repository
+translates `heap.Push`, `heap.Fix` and the sift loops `up`, `down` they call (2026-10-26; until
+then names only, the two specs trust-boundary axioms) and proves them (`Proof/container/heap/`).
+Their specs say what the Go functions do with the interface's methods, abstracted over the
+heap's contents
 `R xs` (a list of elements of any type `A`): `Len` returns the length, `Less(i, j)` and
 `Swap(i, j)` are called only at indices in range (`Swap` swaps the two elements, `listSwap`),
 `Push(x)` appends the element `x` stands for (`E x a`). The heap order is not tracked: the
@@ -52,6 +54,10 @@ def heapIface {A : Type} (h : GoInterfaceOk) (R : List A → IProp GF)
     □ (∀ (xs : List A) (x : GoInterface) (a : A),
       {{ R xs ∗ E x a }} (App (Val #(methods h.ty go!"Push" h.v)) (Val #x))
       {{ RET #(); R (xs ++ [a]) }}))
+
+instance heapIface_persistent {A : Type} (h : GoInterfaceOk) (R : List A → IProp GF)
+    (E : GoInterface → A → IProp GF) : Persistent (heapIface h R E) := by
+  unfold heapIface; infer_instance
 
 end defs
 

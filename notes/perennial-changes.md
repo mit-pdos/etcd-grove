@@ -455,18 +455,26 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   (`deadlineExceededError`); then `ErrAny` drops the two facts.
 - **Status.** Not started (found 2026-10-23).
 
-### `encoding/base64` (the auth plan's E2u, 2026-10-26)
+### `encoding/base64` (the auth plan's E2u, 2026-10-26; E2x)
 
-- **Missing.** Perennial has no `encoding/base64`, not even names-only, so etcd's
-  `EtcdServer.UserAdd` and `UserChangePassword` (they hash the password with bcrypt and put the
-  hash in the request base64-encoded, `v3_server.go`) cannot be translated here.
-- **Workaround here.** The apply side names the encoding as an opaque function
-  (`auth.stdB64Enc`, `auth/Requests.lean`) and `selectPassword`'s boundary spec says its decoding
-  of an encoding has no error; that the handler's request is of that form (`UserAddModel.pwSure`)
-  is a proposer's obligation (`commitOkOn`, E2t) until the handler is proved.
-- **Proposed change.** `encoding/base64` in Perennial: `StdEncoding` (a package variable with its
-  fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at least
-  `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models.
+- **Missing.** Perennial has no `encoding/base64`, not even names-only. etcd's
+  `EtcdServer.UserAdd` and `UserChangePassword` hash the password with bcrypt and put the hash in
+  the request base64-encoded (`v3_server.go`); the k8s etcd3 store's continue tokens are JSON in
+  base64.
+- **Workaround here** (E2x, 2026-10-26; the user chose this over a Perennial model). The package is
+  names-only in this repository's configuration (`Code/encoding/base64.toml`, the k8s-apiserver
+  project's translation; the etcd project maps `encoding/base64=` to it, `etc/goose.py`). Its
+  package fact (`Proof/encoding/base64/Base.lean`, `base64Init`) says `StdEncoding` holds a fixed
+  `*Encoding` whose `EncodeToString` returns the opaque `encoding.base64.stdEnc` of its argument's
+  bytes; the trust-boundary axiom `StdEncoding_init` (`Proof/encoding/base64/Init.lean`,
+  `etc/gen-init.py`) establishes it. `auth.stdB64Enc` is that `stdEnc`, and `selectPassword`'s
+  boundary spec says its decoding of such an encoding has no error, so `EtcdServer.UserAdd` is
+  proved to propose a `pwSure` request (`server_user_add_sure`).
+- **Proposed change (later).** `encoding/base64` in Perennial: `StdEncoding` (a package variable
+  with its fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at
+  least `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models. It would
+  turn `StdEncoding_init`'s method clause and `selectPassword`'s decode clause into theorems, and
+  serve the k8s etcd3 store's continue tokens.
 
 ## Landed
 
@@ -641,6 +649,11 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   Held D` elaborates, and `wp_apply` of the same shape worked for `hRL` two calls earlier (before
   `D` existed). Workaround: `wp_bind` the call, then `iapply (hRU ...) $$ [Hpkg Htxf Hrtx HD]`,
   prove the precondition goal by `iframe`, `inext`, `iintro HR`.
+- **A third instance** (2026-10-26, `heap.up.wp_proof`/`heap.down.wp_proof`): `wp_apply HSwap $$
+  %ys %p %jv [HR] as HR`, `HSwap` an Iris hypothesis (the `heap.Interface`'s `Swap` triple), after a
+  `cases b` on a Boolean an earlier `wp_apply HLess ... as %b HR` introduced: no error, the
+  following tactics "never executed", and only "declaration uses `sorry`"; `wp_apply_core` of the
+  same reports "unknown free variable". The same `wp_apply` of `HLess` before the `cases` worked.
 - **Workaround here.** Prepare the hypothesis with `ihave` and frame it with `$`; check every new
   proof for the "declaration uses `sorry`" warning; at a deferred call, `wp_bind` and `iapply`.
 - **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report

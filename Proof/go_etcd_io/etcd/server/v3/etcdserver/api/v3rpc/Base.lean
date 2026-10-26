@@ -25,6 +25,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseGrpc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseWatch
+public import Proof.unicode.utf8.Base
 
 @[expose] public section
 
@@ -43,11 +44,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
--- `unicode/utf8` (names only; unit P3b: the unary interceptor's `utf8.ValidString`)
-instance utf8_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.unicode.utf8 :=
-  define_is_pkg_init iprop(True)
-instance utf8_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.unicode.utf8 :=
-  build_get_is_pkg_init_wf
+-- `unicode/utf8`: `Proof/unicode/utf8/Base.lean`.
 
 -- `math/rand` (names only; the watch slice's unit W-S: `GetProgressReportInterval`'s jitter,
 -- `rand.Int63n`)

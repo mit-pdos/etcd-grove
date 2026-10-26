@@ -1475,7 +1475,7 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       | false =>
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
         iunfold v3rpc.txnAppliedAns at Hans
-        icases Hans with ⟨%hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
+        icases Hans with ⟨%tw, %hm, %rq', %t'', %x, %x', %l, %skip, %Hst, Hout, #Hcert, HMint, #Hwit,
           #Hcok, HQv⟩
         have hdq : d = .op1 (.txn t) Q := by
           rcases HdQ with ⟨h, -⟩ | ⟨-, h⟩
@@ -1499,12 +1499,12 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iapply Hspec
         unfold txnReplied
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
-        iexists hm, rq', t'', x, x', l, skip
+        iexists tw, hm, rq', t'', x, x', l, skip
         iframe Hcert HMint Hwit Hcok HQv
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
-        obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst
-        refine ⟨s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩
+        obtain ⟨s0, s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst
+        refine ⟨s0, s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩
         · rw [h1]
         · rw [h4]; exact h5
     · obtain ⟨-, Hne⟩ := Herr

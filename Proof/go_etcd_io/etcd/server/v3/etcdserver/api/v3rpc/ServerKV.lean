@@ -237,10 +237,10 @@ header's fields): the request the proposed data decode to, applied by the apply 
 the response the transaction's, the header's revision `r` its write revision. -/
 def txnAppliedAns (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (resp : Loc) (r : w64) : IProp GF :=
-  iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
+  iprop(∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
       (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
-    ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq' ∧ rq'.txn = some t' ∧
-      (irrNoZeroEnd (irrTxn t) → t' = t) ∧
+    ⌜tw.toModel = t ∧ irrWireOf (apply.withHeader (irrTxn tw) hm) rq' ∧ rq'.txn = some t' ∧
+      (irrNoZeroEnd (irrTxn tw) → t' = t) ∧
       apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧
       r = W64 (mvcc.writeRev x.log
         (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int) ∧
@@ -753,7 +753,7 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-      icases Hok' with ⟨%hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint, #Hwit,
+      icases Hok' with ⟨%tw, %hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint, #Hwit,
         #Hcok, HQv⟩
       ihave #Hresp := Hout
       iunfold txn.txnResponseIs at Hresp
@@ -777,11 +777,11 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       · ipureintro; exact hm
       simp only [hro, Bool.false_eq_true, ↓reduceIte]
       iunfold txnAppliedAns
-      iexists hm', rq', t', x, x', l, skip
+      iexists tw, hm', rq', t', x, x', l, skip
       isplitr
       · ipureintro
-        exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, Hst.2.2.2.2.1, Hlen.1, Hlen.2,
-          Hst.2.2.2.2.2⟩
+        exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, Hst.2.2.2.2.1, rfl, Hst.2.2.2.2.2.1, Hlen.1, Hlen.2,
+          Hst.2.2.2.2.2.2⟩
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       iframe Hout Hcert HMint Hwit Hcok HQv
       try (ipureintro; trivial)
