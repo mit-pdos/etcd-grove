@@ -52,7 +52,7 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter log) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep c rq v3 log o ∧ apply.chainAfter rq v3 c c' ∧
-          apply.kvFloorOk rq v3 F log o⌝ ∗
+          apply.kvFloorOk rq v3 F log o ∧ a' = a ∧ c' = c⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode info c rq o) ∗
         apply.resTrace ar ∗ apply.dispatchResult rq v3 log skip ar o }}
 

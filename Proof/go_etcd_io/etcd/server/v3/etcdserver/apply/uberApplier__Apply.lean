@@ -32,7 +32,7 @@ theorem apply.uberApplier.Apply.wp_proof
   intro E p opts x r rq skip v3 F Pre Q Post rs
   wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, %Hskip, #HF, HFS, HSp, HRO⟩
   iunfold apply.uberOwn at Hown
-  icases Hown with ⟨%a, Ha, #Hs, %HcE⟩
+  icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
   ihave #Hs' := Hs
   iunfold apply.applierSpec at Hs'
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
@@ -50,7 +50,7 @@ theorem apply.uberApplier.Apply.wp_proof
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧
-          apply.kvFloorOk rq v3 F x.log o⌝ ∗
+          apply.kvFloorOk rq v3 F x.log o ∧ a' = GoInterface.ok ai ∧ c' = x.chain⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode (apply.principalOf rq) x.chain rq o) ∗
         apply.resTrace ar ∗ apply.dispatchResult rq v3 x.log skip ar o))
       [Ha Hkv Hwt Hcs HFS HSp HRO] as %ar Hpost
@@ -68,18 +68,19 @@ theorem apply.uberApplier.Apply.wp_proof
     iframe Hres HFS HRO
     iexact HB
   icases Hpost with (⟨⟨HFS, HRO, %a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, #Hcls, Htr, Hres⟩, #Hadm⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs, HFS, -, HRO⟩, Hrej⟩)
-  · imodintro
+  · obtain ⟨-, -, -, ha, hc⟩ := id Hst
+    subst ha hc
+    imodintro
     iapply HΦ
     iframe HFS
-    iexists ⟨o.logAfter x.log, c'⟩, (.dispatched o skip)
+    iexists ⟨o.logAfter x.log, x.chain⟩, (.dispatched o skip)
     simp only [apply.applyResultIs, apply.restOut, apply.applyAuthRes]
     iframe Hkv HPP Hres Htr HRO Hcls Hadm
     isplitl [Ha']
-    · iunfold apply.uberOwn; iexists a'; iframe Ha' Hs''
-      ipureintro
-      rcases Hst.2 with h | ⟨-, -, ns, cr, h⟩ <;> simp [h, HcE]
+    · iunfold apply.uberOwn; iexists _; iframe Ha' Hs'' Hsh
+      ipureintro; exact HcE
     ipureintro
-    exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1⟩, Or.inr ⟨o, rfl⟩, Hst.2.2⟩
+    exact ⟨⟨Hskip, Hst.1, rfl, Hst.2.1⟩, Or.inr ⟨o, rfl⟩, Hst.2.2.1⟩
   · iunfold apply.rejectResultIs at Hrej
     icases Hrej with ⟨%Harn, %v, Hv, %Hvf, #HeI⟩
     ipersist Hv
@@ -91,7 +92,7 @@ theorem apply.uberApplier.Apply.wp_proof
     iexists x, .rejected
     iframe Hkv HRO
     isplitl [Ha]
-    · iunfold apply.uberOwn; iexists _; iframe Ha Hs; ipureintro; exact HcE
+    · iunfold apply.uberOwn; iexists _; iframe Ha Hs Hsh; ipureintro; exact HcE
     isplitl [Hcs]
     · iapply apply.cPost_of_pre
       iapply apply.cPre_pre

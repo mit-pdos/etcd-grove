@@ -58,6 +58,7 @@ theorem apply.newAuthApplierV3.wp_proof
     first | iexact authInfo | (iExactEq authInfo; rfl)
   wp_auto
   iapply HΦ
+  iframe applierV3
   iintro !> %E %c %hRD #Hst #Hle #Hbase
   ihave #Hb := Hbase
   iunfold apply.applierSpec at Hb

@@ -25,15 +25,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- `as.refreshRangePermCache(tx)`, `tx` an `UnsafeAuthReader` holding the state `sta` of the mode
 (`authReaderOk`, `authSnap`): write-locks `rangePermCacheMu` and replaces the cache's map with one
 built from the transaction's users (`UnsafeGetAllUsers`, `getMergedPerms` for each): the new map is
-`cacheOk` of `sta` (its keys `sta`'s users, each entry the user's permissions); the token kept. -/
+`cacheOk` of `sta` (its keys `sta`'s users, each entry the user's permissions); the token kept. The
+caller (the apply thread, or `NewAuthStore`) gives the admin side's half of the field
+(`cacheHalf`) and gets it back at `sta` (`cacheAt`; the auth plan's E2r). -/
 abbrev auth.authStore.refreshRangePermCache.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ti : GoInterfaceOk)
     (Hs : auth.AuthState → IProp GF) (sta : auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authReaderOk ti Hs ∗ Hs sta ∗ authSnap M sta ∗ ⌜permsFit sta⌝ }}
+      cacheHalf st M ∗ authReaderOk ti Hs ∗ Hs sta ∗ authSnap M sta ∗ ⌜permsFit sta⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
-  {{ RET #(); Hs sta }}
+  {{ RET #(); Hs sta ∗ cacheAt st sta }}
 
 end spec
 

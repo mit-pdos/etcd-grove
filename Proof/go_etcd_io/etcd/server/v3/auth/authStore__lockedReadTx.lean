@@ -47,7 +47,7 @@ theorem auth.authStore.lockedReadTx.wp_proof :
   iunfold authReadTxOk at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%Hs, #HRL, #Hreads⟩
+  icases Htx with ⟨%Hs, #HRL, -, #Hreads⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
   iapply HRL $$ HR

@@ -284,6 +284,33 @@ def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
   | .authRoleList => False
   | _ => True
 
+/-- **The admin requests admitted in the mode `on`** (the auth plan's E2m, continued): their shape
+only, the names within bbolt's key bound (the step specs' premise; the fuel bounds the rest,
+`AuthFuel.lean`). `SetUp`'s five: `UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`
+(whose names the request model records since E2n) and `AuthEnable`; not the other admin kinds. -/
+def adminKindOk (rq : IRRModel) : Prop :=
+  match dispatchKind rq with
+  | .authUserAdd => ∀ m, rq.authUserAdd = some m → m.name.length ≤ backend.maxKeySize
+  | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
+  | .authUserGrantRole => ∀ u ro, rq.authUserGrantRole = some (u, ro) → u.length ≤ backend.maxKeySize
+  | .authRoleGrantPermission =>
+      ∀ n w, rq.authRoleGrantPermission = some (n, w) → n.length ≤ backend.maxKeySize
+  | .authEnable => True
+  | _ => False
+
+/-- **The per-request premise in the auth mode `M`** (E2m, continued): `rqOk`, or, in the mode `on`
+only, an admitted admin request (`adminKindOk`). A second clause rather than a mode-indexed
+`rqOk`: `rqOk` and every statement written with it (the entries' claims, the examples' workloads)
+keep their text, and in the mode `off` the two agree (`rqOkM_off`). -/
+def rqOkM (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
+  rqOk log rq ∨ (M.isOn = true ∧ adminKindOk rq)
+
+theorem rqOkM_off (log : mvcc.Log) (rq : IRRModel) : rqOkM .off log rq ↔ rqOk log rq := by
+  simp [rqOkM, auth.AuthMode.isOn]
+
+theorem rqOkM_of_rqOk (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) (h : rqOk log rq) :
+    rqOkM M log rq := Or.inl h
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -843,21 +870,28 @@ theorem mPost_backend {E : AEnv GF} {a : GoInterface} {log : mvcc.Log} {Pre Post
   iapply chainResAny_backend
 
 /-- The request facts of a one-argument method that leaves the log as it is, by method: what
-the layers read of the request (`R r`); `True` for those passed on unread to the auth store. -/
+the layers read of the request (`R r`); `True` for those passed on unread to the auth store. The
+auth store's requests are admitted in the environment's mode only (`adminAdmitted`, the auth plan's
+E2i). -/
 def reqFacts (E : AEnv GF) (m : GoString) (r : Loc) : IProp GF :=
   if m = go!"LeaseGrant" then
     iprop((∃ g : LeaseGrantModel, leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗ E.RW)
   else if m = go!"LeaseCheckpoint" then
     iprop((∃ cms : List CheckpointModel, leaseCheckpointIs r cms ∗ ⌜cms.length ≤ 1⌝) ∗ E.RW)
   else if m = go!"Alarm" then iprop((∃ am : AlarmModel, alarmRequestIs r am) ∗ E.RW)
-  else if m = go!"Authenticate" then iprop((∃ am : AuthenticateModel, authenticateIs r am) ∗ E.RW)
-  else if m = go!"UserGet" then iprop((∃ n : GoString, authUserGetIs r n) ∗ E.RW)
+  else if m = go!"Authenticate" then
+    iprop(((∃ am : AuthenticateModel, authenticateIs r am) ∗ E.RW) ∗ ⌜adminAdmitted E.authMode⌝)
+  else if m = go!"UserGet" then
+    iprop(((∃ n : GoString, authUserGetIs r n) ∗ E.RW) ∗ ⌜adminAdmitted E.authMode⌝)
   else if m = go!"UserAdd" then
-    iprop((∃ n : GoString, authUserAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW)
+    iprop(((∃ m : UserAddModel, authUserAddIs r m ∗ ⌜m.name.length ≤ backend.maxKeySize⌝) ∗ E.RW) ∗
+      ⌜adminAdmitted E.authMode⌝)
   else if m = go!"RoleAdd" then
-    iprop((∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW)
-  else if m = go!"RoleGet" then iprop((∃ n : GoString, authRoleGetIs r n) ∗ E.RW)
-  else E.RW
+    iprop(((∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW) ∗
+      ⌜adminAdmitted E.authMode⌝)
+  else if m = go!"RoleGet" then
+    iprop(((∃ n : GoString, authRoleGetIs r n) ∗ E.RW) ∗ ⌜adminAdmitted E.authMode⌝)
+  else iprop(E.RW ∗ ⌜adminAdmitted E.authMode⌝)
 
 /-- **A cluster method's request facts** (D22, 2026-10-23): the request `r` of the method `m`
 (`ClusterReq.method`) holds `cr`; `DowngradeInfoSet`'s with the write right `E.RW`. -/
@@ -951,7 +985,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ resp0Methods⌝ -∗
-      ⌜m = go!"AuthEnable" → E.authOn = true⌝ -∗
+      ⌜(m = go!"AuthEnable" → E.authOn = true) ∧ adminAdmitted E.authMode⌝ -∗
       {{ mPre E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.RW }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -1031,9 +1065,17 @@ instance quotaIs_persistent (p : Loc) (inner : GoInterface) :
 def cappedIs (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef applierV3Capped go!"applierV3" p ↦□ inner)
 
+instance cappedIs_persistent (p : Loc) (inner : GoInterface) :
+    Persistent (cappedIs (GF := GF) p inner) := by
+  unfold cappedIs; infer_instance
+
 /-- **The `*applierV3Corrupt` `p`**: its inner applier, read-only. -/
 def corruptIs (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef applierV3Corrupt go!"applierV3" p ↦□ inner)
+
+instance corruptIs_persistent (p : Loc) (inner : GoInterface) :
+    Persistent (corruptIs (GF := GF) p inner) := by
+  unfold corruptIs; infer_instance
 
 /-- The auth layer's mutex's resource: its `authInfo`, the zero `AuthInfo` between `Apply`s
 (set at construction, `newAuthApplierV3`; reset after every `Apply`, and by `UserGet` and
@@ -1056,6 +1098,44 @@ def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
 instance authIs_persistent (E : AEnv GF) (p : Loc) (inner : GoInterface) :
     Persistent (authIs E p inner) := by
   unfold authIs; infer_instance
+
+/-- **The shape of `newApplierV3`'s applier** `a` (the auth plan's E2m, 2026-10-26): an auth
+applier over a quota applier over a backend applier with the options `opts`, their fields
+read-only (what `applierAdmin`'s layers, `AdminChain.lean`, need of the chain's values). -/
+def baseShape (opts : ApplierOptions) (a : GoInterface) : IProp GF :=
+  iprop(∃ pa pq pb : Loc, ⌜a = interface.mkOk (go.GoType.PointerType authApplierV3.ty) #pa⌝ ∗
+    structFieldRef authApplierV3 go!"applierV3" pa ↦□
+      (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #pq : GoInterface) ∗
+    structFieldRef quotaApplierV3 go!"applierV3" pq ↦□
+      (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #pb : GoInterface) ∗
+    structFieldRef applierV3backend go!"options" pb ↦□ opts)
+
+instance baseShape_persistent (opts : ApplierOptions) (a : GoInterface) :
+    Persistent (baseShape (GF := GF) opts a) := by
+  unfold baseShape; infer_instance
+
+/-- **The shape of `restoreAlarms`' applier** `a` over the base applier `base` (the auth plan's
+E2o, 2026-10-26): `newApplierV3Capped` of `base` if a `NOSPACE` alarm is set (`ns`), then
+`newApplierV3Corrupt` of that if a `CORRUPT` alarm is (`cr`), their fields read-only (what
+`applierAdmin_alarm`, `AdminChain.lean`, needs to lift the base's admin triples). -/
+def cappedShape : Bool → GoInterface → GoInterface → IProp GF
+  | true, base, a => iprop(∃ pc : Loc,
+      ⌜a = interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #pc⌝ ∗ cappedIs pc base)
+  | false, base, a => iprop(⌜a = base⌝)
+
+/-- The corrupt wrapper's part of `alarmShape`. -/
+def corruptShape : Bool → GoInterface → GoInterface → IProp GF
+  | true, inner, a => iprop(∃ pr : Loc,
+      ⌜a = interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #pr⌝ ∗ corruptIs pr inner)
+  | false, inner, a => iprop(⌜a = inner⌝)
+
+def alarmShape (ns cr : Bool) (base a : GoInterface) : IProp GF :=
+  iprop(∃ a1 : GoInterface, cappedShape ns base a1 ∗ corruptShape cr a1 a)
+
+instance alarmShape_persistent (ns cr : Bool) (base a : GoInterface) :
+    Persistent (alarmShape (GF := GF) ns cr base a) := by
+  unfold alarmShape
+  cases ns <;> cases cr <;> simp only [cappedShape, corruptShape, cappedIs, corruptIs] <;> infer_instance
 
 end defs
 

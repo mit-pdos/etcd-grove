@@ -8,6 +8,7 @@ are the first k names' roles filtered, the others' as they were: at the end, the
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__RoleDelete
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Spec.go_uber_org.zap.Logger__Error
 public import Proof.go_etcd_io.etcd.server.v3.auth.AdminLemmas
@@ -98,14 +99,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.RoleDelete.wp_proof
+theorem auth.authStore.RoleDelete.wp_tie
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
-        (h_Error : zap.Logger.Error.spec (GF := GF) (hG := hG))
+    (h_Error : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.RoleDelete.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r role
+    auth.authStore.RoleDelete.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r role en sc0
   wp_start as ⟨#Hinv, #Hr, Hown, HWR, Hcs, %Hok, %Hnames⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩
   icases authErrVar_of_init .invalidAuthMgmt $$ Hpkg with ⟨%eIAM, #HeIAM⟩
@@ -118,10 +119,9 @@ theorem auth.authStore.RoleDelete.wp_proof
   subst Htpi
   iunfold roleDeleteReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
-  iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
-  iunfold enabledHalf at Hen
-  icases Hen with ⟨%en, Hen, #Hev⟩
+  iunfold authWRx at HWR
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
+  iunfold flagAt at Hen
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -155,23 +155,24 @@ theorem auth.authStore.RoleDelete.wp_proof
     · ipureintro; exact Hlgnn
     (try wp_auto)
     iapply HΦ
+    iexists true, sc0
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
-      · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-      · iunfold enabledHalf; iexists true; iframe Hen Hev
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
     iexists true
     iframe Hev
-    iunfold adminOut
+    iunfold adminOutP
     iright
     ihave %Hl := authOwn_exists_last M hs $$ Hown
     obtain ⟨st0, Hl⟩ := Hl
     iexists st0, (.err .invalidAuthMgmt)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl, ?_⟩
@@ -209,21 +210,22 @@ theorem auth.authStore.RoleDelete.wp_proof
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
+    iexists en, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
-      · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-      · iunfold enabledHalf; iexists en; iframe Hen Hev
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
     iexists en
     iframe Hev
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .roleNotFound)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -478,8 +480,10 @@ theorem auth.authStore.RoleDelete.wp_proof
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post)
       ({ delRole st0 role with revision := rev } : AuthState))
-    $$ [HL]
+    $$ [HL Hca]
   · iframe Hpkg Hinv
+    isplitl [Hca]
+    · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
     isplitr
     · iapply HRd
     isplitl [HL]
@@ -488,7 +492,7 @@ theorem auth.authStore.RoleDelete.wp_proof
     iframe Hsnap
     ipureintro; exact permsFit_rev _ rev Hfit'
   inext
-  iintro HL
+  iintro ⟨HL, Hca⟩
   (try wp_auto)
   wp_apply h_String _ _ as %f1 -
   (try wp_auto)
@@ -513,21 +517,22 @@ theorem auth.authStore.RoleDelete.wp_proof
     ipureintro; exact Hl1
   (try wp_auto)
   iapply HΦ
+  iexists en, ({ delRole st0 role with revision := rev } : AuthState)
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
-    · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-    · iunfold enabledHalf; iexists en; iframe Hen Hev
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; intro h; exact absurd rfl h
     · iright; iexists _; iexact Header
   iexists en
   iframe Hev
-  iunfold adminOut
+  iunfold adminOutP
   iright
   iexists st0, (.next (bump (delRole st0 role)))
+  isplitr
+  · ipureintro; exact tieStep_refresh M hs _ _ sc0 _ st0 Hl0 Hl1 rfl
   isplitr
   · ipureintro; exact ⟨Hl0, hstep.symm⟩
   simp only [outRes]
@@ -535,6 +540,16 @@ theorem auth.authStore.RoleDelete.wp_proof
   · iExactEq Hown
     all_goals (first | rfl | simp [delRole])
   · ipureintro; trivial
+
+
+theorem auth.authStore.RoleDelete.wp_proof
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Error : zap.Logger.Error.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.RoleDelete.spec (GF := GF) (hG := hG) :=
+  auth.authStore.RoleDelete.spec_of_T (auth.authStore.RoleDelete.wp_tie h_commitRevision h_refresh h_String h_Error h_Info)
 
 end proof
 
