@@ -44,11 +44,15 @@ writer's part back at the log it leaves. -/
 abbrev txn.DeleteRange.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
-    (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool) (Lw : mvcc.Log),
+    (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool) (Lw : mvcc.Log) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
       mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
       txn.wlogOwn s γ Lw ∗ ⌜γ.watchQ = true → m + 1 = txn.soleBudget Lw ∧ Lw.length + 4 ≤ 2 ^ 63⌝ ∗
       txn.deleteRangeRequestIs dr o ∗
+      lease.leaseOwn γ.leases L I ∗
+      □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog⌝ -∗
+        ⌜I = mvcc.leaseItemsOf (mvcc.stateAfter ilog)⌝) ∗
       mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog⌝ -∗
         mvcc.certOkNext γ ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
@@ -67,9 +71,12 @@ abbrev txn.DeleteRange.spec : Prop :=
             txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
             mvcc.idxCert γ.idx (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
             (if txn.delChanges (mvcc.stateAfter ilog) o = [] then mvcc.revToken γ else True) ∗
-            txn.wlogOwn s γ (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o))) ∨
+            txn.wlogOwn s γ (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
+            lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter
+              (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o))))) ∨
          (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
-            mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog ∗ txn.wlogOwn s γ ilog)) }}
+            mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog ∗ txn.wlogOwn s γ ilog ∗
+            lease.leaseOwn γ.leases L I)) }}
 
 end spec
 

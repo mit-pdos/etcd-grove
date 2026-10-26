@@ -366,9 +366,10 @@ theorem AEnv.authOn_eq (E : AEnv GF) : E.authOn = E.authMode.isOn := rfl
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
-which every lease of `s` is. -/
+which every lease of `s` is; (unit T3, L2b, 2026-10-25) its item map `s`'s (each key's lease, the
+lessor's `itemMap` and the leases' item sets). -/
 def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
-  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L)
+  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L (mvcc.leaseItemsOf s))
 
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
 the KV's writer of `log` (`txn.kvWriter`: the sole writer, and for a watchable store the writer's

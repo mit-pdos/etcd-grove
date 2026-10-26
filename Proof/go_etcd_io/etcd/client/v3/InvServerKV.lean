@@ -211,7 +211,8 @@ theorem commit_rev (σ : KVState) (cs : List mvcc.Change) : σ.rev ≤ (σ.commi
   unfold KVState.commit; split <;> simp [KVState.rev]
 
 theorem kvOpStep_rev (op : KVOp) (σ : KVState) : σ.rev ≤ (kvOpStep op σ).rev := by
-  cases op <;> simp only [kvOpStep] <;> (try split) <;> (first | exact Nat.le_refl _ | exact commit_rev _ _)
+  cases op <;> simp only [kvOpStep] <;> (repeat' split) <;>
+    (first | exact Nat.le_refl _ | exact commit_rev _ _)
 
 /-- **Any operation's update, with the floor of a certified log** (persistent; 2026-10-15, unit
 T2; unit W-M3: the floor): what a client that does not track etcd's abstract state hands the

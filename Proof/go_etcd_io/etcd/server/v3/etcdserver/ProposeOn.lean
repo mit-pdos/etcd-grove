@@ -43,11 +43,13 @@ theorem plainReq_noAdminP (rq : apply.IRRModel) (h : plainReq rq) :
   unfold plainCover at hc
   split at hc <;> first | exact hc.2.1 | exact hc.2 | exact hc.elim
 
-/-- A request with a KV operation is of a KV kind. -/
-theorem reqKVOp_isKV (rq : apply.IRRModel) (op : KVOp) (h : reqKVOp rq = some op) :
-    apply.isKVKind (apply.dispatchKind rq) = true := by
+/-- A covered request with a KV operation is of a KV kind (unit T3: a lease's grant or revocation
+has a KV operation too, but is not covered). -/
+theorem reqKVOp_isKV (rq : apply.IRRModel) (op : KVOp) (h : reqKVOp rq = some op)
+    (hp : plainCover rq) : apply.isKVKind (apply.dispatchKind rq) = true := by
   unfold reqKVOp at h
-  cases hk : apply.dispatchKind rq <;> rw [hk] at h <;> first | rfl | (simp at h)
+  unfold plainCover at hp
+  cases hk : apply.dispatchKind rq <;> rw [hk] at h hp <;> first | rfl | exact (hp : False).elim | (simp at h)
 
 /-- **Every permission the request needs is of the shape the permission cache decides**: the
 check is decided at any state (`kvDet`). -/
@@ -113,7 +115,7 @@ theorem kvEntryOn_nonwrite (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState �
     (hna : apply.needAdminPermission rq = false)
     (hnw : ¬ writeKind (apply.dispatchKind rq)) :
     kvEntryOn c₀ ch s e = s := by
-  have hk : kvEntry c₀ ch s.2 e = s.2 := by
+  have hk : kvEntry c₀ ch [] s.2 e = s.2 := by
     apply kvEntry_nonwrite
     right; right
     intro rq' h
@@ -286,7 +288,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
     obtain ⟨hplain, hop, -, hshape, hsa, hQr⟩ := Hop
     subst hQr
     have hna := plainReq_noAdminP rq hplain
-    have hkv := reqKVOp_isKV rq op hop
+    have hkv := reqKVOp_isKV rq op hop hplain.1
     iunfold kvOpAu1 at Hau
     iunfold kvAu1 at Hau
     imodintro
@@ -337,7 +339,8 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           omega
         have hst : kvStateOf (kvModelOn γk st₀ (L ++ [e])) = kvOpStep op σ := by
           rw [kvModelOn_snoc_granted γk st₀ L e rq Hok.2.2.2.2.1 Hok.2.2.2.2.2 het hdata
-            (by rw [hed]; exact hdec) hidxe hna hg, Hag]
+            (by rw [hed]; exact hdec) hidxe hna hg
+            hplain.1, Hag]
           unfold kvReqStep; rw [hop]
         imod Hclose $$ [HL Hσ] with -
         · inext

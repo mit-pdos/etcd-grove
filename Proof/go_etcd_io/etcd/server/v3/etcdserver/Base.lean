@@ -62,6 +62,9 @@ def authName : GoString := go!"auth"
 def authUsersName : GoString := go!"authUsers"
 def authRolesName : GoString := go!"authRoles"
 
+/-- The name of the lessor's `Lease` bucket (`leaseBucketName`; leases T3, 2026-10-25). -/
+def leaseName : GoString := go!"lease"
+
 /-- `b` is the `Bucket` value `bucket{id, name, safeRangeBucket: safe}` (`bucket.go`'s
 `backend.Bucket(bucket{...})`), its name's slice holding `name`, read-only. -/
 def bucketIs (b : GoInterface) (id : w64) (name : GoString) (safe : Bool) : IProp GF :=
@@ -80,7 +83,8 @@ before `bucket.go` was translated); (item 8, 2026-10-17: moved here from the ser
 mvcc's facts) `AllBuckets` some slice and the compaction's two key names (`bucket.go`); and (the
 auth plan's S1, 2026-10-23) the three auth buckets (ids 20, 21, 22, not safe-range), the auth
 bucket's two key names and `auth.go`'s `authEnabled`/`authDisabled` values (`[]byte{1}`,
-`[]byte{0}`), after the earlier conjuncts (every destructuring's trailing `-` keeps them). -/
+`[]byte{0}`), after the earlier conjuncts (every destructuring's trailing `-` keeps them); and
+(leases T3, 2026-10-25) the lessor's `Lease` bucket (id 3, not safe-range), last. -/
 abbrev schemaInit : IProp GF :=
   iprop((∃ b : GoInterface, globalAddr Meta ↦□ b ∗ bucketIs b (W64 2) metaName false) ∗
     (∃ s : GoSlice, globalAddr MetaConsistentIndexKeyName ↦□ s ∗ s ↦*□ ciKeyBytes) ∗
@@ -95,7 +99,8 @@ abbrev schemaInit : IProp GF :=
     (∃ s : GoSlice, globalAddr AuthEnabledKeyName ↦□ s ∗ s ↦*□ (go!"authEnabled" : GoString)) ∗
     (∃ s : GoSlice, globalAddr AuthRevisionKeyName ↦□ s ∗ s ↦*□ (go!"authRevision" : GoString)) ∗
     (∃ s : GoSlice, globalAddr authEnabled ↦□ s ∗ s ↦*□ [W8 1]) ∗
-    (∃ s : GoSlice, globalAddr authDisabled ↦□ s ∗ s ↦*□ [W8 0]))
+    (∃ s : GoSlice, globalAddr authDisabled ↦□ s ∗ s ↦*□ [W8 0]) ∗
+    (∃ b : GoInterface, globalAddr Lease ↦□ b ∗ bucketIs b (W64 3) leaseName false))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=
   define_is_pkg_init schemaInit

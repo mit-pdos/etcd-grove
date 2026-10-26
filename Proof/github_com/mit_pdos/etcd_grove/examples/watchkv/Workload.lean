@@ -88,7 +88,9 @@ theorem wkW_put (P : List (GoString × GoString)) (k v : GoString) (h : (k, v) �
     wkW P (kvOpStep (.put (txn.putOpOf k v (W64 0) false false false)) σ).changes := by
   have hnp : txn.needsPrev (txn.putOpOf k v (W64 0) false false false) = false := by
     simp [txn.needsPrev, txn.putOpOf]
-  simp only [kvOpStep, hnp, Bool.false_and, Bool.false_eq_true, ↓reduceIte, KVState.commit,
+  have hlm : ¬ σ.leaseMissing (txn.putOpOf k v (W64 0) false false false).leaseID := by
+    simp [txn.putOpOf, KVState.leaseMissing]
+  simp only [kvOpStep, hlm, hnp, Bool.false_and, Bool.false_eq_true, ↓reduceIte, KVState.commit,
     List.cons_ne_nil]
   refine ⟨?_, by simp⟩
   have hc : txn.putChangeOf (txn.putOpOf k v (W64 0) false false false)

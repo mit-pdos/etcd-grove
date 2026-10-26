@@ -646,23 +646,26 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
     doc='''Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `AuthUsers` and
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
-(`auth.go`; the auth plan's S1, 2026-10-23). Its initializer allocates and sets those translated
-variables (with the buckets' names), initializes its imports and runs its other variables'
-untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says run.''',
+(`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
+2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
+names), initializes its imports and runs its other variables' untranslated initializers, which
+the trust-boundary axiom `opaqueInitsOk` says run.''',
     alloc_types={'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
                  'Meta': 'GoInterface', 'Key': 'GoInterface', 'metaBucketName': 'GoSlice',
                  'keyBucketName': 'GoSlice', 'authEnabled': 'GoSlice', 'authDisabled': 'GoSlice',
                  'authBucketName': 'GoSlice', 'authUsersBucketName': 'GoSlice',
                  'authRolesBucketName': 'GoSlice', 'Auth': 'GoInterface', 'AuthUsers': 'GoInterface',
                  'AuthRoles': 'GoInterface', 'AuthEnabledKeyName': 'GoSlice',
-                 'AuthRevisionKeyName': 'GoSlice'},
+                 'AuthRevisionKeyName': 'GoSlice', 'Lease': 'GoInterface',
+                 'leaseBucketName': 'GoSlice'},
     before={
         '«_»': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
                 'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto'],
         'leaseBucketName': ['wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩', 'try wp_auto',
-                            'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto'],
+                            'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto',
+                            'wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩', 'try wp_auto'],
         'testBucketName': ['wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩', 'try wp_auto',
                            'wp_apply wp_string_to_bytes go!"authUsers" as %sausers ⟨Hsausers, -⟩', 'try wp_auto',
                            'wp_apply wp_string_to_bytes go!"authRoles" as %saroles ⟨Hsaroles, -⟩', 'try wp_auto'],
@@ -680,8 +683,8 @@ untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says r
             'ipersist HKey', 'ipersist HMeta', 'ipersist HMetaConsistentIndexKeyName',
             'ipersist HMetaTermKeyName', 'ipersist HAuth', 'ipersist HAuthUsers', 'ipersist HAuthRoles',
             'ipersist HAuthEnabledKeyName', 'ipersist HAuthRevisionKeyName', 'ipersist HauthEnabled',
-            'ipersist HauthDisabled'] + FIN_PRE[:6] + ['imodintro',
-            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName',
+            'ipersist HauthDisabled', 'ipersist Hslease', 'ipersist HLease'] + FIN_PRE[:6] + ['imodintro',
+            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName',
             'iframe #', 'repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))'],
 )
 

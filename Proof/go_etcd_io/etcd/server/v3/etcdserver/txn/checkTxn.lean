@@ -78,6 +78,14 @@ theorem txn.pathIgnOk_txn_ct (s0 : List EtcdKv) (cs : List CmpModel) (ts es : Li
   simp only [txn.PathIgnOk, TxnModel.branch, txn.txnOk]
   cases cs.all (cmpHolds s0) <;> rfl
 
+theorem txn.pathLeaseOk_txn_ct (s0 : List EtcdKv) (L : List w64) (cs : List CmpModel)
+    (ts es : List TxnOp) :
+    txn.PathLeaseOk s0 L (.txn cs ts es) ↔
+      txn.PathsLeaseOk s0 L (({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel).branch
+        (txn.txnOk s0 { cmps := cs, thenOps := ts, elseOps := es })) := by
+  simp only [txn.PathLeaseOk, TxnModel.branch, txn.txnOk]
+  cases cs.all (cmpHolds s0) <;> rfl
+
 theorem txn.opLeases_txn_ct (s0 : List EtcdKv) (cs : List CmpModel) (ts es : List TxnOp) :
     txn.opLeases s0 (.txn cs ts es) =
       txn.opsLeases s0 (({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel).branch
@@ -92,26 +100,27 @@ theorem txn.checkTxn_strong
     (hPut : txn.checkPut.spec (GF := GF) (hG := hG)) :
   ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (rt : Loc)
     (t : TxnModel) (le : GoInterface) (γl : GName) (pl : GoSlice) (rest : List Bool)
-    (Lv : List w64) (lu : Bool),
+    (Lv : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (lu : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗
       mvcc.isTxnRead mw s γ trace log rev ∗ txn.txnRequestIs rt t ∗
-      txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl Lv) ∗
+      txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl Lv I) ∗
       pl ↦*□ (txn.txnPath (mvcc.stateAfter log) t ++ rest) ∗
       ⌜lu = false → txn.txnReadonly t = true⌝ }}
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
       (Val #rt)) (Val #le)) (Val #pl))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.isTxnRead mw s γ trace log rev ∗
-      (⌜lu = false⌝ ∨ lease.lessorUser γl Lv) ∗
+      (⌜lu = false⌝ ∨ lease.lessorUser γl Lv I) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter log)
             (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
         txn.leasesOk Lv (txn.opsLeases (mvcc.stateAfter log)
           (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) ∨
        (⌜err ≠ GoInterface.nil ∧ n = W64 0 ∧
-          (txn.txnPlain t → ¬ txn.PathsIgnOk (mvcc.stateAfter log)
-            (t.branch (txn.txnOk (mvcc.stateAfter log) t)))⌝ ∗ txn.checkErrIs err)) }} := by
-  intro trace mw s γ log rev rt t le γl pl rest Lv lu
+          (txn.txnLeased t → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧ txn.PathsLeaseOk (mvcc.stateAfter log) Lv
+            (t.branch (txn.txnOk (mvcc.stateAfter log) t))))⌝ ∗ txn.checkErrIs err)) }} := by
+  intro trace mw s γ log rev rt t le γl pl rest Lv I lu
   iloeb as IH generalizing %rt %t %pl %rest
   wp_start as ⟨%Htr, Htx, #Hrt, #Hle, Hu, #Hpl, %Hlu⟩
   iunfold txn.txnRequestIs at Hrt
@@ -152,8 +161,8 @@ theorem txn.checkTxn_strong
       iexists ssl, sps; iframe; simp only [TxnModel.branch, ↓reduceIte]; iframe #
   have Hro : lu = false → ∀ op ∈ t.branch (txn.txnOk s0 t), txn.opIsGet op = true :=
     fun h => txn.readonly_branch t (Hlu h) _
-  have Hpl0 : txn.txnPlain t → txn.opsPlain (t.branch (txn.txnOk s0 t)) :=
-    fun h => txn.txnPlain_branch t _ h
+  have Hpl0 : txn.txnLeased t → txn.opsLeased (t.branch (txn.txnOk s0 t)) :=
+    fun h => txn.txnLeased_branch t _ h
   generalize hops : t.branch (txn.txnOk s0 t) = ops
   rw [hops] at Hro Hpl0
   ihave %Hrl := txn.requestOpsIs_length _ _ $$ Hrps
@@ -164,7 +173,7 @@ theorem txn.checkTxn_strong
       "txnCount" ∷ txnCount_ptr ↦ W64 ((txn.opsPath s0 (ops.take i)).length : Int) ∗
       "%Hi" ∷ ⌜i ≤ ops.length ∧ txn.PathsIgnOk s0 (ops.take i)⌝ ∗
       "#Hls" ∷ txn.leasesOk Lv (txn.opsLeases s0 (ops.take i)) ∗
-      "Hu" ∷ (⌜lu = false⌝ ∨ lease.lessorUser γl Lv)) $$ [i req txnPath txnCount Hu]
+      "Hu" ∷ (⌜lu = false⌝ ∨ lease.lessorUser γl Lv I)) $$ [i req txnPath txnCount Hu]
   · iexists 0, pl, txn.txnOk s0 t, zero_val Loc
     simp only [named, List.drop_zero, List.take_zero]
     iframe
@@ -227,7 +236,7 @@ theorem txn.checkTxn_strong
         iright
         isplitl []
         · ipureintro
-          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsPlain_get ops i _ hop (Hpl0 hpl))⟩
+          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsLeased_get ops i _ hop (Hpl0 hpl))⟩
         iunfold txn.checkErrIs
         iright; iright; ileft
         iexists ef; iframe Hef; ipureintro; rfl
@@ -239,7 +248,7 @@ theorem txn.checkTxn_strong
         iright
         isplitl []
         · ipureintro
-          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsPlain_get ops i _ hop (Hpl0 hpl))⟩
+          exact ⟨by simp, rfl, fun hpl _ => Hne.1 (txn.opsLeased_get ops i _ hop (Hpl0 hpl))⟩
         iunfold txn.checkErrIs
         iright; iright; iright
         iexists ec; iframe Hec; ipureintro; rfl
@@ -255,7 +264,7 @@ theorem txn.checkTxn_strong
       wp_auto
       ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
-      wp_apply (hPut trace mw s γ (.read log rev) le γl r o Lv) $$ [$Htx $Hr $Hle $Hu]
+      wp_apply (hPut trace mw s γ (.read log rev) le γl r o Lv I) $$ [$Htx $Hr $Hle $Hu]
         as %err ⟨Htx, Hu, Herr⟩
       · ipureintro; exact Htr
       ihave Htx : mvcc.isTxnRead mw s γ trace log rev $$ [Htx]
@@ -299,8 +308,9 @@ theorem txn.checkTxn_strong
         · ipureintro
           refine ⟨by simp, rfl, fun hpl hig => ?_⟩
           first
-            | exact Hne (txn.putTxnOp_plain_lease o (txn.opsPlain_get ops i _ hop (Hpl0 hpl)))
-            | (have := txn.putTxnOp_ign_isSome s0 o (txn.pathsIgnOk_get s0 ops i _ hop hig) Hne.1
+            | exact Hne.2 ((txn.putTxnOp_leaseOk s0 Lv o (txn.opsLeased_get ops i _ hop (Hpl0 hpl))
+                (txn.pathsLeaseOk_get s0 Lv ops i _ hop hig.2)).resolve_left Hne.1)
+            | (have := txn.putTxnOp_ign_isSome s0 o (txn.pathsIgnOk_get s0 ops i _ hop hig.1) Hne.1
                rw [Hne.2] at this; cases this)
         iunfold txn.checkErrIs
       · ileft; iexact He
@@ -433,11 +443,13 @@ theorem txn.checkTxn_strong
           iright
           isplitl []
           · ipureintro
-            refine ⟨by simp, rfl, fun hpl hig => Hnp ?_ ?_⟩
-            · have := txn.opsPlain_get ops i _ hop (Hpl0 hpl)
+            refine ⟨by simp, rfl, fun hpl hig => Hnp ?_ ⟨?_, ?_⟩⟩
+            · have := txn.opsLeased_get ops i _ hop (Hpl0 hpl)
               rw [← htn]; exact this
-            · have := txn.pathsIgnOk_get s0 ops i _ hop hig
+            · have := txn.pathsIgnOk_get s0 ops i _ hop hig.1
               rw [txn.pathIgnOk_txn_ct, htn] at this; exact this
+            · have := txn.pathsLeaseOk_get s0 Lv ops i _ hop hig.2
+              rw [txn.pathLeaseOk_txn_ct, htn] at this; exact this
           iexact Herr
   · rw [decide_eq_false Hif]
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -463,9 +475,9 @@ theorem txn.checkTxn.wp_proof
     (hRange : txn.checkRange.spec (GF := GF) (hG := hG))
     (hPut : txn.checkPut.spec (GF := GF) (hG := hG)) :
     txn.checkTxn.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev rt t le γl pl rest Lv lu hlu
+  intro trace mw s γ log rev rt t le γl pl rest Lv I lu hlu
   iintro %Φ ⟨#Hpkg, %Htr, Htx, #Hrt, #Hle, Hu, #Hpl⟩ HΦ
-  iapply (txn.checkTxn_strong hRange hPut trace mw s γ log rev rt t le γl pl rest Lv lu) $$
+  iapply (txn.checkTxn_strong hRange hPut trace mw s γ log rev rt t le γl pl rest Lv I lu) $$
     [Htx Hu] HΦ
   iframe Hpkg Htx Hrt Hle Hu Hpl
   isplitl []; · ipureintro; exact Htr
