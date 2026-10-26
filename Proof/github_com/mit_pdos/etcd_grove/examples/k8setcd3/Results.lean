@@ -17,7 +17,8 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   fresh state with one thread, has no stuck thread, no thread ended in a panic (so never
   "k8setcd3: porcupine found the history not linearizable"), and the main thread's result, if
   any, is `Ok` or `Unknown`; under k8setcd3's hypotheses at k8setcd3's configuration, the
-  Kubernetes packages' semantics assumptions and the method-set fact `objTyOk`.
+  Kubernetes packages' semantics assumptions and the method-set facts `objTyOk` and
+  `storageErrTyOk`.
 -/
 module
 
@@ -71,7 +72,7 @@ theorem k8setcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (Hms : v3rpc.ServerMethodSets)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (Hty : k8setcd3.objTyOk)
+    (hse : k8setcd3.storageErrTyOk) (Hty : k8setcd3.objTyOk)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
@@ -91,8 +92,8 @@ theorem k8setcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8setcd3_adequate Hctx Hms hAs Hty id bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops Hmul
-    HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
+  k8setcd3_adequate Hctx Hms hAs hse Hty id bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops
+    Hmul HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy
 

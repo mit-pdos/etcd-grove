@@ -59,11 +59,11 @@ theorem Check.wp_proof
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
     (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ γ sp c g0 s0 clients ops dur hc hpfx hrp hAs hne Hrb H0 H31 Hops Hmul Hg0
+  intro _ _ _ γ sp c g0 s0 clients ops dur hc hpfx hrp hAs hse hne Hrb H0 H31 Hops Hmul Hg0
   wp_start as ⟨#Hcc, #Hst, #Hinvs, Hks, #Hs0⟩
   wp_auto
   ipersist s
-  ihave #HA := (wp_Apply γ sp c g0 hc hpfx hrp hAs) $$ Hpkg Hpkg2 Hst Hinvs %hne
+  ihave #HA := (wp_Apply γ sp c g0 hc hpfx hrp hAs hse) $$ Hpkg Hpkg2 Hst Hinvs %hne
   wp_apply wp_Model s0 g0 $$ [] as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
   · iframe #
     ipureintro; exact Hg0

@@ -10,9 +10,10 @@ each member (`kvOpAu1`, as linkvtxn's `callTxn`): linkv's transaction `txnOf [.m
 [.del key] (g ? [.get key] : [])`. The answer is about the state `σ` the update fired at
 (`Q σ`): `Succeeded` the server's verdict there, `Revision` the state's after the transaction,
 and with `GetOnFailure`, on a failed comparison, `KV` the key's key-value (`nil` if none). Or an
-error of the client (`clientErr`, `statusErrOk`: its `Error()` returns some string; the update fired at most once). Unlike `OptimisticPut`, the Go code indexes
-`txnResp.Responses[0]` without checking its length; the server's answer always has it
-(`failure_resps`).
+error of the client (`clientErr`, `statusErrOk`: its `Error()` returns some string;
+`errCellOk`: no caller's `errors.New` value, D37; the update fired at most once). Unlike
+`OptimisticPut`, the Go code indexes `txnResp.Responses[0]` without checking its length; the
+server's answer always has it (`failure_resps`).
 -/
 module
 
@@ -62,7 +63,8 @@ abbrev Client.OptimisticDelete.spec : Prop :=
         (if opts.GetOnFailure' && !resp.Succeeded' then
           kvOut resp.KV' (single (σ.kvs.filter fun v => decide (v.key = key)))
         else iprop(⌜resp.KV' = null⌝))) ∨
-      ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }}
+      ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+        go_etcd_io.etcd.cache.v3.errCellOk err }}
 
 end spec
 

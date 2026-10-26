@@ -35,7 +35,7 @@ theorem parseRV.wp_proof : parseRV.spec (GF := GF) (hG := hG) := by
   wp_start
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8setcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨-, -, ⟨%eB, #HeB, #HsB⟩, -⟩
+  icases Hi with ⟨-, -, ⟨%eB, #HeB, #HsB, -⟩, -⟩
   (try wp_auto)
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hl
   wp_if_destruct

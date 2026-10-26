@@ -204,8 +204,8 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     iapply HΦ
     iright
     iunfold kvErr at Hke
-    icases Hke with ⟨%Hce, #Hse, -⟩
-    iframe Hse
+    icases Hke with ⟨%Hce, #Hse, #Hcl⟩
+    iframe Hse Hcl
     isplitl []
     · ipureintro; exact Herr
     ipureintro; exact Hce

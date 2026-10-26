@@ -164,8 +164,8 @@ theorem Client.OptimisticDelete.wp_proof
       iapply HΦ
       iright
       iunfold kvErr at Hke
-      icases Hke with ⟨%Hce, #Hse, -⟩
-      iframe Hse
+      icases Hke with ⟨%Hce, #Hse, #Hcl⟩
+      iframe Hse Hcl
       isplitl []
       · ipureintro; exact Herr
       ipureintro; exact Hce
@@ -281,8 +281,8 @@ theorem Client.OptimisticDelete.wp_proof
       iapply HΦ
       iright
       iunfold kvErr at Hke
-      icases Hke with ⟨%Hce, #Hse, -⟩
-      iframe Hse
+      icases Hke with ⟨%Hce, #Hse, #Hcl⟩
+      iframe Hse Hcl
       isplitl []
       · ipureintro; exact Herr
       ipureintro; exact Hce

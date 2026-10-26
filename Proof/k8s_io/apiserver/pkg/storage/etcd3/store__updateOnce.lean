@@ -150,7 +150,7 @@ theorem store.updateOnce.wp_proof
     (try wp_auto)
     wp_apply wp_RecordEtcdRequest
     (try wp_auto)
-    icases Hput with (⟨%Hpe, %σ, ⟨Hres, #Hfs, %HAσ⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse⟩)
+    icases Hput with (⟨%Hpe, %σ, ⟨Hres, #Hfs, %HAσ⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse, #Hpcl⟩)
     · subst Hpe
       ihave Hfs' := Hfs
       iunfold rdFacts at Hfs'
@@ -302,7 +302,7 @@ theorem store.updateOnce.wp_proof
         iapply HΦ
         ileft
         isplitl []
-        · iapply (unkErr_client c _ (by nofun) Hpce)
+        · iapply (unkErr_client c _ (by nofun) Hpce) $$ Hpcl
           iunfold go_etcd_io.etcd.cache.v3.statusErrOk
           iexact Hpse
         iexists o0, rv0

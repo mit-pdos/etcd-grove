@@ -28,7 +28,7 @@ theorem decoder.Decode.wp_proof (wp_decodeObj : decodeObj.spec (GF := GF) (hG :=
   wp_start as ⟨Hs, Hp⟩
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8setcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨-, ⟨%eD, #HeD, #HsD⟩, -⟩
+  icases Hi with ⟨-, ⟨%eD, #HeD, #HsD, -⟩, -⟩
   (try wp_auto)
   wp_apply wp_decodeObj $$ [$Hs] as %n %v %ok ⟨Hs, %Hd⟩
   cases hdec : decodeD d with

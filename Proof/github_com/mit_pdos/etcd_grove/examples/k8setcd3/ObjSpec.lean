@@ -37,6 +37,16 @@ def objTyOk : Prop :=
     go.typeSetContains (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj.ty)
       k8s_io.apimachinery.pkg.runtime.Unstructured.ty = false
 
+/-- **The method-set fact the driver's `errOut` asks of `*storage.StorageError`**: it has
+`Unwrap() error` (`k8s.io/apiserver/pkg/storage/errors.go`: `func (e *StorageError) Unwrap()
+error`), so it is no leaf error (`errors.isLeafError`), and so no error of the client
+(`clientErr`) is one: `errOut`'s type assertion `err.(*storage.StorageError)` fails on the client's
+errors (`clientErr_other`). `methodSet` is uninterpreted in the model, so this is a premise of the
+results (as `objTyOk`). -/
+def storageErrTyOk : Prop :=
+  methodSet (go.GoType.PointerType k8s_io.apiserver.pkg.storage.StorageError.ty) !! go!"Unwrap" =
+    some (go.Signature [] false [go.error])
+
 end tyOk
 
 section defs

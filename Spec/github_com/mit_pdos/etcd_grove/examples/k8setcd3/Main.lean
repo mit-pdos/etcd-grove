@@ -15,8 +15,9 @@ before the check failed). The pure premises are putget's (`putget.Main.spec`: th
 bootstrap log, the thread and time-receipt bounds, the server's workload and effect premises,
 gRPC's method sets, `errors.As`'s target, the method-set classes of `*errorString`), the method-set
 fact the store asks of the driver's objects (`objTyOk`: `*Obj` is a `runtime.Object` and not a
-`runtime.Unstructured`; `methodSet` is uninterpreted) and `Run`'s bounds on `clients` and
-`ops`. Stated under the cache package's assumptions, as putget's.
+`runtime.Unstructured`; `methodSet` is uninterpreted), the one its `errOut` asks of
+`*storage.StorageError` (`storageErrTyOk`: it has `Unwrap`, so no client error is one) and
+`Run`'s bounds on `clients` and `ops`. Stated under the cache package's assumptions, as putget's.
 -/
 module
 
@@ -53,7 +54,7 @@ abbrev Main.spec : Prop :=
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   storage.dbOpensOk → v3rpc.ServerMethodSets →
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   objTyOk →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →

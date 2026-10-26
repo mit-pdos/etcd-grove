@@ -8,7 +8,8 @@
 paths pass, `GetOptions{}`), with a read update or none at each member, as linkvtxn's
 `client_Get_st`. The answer is about the state `σ` the update fired at (`□ Q σ`): its revision is
 the response's, and its key-value of `key` the response's `KV` (`nil` if there is none). Or an
-error of the client (`clientErr`, `statusErrOk`: its `Error()` returns some string).
+error of the client (`clientErr`, `statusErrOk`: its `Error()` returns some string;
+`errCellOk`: no caller's `errors.New` value, D37).
 
 **The update knows the response** (D30n, 2026-10-23): `Get` prophesies its response's revision
 and the key's mod revision (`0` if absent; the fork's ghost-only `ResolveU64`s), so the caller's
@@ -64,7 +65,8 @@ abbrev Client.Get.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) (modAt key σ) σ ∗
         ⌜resp.Revision' = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝ ∗
         kvOut resp.KV' (mvcc.findKey key σ.kvs)) ∨
-      ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }}
+      ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+        go_etcd_io.etcd.cache.v3.errCellOk err }}
 
 end spec
 
