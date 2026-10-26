@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-20
+checked: 2026-10-26
 links:
   - etcd-io/etcd#22296 issue open: same bug (time.Since zero on Windows' coarse monotonic clock, Ticker.Reset panics); no maintainer response
   - etcd-io/etcd#22297 pr open: same bug, fix (`resyncDelay`); comments question the impact and prefer a clamp; cherry-picked into the fork as 5615016f6 (D19l)

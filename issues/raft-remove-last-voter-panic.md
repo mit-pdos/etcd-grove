@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-26
 links:
   - etcd-io/etcd#13848 issue closed: the same raft panic ("removed all voters"), reached through `--force-new-cluster` on a removed member (or a replayed self-removal), not through a proposal; retitled a feature request, closed not planned (stale)
 ---

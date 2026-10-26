@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - etcd-io/bbolt#577 issue closed: the same panic on arm32 (an earlier field layout), fixed then; this is a new regression of it
   - etcd-io/bbolt@4bfc851: the commit that introduced it ("Prevent Bucket from being copied by value", 2026-10-15; on main only, in no release)

@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-26
 links:
   - etcd-io/etcd#22396 pr open: related, not this bug (bounds parseCompactionRetention: rejects negative and overflowing retentions, e.g. a negative period/10 retry interval that busy-loops); still accepts a positive retention below 10ns such as `5ns`
   - etcd-io/etcd#9485 pr merged: introduced the retry interval min(period, 1h)/10 and `int(period/retryInterval)+1` retentions (c2a6347, 2018), the division that is by zero here; periods below 30s not discussed

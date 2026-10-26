@@ -1,13 +1,13 @@
 ---
 upstream: fixed
-checked: 2026-10-20
+checked: 2026-10-26
 links:
   - etcd-io/raft#533 issue closed: this bug, reported 2026-10-19; closed by #535
   - etcd-io/raft#535 pr merged: the fix, opened and merged 2026-10-19 (ahrtr: no backport, "usually it won't happen in production")
   - etcd-io/raft@1d3216d84: #535's merge commit, on `main`
   - etcd-io/raft#392 issue closed: related, not this bug (the user's: ReadIndex retries with a reused rctx; not the IsSingleton shortcut)
-  - etcd-io/raft#397 pr closed: related, not this bug (the user's: unique heartbeat ctxes for read-only requests)
-  - etcd-io/raft#398 pr closed: related, not this bug (the user's: document not retrying ReadIndex with the same rctx)
+  - etcd-io/raft#397 pr merged: related, not this bug (the user's: unique heartbeat ctxes for read-only requests)
+  - etcd-io/raft#398 pr merged: related, not this bug (the user's: document not retrying ReadIndex with the same rctx)
   - etcd-io/raft#83 issue open: related, not this bug: make StepDownOnRemoval the default (would remove the removed-leader half of the scenario, not the commit-index half)
 candidate: issues/upstream/raft-readindex-singleton-stale/
 ---

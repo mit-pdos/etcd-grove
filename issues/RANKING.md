@@ -226,7 +226,8 @@ what is left to do:
    with our fix #22616; someone else's fix #22615 was opened an hour earlier, all open. #22615
    changes `IsDefaultOrdering` itself and so would also fix
    [etcd-rangestream-sort-none](etcd-rangestream-sort-none.md); if the maintainers prefer it, ours
-   closes.
+   closes. Jefftree (cc'd by serathius) agreed with the problem and fix on the issue (2026-10-21),
+   doubting how often it is hit; no PR reviewed yet (2026-10-26).
 4. **[cache-ready-after-retry](cache-ready-after-retry.md)**: reported, etcd-io/etcd#22614 (open,
    2026-10-19); no PR of ours, but someone else's #22618 (open, 2026-10-19, `needs-ok-to-test`) is
    our candidate's fix and test verbatim, crediting the report. A one-line fix with a
@@ -240,7 +241,8 @@ what is left to do:
 7. **[bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)**:
    reported, etcd-io/bbolt#1311 with our fix PR #1312 (both open, filed 2026-10-23). A `Commit` that
    fails after its meta page reached the file frees pages an open read transaction still reads (a
-   serializability violation); not reachable through etcd. Left to do: see the PR through review.
+   serializability violation); not reachable through etcd. `ok-to-test` 2026-10-24 and CI green,
+   no review yet (2026-10-26). Left to do: see the PR through review.
 
 Earlier filings of ours that the files link as related but not the finding: etcd-io/etcd#19091 and
 its fix #19092 (2024-12, the leasing session-expiry stale read, closed unmerged; linked from

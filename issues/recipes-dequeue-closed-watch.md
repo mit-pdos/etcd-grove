@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-20
+checked: 2026-10-26
 links:
   - etcd-io/etcd#17198 pr closed: same bug and fix (Dequeue panics on a nil event when the watch fails); closed unmerged by the stale bot in 2025-08
 ---
