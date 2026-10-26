@@ -20442,3 +20442,66 @@ definitions and theorems of `KVApplyOn.lean` above.
   `kvInv_ch0_on_false` stops applying).
 
 **Trust base.** Unchanged (721 axioms, 6 sorries). The decode axiom says more, as above.
+
+## E2s of the auth plan: the checks on the apply thread at the latest state, the auth applier's KV methods, the tie kept across the admin operations (2026-10-26 · `notes/auth-plan.md`)
+
+What E2r left (its "Not done"), in three parts; trust base unchanged (721 axioms, 6 sorries), no
+exported statement changed except as listed.
+
+**`IsAdminPermitted` at the latest state** (`auth/LatestAdmin.lean`): `IsAdminPermitted.specL`,
+for the caller holding the authority and the flag's half tied to the latest state, gives
+`adminVerdictL`: the check passes exactly when the latest state admits the principal (`adminOk`).
+`latestRes st M hs` bundles the apply thread's resource (`authOwn`, `flagAt`, `cacheAt`, the tie).
+`latestSnap`/`authOwn_latestSnap`: the latest state recorded, without an update (a half of a
+monotone list's authority keeps its lower bound, `monoListAuthOwn_keep_lb`, from Iris's
+`auth_lb_op`); `permVerdict_of_L`: S3's verdict over recorded states from the latest one, so the
+apply layer keeps its class statements (`chainClass`) while the outcome is decided at the latest
+state.
+
+**The apply package's checks and the auth applier's KV methods** (`apply/AuthLatest.lean`,
+`apply/AuthApplyLatest{,Put,Txn}.lean`): `isAuthStoreL st RD M L` states the three permission checks
+and `IsAdminPermitted` over a resource family `L hs` the caller holds (the latest verdict and S3's);
+the real store meets it with `L := auth.latestRes st M` (`isAuthStoreL_of_authInv`). The verdicts in
+`kvGranted`'s form, one permission at a time: `granted1`, `passedL`/`refusedL`, under the premise that
+the permissions are of the cache's shape whenever auth is enabled (`shapedL`, the model's `kvDet`).
+Then `Range`, `DeleteRange`, `Put`, `Txn` `.specL`: the methods' posts (`rangePost`, `kvPostF`, as
+`rangePostL`/`kvPostFL` with a property of the outcome) with the outcome decided at the latest state
+(`authOutL`): the auth layer's rejection with a checked permission refused there, or the inner chain's
+outcome with every checked permission granted there. The checked permissions are the model's with
+the range end as the check saw it (`authEndOf`; equal unless the request's `RangeEnd` is a non-`nil`
+empty slice, which protobuf never decodes). `Put` and `Txn` take `lessorNil` (the lessor finds no
+lease: with one, `checkLeasePuts` checks the lease's keys beyond the request's own permissions); a
+transaction's checked permissions are a relation (`txnChecked`: a nested put's `PrevKv` read is
+checked but not in `TxnOp`), its refusal a permission that may be checked (`txnMay`) refused. Restated
+linked in `etcdserver/Results.lean` (`apply_auth_store_latest`, `apply_{range,delete_range,put,txn}_latest`,
+`auth_admin_permitted_latest`). `KVAuthBridge.lean`: the per-permission verdicts in `kvGranted`'s
+terms (`granted1_of_kvGranted`, `kvGranted_of_granted1`).
+
+**Found (a gap in E2q's model, recorded for the next stage):** `kvGranted` asks, with auth enabled,
+the principal's revision and user even of a request needing no permission (`reqPerms rq = []`: a
+transaction without comparisons or operations), which the code applies without any check. Both keep
+the log (such a transaction writes nothing), so the KV state agrees, but `outcomeOn` would call it
+refused; `kvGranted_of_granted1` needs `reqPerms rq ≠ []`. Either `kvGranted` says "or no
+permission", or the bridge treats the empty case.
+
+**The tie kept across the admin operations** (`auth/LatestTie.lean`): each of the eleven operations
+has `X.specT`, its spec with the admin side's halves exposed (`authWRx st M P f T b sc`: the flag at `b`
+with its verdict, the cache at `sc`, a recorded state) and the tie carried (`adminOutP … (tieStep M hs
+b0 sc0 b sc)`: if the halves before were tied to the latest state of `hs`, those after are tied to the
+latest state of the history after). The proofs: the flag set (`AuthEnable`, `AuthDisable`,
+`tieStep_set`) or kept, the cache refreshed from the committed state (`tieStep_refresh`), `RoleAdd` (no
+refresh) carrying the cache over (`cacheAt_congr`: a new role without permissions changes no user's,
+`userPerms_putRole_empty`; else `tieStep_keep'`). Each operation's proof is now `X.wp_tie`;
+`X.wp_proof` follows (`X.spec_of_T`), its statement unchanged. Restated linked (`auth_*_tie`).
+
+**Exported statements changed.** None of the existing ones. New: the `specL`s and `wp_latest`s
+above, `X.specT`/`X.wp_tie`/`X.spec_of_T`, and the definitions listed.
+
+**Not done.**
+- The apply layer's admin triples (`applierV3backend.X.stepSpec`/`fuelSpec`, `applierAdmin`,
+  `dispatch.wp_admin`) over `specT`, so that the apply thread's `latestRes` survives an admin entry;
+  the `authWR` inside `authApplyRes` becoming `authWRx` with the tie.
+- The KV methods' outcome (`authOutL` with the applier's `authInfo`) tied to the entry's principal
+  (`principalOf rq`, set by `authApplierV3.Apply` from the header) and lifted through `dispatch` and
+  `applyEntryNormal` to E2t's `outcomeOn` (`kv_applied_out_on`'s hypothesis), with `kvDet` for the
+  shape, the wire's `RangeEnd`, `lessorNil` of the server's lessor, and the empty-request gap above.
