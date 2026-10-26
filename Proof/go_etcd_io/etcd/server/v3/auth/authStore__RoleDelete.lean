@@ -122,6 +122,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   iunfold authWRx at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
   iunfold flagAt at Hen
+  icases Hen with ⟨Hen, HenQ⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -158,8 +159,8 @@ theorem auth.authStore.RoleDelete.wp_tie
     iexists true, sc0
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -213,8 +214,8 @@ theorem auth.authStore.RoleDelete.wp_tie
     iexists en, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -520,8 +521,8 @@ theorem auth.authStore.RoleDelete.wp_tie
   iexists en, ({ delRole st0 role with revision := rev } : AuthState)
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen Hca]
-  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hen HenQ Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; intro h; exact absurd rfl h

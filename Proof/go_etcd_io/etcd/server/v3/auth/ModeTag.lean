@@ -28,17 +28,17 @@ namespace auth
 
 open Iris Iris.BI Iris.ProofMode
 
-/-- `AuthMode` as `Option (Option (GName × GName × GName × GName × GName))` (`off`, `any`, `on γa`
+/-- `AuthMode` as `Option (Option (GName × GName × GName × GName × GName × GName))` (`off`, `any`, `on γa`
 by its names): for the ghost variable. -/
-def AuthMode.enc : AuthMode → Option (Option (GName × GName × GName × GName × GName))
+def AuthMode.enc : AuthMode → Option (Option (GName × GName × GName × GName × GName × GName))
   | .off => none
   | .any => some none
-  | .on γa => some (some (γa.hist, γa.cur, γa.tok, γa.fresh, γa.pub))
+  | .on γa => some (some (γa.hist, γa.cur, γa.tok, γa.fresh, γa.pub, γa.fen))
 
-def AuthMode.dec : Option (Option (GName × GName × GName × GName × GName)) → AuthMode
+def AuthMode.dec : Option (Option (GName × GName × GName × GName × GName × GName)) → AuthMode
   | none => .off
   | some none => .any
-  | some (some (h, c, t, f, p)) => .on ⟨h, c, t, f, p⟩
+  | some (some (h, c, t, f, p, e)) => .on ⟨h, c, t, f, p, e⟩
 
 theorem AuthMode.dec_enc (M : AuthMode) : AuthMode.dec (AuthMode.enc M) = M := by
   cases M <;> rfl

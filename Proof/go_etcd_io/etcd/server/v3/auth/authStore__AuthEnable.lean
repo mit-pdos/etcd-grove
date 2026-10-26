@@ -57,6 +57,7 @@ theorem auth.authStore.AuthEnable.wp_tie
   iunfold authWRx at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
   iunfold flagAt at Hen
+  icases Hen with ⟨Hen, HenQ⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -65,7 +66,7 @@ theorem auth.authStore.AuthEnable.wp_tie
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlk, HP⟩
   iunfold enabledP at HP
-  icases HP with ⟨%en', Hen', #Hev'⟩
+  icases HP with ⟨%en', Hen', #Hev', Hg⟩
   icombine Hen Hen' gives %Heq
   subst Heq
   ihave Hen := (typedPointsto_half_split _ _ (1 : Qp)).2 $$ [Hen Hen']
@@ -79,8 +80,8 @@ theorem auth.authStore.AuthEnable.wp_tie
     · ipureintro; exact Hlgnn
     (try wp_auto)
     ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen']
-    · inext; iunfold enabledP; iexists true; iframe Hen'; iexact Hev
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen' Hg]
+    · inext; iunfold enabledP; iexists true; iframe Hen' Hg; iexact Hev
     (try wp_auto)
     iapply HΦ
     iexists true, sc0
@@ -90,8 +91,8 @@ theorem auth.authStore.AuthEnable.wp_tie
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists true
     isplitr
     · ipureintro; rfl
@@ -146,8 +147,8 @@ theorem auth.authStore.AuthEnable.wp_tie
     iintro HT
     (try wp_auto)
     ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen']
-    · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen' Hg]
+    · inext; iunfold enabledP; iexists false; iframe Hen' Hg; iexact Hev
     (try wp_auto)
     iapply HΦ
     iexists false, sc0
@@ -157,8 +158,8 @@ theorem auth.authStore.AuthEnable.wp_tie
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists false
     isplitr
     · ipureintro; rfl
@@ -195,8 +196,8 @@ theorem auth.authStore.AuthEnable.wp_tie
     iintro HT
     (try wp_auto)
     ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen']
-    · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen' Hg]
+    · inext; iunfold enabledP; iexists false; iframe Hen' Hg; iexact Hev
     (try wp_auto)
     iapply HΦ
     iexists false, sc0
@@ -206,8 +207,8 @@ theorem auth.authStore.AuthEnable.wp_tie
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists false
     isplitr
     · ipureintro; rfl
@@ -300,8 +301,14 @@ theorem auth.authStore.AuthEnable.wp_tie
   iintro HT
   (try wp_auto)
   ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen']
-  · inext; iunfold enabledP; iexists true; iframe Hen'; iexact Hev2
+  -- (E3h) the field's ghost variable set to the new latest state's flag
+  imod (enG_update st R M (hs ++ [{ st0 with enabled := true }]) false true
+    (fun γa stl _ hl => by
+      simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or,
+        Option.some.injEq] at hl
+      subst hl; rfl)) $$ Hinv Hown Hg HenQ with ⟨Hown, Hg, HenQ⟩
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hen' Hg]
+  · inext; iunfold enabledP; iexists true; iframe Hen' Hg; iexact Hev2
   (try wp_auto)
   iapply HΦ
   iexists true, ({ st0 with enabled := true } : AuthState)
@@ -311,8 +318,8 @@ theorem auth.authStore.AuthEnable.wp_tie
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen Hca]
-  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev2 Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hen HenQ Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev2 Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   iexists false
   isplitr
   · ipureintro; rfl

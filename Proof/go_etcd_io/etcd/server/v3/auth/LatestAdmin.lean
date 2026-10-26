@@ -51,7 +51,7 @@ halves' recorded verdicts (`enabledVerdict`, `authSnap`, persistent), so that it
 authority with the tie (`authOwnT`, `TieRes.lean`) and the apply thread can lend it and take it
 back (`authOwnT_lend`). -/
 def latestRes (st : Loc) (M : AuthMode) (hs : List AuthState) : IProp GF :=
-  iprop(authOwn M hs ∗ ∃ (b : Bool) (sc : AuthState), flagAt st b ∗ cacheAt st sc ∗
+  iprop(authOwn M hs ∗ ∃ (b : Bool) (sc : AuthState), flagAt st M b ∗ cacheAt st sc ∗
     enabledVerdict M b ∗ authSnap M sc ∗ ⌜latestTie M hs b sc⌝)
 
 /-- **The latest state recorded** (persistent): in `on γa`, the last state of `hs` at its index;
@@ -142,10 +142,10 @@ abbrev auth.authStore.IsAdminPermitted.specL : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
     (sc : auth.AuthState) (a : Loc) (ai : Option AuthInfo) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authRd st R M ∗ authInfoAt a dq ai ∗ authOwn M hs ∗ flagAt st b ∗ ⌜latestTie M hs b sc⌝ }}
+      authRd st R M ∗ authInfoAt a dq ai ∗ authOwn M hs ∗ flagAt st M b ∗ ⌜latestTie M hs b sc⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsAdminPermitted")) (Val #a))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ authInfoAt a dq ai ∗ authErrIs err ∗
-      authOwn M hs ∗ flagAt st b ∗ ⌜adminVerdictL M hs (ai.map authInfoM) err⌝ }}
+      authOwn M hs ∗ flagAt st M b ∗ ⌜adminVerdictL M hs (ai.map authInfoM) err⌝ }}
 
 end spec
 

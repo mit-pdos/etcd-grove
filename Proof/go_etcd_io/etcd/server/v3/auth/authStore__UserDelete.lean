@@ -59,6 +59,7 @@ theorem auth.authStore.UserDelete.wp_tie
   iunfold authWRx at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
   iunfold flagAt at Hen
+  icases Hen with ⟨Hen, HenQ⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -99,8 +100,8 @@ theorem auth.authStore.UserDelete.wp_tie
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -158,8 +159,8 @@ theorem auth.authStore.UserDelete.wp_tie
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen Hca]
-    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen HenQ Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
@@ -259,8 +260,8 @@ theorem auth.authStore.UserDelete.wp_tie
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen Hca]
-  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hen HenQ Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; intro h; exact absurd rfl h

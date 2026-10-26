@@ -129,7 +129,7 @@ theorem adminOutX_fu (γa : AuthNames) (X : List AuthState → IProp GF) (hs : L
 /-- **The halves tied to the latest state of `hs`** (see the file header): the flag's half at `b`
 (with its verdict) and the cache's half at `sc` (a recorded state), `latestTie M hs b sc`. -/
 def tieRes (st : Loc) (M : AuthMode) (hs : List AuthState) : IProp GF :=
-  iprop(∃ (b : Bool) (sc : AuthState), flagAt st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗
+  iprop(∃ (b : Bool) (sc : AuthState), flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st sc ∗
     authSnap M sc ∗ ⌜latestTie M hs b sc⌝)
 
 /-- **The authority with the tie** (see the file header). -/
@@ -146,14 +146,14 @@ def authWB (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) : I
 theorem authWRx_split (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) :
     authWRx (GF := GF) st M P f T b sc ⊢
-      authWB st M P f T ∗ flagAt st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc := by
+      authWB st M P f T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc := by
   unfold authWRx authWB
   iintro ⟨Hbe, HT, Hfl, #Hev, Hca, #Hs⟩
   iframe Hbe HT Hfl Hev Hca Hs
 
 theorem authWRx_join (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) :
-    authWB (GF := GF) st M P f T ∗ flagAt st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗
+    authWB (GF := GF) st M P f T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st sc ∗
       authSnap M sc ⊢ authWRx st M P f T b sc := by
   unfold authWRx authWB
   iintro ⟨⟨Hbe, HT⟩, Hfl, #Hev, Hca, #Hs⟩
@@ -164,7 +164,7 @@ by `tieStep` from the halves before (tied to `hs`), are tied to the history afte
 theorem adminOutP_tieRes (st : Loc) (M : AuthMode) (hs : List AuthState) (R : StepRel)
     (extra : AuthErr → Prop) (err : GoInterface) (b0 : Bool) (sc0 : AuthState) (b : Bool)
     (sc : AuthState) (ht : latestTie M hs b0 sc0) :
-    flagAt (GF := GF) st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc ∗
+    flagAt (GF := GF) st M b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc ∗
       adminOutP M hs R extra err (tieStep M hs b0 sc0 b sc) ⊢
       adminOutX M (authOwnT st M) hs R extra err := by
   iintro ⟨Hfl, #Hev, Hca, #Hs, Hout⟩
@@ -287,7 +287,6 @@ theorem tieRes_of_disabled (st : Loc) (γa : AuthNames) (hs : List AuthState)
     iexact Hc
   iunfold tieRes
   iexists b, sc
-  iunfold flagAt
   iframe Hfl Hev Hca Hs
   ipureintro
   intro stl hl

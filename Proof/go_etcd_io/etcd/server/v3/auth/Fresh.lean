@@ -13,6 +13,7 @@ holding the lower bound (`Revision.specLb`).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Revision
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 
 @[expose] public section
 
@@ -52,6 +53,29 @@ theorem revisionVerdictFrom_verdict (M : AuthMode) (i : Nat) (x : w64) :
   | off => simp only [revisionVerdictFrom, revisionVerdict]; iintro -; itrivial
   | any => simp only [revisionVerdictFrom, revisionVerdict]; iintro -; itrivial
 
+/-- **`IsAuthEnabled`'s answer no older than the index `i`** in the mode `M` (persistent): in
+`on γa`, the flag of a state recorded at an index at least `i`; as `enabledVerdict` otherwise. -/
+def enabledVerdictFrom (M : AuthMode) (i : Nat) (b : Bool) : IProp GF :=
+  match M with
+  | .off => iprop(⌜b = false⌝)
+  | .any => iprop(True)
+  | .on γa => iprop(∃ (j : Nat) (st : AuthState), authStateAt γa j st ∗ ⌜i ≤ j ∧ b = st.enabled⌝)
+
+instance enabledVerdictFrom_persistent (M : AuthMode) (i : Nat) (b : Bool) :
+    Persistent (enabledVerdictFrom (GF := GF) M i b) := by
+  unfold enabledVerdictFrom; cases M <;> infer_instance
+
+/-- A verdict no older than an index is a verdict. -/
+theorem enabledVerdictFrom_verdict (M : AuthMode) (i : Nat) (b : Bool) :
+    enabledVerdictFrom (GF := GF) M i b ⊢ enabledVerdict M b := by
+  cases M with
+  | on γa =>
+    simp only [enabledVerdictFrom, enabledVerdict]
+    iintro ⟨%j, %st, #H, %Hp⟩
+    iexists j, st; iframe H; ipureintro; exact Hp.2
+  | off => simp only [enabledVerdictFrom, enabledVerdict]; iintro H; iexact H
+  | any => simp only [enabledVerdictFrom, enabledVerdict]; iintro -; itrivial
+
 end defs
 
 section ghost
@@ -67,15 +91,72 @@ theorem revFresh_from (M : AuthMode) (i : Nat) (r : w64) :
   cases M with
   | on γa =>
     simp only [revFresh, authPubLbM, revisionVerdictFrom]
-    iintro ⟨%p, Hp, #Hsp, %j, %s, #Hs, %Hj⟩ #Hlb
+    iintro ⟨%p, Hp, #Hsp, ⟨%j, %s, #Hs, %Hj⟩, Hen⟩ #Hlb
     ihave ⟨⟨Hp, -⟩, %Hle⟩ := ((and_intro (P := iprop(authPubAuth (GF := GF) γa p ∗ authPubLb γa i))
       .rfl (authPubAuth_lb_le γa p i)).trans persistent_and_sep_mp) $$ [Hp]
     · iframe Hp Hlb
-    isplitl [Hp]
-    · iexists p; iframe Hp Hsp; iexists j, s; iframe Hs; ipureintro; exact Hj
+    isplitl [Hp Hen]
+    · iexists p; iframe Hp Hsp Hen; iexists j, s; iframe Hs; ipureintro; exact Hj
     · iexists j, s; iframe Hs; ipureintro; exact ⟨by omega, Hj.2⟩
   | off => simp only [revFresh, revisionVerdictFrom]; iintro H -; iframe H
   | any => simp only [revFresh, revisionVerdictFrom]; iintro H -; iframe H
+
+/-- **The flag read under `enabledMu`, no older than the reader's lower bound** (the auth plan's
+E3h): a share of the field's ghost variable (the guard's) agrees with the store's freshness's
+quarter, which is a state's flag at an index at least the published one, itself at least `i`. -/
+theorem enG_fresh (st : Loc) (R : IProp GF) (M : AuthMode) (i : Nat) (q : Qp) (b : Bool) :
+    authInv (GF := GF) st R M ⊢ enG M q b -∗ enabledVerdict M b -∗ authPubLbM M i ={⊤}=∗
+      enG M q b ∗ enabledVerdictFrom M i b := by
+  cases M with
+  | on γa =>
+    iintro #Hinv Hg - #Hlb
+    iunfold authInv at Hinv
+    icases Hinv with ⟨-, #Hrev, -⟩
+    iinv Hrev with Hi Hclose
+    iunfold revInv at Hi
+    icases Hi with ⟨%r, Hr, Hv, Hc, >Hf⟩
+    iunfold revFresh at Hf
+    icases Hf with ⟨%p, Hp, #Hsp, Hrv, %b0, Hq0, %j, %s, #Hs, %Hj⟩
+    iunfold enG at Hg
+    icombine Hg Hq0 gives %Hb0
+    obtain ⟨-, Hb0⟩ := Hb0
+    subst Hb0
+    iunfold authPubLbM at Hlb
+    ihave ⟨⟨Hp, -⟩, %Hle⟩ := ((and_intro (P := iprop(authPubAuth (GF := GF) γa p ∗ authPubLb γa i))
+      .rfl (authPubAuth_lb_le γa p i)).trans persistent_and_sep_mp) $$ [Hp]
+    · iframe Hp Hlb
+    imod Hclose $$ [Hr Hv Hc Hp Hrv Hq0] with -
+    · inext
+      iunfold revInv
+      iexists r
+      iframe Hr Hv Hc
+      iunfold revFresh
+      iexists p
+      iframe Hp Hrv Hsp
+      iexists b
+      iframe Hq0
+      iexists j, s
+      iframe Hs
+      ipureintro; exact Hj
+    imodintro
+    isplitl [Hg]
+    · iunfold enG; iexact Hg
+    iunfold enabledVerdictFrom
+    iexists j, s
+    iframe Hs
+    ipureintro; exact ⟨by omega, Hj.2⟩
+  | off =>
+    iintro - Hg #Hv -
+    imodintro
+    iframe Hg
+    simp only [enabledVerdict, enabledVerdictFrom]
+    iexact Hv
+  | any =>
+    iintro - Hg - -
+    imodintro
+    iframe Hg
+    simp only [enabledVerdictFrom]
+    itrivial
 
 end ghost
 
@@ -122,6 +203,37 @@ theorem authStore.Revision.wp_lb : authStore.Revision.specLb (GF := GF) := by
   wp_auto
   iapply HΦ
   iexact Hfrom
+
+/-- **`IsAuthEnabled()` read by a reader with the lower bound `i`** (the auth plan's E3h): the flag
+of a state no older than `i`. -/
+def authStore.IsAuthEnabled.specLb : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (i : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      enabledRd st M ∗ authPubLbM M i }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsAuthEnabled")) (Val #()))
+  {{ (b : Bool), RET #b; enabledRd st M ∗ enabledVerdictFrom M i b }}
+
+theorem authStore.IsAuthEnabled.wp_lb : authStore.IsAuthEnabled.specLb (GF := GF) := by
+  intro st R M i
+  wp_start as ⟨#Hinv, Hrd, #Hlb⟩
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  ihave #Hinv' := Hinv
+  iunfold authInv at Hinv'
+  icases Hinv' with ⟨%Hst, -, -, -, -, -, -⟩
+  iunfold enabledRd at Hrd
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
+  iunfold enabledP at HP
+  icases HP with ⟨%b, Hb, #Hv, Hg⟩
+  imod (enG_fresh st R M i _ b) $$ Hinv Hg Hv Hlb with ⟨Hg, #Hvf⟩
+  (try wp_auto)
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb Hg] as Hrd
+  · inext; iunfold enabledP; iexists b; iframe Hb Hg; iexact Hv
+  iapply HΦ
+  iunfold enabledRd
+  iframe Hrd Hvf
 
 end proof
 

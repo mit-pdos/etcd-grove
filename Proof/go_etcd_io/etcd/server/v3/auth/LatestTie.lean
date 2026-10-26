@@ -142,7 +142,7 @@ the cache's half at `sc` (a recorded state). -/
 def authWRx (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) : IProp GF :=
   iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
-    T ∗ flagAt st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc)
+    T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc)
 
 theorem authWR_of_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) : authWRx (GF := GF) st M P f T b sc ⊢ authWR st M P f T := by

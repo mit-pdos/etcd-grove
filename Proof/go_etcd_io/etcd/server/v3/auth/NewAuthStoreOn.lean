@@ -77,16 +77,20 @@ instance enabledP_fractional (st : Loc) (M : AuthMode) :
     Fractional (enabledP (GF := GF) st M) := by
   unfold enabledP
   exact fractional_exists_agree
-    (fun (b : Bool) q => iprop(aF go!"enabled" st ↦{DFrac.own q.half} b ∗ enabledVerdict M b))
+    (fun (b : Bool) q => iprop(aF go!"enabled" st ↦{DFrac.own q.half} b ∗ enabledVerdict M b ∗
+      enG M q.half b))
     (fun b => ⟨fun q1 q2 => by
       rw [Qp.half_add]
       constructor
-      · iintro ⟨H, #Hv⟩
+      · iintro ⟨H, #Hv, Hg⟩
         icases (typedPointsto_frac_add _ _ q1.half q2.half).1 $$ H with ⟨H1, H2⟩
-        iframe H1 H2 Hv
-      · iintro ⟨⟨H1, #Hv⟩, ⟨H2, -⟩⟩
+        icases (enG_split M q1.half q2.half b).1 $$ Hg with ⟨Hg1, Hg2⟩
+        iframe H1 H2 Hv Hg1 Hg2
+      · iintro ⟨⟨H1, #Hv, Hg1⟩, ⟨H2, -, Hg2⟩⟩
         iframe Hv
-        iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]⟩)
+        isplitl [H1 H2]
+        · iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]
+        · iapply (enG_split M q1.half q2.half b).2 $$ [$Hg1 $Hg2]⟩)
     (fun x y q1 q2 => by
       iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
       icombine H1 H2 gives %Heq
@@ -220,7 +224,7 @@ theorem newAuthStore_on
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
   wp_start as ⟨%Hlg, %Hab, #Hrdok, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur⟩
   iunfold authStoreInit at Hcur
-  icases Hcur with ⟨Hcur, Hpub⟩
+  icases Hcur with ⟨Hcur, Hpub, %b0, Hfe⟩
   ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
   subst Hab
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -338,10 +342,17 @@ theorem newAuthStore_on
   imod (sync.init_RWMutex (beP «$r0_ptr» R (.on γa)) (aF go!"beMu" «$r0_ptr») (E := ⊤))
     $$ [Hbe1] beMu with HbeS
   · inext; iunfold beP; iexists _; iframe Hbe1; iexact Hrdok
+  -- (E3h) the field's ghost variable at the flag read: half the guard's, a quarter the admin
+  -- side's, a quarter the store's freshness
+  imod (ghostVar_update b γa.fen b0) $$ Hfe with Hfe
+  icases (ghostVar_split_half γa.fen 1 b).1 $$ Hfe with ⟨HfeG, Hfe2⟩
+  icases (ghostVar_split_half γa.fen (1 : Qp).half b).1 $$ Hfe2 with ⟨HfeA, HfeI⟩
   imod (sync.init_RWMutex (enabledP «$r0_ptr» (.on γa)) (aF go!"enabledMu" «$r0_ptr») (E := ⊤))
-    $$ [Hen1] enabledMu with HenS
+    $$ [Hen1 HfeG] enabledMu with HenS
   · inext; iunfold enabledP; iexists _; iframe Hen1
-    iunfold enabledVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hb
+    isplitl []
+    · iunfold enabledVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hb
+    · iunfold enG; iexact HfeG
   ihave ⟨Hca1, Hca2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ rangePermCache
   imod ownMap_persist mp _ ∅ $$ HM with #HM
   ihave #Hof : (cacheOf (GF := GF) se ∅) $$ []
@@ -367,7 +378,7 @@ theorem newAuthStore_on
   ipersist lg
   ipersist tokenProvider
   -- the revision's invariant
-  imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur Hpub]
+  imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur Hpub HfeI]
     with #Hrev
   · inext; iunfold revInv; iexists x; iframe revision
     isplitl []
@@ -375,12 +386,16 @@ theorem newAuthStore_on
     isplitl [Hcur]
     · iunfold revCur; iexists st0; iframe Hcur; ipureintro; exact Hx
     · -- (E3h) nothing published yet: the published index `0`, the latest state's revision
-      simp only [revFresh]
+      iunfold revFresh
       iexists 0
       iframe Hpub
       isplitl []
       · iexists s0; iexact Hs0
-      iexists _, st0; iframe Hst0; ipureintro; exact ⟨Nat.zero_le _, Hx⟩
+      isplitl []
+      · iexists _, st0; iframe Hst0; ipureintro; exact ⟨Nat.zero_le _, Hx⟩
+      iexists b
+      iframe HfeI
+      iexists _, st0; iframe Hst0; ipureintro; exact ⟨Nat.zero_le _, Hb⟩
   ihave #Hinv : authInv (GF := GF) «$r0_ptr» R (.on γa) $$ []
   · iunfold authInv
     iframe Hrev Gbe Gen Gca
@@ -483,12 +498,14 @@ theorem newAuthStore_on
   isplitr
   · ipureintro; rfl
   iframe Hinv HPost Hown
-  isplitl [Hbe2 HT Hen2 Hca]
+  isplitl [Hbe2 HT Hen2 HfeA Hca]
   · iunfold authWRAt
     iframe HT Hca
     isplitl [Hbe2]
     · iframe Hbe2 Hwok
-    · iunfold enabledHalf; iexists b; iframe Hen2
+    · iunfold enabledHalf; iexists b
+      isplitl [Hen2 HfeA]
+      · iunfold flagAt; iframe Hen2; iunfold enG; iexact HfeA
       iunfold enabledVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hb
   isplitl [HA]
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), A; iframe tokenProvider HtpA HA

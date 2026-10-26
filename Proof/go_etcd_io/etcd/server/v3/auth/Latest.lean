@@ -292,9 +292,9 @@ it returns `b` (the guard's half agrees), with the mode's verdict. -/
 abbrev auth.authStore.IsAuthEnabled.specL : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      enabledRd st M ∗ flagAt st b }}
+      enabledRd st M ∗ flagAt st M b }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsAuthEnabled")) (Val #()))
-  {{ (en : Bool), RET #en; enabledRd st M ∗ flagAt st b ∗ enabledVerdict M en ∗ ⌜en = b⌝ }}
+  {{ (en : Bool), RET #en; enabledRd st M ∗ flagAt st M b ∗ enabledVerdict M en ∗ ⌜en = b⌝ }}
 
 /-- `as.isRangeOpPermitted(user, key, rangeEnd, pt)` for a caller holding the admin side's half of
 the cache at the state `sc` (`cacheAt`): the verdict at `sc` (`cacheVerdictP`; the guard's map is
@@ -320,12 +320,12 @@ abbrev auth.authStore.isOpPermitted.specL : Prop :=
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ ∗
-      ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗ authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st sc ∗
       ⌜latestTie M hs b sc⌝ }}
     (App (App (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"isOpPermitted"))
       (Val #info.Username')) (Val #info.Revision')) (Val #key)) (Val #re)) (Val #pt))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ authErrIs err ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st sc ∗
       ⌜permVerdictL M hs (authInfoM info) k e (permOp pt) err⌝ }}
 
 end spec
@@ -357,17 +357,21 @@ theorem auth.authStore.IsAuthEnabled.wp_latest :
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold enabledP at HP
-  icases HP with ⟨%b', Hb, #Hv⟩
+  icases HP with ⟨%b', Hb, #Hv, Hg⟩
   iunfold flagAt at Hfl
+  icases Hfl with ⟨Hfl, HflQ⟩
   icombine Hb Hfl gives %Heq
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb] as Hrd
-  · inext; iunfold enabledP; iexists b'; iframe Hb; iexact Hv
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb Hg] as Hrd
+  · inext; iunfold enabledP; iexists b'; iframe Hb Hg; iexact Hv
   iapply HΦ
   iunfold enabledRd
-  iunfold flagAt
-  iframe Hrd Hfl Hv
-  ipureintro; exact Heq
+  subst Heq
+  iframe Hrd
+  isplitl [Hfl HflQ]
+  · iunfold flagAt; iframe Hfl HflQ
+  iframe Hv
+  ipureintro; rfl
 
 theorem auth.authStore.isRangeOpPermitted.wp_latest
     (h_String : zap.String.spec (GF := GF) (hG := hG))
@@ -808,10 +812,10 @@ abbrev auth.authStore.IsPutPermitted.specL : Prop :=
     (dk : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
     (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsPutPermitted")) (Val #a)) (Val #key))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ authErrIs err ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st sc ∗
       ⌜permVerdictL M hs (authInfoM info) k [] .write err⌝ }}
 
 /-- `as.IsRangePermitted(authInfo, key, rangeEnd)` on the apply thread: the latest state's verdict
@@ -822,10 +826,10 @@ abbrev auth.authStore.IsRangePermitted.specL : Prop :=
     (k e : List w8) (dk de : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
     (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsRangePermitted")) (Val #a)) (Val #key)) (Val #re))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
-      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st sc ∗
       ⌜permVerdictL M hs (authInfoM info) k e .read err⌝ }}
 
 /-- `as.IsDeleteRangePermitted(authInfo, key, rangeEnd)` on the apply thread: the latest state's
@@ -836,10 +840,10 @@ abbrev auth.authStore.IsDeleteRangePermitted.specL : Prop :=
     (k e : List w8) (dk de : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
-      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
     (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsDeleteRangePermitted")) (Val #a)) (Val #key)) (Val #re))
   {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
-      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st sc ∗
       ⌜permVerdictL M hs (authInfoM info) k e .write err⌝ }}
 
 end spec

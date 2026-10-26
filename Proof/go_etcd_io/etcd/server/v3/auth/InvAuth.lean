@@ -299,32 +299,71 @@ theorem cacheVerdict_off (user k e : GoString) (pt : go_etcd_io.etcd.api.v3.auth
     (b : Bool) : ⊢ cacheVerdict (GF := GF) .off user k e pt b := by
   unfold cacheVerdict; itrivial
 
+/-- **A share `q` of the field `enabled`'s ghost variable at `b`** in the mode `M` (the auth plan's
+E3h): in `on γa`, `ghostVar γa.fen q b`; otherwise nothing. The guard holds a half (`enabledP`), the
+admin side a quarter (`flagAt`), the store's freshness a quarter (`revFresh`): a reader under the
+lock and the freshness agree on the value, which is a state's no older than the published index. -/
+def enG (M : AuthMode) (q : Qp) (b : Bool) : IProp GF :=
+  match M with
+  | .on γa => ghostVar γa.fen q b
+  | _ => iprop(True)
+
+instance enG_timeless (M : AuthMode) (q : Qp) (b : Bool) : Timeless (enG (GF := GF) M q b) := by
+  unfold enG; cases M <;> infer_instance
+
+theorem enG_split (M : AuthMode) (q1 q2 : Qp) (b : Bool) :
+    enG (GF := GF) M (q1 + q2) b ⊣⊢ enG M q1 b ∗ enG M q2 b := by
+  cases M with
+  | on γa => exact (ghostVar_fractional γa.fen b).fractional q1 q2
+  | off =>
+    simp only [enG]
+    constructor
+    · iintro -; isplitl []; itrivial; itrivial
+    · iintro -; itrivial
+  | any =>
+    simp only [enG]
+    constructor
+    · iintro -; isplitl []; itrivial; itrivial
+    · iintro -; itrivial
+
+theorem enG_agree (M : AuthMode) (q1 q2 : Qp) (b1 b2 : Bool) (hM : M.isOn = true) (hA : M ≠ .any) :
+    enG (GF := GF) M q1 b1 ∗ enG M q2 b2 ⊢ ⌜b1 = b2⌝ := by
+  cases M with
+  | on γa =>
+    simp only [enG]
+    iintro ⟨H1, H2⟩
+    iapply (ghostVar_agree γa.fen b1 q1 b2 q2) $$ H1 H2
+  | off => cases hM
+  | any => exact absurd rfl hA
+
 /-- What `enabledMu` guards at `q` in the mode `M`: half of `enabled` (the other half is the
 admin side's, `enabledHalf`: `UserDelete`, `UserRevokeRole` and `RoleDelete` read the flag
 outside the lock, in the apply thread, which alone writes it, under the lock, with both halves;
 S4), a recorded state's flag (`enabledVerdict`: in `off` false, in `on γa` some recorded state's;
 the auth plan's S3). -/
 def enabledP (st : Loc) (M : AuthMode) (q : Qp) : IProp GF :=
-  iprop(∃ b : Bool, aF go!"enabled" st ↦{DFrac.own q.half} b ∗ enabledVerdict M b)
+  iprop(∃ b : Bool, aF go!"enabled" st ↦{DFrac.own q.half} b ∗ enabledVerdict M b ∗ enG M q.half b)
+
+/-- **The admin side's half of `enabled` at `b`** (the auth plan's E2r): the field at half, for
+the apply thread's checks (`IsAuthEnabled.specL`: the guard's half agrees), with (E3h) a quarter of
+its value's ghost variable (`enG`; the guard holds a half, the store's freshness the other
+quarter, `revFresh`). -/
+def flagAt (st : Loc) (M : AuthMode) (b : Bool) : IProp GF :=
+  iprop(aF go!"enabled" st ↦{DFrac.own (1 : Qp).half} b ∗ enG M (1 : Qp).half.half b)
 
 /-- **The admin side's half of `enabled`** (S4): the flag at half, with its verdict. -/
 def enabledHalf (st : Loc) (M : AuthMode) : IProp GF :=
-  iprop(∃ b : Bool, aF go!"enabled" st ↦{DFrac.own (1 : Qp).half} b ∗ enabledVerdict M b)
-
-/-- **The admin side's half of `enabled` at `b`** (the auth plan's E2r): `enabledHalf` with its
-value exposed, for the apply thread's checks (`IsAuthEnabled.specL`: the guard's half agrees). -/
-def flagAt (st : Loc) (b : Bool) : IProp GF :=
-  aF go!"enabled" st ↦{DFrac.own (1 : Qp).half} b
+  iprop(∃ b : Bool, flagAt st M b ∗ enabledVerdict M b)
 
 theorem enabledHalf_flagAt (st : Loc) (M : AuthMode) :
-    enabledHalf (GF := GF) st M ⊢ ∃ b : Bool, flagAt st b ∗ enabledVerdict M b := by
-  unfold enabledHalf flagAt
+    enabledHalf (GF := GF) st M ⊢ ∃ b : Bool, flagAt st M b ∗ enabledVerdict M b := by
+  unfold enabledHalf
   iintro ⟨%b, H, #Hv⟩
   iexists b; iframe H Hv
 
 theorem flagAt_enabledHalf (st : Loc) (M : AuthMode) (b : Bool) :
-    flagAt (GF := GF) st b ∗ enabledVerdict M b ⊢ enabledHalf st M := by
-  unfold enabledHalf flagAt
+    flagAt (GF := GF) st M b ∗ enabledVerdict M b ⊢ enabledHalf st M := by
+  unfold enabledHalf
   iintro ⟨H, #Hv⟩
   iexists b; iframe H Hv
 
@@ -612,12 +651,16 @@ instance revCur_timeless (M : AuthMode) (r : w64) : Timeless (revCur (GF := GF) 
 /-- **The store's freshness** in the mode `M` at the atomic's value `r` (the auth plan's E3h,
 2026-10-27; `notes/decisions.md`, "E3h of the auth plan"): in `on γa`, the published index `p`'s
 authority (`authPubAuth`; a reader's lower bound `authPubLb γa i` is at most `p`), `p` an index of
-the history, and `r` the revision of a state recorded at an index at least `p` (so a reader with the
-lower bound `i` reads a revision no older than `i`'s); in the other modes nothing. -/
+the history, `r` the revision of a state recorded at an index at least `p`, and a quarter of the
+field `enabled`'s ghost variable (`enG`) at the flag of such a state (so a reader with the lower
+bound `i` reads a revision and, under the lock, a flag no older than `i`'s); in the other modes
+nothing. -/
 def revFresh (M : AuthMode) (r : w64) : IProp GF :=
   match M with
   | .on γa => iprop(∃ p : Nat, authPubAuth γa p ∗ (∃ sp : AuthState, authStateAt γa p sp) ∗
-      ∃ (j : Nat) (s : AuthState), authStateAt γa j s ∗ ⌜p ≤ j ∧ uint.nat r = s.revision⌝)
+      (∃ (j : Nat) (s : AuthState), authStateAt γa j s ∗ ⌜p ≤ j ∧ uint.nat r = s.revision⌝) ∗
+      ∃ b : Bool, ghostVar γa.fen (1 : Qp).half.half b ∗
+        ∃ (j : Nat) (s : AuthState), authStateAt γa j s ∗ ⌜p ≤ j ∧ b = s.enabled⌝)
   | _ => iprop(True)
 
 instance revFresh_timeless (M : AuthMode) (r : w64) : Timeless (revFresh (GF := GF) M r) := by
@@ -1125,7 +1168,7 @@ theorem authOwnF_revFresh (M : AuthMode) (hs : List AuthState) (s : AuthState) (
   | on γa =>
     have hl := hl γa rfl
     simp only [authOwnF, revFresh]
-    iintro ⟨Hh, Hc⟩ ⟨%p, Hp, ⟨%sp, #Hsp⟩, -⟩
+    iintro ⟨Hh, Hc⟩ ⟨%p, Hp, ⟨%sp, #Hsp⟩, -, Hen⟩
     ihave ⟨Hh, %Hlk⟩ := authHist_lookup_keep γa hs p sp $$ [Hh]
     · iframe Hh Hsp
     have hi : hs[hs.length - 1]? = some s := by
@@ -1141,6 +1184,7 @@ theorem authOwnF_revFresh (M : AuthMode) (hs : List AuthState) (s : AuthState) (
     iframe Hp
     isplitl []
     · iexists sp; iexact Hsp
+    iframe Hen
     iexists hs.length - 1, s
     iframe Hst
     ipureintro
@@ -1159,6 +1203,116 @@ theorem authOwnF_revFresh (M : AuthMode) (hs : List AuthState) (s : AuthState) (
     isplitl [H]
     · iexact H
     · itrivial
+
+/-- A share of a monotone list's authority keeps its lower bound (`auth_lb_op`). -/
+theorem histAuth_keep_lb (γ : GName) (q : Qp) (l : List AuthState) :
+    monoListAuthOwn (GF := GF) γ q l ⊢ monoListAuthOwn γ q l ∗ monoListLbOwn γ l := by
+  unfold monoListAuthOwn monoListLbOwn
+  have h := Iris.MonoList.auth_lb_op (DFrac.own q) (l.map encodeO)
+  refine Iris.BI.BIBase.Entails.trans ?_ (own_op γ _ _).1
+  rw [← h]
+
+/-- **The admin side's latest state, recorded at the last index, and the published index below
+it** (the auth plan's E3h): with the admin side's authority at `hs` and a recorded state at `p`,
+the latest state is recorded at `hs.length - 1 ≥ p`. -/
+theorem authOwn_lastAt (γa : AuthNames) (hs : List AuthState) (p : Nat) (sp : AuthState) :
+    authOwn (GF := GF) (.on γa) hs ∗ authStateAt γa p sp ⊢
+      authOwn (.on γa) hs ∗ ∃ stl : AuthState, ⌜hs.getLast? = some stl ∧ p ≤ hs.length - 1⌝ ∗
+        authStateAt γa (hs.length - 1) stl := by
+  simp only [authOwn]
+  have key : authHistHalf (GF := GF) γa hs ∗ authStateAt γa p sp ⊢
+      authHistHalf γa hs ∗ ⌜hs[p]? = some sp⌝ :=
+    (and_intro (by iintro ⟨H, -⟩; iexact H) (authHistHalf_lookup γa hs p sp)).trans
+      persistent_and_sep_mp
+  iintro ⟨⟨Hh, ⟨%stl, %Hl, Hc⟩⟩, #Hsp⟩
+  ihave ⟨Hh, %Hlk⟩ := key $$ [Hh]
+  · iframe Hh Hsp
+  iunfold authHistHalf at Hh
+  icases Hh with ⟨Hh, %Hk⟩
+  ihave ⟨Hh, #Hlb⟩ := histAuth_keep_lb γa.hist _ hs $$ Hh
+  have hi : hs[hs.length - 1]? = some stl := by
+    cases hs with
+    | nil => cases Hl
+    | cons x xs => rw [List.getLast?_eq_getElem?] at Hl; exact Hl
+  obtain ⟨hp, -⟩ := List.getElem?_eq_some_iff.1 Hlk
+  isplitl [Hh Hc]
+  · iunfold authHistHalf; iframe Hh; isplitr
+    · ipureintro; exact Hk
+    · iexists stl; iframe Hc; ipureintro; exact Hl
+  iexists stl
+  isplitr
+  · ipureintro; exact ⟨Hl, by omega⟩
+  unfold authStateAt
+  isplitl
+  · iapply (monoListIdxOwn_get (hs.length - 1) stl hi) $$ Hlb
+  · ipureintro; exact Hk stl (List.mem_of_getElem? hi)
+
+/-- **The field `enabled`'s ghost variable set to the latest state's flag** (the auth plan's E3h):
+the writer holding `enabledMu` (the guard's half) and the admin side's quarter, with the admin side's
+authority at `hs` whose latest state has the flag `b'`, sets the ghost variable to `b'` (the store's
+freshness's quarter too: the latest state is recorded at an index no below the published one). -/
+theorem enG_update (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState) (b b' : Bool)
+    (hb : ∀ γa stl, M = .on γa → hs.getLast? = some stl → b' = stl.enabled) :
+    authInv (GF := GF) st R M ⊢ authOwn M hs -∗ enG M (1 : Qp).half b -∗
+      enG M (1 : Qp).half.half b ={⊤}=∗
+      authOwn M hs ∗ enG M (1 : Qp).half b' ∗ enG M (1 : Qp).half.half b' := by
+  cases M with
+  | on γa =>
+    iintro #Hinv Hown Hg Hq
+    iunfold authInv at Hinv
+    icases Hinv with ⟨-, #Hrev, -⟩
+    iinv Hrev with Hi Hclose
+    iunfold revInv at Hi
+    icases Hi with ⟨%r, Hr, Hv, Hc, >Hf⟩
+    iunfold revFresh at Hf
+    icases Hf with ⟨%p, Hp, #Hsp, Hrv, %b0, Hq0, Hj⟩
+    iunfold enG at Hg
+    iunfold enG at Hq
+    iunfold enG
+    icombine Hg Hq0 gives %Hb0
+    obtain ⟨-, Hb0⟩ := Hb0
+    subst Hb0
+    icases Hsp with ⟨%sp, #Hsp⟩
+    ihave ⟨Hown, %stl, %Hl, #Hst⟩ := authOwn_lastAt γa hs p sp $$ [Hown]
+    · iframe Hown Hsp
+    have hq : (1 : Qp).half + ((1 : Qp).half.half + (1 : Qp).half.half) = 1 := by
+      rw [Qp.half_add_half, Qp.half_add_half]
+    ihave Hq2 := ((ghostVar_fractional γa.fen b).fractional (1 : Qp).half.half
+      (1 : Qp).half.half).2 $$ [Hq Hq0]
+    · iframe Hq Hq0
+    imod (ghostVar_update_2 b' γa.fen b _ b _ hq) $$ Hg Hq2 with ⟨Hg, Hq2⟩
+    icases ((ghostVar_fractional γa.fen b').fractional (1 : Qp).half.half
+      (1 : Qp).half.half).1 $$ Hq2 with ⟨Hq, Hq0⟩
+    imod Hclose $$ [Hr Hv Hc Hp Hrv Hq0] with -
+    · inext
+      iunfold revInv
+      iexists r
+      iframe Hr Hv Hc
+      iunfold revFresh
+      iexists p
+      iframe Hp Hrv
+      isplitl []
+      · iexists sp; iexact Hsp
+      iexists b'
+      iframe Hq0
+      iexists hs.length - 1, stl
+      iframe Hst
+      ipureintro
+      exact ⟨Hl.2, hb γa stl rfl Hl.1⟩
+    imodintro
+    iframe Hown Hg Hq
+  | off =>
+    simp only [enG]
+    iintro - Hown - -
+    imodintro
+    iframe Hown
+    isplitl []; itrivial; itrivial
+  | any =>
+    simp only [enG]
+    iintro - Hown - -
+    imodintro
+    iframe Hown
+    isplitl []; itrivial; itrivial
 
 /-- The authority has a latest state (`histLast`): in `off`, one of its states (all disabled). -/
 theorem authOwnF_exists_last (M : AuthMode) (hs : List AuthState) :
