@@ -746,5 +746,171 @@ theorem auth.authStore.isOpPermitted.wp_latest
 
 end proof
 
+
+namespace auth
+
+section pure
+variable [ext : FfiSyntax]
+
+/-- **The latest verdict of one permission, in `kvGranted`'s shape** (the auth plan's E2r, for
+E2q's model step, `etcdserver/KVAuthModel.lean`): for a request of the cache's shape, a check of
+`op` on `[key, rangeEnd)` passes exactly when, at the latest state, auth is disabled, or the token's
+revision is not `0` nor stale and its user exists with the root role or permissions covering the
+request. -/
+theorem permVerdictL_granted (γa : AuthNames) (hs : List AuthState) (ai : AuthInfoM)
+    (key rangeEnd : GoString) (op : PermType) (err : GoInterface) (stl : AuthState)
+    (hl : hs.getLast? = some stl) (hsh : reqShape key rangeEnd)
+    (h : permVerdictL (.on γa) hs ai key rangeEnd op err) :
+    err = GoInterface.nil ↔
+      (stl.enabled = false ∨ (ai.rev ≠ 0 ∧ stl.revision ≤ ai.rev ∧
+        ∃ u, stl.users !! ai.user = some u ∧ (isRoot u ∨ covers stl u op key rangeEnd))) := by
+  rw [permVerdictL_iff γa hs ai key rangeEnd op err stl hl hsh h]
+  unfold permitted granted
+  constructor
+  · rintro ⟨hp | ⟨h0, u, hu, hc⟩, hr⟩
+    · exact Or.inl hp
+    · rcases hr with hr | hr
+      · exact Or.inl hr
+      · refine Or.inr ⟨h0, hr, u, hu, ?_⟩
+        rcases hc with hc | hc
+        · exact Or.inl hc
+        · exact Or.inr (hc hsh)
+  · rintro (hd | ⟨h0, hr, u, hu, hc⟩)
+    · exact ⟨Or.inl hd, Or.inl hd⟩
+    · refine ⟨Or.inr ⟨h0, u, hu, ?_⟩, Or.inr hr⟩
+      rcases hc with hc | hc
+      · exact Or.inl hc
+      · exact Or.inr fun _ => hc
+
+theorem permVerdictL_permOp (M : AuthMode) (hs : List AuthState) (ai : AuthInfoM)
+    (key rangeEnd : GoString) (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (op : PermType)
+    (err : GoInterface) (hop : permOp pt = op)
+    (h : permVerdictL M hs ai key rangeEnd (permOp pt) err) :
+    permVerdictL M hs ai key rangeEnd op err := by
+  rw [hop] at h; exact h
+
+end pure
+
+end auth
+
+section spec
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+/-- `as.IsPutPermitted(authInfo, key)` on the apply thread: the latest state's verdict on the
+write (`isOpPermitted.specL`). -/
+abbrev auth.authStore.IsPutPermitted.specL : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
+    (sc : auth.AuthState) (a : Loc) (info : AuthInfo) (dq : DFrac) (key : GoSlice) (k : List w8)
+    (dk : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
+      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
+    (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsPutPermitted")) (Val #a)) (Val #key))
+  {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ authErrIs err ∗
+      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      ⌜permVerdictL M hs (authInfoM info) k [] .write err⌝ }}
+
+/-- `as.IsRangePermitted(authInfo, key, rangeEnd)` on the apply thread: the latest state's verdict
+on the read. -/
+abbrev auth.authStore.IsRangePermitted.specL : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
+    (sc : auth.AuthState) (a : Loc) (info : AuthInfo) (dq : DFrac) (key re : GoSlice)
+    (k e : List w8) (dk de : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
+      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
+    (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsRangePermitted")) (Val #a)) (Val #key)) (Val #re))
+  {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
+      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      ⌜permVerdictL M hs (authInfoM info) k e .read err⌝ }}
+
+/-- `as.IsDeleteRangePermitted(authInfo, key, rangeEnd)` on the apply thread: the latest state's
+verdict on the write. -/
+abbrev auth.authStore.IsDeleteRangePermitted.specL : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (hs : List auth.AuthState) (b : Bool)
+    (sc : auth.AuthState) (a : Loc) (info : AuthInfo) (dq : DFrac) (key re : GoSlice)
+    (k e : List w8) (dk de : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ ∗
+      authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗ ⌜latestTie M hs b sc⌝ }}
+    (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsDeleteRangePermitted")) (Val #a)) (Val #key)) (Val #re))
+  {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
+      re ↦*{de} e ∗ authErrIs err ∗ authOwn M hs ∗ flagAt st b ∗ cacheAt st sc ∗
+      ⌜permVerdictL M hs (authInfoM info) k e .write err⌝ }}
+
+end spec
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+theorem auth.authStore.IsPutPermitted.wp_latest
+    (h_isOpPermitted : auth.authStore.isOpPermitted.specL (GF := GF) (hG := hG)) :
+    auth.authStore.IsPutPermitted.specL (GF := GF) (hG := hG) := by
+  intro st R M hs b sc a info dq key k dk
+  wp_start as ⟨#Hinv, Hrd, Ha, Hk, %Hlen, Hown, Hfl, Hca, %Htie⟩
+  ihave %Hann := typedPointsto_not_null $$ Ha
+  iStructNamed Ha
+  wp_auto
+  wp_apply (h_isOpPermitted st R M hs b sc info key slice.nil k [] dk (DFrac.own 1)
+      (W32 1)) $$ [$Hinv $Hrd $Hk $Hown $Hfl $Hca] as %err ⟨Hrd, Hk, -, Herr, Hown, Hfl, Hca, %Hv⟩
+  · isplitl
+    · iapply ownSlice_nil (V := w8) (DFrac.own 1)
+    ipureintro; exact ⟨by simp [permTypOk], Hlen, Htie⟩
+  ihave Ha : a ↦{dq} info $$ [Username Revision]
+  · iapply typedPointsto_combine a info dq Hann
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  iapply HΦ
+  iframe
+  ipureintro; exact auth.permVerdictL_permOp M hs _ k [] (W32 1) .write err (by simp [permOp]) Hv
+
+theorem auth.authStore.IsRangePermitted.wp_latest
+    (h_isOpPermitted : auth.authStore.isOpPermitted.specL (GF := GF) (hG := hG)) :
+    auth.authStore.IsRangePermitted.specL (GF := GF) (hG := hG) := by
+  intro st R M hs b sc a info dq key re k e dk de
+  wp_start as ⟨#Hinv, Hrd, Ha, Hk, He, %Hlen, Hown, Hfl, Hca, %Htie⟩
+  ihave %Hann := typedPointsto_not_null $$ Ha
+  iStructNamed Ha
+  wp_auto
+  wp_apply (h_isOpPermitted st R M hs b sc info key re k e dk de
+      (W32 0)) $$ [$Hinv $Hrd $Hk $He $Hown $Hfl $Hca] as %err ⟨Hrd, Hk, He, Herr, Hown, Hfl, Hca, %Hv⟩
+  · ipureintro; exact ⟨by simp [permTypOk], Hlen, Htie⟩
+  ihave Ha : a ↦{dq} info $$ [Username Revision]
+  · iapply typedPointsto_combine a info dq Hann
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  iapply HΦ
+  iframe
+  ipureintro; exact auth.permVerdictL_permOp M hs _ k e (W32 0) .read err (by simp [permOp]) Hv
+
+theorem auth.authStore.IsDeleteRangePermitted.wp_latest
+    (h_isOpPermitted : auth.authStore.isOpPermitted.specL (GF := GF) (hG := hG)) :
+    auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG) := by
+  intro st R M hs b sc a info dq key re k e dk de
+  wp_start as ⟨#Hinv, Hrd, Ha, Hk, He, %Hlen, Hown, Hfl, Hca, %Htie⟩
+  ihave %Hann := typedPointsto_not_null $$ Ha
+  iStructNamed Ha
+  wp_auto
+  wp_apply (h_isOpPermitted st R M hs b sc info key re k e dk de
+      (W32 1)) $$ [$Hinv $Hrd $Hk $He $Hown $Hfl $Hca] as %err ⟨Hrd, Hk, He, Herr, Hown, Hfl, Hca, %Hv⟩
+  · ipureintro; exact ⟨by simp [permTypOk], Hlen, Htie⟩
+  ihave Ha : a ↦{dq} info $$ [Username Revision]
+  · iapply typedPointsto_combine a info dq Hann
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  iapply HΦ
+  iframe
+  ipureintro; exact auth.permVerdictL_permOp M hs _ k e (W32 1) .write err (by simp [permOp]) Hv
+
+end proof
+
 end EtcdGrove
 end Perennial

@@ -1271,9 +1271,27 @@ theorem auth_op_permitted_latest :
     (auth.authStore.isRangeOpPermitted.wp_latest zap.wp_String zap.Logger.wp_Error
       auth.wp_checkKeyInterval auth.wp_checkKeyPoint)
 
+/-- **`IsPutPermitted`, `IsRangePermitted`, `IsDeleteRangePermitted` on the apply thread at the
+latest state** (the auth plan's E2r): the verdict of their one permission at the latest state
+(`permVerdictL`; for a request of the cache's shape, `kvGranted`'s form, `auth.permVerdictL_granted`). -/
+theorem auth_put_permitted_latest :
+    auth.authStore.IsPutPermitted.specL (GF := GF) (hG := hG) :=
+  auth.authStore.IsPutPermitted.wp_latest auth_op_permitted_latest
+
+theorem auth_range_permitted_latest :
+    auth.authStore.IsRangePermitted.specL (GF := GF) (hG := hG) :=
+  auth.authStore.IsRangePermitted.wp_latest auth_op_permitted_latest
+
+theorem auth_delete_range_permitted_latest :
+    auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG) :=
+  auth.authStore.IsDeleteRangePermitted.wp_latest auth_op_permitted_latest
+
 end latest
 
 #print axioms Perennial.EtcdGrove.auth_op_permitted_latest
+#print axioms Perennial.EtcdGrove.auth_put_permitted_latest
+#print axioms Perennial.EtcdGrove.auth_range_permitted_latest
+#print axioms Perennial.EtcdGrove.auth_delete_range_permitted_latest
 
 section tokens
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
