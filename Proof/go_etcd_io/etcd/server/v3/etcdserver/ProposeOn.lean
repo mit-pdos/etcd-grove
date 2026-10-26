@@ -36,7 +36,7 @@ section pure
 variable [ext : FfiSyntax]
 
 /-- A plain request needs no admin permission (`plainCover`'s clause of each kind). -/
-theorem plainReq_noAdmin (rq : apply.IRRModel) (h : plainReq rq) :
+theorem plainReq_noAdminP (rq : apply.IRRModel) (h : plainReq rq) :
     apply.needAdminPermission rq = false := by
   obtain ⟨hc, -⟩ := h
   unfold plainCover at hc
@@ -67,7 +67,7 @@ theorem commitOkOn_plain (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState 
   · rw [hed, hdec] at h
     cases h
     refine ⟨fun _ ha => ?_, fun _ => kvDet_of_shapeAll _ _ hs⟩
-    rw [plainReq_noAdmin rq hp] at ha
+    rw [plainReq_noAdminP rq hp] at ha
     cases ha
 
 /-- **A write-free entry keeps the mode-`on` model's state** (auth state and log): a request that
@@ -222,7 +222,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
       have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L :=
         kvModelOn_snoc_nonwrite γk st₀ L e rq (by rw [hed]; exact hdec)
-          (plainReq_noAdmin rq hplain) hnw
+          (plainReq_noAdminP rq hplain) hnw
       ihave #Hw' := kvWorkOn_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
@@ -239,7 +239,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · -- a plain write, with its client's update fired at most once, when granted
     obtain ⟨hplain, hop, -, hshape, hsa, hQr⟩ := Hop
     subst hQr
-    have hna := plainReq_noAdmin rq hplain
+    have hna := plainReq_noAdminP rq hplain
     have hkv := reqKVOp_isKV rq op hop
     iunfold kvOpAu1 at Hau
     iunfold kvAu1 at Hau

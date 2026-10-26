@@ -21093,3 +21093,68 @@ theorems, and in `etcdserver/Results.lean` `apply_auth_steps_tie`, `apply_X_fuel
 `apply_admin_backendX`.
 
 **Trust base.** Unchanged by E2v (721 axioms, 6 sorries after merging `lean` at b8877b9fc6).
+
+## E2z of the auth plan: the allocation with auth on; `start`'s premise with auth on; what the server's run with auth on needs (2026-10-26 · `notes/auth-plan.md`, E2w's "Not done")
+
+**Done.**
+1. *The allocation with auth on* (`NewServerAllocOn.lean`; E2w's item 4). `kv_noop_au_on`: raft's
+   standing update for its own entries from `kvInvOn` (an empty entry or a conf change keeps the
+   mode-`on` model, `kvEntryOn_noop`, and meets the committer's obligation vacuously,
+   `commitOkOn_noop`). With it, `srvBootClientOn`/`srvRaftBootOn_alloc`/`srvClusterBootOn_alloc`
+   (`NewServerAlloc.lean`'s, with `kvInvOn _ _ srvAuthSt0` allocated at the bootstrap log by
+   `kvInvOn_alloc_boot` and the start chain `alarmChain true false false`) and
+   `srvMemberBootOn_alloc` (a member's names, giving `kvInvM true`, via `kvInvOn_congr`): a caller of
+   `server_new_auth_on` can build its KV premise. Restated as `server_cluster_alloc_on`,
+   `server_member_alloc_on` (`etcdserver/Results.lean`).
+2. *`start`'s construction premise with auth on* (`StartOn.lean`; the first piece of E2w's item 1).
+   `kvRunOn` (the apply thread's KV ghost state over `kvAppliedOn`, at some auth state the model
+   reaches), `applyBuiltOn`, `isServerBuiltOn` (`isServerBuilt` with `srvReqBuiltM true`,
+   `srvKVInvsM true`, `srvCM true`, `applyBuiltOn`), `isServerBuiltM` (today's at `false` by
+   definition); `isServerBuilt_of_gapM`: `NewServer.specM on`'s built part and the residual give it
+   (at the empty applied log the mode-off `kvRun` gives `kvRunOn`, `kvRun_nil_on`: both models start
+   at the start's log). Restated as `server_built_gap_on`.
+
+**Also.** `ProposeOn.lean`'s `plainReq_noAdmin` is renamed `plainReq_noAdminP`: it clashed with
+`NoSpaceDead.lean`'s (a different statement, over `plainCover`) in any module importing both, as
+`Results.lean` now does.
+
+**Found** (for the stages after this one):
+- *The proposer's result is at the wire request.* `grantedRes`/`reqPropOkOn` (E2w) are stated at
+  the caller's `rq`, but `kvGranted` reads `principalOf rq`, the header's user and auth revision,
+  which `processInternalRaftRequestOnce` fills in from `AuthInfoFromCtx` before it proposes. The
+  mode-`on` proposer spec must therefore take its result at the wire request `withHeader rq hm` for
+  the header it fills (`Qr` a function of `hm`), with a wire lemma that `reqPerms`/`kvShapeAll` do
+  not read the header; a caller (the gRPC handler) learns which principal was checked from the
+  bound context (E2c's `ctxBound`).
+- *The wait's results are tied to the mode-off model.* `entryWit` (`kvModel ρ.kv (L.take m) = lb`),
+  `resultΨ`, `reqWaitR`, `waitInv` (in `srvReqFieldsAt`), `processInternalRaftRequestOnce.spec`'s
+  post (`kvModel ρ.kv L = lb`) and the applied-log rows of `InvRequest.lean` (`L = kvModel γr.kv A`)
+  all name `kvModel`. The mode-`on` server needs each over `kvModelOn ρ.kv srvAuthSt0`.
+  Recommended: mode-indexed counterparts beside them (`entryWitM on`, ...), today's at `false` by
+  definition, as E2w did for the construction's rows; not a change to `kvModel` (about 40 proofs
+  unfold it).
+- *Admin determinacy needs the auth state's shape.* `userGrantRoleR`'s successor is a strictly
+  sorted permutation of the user's roles with the new one: it exists and is unique only when the
+  user's roles have no duplicates, so `authDet` of a grant does not hold at every state.
+  `reqPropOkOn`'s admin case (E2w's item 3) cannot ask for determinacy at any state, as its KV case
+  does with `kvShapeAll`; it needs the model's states to keep a shape invariant (E2l's `authSmall`
+  has the roles' `nodup`), proved along `kvRaftOfOn`, and `authDet` from it for the admitted kinds
+  (`UserAdd` at `pwSure`, E2t/E2x).
+
+**Exported statements changed.** `ProposeOn`'s `plainReq_noAdmin` renamed. Everything else is new.
+No closed theorem changed.
+
+**Trust base.** Unchanged (no axiom, no `sorry`).
+
+**Not done** (the server's run with auth on; in order):
+1. `start` over `isServerBuiltOn` (the mode-`on` `start` spec: it hands `run` the mode-`on` rows),
+   then `run`/`applyAll`/`applyEntryNormal` over `kvRunOn`: the KV step by `kv_applied_step_on` with
+   the apply-level outcome (`kv_applied_out_on`'s hypothesis, E2y), the admin entries by E2v's
+   admin triples with the receipt and the borrow of `be`'s half, and the tie of `kvRunOn`'s auth
+   state to `authApplyRes`'s history (the apply thread's latest state).
+2. The mode-indexed wait results (above), then `processInternalRaftRequestOnce` with auth on over
+   `reqPropOkOn` at the wire request and `kv_prop_au_on`; `Put`/`Txn`/`DeleteRange` over it, and the
+   gRPC handlers turning `grantedRes`'s refusal into the client's error; the read path over
+   `kvInvOn`.
+3. The admin proposers (`setupAuthOk`): `reqPropOkOn`'s admin case over the model's shape
+   invariant (above), with `server_user_add_sure` (E2x) discharging `UserAdd`'s `pwSure`.

@@ -82,6 +82,8 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_tieSure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AdminChain
 public import Proof.go_uber_org.zap.Int
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAllocOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartOn
 
 @[expose] public section
 
@@ -1768,6 +1770,73 @@ end serverAuth
 #print axioms Perennial.EtcdGrove.srv_auth_tp_on
 #print axioms Perennial.EtcdGrove.srv_auth_tp_off
 #print axioms Perennial.EtcdGrove.server_new_auth_on
+
+section serverAuthAlloc
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **A new cluster's resources with auth on** (the auth plan's E2z, `NewServerAllocOn.lean`):
+`srvClusterBoot_alloc`'s, with the mode-`on` KV invariant `kvInvOn _ _ srvAuthSt0` at the start
+chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates. -/
+theorem server_cluster_alloc_on (cfg nodes : GSet w64) (ccOk : w32 → List w8 → Prop)
+    (ps : List w64) (bootLog : List EntryM)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (Hcne : cfg ≠ ∅) (Hnz : W64 0 ∉ nodes) (Hcfg : cfg = GMap.listToSet ps)
+    (hboot : BootLogOk ccOk ps bootLog)
+    (hpol : ∀ ty d, ccOk ty d →
+      ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d)
+    (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
+    (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
+    ⊢ |={⊤}=> ∃ (γ : RaftNames) (issued cnt : GName) (γk : KVNames),
+        ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
+          γ.reNoSnap = true ∧ γ.reNoXfer = true ∧
+          γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
+          γk.ids.issued = issued⌝ ∗
+        raftCommitInv (GF := GF) γ ∗ isCommitted γ bootLog ∗ rdCredInv γ ∗
+        ([∗map] id ↦ _u ∈ toMap nodes, ownRaftGhost γ id (bootPState bootLog)) ∗
+        kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
+        etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries bootLog))) ∗
+        idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
+        srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
+        ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
+          rdCred γ (2 ^ 48))) ∗
+        [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) :=
+  srvClusterBootOn_alloc cfg nodes ccOk ps bootLog Φs Hcne Hnz Hcfg hboot hpol Hpd Hp0
+
+/-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
+its names, as `NewServer.specM true`'s `kvInvM true`. -/
+theorem server_member_alloc_on (γ : RaftNames) (cnt : GName) (γk : KVNames) (id : w64)
+    (cok : GName) :
+    ⊢ kvInvOn (GF := GF) ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
+      idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) -∗
+      idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) ==∗
+      ∃ ρ : ReqNames,
+        ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
+          ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
+          ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
+          ρ.ids.pfx = idPfxOf (W16 (uint.Z id))⌝ ∗
+        kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
+        srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
+  srvMemberBootOn_alloc γ cnt γk id cok
+
+/-- **`start`'s construction premise in the auth mode, from `NewServer.specM`'s built part**
+(`isServerBuilt_of_gapM`, E2z): `isServerBuilt` with auth off, `isServerBuiltOn` (the mode-`on`
+rows, the apply thread's KV ghost state over the mode-`on` model) with auth on. -/
+theorem server_built_gap_on (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
+    (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF)
+    (γn : RNNames) (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    srvBuiltG on s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s γn ai₀ at₀ ⊢
+      isServerBuiltM on s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N :=
+  isServerBuilt_of_gapM on s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
+
+end serverAuthAlloc
+
+#print axioms Perennial.EtcdGrove.server_cluster_alloc_on
+#print axioms Perennial.EtcdGrove.server_member_alloc_on
+#print axioms Perennial.EtcdGrove.server_built_gap_on
 
 section goroutines
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
