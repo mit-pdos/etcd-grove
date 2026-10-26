@@ -186,3 +186,108 @@ The serious findings are about a premise of the server's closed theorems that re
     documented no-modify rule. This is Go convention, and the specs take them read-only.
   - `isMsgInArray` panics on a negative `MessageType`, which is an invalid enum value and not
     reachable from the wire.
+
+# Modularity review (2026-10-26)
+
+The question: would a change to raft's internals (unexported Go code, internal proof invariants)
+change a public spec statement or a client's proof? Measured in two ways: what the statements
+name, and what proofs outside raft's tree depend on (`unfold`s, internal names). Under the module
+system nothing in raft's specs is sealed: `ownRaftPhys` and its two variants are the only
+`@[no_expose]` definitions in `Proof/go_etcd_io/raft/v3`. Every other predicate's body is open to
+importers. rafthttp is clean: it is generic over the payload.
+
+## Leaks, by consequence
+
+1. **The `Storage` contract is raft's proof protocol, not the Go interface** (`InvStorage.lean`).
+   - **What leaks:** besides the documented behaviour it carries:
+     - the floor and cut `node.go`'s `run` publishes (`StorState.fl`, `storCut`, `Hfloor`, the
+       `fl` disjuncts of `HFirstIndex`/`HTerm`/`HEntries`/`HSnapshot`);
+     - a single in-flight batch (`pend`, `Hhandout`, `Habsorb`), which encodes synchronous writes;
+     - the no-snapshot mode's `storCap`;
+     - the D22 certificate registry (`storCert`, `storCertOk`);
+     - the raft-side fields of `StorState` in the constructors' premises (`σ.pend = []`,
+       `σ.fl = 0`).
+   - **Churn so far:** the contract changed at about ten raft-proof stages since 09-19. Each
+     change re-opened `MemoryStorage`'s instance, kv's wrapper (which forwards to MemoryStorage's
+     internal lemmas `memStorage_handout`/`_absorb`/`_floor`, not its specs) and the witness copy,
+     which has already drifted (no `sdat`, no `storCert`).
+   - **Fix:** split it into the Go-documented sequential contract, which an implementation
+     proves, and a raft-side generic construction of the concurrent view, floor and batches,
+     proved once. The certificate should be an application-chosen `Φsnap` that `Snapshot` returns.
+     The no-snapshot cap should be a constructor premise. High effort; the largest payoff for
+     storage implementations.
+2. **`node.go`'s channel protocol is visible to, and re-proved by, its clients.**
+   - **What is open:** `isNode` (`InvNode.lean:938`) names `node`'s unexported channel fields,
+     the raft struct's `id` and `logger`, and the term budget. `NodeNames` has one field per
+     internal channel and ghost name. `nodeDriver`, `readyP`, `netP`, `fwdP`, `tickCred` and
+     `readyIdx` are open, and `open_node` is exported.
+   - **Re-derived because a lemma is missing:**
+     - The server's `rn_ready_recv` (`etcdserver/InvRaftNode.lean:582-690`) re-derives raft's
+       Ready receive (`unfold nodeDriver`, `readyData`, `readyIdx`, the `dlv`/`rof`/`req`
+       halves), because raft exports only a plain-receive lemma and etcd receives in a `select`.
+       `isRaftNodeIfc` states `isHandshake γ.node.readyc …`.
+     - "A message `Ready` handed out can be stepped at its addressee" (`isRaftMsg` to `stepP`) is
+       proved twice by unfolding `stepP`/`fwdP`/`netP`/`isMessage`/`stTks`: in
+       `etcdserver/InvNet.lean:100-140` and in kv's `Cluster.lean:321-395`.
+     - `NodeStart.lean:421` unfolds `isNode` for `γ.id = id`. Four kv files use `open_node` for
+       `raftCommitInv`.
+   - **Fix:**
+     - Seal those predicates.
+     - Export `isNode_id`, `isNode_commitInv`, a `select`-usable `ready_recv_au`,
+       `stepP_of_readyMsg`, `tickCred_of_receipt` and `reqWit_none`.
+     - Split `NodeNames` into a public part and an opaque channel-names part.
+     - Low to medium effort; the best payoff per effort.
+3. **A `Ready`'s messages carry implementation artifacts into client statements.**
+   - **The artifacts:**
+     - `readyDq`: responses are handed out at half because `acceptReady` reads their `To`
+       (`InvRawnodeReady.lean:308`).
+     - `stTks`/`entTk` tickets, `termLB` and `rdCred` per message.
+     - `readyIdx` (the receipt record) and `SnapLoan`'s fields.
+   - **Where they appear:** in the server's `rnEnvOk`/`InvBuild`/`SnapSend*` and in kv's public
+     `deliver` spec. If `msgsAfterAppend` queued another type, those proofs and statements
+     would change.
+   - **Fix:** a sealed `readyMsg γ q` bundle with projections (readable; whole for `MsgSnap`;
+     marshalable), and `readyData` behind projections.
+4. **MemoryStorage's public predicates expose its Go fields, its lock and its ghost names.**
+   - **What is exposed:**
+     - `memStorMeta` names `hardState` and the test counter `callStats.initialState`.
+     - `ownMemoryStorage`, `memSnapTok`, `memAppendTok` and `memFloorTok` expose the mutex
+       invariant.
+     - `MemStorNames` has 13 fields. Its registry tuple `MemStorNamesRec` is in etcd's public
+       `NewServer.spec` (`:174`), so adding a ghost name to MemoryStorage changes the server's
+       spec.
+   - **Fix:** `@[no_expose]` the predicates and make `MemStorNames` opaque. Low effort.
+5. **RawNode: contained within raft, but the statements move with the internals.**
+   - **`ownRawNode` itself:** about 30 conjuncts, open, written out three times (`ownRawNode`,
+     `ownRawNodeReady`, `ownRawNodeIdle`), and opened by `node.go`'s proof (`InvNodeRun.lean`,
+     about ten lemmas).
+   - **`RNState` fields that are not client state:**
+     - `steps : List Pending` mirrors `msgsAfterAppend` and has been reshaped twice. A client
+       needs only "an `Advance` is owed".
+     - `outlb`/`unst`/`clb` are `node.go`'s abandon bookkeeping, yet they are in `Advance`'s
+       premise (`unst = false`), `Ready`'s post and `BasicStatus`.
+   - **`NState` in public statements:** `Bootstrap`/`rawNodeFresh` (with the ghost flag `xf`), and
+     `ApplyConfChange`'s detached branch (`∃ s s', ownRawNodeC … ∗ ApplyCCOkC … s s'`, where `s`
+     is otherwise unbound and `ownRawNodeC` has no consumer).
+   - **Other:** `HasReady`'s `false` result is stated as the internal `ownRawNodeIdle`.
+   - **Fix:**
+     - One sealed core `ownRawNodeAt γ rn id rs s`, with the three predicates over it and
+       accessor lemmas for `node.run`'s direct `rn.raft` accesses.
+     - `steps` replaced by `advOwed : Bool`.
+     - The abandon fields in a token.
+     - `NState` existential inside `rawNodeFresh`/`ownRawNodeC`.
+     - Moderate effort; no impact outside raft.
+6. **Smaller:**
+   - `InitialState`'s `∀ ss'` is an internal spec's weakness (`newLogWithSize` does not expose
+     the snapshot id) copied into every constructor and into kv.
+   - `HEntries`' `cap = len` and the `2^61` bound are sized for raft's own arithmetic.
+   - Proof lemmas sit in spec files (`newRaft_post_init` in `NewRawNode.lean`; `entData_cc` and
+     others in `RawNode__ProposeConfChange.lean`).
+   - The unexported `readyWithoutAccept`/`acceptReady` are specified in `Spec/` like the
+     public methods, and nothing marks them internal.
+
+## Order
+
+Leak 2 and leak 4 first: seal, and export the missing lemmas. They are cheap and cut every
+cross-package `unfold`. Then leak 3 (the message bundle), leak 5 (inside raft), and leak 1, which
+is a redesign of the storage contract.

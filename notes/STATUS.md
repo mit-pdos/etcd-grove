@@ -359,7 +359,7 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 
 ## Review of raft's public specs (2026-10-26, branch `worktree-raft-spec-review`)
 
-`notes/raft-spec-review.md` has the findings. In short:
+`notes/raft-spec-review.md` has the findings, and its second part a modularity review: nothing but `ownRaftPhys` is sealed; the Storage contract carries raft's proof protocol (it changed at about ten stages, each re-opening the storage instances); the server and kv unfold `isNode`/`nodeDriver`/`netP`/`fwdP`, re-proving the Ready receive and the message hand-off. In short:
 
 - **Raft's specs:** no raft spec is wrong or vacuous. The raft collection rests on 13 axioms and
   no `sorry`. `isCommitted_agree`, the proposal tickets and `readStateOk` give agreement,
