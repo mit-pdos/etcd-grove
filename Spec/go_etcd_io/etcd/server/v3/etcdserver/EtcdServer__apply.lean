@@ -49,23 +49,28 @@ it (`kvBatch`), at `A ++ ms` after. **The write budget**
 since D19b (2026-10-18) taken from the budget `srvWTPool E` with a time receipt of the entry's
 iteration, until then handed in (`txn.storeWTs E.γ ms.length`). **The stop** (D19m, 2026-10-18): it
 returns `shouldStop = false`, since `applyConfChange` removes no member (`ccApplyOk`), so the
-caller's `stopWithDelay` is never reached. -/
+caller's `stopWithDelay` is never reached. **The driver's view** (D43 M3, 2026-10-25; raft's
+dynamic mode): with a view `dv` (`dvOk`: no replay, the node at the server's decoder), the view
+after `A` goes to the view after `A ++ ms`, each conf entry applied through `applyConfChange`;
+without, nothing (raft's static mode, or no conf entry in the batch). -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
-    (A : List EntryModel) (γp : GName),
+    (A : List EntryModel) (γp : GName) (dv : Option NodeNames),
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShape ms →
+  dvOk ρ.raft dv (ciEff γ st.k) f0 ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTAt γp (f0 - 1) ∗ srvFS s ∗
-      kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms }}
+      kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms ∗
+      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
-      RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗
+      RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗ dvView ρ.raft dv (A ++ ms) ∗
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
         epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗

@@ -1853,7 +1853,8 @@ its error is `nil` or one the gRPC layer can take (`applyErrIs`: raft's `ErrStop
 2026-10-12, unit 3a). A theorem since stage R7b (`NodeBridge.lean`, `raftPropose_of_isNode`).
 **`ApplyConfChange(c)`** (audit phase B3, 2026-10-18; `applyConfChange`'s call): of a v1 change,
 read-only, that leaves raft's configuration as it is (`ccRaftOk`, raft's static mode's
-`CCShrink`), it returns the new `*ConfState`, owned (`node.ApplyConfChange.spec`). -/
+`CCShrink`), it returns the new `*ConfState`, owned (`node.ApplyConfChange.spec`); (D43 M3,
+2026-10-25) in raft's static mode (`reDyn = none`): the dynamic mode's is `raftApplyCCDyn`. -/
 def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗ srvRaftLogInv γ ∗ srvPropWits γ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (data_sl : GoSlice)
@@ -1865,7 +1866,7 @@ def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
       {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}) ∗
-    □ (∀ (c : GoInterface) (cm : CCV1M), ⌜ccRaftOk γ.raft.reCfg cm⌝ -∗
+    □ (∀ (c : GoInterface) (cm : CCV1M), ⌜γ.raft.reDyn = none⌝ -∗ ⌜ccRaftOk γ.raft.reCfg cm⌝ -∗
       {{ ownCCI c DFrac.discard (some (.v1 cm)) }}
         (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))
       {{ (csp : Loc), RET #csp; ∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true }}))

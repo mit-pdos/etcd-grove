@@ -270,35 +270,6 @@ theorem isRNMemStor_of_memstorage (γ : RNNames) :
   iunfold rnAppendReceipt
   iexact Hrcpt
 
-/-- **A change `ccRaftOk` admits leaves the voters as they are** (`CCShrink`, the static mode's
-premise of `node.ApplyConfChange`; audit phase B3, 2026-10-18): an `AddNode` of a voter
-(`makeVoter` of a voter), or of the node `0` (skipped), on a non-empty configuration. -/
-theorem ccShrink_of_raftOk (cfg : GSet w64) (cm : CCV1M) (h : ccRaftOk cfg cm) :
-    CCShrink cfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
-  obtain ⟨ht, k, hk, hid⟩ := h
-  have hne : cfg ≠ ∅ := by
-    intro he
-    rw [he] at hk
-    have := (GMap.elem_of_gset _ _).1 hk
-    simp at this
-  rcases hid with hid | hid0
-  · by_cases h0 : cm.nodeId = W64 0
-    · exact CCNoop.shrink (ccApplyM_v1_noop cfg cm h0 hne)
-    · intro lrn Hd
-      refine ⟨lrn, GMap.subseteq_refl _, ?_⟩
-      have hin : cm.nodeId ∈ cfg := by rw [hid]; exact hk
-      have hL : cm.nodeId ∉ lrn := fun h' => Hd _ h' hin
-      have hc : ({ Type' := cm.type, NodeId' := cm.nodeId } : ConfChangeSingleM) =
-          addNodeCC cm.nodeId := by rw [ht]
-      show ccApplyM (W32 0) [{ Type' := cm.type, NodeId' := cm.nodeId }] (cfgState cfg lrn) =
-        some (cfgState cfg lrn)
-      apply ccApplyM_single
-      rw [hc]
-      have := simpleM_cfgState_addNode cfg lrn cm.nodeId h0 hL Hd
-      rw [GMap.insert_id _ _ _ ((GMap.elem_of_gset _ _).1 hin)] at this
-      exact this
-  · exact CCNoop.shrink (ccApplyM_v1_noop cfg cm hid0 hne)
-
 /-- **The node meets `raftPropose`** (`node.Propose.spec`, and since audit phase B3,
 2026-10-18, `node.ApplyConfChange.spec` in the static mode for a change `ccRaftOk` admits,
 `ccShrink_of_raftOk`): raft's commit invariant and the
@@ -320,7 +291,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   iunfold rnEnvOk at Henv
   icases Henv with ⟨-, %Hn, %Hmode, -, -, -, -, -⟩
   obtain ⟨Hraft, -, -⟩ := Hn
-  obtain ⟨Hstatic, -⟩ := Hmode
+  obtain ⟨Hstd, -, -⟩ := Hmode
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -332,7 +303,9 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   isplitr
   rotate_left
   · -- `ApplyConfChange` (audit phase B3): raft's static mode, a change that keeps the voters
-    iintro !> %c %cm %Hok %Φ !> Hc HΦ
+    iintro !> %c %cm %Hrd %Hok %Φ !> Hc HΦ
+    -- (D43 M3) the static clause is raft's static mode's (`reDyn = none`, `rnEnvOk`)
+    have Hstatic : γ.node.mode = .static := Hstd.2 (by rw [← Hraft]; exact Hrd)
     have hsh : CCShrink γ.node.raft.reCfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
       rw [← Hraft]; exact ccShrink_of_raftOk _ cm Hok
     wp_apply (wp_ApplyConfChange γ.node γ.id γ.nl c (.v1 cm) [] 0 (cfgState ∅ ∅) 0 ⟨W64 0, W64 0, W32 0, []⟩
@@ -380,6 +353,41 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     iexact Hpi
   · iapply applyErrIs_of_propErr cd err $$ Hpkg Herr
 
+/-- **The node meets `raftApplyCCDyn`** (D43 M3, 2026-10-25): in raft's dynamic mode,
+`node.ApplyConfChange.spec`'s dynamic case, with the driver's view and the committed log handed
+out; its answer is the view at `(k + 1, cs')`. -/
+theorem raftApplyCCDyn_of_isNode (γ : RNNames)
+    (wp_ApplyConfChange : letI : MemStorReg GF := ⟨γ.reg⟩;
+      node.ApplyConfChange.spec (GF := GF) (hG := hG))
+    (Hdyn : γ.node.mode.isDyn = true) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnIsNode γ ⊢
+      raftApplyCCDyn γ.node (rnNodeIface γ) := by
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  iintro ⟨#Hpraft, #Hnode⟩
+  ihave #Hnode' : isNode γ.node γ.id γ.nl $$ []
+  · iunfold rnIsNode at Hnode; iexact Hnode
+  iunfold raftApplyCCDyn
+  iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro; exact Hdyn
+  iintro !> %c %cm %ds %ca %cfg %k %e %cs' %Hpre %Φ !> ⟨Hc, Hcfg, #Hdl⟩ HΦ
+  have Hnst : γ.node.mode ≠ .static := fun h => by rw [h] at Hdyn; simp [RNMode.isDyn] at Hdyn
+  wp_apply (wp_ApplyConfChange γ.node γ.id γ.nl c (.v1 cm) ds ca cfg k e cs'
+      (fun h => absurd h Hnst) Hpre) $$ [Hc Hcfg]
+    as %csp %cs ⟨Hcs, Hpost⟩
+  · iframe #
+    iframe Hc
+    iright
+    iexact Hcfg
+  icases Hpost with (⟨%Hst, -⟩ | ⟨-, Hcfg, -⟩)
+  · exact absurd Hst Hnst
+  iapply HΦ
+  iframe Hcfg
+  iexists cs
+  iexact Hcs
+
 /-- **The node meets `isRaftNodeIfc`** but for `Stop` (`rnStopOk`, the premise): `Ready` from
 `node.Ready.spec` (`rnReadyP` is raft's `readyP`), `Advance` from `node.Advance.spec` (the
 static mode's premise vacuous, the storage the `MemoryStorage`: `rnEnvOk`), `Tick` from
@@ -391,7 +399,9 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     (wp_Ready : letI : MemStorReg GF := ⟨γ.reg⟩; node.Ready.spec (GF := GF) (hG := hG))
     (wp_Advance : letI : MemStorReg GF := ⟨γ.reg⟩; node.Advance.spec (GF := GF) (hG := hG))
     (wp_Tick : letI : MemStorReg GF := ⟨γ.reg⟩; node.Tick.spec (GF := GF) (hG := hG))
-    (wp_ReadIndex : letI : MemStorReg GF := ⟨γ.reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG)) :
+    (wp_ReadIndex : letI : MemStorReg GF := ⟨γ.reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG))
+    (wp_ApplyConfChange : letI : MemStorReg GF := ⟨γ.reg⟩;
+      node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ srvCommittedInv s E.γr ∗
       rnStopOk γ.nl ∗ rnMemStorReg γ ⊢
@@ -403,11 +413,18 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
   iunfold rnEnvOk at Henv
   icases Henv with ⟨%HT, %Hn, %Hmode, -, -, -, -, %HRQ⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
-  obtain ⟨Hstatic, Hstor, Hns⟩ := Hmode
+  obtain ⟨-, -, Hstor, Hns⟩ := Hmode
   iunfold isRaftNodeIfc
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
   · ipureintro; rfl
+  isplitr
+  · -- (D43 M3) the dynamic mode's `ApplyConfChange`
+    cases hd : γ.node.mode.isDyn
+    · ileft; ipureintro; rfl
+    · iright
+      iapply raftApplyCCDyn_of_isNode γ wp_ApplyConfChange hd
+      iframe Hpraft Hnode
   isplitr
   · -- `Ready`
     iintro !> %Φ !> - HΦ
@@ -419,12 +436,13 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     iexact Hch
   isplitr
   · -- `Advance`
-    iintro !> %d %ce %es %p %Φ !> ⟨Hbusy, Hrcpt⟩ HΦ
-    iunfold rnBusy at Hbusy
-    icases Hbusy with ⟨Hbusy, %ca, %cfg, Hcfg⟩
+    iintro !> %d %ce %es %p %Φ !> ⟨Hbusy, Hcv, Hrcpt⟩ HΦ
+    iunfold rnBusyN at Hbusy
+    -- (D43 M3) the view after the batch: in the dynamic mode its conf entries applied (A1)
+    icases rnCfgAt_open γ (d ++ ce) $$ Hcv with ⟨%ca, %cfg, Hcfg, %Hnc, Hcl⟩
     iunfold rnAppendReceipt at Hrcpt
     wp_apply wp_Advance γ.node γ.id γ.nl (rnLogOf γ (d ++ ce)) (es.map EntryModel.toM) ca cfg p none
-      (fun h => by rw [Hstatic] at h; simp [RNMode.isDyn] at h) $$ [Hbusy Hrcpt Hcfg]
+      Hnc $$ [Hbusy Hrcpt Hcfg]
       as ⟨Hdrv, Hcfg, #Hw⟩
     · iframe #
       rw [Hstor]
@@ -434,11 +452,10 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     -- (D22 S-d4) the floor's witness: raft's no-snapshot mode
     icases reqWit_none γ.node _ (.inl Hns) $$ Hw with ⟨%x, #Hfl, %Hx⟩
     iapply HΦ
-    isplitl [Hdrv Hcfg]
+    isplitl [Hdrv Hcfg Hcl]
     · iunfold rnDrv
       iframe Hdrv
-      iexists ca, cfg
-      iexact Hcfg
+      iapply Hcl $$ Hcfg
     -- (D19i part 1) the floor's witness, the `MemoryStorage`'s
     iunfold memFloorAtLeast
     iexists x

@@ -220,20 +220,57 @@ def rnReadyP (_E : RNEnv GF) (γ : RNNames) (rd : Ready) : IProp GF :=
   letI : MemStorReg GF := ⟨γ.reg⟩
   readyP γ.node rd
 
+/-- **The driver's view of the configuration after the committed log `L`** (`nodeCfg`, which
+`Advance` takes and returns; D43 M3, 2026-10-25): in raft's dynamic mode the view after
+`pre ++ L`, every conf entry of it applied (`srvCfgView`, `InvCfgView.lean`); in the static mode
+any `nodeCfg`. -/
+def rnCfgAt (γ : RNNames) (L : List EntryModel) : IProp GF :=
+  if γ.node.mode.isDyn then srvCfgView γ.node γ.pre L
+  else iprop(∃ (ca : Nat) (cfg : CCState), nodeCfg γ.node ca cfg)
+
+/-- (D43 M3) The view opened for `Advance`: raft's `nodeCfg`, with in the dynamic mode every conf
+entry of the log handed out applied (A1), and back. -/
+theorem rnCfgAt_open (γ : RNNames) (L : List EntryModel) :
+    rnCfgAt (GF := GF) γ L ⊢ ∃ (ca : Nat) (cfg : CCState), nodeCfg γ.node ca cfg ∗
+      ⌜γ.node.mode.isDyn = true → NoConfIn (rnLogOf γ L) ca (rnLogOf γ L).length⌝ ∗
+      (nodeCfg γ.node ca cfg -∗ rnCfgAt γ L) := by
+  unfold rnCfgAt
+  split
+  · unfold srvCfgView
+    iintro ⟨%ca, %cfg, Hc, %Hok⟩
+    iexists ca, cfg
+    iframe Hc
+    isplitr
+    · ipureintro; intro _; exact Hok.2.1
+    iintro Hc
+    iexists ca, cfg
+    iframe Hc
+    ipureintro; exact Hok
+  · iintro ⟨%ca, %cfg, Hc⟩
+    iexists ca, cfg
+    iframe Hc
+    isplitr
+    · ipureintro; intro h; simp_all
+    iintro Hc
+    iexists ca, cfg
+    iexact Hc
+
 /-- The driver, idle, handed the committed log `L` so far: raft's `nodeDriver` at `pre ++ L`,
-with the driver's view of the configuration (`nodeCfg`, which `Advance` takes and returns); (D22l)
-`p` the hard state of the last `Ready` with a non-empty one (raft's `prevHardSt`). -/
+with the driver's view of the configuration after `L` (`rnCfgAt`); (D22l) `p` the hard state of
+the last `Ready` with a non-empty one (raft's `prevHardSt`). -/
 def rnDrv (γ : RNNames) (L : List EntryModel) (p : HardStateM) : IProp GF :=
   letI : MemStorReg GF := ⟨γ.reg⟩
-  iprop(nodeDriver γ.node γ.id γ.nl (rnLogOf γ L) p ∗
-    ∃ (ca : Nat) (cfg : CCState), nodeCfg γ.node ca cfg)
+  iprop(nodeDriver γ.node γ.id γ.nl (rnLogOf γ L) p ∗ rnCfgAt γ L)
 
 /-- The driver with a `Ready` in hand, handed the committed log `d ++ ce`, to append `es`
-before `Advance`: raft's `nodeDriverBusy`. -/
-def rnBusy (γ : RNNames) (d ce es : List EntryModel) (p : HardStateM) : IProp GF :=
+before `Advance`: raft's `nodeDriverBusy`, without the view. -/
+def rnBusyN (γ : RNNames) (d ce es : List EntryModel) (p : HardStateM) : IProp GF :=
   letI : MemStorReg GF := ⟨γ.reg⟩
-  iprop(nodeDriverBusy γ.node γ.id γ.nl (rnLogOf γ (d ++ ce)) (es.map EntryModel.toM) p ∗
-    ∃ (ca : Nat) (cfg : CCState), nodeCfg γ.node ca cfg)
+  nodeDriverBusy γ.node γ.id γ.nl (rnLogOf γ (d ++ ce)) (es.map EntryModel.toM) p
+
+/-- The driver with a `Ready` in hand (`rnBusyN`) and its view after the log before it, `d`. -/
+def rnBusy (γ : RNNames) (d ce es : List EntryModel) (p : HardStateM) : IProp GF :=
+  iprop(rnBusyN γ d ce es p ∗ rnCfgAt γ d)
 
 /-- A read credit for one `ReadIndex` (raft's `rdCred`, by the node's names). -/
 def rnReadCred (γ : RNNames) : IProp GF := rdCred γ.node.raft 1
@@ -266,8 +303,11 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
       uint.Z E.γr.raft.ai0 = γ.pre.length⌝ ∗
     -- (D22 S-d4, 2026-10-21) in raft's no-snapshot mode (`RaftNames.reNoSnap`): no `Ready` hands
     -- out a snapshot (`readyP_none`), and `Advance` gives the floor's witness (`reqWit_none`)
-    ⌜γ.node.mode = RNMode.static ∧ γ.node.stor = memStorIface γ.ms ∧
-      γ.node.raft.reNoSnap = true⌝ ∗
+    -- (D43 M3, 2026-10-25) the node's mode: static exactly when raft's names are (until then
+    -- static only), and in the dynamic mode at the server's decoder
+    ⌜(γ.node.mode = RNMode.static ↔ γ.node.raft.reDyn = none) ∧
+      (∀ dec c0 h0 h1, γ.node.mode = .dyn dec c0 h0 h1 → dec = srvDec) ∧
+      γ.node.stor = memStorIface γ.ms ∧ γ.node.raft.reNoSnap = true⌝ ∗
     -- (2026-10-19, D21 M3) the storage's cap at least `1` (`compactRaftLog`'s compaction at `1`)
     ⌜1 ≤ γ.γs.cap⌝ ∗
     □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft γ.node.id st ∗
@@ -391,10 +431,13 @@ layer can take, and if `nil` the registration `E.RQ id n` (persistent): a read i
 the committed index at the call (the read loop's `isReadRaft`). -/
 def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗
+    -- (D43 M3, 2026-10-25) in raft's dynamic mode, its `ApplyConfChange` (the apply thread's)
+    (⌜γ.node.mode.isDyn = false⌝ ∨ raftApplyCCDyn γ.node n) ∗
     □ ({{ True }} (App (Val #(methods ni.ty go!"Ready" ni.v)) (Val #()))
       {{ (ch : Loc), RET #ch; isHandshake (V := Ready) γ.node.readyc ch (rnReadyP E γ) iprop(True) }}) ∗
+    -- (D43 M3) with the view after the batch (in the dynamic mode its conf entries applied)
     □ (∀ (d ce es : List EntryModel) (p : HardStateM),
-      {{ rnBusy γ d ce es p ∗ rnAppendReceipt γ es }}
+      {{ rnBusyN γ d ce es p ∗ rnCfgAt γ (d ++ ce) ∗ rnAppendReceipt γ es }}
         (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
       -- (D19i part 1) and the storage's floor at least the committed log handed out
       {{ RET #(); rnDrv γ (d ++ ce) p ∗ memFloorAtLeast γ.ms γ.γs (γ.pre ++ d ++ ce).length }}) ∗
@@ -540,17 +583,20 @@ theorem entriesAt_of_entRO (ls : List Loc) (es : List EntryM) :
 server's data derived): the idle driver at `L` learns the payload's log is `L`, and is busy with
 it; the messages persisted (`msgOwn_persist`), `E.C` of the committed log (`rnEnvOk`), the entries
 fit (`rnLogFits`), the read states answered (`rnReadStateBridge`); each message with the read
-credit raft hands out with it (2026-10-19, D21 stage M1; until then dropped). -/
+credit raft hands out with it (2026-10-19, D21 stage M1; until then dropped); (D43 M3) and the
+committed log handed out through the batch (`dlvLb`, persistent: raft's `ApplyConfChange` checks a
+conf change against it). -/
 theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : HardStateM)
     (rd : Ready) :
     rnEnvOk E γ -∗ rnLogFits γ -∗ rnReadStateBridge E γ -∗ rnDrv γ L p -∗ rnReadyP E γ rd ={⊤}=∗
-      ∃ ce es p', rnReadyData E γ rd L ce es p p' ∗ rnBusy γ L ce es p' := by
+      ∃ ce es p', rnReadyData E γ rd L ce es p p' ∗ rnBusy γ L ce es p' ∗
+        dlvLb γ.node (rnLogOf γ (L ++ ce)) := by
   letI : MemStorReg GF := ⟨γ.reg⟩
   iintro #Henv #Hfits #Hbr Hdrv HP
   iunfold rnEnvOk at Henv
   icases Henv with ⟨-, %Hn, %Hmode, -, #HM, #HC, -, -⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
-  obtain ⟨-, Hstor, Hns⟩ := Hmode
+  obtain ⟨-, -, Hstor, Hns⟩ := Hmode
   iunfold rnReadyP at HP
   -- (D22 S-d4) no snapshot: raft's no-snapshot mode
   icases readyP_none γ.node rd (.inl Hns) $$ HP with ⟨%d, %ce, %es, %ms, %p0, %p', Hd, Hrof, Hdata, #Hlb⟩
@@ -633,8 +679,10 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : H
       iframe Hvs
       iapply rnReadStates_of_raft E γ vs sts $$ Hbr Hrs2 Hrsok
     ipureintro; exact Hsnap
+  isplitl [Hcfg Hd Hds Hrof Hreq]
   · iunfold rnBusy
     iframe Hcfg
+    iunfold rnBusyN
     iunfold nodeDriverBusy
     iframe Hnode
     rw [EntryModel.map_toM_ofM, rnLogOf_append, EntryModel.map_toM_ofM]
@@ -645,6 +693,8 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : H
     isplitr
     · ipureintro; rfl
     iexact Hreq
+  · rw [rnLogOf_append, EntryModel.map_toM_ofM]
+    iunfold dlvLb; iexact Hlb
 
 /-! ## The other components -/
 
@@ -830,6 +880,24 @@ theorem rnRtOk_of_hsWit (γ : RNNames) (t : w64) (p' : HardStateM) (n : Nat)
       iright; iexists p'.Commit'
       iframe Hcw; ipureintro; exact Hn
 
+/-- (D43 M3, 2026-10-25) A batch has a `ConfChange` entry (raft.go's `confChanged` scan). -/
+def ccIn [FfiSyntax] (ce : List EntryModel) : Bool := ce.any (fun m => decide (m.typ = W32 1))
+
+/-- (D43 M3) The driver's view goes to the apply thread with the batch `ce`: raft's dynamic mode
+and a conf entry in it (the apply thread applies it; the second `notifyc` send brings the view
+back). -/
+def rnHands (γ : RNNames) (ce : List EntryModel) : Bool := γ.node.mode.isDyn && ccIn ce
+
+/-- (D43 M3) What the apply thread's `notifyc` receive deposits: the view after the batch, if it
+went along. -/
+def rnApR (γ : RNNames) (F ce : List EntryModel) : IProp GF :=
+  if rnHands γ ce then rnCfgAt γ (F ++ ce) else iprop(True)
+
+/-- (D43 M3) What goes along with the batch: the view after `F` and the committed log handed out
+through the batch (`dlvLb`), if `rnHands`. -/
+def rnApGive (γ : RNNames) (F ce : List EntryModel) : IProp GF :=
+  if rnHands γ ce then iprop(rnCfgAt γ F ∗ dlvLb γ.node (rnLogOf γ (F ++ ce))) else iprop(True)
+
 /-- The `i`th payload on `applyc`: the log `F` forwarded before it (`cum[i]`) and the batch
 `ce` it extends it with (`cum[i + 1] = F ++ ce`, committed), no snapshot, and its two channels;
 and (2026-10-14, unit C2a) the committed index at least the batch's last index (`committedLast`:
@@ -838,7 +906,10 @@ def rnApP (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
   iprop(∃ (F ce : List EntryModel) (ceL : List Loc),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) (F ++ ce) ∗
     ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (F ++ ce) ∗ ⌜ap.snapshot' = null⌝ ∗
-    isUnitBag ap.notifyc' ∗
+    -- (D43 M3, 2026-10-25) `notifyc`, with the receive's right: the receive deposits `rnApR`
+    (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' (rnApR γ F ce) ∗ notifyRcv γnc) ∗
+    -- (D43 M3) a batch the driver's view goes with (`rnHands`): the view after `F`
+    rnApGive γ F ce ∗
     -- (D19i part 1) closed once `Advance` returned: the storage's floor past the batch
     rnAdvChan ap.raftAdvancedC' (memFloorAtLeast γ.ms γ.γs (γ.pre ++ F ++ ce).length) ∗
     committedLast E.γr ce ∗
@@ -853,11 +924,11 @@ theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) :
       rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length := by
   iintro H
   iunfold rnApP at H
-  icases H with ⟨%F, %ce, %ceL, #H1, #H2, #H3, #H4, #H5, %H6, #H7, #H8, #H9, #Hrt⟩
-  isplitr
+  icases H with ⟨%F, %ce, %ceL, #H1, #H2, #H3, #H4, #H5, %H6, H7, HG, #H8, #H9, #Hrt⟩
+  isplitl [H7 HG]
   · iunfold rnApP
     iexists F, ce, ceL
-    iframe H1 H2 H3 H4 H5 H7 H8 H9 Hrt
+    iframe H1 H2 H3 H4 H5 H7 HG H8 H9 Hrt
     ipureintro; exact H6
   iexists F, ce
   iframe H2 Hrt

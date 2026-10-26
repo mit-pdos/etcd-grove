@@ -166,12 +166,16 @@ PROJECTS = [
         # `goose-lean-getproph2` (on 188113160; `goose-lean-getproph`'s 942601555 made on
         # 2aed163b1, cherry-picked): `kubernetes.Client.Get` resolves a prophecy with its
         # response's revision and the key's mod revision (bc9c3868c; verification only, a no-op
-        # in Go).
+        # in Go). Then (D43 M3, 2026-10-25) branch `goose-lean-leaderwait` (on bc9c3868c): the
+        # leader's raft loop waits for its apply loop before `Advance` when a `Ready` commits a
+        # conf change, as a follower's does (4d9282b0f,
+        # issues/etcd-leader-advance-before-applyconfchange.md; raft's dynamic mode needs a
+        # `Ready`'s conf changes applied before `Advance`).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="bc9c3868ced67e518fb2fecba44ce0fa70b7303b",
+        rev="4d9282b0fb0922133a0a9b92d05268aef7efa44a",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
