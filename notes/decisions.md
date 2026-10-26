@@ -20903,6 +20903,67 @@ lose their workload parameter, with the same meaning: `plainEntryOn m`, `plainLo
 became a record of compaction, base and changes). After the merge: 718 axioms, 6 sorries (lean's 721
 less the three server axioms `origin/lean` proved).
 
+## E2w of the auth plan: the server's construction over the mode's KV invariant (2026-10-26 · `notes/auth-plan.md`, E2p's item 5)
+
+**Done.** `NewServer.specM on` takes the mode's KV invariant `kvInvM on ρ.rd.raft ρ.rd.kv srvAuthSt0`
+(`kvInvOn` at `on = true`, E2q) instead of `kvInv`, so `server_new_auth_on`'s precondition is no
+longer unsatisfiable (E2p's finding): `kvInvOn`'s start chain agrees with the spec's
+(`kvInvOn_ch0`), and it is allocated at the bootstrap log as `kvInv` is (`kvInvOn_alloc_boot`,
+`ServerOn.lean`). `NewServer`'s proof hands its KV invariant to four rows; each now has a
+mode-indexed counterpart (`ServerOn.lean`), today's at `on = false` by definition:
+
+- the raft environment's committed-log clause: `srvCM on` (`srvC` with `logShapeM on`: `logShapeOn`
+  admits the admitted admin requests), `srvErM on`, the workload clause `clusterWorkloadOkM on` and
+  its derivation from `kvInvM on` (`clusterWorkloadOkM_of`; mode on: `clusterWorkloadOkOn_of`, over
+  `batchWaitOk_of_claims`, which needs only the conf changes' ids), the raft wrapper's discharge
+  (`rnEnvOk_of_clusterM`), the ticker (`rnTickerOk_srvErM_S`), `srvCM_agree`;
+- the certificates' invariant `kvCertInvM on` (`kvCertInvOn`, E2t) and its allocation;
+- the request path's row `srvReqBuiltM on` and the apply thread's `srvKVInvsM on` (at `on = true`
+  `srvKVInvsOn … srvAuthSt0`, `srvKVInvsM_true`);
+- the built part `srvBuiltG on` (`srvBuilt` with the three above).
+
+The proof of `NewServer.wp_proofM` changed only in names (`srvErM on`, `kvCertInvM_alloc on`,
+`rnEnvOk_of_clusterM on`, `clusterWorkloadOkM_of on`, `unfold srvBuiltG/srvReqBuiltM/srvKVInvsM`,
+`srvCM_agree on`); `NewServer.wp_proof` rewrites the mode-off instances (`kvInvM_false`,
+`srvErM_false`, `srvBuiltG_false`).
+
+**The start's auth state.** The mode-`on` KV model starts from `srvAuthSt0 := bump bootState`, the
+store's latest at the server's start (`newAuthStore_boot`'s history `[bootState, bump bootState]`).
+Fixed in the definitions rather than a parameter of the spec: the apply thread's later proof must tie
+the model's auth state to the store's, which holds only at that state.
+
+**The proposal's update in the mode `on`** (`ProposeOn.lean`, `kv_prop_au_on`; the design decided
+2026-10-26): over `kvInvOn`, a proposal (`reqPropOkOn`: `reqPropOk`'s no-write case and its
+at-most-once write case, with every permission of the cache's shape, `kvShapeAll`, so the entry is
+determinate at any state, `commitOkOn_plain`) gives raft's `srvPropAu1`. A write's client update
+fires at the commit only if the model's auth state after the committed log grants it (`grantedAt`);
+otherwise the client's update is put back unfired, the KV state kept (`kvModelOn_snoc_refused`) and
+the result says so (`grantedRes`: granted with `kvRes`, or `⌜¬ grantedAt⌝`). A write-free request
+keeps the state either way (`kvEntryOn_nonwrite`).
+
+**Also.** `KVAuthModel.lean`'s `relState` is renamed `authRelState`: it clashed with raft's
+`relState` (`releasePendingReadIndexMessages.lean`) in any module importing both, as `ServerOn.lean`
+and `NewServer.lean` do.
+
+**Exported statements changed.** `NewServer.specM` (its precondition's KV invariant and ticker
+environment, its post's built part and raft environment); `KVAuthModel`'s `relState` renamed. No
+closed theorem changed; `NewServer.spec` keeps its text. New: `ServerOn.lean`'s and
+`ProposeOn.lean`'s definitions and theorems.
+
+**Trust base.** Unchanged (718 axioms, 6 sorries).
+
+**Not done** (the mode-`on` server's run; each consumes `srvBuiltG true`):
+1. `start`/`run` and the apply thread over `srvKVInvsOn`: `isServerBuilt_of_gap`'s mode-`on`
+   counterpart, the apply loop's step `kv_applied_step_on` with E2s's outcome (`outcomeOn`, E2v).
+2. The proposers (`EtcdServer.Put`/`Txn`/`DeleteRange`, `InvProposer`'s `isServerReq`) over
+   `srvReqBuiltM true` and `kv_prop_au_on`; the gRPC handlers turning `grantedRes`'s refusal and the
+   apply thread's refusal into the client's error; the read path (`kvReadAu`, `kv_read_compose`)
+   over `kvInvOn`.
+3. The admin proposers (`setupAuthOk`): `reqPropOkOn` has no admin case yet; an admin entry keeps
+   the KV state (`kvModelOn_snoc_admin`) but needs its determinacy (`authDet`) at the commit's
+   state.
+4. `NewServerAlloc`'s mode-`on` allocation path (the callers': `kvInvOn_alloc_boot` is its KV part).
+
 ## E2v of the auth plan: the empty request granted; the admin chain carrying the tie; the auth applier's outcome as the model's (2026-10-26 · `notes/auth-plan.md`)
 
 Three items from E2s/E2t/E2u's "left".
