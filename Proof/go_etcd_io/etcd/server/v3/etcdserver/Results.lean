@@ -1931,6 +1931,49 @@ end goroutines
 #print axioms Perennial.EtcdGrove.wait_new
 #print axioms Perennial.EtcdGrove.idutil_next
 
+section serverProposeOn
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The proposer's handoff in the auth mode `on`** (the auth plan's E3b, `ReqOn.lean`): the
+result at the header the server stamps, the applied result's auth verdict the model's grant at the
+committed prefix before the entry (`resPostM true`, `authTie`). Every callee linked. -/
+theorem server_process_irr_on :
+    EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) true :=
+  EtcdServer.processInternalRaftRequestOnce.wp_proofM true EtcdServer.wp_getAppliedIndex
+    EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit
+    idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx wp_getRequestType proto.wp_MarshalIRR
+    config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext
+    (EtcdServer.parseProposeCtxErr.wp_proofM true errors.wp_IsCtxErr time.Time.wp_After
+      EtcdServer.wp_getLead EtcdServer.wp_MemberID membership.RaftCluster.wp_Members
+      wp_isConnectedToQuorumSince wp_isConnectedSince)
+    context.wp_ErrDone strconv.wp_FormatBool time.Duration.wp_Seconds
+    prometheus.HistogramVec.wp_WithLabelValues
+
+/-- `raftRequest` in the auth mode `on`, every callee linked. -/
+theorem server_raft_request_on :
+    EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true :=
+  EtcdServer.raftRequest.wp_proofM true server_process_irr_on trace.wp_SpanFromContext
+    context.wp_ValueStartTime traceutil.Trace.wp_GetStartTime traceutil.Trace.wp_SetStartTime
+    traceutil.Trace.wp_InsertStep traceutil.Trace.wp_LogIfLong
+
+/-- **A put in the auth mode `on`**: a success is a put the auth state its entry met granted, its
+client's result at the log the entry met; a refusal an error. Every callee linked. -/
+theorem server_put_on : EtcdServer.Put.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.Put.wp_proofOn server_raft_request_on PutRequest.wp_GetKey traceutil.Tracer.wp_Start
+    trace.wp_WithAttributes «attribute».wp_String context.wp_WithValue
+
+/-- **A delete in the auth mode `on`** (`server_put_on`'s). Every callee linked. -/
+theorem server_delete_range_on : EtcdServer.DeleteRange.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.DeleteRange.wp_proofOn server_raft_request_on DeleteRangeRequest.wp_GetKey
+    DeleteRangeRequest.wp_GetRangeEnd traceutil.Tracer.wp_Start trace.wp_WithAttributes
+    «attribute».wp_String
+
+end serverProposeOn
+
 end EtcdGrove
 end Perennial
 #print axioms Perennial.EtcdGrove.server_run
@@ -1939,3 +1982,6 @@ end Perennial
 #print axioms Perennial.EtcdGrove.start_gives_views
 #print axioms Perennial.EtcdGrove.scheduler_fifo
 #print axioms Perennial.EtcdGrove.server_raft_node_start
+
+#print axioms Perennial.EtcdGrove.server_put_on
+#print axioms Perennial.EtcdGrove.server_delete_range_on
