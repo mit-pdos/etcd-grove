@@ -177,7 +177,10 @@ def memberBoot (W : SrvWorkload) (γ : RaftNames) (bud : BudgetNames) (bootLog :
     mvcc.idxFresh E₀.γ.idx ∗
     ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
     ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
-    srvReadNamesFreshNK ρ.rd ∗ kvInv ρ.rd.raft ρ.rd.kv)
+    srvReadNamesFreshNK ρ.rd ∗ kvInv ρ.rd.raft ρ.rd.kv ∗
+    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names raft's
+    -- names give it (`RaftNames.reSnapLoc`, `NewServer`'s)
+    ∃ γd : GName, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))
 
 /-- **A member built** (`newServer`'s success): the server `s` built by `NewServer` with the
 request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`, auth off, from a

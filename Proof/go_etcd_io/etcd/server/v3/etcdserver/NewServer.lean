@@ -263,7 +263,7 @@ theorem NewServer.wp_proof
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
     (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr
+  intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir γd HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok
   wp_start
   iNamed Hpre
@@ -740,8 +740,9 @@ theorem NewServer.wp_proof
     exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1, Hrn2],
       by rw [Hrn1]; exact Hnosnap.1, hb, by rw [Hrn1]; exact Hnoxfer⟩
   -- (D22 S-i) the member's snapshot directory, empty (a fresh data directory), for the
-  -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j)
-  imod (snapDir_alloc bs.ss' γn.N.img (fun _ => iprop(True)) ⊤) with ⟨%γd, #Hsdir⟩
+  -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j); (2026-10-26, D22 J2) at
+  -- the names raft's names give the member (`RaftNames.reSnapLoc`, `snapDir_init`)
+  imod (snapDir_init bs.ss' γd γn.N.img (fun _ => iprop(True)) ⊤) $$ Hsdir with #Hsdir
   ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
   -- (rafthttp stage 6d) the member's URLs, read-only; it is a member of the directory (raft's peer)

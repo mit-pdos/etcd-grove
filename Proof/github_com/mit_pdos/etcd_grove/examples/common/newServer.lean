@@ -48,7 +48,7 @@ theorem newServer.wp_proof
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, Hghost, #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx,
-    Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv⟩
+    Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hρ
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
@@ -70,7 +70,7 @@ theorem newServer.wp_proof
   imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
   have hblen' : γ.reBoot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
-      γ bud id bootLog ρ E₀ N Φs γn dir hraft hpol hc0 hch hlog hcok
+      γ bud id bootLog ρ E₀ N Φs γn dir γd hraft hpol hc0 hch hlog hcok
       (by rw [hwl]; exact HW) Hlg (by simp) rfl Htb Hrb48 HrbN
       -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48`
       (by
@@ -79,7 +79,7 @@ theorem newServer.wp_proof
         simp only [hne, if_false, h48]
         omega)
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok)
-    $$ [Hghost HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg] as %srv %err Hres
+    $$ [Hghost HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -96,6 +96,7 @@ theorem newServer.wp_proof
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
+    isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
