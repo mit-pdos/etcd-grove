@@ -79,12 +79,15 @@ lease_lessor__SetRangeDeleter:
 # The lessor's apply-side methods (the backend's unit 9, 2026-10-13), see lease/InvLessor.lean and
 # lease/LessorBackend.lean: `Grant`, `Checkpoint` and their callees, `ExpiredLeasesC`; the apply
 # package's and the server's lessor contracts are derived from them (apply/LessorDerive.lean,
-# LessorOk.lean). The trust boundary: container/heap's Push and Fix (names only), api/v3/version's
+# LessorOk.lean). container/heap's Push and Fix are proved, with the sift loops up and down they
+# call (translated by this repository: Code/container/heap.toml). The trust boundary: api/v3/version's
 # LessThan, schema's MustUnsafePutLease (protobuf's Marshal), and the lessor's
 # scheduleCheckpointIfNeeded and Promote (float-to-integer conversions) and Demote (the close of
 # demotec).
-heap_Push:
-heap_Fix:
+heap_up:
+heap_down:
+heap_Push: heap_up
+heap_Fix: heap_down heap_up
 version_LessThan:
 schema_MustUnsafePutLease:
 lease_LeaseQueue__Len:

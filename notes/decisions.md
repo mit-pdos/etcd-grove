@@ -21300,6 +21300,59 @@ changed, and no closed theorem proves less:
   M4 (merged in the second `lean`) generalized (`rcLockInv` at any side condition): the build
   passes; no root reaches the axiom yet (J8b).
 
+## `utf8.ValidString` proved (2026-10-26)
+
+`utf8.ValidString.wp_proof` (`Spec/unicode/utf8/ValidString.lean`, unchanged: it returns
+`decide (utf8Valid s)`) was a trust-boundary axiom, `unicode/utf8` names-only. It is now a theorem
+over Go 1.27's source:
+
+- **Translation.** `Code/unicode/utf8.toml` translates `ValidString`, `word` (generic over
+  `string | []byte`; goose instantiates it at `string`, `FuncUnfold word [T]`), the tables `first`
+  and `acceptRanges` (their initializers: array literals) and the constants they use (`ptrSize`
+  evaluates to `8`: the 64-bit build, so `word`'s 32-bit branch is `if false`). The rest stays
+  names-only.
+- **Package fact.** `utf8Init` (`Proof/unicode/utf8/Base.lean`, where the `IsPkgInit` instance
+  moved from `v3rpc/Base.lean`): `first ↦□ array.mk 256 firstTable` and
+  `acceptRanges ↦□ array.mk 16 acceptTable`, the tables as Lean lists. `etc/gen-init.py`'s
+  `SPECIAL['unicode.utf8']` proves it from the initializer (the stored literals are the lists, by
+  `rfl`; `first`'s 256 `let`s need `maxRecDepth`). With both initializers translated the package's
+  `opaqueInitsOk` axiom is gone too.
+- **Proof.** `Proof/unicode/utf8/word.lean` (`word(s)` is `wordOf s`, the first eight bytes
+  little-endian); `ValidAscii.lean` (pure: ASCII bytes do not change `utf8ValidB`; the mask test
+  `wordOf s &&& 0x8080808080808080 = 0` makes the eight bytes ASCII, bit by bit, not `bv_decide`,
+  whose proof rests on native evaluation); `ValidTable.lean` (pure: the tables against
+  `utf8Lead`, by `decide +kernel` over the 256 bytes, and `validB_lead`, one step of `utf8ValidB`
+  at a byte `≥ 0x80` as Go's switch on `first[b] & 7` with `acceptRanges[first[b] >> 4]`);
+  `ValidString.lean`: the loop invariant is `utf8ValidB s = utf8ValidB str` for the remaining
+  `s`, the same for the ASCII fast path's inner loop (joined with `wp_join … at next`).
+  `utf8ValidB` turned out to be exactly Go's `ValidString`: no mismatch.
+
+Trust base: 721 → 719 axioms (`utf8.ValidString.wp_proof`, `unicode.utf8.opaqueInitsOk`), 6
+`sorry`s unchanged; the baseline and the nine collections that listed them updated.
+
+## `container/heap`'s `Push` and `Fix` proved (2026-10-26)
+
+`heap.Push` and `heap.Fix` were trust-boundary axioms (`container/heap` names only, a
+standard-library package Perennial does not translate). This repository's `etcd` project now
+translates `Fix`, `Push` and the sift loops `up`, `down` they call (`Code/container/heap.toml`;
+the rest of the package stays names only), and proves them over the same generic interface
+`heap.heapIface h R E`:
+
+- `up`/`down` get their own specs (`Spec/container/heap/{up,down}.lean`): `up(h, j)` for `j` in
+  range, `down(h, i0, n)` for `i0` in range and `n` the length (`down` returns a Boolean, left
+  unconstrained: `Fix` only needs that `up` is then called in range, which the permutation gives);
+  both end with the contents a permutation of the start. Their loop invariant is the index in
+  range and the contents a permutation of the start (`listSwap_perm`, `Proof/container/heap/Lemmas.lean`,
+  from Perennial's `Permutation_insert_swap`); `up`'s parent `(j-1)/2` in `[0, j]` is `word`'s
+  (`parent_range`), `down`'s child `2i+1` in range from the loop's own checks (`j1 >= n || j1 < 0`;
+  `j1+1` cannot overflow since `j1 < n`).
+- The specs of `Fix` and `Push` are unchanged; their proofs (and `up`'s, `down`'s) take
+  `[container.heap.Assumptions]` (the generated `FuncUnfold` facts), which the server's
+  `Assumptions` provides through `lease`'s import. `heapIface` gains a `Persistent` instance.
+- The heap order is still not tracked (only permutations): the lessor needs no more.
+
+Trust base: -2 axioms (`heap.Fix.wp_proof`, `heap.Push.wp_proof`).
+
 ## `verify.Assert` proved; the axiom survey of 2026-10-26 (2026-10-26 · reducing the axiom count)
 
 `verify.Assert` is translated with its body (`Code/.../client/pkg/v3/verify.toml`: `Assert`, and
@@ -22440,3 +22493,68 @@ apply-thread step, the borrow through `srvAuthApplyResB`'s lens and `adminW_of_b
 `authApplyResB`'s `isAuthStepsX`, as `srv_uberKVL_on` does for the KV side).
 
 **Trust base.** Unchanged (no axiom, no `sorry`).
+
+
+## Features without re-proving: state records, named conjuncts, bundled callees, lifted wrappers (2026-10-26 · proposed; the user asked for it written up)
+
+**Status: proposed**, not yet adopted. It is the first step of L3b part 2 of `notes/leases-plan.md`
+if the user adopts it; the auth and snapshot tracks work in the same apply-layer files, so it is
+recorded here for them to weigh first.
+
+**The problem.** Over the last sessions most of the cost of a new feature has not been new
+reasoning but the mechanical breakage it causes in proofs that do not use it. In the leases unit
+(T3), sessions of 2026-10-24 to 2026-10-26:
+
+- *L3b part 2 needs the lessor's live set in the apply relation* (a leased put is rejected iff its
+  lease is not live), and the apply layer's specs take the state's components one by one
+  (`(log : mvcc.Log)`, `kvOwn E log`, `mPre E c a info log …`, `chainStep backendStep c rq log o`).
+  Adding one component (the lease table) touches about 130 files, 45 of them specs, though only
+  the put, transaction, grant and revoke appliers read it. The apply thread already has a record
+  (`apply.ApplyKV`: `log`, `chain`); the specs do not take it.
+- *Positional destructuring.* Adding a conjunct to a pre- or postcondition breaks every
+  `icases … ⟨H1, …, -, H11⟩` downstream: in this unit's merges, mvcc's `retiredAt` (`Hret`, from
+  the snapshot track) against the deleter (`Hro`, from leases) in `New`, `newWatchableStore`,
+  `StoreBackend`, `BuildLemmas`, `Results`, `NewServer`; the revoke rights in `lessorUser` in five
+  of the snapshot track's files; the lease check in `Txn`'s success. Each is a one-token fix found
+  only by a full build.
+- *Positional hypothesis lists.* `NewServer.wp_proofM` takes `h0 … h94`; its wrapper, `Results`'
+  restatements, and the snapshot walk (`applySnapshot_walk`, `wp_proof_snap`) list them again.
+  Adding the backend's `UnsafeDelete` spec (L2) meant editing each list by hand.
+- *Wrappers restate the inner relation.* Each applier layer (corrupt, capped, auth, quota,
+  `dispatch`, `Apply`) states its own copy of the relation (`chainStep backendStep (.corrupt c) …`),
+  so changing the backend's relation reaches every layer's spec.
+- *Merges.* `lean` moved 3 to 80 commits between this branch's merges, mostly in the same apply
+  files; each of the patterns above turns a parallel change into a conflict.
+
+**The proposal** (four changes, each local in its effect once made):
+
+1. **Specs over state records** (CLAUDE.md's "Records", applied to the apply layer). The applier
+   specs, `kvOwn`, `mPre`/`mPost`/`kvPostF` and the relations (`backendStep`, `dispatchStep`,
+   `applyStep`) take `x : apply.ApplyKV` (or a record of what the KV side of the apply thread
+   holds) instead of `log`; a spec that reads only the log uses `x.log`. A new component (the
+   lease table now; an auth state or alarm set later) is then a field: only its readers change.
+2. **Named conjuncts in the large resources** (`"Hx" ∷ P`, destructured with `iNamed`, as
+   Perennial's struct predicates are): `kvOwn`, `lessorUser`, the mvcc constructors' posts
+   (`New`, `newWatchableStore`, `server_kv_watchable_of`), `snapWalkPost`, the server's built rows.
+   A new conjunct then breaks only the proofs that use it.
+3. **Bundled callee specs.** A structure per linking theorem (e.g. `ServerCallees` for
+   `NewServer`'s 95 hypotheses), one argument instead of the list; `etc/gen-link.py` fills it from
+   the linked names. A new callee is one field and one line of the generated link.
+4. **Wrappers as lifts.** A wrapper layer's spec states the inner layer's spec lifted (its own
+   rejections, else the inner outcome), with one lifting lemma per layer; changing the backend's
+   relation then touches the backend and the lemmas only.
+
+Two practices go with it: a **default argument at a definition** where the default is honestly
+the old meaning (L3a's `kvStateOf l (lt := [])` kept about 135 call sites unchanged), and
+**module-level checking while editing** (`lake build <module>`, `etc/lean-check.py`), keeping full
+builds (15 to 25 minutes each in these sessions) for the end of a step.
+
+**Cost and order.** (1) for the apply layer is the same set of files L3b part 2 would edit anyway
+to thread the table through today's signatures, so doing it first costs about the same and leaves
+the next feature local. (2) to (4) can be done file by file when a file is next touched. Merge into
+`lean` in small steps, so the other tracks build on the new signatures early.
+
+**Rejected.** Hiding the lease table in ghost state so the specs keep their text (the relation is
+pure, and its outcome must be exact for the model's step: the table has to appear in it); a
+degenerate L3b over an always-empty live set (correct today, since no grant is admitted, but L3c
+would redo the threading).
